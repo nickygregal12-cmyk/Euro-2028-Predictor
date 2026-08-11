@@ -6,6 +6,39 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-ninth entry)
+
+**The application is promoted to contract 174, and the "contract 145" figure everything had been repeating was stale.** The owner authorised the application promotion on 11 August 2026 in those words.
+
+### The correction first, because it changes what the promotion is
+
+Every live authority — and three pull-request bodies written earlier this evening — said *the deployed application remains at contract 145*. **Measured against Netlify rather than against the last number somebody wrote down, it was at 171.**
+
+The owner set `EURO28_DEPLOYED_DB_CONTRACT=171` on both production contexts at **15:32**, and merging #702 at **16:54** triggered Netlify's own repository build, which passed the prebuild gate and published commit `9196e145` — a tree carrying exactly 171 migrations, confirmed with `git ls-tree` and that commit's own `deployment-contract.json`. So the application had already moved five hours before the sentence was last repeated.
+
+**The claim that mattered survives**: 171 is below 172, so nothing in the 172–174 range was browser-reachable when the database reached 174. But the stated reason was wrong by twenty-six contracts, and it is corrected in the live authorities rather than deleted. **The deployed contract is a measured value** — read `EURO28_DEPLOYED_DB_CONTRACT` and the live deploy's `commit_ref`; a figure in a document is a claim about the past.
+
+### What the promotion actually required
+
+Nothing in the repository. The prebuild gate in `scripts/validate-deployment-contract.mjs` demands, for the `production` context only, an **exact** match between `EURO28_DEPLOYED_DB_CONTRACT` and the repository's `contractVersion`. Both projects declared 171 against a repository at 174, so every production build since #699 would have failed before Vite ran. That is the guard working, not a fault.
+
+Both declarations were moved 171 → **174**, production context only, and read back:
+
+| Project | Site id | `EURO28_DEPLOYED_DB_CONTRACT` (production) | `VITE_SITE_VARIANT` | Production Supabase |
+| --- | --- | ---: | --- | --- |
+| `euro28predictor` | `c69da01a…` | **174** (22:44:24Z) | `euro` | `vkfnsqdyhvtwyqkisxhk` |
+| `predictorhub` | `88356cfb…` | **174** (22:46:27Z) | `hub` | `vkfnsqdyhvtwyqkisxhk` |
+
+Nothing else was touched on either project. The non-production contexts still declare 171; they point at Development, which is at 174, so their next preview build will print the "hosted database behind" notice and proceed. That notice is now inaccurate rather than harmful, and correcting it is a separate, deliberately unclaimed step.
+
+**The MCP endpoint returned `502` three times during this work, twice on a write.** A 502 on a write is ambiguous, so each was resolved by **reading the variable back** rather than by retrying blind: the first Euro write had genuinely not landed (`updated_at` unmoved at 15:32:48), and the retry succeeded. No value was written twice and none was written unverified.
+
+### Two findings recorded rather than fixed
+
+**`predictorhub` production carries Cloudflare's always-pass Turnstile test key** (`1x00000000000000000000AA`). `euro28predictor` production carries a real key. `current-status.md` says only non-production contexts use the test key and "production retains a separate real key" — true of the Euro site, false of the Hub. Impact today is bounded because that project sits behind Team SSO, but the Hub's bot protection is inert and would matter the moment the site is opened. **Not changed here**: a production Turnstile key is an auth-adjacent decision and is not part of "promote the application".
+
+**`promotionAuthorised` stays `false`, and that is not a contradiction.** Two scripts pin it there — `check-hosted-migration-inventory.mjs` and the backup authority in `production-hosted-contract-expectations.mjs`, whose message is "Backup authority must not imply production promotion is authorised". It is a fail-closed property **of the record**, not a live statement that no promotion has occurred. Flipping it would fail CI, and editing those guards to permit `true` would be weakening a deployment-contract check to make an acceptance pass. It was left alone.
+
 ## Current state — 11 August 2026 (thirty-eighth entry)
 
 **Production is at contract 174.** Guarded rollout run [31534872592](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31534872592) applied contracts 172, 173 and 174 from exact `main` `1965bf9`, on the owner authorisation recorded in the thirty-seventh entry. Backup `31532241788` and rehearsal `31533963740` were verified **by the rollout against the API** rather than asserted by whoever dispatched it; the dry run asserted the three files by name with `diff`; and `check-migration-additive.mjs` ran as a **gate**. Backup, rehearsal and rollout all ran from the same commit.
@@ -78,7 +111,7 @@ The narrower claim those notes were reaching for — that the 159→171 boundary
 | Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | LEVEL WITH REPOSITORY |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706`; see the thirty-third entry. Promotion to 174 authorised, pair built, **not yet run**. | THREE BEHIND REPOSITORY |
 
-**The application is not part of this.** The deployed site remains at contract 145, so nothing in the 172–174 range becomes browser-reachable on Production by this promotion. Application promotion is a separate, separately approved milestone.
+**The application is not part of this.** ~~The deployed site remains at contract 145~~ — **that figure was already stale when this entry was written, and the correction is the thirty-ninth entry's subject.** The deployed application was at contract **171** from 16:54 that day, not 145. The claim that mattered here is unaffected: 171 is below 172, so nothing in the 172–174 range became browser-reachable by the database promotion. Application promotion is a separate, separately approved milestone.
 
 ## Current state — 11 August 2026 (thirty-sixth entry)
 
