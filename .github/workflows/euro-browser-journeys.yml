@@ -1,0 +1,148 @@
+name: Euro browser journeys
+
+# THE HARNESS LANDS BEFORE THE ROUTES, AND THAT ORDERING IS WHY THIS IS
+# DISPATCH-ONLY.
+#
+# `EURO-001` requires Euro 2028 to be completely hidden from the weekly
+# platform. Its route half has been blocked since PR #702 on one missing thing,
+# which the register states in its own words: withdrawing the tournament's
+# routes from the Hub build "deletes the `euro-2028-baseline` return evidence
+# rather than moving it, because there is no Euro-variant browser configuration
+# for those specs to run under". `playwright.euro.config.ts` is that
+# configuration, and this workflow is how it is run.
+#
+# What it CANNOT do yet is pass. `src/App.tsx` does not register `/predict`,
+# `/match/:matchRef`, `/games`, `/league/overall`, `/prediction-trends` or
+# `/competitions/euro/2028/original`, and `tests/app/parkedEuroBoundary.test.ts`
+# asserts their absence, because `MASTER-TODO.md` parks the remaining Euro scope
+# to January 2028. The fourteen journeys below drive routes that are not
+# registered. Adding this to `ci.yml` or `browser-e2e.yml` today would attach
+# fourteen permanently-red checks to every pull request, and the usual next step
+# for a suite nobody can make green is to delete it — which would destroy the
+# `euro-2028-baseline` return evidence this whole arrangement exists to keep.
+#
+# So it follows `visual-contracts.yml`: reachable on demand, gated into pull
+# requests only once its prerequisite has landed.
+#
+# WHAT WOULD CHANGE THAT. The tournament routes being registered against
+# `VITE_SITE_VARIANT=euro` — the work sequenced behind PR #707's variant route
+# dispatcher. When that lands:
+#
+#   1. run this workflow on the branch and read the result. It is the first
+#      evidence the parked journeys still work, and the first time they have
+#      been executed since the routes were withdrawn;
+#   2. rewrite `parkedEuroBoundary.test.ts` as a VARIANT boundary — the
+#      tournament tree must stay unreachable from the HUB build, rather than
+#      from the application at all. Rewritten, never deleted: the fact it
+#      guards changes shape, it does not stop mattering;
+#   3. add a `pull_request` trigger below, filtered to the paths that can move
+#      these journeys.
+#
+# Until step 1 has been read by a person, a green run here proves the harness
+# builds the Euro product — not that the journeys pass.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  euro-journeys:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - uses: supabase/setup-cli@v2
+        with:
+          version: 2.84.2
+          github-token: ${{ github.token }}
+
+      - name: Install application dependencies
+        run: npm ci
+
+      - name: Install Chromium and system dependencies
+        run: npx playwright install --with-deps chromium
+
+      - name: Start disposable local Supabase
+        uses: ./.github/actions/start-local-supabase
+
+      - name: Rebuild from committed migrations and seed
+        run: supabase db reset --local
+
+      # The same disposable catalogue the weekly browser job publishes. The
+      # parked journeys cover Bonus Games and a private league alongside the
+      # tournament, so trimming this to "just the tournament" would fail four of
+      # the fourteen on missing fixtures rather than on anything real.
+      - name: Publish disposable browser catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_CONTAINER='supabase_db_euro-2028-predictor-local'
+          docker exec -i "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            < scripts/bonus-games/publish-catalogue.sql
+          docker exec -i "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            < e2e/bonus-games-fixture.sql
+          docker exec -i "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            < e2e/league-season-fixture.sql
+          docker exec "$DB_CONTAINER" \
+            psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
+            --command='grant select on table public.bonus_competitions to service_role;'
+
+      - name: Export local-only browser environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase status -o env > /tmp/supabase.env
+          # shellcheck disable=SC1091
+          source /tmp/supabase.env
+          : "${API_URL:?Supabase API_URL missing}"
+          : "${ANON_KEY:?Supabase ANON_KEY missing}"
+          : "${SERVICE_ROLE_KEY:?Supabase SERVICE_ROLE_KEY missing}"
+          MAIL_URL="${INBUCKET_URL:-http://127.0.0.1:54324}"
+          {
+            echo "E2E_SUPABASE_URL=$API_URL"
+            echo "E2E_SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "E2E_MAIL_URL=$MAIL_URL"
+            echo 'E2E_USER_EMAIL=e2e@euro28.local'
+            echo 'E2E_USER_PASSWORD=E2e-local-only-2028!'
+            echo "VITE_SUPABASE_URL=$API_URL"
+            echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo 'VITE_DEV_AUTOLOGIN=true'
+            echo 'VITE_DEV_USER_EMAIL=e2e@euro28.local'
+            echo 'VITE_DEV_USER_PASSWORD=E2e-local-only-2028!'
+          } >> "$GITHUB_ENV"
+
+      # `VITE_SITE_VARIANT=euro` is set by the config's own webServer command
+      # rather than here, so running `npm run test:e2e:euro` locally builds the
+      # same product this job does. A second copy in this file would be a second
+      # thing to keep in step, and the one that drifted would be silent.
+      - name: Run the parked Euro 2028 journeys
+        run: npm run test:e2e:euro
+
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-euro
+          path: |
+            playwright-report-euro/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Stop and delete disposable local data
+        if: always()
+        run: supabase stop --no-backup

@@ -5,6 +5,15 @@
  * widen to the whole active weekly suite. Tournament-only browser journeys
  * whose routes were deliberately retired from the weekly frontend are retained
  * as parked Euro 2028 return evidence and are never selected against this App.
+ *
+ * "Never selected against THIS App" is the precise claim, and it is unchanged.
+ * `PARKED_EURO_SPECS` now has somewhere to run — `playwright.euro.config.ts`
+ * collects exactly this list against a `VITE_SITE_VARIANT=euro` build — but
+ * that is a different product from the one this selector narrows, so nothing
+ * here selects it. `playwright.euro.config.ts` is deliberately absent from
+ * `ALWAYS_FULL_SUITE` for the same reason `playwright.visual.config.ts` is: it
+ * cannot affect a weekly journey. An edit to it still falls through to the
+ * full suite as an unmapped path, which is the conservative direction.
  */
 
 import { execFileSync } from 'node:child_process'
