@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
 import { Link, Outlet } from 'react-router'
 import { useSite } from '../../app/site/SiteProvider'
+import { AuthScreen } from './AuthScreen'
 import { AuthSplash } from './AuthSplash'
 import {
   fetchEuroPublicationState,
@@ -99,32 +100,38 @@ function EuroSignupClosed({ state }: { state: EuroLandingState }): ReactElement 
   const sibling = site.routes.siblingSiteOrigin
 
   return (
-    <div className={s.closedPanel}>
-      <p className={s.closedEyebrow}>{presentation.status}</p>
-      <h1 className={s.closedHeading}>Euro 2028 registration is not open.</h1>
-      <p className={s.closedBody}>
-        Accounts for {site.brand.productName} open when the tournament does. Nothing
-        is being withheld from you — there is nothing to enter yet.
-      </p>
-
-      {sibling ? (
+    // The same shell the form it replaces uses. A refusal rendered as bare text
+    // on the page background reads as a broken screen, which is the impression
+    // a closed state must not give — the tournament is not open, the product is
+    // not broken.
+    <AuthScreen>
+      <div className={s.closedPanel}>
+        <p className={s.closedEyebrow}>{presentation.status}</p>
+        <h1 className={s.closedHeading}>Euro 2028 registration is not open.</h1>
         <p className={s.closedBody}>
-          {site.routes.siblingSiteName} is running now and uses the same account, so
-          signing up there is enough for both sites when this one opens.{' '}
-          <a className={s.closedLink} href={`${sibling}/auth/signup`} rel="noreferrer">
-            Create an account on {site.routes.siblingSiteName}
-          </a>
+          Accounts for {site.brand.productName} open when the tournament does. Nothing
+          is being withheld from you — there is nothing to enter yet.
+        </p>
+
+        {sibling ? (
+          <p className={s.closedBody}>
+            {site.routes.siblingSiteName} is running now and uses the same account, so
+            signing up there is enough for both sites when this one opens.{' '}
+            <a className={s.closedLink} href={`${sibling}/auth/signup`} rel="noreferrer">
+              Create an account on {site.routes.siblingSiteName}
+            </a>
+            .
+          </p>
+        ) : null}
+
+        <p className={s.closedBody}>
+          Already have an account?{' '}
+          <Link className={s.closedLink} to="/auth/login">
+            Sign in
+          </Link>
           .
         </p>
-      ) : null}
-
-      <p className={s.closedBody}>
-        Already have an account?{' '}
-        <Link className={s.closedLink} to="/auth/login">
-          Sign in
-        </Link>
-        .
-      </p>
-    </div>
+      </div>
+    </AuthScreen>
   )
 }

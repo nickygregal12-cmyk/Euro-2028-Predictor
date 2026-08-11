@@ -140,10 +140,14 @@ export function EuroLandingPage({
                   <span className={s.gameMark} aria-hidden="true">
                     {game.name.slice(0, 1)}
                   </span>
-                  <span className={s.gameMeta}>
-                    <strong>{game.name}</strong>
-                    <span>{game.summary}</span>
-                  </span>
+                  {/* The Hub's own row shape. `gameMeta` is the small uppercase
+                      meta column beside a row, not the row's body: putting the
+                      name and the summary inside it ran them together as one
+                      unspaced line of uppercase grey. */}
+                  <div>
+                    <h3>{game.name}</h3>
+                    <p>{game.summary}</p>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -166,10 +170,10 @@ export function EuroLandingPage({
                       <span className={s.gameMark} aria-hidden="true">
                         {game.name.slice(0, 1)}
                       </span>
-                      <span className={s.gameMeta}>
-                        <strong>{game.name}</strong>
-                        <span>{game.summary}</span>
-                      </span>
+                      <div>
+                        <h3>{game.name}</h3>
+                        <p>{game.summary}</p>
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -194,7 +198,7 @@ export function EuroLandingPage({
                     .join(', ')}{' '}
                   runs every matchweek of the Premier League and the Scottish
                   Premiership, on the same account —{' '}
-                  <a href={sibling} rel="noreferrer">
+                  <a className={s.textLink} href={sibling} rel="noreferrer">
                     play it on {site.routes.siblingSiteName}
                   </a>
                   .

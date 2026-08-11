@@ -6,6 +6,9 @@ import { railGroups } from '../../src/app/railDestinations'
 import { globalNavItems } from '../../src/app/site/navigation'
 import { siteConfiguration } from '../../src/app/site/siteConfiguration'
 import { siteGames } from '../../src/app/site/siteGames'
+import { siteBrandCopy } from '../../src/app/site/sitePublicMetadata'
+import { SiteProvider } from '../../src/app/site/SiteProvider'
+import { AuthScreen } from '../../src/features/auth/AuthScreen'
 
 /**
  * Both deployments' navigation, rendered in one process.
@@ -139,6 +142,39 @@ describe('the games each deployment leads with', () => {
       'lms:bonus',
       'championship:bonus',
     ])
+  })
+})
+
+describe('the auth screens', () => {
+  it('introduce the product the visitor is actually on', () => {
+    // Both the name and the tagline were hard-coded to the weekly platform, so
+    // every Euro auth screen introduced itself as the other product — on the
+    // screen where somebody decides whether to create an account.
+    for (const site of [HUB, EURO]) {
+      const view = render(
+        <SiteProvider configuration={site}>
+          <AuthScreen>
+            <p>form</p>
+          </AuthScreen>
+        </SiteProvider>,
+      )
+      expect(
+        within(view.container).getByRole('heading', { level: 1, name: site.brand.productName }),
+      ).toBeTruthy()
+      expect(view.container.textContent).toContain(siteBrandCopy(site.variant).tagline)
+      view.unmount()
+    }
+  })
+
+  it('never shows one deployment the other’s name', () => {
+    const euro = render(
+      <SiteProvider configuration={EURO}>
+        <AuthScreen>
+          <p>form</p>
+        </AuthScreen>
+      </SiteProvider>,
+    )
+    expect(euro.container.textContent).not.toContain(HUB.brand.productName)
   })
 })
 
