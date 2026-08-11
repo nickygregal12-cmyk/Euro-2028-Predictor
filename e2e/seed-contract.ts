@@ -864,13 +864,29 @@
  *     seeded fixture can start failing on one.
  *   - `rotate_league_invite_code` is a new name called by nothing.
  *
+ * Contract 159 narrows `resolve_invite_code` — it stops returning the target's
+ * `id` and the member count, and starts charging the same 20/min
+ * `league_invite_probe` limit contract 158 gave the other two doors. Measured
+ * rather than assumed: `grep -rn resolve_invite_code src/ e2e/ tests/` finds
+ * exactly ONE hit, the generated `database.types.ts` entry, whose return type is
+ * `Json` and therefore does not narrow. No seeded journey calls it, no fixture
+ * reads either removed field, and the limit is far above what a journey spends.
+ *
+ * Contract 160 adds `season_table_rules`, `season_table_adjustments` and
+ * `season_fixture_awards` — all three created EMPTY and revoked from every
+ * browser role — plus `get_competition_table` and three administrator writes,
+ * all new names called by nothing. It alters no existing relation, redefines no
+ * existing function and adds no trigger to an existing table, so nothing a
+ * seeded journey reads can have moved. Its one trigger fires only on
+ * `season_fixture_awards`, which no seed writes.
+ *
  * THIS MARKER IS RAISED ON CI EVIDENCE, not on local execution. The authoring
  * environment has no seeded database, so no seeded user was driven here. Exact-
  * head Browser E2E is what proves it, and it must be green on the pull request
  * that carries this line — which is the same standard contracts 67, 68 and 69
  * were held to, stated rather than assumed.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 158
+export const SEED_REVIEWED_AT_CONTRACT = 160
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

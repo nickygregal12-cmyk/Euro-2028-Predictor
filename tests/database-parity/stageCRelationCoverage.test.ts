@@ -266,6 +266,19 @@ const PROVIDER_RELATIONS = [
   // deliberately NOT game membership and grants no entry.
   'table:competition_follows',
   'table:pinned_rivals',
+  // Contract 160. The competition's own league-table authority. All three are
+  // browser-revoked and read only through `get_competition_table`: a direct
+  // grant would put a new relation on the Data API surface, which this contract
+  // deliberately does not widen.
+  //
+  // `season_fixture_awards` is the one worth reading twice. It holds a
+  // table-only scoreline for an awarded fixture, BESIDE `season_fixtures` and
+  // never in it, because `season_fixtures.home_score` is what predictions were
+  // settled against — an award written there would silently rescore a settled
+  // matchweek months later.
+  'table:season_table_rules',
+  'table:season_table_adjustments',
+  'table:season_fixture_awards',
 ]
 
 const reviewedRelations = [
@@ -284,10 +297,11 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // 49 → 50 by contract 90's season score store, 50 → 51 by contract 112's
     // provider identity map, and 51 → 52 by contract 114's poll target list.
     // Contract 114's other new table is in `predictor_internal` and so is not
-    // counted here. This count is a positive control on the migration parser:
+    // counted here. Raised 56 → 59 by contract 160's three league-table
+    // relations. This count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(56)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(59)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])

@@ -28,6 +28,34 @@ What is durable enough to state here:
 - Stage C: design baseline, assertion classification, C2 non-interference and the detailed C1 schema overlay are complete. The Stage C1 migration is merged (PRs #317, #349) with hosted rollout tooling and a guarded GitHub workflow (PRs #350, #351); the hosted development apply **completed and was postflight-verified 2–3 August 2026** (PRs #359–#368 hardened the tooling en route). No production write is authorised;
 - lock policy is **game-owned** (ADR 0020, PR #353): the competition supplies identity, calendar and structure; each game supplies its own explicit lock policy, failing closed when missing or incompatible.
 
+## Backend completion sequence — 11 August 2026
+
+The remaining backend workstream, in dependency order. Contracts 159 and 160
+are delivered in the repository; everything below them is **sequenced and not
+started**, and each row says what it waits on rather than when it happens.
+
+| # | Work | State | Depends on |
+| --- | --- | --- | --- |
+| 1 | Invite security: the resolver's probe limit and disclosure | **Delivered — contract 159** | — |
+| 2 | Authoritative domestic standings (`MIG-UI-13`) | **Delivered — contract 160** | settled `season_fixtures` |
+| 3 | Season archive discovery — `get_my_season_history` | Not started | contract 156's `season_wrapped` (exists) |
+| 4 | Action-centre persistence (`MIG-UI-14`) | Not started | existing lock/reveal/entry authorities |
+| 5 | Reminder delivery ledger, provider-neutral (`DFA-012`) | Not started | 4's stable action identity; `profiles.reminder_emails` (exists) |
+| 6 | Last Man Standing post-lock social reads | Not started | contract 116's round read |
+| 7 | Last Man Standing organiser reads | Not started | 6; **any organiser COMMAND needs an accepted product authority first** |
+| 8 | Predictor Championship lifecycle completion | Not started | contracts 111, 124, `settle_season_cup_tie` |
+| 9 | Season administration inspection reads | Not started | contract 138's review-queue read |
+| 10 | Keyset pagination sweep (issue [#129](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/129)) | Partially delivered | `get_season_league_standings` already takes `p_limit`/`p_after`; the rest do not |
+| 11 | Provider normalisation beyond contracts 112/135/144 | Audit first | do not recreate what 112, 117, 132, 135, 144 already hold |
+| 12 | Bounded personal-data export | **Blocked** | issue [#272](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/issues/272) / `PRIV-007`; export may be separable from erasure, which is an owner decision |
+| 13 | Product analytics | **Not to be started** | `MIG-UI-15` needs an ADR before any migration |
+
+Three things in this sequence are deliberately NOT engineering decisions.
+Organiser powers over a managed entrant (7) do not exist in any accepted
+authority, so inventing them in a migration would be a product decision taken by
+a schema. A destructive erasure path (12) is blocked by `PRIV-007` and stays
+blocked. Analytics (13) is a data-processing decision and needs the ADR first.
+
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 
 The accepted sequence in the UI execution authority still governs, but its first items are no longer all open:
@@ -233,6 +261,12 @@ Contract 132 establishes the controlled first-publication authority for real dom
 > taken and never been given.
 
 > **Contract 134 boundary (9 August 2026):** Contract 134 is off the Domestic Frontend Alpha sequence and reorders nothing. It is the `DB-005` least-privilege fix: the rate-limit log is revoked from both browser roles, and the public-table exposure guard is now exhaustive rather than grant-only.
+
+> **Contract 159–160 boundary (11 August 2026):** Contract 159 closes the half of `SEC-001` contract 158 left open on a **second door**. Measured against 158's own committed text: it recreated `public.resolve_invite_code` to widen its shape check from `{6}` to `{6,16}` and carried neither of its two fixes into it — so the UNIVERSAL invite entry point charged **no limiter at all**, and returned the target's `id`, the `members` count and, for a private competition, an ownership flag. That is a wider and cheaper confirmation oracle than the `get_league_preview` `SEC-001` had just forced narrowed, and it covered the private Last Man Standing and Championship containers contract 158 could not have known about. It now charges the SAME `league_invite_probe` action at the SAME ceiling, before the shape check and before the lookup, so all three doors draw on one budget rather than giving an attacker forty attempts a minute across two functions; `id` and `members` are gone for both container kinds, `id` being removable because both joins take a code. `name`, `season`, `game` and the caller-relative flags stay, because a single entry point that cannot route a code would close `SEC-001` by breaking `MIG-UI-07`.
+>
+> Contract 160 closes `MIG-UI-13`, the competition's own league table, which the register recorded as "not approximable in the browser". `season_table_rules` holds each SEASON's points values, ordered tie-break keys and promotion/playoff/relegation boundaries, so a historic table keeps the rules it was played under. `season_table_adjustments` holds signed points deductions with a required reason, and only what is already effective moves today's table. **An awarded outcome is stored beside a fixture and never in it**: `season_fixtures.home_score` is what predictions were settled against, so an award written there would silently restate what every player predicted and rescore a settled matchweek months later — the match stands for the players, and the table is adjusted. Head-to-head is a mini-league among the clubs actually tied on every preceding key, ordering is total by construction, and `get_competition_table` is granted to `authenticated` only and refuses any competition that is not a `league_season`, so it cannot become an `EURO-001` discovery surface. It reads no prediction, entry or score event, and it writes no fixture — both asserted at apply time.
+>
+> **Neither is applied to any hosted environment.** Both are additive and both were executed against a disposable PostgreSQL 16 before commit; their pgTAP suites (`208`, `209`) have **not** been run, because the authoring environment has no Docker daemon.
 
 > **Contract 158 boundary (11 August 2026):** Contract 158 takes the first three things `SEC-001` names. `gen_invite_code` becomes a rejection-sampled CSPRNG over pgcrypto and issues **twelve** characters rather than six, because six drawn from seeded `random()` is a 31^6 space and a keyspace that small is not what protects a private group. `get_league_preview` stops answering any authenticated caller's guess with the league's id, member count and owner's display name — that was a confirmation oracle that turned a guess into a positively identified group complete with a real person's name. Both the preview and the join now charge a `league_invite_probe` limit, because the 5/min membership budget is a trigger on `league_members` and so fired only on a SUCCESSFUL join: an attacker was rate-limited on the one action they were not attempting. `rotate_league_invite_code` makes a leaked code recoverable without deleting the league, and no existing code is rewritten — six-character codes keep working until an owner rotates them. It also widens what contracts 152 to 155 accept: the private-competition and shared-registry code constraints and contract 155's resolver move from `{6}` to `{6,16}`, because those contracts landed after this one was written and would otherwise refuse every code the new generator issues — which would have killed private competition creation outright and looked like a wrong code rather than a broken one. It is **destructive** to `check-migration-additive.mjs`, correctly: `get_league_preview` is dropped and recreated because its return type narrows. So it takes the guarded lane with its backup and rehearsal, never the fast lane.
 

@@ -6,6 +6,21 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-fifth entry)
+
+**The repository is at contract 160. Development and Production both remain at 158.** Contracts 159 and 160 are repository candidates and **no rollout is claimed for either**.
+
+| Contract | Migration | Additive? | Lane it would take |
+| --- | --- | --- | --- |
+| 159 | `20260811100000_invite_resolver_probe_hardening.sql` | yes — one `create or replace function` and one catalogue-reading `do` block | ADR 0024 additive fast lane |
+| 160 | `20260811110000_domestic_league_table.sql` | yes — three new tables, two internal functions, four new public functions, one trigger on a table it creates | ADR 0024 additive fast lane |
+
+**Contract 159 is a security fix and should be sequenced first.** `public.resolve_invite_code` — the universal invite entry point — charged no rate limit and returned the target id and member count, which is a wider and cheaper confirmation oracle than the `get_league_preview` contract 158 narrowed for exactly that reason. Contract 158 recreated the resolver to widen its shape check and carried neither fix into it. Until 159 is applied, both hosted environments hold a probe path that `SEC-001` is otherwise closed on.
+
+**Contract 160 alters no existing relation.** Its three tables are created empty and revoked from every browser role; its one trigger binds to a table the same migration creates; `season_fixtures`, `season_fixture_result_revisions` and the protected result authority are untouched, which the migration asserts at apply time rather than claiming here.
+
+**Both were executed before commit** against a disposable PostgreSQL 16 cluster carrying stand-ins for the relations they depend on. That is *not* the Database parity job and does not substitute for it: it proves the SQL applies and behaves, not that it composes with the full 160-migration chain. `208` and `209` pgTAP have **not** been run — no Docker daemon and no Supabase CLI in the authoring environment.
+
 ## Current state — 11 August 2026 (twenty-fourth entry)
 
 **Repository, Development and Production are level at contract 158.** The twenty-third entry recorded Development reaching 158 with Production one behind; this entry records the Production promotion.

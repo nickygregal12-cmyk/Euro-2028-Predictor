@@ -113,6 +113,13 @@ describe('account deletion — declared foreign-key semantics', () => {
       '20260810230000_player_preferences.sql competition_follows.user_id → cascade',
       '20260810230000_player_preferences.sql pinned_rivals.user_id → cascade',
       '20260810230000_player_preferences.sql pinned_rivals.rival_user_id → cascade',
+      // Contract 160. Both are administrator audit attribution on a competition
+      // decision — who deducted the points, who awarded the fixture — so they
+      // take `set null` like every other audit actor here. The DECISION survives
+      // the account: a nine-point deduction that vanished when the official who
+      // recorded it closed their account would silently restate the table.
+      '20260811110000_domestic_league_table.sql season_table_adjustments.decided_by → set null',
+      '20260811110000_domestic_league_table.sql season_fixture_awards.decided_by → set null',
     ])
   })
 
@@ -178,7 +185,9 @@ describe('account deletion — consequences', () => {
       'game_membership_events.actor_id',
       'match_result_revisions.actor_id',
       'provider_review_acknowledgements.actor_id',
+      'season_fixture_awards.decided_by',
       'season_fixture_result_revisions.actor_id',
+      'season_table_adjustments.decided_by',
     ])
   })
 

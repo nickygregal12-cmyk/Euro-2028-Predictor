@@ -164,6 +164,24 @@ insert into expected_authenticated_functions (signature) values
   ('get_season_club_form(uuid,integer)'),
   ('get_season_club_head_to_head(uuid,uuid,uuid)');
 
+-- Contract 160: the competition's own league table, and the three competition
+-- administration writes that configure it.
+--
+-- All four are `authenticated` rather than `anon`, including the READ. A league
+-- table is public football and could defensibly be anonymous, but making a
+-- function anonymously executable is a publication decision — the one contracts
+-- 147 and 148 also declined to take — and this is not where it gets taken.
+--
+-- The three writers are `authenticated` and gate INSIDE on
+-- `require_competition_admin`, which is the same shape as every other
+-- administrator write here: the grant admits a signed-in caller and the function
+-- decides. `080` asserts the grant; `209` asserts the refusal.
+insert into expected_authenticated_functions (signature) values
+  ('get_competition_table(uuid)'),
+  ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),
+  ('admin_record_table_adjustment(uuid,uuid,integer,text,timestamptz)'),
+  ('admin_award_fixture_outcome(uuid,smallint,smallint,text)');
+
 -- Contract 59: the bounded post-lock Original Predictor consensus read.
 -- Contract 66: generic game catalogue/membership and game-scoped leagues.
 insert into expected_authenticated_functions (signature) values
