@@ -6,7 +6,34 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — 11 August 2026 (twentieth entry)
+## Current state — 11 August 2026 (twenty-first entry)
+
+**Repository, Development and Production are level at contract 157.** The twentieth entry recorded Development reaching 157 with Production six behind; this entry records the Production promotion.
+
+**The order was backup, rehearsal, rollout, and the rollout checked the first two itself.** It is not enough that a backup was taken — the workflow confirms against the API that the named runs concluded success and are the workflows they claim to be, because "take a backup first" survives exactly as long as the person in a hurry remembers it.
+
+| Step | Run | Result |
+| --- | --- | --- |
+| Encrypted, restore-verified backup | `31445515426` | success, before any write |
+| Pinned 151→157 rehearsal (first attempt) | `31445831137` | **refused** — see below |
+| Pinned 151→157 rehearsal | `31446161436` | success |
+| Guarded rollout | `31446392236` | success, from exact main `9e29c8d` |
+
+**The first rehearsal refused on a defect in the rehearsal, not in the batch.** Its precondition step reads the restored copy BEFORE the apply — deliberately, so contract 152's backfill is compared against a count measured beforehand rather than a number written into the workflow — and it asked for a count over `bonus_competitions.name`, a column contract 152 ADDS. At that instant the copy is contract 151 and the column does not exist. Everything before it had already succeeded: the four-file dump, the restore carrying Production's own privilege shape rather than a fresh stack's defaults, the `season_fixtures` browser-grant check on the restored copy, and the source boundary at exactly 151. Fixed in `9e29c8d`; the backup did not need retaking and Production was read-only throughout.
+
+**Verified independently, not from the rollout's own output.** 157 rows ending `20260810230000_player_preferences`; four new relations carrying **zero** `anon`/`authenticated`/`PUBLIC` table grants; contract 152's backfill covering Production's 1 league invite code with no competition row invented; **zero** private competitions, so the `NOT VALID` identity constraint had nothing to tolerate here — that concession exists for one legacy Development row and Production never needed it; `season_wrapped`, `competition_follows` and `pinned_rivals` all empty; ten new public functions executable by `authenticated` and by no anonymous role; contract 153's narrowed `join_competition_game` refusing a private competition; the Euro publication state still `hidden`.
+
+**Nothing player-owned moved**: 1 auth user, 1 profile, 2 entries, 36 match predictions, 1 league, 10 competitions and 578 season fixtures, all unchanged across the migration.
+
+**What this did NOT do.** It created no private league, Last Man Standing or Championship — it added the authorities a player uses to create one, and every container arrived empty. It did not publish Euro 2028. It did not promote the application: the deployed site remains at contract 145, so **no browser can yet reach any of these ten functions**. It imported no football.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **157** | 157 canonical migrations through `20260810230000_player_preferences.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **157** | Fast-lane run `31444748121`, independently confirmed. | LEVEL |
+| Production Supabase | **157** | Project `vkfnsqdyhvtwyqkisxhk`. Rollout run `31446392236` gated on backup `31445515426` and rehearsal `31446161436`, independently confirmed. | LEVEL |
+
+## Superseded — 11 August 2026 (twentieth entry)
 
 **Development is at contract 157. Production remains at 151.** The nineteenth entry recorded contracts 152 to 157 as a repository candidate applied to neither hosted environment; this entry records what happened when they were applied, and it is not a tidy story.
 
