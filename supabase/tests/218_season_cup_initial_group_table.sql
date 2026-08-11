@@ -261,8 +261,8 @@ update public.bonus_competition_windows
 
 select is(
   pg_catalog.substring(
-    pg_catalog.pg_get_functiondef('predictor_internal.cup_final_group_tables(uuid)'::regprocedure)
-    from '(sequence\s+between\s+1\s+and\s+3)'),
+    pg_catalog.pg_get_functiondef('predictor_internal.cup_final_group_tables(uuid)'::regprocedure),
+    '(sequence\s+between\s+1\s+and\s+3)'),
   'sequence between 1 and 3',
   'the tournament table is unchanged: it still bounds its windows to the three it plays');
 

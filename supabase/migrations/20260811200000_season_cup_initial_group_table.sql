@@ -739,9 +739,14 @@ begin
   -- ADR 0014 §5.2's key order must be identical in both initial tables. Read
   -- from the catalogue and compared, because contract 124 established that
   -- reading a hand-copied tail does not catch a substituted tie-break.
-  if pg_catalog.substring(v_season from 'order by(.*?)\)::integer as group_rank')
+  -- The two-argument form, NOT `substring(x from y)`. That SQL-standard syntax
+  -- is only recognised for the UNQUALIFIED name: schema-qualify it and the
+  -- parser reads `from` as the start of a FROM clause and refuses the
+  -- migration. Found by Database parity, because the first local run applied
+  -- these functions without their assertion block and so never executed it.
+  if pg_catalog.substring(v_season, 'order by(.*?)\)::integer as group_rank')
      is distinct from
-     pg_catalog.substring(v_tournament from 'order by(.*?)\)::integer as group_rank') then
+     pg_catalog.substring(v_tournament, 'order by(.*?)\)::integer as group_rank') then
     raise exception
       'The two initial group tables disagree about the tie-break sequence';
   end if;
