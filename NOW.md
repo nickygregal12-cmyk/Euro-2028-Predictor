@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **171** | latest `20260811220000_league_prediction_cap_honesty.sql` |
-| Development hosted | **168** | at `20260811190000_season_admin_inspection.sql`, verified `2026-08-11T12:20:00.000Z`, fast-lane run `31489582932` |
+| Development hosted | **171** | at `20260811220000_league_prediction_cap_honesty.sql`, verified `2026-08-11T14:26:00.000Z`, fast-lane run `31499058072` |
 | Production | **158** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 3 — `20260811200000_season_cup_initial_group_table.sql`, `20260811210000_matchweek_prediction_actions.sql`, `20260811220000_league_prediction_cap_honesty.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 172. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.

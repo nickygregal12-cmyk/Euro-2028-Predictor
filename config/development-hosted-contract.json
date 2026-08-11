@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 168,
-  "latestMigrationVersion": "20260811190000",
-  "latestMigrationName": "season_admin_inspection",
-  "verifiedAt": "2026-08-11T12:20:00.000Z",
+  "requiredMigrationCount": 171,
+  "latestMigrationVersion": "20260811220000",
+  "latestMigrationName": "league_prediction_cap_honesty",
+  "verifiedAt": "2026-08-11T14:26:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout of contracts 159 to 168, confirmed by separate read-only query against supabase_migrations.schema_migrations (168 rows, latest 20260811190000) and by naming the fourteen new functions in pg_proc",
-    "workflowRunId": 31489582932,
-    "repositoryHead": "2be5c8f682fb12200c63a36d6504889c1554c045"
+    "source": "Development fast-lane rollout of contracts 169 to 171, confirmed by separate read-only queries against supabase_migrations.schema_migrations (171 rows, latest 20260811220000, with the three new versions named individually) and by counting the batch's four new predictor_internal functions in pg_proc",
+    "workflowRunId": 31499058072,
+    "repositoryHead": "dd345ca680dd0841d5832f4de7ad3d42ee1099c8"
   }
 }

@@ -6,9 +6,36 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-second entry)
+
+**The repository is at contract 171. Development is now hosted at 171. Production remains at 158.**
+
+Contracts 169 to 171 merged as PR #694 at `dd345ca680dd0841d5832f4de7ad3d42ee1099c8` and were applied to Development through `development-fast-lane-rollout.yml`, run [31499058072](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31499058072).
+
+| Query, taken after the rollout | Development | Production |
+| --- | --- | --- |
+| `count(*)` of `supabase_migrations.schema_migrations` | **171** | **158** |
+| `max(version)` | `20260811220000` | `20260811000000` |
+| The three new versions, named individually | all present | absent |
+| The batch's four new `predictor_internal` functions in `pg_proc` | 4 of 4 | — |
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **171** | 171 canonical migrations through `20260811220000_league_prediction_cap_honesty.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **171** | Fast-lane run `31499058072` from exact main `dd345ca`, independently confirmed by the queries above. | LEVEL |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`; re-queried after this rollout and still 158. | THIRTEEN BEHIND REPOSITORY, BY DESIGN |
+
+**What this did NOT do.** It published no Euro 2028 (contract 143 stays `hidden`), launched no competition, drew no Championship, scheduled no job — `process_player_action_items` remains `service_role`-only and unscheduled, so contract 170's generator has produced nothing — sent nothing, imported no football, and promoted no application. The deployed site remains at contract 145, so **no browser can reach any of this**.
+
+**Two observation notes for the next reader, both about not trusting a status field.**
+
+The Actions API reported this run's job `in_progress` on the snapshot step for **twenty-five minutes after it had finished**. The cancel endpoint is what disproved it: it refused with "Cannot cancel a workflow run that is completed" while the same API's job status still said otherwise. This is the second run today where those step statuses were badly stale.
+
+Worse, and new: a `select count(*), max(version)` against the development ledger kept returning **168** for twenty-five minutes after the migrations had in fact been applied, while a row-level `select version ... where version > ...` against the same table in the same session returned all three new rows. The aggregate was being served from cache. **A hosted claim should be checked by naming the rows expected, not by counting them** — a count can be stale in a way that a named-row query is not, and a count is exactly the shape that looks most like proof.
+
 ## Current state — 11 August 2026 (thirty-first entry)
 
-**The repository is at contract 171. Development is hosted at 168. Production remains at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
+**The repository stood at contract 171 in this entry, with Development at 168. Development is hosted at 168. Production remains at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |
