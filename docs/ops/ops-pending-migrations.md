@@ -6,9 +6,31 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (thirty-first entry)
+
+**The repository is at contract 171. Development is hosted at 168. Production remains at 158.** Contracts 169, 170 and 171 are repository candidates applied to neither, and all three are additive.
+
+| Contract | Migration | What it is |
+| --- | --- | --- |
+| 169 | `20260811200000_season_cup_initial_group_table.sql` | A season Championship group table measured over the season it plays |
+| 170 | `20260811210000_matchweek_prediction_actions.sql` | The action centre's matchweek generator, and a sweep that re-derives a matchweek's lock |
+| 171 | `20260811220000_league_prediction_cap_honesty.sql` | A deterministic, self-declaring cap on the two league prediction reads |
+
+**None creates a table, schedules a job, or writes anything on apply.** All three define functions only. `process_player_action_items` remains `service_role`-only and unscheduled by any migration.
+
+**Contract 171 changes no signature**, so nothing a browser calls today breaks. Both keys it adds are additive: every key either read emitted before, it still emits.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **171** | 171 canonical migrations through `20260811220000_league_prediction_cap_honesty.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contracts 169 to 171 pending. | THREE BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | THIRTEEN BEHIND REPOSITORY, BY DESIGN |
+
+`218`, `219` and `220` are written and **have not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on their pull request is what runs them.
+
 ## Current state — 11 August 2026 (thirtieth entry)
 
-**The repository is at contract 170. Development is hosted at 168. Production remains at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
+**The repository stood at contract 170 in this entry. Development is hosted at 168. Production remains at 158.** Contracts 169 and 170 are repository candidates applied to neither, and both are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |

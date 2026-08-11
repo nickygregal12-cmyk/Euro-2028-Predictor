@@ -422,5 +422,6 @@ same paragraph existed in seven places at once.
 | 165–168 | Organiser reads with **no organiser command**, the multi-group Championship draw and its reader, and the administration inspection `DFA-009` records as absent |
 | 169 | The season Championship group table stops ranking thirty-eight matchdays on the first three — a defect contract 167 made browser-reachable an hour after shipping |
 | 170 | The action centre learns about the matchweek card, and its expiry sweep learns the second authority a matchweek's lock lives in |
+| 171 | A cap with no ordering is an arbitrary choice presented as a table — contract 149's, found and closed |
 
-*Current to contract 170.*
+*Current to contract 171.*

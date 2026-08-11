@@ -74,5 +74,6 @@ same paragraph existed in seven places at once.
 | 168 | **None.** It supplies the inspection `DFA-009` records as absent; the decisions stay with contract 132 |
 | 169 | **None.** ADR 0014 §5.2's tie-break sequence is carried across unchanged and in the same order; only the SPAN its middle keys are measured over changes, and only for a league season |
 | 170 | **None.** The matchweek action reuses `competition_rounds.window_opens_at` and the derived matchweek lock; no new rule decides when a card is due |
+| 171 | **None.** Both reads keep their reveal boundaries and their caps; only the cap's ORDER and its honesty change |
 
-*Current to contract 170.*
+*Current to contract 171.*

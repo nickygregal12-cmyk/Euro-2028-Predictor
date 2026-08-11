@@ -933,8 +933,13 @@
  * counter. No relation, policy, trigger or browser grant moves, and the seed
  * never runs the job — so a seeded user's action inbox is empty at 170 exactly
  * as it was at 169, and no seeded read gains a gate.
+ *
+ * Contract 171 redefines two reads without changing either signature, either
+ * grant, either membership gate or either reveal boundary, and adds only keys.
+ * A seeded league is far below both caps, so both reads answer a seeded user
+ * exactly as they did at 170 with `members_truncated` false.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 170
+export const SEED_REVIEWED_AT_CONTRACT = 171
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

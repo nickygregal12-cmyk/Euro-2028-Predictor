@@ -321,7 +321,8 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 165–168 | Contracts 165 and 168 serve the **Stage I** organiser and administration surfaces; 166 and 167 serve **Stage G** Championship at large-field scale |
 | 169 | Corrects the **Stage G** Championship table's ranking span for a league season, which contracts 120 and 167 both showed a browser |
 | 170 | Completes the **Stage I** action centre's generator half for the Match Predictor; the Championship's own action waits on `CUP-002` |
+| 171 | Closes issue #129 as measured: there was no unbounded read, but one cap chose arbitrarily and both capped silently |
 
-**This table accounts for every contract up to and including contract 170.** Saying so is
+**This table accounts for every contract up to and including contract 171.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

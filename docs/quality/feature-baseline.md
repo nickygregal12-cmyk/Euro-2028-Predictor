@@ -273,5 +273,6 @@ same paragraph existed in seven places at once.
 | 165–168 | Organiser reads that disclose no selection; the multi-group Championship draw and its reader; the administration inspection reads |
 | 169 | The season Championship initial group table, measured over the matchdays actually played rather than the tournament's three |
 | 170 | The matchweek prediction action, completing on the card rather than on a prediction existing |
+| 171 | Deterministic, self-declaring caps on the two league prediction reads |
 
-*Current to contract 170.*
+*Current to contract 171.*
