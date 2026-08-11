@@ -1,4 +1,5 @@
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
+import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { ClubIdentityTokens } from '../../domain/clubIdentity/clubIdentityTypes'
 
 /**
@@ -104,7 +105,9 @@ export function mapSeasonClubForm(payload: unknown): SeasonClubFormTable {
       return [
         {
           teamId,
-          name,
+          // Display drops the provider's legal suffix; the resolver keeps the
+          // stored spelling, because that is what the reference join matches.
+          name: clubDisplayName(name),
           tokens: resolveClubIdentity({
             externalId: teamId,
             name,

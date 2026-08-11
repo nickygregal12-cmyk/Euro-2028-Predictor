@@ -3,6 +3,7 @@ import { rpcArgs } from './rpcArguments'
 import { resolveLockState } from '../../domain/competition/lockState'
 import { mainPredictorLockPolicy } from '../../domain/competition/game'
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
+import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type {
   MatchPredictorCommand,
   MatchPredictorGateway,
@@ -148,8 +149,13 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           // curated pattern overlay, which is why Newcastle can be striped at
           // all. Both are optional: an unnamed club resolves exactly as before.
           home: {
-            name: fixture.home_name,
-            shortName: fixture.home_name,
+            // `name` is what a card prints, so the provider's legal suffix
+            // goes; `shortName` used to be a copy of it, which made the field
+            // a lie rather than a short name. Both now come from the one
+            // display authority, and the resolver below still receives the
+            // stored spelling because that is what the reference join matches.
+            name: clubDisplayName(fixture.home_name),
+            shortName: clubDisplayName(fixture.home_name),
             tokens: resolveClubIdentity({
               externalId: fixture.id,
               name: fixture.home_name,
@@ -158,8 +164,8 @@ export function createSeasonMatchPredictorRpcGateway(options: {
             }),
           },
           away: {
-            name: fixture.away_name,
-            shortName: fixture.away_name,
+            name: clubDisplayName(fixture.away_name),
+            shortName: clubDisplayName(fixture.away_name),
             tokens: resolveClubIdentity({
               externalId: fixture.id,
               name: fixture.away_name,

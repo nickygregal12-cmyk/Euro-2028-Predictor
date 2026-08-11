@@ -1,4 +1,5 @@
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
+import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { ClubIdentityTokens } from '../../domain/clubIdentity/clubIdentityTypes'
 
 /**
@@ -105,8 +106,13 @@ function integerOrNull(value: unknown): number | null {
 
 function mapClub(value: unknown, fixtureId: string): SeasonFixtureClub | null {
   const row = objectOf(value)
-  const name = stringOrNull(row.name)
-  if (!name) return null
+  const provided = stringOrNull(row.name)
+  if (!provided) return null
+  // The provider's legal spelling is what `teams.name` holds; what a fixture
+  // list prints is the club. `clubDisplayName` removes the paperwork and
+  // nothing else — the tokens below still resolve from the name as stored, so
+  // the reference join is unaffected by how the row is labelled.
+  const name = clubDisplayName(provided)
 
   return {
     name,
@@ -115,7 +121,7 @@ function mapClub(value: unknown, fixtureId: string): SeasonFixtureClub | null {
     // failing the fixture, which is the resolver's own documented behaviour.
     tokens: resolveClubIdentity({
       externalId: fixtureId,
-      name,
+      name: provided,
       tla: stringOrNull(row.short_code) ?? undefined,
       clubColors: stringOrNull(row.club_colours) ?? undefined,
     }),

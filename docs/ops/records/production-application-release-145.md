@@ -4,7 +4,7 @@
 >
 > **The title and the "Owner decision it serves" row are wrong about the mechanism, and are deliberately left as written.** They say Team SSO. The perimeter is **site password protection on all contexts**, with Team SSO **off** — the switch happened minutes after this release, the owner confirmed it as deliberate the same day, and §"What changed about access" further down this document already records it. This document was drafted before the switch was confirmed, so its heading preserves what was believed at the moment of the release. It is dated evidence: rewriting the title would make the record look like it always knew, and destroy the only trace that the release and the perimeter change crossed.
 >
-> The live authority for the perimeter is [`netlify-deploy-access.md`](netlify-deploy-access.md). Read it, not this heading.
+> The live authority for the perimeter is [`netlify-deploy-access.md`](../netlify-deploy-access.md). Read it, not this heading.
 >
 > **The substance of the decision is unaffected.** The site stays private and this is still not a public launch — only the mechanism holding it private changed, and the password is a convenience perimeter rather than a confidentiality control. It gates the Netlify-served site alone; Supabase endpoints answer on their own hostname and are not behind it, so it mitigates neither `AUTH-002` nor `SEC-001`, and it is not `AGE-001`.
 
@@ -15,7 +15,7 @@
 | Date | 10 August 2026 |
 | Owner decision it serves | Publish a current application artifact to Netlify production and keep Team SSO on; do not expose the site publicly until `AGE-001` exists |
 | Governs | The steps and evidence for one application release |
-| Does not govern | Database promotion ([`ops-pending-migrations.md`](ops-pending-migrations.md)); public exposure, which is explicitly out of scope here |
+| Does not govern | Database promotion ([`ops-pending-migrations.md`](../ops-pending-migrations.md)); public exposure, which is explicitly out of scope here |
 | Supersedes | [`production-application-release-144.md`](production-application-release-144.md), prepared at contract 144 and never executed |
 
 ## Why this document exists

@@ -189,7 +189,7 @@ Never weaken an environment or deployment-contract guard merely to make a build 
 - `docs/quality/current-status.md` is the only live status authority.
 - `docs/roadmap.md` is the only live execution sequence.
 - `MASTER-TODO.md` is the only detailed active/parked inventory.
-- `docs/build-todo.md` is a compatibility pointer, not a separate checklist.
+- Do not open a second checklist anywhere else. The `docs/build-todo.md` stub that used to say so was retired on 11 August 2026: the documentation coverage rule now refuses any unclassified document, so a new checklist fails CI instead of needing a signpost to discourage it.
 - `docs/quality/accepted-requirements.md` is the only home for a requirement that was **accepted and never built**. Give it a stable identifier, its dependency and what would prove it done. **Mark a row implemented, superseded or rejected in place — never delete one**, because deleting it destroys the only trace the requirement existed. `tests/scripts/acceptedRequirements.test.ts` enforces the register's shape and its links.
 - Do not describe an accepted decision as implemented without merged code, a migration, an executable test or verified hosted evidence, named.
 - Update risk, scoring, architecture or operational runbooks only when their subject changes.
