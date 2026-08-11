@@ -369,8 +369,24 @@ function SeasonLmsRouteBody({
     [tournamentId, competitionId, userId],
   )
   const now = useMemo(() => () => new Date(), [])
+  // Contract 164's field. Memoised on the season id alone, so it does not
+  // re-read on every render of the route around it.
+  const readField = useMemo(
+    () => () =>
+      import('../../services/supabase/seasonLmsField').then(({ fetchSeasonLmsField }) =>
+        fetchSeasonLmsField(tournamentId),
+      ),
+    [tournamentId],
+  )
 
-  return <SeasonLmsPage gateway={gateway} now={now} registration={registration} />
+  return (
+    <SeasonLmsPage
+      gateway={gateway}
+      now={now}
+      registration={registration}
+      readField={readField}
+    />
+  )
 }
 
 /**

@@ -397,7 +397,9 @@ Stated here because "the backend authority exists" and "a player can reach it" a
 
 **Contract 162 is reachable and deliberately not consumed.** Its vocabulary declares four action kinds and only the Last Man Standing generator is written, so `get_my_actions` returns one game's items. The interim action centre — which counts what is OUTSTANDING rather than what is unread, and stores nothing locally — covers all three games and stays until the other two generators exist. See `MIG-UI-14`.
 
-**Still unconsumed, and not started rather than blocked:** contracts 161 and 163 to 168 — season history discovery, reminder delivery, the Last Man Standing field and organiser reads, the multi-group Championship and its group-stage read, and the season administration inspection reads. Items 9, 10 and 11 of the UI finalisation direction are the surfaces that consume them.
+**Contracts 164 to 168 have typed adapters, and contract 164 has a surface.** The Last Man Standing round now carries the field: who is still standing, and — once the round locks — what everybody picked. The reveal is the server's and its nulls are rendered as nulls, because with the clubs running out a zero where a rival's lives should be is a claim about how boldly they can play. Adapters exist for contract 165's organiser reads, contract 167's Championship group stage with contract 166's draw beside it, and contract 168's provider-proposal and entrant inspection reads; those three have no surface yet.
+
+**Still unconsumed:** contracts 161 and 163 — season history discovery (which would close `MIG-UI-17`) and reminder delivery, whose functions are `service_role` only and so have no browser half at all.
 
 **No hosted claim is made here.** These are repository facts. The signed-in hosted acceptance is `UI-F19` and remains outstanding.
 
