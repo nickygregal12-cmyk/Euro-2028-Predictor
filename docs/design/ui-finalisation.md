@@ -261,6 +261,11 @@ document governs:
   one), and contract 168 supplies the staged-proposal and entrant reads `/admin/season`
   names as absent. Contracts 166 and 167 add the multi-group Championship draw and its
   group-stage view. **None is consumed.**
+- **A Championship table now says what it was ranked over.** Contract 169 corrects the
+  span the season group table is ranked on — the tournament's three matchdays, for a
+  competition that plays thirty-eight — and adds `table_source` to `get_season_cup_phase`
+  so a surface can label the table honestly instead of inferring the span from the
+  competition's kind. It adds no surface and changes no layout.
 - **The rotate control § 7 says nobody can reach is still unreachable.** Contract 159
   narrowed `resolve_invite_code` the way 158 narrowed the preview — the member count and
   the target id are gone, and a wrong guess now costs a limit slot — so the same rule

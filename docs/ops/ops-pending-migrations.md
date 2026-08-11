@@ -6,9 +6,27 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Current state — 11 August 2026 (twenty-ninth entry)
+
+**The repository is at contract 169. Development is hosted at 168. Production remains at 158.** Contract 169 — `20260811200000_season_cup_initial_group_table.sql` — is a repository candidate applied to neither, and it is additive.
+
+**It is a ranking correction, not a feature.** `predictor_internal.cup_final_group_tables` measures four of its nine ADR 0014 §5.2 keys over `win.sequence between 1 and 3`. Contracts 120 and 167 show that table for a season Predictor Championship whose group stage runs to thirty-eight matchdays. Driven on a disposable PostgreSQL 16 with two players level on table points: **the group winner changes**, and under ADR 0014 the group winner decides qualification and seeding.
+
+**Nothing on either hosted environment is wrong today because of it**, because no season Championship group stage exists on either: contract 166's draw and contract 127's launcher have never been called. The defect is latent, and this is the migration that closes it before it is not.
+
+**What it does not do.** It does not touch `cup_final_group_tables` — a source assertion in the migration fails if that function loses its bound — and it does not touch `admin_finalise_predictor_cup_groups`, which still gates qualification on the same three windows and still demands exactly three settled ones. **A season group stage therefore still cannot qualify anyone.** That is roadmap item 8 and is not claimed here.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **169** | 169 canonical migrations through `20260811200000_season_cup_initial_group_table.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **168** | Fast-lane run `31489582932`, independently confirmed. Contract 169 pending. | ONE BEHIND REPOSITORY |
+| Production Supabase | **158** | Project `vkfnsqdyhvtwyqkisxhk`. Unchanged since rollout run `31475806882`. | ELEVEN BEHIND REPOSITORY, BY DESIGN |
+
+`218_season_cup_initial_group_table.sql` is written and **has not been executed**: the authoring environment has no Docker daemon and no Supabase CLI. Database parity on its pull request is what runs it.
+
 ## Current state — 11 August 2026 (twenty-eighth entry)
 
-**The repository is at contract 168. Development is now hosted at 168. Production remains at 158.**
+**The repository stood at contract 168 in this entry, Development reached 168 here, and Production remained at 158.**
 
 Contracts 159 to 168 merged as PR #691 at `2be5c8f682fb12200c63a36d6504889c1554c045` and were applied to Development through `development-fast-lane-rollout.yml`, run [31489582932](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31489582932), dispatched from `main` with `project_ref=iouzoutneyjpugbbtdem`. The lane proved all ten additive by reading them, took its pre-apply snapshot, applied, and confirmed nothing pending.
 

@@ -420,5 +420,6 @@ same paragraph existed in seven places at once.
 | 159–160 | Contract 159 closes the last `SEC-001` door; contract 160 closes `MIG-UI-13` with stored table rules, deductions and table-only awarded outcomes |
 | 161–164 | Season history discovery, `MIG-UI-14`'s action centre and read state, `DFA-012`'s provider-neutral delivery ledger, and Last Man Standing social reads |
 | 165–168 | Organiser reads with **no organiser command**, the multi-group Championship draw and its reader, and the administration inspection `DFA-009` records as absent |
+| 169 | The season Championship group table stops ranking thirty-eight matchdays on the first three — a defect contract 167 made browser-reachable an hour after shipping |
 
-*Current to contract 168.*
+*Current to contract 169.*

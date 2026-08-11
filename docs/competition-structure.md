@@ -150,5 +150,6 @@ same paragraph existed in seven places at once.
 
 | 160 | A competition season may now publish its **own table rules** — points values, ordered tie-breaks, promotion/playoff/relegation boundaries — per season rather than per competition, so a historic table keeps the rules it was played under |
 | 166–167 | A Predictor Championship may run as **multiple parallel groups** for a field one group cannot seat, with every group's round-robin over the same windows; a smaller group simply has no fixture in the last rounds |
+| 169 | A season Championship group is ranked over **every matchday it has played and settled**, not over the tournament's three; the tournament's own table is unchanged |
 
-*Current to contract 168.*
+*Current to contract 169.*

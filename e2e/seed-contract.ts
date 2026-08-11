@@ -908,8 +908,27 @@
  * head Browser E2E is what proves it, and it must be green on the pull request
  * that carries this line — which is the same standard contracts 67, 68 and 69
  * were held to, stated rather than assumed.
+ *
+ * Contract 169 REDEFINES two existing reads rather than adding any, and this is
+ * the case where the guard has to be reasoned about rather than waved through.
+ * `get_season_cup_phase` and `get_season_cup_group_stage` keep their exact
+ * signatures, their `authenticated`-only grants, their entrancy gates and their
+ * non-entrant shapes; the stage read is byte-identical to contract 167's apart
+ * from one substituted internal call, asserted by diff in
+ * `tests/database-parity/seasonCupInitialTableParity.test.ts`. The three new
+ * `predictor_internal` functions are granted to nobody, so no browser role
+ * gains or loses a path.
+ *
+ * The one payload change is ADDITIVE: `get_season_cup_phase` gains a
+ * `table_source` key. A seeded journey reading that payload sees every key it
+ * saw before.
+ *
+ * A seeded user is also unaffected in fact as well as in shape, because no
+ * seeded user is in a Predictor Championship group: neither `launch_season_cup`
+ * nor `admin_launch_cup_group_stage` is called by the seed, so both reads
+ * answer `entered: false` for a seeded user exactly as they did at 168.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 168
+export const SEED_REVIEWED_AT_CONTRACT = 169
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
