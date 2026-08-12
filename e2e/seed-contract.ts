@@ -647,14 +647,11 @@
  * relation, trigger or policy, and changes no existing grant.
  *
  * The entry point is the only thing here a seeded session can REACH, and it is
- * gated differently from every other admin RPC in this repository: the seeded
- * admin identity below carries `results` and `tournament` capabilities and no
- * `admin_role`, so it is refused with 42501 alongside the two ordinary players.
- * That is the intended shape rather than a gap — opening a competition fixes a
- * draw and a calendar that can never be redrawn, and the `competitions`
- * capability exists to be granted deliberately. If a seeded session ever needs
- * to open one, the seed grants that capability rather than this contract
- * widening its gate.
+ * gated differently from result administration. The seeded administrator now
+ * carries `competitions` deliberately so the contract-185 AI Lab journey can
+ * exercise the same server gate as Production; the two ordinary players remain
+ * refused. No browser setup opens a competition, so this capability changes no
+ * draw or calendar in the disposable database.
  *
  * Reasoned rather than executed, on the same standard as the entries above:
  * this environment has a `docker` binary and no usable daemon, so Database
@@ -1054,10 +1051,12 @@
  * competition with three settled windows, which the seed does not create. The
  * tournament's own 3- and 4-player behaviour is asserted unchanged.
  * Raised to 185 after checking the private AI Lab boundary. Its relations are
- * all in the separately revoked `ai` schema; the seed reads and writes none of
- * them. Its new public functions are either competition-admin gated reads or
- * service-only Odds API custody jobs plus an owner/cron-only dispatcher; none
- * is called by global setup, and it redefines
+ * all in the separately revoked `ai` schema; global setup writes none of them.
+ * Its new public functions are either competition-admin gated reads or
+ * service-only Odds API custody jobs plus an owner/cron-only dispatcher. The
+ * seeded administrator carries `competitions` specifically so Browser E2E can
+ * prove the private dashboard reaches those empty-state reads; ordinary seeded
+ * players carry neither admin capability. Contract 185 redefines
  * no entry, membership, prediction-card or player-facing read. The scheduled
  * paid collection also defaults disabled.
  */
@@ -1068,7 +1067,7 @@ export type SeedIdentity = {
   email: string
   password: string
   displayName: string
-  /** Empty for ordinary players; the admin carries result capabilities. */
+  /** Empty for ordinary players; the admin carries explicit tested capabilities. */
   adminCapabilities: readonly string[]
 }
 
@@ -1083,7 +1082,7 @@ export const SEED_IDENTITIES: readonly SeedIdentity[] = [
     email: 'e2e@euro28.local',
     password: 'E2e-local-only-2028!',
     displayName: 'E2E Tester',
-    adminCapabilities: ['results'],
+    adminCapabilities: ['results', 'competitions'],
   },
   {
     key: 'player_one',
