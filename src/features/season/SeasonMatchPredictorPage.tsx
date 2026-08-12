@@ -170,8 +170,9 @@ export function SeasonMatchPredictorPage({
   if (page.settledPoints !== null) statusStrip.push(`${page.settledPoints} pts`)
 
   const lockConsequence = atLockCopy(presentation.atLock, presentation.entered, presentation.total)
-  // The same breakdown `MatchweekPoints` renders, asked once so the share
-  // sentence quotes the itemisation rather than counting exacts a second time.
+  // The breakdown, derived ONCE and used twice: `MatchweekPoints` renders it,
+  // and the share sentence quotes its exact-score count. Deriving it in both
+  // places would be two answers to one question about one matchweek.
   const breakdown = presentMatchweekPoints(page)
 
   // Why each of the two card-level commands would be refused, asked of the
@@ -375,7 +376,7 @@ export function SeasonMatchPredictorPage({
           has been using to explain ONE fixture since it shipped: the same
           authority, for the whole card, once. It renders nothing at all until
           the matchweek settles. */}
-      <MatchweekPoints card={page} />
+      <MatchweekPoints card={page} view={breakdown} />
 
       {/* INNOV-014, below the official breakdown and visibly separate from it:
           what the near misses WOULD have been worth. It renders nothing unless
