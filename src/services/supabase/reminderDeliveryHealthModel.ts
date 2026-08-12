@@ -158,7 +158,7 @@ export function mapReminderDeliveryHealth(value: unknown): ReminderDeliveryHealt
  * count of two out of three tells an operator that something is wrong and not
  * what to restart.
  */
-export const REMINDER_JOB_NAMES = [
+const REMINDER_JOB_NAMES = [
   'player-action-centre-generate',
   'player-reminder-schedule',
   'player-reminder-reclaim-stalled',

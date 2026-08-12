@@ -425,6 +425,12 @@ The fix restores the coverage rather than relaxing it: `mobile-bottom-navigation
 
 The cause is that the gallery is one scrolling page and each section is photographed after `scrollIntoViewIfNeeded`. A section that grows moves everything after it, and elements land on different sub-pixel offsets, so their antialiasing changes by a fraction of a percent — which is above `maxDiffPixelRatio` and below anything a reader would call a difference. **Do not read a large failing count as a large change.** Check `main` against the current runner first, then measure the sections rather than the images; the count of failures is not a measure of how much moved.
 
+**The 12 August 2026 run is the counter-example to § 14's own warning, and it is worth recording for that reason.** The `UI-F18` tap-target pass touched three design-system components, and the comparison failed **4 of 124** — all four being `matchcard-editable`, in both themes at both widths. `MatchCard` is the only component that renders `JokerButton`, whose pill grew from 30px to the 44px minimum, so the failing set is exactly the one intentional change and nothing else moved.
+
+The more useful half is what did NOT fail. `alert` and `toast` both passed, and their dismiss controls were edited in the same pass — which is the measured proof that expanding a pointer target with a pseudo-element changes the hit testing and not the pixels. That is the property the technique was chosen for, and it is now demonstrated rather than asserted.
+
+So the rule stands in both directions: a large failing count is not a measure of how much moved, and a small one is not automatically noise either. Read WHICH sections failed and check whether they are the ones the change touches.
+
 `AWAITING_BASELINE` in the same spec names any section declared but not yet rendered. `visualContractHarness` excludes those from its baseline count and **fails once a name in it has baselines on disk**, so an entry expires with the dispatch that satisfies it and cannot become the way new sections are added.
 
 ## 15. What the browser suite caught
