@@ -104,6 +104,7 @@ import {
   mapClubHeadToHead,
   mapSeasonClubForm,
 } from '../services/supabase/seasonClubFormModel'
+import type { CompetitionTableRow } from '../services/supabase/competitionTableModel'
 import { ProviderReviewPanel } from '../features/admin/ProviderReviewPanel'
 import { mapProviderReviewQueues } from '../services/supabase/providerReviewQueuesModel'
 import { resolveClubIdentity } from '../domain/clubIdentity/clubIdentityTokens'
@@ -495,6 +496,78 @@ const SEASON_FORM_BY_ID = new Map(
 )
 
 /**
+ * Contract 160's table, as three of the four clubs above.
+ *
+ * ABERDEEN IS DELIBERATELY ABSENT, and that is the point of the fixture rather
+ * than an omission. The Match Centre states both clubs' standing or neither of
+ * them, because one club's position beside a blank is a comparison a reader
+ * will complete incorrectly — and the only way to photograph the "neither"
+ * branch is to have a table that genuinely does not contain one of the clubs on
+ * screen. The settled fixture (Celtic v Hibernian) therefore carries the block
+ * and the live one (Rangers v Aberdeen) carries nothing, in the same picture.
+ *
+ * The figures are stated rather than computed. Deriving points from the form
+ * fixture's W/D/L would put a points rule in a preview harness, and this file
+ * decides nothing about football.
+ */
+const SEASON_TABLE_BY_NAME = new Map<string, CompetitionTableRow>([
+  [
+    'Celtic',
+    {
+      position: 1,
+      teamId: 't-celtic',
+      teamName: 'Celtic',
+      played: 6,
+      won: 4,
+      drawn: 1,
+      lost: 1,
+      goalsFor: 13,
+      goalsAgainst: 6,
+      goalDifference: 7,
+      points: 13,
+      adjustment: null,
+      boundary: null,
+    },
+  ],
+  [
+    'Rangers',
+    {
+      position: 2,
+      teamId: 't-rangers',
+      teamName: 'Rangers',
+      played: 5,
+      won: 3,
+      drawn: 1,
+      lost: 1,
+      goalsFor: 11,
+      goalsAgainst: 5,
+      goalDifference: 6,
+      points: 10,
+      adjustment: null,
+      boundary: null,
+    },
+  ],
+  [
+    'Hibernian',
+    {
+      position: 8,
+      teamId: 't-hibs',
+      teamName: 'Hibernian',
+      played: 6,
+      won: 2,
+      drawn: 2,
+      lost: 2,
+      goalsFor: 7,
+      goalsAgainst: 8,
+      goalDifference: -1,
+      points: 8,
+      adjustment: null,
+      boundary: null,
+    },
+  ],
+])
+
+/**
  * The caller's current Last Man Standing round, so both panels can show a
  * different stake: one fixture holds their pick, the other is in the same round
  * and does not. Those are the two sentences worth a picture.
@@ -535,6 +608,7 @@ const SEASON_LMS_ROUND = {
 const seasonFootball = {
   lmsRound: SEASON_LMS_ROUND,
   formFor: (name: string) => SEASON_FORM_BY_NAME.get(name) ?? null,
+  tableFor: (name: string) => SEASON_TABLE_BY_NAME.get(name) ?? null,
   /**
    * Answers for the PAIR it was asked about, rather than returning one fixed
    * meeting. The first draft did the latter and the gallery rendered "Rangers ·
@@ -2960,15 +3034,20 @@ function Gallery() {
           read={seasonCardReader}
           football={seasonFootball}
         />
-        <Label>settled: prediction, official result and this fixture&rsquo;s points</Label>
+        <Label>
+          settled: prediction, official result, this fixture&rsquo;s points, and both clubs&rsquo;
+          standing because the table holds both of them
+        </Label>
         <SeasonMatchCentre
           fixture={seasonLiveRow}
           read={seasonCardReader}
           football={seasonFootball}
         />
         <Label>
-          in play: a provider&rsquo;s score, outside the result field, awarding nothing — and a
-          club with nothing settled saying so rather than showing empty pills
+          in play: a provider&rsquo;s score, outside the result field, awarding nothing — a club
+          with nothing settled saying so rather than showing empty pills, and NO standing at all,
+          because Aberdeen is not in the table and one club&rsquo;s position beside a blank is a
+          comparison a reader would complete incorrectly
         </Label>
       </Section>
 
