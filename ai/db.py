@@ -164,6 +164,32 @@ def team_id_map(tournament_name: str) -> dict[str, str]:
 # Writes
 # ---------------------------------------------------------------------------
 
+BATCH_ROWS = 500
+
+
+def _write_batched(cur, head: str, tail: str, width: int,
+                   values: list[tuple], batch: int = BATCH_ROWS) -> None:
+    """Send `values` as multi-row VALUES statements rather than one per row.
+
+    `executemany`, and a Python loop around `execute`, each cost one network
+    round trip per row. On a local socket that is invisible — the full import
+    measured 2,900 rows a second there. Against the hosted pooler it is
+    decisive: measured on Development on 12 August 2026, the historical
+    backfill ran at about **7.5 rows a second**, which is roughly thirteen
+    hours for nine divisions and certain to exceed the job's 180-minute
+    timeout. The first hosted run was cancelled for exactly that reason.
+
+    Batching changes no semantics: the same statement, the same `on conflict`
+    clause, the same transaction. Only the number of round trips changes, by
+    a factor of `batch`.
+    """
+    placeholder = "(" + ",".join(["%s"] * width) + ")"
+    for start in range(0, len(values), batch):
+        chunk = values[start:start + batch]
+        sql = head + ",".join([placeholder] * len(chunk)) + tail
+        cur.execute(sql, [field for row in chunk for field in row])
+
+
 def upsert_raw_matches(rows: list[dict]) -> int:
     if not rows:
         return 0
@@ -184,19 +210,19 @@ def upsert_raw_matches(rows: list[dict]) -> int:
         "close_ps_h", "close_ps_d", "close_ps_a",
         "overround_avg", "overround_max",
     ]
-    placeholders = "(" + ",".join(["%s"] * len(cols)) + ")"
     update_cols = [c for c in cols if c not in {
         "source", "division", "season", "match_date",
         "home_canonical", "away_canonical",
     }]
-    sql = (
-        f"insert into ai.raw_matches ({','.join(cols)}) values {placeholders} "
-        "on conflict (source, division, season, match_date, home_canonical, away_canonical) "
+    head = f"insert into ai.raw_matches ({','.join(cols)}) values "
+    tail = (
+        " on conflict (source, division, season, match_date, home_canonical, away_canonical) "
         "do update set " + ",".join(f"{c}=excluded.{c}" for c in update_cols)
     )
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
+            _write_batched(cur, head, tail, len(cols),
+                           [tuple(r.get(c) for c in cols) for r in rows])
         conn.commit()
     return len(rows)
 
@@ -210,7 +236,34 @@ def upsert_historical_market_prices(rows: list[dict]) -> int:
     if not price_rows:
         return 0
 
-    sql = """
+    # One statement per price row is the single slowest thing in the import:
+    # prices outnumber matches by roughly eight to one, and each cost its own
+    # network round trip. The batched form joins a VALUES list to the raw
+    # matches instead, so a batch of 500 costs one.
+    head = """
+      insert into ai.historical_market_prices
+        (raw_match_id,market,line,selection,bookmaker,odds,phase,source)
+      select rm.id, v.market::text, v.line::numeric, v.selection::text,
+             v.bookmaker::text, v.odds::numeric, 'pre', 'football-data.co.uk'
+        from (values """
+    tail = """
+             ) as v(market,line,selection,bookmaker,odds,source,division,
+                    season,match_date,home_canonical,away_canonical)
+        join ai.raw_matches rm
+          on rm.source = v.source::text
+         and rm.division = v.division::text
+         and rm.season = v.season::text
+         and rm.match_date = v.match_date::date
+         and rm.home_canonical = v.home_canonical::text
+         and rm.away_canonical = v.away_canonical::text
+      on conflict (raw_match_id,market,line,selection,bookmaker,phase)
+      do update set odds=excluded.odds
+    """
+    # The per-row statement is kept for diagnosis. A short batch means some
+    # price did not resolve to a raw match, and ADR 0029 requires that to
+    # abort rather than become an invisible orphan — but the batch cannot say
+    # WHICH, so the offending batch is replayed one row at a time to name it.
+    one = """
       insert into ai.historical_market_prices
         (raw_match_id,market,line,selection,bookmaker,odds,phase,source)
       select rm.id,%s,%s,%s,%s,%s,'pre','football-data.co.uk'
@@ -220,23 +273,34 @@ def upsert_historical_market_prices(rows: list[dict]) -> int:
       on conflict (raw_match_id,market,line,selection,bookmaker,phase)
       do update set odds=excluded.odds
     """
+
+    def _fields(match: dict, price: dict) -> tuple:
+        return (price["market"], price["line"], price["selection"],
+                price["bookmaker"], price["odds"], match["source"],
+                match["division"], match["season"], match["match_date"],
+                match["home_canonical"], match["away_canonical"])
+
     written = 0
+    placeholder = "(" + ",".join(["%s"] * 11) + ")"
     with connect() as conn:
         with conn.cursor() as cur:
-            for match, price in price_rows:
-                cur.execute(sql, (
-                    price["market"], price["line"], price["selection"],
-                    price["bookmaker"], price["odds"], match["source"],
-                    match["division"], match["season"], match["match_date"],
-                    match["home_canonical"], match["away_canonical"],
-                ))
-                if cur.rowcount != 1:
-                    raise RuntimeError(
-                        "Historical market price could not resolve its raw match: "
-                        f"{match['division']} {match['match_date']} "
-                        f"{match['home_canonical']} v {match['away_canonical']}"
-                    )
-                written += 1
+            for start in range(0, len(price_rows), BATCH_ROWS):
+                chunk = price_rows[start:start + BATCH_ROWS]
+                sql = head + ",".join([placeholder] * len(chunk)) + tail
+                cur.execute(sql, [f for match, price in chunk
+                                  for f in _fields(match, price)])
+                if cur.rowcount == len(chunk):
+                    written += cur.rowcount
+                    continue
+                for match, price in chunk:
+                    cur.execute(one, _fields(match, price))
+                    if cur.rowcount != 1:
+                        raise RuntimeError(
+                            "Historical market price could not resolve its raw match: "
+                            f"{match['division']} {match['match_date']} "
+                            f"{match['home_canonical']} v {match['away_canonical']}"
+                        )
+                written += len(chunk)
         conn.commit()
     return written
 
@@ -294,13 +358,12 @@ def insert_prediction_results(rows: list[dict]) -> int:
         "prediction_id", "actual_home_goals", "actual_away_goals", "actual_result",
         "result_correct", "exact_score_correct", "log_loss", "brier", "rps",
     ]
-    sql = (
-        f"insert into ai.prediction_results ({','.join(cols)}) "
-        f"values ({','.join(['%s'] * len(cols))}) on conflict (prediction_id) do nothing"
-    )
+    head = f"insert into ai.prediction_results ({','.join(cols)}) values "
+    tail = " on conflict (prediction_id) do nothing"
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.executemany(sql, [tuple(r[c] for c in cols) for r in rows])
+            _write_batched(cur, head, tail, len(cols),
+                           [tuple(r[c] for c in cols) for r in rows])
         conn.commit()
     return len(rows)
 
@@ -408,17 +471,17 @@ def upsert_fixtures(rows: list[dict]) -> int:
         return 0
     cols = ["division", "season", "league_key", "match_date", "kickoff_at",
             "home_canonical", "away_canonical", "season_fixture_id"]
-    sql = (
-        f"insert into ai.fixtures ({','.join(cols)}) "
-        f"values ({','.join(['%s'] * len(cols))}) "
-        "on conflict (division, match_date, home_canonical, away_canonical) "
+    head = f"insert into ai.fixtures ({','.join(cols)}) values "
+    tail = (
+        " on conflict (division, match_date, home_canonical, away_canonical) "
         "do update set kickoff_at = coalesce(excluded.kickoff_at, ai.fixtures.kickoff_at), "
         "season_fixture_id = coalesce(excluded.season_fixture_id, "
         "                             ai.fixtures.season_fixture_id)"
     )
     with connect() as conn:
         with conn.cursor() as cur:
-            cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
+            _write_batched(cur, head, tail, len(cols),
+                           [tuple(r.get(c) for c in cols) for r in rows])
         conn.commit()
     return len(rows)
 
