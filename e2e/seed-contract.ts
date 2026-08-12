@@ -1038,8 +1038,15 @@
  * calls except its own pgTAP suite and the migration's own install-time check.
  * It creates no relation, alters none, moves no grant and gates no read. A
  * seeded user cannot reach it and cannot be affected by it.
+ *
+ * Raised to 183 after checking what it changes: two new `authenticated` reads
+ * and nothing else. Neither gates anything the seed already does — the clubs
+ * read answers about `public.teams`, which the seed populates, and the
+ * neighbourhood reuses contract 95's existing membership boundary rather than
+ * adding one. No relation is created or altered, no grant moves and no existing
+ * function is redefined.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 182
+export const SEED_REVIEWED_AT_CONTRACT = 183
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

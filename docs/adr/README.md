@@ -86,4 +86,6 @@ same paragraph existed in seven places at once.
 
 | 182 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 7**, which names the derived group table as the authority and asks for "a test that they cannot disagree". The test delivered is stronger than a comparison: only one of the two is reachable, and a guard refuses an installation where that stops being true |
 
-*Current to contract 182.*
+| 183 | **No ADR.** Two `MIG-UI` register rows, both recorded as measured gaps rather than decisions. Neither adds a rule; the neighbourhood explicitly reuses contract 95's ranking and contract 95's membership boundary |
+
+*Current to contract 183.*

@@ -221,4 +221,6 @@ same paragraph existed in seven places at once.
 
 | 182 | No presentation change whatsoever. A guard over which function ranks a Championship group |
 
-*Current to contract 182.*
+| 183 | The favourite-club picker loses its two-read join, and a leaderboard can show the caller's neighbours without paging to them. **Not consumed** |
+
+*Current to contract 183.*
