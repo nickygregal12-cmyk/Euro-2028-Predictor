@@ -32,7 +32,7 @@ interface ImportMetaEnv {
   // This deployment's own absolute origin. Drives the canonical URL, Open Graph
   // URLs, the generated sitemap and robots.txt. Unset emits none of them rather
   // than falling back to the other site's domain.
-  readonly VITE_PUBLIC_ORIGIN?: string
+  readonly VITE_PUBLIC_SITE_ORIGIN?: string
   // The other deployment's absolute origin, so each site can link to its
   // sibling. Unset omits the link.
   readonly VITE_SIBLING_SITE_ORIGIN?: string

@@ -54,7 +54,7 @@ export default defineConfig(({ command, mode }) => {
   const site = sitePublicMetadata(
     resolveSiteVariant(readEnvironmentValue(env, 'VITE_SITE_VARIANT')),
     {
-      publicOrigin: readEnvironmentValue(env, 'VITE_PUBLIC_ORIGIN'),
+      publicOrigin: readEnvironmentValue(env, 'VITE_PUBLIC_SITE_ORIGIN'),
       siblingOrigin: readEnvironmentValue(env, 'VITE_SIBLING_SITE_ORIGIN'),
     },
   )

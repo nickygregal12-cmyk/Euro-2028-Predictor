@@ -104,8 +104,8 @@ function verifySupabaseKey(key, expectedProjectRef, context) {
  * This runs on every build, Netlify or not, because both failures it catches
  * are silent: a variant of `Euro` or `hub ` resolves to the Hub (fail-closed,
  * and correct — but not what the operator asked for, and nothing would say so),
- * and an unparseable `VITE_PUBLIC_ORIGIN` simply drops the canonical tag, the
- * Open Graph URLs and the whole sitemap with no error anywhere.
+ * and an unparseable `VITE_PUBLIC_SITE_ORIGIN` simply drops the canonical tag,
+ * the Open Graph URLs and the whole sitemap with no error anywhere.
  *
  * It refuses the build rather than warning. A site that quietly deploys as the
  * other product, or with no canonical URL, is worse than one that does not
@@ -124,7 +124,7 @@ function validateSiteVariant(env) {
     )
   }
 
-  for (const name of ['VITE_PUBLIC_ORIGIN', 'VITE_SIBLING_SITE_ORIGIN']) {
+  for (const name of ['VITE_PUBLIC_SITE_ORIGIN', 'VITE_SIBLING_SITE_ORIGIN']) {
     const raw = (env[name] ?? '').trim()
     if (!raw) continue
     let parsed

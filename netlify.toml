@@ -3,19 +3,19 @@
 # Predictor, on separate domains.
 #
 # WHAT SEPARATES THEM IS NOT IN THIS FILE, and must not be. `VITE_SITE_VARIANT`,
-# `VITE_PUBLIC_ORIGIN` and `VITE_SIBLING_SITE_ORIGIN` are set PER SITE in each
-# Netlify site's own environment variables (Site configuration → Environment
+# `VITE_PUBLIC_SITE_ORIGIN` and `VITE_SIBLING_SITE_ORIGIN` are set PER SITE in
+# each Netlify site's own environment variables (Site configuration → Environment
 # variables). A `[build.environment]` value here would apply to both sites, so
 # putting the variant here would give both deployments the same product — which
 # is exactly the failure the seam exists to prevent.
 #
-#   Hub site:  VITE_SITE_VARIANT=hub   VITE_PUBLIC_ORIGIN=<the Hub domain, when
-#              purchased — leave unset until then; the build omits canonical,
-#              Open Graph URLs and the sitemap rather than guessing>
-#   Euro site: VITE_SITE_VARIANT=euro  VITE_PUBLIC_ORIGIN=https://euro28predictor.com
+#   Hub site:  VITE_SITE_VARIANT=hub   VITE_PUBLIC_SITE_ORIGIN=https://predictorhub.netlify.app
+#   Euro site: VITE_SITE_VARIANT=euro  VITE_PUBLIC_SITE_ORIGIN=https://euro28predictor.com
 #
-# `scripts/validate-netlify-environment.mjs` refuses a build whose variant is
-# neither value, so a typo cannot deploy the Euro site as the Hub in silence.
+# An origin may be intentionally absent in a local/non-hosted build; hosted sites
+# should set their own address explicitly. `scripts/validate-netlify-environment.mjs`
+# refuses malformed configured origins and refuses a site variant that is neither
+# supported value, so these failures cannot silently publish the wrong metadata.
 [build]
   command = "npm run build"
   publish = "dist"

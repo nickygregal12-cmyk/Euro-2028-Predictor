@@ -21,7 +21,7 @@ export function currentSiteVariant(): SiteVariant {
 
 export function currentSiteConfiguration(): SiteConfiguration {
   return siteConfiguration(currentSiteVariant(), {
-    publicOrigin: import.meta.env.VITE_PUBLIC_ORIGIN,
+    publicOrigin: import.meta.env.VITE_PUBLIC_SITE_ORIGIN,
     siblingOrigin: import.meta.env.VITE_SIBLING_SITE_ORIGIN,
   })
 }
