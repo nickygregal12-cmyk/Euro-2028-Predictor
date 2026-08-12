@@ -429,6 +429,8 @@ The cause is that the gallery is one scrolling page and each section is photogra
 
 The more useful half is what did NOT fail. `alert` and `toast` both passed, and their dismiss controls were edited in the same pass — which is the measured proof that expanding a pointer target with a pseudo-element changes the hit testing and not the pixels. That is the property the technique was chosen for, and it is now demonstrated rather than asserted.
 
+**The re-render is the stronger form of that evidence, and it is worth preferring.** A passing comparison only says a difference fell under `maxDiffPixelRatio`; a re-render says what the runner actually produced. The `update_baselines` dispatch that followed committed **four files** — the four `matchcard-editable` images — and nothing else. All 120 remaining baselines were re-rendered on the same runner and came back **byte-identical**, so the sub-pixel drift § 14 records from the honours panel did not occur here at all, and the dismiss controls changed literally zero pixels. Where a comparison is ambiguous, re-render and read the commit.
+
 So the rule stands in both directions: a large failing count is not a measure of how much moved, and a small one is not automatically noise either. Read WHICH sections failed and check whether they are the ones the change touches.
 
 `AWAITING_BASELINE` in the same spec names any section declared but not yet rendered. `visualContractHarness` excludes those from its baseline count and **fails once a name in it has baselines on disk**, so an entry expires with the dispatch that satisfies it and cannot become the way new sections are added.
