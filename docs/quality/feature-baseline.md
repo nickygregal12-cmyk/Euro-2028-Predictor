@@ -281,8 +281,10 @@ same paragraph existed in seven places at once.
 | 176 | Deterministic per-player prediction metrics, each returned with its own denominator and a minimum-sample flag |
 | 177 | A batch prediction submission with per-fixture outcomes — accepted, locked, conflict, invalid, refused — so an offline device can reconcile without losing the drafts that were submittable |
 | 178 | An independent recomputation of settled scoring that records disagreements and corrects nothing |
+| 179 | Private Last Man Standing and Championship containers can be found again after they are created or joined, and one can be opened |
+| 180 | Joining the Championship gives a player the shared season prediction card without joining them to the Match Predictor |
 
-*Current to contract 178.*
+*Current to contract 180.*
 
 ## Innovation Lab UI pass — 11 August 2026
 
