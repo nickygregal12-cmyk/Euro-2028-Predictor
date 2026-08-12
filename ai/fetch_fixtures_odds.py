@@ -53,6 +53,12 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60,
     resp.raise_for_status()
     df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
+    if df.empty:
+        # No rows published yet. Not a shape change, and not a failure: see
+        # the note in sync_fixtures.fetch. Reporting it as a changed shape
+        # would send somebody looking for a schema break that never happened.
+        print("  fixtures.csv has no rows yet; no prices to collect")
+        return ([], []) if include_markets else []
     df = df.dropna(how="all", axis=1)
     if not {"Div", "Date", "HomeTeam", "AwayTeam"}.issubset(df.columns):
         raise SystemExit(f"fixtures.csv shape changed; columns: {list(df.columns)[:20]}")

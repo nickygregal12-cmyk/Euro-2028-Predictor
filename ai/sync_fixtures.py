@@ -91,7 +91,25 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60) -> list[dict]:
     resp.raise_for_status()
     df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
+    if df.empty:
+        # A fixtures.csv with a header and no rows is Football-Data's ordinary
+        # state between rounds and before a season starts — it is not an
+        # error, and it must not be one, or the Tuesday and Friday jobs go red
+        # on quiet weeks until nobody reads them.
+        #
+        # It used to crash: `dropna(how='all', axis=1)` drops EVERY column of
+        # a row-less frame, because each one is vacuously all-NaN, and the
+        # next line asked for `Div`. Measured on hosted Development on
+        # 12 August 2026, nine days before the season's first fixture, the
+        # bootstrap imported 46,215 matches and then died on `KeyError: 'Div'`.
+        print("  fixtures.csv has no rows yet; nothing to sync")
+        return []
     df = df.dropna(how="all", axis=1)
+    missing = {"Div", "Date", "HomeTeam", "AwayTeam"} - set(df.columns)
+    if missing:
+        raise SystemExit(
+            f"fixtures.csv is missing {sorted(missing)}; "
+            f"columns present: {list(df.columns)[:20]}")
     df = df[df["Div"].isin(divisions)]
 
     links = platform_fixture_links()

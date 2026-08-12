@@ -130,6 +130,12 @@ def fetch_one(division: str, season: str, timeout: int = 60) -> list[dict]:
     # These files are Latin-1 and contain trailing blank columns.
     df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
+    if df.empty:
+        # A season file published with only a header — the normal state of the
+        # current season's file before its first match is played. Distinguish
+        # it from a genuine shape change, which the next check reports.
+        print(f"  {division} {season}: published but empty, skipping")
+        return []
     df = df.dropna(how="all", axis=1)
     required = {"Date", "HomeTeam", "AwayTeam", "FTHG", "FTAG", "FTR"}
     if not required.issubset(df.columns):
