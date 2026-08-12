@@ -41,6 +41,8 @@ ai/
   run_leagues.sh              one command across all nine leagues: every league
                               attempted, any failure named and the exit status
                               non-zero
+  check_write_scope.py        refuses the package if any write names a relation
+                              outside schema `ai`
   models/                     trained artefacts (gitignored)
   reports/                    validation reports (gitignored)
 ```
@@ -69,12 +71,31 @@ python train.py --league EPL --family logistic --version v0.2
 python train.py --league EPL --family poisson  --version v0.3 --walk-forward
 ```
 
-Hosted Development does the same thing in one action: run the **AI Lab
-development jobs** workflow with task `bootstrap`. It imports every division's
-full history, syncs fixtures, collects the free prices and trains one
-challenger per league. It promotes nothing, so the lab still produces no
-prediction until a human promotes a model — which is the next step and is
-deliberately not automated.
+A hosted project does the same thing in one action: run the **AI Lab jobs**
+workflow with task `bootstrap`, choosing `development` or `production` as the
+target. It imports every division's full history, syncs fixtures, collects the
+free prices and trains one challenger per league. It promotes nothing, so the
+lab still produces no prediction until a human promotes a model — which is the
+next step and is deliberately not automated.
+
+## Which environment the lab runs against
+
+The target is a choice. `development` needs `SUPABASE_DEV_DB_URL`;
+`production` needs `SUPABASE_PROD_DB_URL`. Each is checked to name that
+project's ref, so a secret pointing at the wrong project fails rather than
+crosses. Scheduled runs read the `AI_LAB_SCHEDULED_TARGET` repository
+variable and fall back to `development`.
+
+What makes a hosted target safe is not care but `check_write_scope.py`, which
+runs **before** the credential is resolved: every write in this package must
+name a relation in schema `ai`, which ADR 0029 gives no authority over
+fixtures, results, scoring, locks, standings, progression, memberships or
+player predictions. A package that could write a platform table never learns
+the database URL.
+
+Production is where the live competitions are and where the paid odds budget
+is enabled, so it is a legitimate target. It is still the environment carrying
+real players, so prefer proving a change on Development first.
 
 Then promote one from `/admin/ai`, or:
 
