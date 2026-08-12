@@ -236,6 +236,11 @@ These names may remain but their semantics must support both kinds safely:
 - `set_season_matchweek_joker`
 - `confirm_season_matchweek_card`
 - `recompute_tournament_scores`
+- `get_season_matchweek_projection`
+- `get_season_prediction_dna`
+- `save_season_predictions_batch`
+- `run_shadow_scoring_verification`
+- `admin_shadow_scoring_report`
 
 Named JSON arguments make any later parameter rename atomic or wrapper-backed.
 

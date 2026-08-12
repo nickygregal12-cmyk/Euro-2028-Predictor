@@ -277,12 +277,18 @@ same paragraph existed in seven places at once.
 | 172 | The `pg_cron` schedule for action generation, reminder scheduling and stall reclamation, plus a competition-administrator health read. **Scheduling only — nothing sends** |
 | 173 | The settled-matchweek recap action, expiring seven days after settlement and carrying no deadline, so it never becomes a reminder |
 | 174 | Staged provider calendar changes — discovered, postponed, abandoned, cancelled, withdrawn — with an administrator decision that is the only thing able to change a fixture |
+| 175 | A read-only projection of a matchweek under the current or one hypothetical goal, through the existing scoring authority. Never banked, never official |
+| 176 | Deterministic per-player prediction metrics, each returned with its own denominator and a minimum-sample flag |
+| 177 | A batch prediction submission with per-fixture outcomes — accepted, locked, conflict, invalid, refused — so an offline device can reconcile without losing the drafts that were submittable |
+| 178 | An independent recomputation of settled scoring that records disagreements and corrects nothing |
 
-*Current to contract 174.*
+*Current to contract 178.*
 
 ## Innovation Lab UI pass — 11 August 2026
 
 Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovation-lab.md) were promoted by the owner and worked on in one frontend session. The classification below is the baseline's own, and it is deliberately conservative: a surface counts as **Implemented in repository** and nothing stronger, because none of it has been published and no hosted claim is made here.
+
+**The backend halves of four of these rows landed separately and first**, as contracts 175 to 178 under [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md) — `INNOV-001`, `INNOV-002`, `INNOV-020` and `INNOV-018`. They are **repository-only**: Development is hosted at 174, so none is in the generated database types and none is reachable from a browser. Every surface below therefore derives from reads that were already granted and is unaffected; where one of those contracts answers a gap this pass recorded, the Innovation Lab's own delivery record says so.
 
 **This pass changed no database, no hosted environment, no provider configuration and no Edge Function.** It added **no** scoring, lock, settlement, reveal, membership or standings authority. Every figure any new surface renders is derived from a read the server already grants, using `src/domain/season/scoring.ts` — the authority the database is parity-checked against — rather than a value re-typed into a component.
 

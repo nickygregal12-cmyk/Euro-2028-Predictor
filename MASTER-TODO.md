@@ -452,5 +452,6 @@ same paragraph existed in seven places at once.
 | 172 | The action centre and the reminder ledger acquire a caller. Three contracts built them and every one ended by recording that nothing ran them |
 | 173 | The action centre's third generator, and the sweep-key trap it had to avoid to exist at all |
 | 174 | The provider changes contract 117 counted and threw away, staged for an administrator. Closes `INGEST-002`, `INGEST-003` and `INGEST-005` |
+| 175–178 | The Innovation Lab backend foundations (ADR 0027): the what-if projection, Prediction DNA, offline draft reconciliation and the independent shadow scoring verifier. **Four `INNOV-*` rows close; twenty remain**, each with a named product, privacy or security blocker rather than an unexplained gap. None is hosted and none has a frontend consumer |
 
-*Current to contract 174.*
+*Current to contract 178.*

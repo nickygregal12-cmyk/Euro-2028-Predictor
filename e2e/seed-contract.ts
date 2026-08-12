@@ -970,8 +970,36 @@
  * execute and which the seed never runs. **No existing relation, policy,
  * trigger or grant moves**, and the one behaviour change reachable from a
  * seeded session is that an administrator has a second queue to read.
+ *
+ * Contracts 175 to 178 are checked against the one question this number exists
+ * to answer — has a migration introduced a new gate on something a seeded user
+ * already reads — and the answer is no, for a reason that holds across all four
+ * rather than four separate reasons.
+ *
+ * **Every one of them is purely additive to the surfaces a seeded session
+ * touches.** No existing relation, function, policy, trigger, grant or default
+ * privilege is altered by any of the four; `git diff` over the migration set
+ * shows five `create or replace function` statements against names that did not
+ * previously exist, two `create table` statements in `predictor_internal`, and
+ * no `alter` against anything a seeded read reaches. Contract 177 is the only
+ * one that writes at all, and it writes by calling `save_season_prediction`
+ * unchanged rather than by touching the table — its own source assertion
+ * refuses a definition that does otherwise — so the seeded write path is
+ * literally the same code it was at 174.
+ *
+ * The two new relations are `predictor_internal.shadow_scoring_runs` and
+ * `shadow_scoring_mismatches`, both with row-level security on and revoked from
+ * both browser roles, so no seeded read can reach them at all. Of the five new
+ * functions, three are granted to `authenticated` and resolve their own
+ * boundary internally, one refuses inside on `require_competition_admin()` —
+ * the gate the seeded admin already passes for `admin_open_season_competition`
+ * — and one is `service_role`-only and is never called by the seed.
+ *
+ * The seeded Euro tournament is additionally out of scope for all four by
+ * construction: every one of them refuses a competition whose `kind` is not
+ * `league_season`.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 174
+export const SEED_REVIEWED_AT_CONTRACT = 178
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

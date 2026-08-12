@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **174** | latest `20260811234000_provider_calendar_change_proposals.sql` |
+| Repository | **178** | latest `20260812003000_shadow_scoring_verifier.sql` |
 | Development hosted | **174** | at `20260811234000_provider_calendar_change_proposals.sql`, verified `2026-08-11T19:12:00.000Z`, fast-lane run `31525963941` |
 | Production | **174** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 4 — `20260812000000_what_if_projection.sql`, `20260812001000_prediction_dna.sql`, `20260812002000_offline_draft_reconciliation.sql`, `20260812003000_shadow_scoring_verifier.sql`
 
-**Next free contract number:** 175. Check open pull requests
+**Next free contract number:** 179. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**58** accepted requirements are outstanding, of which **17** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, INNOV 10, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 27 are marked implemented and retained in the register.
+**68** accepted requirements are outstanding, of which **18** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 31 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

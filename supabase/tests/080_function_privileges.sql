@@ -235,6 +235,29 @@ insert into expected_authenticated_functions (signature) values
   ('admin_provider_change_proposals(uuid,text,integer,integer)'),
   ('admin_decide_provider_change_proposal(uuid,text,text)');
 
+-- Contracts 175 to 178, the Innovation Lab backend foundations (ADR 0027).
+--
+-- Three player reads and one administrator read. The projection and the DNA
+-- read are `authenticated` because both answer about the caller or about
+-- somebody the caller shares a private league with, and both resolve that
+-- boundary internally. The batch is a WRITE and is granted on exactly the
+-- terms `save_season_prediction` is, because it IS that function: it adds no
+-- rule and reaches no table the single call does not.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_matchweek_projection(uuid,integer,uuid)'),
+  ('get_season_prediction_dna(uuid,uuid)'),
+  ('save_season_predictions_batch(uuid,jsonb)'),
+  -- Contract 178's report, granted to `authenticated` and refusing inside on
+  -- `require_competition_admin()`, on the same terms as every admin row above.
+  -- It names entries and never people: who the player is adds nothing to
+  -- "is the scoring right", so no display name or address appears in it.
+  ('admin_shadow_scoring_report(uuid,integer)');
+
+-- Contract 178's RUN is service_role and nothing else: it is a job rather than
+-- an action, it writes evidence, and no browser session has cause to start one.
+insert into expected_service_functions (signature) values
+  ('run_shadow_scoring_verification(uuid,integer)');
+
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),

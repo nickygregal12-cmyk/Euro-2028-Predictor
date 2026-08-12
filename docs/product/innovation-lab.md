@@ -3,8 +3,10 @@
 **Status:** product opportunity register, with a delivery record for the items an owner has promoted  
 **Authority:** none for a Candidate row — this document records candidates, not decisions. A **Promoted** row's authority is the owner instruction that promoted it, and its implementation truth is [`../quality/feature-baseline.md`](../quality/feature-baseline.md)  
 **Owner:** product owner  
-**Last reviewed:** 11 August 2026  
+**Last reviewed:** 12 August 2026  
 **Implementation effect:** none for a Candidate row  
+
+> **Twenty-four candidates were reviewed for BACKEND promotion on 12 August 2026 and the outcome is [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md).** Four had their backend foundations built (`INNOV-001`, `INNOV-002`, `INNOV-018`, `INNOV-020`); one was found already satisfied (`INNOV-023`); one has no backend dependency (`INNOV-024`); the rest wait on a named product, privacy or security decision. **The status lines below record where each moved. They do not make this document an authority** — [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) is the register of what was accepted, and the ADR is the record of why. A **Candidate** row here is still not approved scope, and an **Accepted** row means the backend direction was accepted, never that the product feature is approved for release.
 
 > **Core roadmap makes the product complete. Innovation Lab makes it distinctive.**
 >
@@ -22,7 +24,7 @@ Every `INNOV-*` idea has one of five states:
 
 - **Explore** — interesting but still too vague, risky or dependent on unknowns to be a serious candidate.
 - **Candidate** — worth a future product workshop or bounded prototype; still not approved scope.
-- **Accepted** — owner has explicitly accepted the product direction and it has been promoted into the appropriate decision/requirements/roadmap authorities.
+- **Accepted** — owner has explicitly accepted the product direction and it has been promoted into the appropriate decision/requirements/roadmap authorities. **Accepted (backend)** narrows that to the server half, which is how [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md) promoted several rows.
 - **Promoted** — accepted *and* worked on. The row records where the work landed and, honestly, how much of the idea it covers. A Promoted row is not a finished row.
 - **Parked / Rejected** — intentionally not being pursued unless a later owner decision reopens it.
 
@@ -37,6 +39,8 @@ A **Promoted** row carries one of five delivery classifications, and the distinc
 | **Superseded** | Another implementation already covers it; a second one would be a duplicate. |
 
 A visual shell is never "delivered". A control the server would refuse is never shipped enabled.
+
+**A ROW HAS TWO HALVES AND STATES BOTH.** On 11 and 12 August 2026 two sessions worked this register at once — one on the UI, one on the backend — and each rewrote the same Status rows for its own half. The rows now carry both, separated by `·`, because "delivered" without saying *which half* is exactly the ambiguity the classification above exists to remove. A backend read can exist with no consumer, and a UI can derive an answer the server would rather compute; those are different states and neither is "done".
 
 An idea may move from **Candidate** to implementation only when all of the following are true:
 
@@ -79,7 +83,7 @@ Innovation must never weaken the product's existing boundaries. In particular:
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI fully delivered |
+| Status | **Promoted** — UI fully delivered · backend read at contract 175 ([ADR 0027](../adr/0027-innovation-lab-backend-foundations.md)), not yet consumed |
 | Impact | **5/5** |
 | Value | Live engagement; private-league drama; differentiation |
 | Best timing | After the weekly Match Centre has reliable live-result invalidation and league consequence reads |
@@ -104,7 +108,7 @@ Example: `Liverpool 1–1 Arsenal · 72'` → current projected points/rank; `Li
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — UI delivered · backend read at contract 176 ([ADR 0027](../adr/0027-innovation-lab-backend-foundations.md)), not yet consumed, and it answers the club-level gap the UI could not |
 | Impact | **5/5** |
 | Value | Personalisation; retention; shareability |
 | Best timing | Once durable season prediction history is available |
@@ -128,7 +132,7 @@ The output should feel like a recognisable forecasting style rather than an inve
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — UI architecture ready; blocked |
+| Status | **Candidate** — no UI shipped; the fact layer largely exists (contracts 129, 130, 150, 151, 176) and the model half is blocked on an AI-provider decision and a privacy review |
 | Impact | **5/5** |
 | Value | Personal insight; makes accumulated data understandable |
 | Best timing | After player history, league comparison and football-insight reads are stable |
@@ -157,7 +161,7 @@ Provide a constrained natural-language analyst over verified structured data. It
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no public read authority |
+| Status | **Candidate** — no UI; blocked on the public visibility model and field allow-list it shares with `INNOV-007`, `INNOV-008` and `INNOV-022` |
 | Impact | **5/5** |
 | Value | Sharing; acquisition; league identity |
 | Best timing | After private league UX and visibility/privacy rules are mature |
@@ -179,7 +183,7 @@ Every public league page becomes a potential acquisition surface with a clear `C
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no challenge persistence |
+| Status | **Candidate** — no UI; blocked on guest retention and the first unauthenticated write decision |
 | Impact | **5/5** |
 | Value | Low-friction viral acquisition |
 | Best timing | After invitation/auth continuation is reliable |
@@ -201,7 +205,7 @@ Create a challenge link around one fixture rather than requiring a full private 
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI fully delivered |
+| Status | **Promoted** — UI fully delivered · needs no backend |
 | Impact | **5/5** |
 | Value | Social viewing; private-league differentiation |
 | Best timing | After live league consequence data is stable |
@@ -223,7 +227,7 @@ A large-screen, read-only route designed for a television/monitor while a group 
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — the text and link share is delivered · dynamic share IMAGES wait on the same public-surface decision as `INNOV-004` |
 | Impact | **5/5** |
 | Value | Organic acquisition; premium sharing |
 
@@ -242,7 +246,7 @@ Generate safe, branded Open Graph/share images for league wins, matchweek recaps
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; depends on `INNOV-004` |
+| Status | **Candidate** — no UI; one decision with `INNOV-004` |
 | Impact | **5/5** |
 | Value | Distribution through offices, supporters' clubs and community sites |
 
@@ -256,7 +260,7 @@ Offer a compact read-only widget for leagues that are explicitly public: standin
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no integration backend |
+| Status | **Candidate** — no UI; no consumer platform exists yet |
 | Impact | **5/5** |
 | Value | Put league information where groups already talk |
 
@@ -275,7 +279,7 @@ Provide bounded integrations such as Discord commands/webhooks for table, next d
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no pass signing or refresh service |
+| Status | **Candidate** — no UI; needs platform enrolment and signing material |
 | Impact | **5/5 potential; experimental** |
 | Value | Premium delight; quick-glance rank/deadline information |
 
@@ -291,7 +295,7 @@ Offer an optional wallet pass showing a bounded summary such as competition, pla
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — UI delivered · substantially delivered on the backend (contracts 61, 130 and 176); a scoreline-level distribution still needs its own cohort decision |
 | Impact | **5/5** |
 | Value | Makes anonymous consensus personally meaningful |
 
@@ -305,7 +309,7 @@ After reveal, show how unusual the player's choice was: `Only 11% backed Chelsea
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — UI delivered for a settled matchweek · each season-wide honour’s window, denominator and tie behaviour is a product definition |
 | Impact | **5/5** |
 | Value | Keeps more league members engaged when they are out of the title race |
 
@@ -323,7 +327,7 @@ Add deterministic secondary honours such as Exact Score King, Form Player, Bigge
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — superseded in part; delivered through existing surfaces |
+| Status | **Promoted** — superseded in part; delivered through existing surfaces · evidence audited and sufficient: contract 150 derives movement from banked totals and no snapshot table should be added |
 | Impact | **5/5** |
 | Value | Turns historical data into an explorable product rather than a dead archive |
 
@@ -337,7 +341,7 @@ For an old fixture, show the player's prediction, final score, revealed communit
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI fully delivered |
+| Status | **Promoted** — UI fully delivered · minute-level claims remain underivable, because no event timeline is stored |
 | Impact | **5/5** |
 | Value | End-of-season exploration and shareable statistical stories |
 
@@ -351,7 +355,7 @@ Analyse nearest misses and counterfactuals without presenting them as official s
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no confidence storage |
+| Status | **Candidate** — deliberately no UI; blocked on defining what outcome is being calibrated, before any column exists |
 | Impact | **5/5** |
 | Value | Adds real forecasting depth without touching game scoring |
 
@@ -365,7 +369,7 @@ Let a player optionally record confidence in a prediction. Over time show whethe
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — UI delivered · a composing backend read awaits a measurement, and the action authority must not be duplicated |
 | Impact | **5/5** |
 | Value | A single glance that joins actions, football and competitive context |
 
@@ -381,7 +385,7 @@ This is not another Home redesign. It is a reusable daily summary that could lat
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI delivered; backend enhancement optional |
+| Status | **Promoted** — UI delivered for clarity · a sound commitment needs a reviewed construction; the existing audit trail is not weak, only unprovable to a sceptic |
 | Impact | **5/5** |
 | Value | Strong trust that locked predictions were not edited after the deadline |
 
@@ -401,7 +405,7 @@ Create a receipt/commitment for a submitted prediction set so the platform can l
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — backend-only |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 178 with no scheduled caller. No UI, and an admin display is now possible where it was not |
 | Impact | **5/5** |
 | Value | Detect silent correctness bugs where every job succeeds but the points are wrong |
 
@@ -420,7 +424,7 @@ After settlement, an independent read-only verifier recalculates expected scorin
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — UI architecture ready; partly blocked |
+| Status | **Candidate** — the existing provider queues are already reachable and contract 174 supplies most of the foundation; the cross-provider half needs a second provider |
 | Impact | **5/5** |
 | Value | Detect suspicious provider changes before they become player-facing truth |
 
@@ -440,7 +444,7 @@ Add cross-provider and domain-plausibility checks around ingestion: unexpected k
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — not implemented; see the delivery record |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 177. **UI deferred rather than blocked** — see the delivery record |
 | Impact | **5/5** |
 | Value | Mobile resilience on trains, stadiums and poor connections |
 
@@ -459,7 +463,7 @@ Allow pre-lock prediction edits to be stored as an explicitly local draft when o
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; auth stack has no WebAuthn |
+| Status | **Candidate** — no UI; the platform capability must be measured first, and no bespoke WebAuthn store may be built |
 | Impact | **5/5** |
 | Value | Remove repeated password friction from a high-frequency phone product |
 
@@ -473,7 +477,7 @@ Assess passkeys/WebAuthn as an additional authentication method so returning use
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** — blocked; no calendar feed authority |
+| Status | **Candidate** — no UI; needs the same public-surface decision as `INNOV-004`, arriving from a different direction |
 | Impact | **5/5** |
 | Value | Prediction deadlines and relevant fixtures appear in the user's normal calendar |
 
@@ -487,7 +491,7 @@ Offer a private subscribed calendar feed containing selected competition fixture
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI fully delivered |
+| Status | **Promoted** — UI fully delivered · already satisfied on the backend: `get_my_actions` has returned `unseen` since contract 162 and a second counter would be a duplicate authority |
 | Impact | **5/5 when supported; progressive enhancement** |
 | Value | At-a-glance signal that predictions/actions still need attention |
 
@@ -501,7 +505,7 @@ For an installed web app on supporting platforms, badge the icon with the bounde
 
 | Field | Value |
 | --- | --- |
-| Status | **Promoted** — UI fully delivered |
+| Status | **Promoted** — UI fully delivered · no backend dependency, recorded so it is not re-audited |
 | Impact | **5/5 for polish when used selectively** |
 | Value | Preserve context and make the premium desktop/phone product feel cohesive |
 
@@ -568,17 +572,19 @@ A personalised generated **audio matchweek recap** was considered during the sam
 
 The owner promoted the **UI-facing** portions of this register into implementation in one session. This section is that session's honest account: what shipped, where it lives, and what each row still waits on. It is not a status document — [`../quality/feature-baseline.md`](../quality/feature-baseline.md) is — and it states no contract number and no hosted claim.
 
+**Read this beside [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md).** A second session worked the same register's BACKEND at the same time and merged first, adding contracts 175 to 178 for `INNOV-001`, `INNOV-002`, `INNOV-020` and `INNOV-018`. The two do not contradict each other and they are not the same work: those contracts are **repository-only** — Development is hosted at 174 — so none of them is in the generated database types and none can be called from a browser yet. Every surface described below derives from reads that were already granted, and keeps working. Where a new contract answers a dependency this record names, the row says so rather than leaving a stale "absent".
+
 **Nothing in this pass touched a database.** No migration was written, no hosted Supabase project was changed, no Edge Function was deployed, no provider configuration or secret was touched and no scoring, lock, settlement, reveal, membership or standings authority was added, widened or duplicated. Every figure any new surface shows is derived from a read the server already grants, using the scoring authority the database is parity-checked against.
 
 ## What shipped
 
 | ID | Classification | Route / component | Backend dependency remaining |
 | --- | --- | --- | --- |
-| `INNOV-001` | UI fully delivered | `whatIfModel.ts`, `SeasonMatchWhatIf.tsx`, on the Match Centre route | None. A live provider score and, after the lock, contract 149's league predictions are enough |
-| `INNOV-002` | UI delivered; enhancement optional | `predictionDnaModel.ts`, `PredictionDnaPanel.tsx`, on the player's season route | Favourite-backing, upset tendency and team-specific patterns need a history read that carries the club and the result. Contract 151's history is keyed by fixture id and carries neither |
+| `INNOV-001` | UI fully delivered | `whatIfModel.ts`, `SeasonMatchWhatIf.tsx`, on the Match Centre route | None to work. **Contract 175 now offers `get_season_matchweek_projection`**, which answers the same question server-side; a later session should consider consuming it rather than deriving, and must not run both |
+| `INNOV-002` | UI delivered; enhancement optional | `predictionDnaModel.ts`, `PredictionDnaPanel.tsx`, on the player's season route | **Answered by contract 176.** This row said team-specific patterns needed a history read carrying the club, because contract 151's is keyed by fixture id; `get_season_prediction_dna` returns `clubs` alongside tendencies and accuracy. Consuming it closes the gap and replaces the browser derivation |
 | `INNOV-006` | UI fully delivered | `tvModeModel.ts`, `SeasonTvModeRoute.tsx`, at `…/:seasonSlug/tv` | None for the signed-in host. A public spectator variant is `INNOV-004` |
 | `INNOV-007` | UI delivered; enhancement optional | `shareTextModel.ts`, `ShareAction.tsx`, on the settled matchweek and the player's own DNA panel | Dynamic Open Graph images need a server renderer and a signed, field-allow-listed payload. The text/link share needs nothing |
-| `INNOV-011` | UI delivered; enhancement optional | `divergenceModel.ts`, inside the Match Centre's consensus panel | "Bolder than 86% of players" needs the cohort's predicted-goals distribution. Contract 130 returns at most five scorelines, and ranking against a five-row sample would be a confident sentence about a number nobody measured |
+| `INNOV-011` | UI delivered; enhancement optional | `divergenceModel.ts`, inside the Match Centre's consensus panel | "Bolder than 86% of players" needs the cohort's predicted-goals distribution. Contract 130 returns at most five scorelines, and ranking against a five-row sample would be a confident sentence about a number nobody measured. **Contract 176 supplies the per-PLAYER half**; the per-cohort distribution is still absent |
 | `INNOV-012` | UI delivered; enhancement optional | `sideHonoursModel.ts`, `SeasonLeagueHonours.tsx`, on a league's Matchweek tab | Season-wide honours (Comeback of the Season, a season Exact Score King) need a read that spans matchweeks. Deriving them in a browser would be N requests per league |
 | `INNOV-013` | Superseded in part | The Match Centre route already carries the final score, the player's prediction, the points, the community distribution and the league context; `INNOV-011` added "how unusual" | Rank movement at the time is contract 150's and is already rendered. Nothing is reconstructed heuristically, and nothing further should be |
 | `INNOV-014` | UI fully delivered | `closestMissModel.ts`, `SeasonClosestMisses.tsx`, under a settled matchweek card | None |
@@ -598,9 +604,9 @@ The owner promoted the **UI-facing** portions of this register into implementati
 | `INNOV-009` | No integration exists, and messaging secrets are server-side by definition. A settings page for an integration that cannot be connected is a dead control | A server-side integration with an owner setup and revocation path |
 | `INNOV-010` | Wallet passes must be signed by a server and refreshed by a push service. Neither exists | A pass-signing and update service, and a platform review |
 | `INNOV-015` | Nothing stores a confidence value. The UI model was **not** built as a disabled control: an input a player can move that saves nothing is worse than its absence, and this register's own guardrail forbids it | A confidence column on the prediction with its own write path, explicitly excluded from every scoring authority |
-| `INNOV-018` | Backend-only by its own definition. An independent verifier that ran in a browser would not be independent, and there is no verifier read to display | A server-side shadow verifier and a disagreement ledger |
+| `INNOV-018` | Backend-only by its own definition. An independent verifier that ran in a browser would not be independent. **The second half of that sentence — "there is no verifier read to display" — stopped being true on 12 August 2026**: contract 178 adds the verifier and `admin_shadow_scoring_report`, so an administrator display is now buildable | Nothing. The read exists; the admin surface is ordinary follow-up work |
 | `INNOV-019` | Half of it exists: `/admin/season`'s provider review panel already reads the staged proposal queues (contracts 138 and 168). What is absent is a browser read for the change proposals the newest ingestion work stages, and there is no cross-provider agreement to display because there is one provider | A bounded admin read over the change-proposal evidence; multi-provider agreement is a separate ingestion decision |
-| `INNOV-020` | **Deliberately deferred, not blocked.** Offline drafting is buildable with today's authorities, and it is the one item on this list where a partial implementation is actively dangerous: a draft that looks submitted, a reconnection that silently backdates, or a conflict resolved in the browser would each break a rule this register exists to protect. It needs its own change with its own test suite covering saved-versus-submitted, lock-during-offline, multi-device conflict and the no-false-success rule, and it should not be a tail item of a broad pass | Nothing on the server. It needs a bounded session of its own |
+| `INNOV-020` | **Deliberately deferred, not blocked**, and now easier rather than harder: contract 177 adds `save_season_predictions_batch`, a server-side reconciliation for exactly this. The reasoning is unchanged — it is the one item where a partial implementation is actively dangerous, because a draft that looks submitted, a reconnection that silently backdates, or a conflict resolved in the browser each break a rule this register exists to protect | Nothing. Contract 177 is the server half; the UI needs a bounded session of its own with tests for saved-versus-submitted, lock-during-offline, multi-device conflict and no false success |
 | `INNOV-021` | Measured rather than assumed: the client signs in with `signInWithPassword` and nothing else, and the auth stack exposes no WebAuthn enrolment or assertion. A Face ID button would be decoration over a password | Passkey support in the auth provider, plus a recovery model that survives a lost device |
 | `INNOV-022` | There is no calendar feed, no feed token and no revocation. A static `.ics` link would be an unguessable-by-hope URL, which is not a security model | A revocable, unguessable feed endpoint carrying fixtures and deadlines and no prediction values |
 

@@ -6,6 +6,23 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Pending — contracts 175 to 178, Innovation Lab backend foundations (12 August 2026, fortieth entry)
+
+**The repository is at contract 178. Development and Production both hold 174, so four migrations are pending on both.** Nothing in this entry is a hosted claim: none of the four has been applied anywhere.
+
+| Migration | Contract | What it adds |
+| --- | --- | --- |
+| `20260812000000_what_if_projection.sql` | 175 | `predictor_internal.season_matchweek_projection` and the bounded `get_season_matchweek_projection` read |
+| `20260812001000_prediction_dna.sql` | 176 | `predictor_internal.season_dna_window` and `get_season_prediction_dna` |
+| `20260812002000_offline_draft_reconciliation.sql` | 177 | `save_season_predictions_batch` |
+| `20260812003000_shadow_scoring_verifier.sql` | 178 | `predictor_internal.shadow_scoring_runs` and `shadow_scoring_mismatches`, the independent recomputation, `run_shadow_scoring_verification` and `admin_shadow_scoring_report` |
+
+**All four are additive**, so they route to the ADR 0024 **fast lane** rather than the guarded one: no relation is altered, no function is dropped, no grant is withdrawn and no policy moves. `check-migration-additive.mjs` derives that from the pending set rather than trusting this sentence.
+
+**What applying them would and would not do.** It creates two `predictor_internal` tables, both empty on apply, both with row-level security on and no grant to any browser role. It adds five functions to the public schema: three ordinary authenticated reads or writes, one competition-admin gated read, and one `service_role`-only job. **It schedules no job** — contract 178's verifier has no caller, deliberately, and giving it one is a separate decision. It writes no fixture, result, prediction, score, membership or standing, and it changes no existing function, relation, trigger, policy or grant. `euro_publication_state()` is untouched.
+
+**Production promotion is not authorised by anything in this entry.** The 12 August 2026 owner authorisation recorded in [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md) covers repository implementation and explicitly separates hosted rollout; a Production boundary needs its own authorisation naming it exactly, as the 172-to-174 boundary did.
+
 ## Current state — 11 August 2026 (thirty-ninth entry)
 
 **The application is promoted to contract 174, and the "contract 145" figure everything had been repeating was stale.** The owner authorised the application promotion on 11 August 2026 in those words.
@@ -115,7 +132,7 @@ The narrower claim those notes were reaching for — that the 159→171 boundary
 
 ## Current state — 11 August 2026 (thirty-sixth entry)
 
-**The repository is at contract 174. Development is now hosted at 174. Production remains hosted at 171.** Contracts 172, 173 and 174 reached Development through the ADR 0024 additive fast lane, run [31525963941](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31525963941), from exact `main` `09214df`. The lane derived the pending set itself and `check-migration-additive.mjs` accepted all three as a **gate**, which is what admits them to this lane at all.
+**At this entry the repository was at contract 174. Development is now hosted at 174. Production remains hosted at 171.** Contracts 172, 173 and 174 reached Development through the ADR 0024 additive fast lane, run [31525963941](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31525963941), from exact `main` `09214df`. The lane derived the pending set itself and `check-migration-additive.mjs` accepted all three as a **gate**, which is what admits them to this lane at all.
 
 **The postflight was taken independently of the workflow, on a separate read-only connection, and it NAMES rows rather than counting them.** The ledger holds `20260811230000 action_centre_and_reminder_drivers`, `20260811233000 matchweek_settled_actions` and `20260811234000 provider_calendar_change_proposals`; the total is 174 and the latest is `20260811234000`. Naming is the rule established in the thirty-third entry, where a `count(*)` against a hosted ledger returned a stale figure for roughly twenty-five minutes after a successful apply while a row-level query was already correct.
 
@@ -157,7 +174,7 @@ The narrower claim those notes were reaching for — that the 159→171 boundary
 
 ## Current state — 11 August 2026 (thirty-fifth entry)
 
-**The repository is at contract 174. Development is hosted at 171. Production is hosted at 171.** Contracts 172, 173 and 174 are repository candidates applied to neither, and all three are additive.
+**At this entry the repository was at contract 174. Development is hosted at 171. Production is hosted at 171.** Contracts 172, 173 and 174 are repository candidates applied to neither, and all three are additive.
 
 | Contract | Migration | What it is |
 | --- | --- | --- |
