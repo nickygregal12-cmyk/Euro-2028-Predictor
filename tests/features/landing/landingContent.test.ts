@@ -3,13 +3,15 @@ import {
   DOMESTIC_COMPETITIONS,
   GAMES,
   HOW_STEPS,
-  HUB_PREVIEW_DESCRIPTION,
   LANDING_NAV,
   LANDING_SECTION_ORDER,
-  PHONE_PREVIEW_DESCRIPTION,
   PREVIEW_CONTEXT_SLOTS,
   PREVIEW_LEAGUE_ROWS,
 } from '../../../src/features/landing/landingContent'
+import {
+  PREVIEW_FRAMES,
+  previewFrameAt,
+} from '../../../src/features/landing/landingPreviewScript'
 
 /**
  * The landing page's content model, against the authority that fixes it.
@@ -112,17 +114,58 @@ describe('the landing page content model', () => {
       'live',
       'social',
     ])
+
+    // AND EVERY SCRIPTED FRAME OBEYS IT. The preview is a sequence now, so the
+    // count is a property of each frame rather than of one array — and without
+    // this, adding a fourth slot to one frame would sail past the assertion
+    // above while changing the very thing E.7 bounds.
+    for (const frame of PREVIEW_FRAMES) {
+      expect(frame.context, `${frame.id} does not carry three slots`).toHaveLength(3)
+      expect(frame.context.map((slot) => slot.kind)).toEqual([
+        'time-critical',
+        'live',
+        'social',
+      ])
+    }
   })
 
-  it('describes both previews as previews, for assistive technology', () => {
+  it('describes every preview frame as a preview, for assistive technology', () => {
     // The previews are pictures of the product carrying invented ranks and
     // points. Their accessible name is the only thing standing between a
     // screen-reader user and hearing those numbers as their own standings, so
-    // each has to say what it is.
-    for (const description of [HUB_PREVIEW_DESCRIPTION, PHONE_PREVIEW_DESCRIPTION]) {
-      expect(description).toMatch(/^Preview of the signed-in Hub/)
-      expect(description.length).toBeGreaterThan(80)
+    // each has to say what it is — and because the device now changes, EACH
+    // FRAME has to, not just the first.
+    for (const frame of PREVIEW_FRAMES) {
+      expect(frame.description, `${frame.id} is not described as a preview`).toMatch(
+        /^Preview of the signed-in Hub/,
+      )
+      expect(frame.description.length).toBeGreaterThan(80)
     }
+  })
+
+  it('runs a deterministic script with no clock and no randomness', () => {
+    // The whole reason the preview may exist on a public page: it reads
+    // nothing. Two visitors, two renders and a screenshot runner see the same
+    // sequence in the same order, which is also what makes a visual baseline
+    // possible at all.
+    expect(PREVIEW_FRAMES.length).toBeGreaterThanOrEqual(2)
+    const ids = PREVIEW_FRAMES.map((frame) => frame.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    // Total by construction, including from a negative step.
+    expect(previewFrameAt(0)).toBe(PREVIEW_FRAMES[0])
+    expect(previewFrameAt(PREVIEW_FRAMES.length)).toBe(PREVIEW_FRAMES[0])
+    expect(previewFrameAt(-1)).toBe(PREVIEW_FRAMES[PREVIEW_FRAMES.length - 1])
+  })
+
+  it('never previews another player\u2019s unrevealed prediction', () => {
+    // A marketing page must not teach a visitor to expect the product to break
+    // a reveal rule. The league frame is a SETTLED matchweek, which is when the
+    // real product reveals; nothing in the script shows a named rival's pick
+    // before its lock.
+    const joined = PREVIEW_FRAMES.map((frame) =>
+      [frame.summary, frame.action.body, ...frame.context.map((slot) => slot.detail)].join(' '),
+    ).join(' ')
+    expect(joined).not.toMatch(/predicted \d+\s?[-\u2013]\s?\d+/i)
   })
 
   it('keeps the preview league table obviously illustrative', () => {

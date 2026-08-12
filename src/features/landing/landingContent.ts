@@ -234,21 +234,21 @@ export const PREVIEW_CONTEXT_SLOTS: readonly {
 ] as const
 
 /**
- * The description assistive technology is given for the desktop Hub preview.
+ * WHERE THE PREVIEW DESCRIPTIONS WENT.
  *
- * The preview is exposed as one image with this label rather than as a tree of
- * headings, rows and numbers. Read aloud, the mock-up would otherwise announce
- * invented competitions, ranks and points as though the visitor held them —
- * which is both untrue and, for someone who cannot see that it is a picture of
- * a screen, indistinguishable from their own data.
+ * Two constants stood here — `HUB_PREVIEW_DESCRIPTION` and
+ * `PHONE_PREVIEW_DESCRIPTION` — each the single accessible name for a still
+ * device. The previews are now a scripted sequence, and one fixed label across
+ * four different pictures is a description that is wrong three quarters of the
+ * time: it would say "seven of ten predicted" while the device showed a
+ * settled matchweek.
+ *
+ * So the description travels WITH the frame, in `landingPreviewScript.ts`, and
+ * `landingContent.test.ts` holds every frame to the same rule those two
+ * constants were held to. The rule itself has not moved: each preview is
+ * exposed as ONE image with a written description rather than as a tree of
+ * headings, rows and numbers, because read aloud the mock-up would otherwise
+ * announce invented competitions, ranks and points as though the visitor held
+ * them — untrue, and for somebody who cannot see that it is a picture of a
+ * screen, indistinguishable from their own data.
  */
-export const HUB_PREVIEW_DESCRIPTION =
-  'Preview of the signed-in Hub: permanent global navigation, one prioritised next action, ' +
-  'row-led competition and league summaries with rank and movement, an ambient saved-predictions ' +
-  'status, and a contextual rail showing a deadline, live provisional points and league movement.'
-
-/** The same treatment for the phone preview, for the same reason. */
-export const PHONE_PREVIEW_DESCRIPTION =
-  'Preview of the signed-in Hub on a phone: a greeting, one prioritised next action with its ' +
-  'deadline, row-led competition and league summaries with rank, and the five-item bottom ' +
-  'navigation — Hub, Predict, Leagues, Games and More.'

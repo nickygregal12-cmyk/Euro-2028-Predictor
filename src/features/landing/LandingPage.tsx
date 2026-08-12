@@ -16,14 +16,17 @@ import {
   EXPERIENCE_FEATURES,
   GAMES,
   HOW_STEPS,
-  HUB_PREVIEW_DESCRIPTION,
   LANDING_NAV,
   LANDING_SECTION_ORDER,
-  PHONE_PREVIEW_DESCRIPTION,
-  PREVIEW_CONTEXT_SLOTS,
   PREVIEW_LEAGUE_ROWS,
   type LandingSectionId,
 } from './landingContent'
+import {
+  PREVIEW_FRAMES,
+  previewFrameAt,
+  type PreviewRowData,
+} from './landingPreviewScript'
+import { useScriptedPreview } from './useScriptedPreview'
 import s from './LandingPage.module.css'
 
 /**
@@ -213,96 +216,162 @@ function HeroSection(): ReactElement {
 }
 
 /**
- * The desktop Hub preview.
+ * The desktop Hub preview, as a scripted sequence.
  *
  * `role="img"` with a written description is the whole accessibility contract
  * here: ARIA makes an image's descendants presentational, so the invented
  * competitions, ranks and points below are described once, honestly, as a
  * picture of the product rather than announced as the visitor's own standings.
+ * The description travels WITH the frame, so what is announced is what is on
+ * screen rather than whichever frame happened to be first.
+ *
+ * THE STEP CONTROLS ARE OUTSIDE THE DEVICE, and that is a rule rather than a
+ * layout preference. Everything inside the chrome is a picture of the product;
+ * a real control in there would be indistinguishable from the product's own,
+ * and a visitor who pressed "Continue" expecting to predict something would
+ * have been told a lie by the page that was selling them the product. The
+ * controls step the PREVIEW and say so in their accessible names.
+ *
+ * IT DEGRADES TO A COMPLETE STILL. Frame one renders with no effect having
+ * run, so no-JavaScript, a crawler, print and a frozen screenshot all get a
+ * truthful picture rather than an empty device.
  */
 function HubPreview(): ReactElement {
+  const { index, containerRef, goTo, playing } = useScriptedPreview()
+  const frame = previewFrameAt(index)
+
   return (
-    <div className={s.preview} role="img" aria-label={HUB_PREVIEW_DESCRIPTION}>
-      <div className={s.previewChrome}>
-        <span className={s.previewDot} />
-        <span className={s.previewDot} />
-        <span className={s.previewDot} />
-        <span className={s.previewChromeLabel}>Signed-in Hub preview</span>
+    <div className={s.previewStage} ref={containerRef}>
+      <div className={s.preview} role="img" aria-label={frame.description}>
+        <div className={s.previewChrome}>
+          <span className={s.previewDot} />
+          <span className={s.previewDot} />
+          <span className={s.previewDot} />
+          <span className={s.previewChromeLabel}>Signed-in Hub preview</span>
+        </div>
+        <div className={s.previewApp}>
+          <div className={s.previewRail}>
+            <span className={s.brandMark}>FP</span>
+            {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, position) => (
+              <span
+                key={item}
+                className={position === 0 ? `${s.railItem} ${s.railItemActive}` : s.railItem}
+              >
+                {item.slice(0, 1)}
+              </span>
+            ))}
+          </div>
+
+          {/* Keyed on the frame so a changed frame is a new subtree: the
+              cross-fade below is a CSS entry animation, and without the key
+              React would reuse the nodes and nothing would animate. The key is
+              also what stops a long name from one frame being read for a beat
+              against another frame's numbers. */}
+          <div className={s.previewMain} key={frame.id}>
+            <p className={s.previewKicker}>{frame.day}</p>
+            <p className={s.previewTitle}>{frame.greeting}</p>
+            <p className={s.previewSub}>{frame.summary}</p>
+
+            <div className={s.previewAction}>
+              <div>
+                <p className={s.previewActionMeta}>{frame.action.meta}</p>
+                <p className={s.previewActionTitle}>{frame.action.title}</p>
+                <p className={s.previewActionBody}>{frame.action.body}</p>
+              </div>
+              {/* A span, never a link or a button. See the note above. */}
+              <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>{frame.action.cta}</span>
+            </div>
+
+            <p className={s.previewLabel}>Your competitions</p>
+            <div className={s.previewRows}>
+              {frame.competitions.map((row) => (
+                <PreviewRow key={row.code} {...row} />
+              ))}
+            </div>
+
+            <p className={s.previewLabel}>Your leagues</p>
+            <div className={s.previewRows}>
+              {frame.leagues.map((row) => (
+                <PreviewRow key={row.code} {...row} />
+              ))}
+            </div>
+
+            {frame.status ? <p className={s.previewSave}>{frame.status}</p> : null}
+          </div>
+
+          {/* E.7 allows the desktop preview exactly three contextual slots —
+              time-critical, live and social — so the rail renders the declared
+              three and a fourth would have to be added to the authority first.
+              `PREVIEW_CONTEXT_SLOTS` remains that declaration; each frame
+              supplies its own values against the same three kinds, which is
+              what `landingContent.test.ts` holds the frames to. */}
+          <div className={s.previewContext} key={`${frame.id}-context`}>
+            {frame.context.map((slot) => (
+              <div key={slot.kind} className={s.contextSlot}>
+                <p className={s.contextLabel}>
+                  {slot.kind === 'live' ? <span className={s.livePip} /> : null}
+                  {slot.label}
+                </p>
+                <p className={s.contextValue}>{slot.value}</p>
+                <p className={s.contextDetail}>{slot.detail}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className={s.previewApp}>
-        <div className={s.previewRail}>
-          <span className={s.brandMark}>FP</span>
-          {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, index) => (
-            <span
-              key={item}
-              className={index === 0 ? `${s.railItem} ${s.railItemActive}` : s.railItem}
-            >
-              {item.slice(0, 1)}
-            </span>
-          ))}
-        </div>
 
-        <div className={s.previewMain}>
-          <p className={s.previewKicker}>Tuesday 4 August</p>
-          <p className={s.previewTitle}>Good evening</p>
-          <p className={s.previewSub}>One action needs your attention.</p>
+      <PreviewSteps index={index} goTo={goTo} playing={playing} />
+    </div>
+  )
+}
 
-          <div className={s.previewAction}>
-            <div>
-              <p className={s.previewActionMeta}>Premier League · Match Predictor</p>
-              <p className={s.previewActionTitle}>Finish your Matchweek 1 picks</p>
-              <p className={s.previewActionBody}>Seven saved. Three fixtures still need a score.</p>
-            </div>
-            <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>Continue</span>
-          </div>
-
-          <p className={s.previewLabel}>Your competitions</p>
-          <div className={s.previewRows}>
-            <PreviewRow code="PL" name="Premier League" detail="Matchweek 1 · 7/10 complete" value="14th" movement="up" />
-            <PreviewRow code="SP" name="Scottish Premiership" detail="Matchweek 1 · complete" value="6th" movement="up" />
-          </div>
-
-          <p className={s.previewLabel}>Your leagues</p>
-          <div className={s.previewRows}>
-            <PreviewRow code="SN" name="Saturday Night League" detail="12 players" value="4th" movement="none" />
-          </div>
-
-          <p className={s.previewSave}>Predictions saved · 17:43</p>
-        </div>
-
-        {/* E.7 allows the desktop preview exactly three contextual slots —
-            time-critical, live and social — so the rail renders the declared
-            three and a fourth would have to be added to the authority first. */}
-        <div className={s.previewContext}>
-          {PREVIEW_CONTEXT_SLOTS.map((slot) => (
-            <div key={slot.kind} className={s.contextSlot}>
-              <p className={s.contextLabel}>
-                {slot.kind === 'live' ? <span className={s.livePip} /> : null}
-                {slot.label}
-              </p>
-              <p className={s.contextValue}>{slot.value}</p>
-              <p className={s.contextDetail}>{slot.detail}</p>
-            </div>
-          ))}
-        </div>
+/**
+ * The preview's own step controls.
+ *
+ * OUTSIDE THE DEVICE AND LABELLED AS THE PREVIEW'S. Each control names the
+ * step it shows, so a screen-reader user gets "Show the football happens"
+ * rather than a row of identical dots — and nothing here could be mistaken for
+ * a control over a real account, because there is no account.
+ *
+ * THE STEP NAMES ARE VISIBLE TEXT, not tooltips. They double as the caption
+ * for the frame on screen, which is what makes the sequence legible to
+ * somebody who arrives mid-loop.
+ */
+function PreviewSteps({
+  index,
+  goTo,
+  playing,
+}: {
+  index: number
+  goTo: (index: number) => void
+  playing: boolean
+}): ReactElement {
+  return (
+    <div className={s.previewSteps}>
+      {/* Announced on change so the sequence is followable without sight of
+          it, and only while it is advancing on its own: a visitor who is
+          stepping by hand already knows where they are, and announcing their
+          own presses back at them is noise. */}
+      <p className={s.previewStepLabel} aria-live={playing ? 'polite' : 'off'}>
+        {previewFrameAt(index).step}
+      </p>
+      <div className={s.previewStepDots} role="group" aria-label="Preview steps">
+        {PREVIEW_FRAMES.map((frame, position) => (
+          <button
+            key={frame.id}
+            type="button"
+            className={position === index ? `${s.previewDotStep} ${s.previewDotStepOn}` : s.previewDotStep}
+            aria-current={position === index}
+            aria-label={`Show preview step ${position + 1} of ${PREVIEW_FRAMES.length}: ${frame.step}`}
+            onClick={() => goTo(position)}
+          />
+        ))}
       </div>
     </div>
   )
 }
 
-function PreviewRow({
-  code,
-  name,
-  detail,
-  value,
-  movement,
-}: {
-  code: string
-  name: string
-  detail: string
-  value: string
-  movement: 'up' | 'down' | 'none'
-}): ReactElement {
+function PreviewRow({ code, name, detail, value, movement }: PreviewRowData): ReactElement {
   return (
     <div className={s.previewRow}>
       <span className={s.identity}>{code}</span>
@@ -399,47 +468,71 @@ function ExperienceSection(): ReactElement {
   )
 }
 
-/** The phone preview — a picture, for the same reason as the desktop one. */
+/**
+ * The phone preview — the same script, on the composition a phone actually
+ * gets.
+ *
+ * IT RUNS THE SAME FRAMES AS THE DESKTOP DEVICE ON PURPOSE. Two scripts would
+ * be two things to keep truthful, and the second one to drift would be the one
+ * showing a product state the first had stopped claiming. What differs is the
+ * COMPOSITION — a bottom bar rather than a rail, no contextual column — which
+ * is exactly the difference the real product has, and is the point the section
+ * beside it is making.
+ *
+ * ITS OWN VISIBILITY, ITS OWN TIMER. It is most of a page below the hero, so
+ * sharing the desktop device's observer would run it while it is off screen
+ * and stop it while it is being read.
+ */
 function PhonePreview(): ReactElement {
+  const { index, containerRef, goTo, playing } = useScriptedPreview()
+  const frame = previewFrameAt(index)
+
   return (
-    <div className={s.phone} role="img" aria-label={PHONE_PREVIEW_DESCRIPTION}>
-      <div className={s.phoneScreen}>
-        <div className={s.phoneTop}>
-          <strong>Good evening</strong>
-          <span className={s.avatar}>NG</span>
-        </div>
-        <div className={s.phoneContent}>
-          <div className={s.phoneAction}>
-            <p className={s.eyebrow}>Next action</p>
-            <p className={s.phoneActionTitle}>Finish your Premier League picks</p>
-            <p className={s.phoneActionBody}>Seven scores saved. Three fixtures still need one.</p>
-            <div className={s.phoneActionFooter}>
-              <span className={s.phoneDeadline}>
-                Deadline
-                <strong>Fri 18:30</strong>
-              </span>
-              <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>Continue</span>
+    <div className={s.previewStage} ref={containerRef}>
+      <div className={s.phone} role="img" aria-label={frame.description}>
+        <div className={s.phoneScreen}>
+          <div className={s.phoneTop}>
+            <strong>{frame.greeting}</strong>
+            <span className={s.avatar}>NG</span>
+          </div>
+          <div className={s.phoneContent} key={frame.id}>
+            <div className={s.phoneAction}>
+              <p className={s.eyebrow}>{frame.action.meta}</p>
+              <p className={s.phoneActionTitle}>{frame.action.title}</p>
+              <p className={s.phoneActionBody}>{frame.action.body}</p>
+              <div className={s.phoneActionFooter}>
+                <span className={s.phoneDeadline}>
+                  Deadline
+                  <strong>{frame.action.deadline}</strong>
+                </span>
+                <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>{frame.action.cta}</span>
+              </div>
+            </div>
+
+            <p className={s.previewLabel}>Your competitions</p>
+            <div className={s.previewRows}>
+              {frame.competitions.map((row) => (
+                <PreviewRow key={row.code} {...row} />
+              ))}
+            </div>
+            <p className={s.previewLabel}>Your leagues</p>
+            <div className={s.previewRows}>
+              {frame.leagues.map((row) => (
+                <PreviewRow key={row.code} {...row} />
+              ))}
             </div>
           </div>
-
-          <p className={s.previewLabel}>Your competitions</p>
-          <div className={s.previewRows}>
-            <PreviewRow code="PL" name="Premier League" detail="7/10 complete" value="14th" movement="none" />
-            <PreviewRow code="SP" name="Scottish Premiership" detail="Complete" value="6th" movement="none" />
+          <div className={s.phoneNav}>
+            {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, position) => (
+              <span key={item} className={position === 0 ? s.phoneNavActive : undefined}>
+                {item}
+              </span>
+            ))}
           </div>
-          <p className={s.previewLabel}>Your leagues</p>
-          <div className={s.previewRows}>
-            <PreviewRow code="SN" name="Saturday Night League" detail="12 players" value="4th" movement="none" />
-          </div>
-        </div>
-        <div className={s.phoneNav}>
-          {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, index) => (
-            <span key={item} className={index === 0 ? s.phoneNavActive : undefined}>
-              {item}
-            </span>
-          ))}
         </div>
       </div>
+
+      <PreviewSteps index={index} goTo={goTo} playing={playing} />
     </div>
   )
 }

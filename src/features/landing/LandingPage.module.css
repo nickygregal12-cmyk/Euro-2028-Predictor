@@ -323,6 +323,77 @@
   min-width: 0;
 }
 
+/* The Euro deployment's hero. One column on a phone; on desktop the lifecycle
+   card sits beside the copy, which is what stops the page reading as a
+   headline alone in the middle of a 1200px shell. The card is narrower than
+   the copy on purpose — it is the answer to one question, not a second
+   proposition competing with the first. */
+.euroHeroGrid {
+  display: grid;
+  gap: calc(var(--sp-1) * 10);
+  align-items: start;
+}
+
+.euroStatusCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--card);
+}
+
+.euroStatusLabel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.euroStatusList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.euroStatusRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.euroStatusRow:last-child {
+  border-bottom: 0;
+}
+
+.euroStatusRow dt {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.euroStatusRow dd {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.euroStatusNote {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
 /* The top of the six-step scale. The prototype's hero is larger still, but
    §11.7 fixes the scale at six steps and `foundationTokens.test.ts` fails a
    seventh — so the weight, tracking and leading carry the emphasis instead of
@@ -381,12 +452,142 @@
 
 /* ── Product previews ────────────────────────────────────────────────────── */
 
+/* The scripted preview's stage: the device, and the step controls beneath it.
+   The controls are OUTSIDE the device chrome deliberately — everything inside
+   is a picture of the product, and a real control in there would be
+   indistinguishable from the product's own. */
+.previewStage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
 .preview {
   border: 1px solid var(--line);
   border-radius: var(--radius-sheet);
   background: var(--card);
   overflow: hidden;
   min-width: 0;
+}
+
+/* A fixed floor under the previewed screen. Without it the device changes
+   height as the script advances, and on a landing page that means the copy
+   beside it jumps four times a loop — which reads as a broken page rather
+   than as an animation. The floor is the tallest frame's height; a frame
+   shorter than it simply has room to spare. */
+.previewMain {
+  min-height: 340px;
+}
+
+.phoneContent {
+  min-height: 300px;
+}
+
+/* The frame transition. It is an ENTRY animation on a keyed subtree rather
+   than a cross-fade between two copies: two frames in the document at once
+   would double the invented numbers for anything reading the DOM, and the
+   device is exposed as a single picture precisely so that cannot happen. */
+.previewMain,
+.phoneContent,
+.previewContext {
+  animation: previewFrameIn var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes previewFrameIn {
+  from {
+    opacity: 0;
+    /* Small on purpose. A preview that slides a long way competes with the
+       hero's own call to action, which is the thing the page is for. */
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The hook already stops advancing the script under `prefers-reduced-motion`,
+   so this covers the manual steps a visitor takes by hand — which must not
+   animate either. Belt and braces on purpose: the two mechanisms fail
+   independently, and the one a reader can check is this one. */
+@media (prefers-reduced-motion: reduce) {
+  .previewMain,
+  .phoneContent,
+  .previewContext {
+    animation: none;
+  }
+}
+
+.previewSteps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.previewStepLabel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.previewStepDots {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* 44px of target around an 8px dot. The dot is the visible affordance and the
+   button is the thing a finger has to hit; measuring the dot would be
+   measuring the paint rather than the control. */
+.previewDotStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.previewDotStep::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mut);
+  transition: background var(--duration-micro) var(--ease-out);
+}
+
+.previewDotStepOn::before {
+  background: var(--acc);
+}
+
+.previewDotStep:hover::before {
+  background: var(--tx3);
+}
+
+.previewDotStepOn:hover::before {
+  background: var(--acc);
+}
+
+.previewDotStep:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -6px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewDotStep::before {
+    transition: none;
+  }
 }
 
 .previewChrome {
@@ -1085,6 +1286,12 @@
 
   .heroGrid {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  /* Copy first and wider. The card answers one question and must not read as
+     a second proposition beside the headline. */
+  .euroHeroGrid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
   }
 
   .heroActions .cta {
