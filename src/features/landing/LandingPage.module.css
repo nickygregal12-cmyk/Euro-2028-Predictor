@@ -35,12 +35,19 @@
 }
 
 /* The same skip link `PageShell` gives every signed-in route, restated because
-   this page has its own chrome and does not mount the app shell. */
+   this page has its own chrome and does not mount the app shell — including
+   the 44px minimum `PageShell`'s gained from the `UI-F18` sweep, which
+   measured both a pixel under it. A restated rule that drifts from its
+   original is worse than no restatement, which is why the two were corrected
+   together. */
 .skipLink {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
   top: var(--sp-2);
   left: var(--sp-2);
   z-index: var(--z-toast);
+  min-height: var(--tap-min);
   transform: translateY(calc(-100% - var(--sp-4)));
   padding: var(--sp-2) var(--sp-3);
   border: 2px solid var(--acc);
@@ -136,7 +143,15 @@
   gap: var(--sp-6);
 }
 
+/* 44px of target, not 22px of text. The `UI-F18` sweep measured these anchors
+   at 22px tall in every width and both themes: a text link in a nav row is
+   only as tall as its line box, and a public acquisition page is precisely
+   where a mis-tapped link costs a visitor. The row keeps its visual height —
+   the header's own `min-height` already exceeds this — so nothing moves. */
 .headerNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   color: var(--tx2);
   font-size: var(--fs-2);
   white-space: nowrap;
@@ -323,6 +338,84 @@
   min-width: 0;
 }
 
+/* A hero whose second column is a short status card rather than a product
+   preview. One column on a phone; on desktop the card sits beside the copy,
+   which is what stops the page reading as a headline alone in the middle of a
+   1200px shell. The card is narrower than the copy on purpose — it is the
+   answer to one question, not a second proposition competing with the first.
+
+   The tournament deployment uses it because that build has no draw, no teams
+   and no fixtures, so a simulated product preview there would be the
+   placeholder the design authority forbids. The class is named for the SHAPE
+   rather than for the site: `euroAbsentFromPublicSurfaces.test.ts` reads this
+   stylesheet as a public weekly surface, and a class name is served where a
+   comment is not. */
+.heroAsideGrid {
+  display: grid;
+  gap: calc(var(--sp-1) * 10);
+  align-items: start;
+}
+
+.heroStatusCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sheet);
+  background: var(--card);
+}
+
+.heroStatusLabel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.heroStatusList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+
+.heroStatusRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+
+.heroStatusRow:last-child {
+  border-bottom: 0;
+}
+
+.heroStatusRow dt {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.heroStatusRow dd {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.heroStatusNote {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
 /* The top of the six-step scale. The prototype's hero is larger still, but
    §11.7 fixes the scale at six steps and `foundationTokens.test.ts` fails a
    seventh — so the weight, tracking and leading carry the emphasis instead of
@@ -381,12 +474,142 @@
 
 /* ── Product previews ────────────────────────────────────────────────────── */
 
+/* The scripted preview's stage: the device, and the step controls beneath it.
+   The controls are OUTSIDE the device chrome deliberately — everything inside
+   is a picture of the product, and a real control in there would be
+   indistinguishable from the product's own. */
+.previewStage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
 .preview {
   border: 1px solid var(--line);
   border-radius: var(--radius-sheet);
   background: var(--card);
   overflow: hidden;
   min-width: 0;
+}
+
+/* A fixed floor under the previewed screen. Without it the device changes
+   height as the script advances, and on a landing page that means the copy
+   beside it jumps four times a loop — which reads as a broken page rather
+   than as an animation. The floor is the tallest frame's height; a frame
+   shorter than it simply has room to spare. */
+.previewMain {
+  min-height: 340px;
+}
+
+.phoneContent {
+  min-height: 300px;
+}
+
+/* The frame transition. It is an ENTRY animation on a keyed subtree rather
+   than a cross-fade between two copies: two frames in the document at once
+   would double the invented numbers for anything reading the DOM, and the
+   device is exposed as a single picture precisely so that cannot happen. */
+.previewMain,
+.phoneContent,
+.previewContext {
+  animation: previewFrameIn var(--duration-enter) var(--ease-out) both;
+}
+
+@keyframes previewFrameIn {
+  from {
+    opacity: 0;
+    /* Small on purpose. A preview that slides a long way competes with the
+       hero's own call to action, which is the thing the page is for. */
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The hook already stops advancing the script under `prefers-reduced-motion`,
+   so this covers the manual steps a visitor takes by hand — which must not
+   animate either. Belt and braces on purpose: the two mechanisms fail
+   independently, and the one a reader can check is this one. */
+@media (prefers-reduced-motion: reduce) {
+  .previewMain,
+  .phoneContent,
+  .previewContext {
+    animation: none;
+  }
+}
+
+.previewSteps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.previewStepLabel {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.previewStepDots {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* 44px of target around an 8px dot. The dot is the visible affordance and the
+   button is the thing a finger has to hit; measuring the dot would be
+   measuring the paint rather than the control. */
+.previewDotStep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.previewDotStep::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mut);
+  transition: background var(--duration-micro) var(--ease-out);
+}
+
+.previewDotStepOn::before {
+  background: var(--acc);
+}
+
+.previewDotStep:hover::before {
+  background: var(--tx3);
+}
+
+.previewDotStepOn:hover::before {
+  background: var(--acc);
+}
+
+.previewDotStep:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: -6px;
+  border-radius: var(--radius-pill);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .previewDotStep::before {
+    transition: none;
+  }
 }
 
 .previewChrome {
@@ -1039,7 +1262,13 @@
   font-size: var(--fs-2);
 }
 
+/* Same 44px target as the header's, for the same reason: Sign in and Create
+   account appear here too, and a conversion action that is 22px tall on a
+   phone is the one worth getting right. */
 .footerLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   color: var(--tx2);
   text-decoration: none;
   transition: color var(--duration-micro) var(--ease-out);
@@ -1085,6 +1314,12 @@
 
   .heroGrid {
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  /* Copy first and wider. The card answers one question and must not read as
+     a second proposition beside the headline. */
+  .heroAsideGrid {
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
   }
 
   .heroActions .cta {

@@ -180,6 +180,35 @@ describe('the tournament page presents the weekly games as Bonus Games', () => {
   })
 })
 
+describe('the hero status card', () => {
+  it('says the tournament is not open, from the server rather than from a guess', async () => {
+    renderPage('hidden')
+    const card = await screen.findByRole('complementary', { name: /what is open on this site/i })
+    expect(card.textContent).toMatch(/Not open yet/)
+    // And it never invents a date, a phase or a countdown to fill the space.
+    expect(card.textContent).not.toMatch(/days|soon|shortly/i)
+  })
+
+  it('says registration is open only when the server says so', async () => {
+    renderPage('registration-open')
+    const card = await screen.findByRole('complementary', { name: /what is open on this site/i })
+    expect(card.textContent).toMatch(/Registration open/)
+  })
+
+  it('fails closed: an unreadable state reads as not open', async () => {
+    renderPage('fails')
+    const card = await screen.findByRole('complementary', { name: /what is open on this site/i })
+    expect(card.textContent).toMatch(/Not open yet/)
+  })
+
+  it('keeps account creation and game entry visibly separate', async () => {
+    renderPage('registration-open')
+    const card = await screen.findByRole('complementary', { name: /what is open on this site/i })
+    expect(card.textContent).toMatch(/Every game is joined separately/)
+    expect(card.textContent).toMatch(/enters you into nothing/)
+  })
+})
+
 describe('no placeholder football', () => {
   it('shows no draw, team list, fixture or countdown', async () => {
     renderPage('prelaunch')

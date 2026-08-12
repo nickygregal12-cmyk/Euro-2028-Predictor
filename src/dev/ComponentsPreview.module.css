@@ -33,6 +33,14 @@
 /* Each panel carries its own data-theme, so var(--bg) resolves per theme. */
 .panel {
   flex: 1 1 340px;
+  /* A flex item's default `min-width: auto` is its content's min-content
+     width, so a panel holding a component with a wide minimum could not
+     shrink below it — which pushed the gallery 15px past a 390px viewport in
+     both themes, the only horizontal overflow the `UI-F18` sweep found
+     anywhere. The harness is not shipping UI, but an overflowing measuring
+     instrument reports its own layout as a product defect on every future
+     run, so it is fixed rather than annotated. */
+  min-width: 0;
   max-width: 420px;
   padding: 16px;
   border: 1px solid var(--line);

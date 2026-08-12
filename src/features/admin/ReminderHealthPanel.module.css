@@ -1,0 +1,181 @@
+/* Contract 172's operational health. Tokens only, and the same panel shape as
+   the provider and shadow-scoring panels beside it — an administration surface
+   with four visual languages is four things to learn. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.subheading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+/* The three jobs. One column on a phone, three across once there is room:
+   these are read together, because two running and one absent is the state
+   worth spotting.
+
+   `auto-fit` rather than a width media query, deliberately. This panel is
+   mounted in the 320px contextual column as well as in a full-width page, and
+   a viewport media query cannot tell those apart — it would lay three columns
+   inside a 320px box on a 1440px screen. The track minimum is the breakpoint
+   here, and it measures the container the grid is actually in. */
+.jobs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.job {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  /* The state is carried on the left edge as well as in the words below, so a
+     greyscale or colour-blind reading loses nothing. */
+  border-left: var(--bar-w) solid var(--line);
+}
+
+.job[data-state='active'] {
+  border-left-color: var(--acc);
+}
+
+.job[data-state='absent'] {
+  border-left-color: var(--red);
+}
+
+.job[data-state='unknown'] {
+  border-left-color: var(--amb);
+}
+
+.jobName {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.jobPurpose {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.jobMeta {
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
+  overflow-wrap: anywhere;
+}
+
+/* Same reasoning as `.jobs`: the track minimum is the breakpoint, so four
+   figures sit in a row on a wide page and stack in a narrow panel. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+.figure[data-tone='alert'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.figureLabel {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.figureValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.byType {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.tally {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tallyRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.tallyRow:last-child {
+  border-bottom: 0;
+}
+
+.tallyCount {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}

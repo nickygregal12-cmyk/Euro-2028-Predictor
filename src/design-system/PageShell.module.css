@@ -8,11 +8,18 @@
   background: var(--bg);
 }
 
+/* 44px, not the 39px the padding and line box happened to produce. The sweep
+   measured it a pixel under the minimum at every width — invisible in
+   practice, since the link only appears on focus, and trivially wrong to
+   leave once measured. */
 .skipLink {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
   top: var(--sp-2);
   left: var(--sp-2);
   z-index: var(--z-navigation);
+  min-height: var(--tap-min);
   transform: translateY(calc(-100% - var(--sp-4)));
   padding: var(--sp-2) var(--sp-3);
   border: 2px solid var(--acc);

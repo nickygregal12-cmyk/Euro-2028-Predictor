@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router'
+import { Workspace } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
 import s from '../shared.module.css'
 import m from './more.module.css'
@@ -8,7 +9,12 @@ import m from './more.module.css'
 export function MorePage() {
   const navigate = useNavigate()
 
+  // A short stack of link rows. The shell is 1440px wide and this page has
+  // nothing to put beside itself, so without a reading measure every row
+  // becomes a metre-long tap target with its chevron at the far edge — the
+  // stretched-phone-page composition the 10 August direction names.
   return (
+    <Workspace width="reading">
     <div className={s.page}>
       <div className={s.header}>
         <h1 className={s.title}>More</h1>
@@ -30,5 +36,6 @@ export function MorePage() {
         <ChevronRightIcon size={18} className={m.chev} />
       </button>
     </div>
+    </Workspace>
   )
 }

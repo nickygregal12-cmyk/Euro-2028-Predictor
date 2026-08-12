@@ -67,9 +67,16 @@
   color: var(--tx2);
 }
 
+/* Two short forms that are read as alternatives — create one, or join one —
+   so on any width that fits them they sit beside each other rather than
+   stacking into two full-width blocks a desktop reader has to scroll past.
+   `auto-fit` measures the container rather than the viewport, which matters
+   because this section is rendered inside the competition shell's content
+   column and not against the window. */
 .forms {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  align-items: start;
   gap: var(--sp-3);
 }
 

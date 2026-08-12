@@ -5,6 +5,7 @@ import {
   Button,
   ConfirmModal,
   Skeleton,
+  Workspace,
   initialsOf,
 } from '../../design-system'
 import { ChevronRightIcon } from '../../design-system/icons'
@@ -179,7 +180,11 @@ export function AccountPage() {
 
   const name = account?.displayName ?? displayName ?? ''
 
+  // Forms and settings rows, and nothing that belongs beside them: a second
+  // column here would be invented furniture. A reading measure is the whole
+  // of what this page needed on a desktop.
   return (
+    <Workspace width="reading">
     <div className={s.page}>
       <div className={s.header}>
         <span className={s.eyebrow}>Private to you</span>
@@ -411,5 +416,6 @@ export function AccountPage() {
         {signOutError ? <p role="alert">{signOutError}</p> : null}
       </ConfirmModal>
     </div>
+    </Workspace>
   )
 }

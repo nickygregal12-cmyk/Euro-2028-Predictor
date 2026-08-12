@@ -36,7 +36,29 @@
   color: var(--tx2);
 }
 
+/* THE GLYPH IS 24px AND THE TARGET IS 44px, and that is a decision rather
+   than an oversight.
+ *
+ * The `UI-F18` sweep measures every control's border box and reports anything
+ * under 40px, which this was: a 24×24 close button meets WCAG 2.2 AA's 24×24
+ * minimum and misses this repository's own stricter `--tap-min` of 44px. The
+ * obvious fix — grow the box — is the wrong one here. An Alert is a banner
+ * whose height is its message; a one-line alert would gain 20px, every alert
+ * on every surface would shift, and a dismiss control would become the
+ * tallest thing in a block whose point is the sentence.
+ *
+ * So the POINTER TARGET is expanded instead, which is the property the 44px
+ * rule exists to protect. The pseudo-element below is 44×44, centred on the
+ * glyph, and participates in hit testing while taking no space in the flex
+ * row. A finger, a stylus and a trembling hand all get the full target; the
+ * layout and the visual baseline are unchanged.
+ *
+ * `data-tap="expanded"` marks it in the markup so the sweep can distinguish a
+ * control whose target was widened deliberately from one that is simply
+ * small. The marker is the audit trail: grep for it and every instance is a
+ * decision somebody wrote down. */
 .dismiss {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -48,6 +70,20 @@
   border: 0;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.dismiss::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  transform: translate(-50%, -50%);
+}
+
+.dismiss:hover {
+  color: var(--tx);
 }
 
 .dismiss:focus-visible {

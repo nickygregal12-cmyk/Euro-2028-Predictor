@@ -109,18 +109,65 @@ export function EuroLandingPage({
       <main id="main-content" className={s.main} tabIndex={-1}>
         <section className={s.hero} id="hero" aria-labelledby="euro-hero-heading">
           <div className={s.shell}>
-            <div className={s.heroCopy}>
-              <p className={s.eyebrow}>{presentation.status}</p>
-              <h1 className={s.heroHeading} id="euro-hero-heading">
-                {presentation.headline}
-              </h1>
-              <p className={s.heroLead}>{presentation.body}</p>
-              <div className={s.heroActions}>
-                {primary ? <Action action={primary} sibling={sibling} emphasis="primary" /> : null}
-                {secondary ? (
-                  <Action action={secondary} sibling={sibling} emphasis="secondary" />
-                ) : null}
+            {/* A two-column hero on desktop, and the second column is the
+                LIFECYCLE rather than a picture. The weekly site puts a product
+                preview here; this deployment has no tournament data to preview
+                — no draw, no teams, no fixtures — and inventing one would be
+                the placeholder the design authority forbids. What it does have
+                is a truthful answer to the only question a visitor arrives
+                with: is this open, and what can I do now. That answer comes
+                from contract 143 and the site configuration, and from nothing
+                else. */}
+            <div className={s.heroAsideGrid}>
+              <div className={s.heroCopy}>
+                <p className={s.eyebrow}>{presentation.status}</p>
+                <h1 className={s.heroHeading} id="euro-hero-heading">
+                  {presentation.headline}
+                </h1>
+                <p className={s.heroLead}>{presentation.body}</p>
+                <div className={s.heroActions}>
+                  {primary ? (
+                    <Action action={primary} sibling={sibling} emphasis="primary" />
+                  ) : null}
+                  {secondary ? (
+                    <Action action={secondary} sibling={sibling} emphasis="secondary" />
+                  ) : null}
+                </div>
               </div>
+
+              <aside className={s.heroStatusCard} aria-label="What is open on this site">
+                <p className={s.heroStatusLabel}>Right now</p>
+                <dl className={s.heroStatusList}>
+                  <div className={s.heroStatusRow}>
+                    <dt>{primaryGames(site.variant)[0]?.name ?? 'The tournament'}</dt>
+                    {/* The server's word, never a guess. `registrationOpen` is
+                        false for every state except the two that genuinely
+                        are, so an outage reads as "not open yet". */}
+                    <dd>{presentation.registrationOpen ? 'Registration open' : 'Not open yet'}</dd>
+                  </div>
+                  {site.navigation.bonusGamesLabel && bonusGames(site.variant).length > 0 ? (
+                    <div className={s.heroStatusRow}>
+                      <dt>{site.navigation.bonusGamesLabel}</dt>
+                      <dd>
+                        {bonusGames(site.variant)
+                          .map((game) => game.name)
+                          .join(' · ')}
+                      </dd>
+                    </div>
+                  ) : null}
+                  <div className={s.heroStatusRow}>
+                    <dt>Your account</dt>
+                    <dd>
+                      {sibling
+                        ? `One account, shared with ${site.routes.siblingSiteName}`
+                        : 'One account for every game on this site'}
+                    </dd>
+                  </div>
+                </dl>
+                <p className={s.heroStatusNote}>
+                  Every game is joined separately. Creating an account enters you into nothing.
+                </p>
+              </aside>
             </div>
           </div>
         </section>

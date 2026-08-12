@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { isNextUi } from '../../app/routeFlags'
@@ -10,6 +10,8 @@ import {
 import { NotFoundPage } from '../notfound/NotFoundPage'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import { fetchSeasonConsensus } from '../../services/supabase/seasonConsensus'
+import { fetchSeasonClubForm } from '../../services/supabase/seasonClubForm'
+import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
 import { createSeasonMatchPredictorRpcGateway } from '../../services/supabase/seasonMatchPredictor'
 import { createSeasonGameRegistrationRpcGateway } from '../../services/supabase/seasonGameRegistration'
 import { useHubCompetition } from '../hub/useHubCompetition'
@@ -92,6 +94,39 @@ export function SeasonMatchPredictorRoute({
     const tournamentId = context.tournamentId
     return (matchweek: number) => fetchSeasonConsensus(tournamentId, matchweek)
   }, [context])
+
+  /**
+   * Contract 141's club form for the whole season, for the panel's football
+   * half (`UI-F06`).
+   *
+   * ONE READ PER SEASON VISIT, not one per fixture: the read takes no fixture
+   * and returns every club in the competition, so a card of ten costs one
+   * request. The Matches section does exactly this for the same reason.
+   *
+   * IT FAILS SILENTLY AND ALONE. Form is context beside the prediction card;
+   * a matchweek that refused to open because a form read failed would be far
+   * worse than one that simply says less. Null then means "not read", which
+   * the model keeps distinct from "no club has played".
+   */
+  const [clubForm, setClubForm] = useState<
+    { clubs: readonly SeasonClubForm[]; matches: number } | null
+  >(null)
+  const formSeasonId = context?.tournamentId ?? null
+  useEffect(() => {
+    if (formSeasonId === null) return
+    let active = true
+    setClubForm(null)
+    fetchSeasonClubForm(formSeasonId)
+      .then((table) => {
+        if (active) setClubForm({ clubs: table.clubs, matches: table.matches })
+      })
+      .catch(() => {
+        if (active) setClubForm(null)
+      })
+    return () => {
+      active = false
+    }
+  }, [formSeasonId])
 
   // The season's stored row name, from the server's own catalogue (contract
   // 147). Null while the catalogue is still being read, which withholds the
@@ -194,6 +229,8 @@ export function SeasonMatchPredictorRoute({
       destinations={destinations}
       registration={registration}
       consensus={consensusReader}
+      // UI-F06's football half. Contract 141, read once for the season above.
+      clubForm={clubForm}
       // Built here rather than in the page: URL construction belongs to the
       // route authority, and this is the same builder the Match Centre's link
       // into this card already uses.

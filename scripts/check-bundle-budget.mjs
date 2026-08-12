@@ -171,10 +171,50 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // 344 sits about three kilobytes above the measured 340.6, keeping the same
 // deliberate tightness the previous raise chose. CSS is unchanged at 36: the
 // four new stylesheets took the measurement from 34.8 to 35.6, inside it.
+//
+// RAISED FROM 344 TO 352 AND FROM 36 TO 38 ON 12 AUGUST 2026, FOR THE
+// PRESENTATION-LAYER FINISHING PASS, AND THE SAME TEST APPLIES AND PASSES. The
+// note above says to check, whenever the total is raised, whether the ENTRY
+// chunk also moved — because that is what would mean a panel had been imported
+// statically into the shell. It did not: 76.3 KB gz on `main` and 76.3 KB gz
+// here, against a ceiling of 77 that is not raised. Measured against `main` at
+// `9037d28` in a clean worktree, chunk by chunk:
+//
+//   • SeasonAdminPage            +1.9 KB gz  contract 172's health panel
+//   • LandingPage                +1.5 KB gz  the four-frame scripted preview
+//   • reminderDeliveryHealth*    +1.0 KB gz  its decoder and its wrapper
+//   • SeasonMatchPredictorRoute  +1.1 KB gz  the club-form read moving INTO the
+//                                            route's own shared chunk, which is
+//                                            why `seasonClubForm` drops 1.1
+//                                            immediately below — a rechunk, and
+//                                            net zero
+//   • SeasonGameRouteBundle      +0.6 KB gz  the matchweek form panel and model
+//   • ExploreCompetitionsPage    +0.6 KB gz  the Follow control
+//   • GlobalLeaguesPage          +0.5 KB gz  the private-play explainer
+//   • SeasonMatchesRoute         +0.2 KB gz  the club-form panel layout
+//   • EuroLandingPage            +0.2 KB gz  the hero status card
+//   • entry (`index`)             0.0 KB gz
+//
+// The vendor chunks also re-split — `lib` disappears and `jsx-runtime` grows by
+// almost exactly as much, a net −1.1 KB that belongs to Vite's chunking rather
+// than to this change. Recorded so the next reader does not spend time on the
+// largest two lines of the diff.
+//
+// FIVE POINT THREE KILOBYTES, NONE OF WHICH REACHES A FIRST PAINT, and the
+// largest single line is again the administration page no player loads.
+//
+// CSS IS THE ONE THAT NEEDED THE MORE HONEST NUMBER. It is a single unsplit
+// file, so every panel's stylesheet moves one measurement, and 36 had roughly
+// 0.4 KB gz of headroom left — less than one new component. This pass added six
+// stylesheets and the measured value went 35.6 → 36.6. Raising to 38 gives
+// about a kilobyte and a half over the measurement, which is deliberately more
+// than the last two raises left: a ceiling with less headroom than a single
+// component costs is not a ratchet, it is a stop, and the last two CSS raises
+// were each one component away from that.
 const BUDGETS = {
   entryChunkKb: 77,
-  totalJsKb: 344,
-  totalCssKb: 36,
+  totalJsKb: 352,
+  totalCssKb: 38,
 }
 
 /**

@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router'
-import { Button } from '../../design-system'
+import { Button, Workspace } from '../../design-system'
 import {
   SEASON_JOKERS_PER_HALF,
   SEASON_JOKERS_PER_SEASON,
@@ -25,7 +25,11 @@ function Rule({ label, value }: { label: string; value: string }) {
 export function ScoringRulesPage() {
   const navigate = useNavigate()
 
+  // Prose and rule rows. Without a reading measure the explanatory lines run
+  // the full 1440px shell, which is roughly two hundred characters and is not
+  // readable at any level of polish.
   return (
+    <Workspace width="reading">
     <div className={s.page}>
       <div className={s.header}>
         <span className={s.eyebrow}>More</span>
@@ -77,5 +81,6 @@ export function ScoringRulesPage() {
         Back to More
       </Button>
     </div>
+    </Workspace>
   )
 }

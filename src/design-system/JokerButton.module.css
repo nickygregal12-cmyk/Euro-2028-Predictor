@@ -1,7 +1,14 @@
+/* The `UI-F18` sweep measured this pill at 30px tall in both themes and at
+   every width. `MatchCard` is the parked Euro tournament's card — the weekly
+   season uses `ClubMatchCard` — so this is not a live weekly defect, and it
+   is corrected anyway on the precedent §13 set for the tournament Match
+   Centre's topbar: a two-line stylesheet fix is cheaper than a note
+   explaining why it was left. */
 .btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: var(--tap-min);
   padding: 6px 12px;
   border-radius: var(--radius-pill);
   font-family: var(--font-display);
