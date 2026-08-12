@@ -217,4 +217,6 @@ same paragraph existed in seven places at once.
 | 179 | `/leagues` gains the read it needs to show private Last Man Standing and Championship containers at all, and `MIG-UI-20`'s private workspace gains its server half. **Not consumed** |
 | 180 | No presentation change. A Championship-only player can now reach the matchweek card, which is a capability rather than a screen |
 
-*Current to contract 180.*
+| 181 | A join that would exceed a hundred members is refused by the server with `league_member_limit_reached`, so an invite surface can say "this league is full" rather than failing opaquely. **Not consumed** |
+
+*Current to contract 181.*

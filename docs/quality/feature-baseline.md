@@ -284,7 +284,9 @@ same paragraph existed in seven places at once.
 | 179 | Private Last Man Standing and Championship containers can be found again after they are created or joined, and one can be opened |
 | 180 | Joining the Championship gives a player the shared season prediction card without joining them to the Match Predictor |
 
-*Current to contract 180.*
+| 181 | An ordinary private league stops admitting members at a hundred, and says so rather than growing without bound |
+
+*Current to contract 181.*
 
 ## Innovation Lab UI pass — 11 August 2026
 

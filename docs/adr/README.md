@@ -82,4 +82,6 @@ same paragraph existed in seven places at once.
 
 | 179–180 | **No ADR.** Both implement recorded defects rather than decisions: `PPLAY-001`, `PPLAY-002` and `PPLAY-003` from the 12 August 2026 private-play lifecycle investigation, under issue #728. Contract 180 chooses between the two rules that investigation set out, and it takes the one the **existing** accepted authorities already imply — onboarding permits `predictor_cup` without `main_predictor`, and the private-Championship journey promises invitees direct entry — so it needs no new decision. The one thing that WOULD have needed an ADR is refusing Championship entry without Match Predictor, which is why it was not done |
 
-*Current to contract 180.*
+| 181 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 3**, which approves 100 as the initial ordinary private-league limit and says in terms that it is an operating limit rather than an architectural maximum. The ADR also declines to grant the organiser an exemption, and that absence is implemented as an absence |
+
+*Current to contract 181.*

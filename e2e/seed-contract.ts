@@ -1023,8 +1023,17 @@
  * branch is not entered. The new `game_definitions` column defaults to false and
  * is set true for the two Predictors and the Championship, none of which changes
  * a lock scope, a buffer or a grant.
+ *
+ * Raised to 181 after checking what it changes. Contract 181 caps an ordinary
+ * private league at 100 members through a `before insert` trigger on
+ * `public.league_members`. **The seed cannot reach it**: measured on hosted
+ * Development the same day, the largest ordinary league holds 15 members, and
+ * the seed itself creates leagues of two and three. The trigger refuses only
+ * the hundred-and-first insert into one league, and its setter is
+ * `service_role`-only and is never called by the seed. No existing row is
+ * touched, no read gains a gate and no grant moves.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 180
+export const SEED_REVIEWED_AT_CONTRACT = 181
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

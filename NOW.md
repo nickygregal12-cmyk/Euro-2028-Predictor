@@ -13,8 +13,8 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **180** | latest `20260812020000_shared_season_prediction_capability.sql` |
-| Development hosted | **178** | at `20260812003000_shadow_scoring_verifier.sql`, verified `2026-08-12T04:05:00.000Z`, fast-lane run `31561781188` |
+| Repository | **181** | latest `20260812030000_private_league_member_limit.sql` |
+| Development hosted | **180** | at `20260812020000_shared_season_prediction_capability.sql`, verified `2026-08-12T10:59:51.001Z`, fast-lane run `31589683887` |
 | Production | **178** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 2 — `20260812010000_private_container_discovery.sql`, `20260812020000_shared_season_prediction_capability.sql`
+**Pending development migrations:** 1 — `20260812030000_private_league_member_limit.sql`
 
-**Next free contract number:** 181. Check open pull requests
+**Next free contract number:** 182. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**68** accepted requirements are outstanding, of which **12** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 5, CUP 5, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 31 are marked implemented and retained in the register.
+**67** accepted requirements are outstanding, of which **12** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 5, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 7, PRIV 5, SITE 6, TABLE 1. A further 32 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).
