@@ -35,6 +35,18 @@ name: Production 174 to 178 rehearsal
 # matters when the question is whether Production has a real control or a
 # mirror that reports a green tick for ever.
 #
+# WHAT THIS REHEARSAL ALREADY CAUGHT, recorded because it is the justification
+# for the whole shape. Its first dispatch — run 31563535872, 12 August 2026 —
+# applied all four migrations to the disposable target cleanly and then FAILED
+# on its own postflight: `euro_publication_state()` returns a table of
+# `(state, changed_at)`, not jsonb, so `... ->> 'state'` raised
+# `operator does not exist: record ->> unknown`. The same probe was in the
+# rollout, where it would have fired AFTER Production had been written — a
+# green apply followed by a red verification, which is the most alarming way to
+# end a production migration and the hardest state to reason about at speed.
+# The rehearsal moved that failure onto a disposable target where it cost
+# nothing. Both files now read `select state from public.euro_publication_state()`.
+#
 # READ-ONLY against Production: the only Production connections here are a
 # state query and dumps. Everything applied is applied to a disposable local
 # target restored from those dumps.
@@ -155,11 +167,10 @@ jobs:
           node scripts/check-migration-additive.mjs ${files}
           echo 'All four are additive.'
 
-      # Pinned to the same versions the proven 157 -> 158 rehearsal used. The
-      # first dispatch of this file omitted both and died on
-      # `supabase: command not found` the moment it reached the dump, which is
-      # exactly what a rehearsal is for: it failed on the runner rather than
-      # part-way through a Production apply.
+      # Pinned to the same versions every proven pair has used. They are here
+      # deliberately rather than by inheritance: the 172 -> 174 rehearsal's
+      # first dispatch died on `supabase: command not found` because it was
+      # derived from the 157 -> 158 pair and dropped exactly these two steps.
       - uses: actions/setup-node@v7
         with:
           node-version: 22.22.2
@@ -461,7 +472,7 @@ jobs:
                                         else (select count(*) from cron.job) end),
 
               -- Euro publication is untouched.
-              'euro_state', (select public.euro_publication_state() ->> 'state'),
+              'euro_state', (select state from public.euro_publication_state()),
 
               -- And nothing was lost.
               'profiles', (select count(*) from public.profiles),

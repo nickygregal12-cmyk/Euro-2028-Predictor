@@ -271,7 +271,7 @@ jobs:
               'reminder_deliveries', (select count(*) from public.reminder_deliveries),
               'cron_jobs', (select case when to_regclass('cron.job') is null then -1
                                         else (select count(*) from cron.job) end),
-              'euro_state', (select public.euro_publication_state() ->> 'state')
+              'euro_state', (select state from public.euro_publication_state())
             )
           " > "${WORK_DIR}/before.json"
           cat "${WORK_DIR}/before.json"
@@ -453,7 +453,7 @@ jobs:
               'cron_jobs', (select case when to_regclass('cron.job') is null then -1
                                         else (select count(*) from cron.job) end),
 
-              'euro_state', (select public.euro_publication_state() ->> 'state'),
+              'euro_state', (select state from public.euro_publication_state()),
 
               'auth_users', (select count(*) from auth.users),
               'profiles', (select count(*) from public.profiles),
