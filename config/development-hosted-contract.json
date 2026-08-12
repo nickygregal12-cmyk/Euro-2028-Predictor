@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 178,
-  "latestMigrationVersion": "20260812003000",
-  "latestMigrationName": "shadow_scoring_verifier",
-  "verifiedAt": "2026-08-12T04:05:00.000Z",
+  "requiredMigrationCount": 180,
+  "latestMigrationVersion": "20260812020000",
+  "latestMigrationName": "shared_season_prediction_capability",
+  "verifiedAt": "2026-08-12T10:59:51.001Z",
   "evidence": {
-    "source": "Development fast-lane rollout of contracts 175 to 178, run 31561781188 from exact main cc8072af9cc7f2d7002f63fdad8b9efbc43b76ce, applied under ADR 0024 because all four migrations are additive and the lane proves that by reading the pending set rather than trusting the dispatcher. Development received this range BEFORE Production, which is the ordering every prior boundary has followed: Production has never held a contract Development did not already hold. The four contracts are the Innovation Lab backend foundations promoted by ADR 0027 -- the what-if projection, Prediction DNA, offline draft reconciliation and the independent shadow scoring verifier. They create two predictor_internal relations with row-level security and no browser grant, add five public functions of which one is service_role-only and one is competition-admin gated, redefine no existing function, alter no relation, policy, trigger or grant, and schedule no job",
-    "workflowRunId": 31561781188,
-    "repositoryHead": "cc8072af9cc7f2d7002f63fdad8b9efbc43b76ce"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 31589683887,
+    "repositoryHead": "9aef144bcaa826fc01629802ed6c0a0a6404c612"
   }
 }
