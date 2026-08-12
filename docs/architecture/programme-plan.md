@@ -241,6 +241,10 @@ nothing to say.
 
 | 181 | `CAP-003` under ADR 0028 § 3. **It moves no phase** and it is the first per-league operating ceiling the platform has had; the two that existed were site-wide |
 
-**This table accounts for every contract up to and including contract 181.** Saying so is
+| 182 | `CUP-005` under ADR 0028 § 7. **It moves no phase** and unblocks `CUP-002` by settling which authority that driver must read |
+
+| 183 | `MIG-UI-16` and `MIG-UI-18`. **They move no phase.** Both replace a browser workaround that works, so neither is urgent alone; the clubs read closes a real data-loss path for a club with no fixture |
+
+**This table accounts for every contract up to and including contract 183.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

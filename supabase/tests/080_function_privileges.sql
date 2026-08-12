@@ -253,6 +253,17 @@ insert into expected_authenticated_functions (signature) values
   -- "is the scoring right", so no display name or address appears in it.
   ('admin_shadow_scoring_report(uuid,integer)');
 
+-- Contract 183. A season's clubs and the leaderboard neighbourhood.
+--
+-- Both are `authenticated` and neither is anonymous. The clubs read discloses
+-- no player, entry or prediction -- it is football about clubs, the same reason
+-- contract 141's form reads are open to any signed-in caller -- and the
+-- neighbourhood reuses contract 95's own membership boundary, refusing a
+-- non-entrant identically to a season that does not exist.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_clubs(uuid)'),
+  ('get_season_leaderboard_neighbourhood(uuid,integer)');
+
 -- Contract 179. Private container discovery and the workspace that opens one.
 --
 -- Both are `authenticated` and both answer only for `auth.uid()`. The list

@@ -85,7 +85,12 @@ describe('Stage C1 schema overlay coverage', () => {
     // DNA read, the batch write, the verification run and its report. All five
     // take `p_tournament_id`; the two verifier functions are operational rather
     // than competitive and write only `predictor_internal` evidence.
-    expect(reviewedFunctions).toHaveLength(87)
+    // Raised 87 → 89 by contract 183's `get_season_clubs` and
+    // `get_season_leaderboard_neighbourhood` (`MIG-UI-16`, `MIG-UI-18`). Both
+    // take `p_tournament_id`; both are reads that write nothing, and the
+    // neighbourhood takes its whole ranking from `season_standings` rather than
+    // computing one, so neither adds a competitive authority to overlay.
+    expect(reviewedFunctions).toHaveLength(89)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

@@ -219,4 +219,8 @@ same paragraph existed in seven places at once.
 
 | 181 | A join that would exceed a hundred members is refused by the server with `league_member_limit_reached`, so an invite surface can say "this league is full" rather than failing opaquely. **Not consumed** |
 
-*Current to contract 181.*
+| 182 | No presentation change whatsoever. A guard over which function ranks a Championship group |
+
+| 183 | The favourite-club picker loses its two-read join, and a leaderboard can show the caller's neighbours without paging to them. **Not consumed** |
+
+*Current to contract 183.*

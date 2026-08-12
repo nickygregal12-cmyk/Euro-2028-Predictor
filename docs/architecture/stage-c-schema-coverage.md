@@ -203,6 +203,8 @@ These names may remain but their semantics must support both kinds safely:
 - `get_game_leave_eligibility`
 - `get_season_club_form`
 - `get_season_club_head_to_head`
+- `get_season_clubs`
+- `get_season_leaderboard_neighbourhood`
 - `admin_resolve_actual_third_place_tie`
 - `capture_rank_history`
 - `clear_my_predictions`
