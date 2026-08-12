@@ -35,6 +35,49 @@ const TRANSPORT_RETRY_DELAY_MS = 2_000
  */
 const ROUTE_PROBE = 'PRODUCTION-READ-ONLY-PROBE'
 
+/**
+ * Which product each production origin must serve, and — just as importantly —
+ * which one it must NOT.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THIS IS A MAP AND NOT A CONSTANT, AND WHY THE ABSENCE HALF MATTERS
+ * ---------------------------------------------------------------------------
+ *
+ * This assertion used to be one hard-coded string, `Football Prediction Hub`,
+ * with a comment retiring a "dual-brand allowance" that had accepted
+ * `Euro 2028 Predictor` as a LEGACY title from the contract-63 era. That was
+ * correct when both Netlify projects shipped the same product.
+ *
+ * ADR 0026's site-variant seam then made `Euro 2028 Predictor` the CURRENT and
+ * correct title of the Euro deployment — resurrecting the very string the
+ * comment had just declared obsolete, for an entirely different reason. From
+ * that moment the smoke asserted the Hub's brand against the Euro site. It
+ * failed on the first Euro production build after the split: run 31574100495,
+ * 12 August 2026, `STOP: application title is missing "Football Prediction
+ * Hub"`, against a deploy serving the expected commit at the expected contract.
+ *
+ * So the expectation is now derived from the origin under test. The **absence**
+ * check is the part worth having: `validate-netlify-environment.mjs` refuses a
+ * VITE_SITE_VARIANT that is neither `hub` nor `euro`, but an ABSENT value fails
+ * closed to the Hub — so a wiped variable would silently publish the weekly
+ * platform onto euro28predictor.com and every other check here would pass. This
+ * is the assertion that catches it.
+ *
+ * IT IS ALSO THE PERIMETER. The same map decides which origins this script will
+ * smoke at all, so a production site cannot be reachable by the origin guard
+ * and unknown to the brand check — the two would then disagree about what
+ * "production" means. `playwright.production.config.ts` and
+ * `production-smoke/anonymous.spec.ts` carry the same list, and
+ * `tests/scripts/productionSmokePerimeter` compares all three against
+ * `siteConfiguration()`, which is what the running application reads.
+ */
+const PRODUCTION_SITES = new Map([
+  ['https://euro28predictor.com', 'Euro 2028 Predictor'],
+  ['https://predictorhub.netlify.app', 'Football Prediction Hub'],
+])
+
+const EVERY_PRODUCT = [...new Set(PRODUCTION_SITES.values())]
+
 const origin = normaliseOrigin(
   process.env.EURO28_SMOKE_ORIGIN || PRODUCTION_ORIGIN,
 )
@@ -50,12 +93,25 @@ const expectedContract = parseExpectedContract(
   process.env.EURO28_SMOKE_EXPECTED_CONTRACT,
 )
 
-if (origin !== PRODUCTION_ORIGIN && !allowNonProduction) {
+if (!PRODUCTION_SITES.has(origin) && !allowNonProduction) {
   stop(
     `Refusing to smoke-test non-production origin ${origin}. ` +
       'Set EURO28_SMOKE_ALLOW_NON_PRODUCTION=true only for an intentional preview check.',
   )
 }
+
+/**
+ * Which brand this origin must serve. A known production origin answers for
+ * itself; a preview must SAY, because guessing would let a preview of the wrong
+ * variant pass. There is deliberately no default for an unknown origin, and the
+ * absence is refused inside `assertServesItsOwnProduct` rather than here — a
+ * stop at import time would pre-empt the transport-retry path that
+ * `productionSmokeResilience` drives against an unreachable origin, and would
+ * make every preview check declare a brand before it could fail honestly. The
+ * run still cannot pass without it: that assertion is unconditional.
+ */
+const expectedBrand =
+  process.env.EURO28_SMOKE_EXPECTED_BRAND || PRODUCTION_SITES.get(origin) || ''
 
 /**
  * The site session, opened once and attached to every request below.
@@ -76,13 +132,7 @@ console.log(`Checking ${origin}${siteCookie ? ' with a site session' : ' anonymo
 
 const root = await fetchText('/')
 assertIncludes(root.body, '<div id="root"></div>', 'React root')
-// The dual-brand allowance that stood here has been retired. It existed because
-// production was paused on a pre-rename, contract-63-era bundle and accepted the
-// legacy "Euro 2028 Predictor" title alongside the current one, with its own
-// comment saying to drop the legacy form once production moved past contract 63.
-// Production reached contract 145 on 10 August 2026, so the condition it set
-// itself is met and only the current brand is accepted.
-assertIncludes(root.body, 'Football Prediction Hub', 'application title')
+assertServesItsOwnProduct(root.body)
 verifySecurityHeaders(root.headers)
 
 const releaseResponse = await fetchText('/release.json')
@@ -450,6 +500,40 @@ function assertNotEqual(actual, unwanted, label) {
 function assertIncludes(value, expected, label) {
   if (!value.includes(expected)) {
     stop(`${label} is missing ${JSON.stringify(expected)}.`)
+  }
+}
+
+/**
+ * The served document must name the product this origin is for, and must not
+ * name the other one.
+ *
+ * An unknown host is refused rather than waved through: this smoke exists to
+ * check a named production origin, and quietly skipping the strongest
+ * variant assertion for an origin nobody listed is how it would rot again.
+ *
+ * @param {string} body
+ */
+function assertServesItsOwnProduct(body) {
+  if (!expectedBrand) {
+    stop(
+      `no expected product is declared for ${origin}. Add it to PRODUCTION_SITES, ` +
+        'or set EURO28_SMOKE_EXPECTED_BRAND for a preview, rather than smoking ' +
+        'an origin whose variant nothing checks.',
+    )
+  }
+
+  assertIncludes(body, expectedBrand, `application title for ${origin}`)
+
+  for (const other of EVERY_PRODUCT) {
+    if (other === expectedBrand) continue
+    if (body.includes(other)) {
+      stop(
+        `${origin} served ${JSON.stringify(other)} as well as ` +
+          `${JSON.stringify(expectedBrand)}. The deployments must be separate ` +
+          'products; check VITE_SITE_VARIANT on this Netlify project, because ' +
+          'an unset value fails closed to the Hub.',
+      )
+    }
   }
 }
 
