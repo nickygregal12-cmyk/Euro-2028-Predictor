@@ -1,224 +1,237 @@
 import { describe, expect, it } from 'vitest'
-import {
-  describeBranch,
-  projectWhatIf,
-  type WhatIfInput,
-  type WhatIfLeagueInput,
-} from '../../../src/features/season/whatIfModel'
-import { scoreFixture, scoreMatchweek } from '../../../src/domain/season/scoring'
+import { describeBranch, presentWhatIf } from '../../../src/features/season/whatIfModel'
+import { mapSeasonMatchweekProjection } from '../../../src/services/supabase/seasonMatchweekProjectionModel'
 
 /**
- * `INNOV-001`. The point of these tests is not that the arithmetic is right —
- * `scoreFixture` owns that and has its own suite — but that the projection
- * never becomes an authority: it refuses to run over a settled fixture, refuses
- * to run without a provider score, and derives every point value from the
- * canonical rule rather than from a number written here.
+ * `INNOV-001` over contract 175.
+ *
+ * WHAT THESE TESTS ARE FOR, NOW THAT THE PROJECTION IS THE SERVER'S. They no
+ * longer check arithmetic — there is none left in the module — and instead
+ * check the three things a presentation layer can still get wrong: showing a
+ * projection where there is nothing to project, mislabelling which basis a
+ * score came from, and turning a hidden league into an empty one.
+ *
+ * The payloads below are shaped exactly as `get_season_matchweek_projection`
+ * returns them, snake_case included, and go through the real decoder — a test
+ * that hand-builds the decoded type proves nothing about the wire format.
  */
 
-const base: WhatIfInput = {
-  fixtureId: 'fx-1',
-  homeName: 'Liverpool',
-  awayName: 'Arsenal',
-  prediction: { home: 2, away: 1 },
-  result: null,
-  live: { home: 1, away: 1 },
+type Payload = Record<string, unknown>
+
+function payload(over: Payload = {}): unknown {
+  return {
+    server_now: '2026-08-12T14:20:00Z',
+    tournament_id: 't-1',
+    matchweek: { matchweek_id: 'r-1', ordinal: 5, label: 'Matchweek 5' },
+    locks_at: '2026-08-12T11:30:00Z',
+    locked: true,
+    joker_played: false,
+    projected_points: 8,
+    settled: false,
+    fixtures: [inPlayFixture()],
+    league: null,
+    ...over,
+  }
 }
 
-describe('projectWhatIf availability', () => {
-  it('refuses a fixture that already has a confirmed result', () => {
-    const projection = projectWhatIf({ ...base, result: { home: 2, away: 1 } })
-    expect(projection).toEqual({ available: false, reason: 'settled' })
+function inPlayFixture(over: Payload = {}): Payload {
+  return {
+    fixture_id: 'fx-1',
+    home_team_id: 'team-h',
+    away_team_id: 'team-a',
+    kickoff_at: '2026-08-12T14:00:00Z',
+    status: 'scheduled',
+    basis: 'provisional',
+    official: null,
+    provisional: {
+      home: 1,
+      away: 1,
+      provider_status: 'IN_PLAY',
+      kind: 'in_play',
+      observed_at: '2026-08-12T14:19:00Z',
+    },
+    prediction: { home: 2, away: 1 },
+    points: 0,
+    branches: {
+      home_scores: { home: 2, away: 1, matchweek_points: 13 },
+      away_scores: { home: 1, away: 2, matchweek_points: 8 },
+    },
+    ...over,
+  }
+}
+
+const present = (raw: unknown) =>
+  presentWhatIf(mapSeasonMatchweekProjection(raw), 'fx-1', 'Liverpool', 'Arsenal')
+
+describe('presentWhatIf', () => {
+  it('reports every figure the server sent and derives no point value of its own', () => {
+    const view = present(payload())
+    expect(view.available).toBe(true)
+    if (!view.available) return
+
+    expect(view.matchweekPoints).toBe(8)
+    expect(view.live).toEqual({ home: 1, away: 1 })
+    expect(view.branches.map((branch) => branch.matchweekPoints)).toEqual([8, 13, 8])
+    // The change is the difference between two server numbers, never a
+    // browser-computed fixture score.
+    expect(view.branches.map((branch) => branch.change)).toEqual([0, 5, 0])
   })
 
-  it('refuses a fixture with no provider score', () => {
-    expect(projectWhatIf({ ...base, live: null })).toEqual({
+  it('names the branch that would make the prediction exact', () => {
+    const view = present(payload())
+    if (!view.available) throw new Error('expected an available projection')
+    const home = view.branches.find((branch) => branch.key === 'home')
+    expect(home?.reason).toBe('exact_score')
+    expect(describeBranch(home!)).toContain('exact')
+    expect(describeBranch(home!)).toContain('5 more across the matchweek')
+  })
+
+  it('renders nothing once the matchweek has been banked', () => {
+    expect(present(payload({ settled: true }))).toEqual({ available: false, reason: 'settled' })
+  })
+
+  it('renders nothing for a fixture with an official result', () => {
+    const official = inPlayFixture({
+      basis: 'official',
+      official: { home: 2, away: 1 },
+      provisional: null,
+      branches: null,
+      points: 5,
+    })
+    expect(present(payload({ fixtures: [official] }))).toEqual({
+      available: false,
+      reason: 'fixture_settled',
+    })
+  })
+
+  it('renders nothing when no score of any kind has been reported', () => {
+    const none = inPlayFixture({ basis: 'none', provisional: null, branches: null })
+    expect(present(payload({ fixtures: [none] }))).toEqual({
       available: false,
       reason: 'no_live_score',
     })
   })
 
-  it('refuses an implausible provider score rather than projecting past it', () => {
-    expect(projectWhatIf({ ...base, live: { home: 99, away: 0 } })).toEqual({
+  it('says so rather than guessing when the projection does not carry the fixture', () => {
+    expect(present(payload({ fixtures: [] }))).toEqual({
       available: false,
-      reason: 'unusable_live_score',
+      reason: 'fixture_absent',
     })
   })
 
-  it('refuses a half-reported provider score', () => {
-    expect(
-      projectWhatIf({ ...base, live: { home: 1, away: Number.NaN } }),
-    ).toEqual({ available: false, reason: 'unusable_live_score' })
+  it('still answers with the current score when the server offered no branches', () => {
+    const noBranches = inPlayFixture({ branches: null })
+    const view = present(payload({ fixtures: [noBranches] }))
+    if (!view.available) throw new Error('expected an available projection')
+    expect(view.branches).toHaveLength(1)
+    expect(view.branches[0]?.key).toBe('now')
+  })
+
+  it('keeps a league hidden before the matchweek locks, with no rows at all', () => {
+    const view = present(
+      payload({
+        locked: false,
+        league: {
+          league_id: 'lg-1',
+          name: 'The Office',
+          revealed: false,
+          reason: 'matchweek_not_locked',
+          locks_at: '2026-08-15T11:30:00Z',
+          members_returned: 0,
+          members_truncated: false,
+          table: [],
+        },
+      }),
+    )
+    if (!view.available) throw new Error('expected an available projection')
+    expect(view.league).toEqual({
+      revealed: false,
+      leagueName: 'The Office',
+      locksAt: '2026-08-15T11:30:00Z',
+    })
+  })
+
+  it('carries the server ranks after the lock without recomputing them', () => {
+    const view = present(
+      payload({
+        league: {
+          league_id: 'lg-1',
+          name: 'The Office',
+          revealed: true,
+          reason: null,
+          locks_at: '2026-08-12T11:30:00Z',
+          members_total: 12,
+          members_returned: 2,
+          members_truncated: true,
+          table: [
+            {
+              user_id: 'u-craig',
+              display_name: 'Craig',
+              is_self: false,
+              entered: true,
+              banked_points: 43,
+              projected_matchweek_points: 11,
+              projected_points: 54,
+              current_rank: 1,
+              projected_rank: 1,
+            },
+            {
+              user_id: 'u-me',
+              display_name: 'You',
+              is_self: true,
+              entered: true,
+              banked_points: 40,
+              projected_matchweek_points: 8,
+              projected_points: 48,
+              current_rank: 2,
+              projected_rank: 2,
+            },
+          ],
+        },
+      }),
+    )
+    if (!view.available) throw new Error('expected an available projection')
+    const league = view.league
+    if (!league || !league.revealed) throw new Error('expected a revealed league')
+    expect(league.you?.projectedRank).toBe(2)
+    expect(league.leaderName).toBe('Craig')
+    expect(league.gapToLeader).toBe(6)
+    expect(league.membersTruncated).toBe(true)
+    expect(league.membersTotal).toBe(12)
   })
 })
 
-describe('projectWhatIf branches', () => {
-  it('offers now, home-scores and away-scores from the live score', () => {
-    const projection = projectWhatIf(base)
-    if (!projection.available) throw new Error('expected a projection')
-
-    expect(projection.branches.map((branch) => branch.key)).toEqual(['now', 'home', 'away'])
-    expect(projection.branches.map((branch) => branch.scoreLabel)).toEqual([
-      '1 – 1',
-      '2 – 1',
-      '1 – 2',
-    ])
-    expect(projection.branches.map((branch) => branch.label)).toEqual([
-      'As it stands',
-      'If Liverpool score',
-      'If Arsenal score',
-    ])
+describe('mapSeasonMatchweekProjection', () => {
+  it('refuses a payload it cannot read rather than defaulting the shape', () => {
+    expect(() => mapSeasonMatchweekProjection({ tournament_id: 't-1' })).toThrow(
+      /not in the expected shape/,
+    )
+    expect(() => mapSeasonMatchweekProjection(null)).toThrow(/not in the expected shape/)
   })
 
-  it('takes every point value from the canonical scoring authority', () => {
-    const projection = projectWhatIf(base)
-    if (!projection.available) throw new Error('expected a projection')
-
-    for (const branch of projection.branches) {
-      expect(branch.points).toBe(scoreFixture(base.prediction, branch.score))
-    }
-    // And the reasons follow from it: the home goal makes 2-1 exact.
-    expect(projection.branches[1]?.reason).toBe('exact_score')
-    expect(projection.branches[1]?.points).toBe(5)
-    expect(projection.branches[0]?.reason).toBe('wrong')
-    expect(projection.branches[2]?.reason).toBe('wrong')
+  it('drops a fixture whose basis it does not recognise', () => {
+    const decoded = mapSeasonMatchweekProjection(
+      payload({ fixtures: [inPlayFixture({ basis: 'guessed' })] }),
+    )
+    expect(decoded.fixtures).toHaveLength(0)
   })
 
-  it('projects nothing for a player with no prediction, without refusing', () => {
-    const projection = projectWhatIf({ ...base, prediction: null })
-    if (!projection.available) throw new Error('expected a projection')
-    expect(projection.prediction).toBeNull()
-    expect(projection.branches.every((branch) => branch.points === 0)).toBe(true)
-    expect(projection.branches.every((branch) => branch.reason === 'unscored')).toBe(true)
-    expect(describeBranch(projection.branches[0]!)).toContain('no prediction')
+  it('never reads a provisional score as an official one', () => {
+    const decoded = mapSeasonMatchweekProjection(payload())
+    expect(decoded.fixtures[0]?.official).toBeNull()
+    expect(decoded.fixtures[0]?.provisional?.kind).toBe('in_play')
   })
 
-  it('drops a branch that would run past the plausible ceiling', () => {
-    const projection = projectWhatIf({ ...base, live: { home: 20, away: 0 } })
-    if (!projection.available) throw new Error('expected a projection')
-    expect(projection.branches.map((branch) => branch.key)).toEqual(['now', 'away'])
-  })
-})
-
-/**
- * Three players whose ranking branches visibly differ — the Innovation Lab's
- * own stated first experiment for this feature.
- */
-const league: WhatIfLeagueInput = {
-  leagueName: 'The Office',
-  memberCount: 3,
-  fixtures: [
-    { id: 'fx-1', result: null },
-    { id: 'fx-2', result: { home: 1, away: 0 } },
-    { id: 'fx-3', result: null },
-  ],
-  members: [
-    {
-      userId: 'u-me',
-      displayName: 'You',
-      isSelf: true,
-      jokerPlayed: false,
-      points: null,
-      predictions: { 'fx-1': { home: 2, away: 1 }, 'fx-2': { home: 1, away: 0 } },
-    },
-    {
-      userId: 'u-craig',
-      displayName: 'Craig',
-      isSelf: false,
-      jokerPlayed: false,
-      points: null,
-      predictions: { 'fx-1': { home: 1, away: 2 }, 'fx-2': { home: 2, away: 0 } },
-    },
-    {
-      userId: 'u-sam',
-      displayName: 'Sam',
-      isSelf: false,
-      jokerPlayed: false,
-      points: null,
-      predictions: { 'fx-1': { home: 1, away: 1 } },
-    },
-  ],
-  seasonPointsBefore: { 'u-me': 40, 'u-craig': 43, 'u-sam': 44 },
-}
-
-describe('projectWhatIf league consequence', () => {
-  const projection = projectWhatIf({ ...base, league })
-  if (!projection.available) throw new Error('expected a projection')
-  const byKey = Object.fromEntries(projection.branches.map((branch) => [branch.key, branch]))
-
-  it('changes the projected order across the three branches', () => {
-    // As it stands (1-1) Sam is exact on this fixture and leads.
-    expect(byKey.now?.league?.leaderName).toBe('Sam')
-    // A Liverpool goal makes the player's 2-1 exact and puts them top.
-    expect(byKey.home?.league?.leaderName).toBe('You')
-    // An Arsenal goal makes Craig's 1-2 exact and puts him top.
-    expect(byKey.away?.league?.leaderName).toBe('Craig')
-  })
-
-  it('projects a rank and a gap for the player in every branch', () => {
-    expect(byKey.now?.league?.you?.projectedRank).toBe(3)
-    expect(byKey.home?.league?.you?.projectedRank).toBe(1)
-    expect(byKey.home?.league?.gapToLeader).toBe(0)
-    // Craig's exact 1-2 takes him past both, and the player's own settled exact
-    // on the other fixture keeps them ahead of Sam.
-    expect(byKey.away?.league?.you?.projectedRank).toBe(2)
-    expect(byKey.away?.league?.gapToLeader).toBeGreaterThan(0)
-  })
-
-  it('derives each member total from the matchweek authority, Joker included', () => {
-    const jokered: WhatIfLeagueInput = {
-      ...league,
-      members: league.members.map((member) =>
-        member.isSelf ? { ...member, jokerPlayed: true } : member,
-      ),
-    }
-    const withJoker = projectWhatIf({ ...base, league: jokered })
-    if (!withJoker.available) throw new Error('expected a projection')
-    const home = withJoker.branches.find((branch) => branch.key === 'home')
-    const mine = home?.league?.you
-    const expected = scoreMatchweek(
-      [
-        { prediction: { home: 2, away: 1 }, result: { home: 2, away: 1 } },
-        { prediction: { home: 1, away: 0 }, result: { home: 1, away: 0 } },
-      ],
-      true,
-    ).totalPoints
-    expect(mine?.matchweekPoints).toBe(expected)
-  })
-
-  it('states how many fixtures it could not account for', () => {
-    expect(byKey.now?.league?.unknownFixtures).toBe(1)
-  })
-
-  it('suppresses the league half once the matchweek has settled', () => {
-    const settled: WhatIfLeagueInput = {
-      ...league,
-      members: league.members.map((member) => ({ ...member, points: 12 })),
-    }
-    const after = projectWhatIf({ ...base, league: settled })
-    if (!after.available) throw new Error('expected a projection')
-    expect(after.branches.every((branch) => branch.league === null)).toBe(true)
-  })
-
-  it('reports matchweek points and no rank when season totals are absent', () => {
-    const { seasonPointsBefore: _ignored, ...withoutTotals } = league
-    const anonymous = projectWhatIf({ ...base, league: withoutTotals })
-    if (!anonymous.available) throw new Error('expected a projection')
-    const now = anonymous.branches.find((branch) => branch.key === 'now')
-    expect(now?.league?.you?.matchweekPoints).toBeGreaterThanOrEqual(0)
-    expect(now?.league?.you?.projectedRank).toBeNull()
-    expect(now?.league?.leaderName).toBeNull()
-    expect(now?.league?.gapToLeader).toBeNull()
-  })
-
-  it('shares a rank between tied projections rather than inventing an order', () => {
-    const tied: WhatIfLeagueInput = {
-      ...league,
-      members: league.members.slice(0, 2).map((member) => ({ ...member, predictions: {} })),
-      memberCount: 2,
-      seasonPointsBefore: { 'u-me': 40, 'u-craig': 40 },
-    }
-    const level = projectWhatIf({ ...base, league: tied })
-    if (!level.available) throw new Error('expected a projection')
-    expect(level.branches[0]?.league?.rows.map((row) => row.projectedRank)).toEqual([1, 1])
+  it('drops a half-built branch pair rather than offering one side a next goal', () => {
+    const decoded = mapSeasonMatchweekProjection(
+      payload({
+        fixtures: [
+          inPlayFixture({
+            branches: { home_scores: { home: 2, away: 1, matchweek_points: 13 } },
+          }),
+        ],
+      }),
+    )
+    expect(decoded.fixtures[0]?.branches).toBeNull()
   })
 })
