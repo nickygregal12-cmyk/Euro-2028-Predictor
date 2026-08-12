@@ -52,20 +52,24 @@ def _bootstrap() -> None:
             end if;
           end $$
         """)
-        conn.execute("create schema predictor_internal")
-        conn.execute("create schema net")
-        conn.execute("create schema cron")
+        # `if not exists` so a second run against the same disposable database
+        # rebuilds rather than dying on "schema net already exists". CI gets a
+        # fresh postgres service every time and never saw it; a local rerun
+        # hits it immediately and reads like a broken migration.
+        conn.execute("create schema if not exists predictor_internal")
+        conn.execute("create schema if not exists net")
+        conn.execute("create schema if not exists cron")
         conn.execute("""
-          create function predictor_internal.require_competition_admin()
+          create or replace function predictor_internal.require_competition_admin()
           returns void language plpgsql as $$ begin return; end $$
         """)
         conn.execute("""
-          create function predictor_internal.provider_poll_endpoint(
+          create or replace function predictor_internal.provider_poll_endpoint(
             out endpoint_url text, out caller_key text)
           language sql stable as $$ select null::text, null::text $$
         """)
         conn.execute("""
-          create function net.http_post(
+          create or replace function net.http_post(
             url text, body jsonb default '{}'::jsonb,
             params jsonb default '{}'::jsonb,
             headers jsonb default '{"Content-Type":"application/json"}'::jsonb,
@@ -73,7 +77,7 @@ def _bootstrap() -> None:
           returns bigint language sql as $$ select 1::bigint $$
         """)
         conn.execute("""
-          create function cron.schedule(job_name text, schedule text, command text)
+          create or replace function cron.schedule(job_name text, schedule text, command text)
           returns bigint language sql as $$ select 1::bigint $$
         """)
         conn.execute("""

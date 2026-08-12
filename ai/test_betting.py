@@ -232,5 +232,16 @@ def main() -> None:
     print("\nALL BETTING CHECKS PASSED")
 
 
+def test_betting_guards() -> None:
+    """Run every check above under pytest, which is what CI collects.
+
+    De-vig recovery, the no-edge negative control, the selectivity control,
+    the line-shopping separation and the power arithmetic are the reasons a
+    reported edge can be trusted at all. They took roughly thirty seconds
+    locally, which is a cheap price for CI running them on every change.
+    """
+    main()
+
+
 if __name__ == "__main__":
     main()

@@ -75,6 +75,36 @@ LEAGUES: dict[str, League] = {
 
 ALL_DIVISIONS = ("E0", "E1", "E2", "E3", "EC", "SC0", "SC1", "SC2", "SC3")
 
+FIRST_SEASON = "1213"
+FIRST_SEASON_WITH_MAXAVG_CLOSING = "1920"
+
+
+def current_season(today: date | None = None) -> str:
+    """Return the Football-Data code for the season `today` falls in.
+
+    Football-Data's competition year runs July to June, the same boundary
+    `season_date_bounds` uses, so 1 July is the changeover both ways.
+
+    This is derived rather than listed because the daily import is the only
+    thing that ever brings a NEW result into the lab, and a hard-coded code
+    fails silently rather than loudly: the finished season's file still
+    returns HTTP 200, the import still reports a healthy row count and
+    `ai.job_runs` still records success, while no fixture is ever graded and
+    no bet is ever settled again.
+    """
+    day = today or date.today()
+    start_year = day.year if day.month >= 7 else day.year - 1
+    return f"{start_year % 100:02d}{(start_year + 1) % 100:02d}"
+
+
+def seasons_from(first: str, today: date | None = None) -> tuple[str, ...]:
+    """Every Football-Data season code from `first` to the current one."""
+    start = season_date_bounds(first)[0].year
+    end = season_date_bounds(current_season(today))[0].year
+    return tuple(f"{y % 100:02d}{(y + 1) % 100:02d}"
+                 for y in range(start, end + 1))
+
+
 # Seasons to import, oldest first.
 #
 # Two thresholds worth knowing, established by reading the actual CSV headers:
@@ -84,13 +114,13 @@ ALL_DIVISIONS = ("E0", "E1", "E2", "E3", "EC", "SC0", "SC1", "SC2", "SC3")
 # 14 seasons deep if you accept Pinnacle as the benchmark. For the smaller
 # divisions, where sample size is the binding constraint, take the Pinnacle
 # series: more data beats a marginally better benchmark.
-SEASONS: tuple[str, ...] = (
-    "1213", "1314", "1415", "1516", "1617", "1718", "1819",
-    "1920", "2021", "2122", "2223", "2324", "2425", "2526", "2627",
-)
-SEASONS_WITH_MAXAVG_CLOSING = (
-    "1920", "2021", "2122", "2223", "2324", "2425", "2526", "2627",
-)
+#
+# A season not yet published is not an error: `fetch_history` treats the 404
+# as "not published, skipping", so extending to the current season on 1 July
+# costs nothing until the first file appears.
+#
+# Assigned below `season_date_bounds`, which both helpers read for the century
+# rule rather than repeating it.
 
 FOOTBALL_DATA_URL = "https://www.football-data.co.uk/mmz4281/{season}/{division}.csv"
 FOOTBALL_DATA_FIXTURES_URL = "https://www.football-data.co.uk/fixtures.csv"
@@ -120,6 +150,11 @@ def season_date_bounds(season: str) -> tuple[date, date]:
     if end_year != start_year + 1:
         raise ValueError(f"Non-consecutive Football-Data season code: {season!r}")
     return date(start_year, 7, 1), date(end_year, 6, 30)
+
+
+SEASONS: tuple[str, ...] = seasons_from(FIRST_SEASON)
+SEASONS_WITH_MAXAVG_CLOSING: tuple[str, ...] = seasons_from(
+    FIRST_SEASON_WITH_MAXAVG_CLOSING)
 
 # Bookmaker column families in the CSVs, mapped to the codes in ai.bookmakers.
 # Order matters: the first present wins.

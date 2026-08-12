@@ -29,7 +29,8 @@ import requests
 
 from aliases import canonical_for
 from config import (AH_MARKET_COLUMNS, ALL_DIVISIONS, FOOTBALL_DATA_URL,
-                    LEAGUES, ODDS_COLUMNS, OU_MARKET_COLUMNS, SEASONS)
+                    LEAGUES, ODDS_COLUMNS, OU_MARKET_COLUMNS, SEASONS,
+                    current_season)
 from db import job, upsert_historical_market_prices, upsert_raw_matches
 
 def _parse_date(value):
@@ -249,9 +250,13 @@ def main() -> int:
     target.add_argument("--league", choices=sorted(LEAGUES))
     target.add_argument("--all-divisions", action="store_true",
                         help="Fetch each of the nine source divisions exactly once.")
-    ap.add_argument("--seasons", nargs="*", default=list(SEASONS))
+    ap.add_argument("--seasons", nargs="*", default=list(SEASONS),
+                    help="Football-Data season codes, or the word 'current' "
+                         "for whichever season today falls in.")
     args = ap.parse_args()
 
+    args.seasons = [current_season() if s == "current" else s
+                    for s in args.seasons]
     divisions = ALL_DIVISIONS if args.all_divisions else LEAGUES[args.league].divisions
     with job("import_history", args.league) as state:
         total = price_total = 0

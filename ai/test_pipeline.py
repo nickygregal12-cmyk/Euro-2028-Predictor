@@ -16,7 +16,8 @@ import numpy as np
 import pandas as pd
 
 import metrics
-from config import season_date_bounds
+from config import (FIRST_SEASON, SEASONS, current_season, season_date_bounds,
+                    seasons_from)
 from features import FEATURE_NAMES, FeatureBuilder
 from model_zoo import MODEL_FAMILIES
 
@@ -30,6 +31,34 @@ def test_season_bounds_are_full_year_not_prediction_window() -> None:
     assert start == date(2026, 7, 1) and end == date(2027, 6, 30)
     september = (date(2026, 9, 5) - start).days / (end - start).days
     assert 0.15 < september < 0.25
+
+
+def test_current_season_turns_over_on_the_first_of_july() -> None:
+    """The season the daily import asks for must follow the calendar.
+
+    The import is the only thing that brings a new result into the lab, and a
+    frozen season code fails silently: the finished season's file still
+    answers 200, the row count still looks healthy and the job still records
+    success, while nothing is ever graded or settled again. 1 July is the same
+    boundary `season_date_bounds` uses, so both agree about which season a
+    date belongs to.
+    """
+    assert current_season(date(2027, 6, 30)) == "2627"
+    assert current_season(date(2027, 7, 1)) == "2728"
+    assert current_season(date(2027, 12, 31)) == "2728"
+    assert current_season(date(2028, 1, 1)) == "2728"
+
+    for day in (date(2026, 8, 12), date(2027, 7, 1), date(2030, 3, 4)):
+        start, end = season_date_bounds(current_season(day))
+        assert start <= day <= end
+
+
+def test_season_list_reaches_the_current_season() -> None:
+    """The list is derived, and still starts where the evidence starts."""
+    assert SEASONS[0] == FIRST_SEASON
+    assert SEASONS[-1] == current_season()
+    assert len(set(SEASONS)) == len(SEASONS)
+    assert seasons_from("2526", date(2028, 9, 1)) == ("2526", "2627", "2728", "2829")
 
 
 def simulate(seasons: list[str], start_year: int = 2015) -> pd.DataFrame:
@@ -171,6 +200,18 @@ def main() -> None:
     print("  [pass] signal disappears when the target is shuffled, so it was real")
 
     print("\nALL CHECKS PASSED")
+
+
+def test_modelling_guards() -> None:
+    """Run every check above under pytest, which is what CI collects.
+
+    Without this entry point the leakage guard, the beats-baseline assertion,
+    the calibration bound and the shuffled-target negative control ran only
+    when a human remembered to type `python test_pipeline.py`. They are the
+    guards that decide whether a model is allowed to be believed, so CI has to
+    be the thing that runs them.
+    """
+    main()
 
 
 if __name__ == "__main__":
