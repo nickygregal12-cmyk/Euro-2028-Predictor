@@ -1032,8 +1032,14 @@
  * the hundred-and-first insert into one league, and its setter is
  * `service_role`-only and is never called by the seed. No existing row is
  * touched, no read gains a gate and no grant moves.
+ *
+ * Raised to 182 after checking what it changes: two function comments and one
+ * new `predictor_internal` guard granted to **no role at all**, which nothing
+ * calls except its own pgTAP suite and the migration's own install-time check.
+ * It creates no relation, alters none, moves no grant and gates no read. A
+ * seeded user cannot reach it and cannot be affected by it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 181
+export const SEED_REVIEWED_AT_CONTRACT = 182
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

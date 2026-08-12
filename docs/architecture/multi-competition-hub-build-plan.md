@@ -330,6 +330,8 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 
 | 181 | **Stage J** launch readiness rather than Stage E: an operating ceiling, beside contract 44's two. It changes no season surface and no game rule |
 
-**This table accounts for every contract up to and including contract 181.** Saying so is
+| 182 | **Stage G** season Predictor Cup. A rule-authority guard, no driver and no new read |
+
+**This table accounts for every contract up to and including contract 182.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

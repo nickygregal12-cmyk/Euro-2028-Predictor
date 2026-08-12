@@ -241,6 +241,8 @@ nothing to say.
 
 | 181 | `CAP-003` under ADR 0028 § 3. **It moves no phase** and it is the first per-league operating ceiling the platform has had; the two that existed were site-wide |
 
-**This table accounts for every contract up to and including contract 181.** Saying so is
+| 182 | `CUP-005` under ADR 0028 § 7. **It moves no phase** and unblocks `CUP-002` by settling which authority that driver must read |
+
+**This table accounts for every contract up to and including contract 182.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

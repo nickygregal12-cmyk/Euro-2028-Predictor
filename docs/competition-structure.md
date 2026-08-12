@@ -162,4 +162,6 @@ same paragraph existed in seven places at once.
 
 | 181 | **No structural change to a competition.** A per-league membership ceiling of 100 on the ordinary private league, enforced on `public.league_members`. It does not govern a private Last Man Standing or Championship container, whose field is not in that table |
 
-*Current to contract 181.*
+| 182 | **No structural change, and one rule pinned.** ADR 0028 § 7 names `cup_season_group_tables` the sole season Championship group-stage authority; a guard now refuses any function that reaches the per-tie rule and also writes the group stage. Nothing about what a competition is, how it is scored or who is in it moves |
+
+*Current to contract 182.*

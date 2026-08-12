@@ -84,4 +84,6 @@ same paragraph existed in seven places at once.
 
 | 181 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 3**, which approves 100 as the initial ordinary private-league limit and says in terms that it is an operating limit rather than an architectural maximum. The ADR also declines to grant the organiser an exemption, and that absence is implemented as an absence |
 
-*Current to contract 181.*
+| 182 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 7**, which names the derived group table as the authority and asks for "a test that they cannot disagree". The test delivered is stronger than a comparison: only one of the two is reachable, and a guard refuses an installation where that stops being true |
+
+*Current to contract 182.*
