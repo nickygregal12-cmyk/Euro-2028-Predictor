@@ -998,8 +998,42 @@
  * The seeded Euro tournament is additionally out of scope for all four by
  * construction: every one of them refuses a competition whose `kind` is not
  * `league_season`.
+ *
+ * Raised to 180 after checking what 179 and 180 actually change, which is the
+ * only thing this number is allowed to mean.
+ *
+ * **179** adds two `authenticated` reads and two internal helpers granted to
+ * nobody. Neither read gates anything the seed already does: they answer about
+ * private `bonus_competitions` containers, and the seed creates none — a seeded
+ * user calling `get_my_private_competitions` gets `total: 0`, which is a valid
+ * answer rather than a failure. It redefines no existing function and alters no
+ * relation.
+ *
+ * **180** is the one that needed real checking, because it redefines two
+ * authorities the seed depends on: `predictor_internal.enter_competition_game`,
+ * which every seeded game membership is written through, and
+ * `predictor_internal.prepare_entry_game_membership`, which every seeded season
+ * entry passes through. The parity test
+ * `tests/database-parity/sharedPredictionCapabilityParity.test.ts` proves both
+ * are character-identical outside their sentinel-delimited additions, and the
+ * additions are reachable only by a caller who holds an active membership in a
+ * game that reads the shared card without owning it. **No seeded identity is in
+ * that state**: the seed joins the Match Predictor, which OWNS the card, so the
+ * `requires_prediction_entry` branch runs exactly as it did at 178 and the new
+ * branch is not entered. The new `game_definitions` column defaults to false and
+ * is set true for the two Predictors and the Championship, none of which changes
+ * a lock scope, a buffer or a grant.
+ *
+ * Raised to 181 after checking what it changes. Contract 181 caps an ordinary
+ * private league at 100 members through a `before insert` trigger on
+ * `public.league_members`. **The seed cannot reach it**: measured on hosted
+ * Development the same day, the largest ordinary league holds 15 members, and
+ * the seed itself creates leagues of two and three. The trigger refuses only
+ * the hundred-and-first insert into one league, and its setter is
+ * `service_role`-only and is never called by the seed. No existing row is
+ * touched, no read gains a gate and no grant moves.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 178
+export const SEED_REVIEWED_AT_CONTRACT = 181
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

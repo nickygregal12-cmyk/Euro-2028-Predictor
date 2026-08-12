@@ -180,13 +180,40 @@ The verification code is nonetheless two-site aware as of this date:
 `playwright.production.config.ts` each know both origins and pin each one to the
 product its variant builds. What is missing is a way in, not a way to check.
 
-**Closing it is an owner decision with two shapes**, and neither should be
-guessed here: put the Hub on the same site password as the Euro site, at which
-point the existing workflow smokes it with only an origin input; or leave Team
-SSO in place and accept that the Hub's evidence is its Netlify deploy record and
-its deploy-preview smoke rather than a published-artifact smoke. Until one is
-taken, a Hub release is evidenced by the deploy record alone, and this runbook
-says so rather than implying a smoke covered it.
+**Closing it was an owner decision with two shapes** — put the Hub on the same
+site password as the Euro site, at which point the existing workflow smokes it
+with only an origin input; or leave Team SSO in place and accept that the Hub's
+evidence is its Netlify deploy record and its deploy-preview smoke rather than a
+published-artifact smoke.
+
+#### The owner chose the site password — 12 August 2026
+
+**The repository half has landed.** `production-smoke.yml` takes a `site` input
+of `euro` or `hub` and resolves the origin from it before the perimeter check;
+everything after that is unchanged, because the two deployments share one
+Supabase project and one release identity and differ only in address and bundle.
+`productionSmokePerimeter` asserts that every origin the workflow can dispatch
+is one `scripts/production-smoke.mjs` will accept, so an option added without its
+origin fails CI rather than dying mid-run on "refusing to smoke-test
+non-production origin" — which reads as a caller mistake and is a configuration
+defect.
+
+**The Netlify half is an owner action and this runbook does not claim it.** The
+password is a repository secret whose value must not enter an agent transcript
+(below), so an agent can add the input and cannot set the credential. Until a
+project read shows `predictorhub` with `requiresPassword: true` and
+`requiresSSOTeamLogin: false`, dispatching `site: hub` fails on the perimeter
+step, which demands exactly 401 — correctly, and that failure is about the
+perimeter rather than the artifact.
+
+**Both flags must move in one save.** Clearing Team SSO first leaves the Hub
+publicly reachable in between, and the Hub still serves the Euro tournament's
+player routes (`EURO-001`), so that window would publish Euro 2028 by accident —
+the one outcome contract 143's publication state exists to prevent.
+
+When it is done, what belongs here is a Hub smoke run against the published
+commit, recorded beside the Euro one, replacing this subsection rather than
+sitting under it as a plan.
 
 ### Sharing the password
 

@@ -77,10 +77,23 @@ insert into public.leagues (id, tournament_id, name, owner_id, invite_code)
 values (md5('cap-lg')::uuid, current_setting('test.cap_season')::uuid,
         'The Big League', md5('cap-u1')::uuid, 'CAPCODE12345');
 
+-- Contract 181 caps an ordinary private league at 100 members, and this fixture
+-- is deliberately larger. The two are not in conflict: the membership ceiling is
+-- an OPERATING limit that ADR 0028 § 3 expects to be raised from measured load
+-- evidence, while the read's own cap is defence-in-depth that must hold whatever
+-- that ceiling becomes. A read test that could only build a league the current
+-- ceiling permits would stop testing the cap the day the ceiling moved.
+--
+-- `session_replication_role = replica` suspends the trigger for the fixture
+-- build only. It is superuser-only and unreachable from any browser role, so it
+-- weakens nothing: it is the same idiom this suite already uses to seed
+-- `auth.users`.
+set local session_replication_role = replica;
 insert into public.league_members (league_id, user_id, role)
 select md5('cap-lg')::uuid, md5('cap-u' || n)::uuid,
        case when n = 1 then 'owner' else 'member' end
   from generate_series(1, 205) as n;
+set local session_replication_role = origin;
 
 insert into public.season_predictions (tournament_id, entry_id, season_fixture_id, home_score, away_score)
 select current_setting('test.cap_season')::uuid, md5('cap-e' || n)::uuid,

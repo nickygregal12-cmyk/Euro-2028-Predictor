@@ -157,5 +157,9 @@ same paragraph existed in seven places at once.
 | 173 | A settled matchweek is worth telling a player about for **seven days**, which is contract 162's own stated intention made executable rather than a new rule |
 | 174 | A fixture may now be **added to or removed from** a season after its calendar was approved — but only by an administrator, and never over a fixture that already carries a result |
 | 175–178 | **No structural change.** A projection, a set of derived metrics, a batch submission and an integrity check: none of them alters what a competition is, how it is scored, when it locks or who is in it |
+| 179 | **No structural change.** Two reads over private competition containers that already existed. It creates no competition and changes no membership rule |
+| 180 | **One structural clarification, and it is the point.** A season prediction entry and a Match Predictor game membership were the same fact; they are now two. `game_definitions.uses_season_prediction_card` says which games READ the shared card, `requires_prediction_entry` keeps saying which game OWNS it, and a card may exist with no membership of the owning game. No scoring value, lock, settlement or reveal rule moves |
 
-*Current to contract 178.*
+| 181 | **No structural change to a competition.** A per-league membership ceiling of 100 on the ordinary private league, enforced on `public.league_members`. It does not govern a private Last Man Standing or Championship container, whose field is not in that table |
+
+*Current to contract 181.*

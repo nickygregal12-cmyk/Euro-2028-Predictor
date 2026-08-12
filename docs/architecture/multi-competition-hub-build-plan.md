@@ -326,7 +326,10 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 173 | Completes the **Stage L** action generator set for the Match Predictor; the Championship's own action still waits on `CUP-002` |
 | 174 | Closes the **Stage D** ingestion gap named by `INGEST-002`, `INGEST-003` and `INGEST-005`, and gives **Stage I** administration a second queue to review |
 | 175–178 | Sit alongside **Stage E** season surfaces and **Stage I** administration without moving either: three bounded reads/writes a season surface may call, and one integrity control an administrator may read. **Stage D is untouched** — nothing here reads or writes provider data |
+| 179–180 | **Stage E** again, and specifically its private-container half. Contract 179 supplies the discovery and workspace reads a `/leagues` surface needs for private Last Man Standing and Championship containers; contract 180 makes the Championship's prediction dependency real. **Stage D and Stage I are untouched** |
 
-**This table accounts for every contract up to and including contract 178.** Saying so is
+| 181 | **Stage J** launch readiness rather than Stage E: an operating ceiling, beside contract 44's two. It changes no season surface and no game rule |
+
+**This table accounts for every contract up to and including contract 181.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

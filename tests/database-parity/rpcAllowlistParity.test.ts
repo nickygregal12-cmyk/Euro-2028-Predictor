@@ -141,6 +141,10 @@ describe('deployment contract and database privilege allow-list parity', () => {
       // could also flood the ledger. The administrator reads the result
       // through `admin_shadow_scoring_report`, which is browser-reachable.
       'run_shadow_scoring_verification(uuid,integer)',
+      // Contract 181's per-league ceiling, on exactly contract 44's terms for
+      // the two site-wide ones beside it: an operating limit is an operations
+      // action, and a browser role that could raise one could raise its own.
+      'set_league_member_limit(integer)',
       'set_operating_limits(integer,integer)',
     ])
   })

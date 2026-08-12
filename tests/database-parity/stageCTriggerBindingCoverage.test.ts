@@ -230,7 +230,11 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // 94 → 95 at contract 115, which stamps a poll target's updated_at.
     // Raised 98 → 99 by contract 160's award season-scope trigger, which binds
     // only to the table the same migration creates.
-    expect(effectiveBindings).toHaveLength(99)
+    // 99 → 100 at contract 181, whose membership ceiling binds to
+    // `public.league_members` — a table that predates Stage C entirely. That is
+    // the point of this control: a new trigger on an EXISTING table has to be
+    // noticed here, because it changes what happens on every insert into it.
+    expect(effectiveBindings).toHaveLength(100)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(

@@ -237,7 +237,10 @@ nothing to say.
 | 173 | The settled-matchweek recap. **No frontend consumer**, and the AppBar still carries no notification control |
 | 174 | Provider change approval. It moves no phase and adds no provider authority; it closes the gap where a change was counted and discarded. **No frontend consumer** |
 | 175–178 | Innovation Lab backend foundations under ADR 0027. **They move no phase.** Contract 178 is the one that touches the programme's instrumentation ambition: an independent post-settlement scoring check is the first control here that can detect a job which succeeded and was wrong. **No frontend consumer, and no scheduled caller** |
+| 179–180 | Private-play lifecycle integrity, under issue #728. **They move no phase and they close a delivery gate**: `DFA-008` may not be called complete on create/join RPCs existing, because a mutation is not delivered until its result survives an authoritative reread. Contract 180 is the first contract to separate a prediction capability from a game membership, which is the shape every future card-reading game inherits |
 
-**This table accounts for every contract up to and including contract 178.** Saying so is
+| 181 | `CAP-003` under ADR 0028 § 3. **It moves no phase** and it is the first per-league operating ceiling the platform has had; the two that existed were site-wide |
+
+**This table accounts for every contract up to and including contract 181.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

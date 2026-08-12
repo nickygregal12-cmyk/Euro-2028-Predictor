@@ -253,6 +253,24 @@ insert into expected_authenticated_functions (signature) values
   -- "is the scoring right", so no display name or address appears in it.
   ('admin_shadow_scoring_report(uuid,integer)');
 
+-- Contract 179. Private container discovery and the workspace that opens one.
+--
+-- Both are `authenticated` and both answer only for `auth.uid()`. The list
+-- takes no competition, game, season or player argument at all, which is what
+-- stops it becoming a directory — the boundary contract 151 set and contracts
+-- 161 to 165 kept. The workspace takes the container's own id and refuses a
+-- non-member exactly as it refuses an unknown id, so it is not a probe either.
+insert into expected_authenticated_functions (signature) values
+  ('get_my_private_competitions(integer,integer)'),
+  ('get_private_competition_workspace(uuid)');
+
+-- Contract 181's setter is service_role and nothing else, on exactly contract
+-- 44's terms for the two ceilings beside it: an operating limit is an
+-- operations action and no browser session has cause to change one. The cap
+-- ITSELF is a trigger on `public.league_members` and so has no signature here.
+insert into expected_service_functions (signature) values
+  ('set_league_member_limit(integer)');
+
 -- Contract 178's RUN is service_role and nothing else: it is a job rather than
 -- an action, it writes evidence, and no browser session has cause to start one.
 insert into expected_service_functions (signature) values

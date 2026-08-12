@@ -68,6 +68,10 @@ Season Match Predictor, Last Man Standing and Predictor Championship rules come 
 - No combined cross-competition entry, score, survival, progression or standings authority.
 - No rewriting dated evidence to make the current position look cleaner; correct the live authority and preserve history.
 
+## Contract 179–181 — private-play lifecycle integrity, and the private league's size
+
+The repository is at contract **181**. **Contract 181** implements `CAP-003`: an ordinary private league holds at most 100 members, enforced by a trigger on `public.league_members` that takes a per-league advisory lock before it counts. It reaches neither Last Man Standing nor the Championship. Contracts 179 and 180 close `PPLAY-001`, `PPLAY-002` and `PPLAY-003` from the 12 August 2026 private-play investigation (issue #728) and are applied to **no** hosted environment; Development and Production both hold 178. Contract 179 adds caller-addressed private-container discovery and the `MIG-UI-20` workspace, plus read-only Championship launch readiness differential-tested against the launcher. Contract 180 declares `game_definitions.uses_season_prediction_card` and lets a game that reads the shared season prediction card establish it without writing a membership of the game that owns it — so a Championship-only entrant can predict, and `game_memberships` stays truthful. **Neither closes its finding end to end**: `/leagues` still rebuilds private play from `get_my_game_leagues`, and `PPLAY-004`/`PPLAY-005` are open.
+
 ## Contract 132 — provider initial publication boundary
 
 The repository is at contract 132. Fresh provider calendars must follow archive/normalize → stage pending proposals → explicit competition-admin approval. Contract 132 does not authorize automatic provider result confirmation, and it must not be used to copy Development football rows into Production.
