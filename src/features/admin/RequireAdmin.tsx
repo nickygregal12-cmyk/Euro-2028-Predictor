@@ -2,13 +2,14 @@ import { useEffect, useState } from 'react'
 import { Navigate, Outlet } from 'react-router'
 import { AuthSplash } from '../auth/AuthSplash'
 import { hasTournamentAdminAccess } from '../../services/supabase/adminAccess'
+import type { AdminCapability } from '../../services/supabase/adminCapabilities'
 
-export function RequireAdmin() {
+export function RequireAdmin({ capability = 'results' }: { capability?: AdminCapability } = {}) {
   const [allowed, setAllowed] = useState<boolean | null>(null)
 
   useEffect(() => {
     let active = true
-    hasTournamentAdminAccess('results')
+    hasTournamentAdminAccess(capability)
       .then((value) => {
         if (active) setAllowed(value)
       })
@@ -19,7 +20,7 @@ export function RequireAdmin() {
     return () => {
       active = false
     }
-  }, [])
+  }, [capability])
 
   if (allowed === null) return <AuthSplash />
   if (!allowed) return <Navigate to="/" replace />

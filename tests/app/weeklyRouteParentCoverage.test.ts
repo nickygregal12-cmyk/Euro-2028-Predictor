@@ -53,7 +53,7 @@ describe('weekly route parent coverage', () => {
 
     const shellSource = appSource.slice(SHELL_START, ADMIN_START)
     const declared = routePaths(shellSource)
-      .filter((path) => !REDIRECT_ONLY.has(path))
+      .filter((path) => !REDIRECT_ONLY.has(path) && !path.startsWith('/admin'))
       .sort()
 
     expect(declared).toEqual([...SHIPPED_WEEKLY_ROUTES].sort())

@@ -48,6 +48,10 @@ const Z_INDEX_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string]>
     'src/features/predict/hub.module.css',
     'local stacking of a step chip against the connector line it sits on',
   ],
+  [
+    'src/features/admin/AiLabPage.module.css',
+    'local stacking of hero copy and status above the hero decorative orb',
+  ],
 ]
 
 /**

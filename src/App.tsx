@@ -120,6 +120,11 @@ const H2HPage = lazy(() => import('./features/h2h/H2HPage').then((m) => ({ defau
 const AdminResultsWorkspacePage = lazy(() => import('./features/admin/AdminResultsWorkspacePage').then((m) => ({ default: m.AdminResultsWorkspacePage })))
 const AdminUsersPage = lazy(() => import('./features/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })))
 const SeasonAdminPage = lazy(() => import('./features/admin/SeasonAdminPage').then((m) => ({ default: m.SeasonAdminPage })))
+// Build-time exclusion as well as the route boundary below: the Euro artifact
+// neither links to nor emits the private Hub laboratory chunk.
+const AiLabPage = import.meta.env.VITE_SITE_VARIANT !== 'euro'
+  ? lazy(() => import('./features/admin/AiLabPage').then((m) => ({ default: m.AiLabPage })))
+  : null
 const EuroPublicationPage = lazy(() => import('./features/admin/EuroPublicationPage').then((m) => ({ default: m.EuroPublicationPage })))
 const NotFoundPage = lazy(() => import('./features/notfound/NotFoundPage').then((m) => ({ default: m.NotFoundPage })))
 
@@ -167,6 +172,9 @@ const SeasonCupPreview = import.meta.env.DEV
       })),
     )
   : null
+const AiLabPreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/AiLabPreview').then((m) => ({ default: m.AiLabPreview })))
+  : null
 
 function SessionlessChrome() {
   return (
@@ -212,6 +220,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && SeasonCupPreview ? (
                   <Route path="/dev/season-cup" element={<SeasonCupPreview />} />
+                ) : null}
+                {import.meta.env.DEV && AiLabPreview ? (
+                  <Route path="/dev/ai-lab" element={<AiLabPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
@@ -339,6 +350,19 @@ export default function App() {
                           path={weeklyRoutePatterns.player}
                           element={<SeasonPlayerProfileRoute />}
                         />
+                        {/* Contract 185's private analytical surface belongs to
+                            the Hub deployment, not to Euro 2028. Keeping the
+                            route inside this one domestic boundary means a
+                            guessed `/admin/ai` address on the Euro build is
+                            refused before the page or its RPC client loads. */}
+                        <Route element={<RequireAdmin capability="competitions" />}>
+                          <Route element={<AdminLayout />}>
+                            <Route
+                              path="/admin/ai"
+                              element={AiLabPage ? <AiLabPage /> : <Navigate to="/" replace />}
+                            />
+                          </Route>
+                        </Route>
                       </Route>
 
                       {/* Compatibility only: the old global chooser name remains a

@@ -87,4 +87,16 @@ describe('the domestic competition boundary', () => {
       ).toBeLessThan(boundary)
     }
   })
+
+  it('keeps the private AI Lab inside the Hub-only boundary', () => {
+    const boundary = appSource.indexOf('element={<DomesticCompetitions />}')
+    const aiRoute = appSource.indexOf('path="/admin/ai"')
+    const boundaryEnd = appSource.indexOf('{/* Compatibility only:', boundary)
+
+    expect(boundary).toBeGreaterThan(-1)
+    expect(aiRoute).toBeGreaterThan(boundary)
+    expect(aiRoute).toBeLessThan(boundaryEnd)
+    expect(appSource).toContain('<RequireAdmin capability="competitions" />')
+    expect(appSource).toContain("import.meta.env.VITE_SITE_VARIANT !== 'euro'")
+  })
 })

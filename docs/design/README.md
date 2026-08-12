@@ -222,7 +222,7 @@ same paragraph existed in seven places at once.
 | 182 | No presentation change whatsoever. A guard over which function ranks a Championship group |
 
 | 183 | The favourite-club picker loses its two-read join, and a leaderboard can show the caller's neighbours without paging to them. **Not consumed** |
-| 185 | **No player-facing design change.** A private admin analytical lab and paper-betting evidence loop; paid collection defaults off and no prediction or betting surface is exposed to players |
+| 185 | **No player-facing design change.** A private Hub-only admin analytical lab at `/admin/ai` and paper-betting evidence loop; it requires the `competitions` administration capability, is absent from the Euro 2028 route tree and exposes no prediction or betting surface to players |
 
 | 184 | No presentation change. A qualification rule that works at every group size |
 
