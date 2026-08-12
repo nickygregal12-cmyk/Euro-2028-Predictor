@@ -317,6 +317,90 @@ describe('contract 141’s football beside the player’s own side of it', () =>
     return { formFor: (name) => byName.get(name) ?? null, ...overrides }
   }
 
+  function tableRow(name: string, over: Record<string, unknown> = {}) {
+    return {
+      position: 4,
+      teamId: `t-${name}`,
+      teamName: name,
+      played: 12,
+      won: 7,
+      drawn: 3,
+      lost: 2,
+      goalsFor: 22,
+      goalsAgainst: 11,
+      goalDifference: 11,
+      points: 24,
+      adjustment: null,
+      boundary: null,
+      ...over,
+    }
+  }
+
+  it('shows where both clubs sit, from contract 160 and not from the form', async () => {
+    // Third in `UI-F06`'s hierarchy, after form: a run of four can flatter or
+    // slander a club and the table is the season. Every figure is the
+    // server's, applied under the competition's own stored rules.
+    const rows = new Map([
+      ['Dundee', tableRow('Dundee', { position: 1, points: 30, goalDifference: 18 })],
+      ['Aberdeen', tableRow('Aberdeen', { position: 11, points: 14, goalDifference: -3 })],
+    ])
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football({ tableFor: (name) => rows.get(name) ?? null })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('In the table')).toBeTruthy())
+    expect(screen.getByText(/1st · 30 pts from 12 · \+18 GD/)).toBeTruthy()
+    // Negative goal difference keeps its sign rather than reading as a plain
+    // number that could be either.
+    expect(screen.getByText(/11th · 14 pts from 12 · -3 GD/)).toBeTruthy()
+  })
+
+  it('shows the table for both clubs or for neither', async () => {
+    // One position beside a blank invites the reading that the other club is
+    // unranked, when in fact the table did not contain a name this fixture
+    // used. An absence is a defect worth seeing; a half-drawn comparison is
+    // one that hides.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football({
+          tableFor: (name) => (name === 'Dundee' ? tableRow('Dundee') : null),
+        })}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Recent form')).toBeTruthy())
+    expect(screen.queryByText('In the table')).toBeNull()
+  })
+
+  it('shows no table block at all where the competition has none', async () => {
+    // `get_competition_table` refuses anything that is not a league season.
+    render(
+      <SeasonMatchesPage
+        gateway={gateway([fixture()])}
+        timeZone={ZONE}
+        readMatchweekCard={async () => card({ home: 2, away: 1 })}
+        football={football()}
+      />,
+    )
+
+    fireEvent.click(await screen.findByRole('button', { expanded: false }))
+
+    await waitFor(() => expect(screen.getByText('Recent form')).toBeTruthy())
+    expect(screen.queryByText('In the table')).toBeNull()
+  })
+
   it('shows both clubs’ form, and says which club has not played yet', async () => {
     render(
       <SeasonMatchesPage

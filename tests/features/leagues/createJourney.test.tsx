@@ -152,6 +152,38 @@ describe('a private Match Predictor league', () => {
     expect(props.createLeague).toHaveBeenCalledOnce()
   })
 
+  it('keeps the chosen game and competition visible after step one', () => {
+    // A three-step wizard hides its own earlier answers. On "Set it up" the
+    // player has already picked a game and a competition and could not see
+    // either without going back — which is how somebody creates a Last Man
+    // Standing in the wrong league.
+    renderJourney()
+
+    expect(screen.queryByText(/Match Predictor · /)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Match Predictor/ }))
+    expect(screen.getByText('Match Predictor')).toBeInTheDocument()
+
+    const which = screen.getByRole('group', { name: 'Which competition' })
+    fireEvent.click(within(which).getByRole('button', { name: /Premier League/ }))
+    expect(
+      screen.getByText('Match Predictor · Premier League 2026/27'),
+    ).toBeInTheDocument()
+  })
+
+  it('summarises the choices and never offers a second way to change them', () => {
+    // Changing a choice is Back. Two controls for one decision is how a wizard
+    // starts disagreeing with itself about which answer is current.
+    renderJourney()
+    fireEvent.click(screen.getByRole('button', { name: /^Match Predictor/ }))
+    const which = screen.getByRole('group', { name: 'Which competition' })
+    fireEvent.click(within(which).getByRole('button', { name: /Premier League/ }))
+
+    const summary = screen.getByText('Match Predictor · Premier League 2026/27')
+    expect(summary.tagName).toBe('P')
+    expect(summary.querySelector('button, a[href]')).toBeNull()
+  })
+
   it('will not submit an empty name, and adds no rule beyond that', () => {
     renderJourney()
 

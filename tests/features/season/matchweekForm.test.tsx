@@ -4,6 +4,7 @@ import { SeasonMatchweekForm } from '../../../src/features/season/SeasonMatchwee
 import { presentMatchweekForm } from '../../../src/features/season/matchweekFormModel'
 import type { MatchPredictorFixture } from '../../../src/features/season/matchPredictorModel'
 import type { SeasonClubForm } from '../../../src/services/supabase/seasonClubFormModel'
+import type { CompetitionTableRow } from '../../../src/services/supabase/competitionTableModel'
 
 /**
  * `UI-F06`'s football half, on the surface that had none of it.
@@ -47,6 +48,25 @@ function club(name: string, over: Partial<SeasonClubForm> = {}): SeasonClubForm 
     goalsFor: 12,
     goalsAgainst: 5,
     form: ['W', 'W', 'D', 'L', 'W', 'W'],
+    ...over,
+  }
+}
+
+function tableRow(name: string, over: Partial<CompetitionTableRow> = {}): CompetitionTableRow {
+  return {
+    position: 3,
+    teamId: `t-${name}`,
+    teamName: name,
+    played: 12,
+    won: 7,
+    drawn: 3,
+    lost: 2,
+    goalsFor: 22,
+    goalsAgainst: 11,
+    goalDifference: 11,
+    points: 24,
+    adjustment: null,
+    boundary: null,
     ...over,
   }
 }
@@ -140,5 +160,61 @@ describe('SeasonMatchweekForm', () => {
     // And it offers no control: it is context, never an action.
     expect(screen.queryAllByRole('button')).toHaveLength(0)
     expect(screen.queryAllByRole('link')).toHaveLength(0)
+  })
+})
+
+/**
+ * Contract 160's position, beneath the form.
+ *
+ * `UI-F06`'s hierarchy is form then table, and the reason is the interesting
+ * part: a run of six can flatter or slander a club and where it sits is the
+ * season. These assertions protect the two ways that could go wrong — a
+ * position invented for a club the table does not hold, and a position that
+ * disagrees with the one the same player reads on the fixture they open next.
+ */
+describe('the table position beside the form', () => {
+  const lookup = (name: string) =>
+    name === 'Arsenal' ? tableRow('Arsenal', { position: 1, points: 30, played: 12 }) : null
+
+  it('prints the server’s position and record, and derives neither', () => {
+    const guide = presentMatchweekForm(FIXTURES, [club('Arsenal')], 6, lookup)
+    render(<SeasonMatchweekForm guide={guide!} />)
+    expect(screen.getByText(/1st · 30 pts from 12/)).toBeInTheDocument()
+  })
+
+  it('shows no position at all for a club the table does not hold', () => {
+    const guide = presentMatchweekForm(FIXTURES, [club('Arsenal'), club('Chelsea')], 6, lookup)
+    expect(guide?.fixtures[0]?.home.table).not.toBeNull()
+    // Chelsea is in the matchweek and not in the table. A default row would be
+    // a claim about the football; absence is the truth.
+    expect(guide?.fixtures[0]?.away.table).toBeNull()
+    render(<SeasonMatchweekForm guide={guide!} />)
+    expect(screen.queryAllByText(/pts from/)).toHaveLength(1)
+  })
+
+  it('is optional: a competition with no table still shows its form', () => {
+    // `get_competition_table` refuses anything that is not a league season, so
+    // the panel must not depend on one existing.
+    const guide = presentMatchweekForm(FIXTURES, [club('Arsenal')], 6)
+    render(<SeasonMatchweekForm guide={guide!} />)
+    expect(screen.getByText(/Won 4, drawn 1, lost 1 of the last 6/)).toBeInTheDocument()
+    expect(screen.queryByText(/pts from/)).not.toBeInTheDocument()
+  })
+
+  it('ordinalises 11th, 12th and 13th rather than 11st, 12nd and 13rd', () => {
+    for (const [position, expected] of [
+      [11, '11th'],
+      [12, '12th'],
+      [13, '13th'],
+      [21, '21st'],
+      [2, '2nd'],
+    ] as const) {
+      const guide = presentMatchweekForm(FIXTURES, [club('Arsenal')], 6, (name) =>
+        name === 'Arsenal' ? tableRow('Arsenal', { position }) : null,
+      )
+      const { unmount } = render(<SeasonMatchweekForm guide={guide!} />)
+      expect(screen.getByText(new RegExp(`${expected} ·`))).toBeInTheDocument()
+      unmount()
+    }
   })
 })

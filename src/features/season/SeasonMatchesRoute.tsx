@@ -23,6 +23,7 @@ import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import { competitionMatchPredictorRoute } from '../../app/weeklyRoutes'
 import { isNextUi } from '../../app/routeFlags'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
+import { competitionTableLookup, useCompetitionTable } from './useCompetitionTable'
 import styles from './SeasonMatchPredictorRoute.module.css'
 
 /**
@@ -81,6 +82,17 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
             ),
     [tournamentId],
   )
+
+  /**
+   * Contract 160's table, read ONCE for the whole route.
+   *
+   * THREE CONSUMERS, ONE READ. The Table segment below the fixtures renders it;
+   * the Match Centre's football context uses it to say where each club of an
+   * opened fixture sits; and both must agree. Before this the segment owned its
+   * own effect, which was correct while it was the only reader and would have
+   * become three requests for one answer the moment it was not.
+   */
+  const table = useCompetitionTable(readTable)
 
   const fixtures = useMemo(
     () =>
@@ -217,6 +229,11 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
     // source of truth rather than a fuzzy match.
     const byName = new Map((clubForm ?? []).map((club) => [club.name, club]))
     return {
+      // Contract 160's position and record, joined by name for the same reason
+      // the form is: both names come from `public.teams.name` by foreign key.
+      // Absent until the table has answered, so a fixture never shows two
+      // clubs as having no position when the read is merely in flight.
+      tableFor: competitionTableLookup(table),
       // Only once the form read has answered. Supplying a lookup that returns
       // null for everything would render both clubs as having played nothing.
       formFor: clubForm === null ? undefined : (name: string) => byName.get(name) ?? null,
@@ -225,7 +242,7 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
       lmsRound,
       entryStanding: seasonEntryStanding(eligibility),
     }
-  }, [tournamentId, clubForm, lmsRound, eligibility])
+  }, [tournamentId, clubForm, lmsRound, eligibility, table])
 
   /**
    * Where a fixture's matchweek is predicted.
@@ -312,7 +329,7 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         readMatchweekCard={readCard}
         football={football}
         predictHref={predictHref}
-        readTable={readTable}
+        table={table}
       />
     </SeasonCompetitionShell>
   )

@@ -21,6 +21,7 @@ import { SeasonPredictionDrafts } from './SeasonPredictionDrafts'
 import { SeasonMatchweekForm } from './SeasonMatchweekForm'
 import { presentMatchweekForm } from './matchweekFormModel'
 import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
+import type { CompetitionTableRow } from '../../services/supabase/competitionTableModel'
 import { formatKickoffWithDay } from '../../shared/time/kickoff'
 import styles from './SeasonMatchPredictorPage.module.css'
 
@@ -63,6 +64,13 @@ export type SeasonMatchPredictorPageProps = {
    * the panel states rather than assumes.
    */
   clubForm?: { clubs: readonly SeasonClubForm[]; matches: number } | null
+  /**
+   * Contract 160's table row for a club, by name, supplied by the route.
+   *
+   * INDEPENDENT OF THE FORM. A competition with a table and no settled form is
+   * as real as the reverse, and the panel shows whichever it has.
+   */
+  tableFor?: (clubName: string) => CompetitionTableRow | null
 }
 
 const SKELETON_ROWS = 10
@@ -142,6 +150,7 @@ export function SeasonMatchPredictorPage({
   matchweekHref,
   offline,
   clubForm,
+  tableFor,
 }: SeasonMatchPredictorPageProps) {
   const view = useSeasonMatchPredictor(gateway, matchweek, offline)
 
@@ -197,6 +206,7 @@ export function SeasonMatchPredictorPage({
     page.fixtures,
     clubForm?.clubs ?? null,
     clubForm?.matches ?? null,
+    tableFor,
   )
   // The matchweek is in the strip only where there is no stepper to say it.
   // Printing "Matchweek 3 of 38" twice on one screen is how a page starts

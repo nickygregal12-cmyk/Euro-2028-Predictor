@@ -21,6 +21,7 @@ import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonMatchPredictorPage } from './SeasonMatchPredictorPage'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
+import { competitionTableLookup, useCompetitionTable } from './useCompetitionTable'
 import { useOptionalAuth } from '../auth/AuthProvider'
 import type { OfflineDraftingOptions } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorRoute.module.css'
@@ -128,6 +129,27 @@ export function SeasonMatchPredictorRoute({
     }
   }, [formSeasonId])
 
+  /**
+   * Contract 160's table, for the insight panel's standing line.
+   *
+   * ONE READ PER SEASON VISIT, like the form beside it, and through the same
+   * hook the Matches route uses — so the position a player reads beside the
+   * prediction card is the one they read on the fixture they open afterwards.
+   * A competition that is not a league season has no table and the RPC refuses
+   * it; that resolves to `unavailable` and the standing line is simply absent.
+   */
+  const readTable = useMemo(
+    () =>
+      formSeasonId === null
+        ? undefined
+        : () =>
+            import('../../services/supabase/competitionTable').then(
+              ({ fetchCompetitionTable }) => fetchCompetitionTable(formSeasonId),
+            ),
+    [formSeasonId],
+  )
+  const table = useCompetitionTable(readTable)
+
   // The season's stored row name, from the server's own catalogue (contract
   // 147). Null while the catalogue is still being read, which withholds the
   // registration gateway rather than building one against a guessed name.
@@ -229,8 +251,10 @@ export function SeasonMatchPredictorRoute({
       destinations={destinations}
       registration={registration}
       consensus={consensusReader}
-      // UI-F06's football half. Contract 141, read once for the season above.
+      // UI-F06's football half. Contract 141's form and contract 160's
+      // position, each read once for the season above.
       clubForm={clubForm}
+      tableFor={competitionTableLookup(table)}
       // Built here rather than in the page: URL construction belongs to the
       // route authority, and this is the same builder the Match Centre's link
       // into this card already uses.

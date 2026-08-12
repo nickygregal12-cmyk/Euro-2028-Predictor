@@ -13,6 +13,7 @@ import type {
   ClubHeadToHead,
   SeasonClubForm,
 } from '../../services/supabase/seasonClubFormModel'
+import type { CompetitionTableRow } from '../../services/supabase/competitionTableModel'
 import { presentLmsStake } from './lmsStakeModel'
 import { entryStandingLine, type SeasonEntryStanding } from './seasonEntryStanding'
 import type { LmsRoundPage } from './lmsRoundModel'
@@ -90,6 +91,50 @@ export type SeasonFootballContext = {
    * prediction: None" to somebody who had never joined.
    */
   entryStanding?: SeasonEntryStanding
+  /**
+   * Contract 160's table row for a club, by name. Supplied by the route, which
+   * reads the table once for the whole season.
+   *
+   * ABSENT UNTIL THE TABLE HAS ANSWERED, and absent for ever where the
+   * competition has none — `get_competition_table` refuses anything that is not
+   * a league season. Both cases render no table block rather than two clubs
+   * shown as having no position, which is a claim about the football.
+   */
+  tableFor?: (clubName: string) => CompetitionTableRow | null
+}
+
+/**
+ * One club's league position and record.
+ *
+ * ORDINAL AND RECORD IN ONE LINE, because a position without a record is a
+ * rank against nothing — "3rd" says less than "3rd · 24 pts from 12". Every
+ * figure is the server's, applied under the competition's stored rules; there
+ * is no arithmetic in this component.
+ */
+function TableRow({ name, row }: { name: string; row: CompetitionTableRow }) {
+  const difference = row.goalDifference > 0 ? `+${row.goalDifference}` : `${row.goalDifference}`
+  return (
+    <div className={styles.formRow}>
+      <span className={styles.formClub}>{name}</span>
+      <span className={styles.formRecord}>
+        {ordinalPosition(row.position)} · {row.points} pts from {row.played} · {difference} GD
+      </span>
+    </div>
+  )
+}
+
+/**
+ * A position as an ordinal.
+ *
+ * Local and deliberately tiny: the league ordinal helper lives under the
+ * tournament's `features/league/`, and a season surface importing from there
+ * would cross a boundary for four lines of string handling.
+ */
+function ordinalPosition(position: number): string {
+  const tens = position % 100
+  if (tens >= 11 && tens <= 13) return `${position}th`
+  const suffix = ['th', 'st', 'nd', 'rd'][position % 10] ?? 'th'
+  return `${position}${suffix}`
 }
 
 export type SeasonMatchCentreProps = {
@@ -207,6 +252,17 @@ export function SeasonMatchCentreView({
   const homeForm = summariseClubForm(football?.formFor?.(fixture.home.name) ?? null)
   const awayForm = summariseClubForm(football?.formFor?.(fixture.away.name) ?? null)
   const headToHead = useHeadToHead(football, fixture.home.name, fixture.away.name)
+  /**
+   * Both clubs' table rows, or nothing.
+   *
+   * BOTH OR NEITHER, deliberately. Showing one club's position beside a blank
+   * for the other invites the reading that the second is unranked, when in fact
+   * the table simply does not contain a name this fixture used — which is a
+   * defect worth seeing as an absence rather than as a half-drawn comparison.
+   */
+  const homeRow = football?.tableFor?.(fixture.home.name) ?? null
+  const awayRow = football?.tableFor?.(fixture.away.name) ?? null
+  const tableRows = homeRow && awayRow ? { home: homeRow, away: awayRow } : null
   const lmsStake = presentLmsStake(fixture, football?.lmsRound ?? null)
   // Preferred over anything the card says about a prediction: an empty card and
   // no entry look identical in the payload and mean completely different things
@@ -342,6 +398,18 @@ export function SeasonMatchCentreView({
           <h4 className={styles.footballHeading}>Recent form</h4>
           <FormRow name={fixture.home.name} summary={homeForm} />
           <FormRow name={fixture.away.name} summary={awayForm} />
+
+          {/* Third in the hierarchy, after form and before the meetings: where
+              each club actually sits. Form is a run and can flatter; the table
+              is the season. Both numbers are contract 160's, applied under the
+              competition's own rules server-side — nothing here re-ranks. */}
+          {tableRows ? (
+            <>
+              <h4 className={styles.footballHeading}>In the table</h4>
+              <TableRow name={fixture.home.name} row={tableRows.home} />
+              <TableRow name={fixture.away.name} row={tableRows.away} />
+            </>
+          ) : null}
 
           {headToHead ? (
             <>
