@@ -6,6 +6,27 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Netlify declarations corrected, and both production builds unblocked — 12 August 2026 (forty-first entry)
+
+**Both production sites had been failing their prebuild gate since contract 178 merged, and the gate was right.** `scripts/validate-deployment-contract.mjs` demands an EXACT match between `EURO28_DEPLOYED_DB_CONTRACT` and the repository `contractVersion` in the production context. The declaration stood at **174** on both projects while the application required **178**, so every production build from `main` stopped before Vite ran with:
+
+> `Netlify production database contract is 174, but the application requires 178. Do not deploy until the target database is verified and the context value is updated.`
+
+**The remedy is the one that message names, and it is a record rather than a bypass.** Production Supabase reached 178 through guarded rollout run [31565613954](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31565613954), confirmed by a postflight that NAMED the four ledger rows. The declaration was then raised to match — after the database, never before, which is the rule this document states in its own § Contract declarations.
+
+**There are two production Netlify projects now**, which this inventory had not recorded: `predictorhub` (`VITE_SITE_VARIANT=hub`) and `euro28predictor` (`VITE_SITE_VARIANT=euro`). Both were read and both were written.
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Netlify `euro28predictor` non-production contexts | **178 hosted declaration** | Raised from 171 on 12 August 2026 after hosted Development was independently verified at 178 through fast-lane run `31561781188`. `dev-server` remains blank and fails closed. A declaration may trail its hosted database but must never lead it. | LEVEL WITH HOSTED DEVELOPMENT |
+| Netlify `euro28predictor` production | **178 hosted declaration** | Raised from 174 on 12 August 2026 only after rollout run `31565613954` applied contract 178 to Production and the postflight named the four new ledger rows. Raising it is what lets a production build pass `validate-deployment-contract.mjs`, which demands an exact match. The identical four values were written to `predictorhub`. | LEVEL WITH HOSTED PRODUCTION |
+
+**Both production builds were proven locally before the variable moved**, against each site's exact production environment: `npm run build` with `CONTEXT=production`, the Production Supabase URL and publishable key, and the site's own variant and origin. Both succeed at 178 and both fail at 174, so the declaration was the whole of it and nothing else was hiding behind it.
+
+**What this entry does NOT yet claim** is a published artifact. An environment variable is configuration; a deploy is a separate fact with its own evidence, and it is recorded when the build has actually run.
+
+**One test defect was found on the way and is fixed rather than worked around.** The inventory rows above are parsed by `documentationContractFreshness.test.ts`, which built its map with `new Map(matches)` — and since this document is written newest-entry-first and every entry carries these two rows, that kept the LAST occurrence, the oldest entry in the file. The live runbook was therefore being compared against a historical declaration. It passed for as long as the number did not move and went red the first time it did.
+
 ## Current state — 12 August 2026 (fortieth entry)
 
 **Production is at contract 178, and so is Development. Nothing is pending on either.** Guarded rollout run [31565613954](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31565613954) applied contracts 175 to 178 from exact `main` `f85b18e`, on the owner authorisation of 12 August 2026 recorded in [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md). Backup `31562346500` and rehearsal `31565189247` were verified **by the rollout against the API** rather than asserted by whoever dispatched it, the dry run asserted the four files by name with `diff`, and all four being additive meant `check-migration-additive.mjs` ran as a **gate**.
