@@ -19,6 +19,7 @@
 // one broken session look nothing alike to a player.
 
 import { db } from './client'
+import type { Json } from './database.types'
 import {
   mapPredictionBatchResult,
   type PredictionBatchResult,
@@ -45,10 +46,19 @@ export async function submitSeasonPredictionBatch(
 ): Promise<PredictionBatchResult> {
   const { data, error } = await db.rpc('save_season_predictions_batch', {
     p_tournament_id: tournamentId,
-    // A plain array. The server refuses a batch naming one fixture twice, so
-    // the caller must have de-duplicated already — which it does, because a
-    // draft store is keyed by fixture.
-    p_drafts: drafts as unknown as never,
+    // Rebuilt as a plain mutable array of plain objects rather than cast.
+    // `p_drafts` is generated as `Json`, and a `readonly` array of a named type
+    // is not assignable to `Json[]` — asserting past that would be exactly the
+    // on-the-way-IN suppression `typedDatabaseClient.test.ts` exists to stop.
+    // The server refuses a batch naming one fixture twice, so the caller must
+    // have de-duplicated already, which it has: a draft store is keyed by
+    // fixture.
+    p_drafts: drafts.map((draft) => ({
+      fixture_id: draft.fixture_id,
+      home: draft.home,
+      away: draft.away,
+      version: draft.version,
+    })) satisfies Json,
   })
   if (error) throw error
   return mapPredictionBatchResult(data)

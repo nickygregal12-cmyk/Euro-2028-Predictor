@@ -145,9 +145,35 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // the next one should have to justify itself rather than inherit the headroom.
 // CSS is a single file here and is not route-split, so eleven new stylesheets
 // move one number; 36 leaves roughly a kilobyte over the measured 34.8.
+//
+// RAISED FROM 336 TO 344 ON 12 AUGUST 2026, FOR THE CONTRACTS 174–178
+// CONSUMPTION, AND THE PREVIOUS RAISE'S OWN TEST IS WHAT JUSTIFIES IT. That
+// note says: "If the total is raised again while the entry chunk also moves,
+// the thing to check first is whether one of these panels has been imported
+// statically into the shell." The entry chunk did NOT move — 76.3 KB gz before
+// and after, against a ceiling of 77 that is not raised here. Measured against
+// `main` at `6e07b30`, chunk by chunk:
+//
+//   • SeasonAdminPage           +3.5 KB gz  contracts 174 and 178's two panels
+//   • SeasonGameRouteBundle     +2.4 KB gz  the offline drafting strip and hook
+//   • SeasonPlayerProfileRoute  +1.6 KB gz  Prediction DNA over contract 176
+//   • SeasonMatchCentreRoute    +0.6 KB gz  What-If over contract 175
+//   • seasonLms                 +0.5 KB gz  shared season service chunk
+//   • entry (`index`)            0.0 KB gz
+//
+// EIGHT POINT SIX KILOBYTES, NONE OF WHICH REACHES A FIRST PAINT. The largest
+// single increase is the administration page, which no player loads at all.
+// Two of the five surfaces got SMALLER work rather than larger: the What-If and
+// Prediction DNA derivations were deleted and replaced by decoders, so +0.6 and
+// +1.6 are the net of a new service against a removed derivation rather than
+// the cost of the panels themselves.
+//
+// 344 sits about three kilobytes above the measured 340.6, keeping the same
+// deliberate tightness the previous raise chose. CSS is unchanged at 36: the
+// four new stylesheets took the measurement from 34.8 to 35.6, inside it.
 const BUDGETS = {
   entryChunkKb: 77,
-  totalJsKb: 336,
+  totalJsKb: 344,
   totalCssKb: 36,
 }
 
