@@ -88,4 +88,6 @@ same paragraph existed in seven places at once.
 
 | 183 | **No ADR.** Two `MIG-UI` register rows, both recorded as measured gaps rather than decisions. Neither adds a rule; the neighbourhood explicitly reuses contract 95's ranking and contract 95's membership boundary |
 
-*Current to contract 183.*
+| 184 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 6**, which authorised the session to define the 5-to-20 table and deliberately did not invent it. The numbers are in `../predictor-cup-rules.md` § 6.2 — the rule authority — and the SQL reads them rather than being them |
+
+*Current to contract 184.*
