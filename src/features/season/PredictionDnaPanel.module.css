@@ -35,6 +35,14 @@
   color: var(--tx3);
 }
 
+/* What the figures below were measured over. Immediately under the group's
+   heading and above the grid, so a percentage is never read without it. */
+.groupDenominator {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
 /* The word never appears without the measurement it came from. */
 .signature {
   display: flex;
