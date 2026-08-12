@@ -9,6 +9,8 @@ import {
 import { competitionSectionRoute } from '../../app/weeklyRoutes'
 import { SeasonPlayerSeason } from './SeasonPlayerSeason'
 import { PredictionDnaPanel } from './PredictionDnaPanel'
+import { fetchSeasonPredictionDna } from '../../services/supabase/seasonPredictionDna'
+import type { SeasonPredictionDna } from '../../services/supabase/seasonPredictionDnaModel'
 import { useAuth } from '../auth/AuthProvider'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
@@ -88,27 +90,62 @@ export function SeasonPlayerProfileRoute() {
   }, [tournamentId, playerId])
 
   /**
-   * The viewer's own season, for the `INNOV-002` comparison.
+   * `INNOV-002`, from contract 176 rather than from this page's own history.
    *
-   * ONE EXTRA READ, AND ONLY WHEN IT WOULD BE USED: never for a player looking
-   * at their own page, where the comparison would be against themselves. It
-   * fails to absent — a comparison is context, and losing it must not touch the
-   * profile the page exists for. Contract 151 always permits a player to read
-   * their own profile, so this cannot be refused by the privacy boundary.
+   * WHY IT IS A SEPARATE READ. The profile carries prediction history keyed by
+   * fixture id and nothing else — no clubs, no field, no per-fixture results —
+   * so agreement with the field and per-club tendency were simply not derivable
+   * from it, and the exact-score rate had a different denominator from the
+   * tendency shares. Contract 176 defines all three once, with their own
+   * denominators, and this is that read.
+   *
+   * IT FAILS TO ABSENT. The DNA is a description beside the season the page
+   * exists for; a refusal or a fault here renders no panel and never the
+   * profile's own refusal screen, which is a statement about permission.
    */
-  const [me, setMe] = useState<SeasonPlayerProfile | null>(null)
+  const [dna, setDna] = useState<SeasonPredictionDna | null>(null)
   useEffect(() => {
-    if (tournamentId === null || !userId || userId === playerId) {
-      setMe(null)
+    if (tournamentId === null || !playerId) {
+      setDna(null)
       return
     }
     let active = true
-    fetchSeasonPlayerProfile(tournamentId, userId).then(
+    setDna(null)
+    fetchSeasonPredictionDna(tournamentId, playerId).then(
       (answer) => {
-        if (active) setMe(answer)
+        if (active) setDna(answer)
       },
       () => {
-        if (active) setMe(null)
+        if (active) setDna(null)
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [tournamentId, playerId])
+
+  /**
+   * The viewer's own DNA, for the comparison.
+   *
+   * ONE EXTRA READ, AND ONLY WHEN IT WOULD BE USED: never for a player looking
+   * at their own page, where the comparison would be against themselves.
+   * Contract 176 always permits a player to read their own, so this cannot be
+   * refused by the disclosure boundary; it still fails to absent, because a
+   * comparison is context and losing it must not touch the page.
+   */
+  const [myDna, setMyDna] = useState<SeasonPredictionDna | null>(null)
+  useEffect(() => {
+    if (tournamentId === null || !userId || userId === playerId) {
+      setMyDna(null)
+      return
+    }
+    let active = true
+    fetchSeasonPredictionDna(tournamentId, userId).then(
+      (answer) => {
+        if (active) setMyDna(answer)
+      },
+      () => {
+        if (active) setMyDna(null)
       },
     )
     return () => {
@@ -174,14 +211,16 @@ export function SeasonPlayerProfileRoute() {
           {/* INNOV-002, below the season it describes. It measures the
               player's own recorded predictions and changes no points, rank or
               standing. */}
-          <PredictionDnaPanel
-            profile={profile.profile}
-            compareWith={me}
-            share={{
-              competitionName: context.competitionName,
-              url: `${base}/players/${playerId ?? ''}`,
-            }}
-          />
+          {dna ? (
+            <PredictionDnaPanel
+              dna={dna}
+              compareWith={myDna}
+              share={{
+                competitionName: context.competitionName,
+                url: `${base}/players/${playerId ?? ''}`,
+              }}
+            />
+          ) : null}
         </>
       )}
     </SeasonCompetitionShell>

@@ -51,6 +51,18 @@ vi.mock('../../../src/services/supabase/seasonAdminInspection', () => ({
   disqualifyEntrant: vi.fn(),
 }))
 
+// Contracts 174 and 178. Left in flight for the same reason as the queues
+// above: each panel has its own suite, and this one is about the page's season
+// selection and fixtures.
+vi.mock('../../../src/services/supabase/providerChangeProposals', () => ({
+  fetchProviderChangeProposals: () => new Promise(() => {}),
+  decideProviderChangeProposal: vi.fn(),
+}))
+
+vi.mock('../../../src/services/supabase/shadowScoringReport', () => ({
+  fetchShadowScoringReport: () => new Promise(() => {}),
+}))
+
 vi.mock('../../../src/services/supabase/seasonAdmin', () => ({
   openSeasonCompetition: mocks.openSeasonCompetition,
   recordSeasonFixtureResult: mocks.recordSeasonFixtureResult,

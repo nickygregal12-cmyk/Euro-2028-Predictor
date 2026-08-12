@@ -1,0 +1,185 @@
+/* Contract 174's staged calendar changes. Tokens only; desktop-leaning like the
+   rest of the administration surface, and wrapping rather than overflowing. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.filter,
+.filterActive {
+  min-height: var(--tap-min);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  font-family: var(--font-body);
+  font-size: var(--fs-2);
+  color: var(--tx2);
+  cursor: pointer;
+}
+
+.filterActive {
+  border-color: var(--acc);
+  color: var(--tx);
+}
+
+.filter:focus-visible,
+.filterActive:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+/* A pending proposal is the one that needs somebody. Decided ones are quiet. */
+.proposal[data-state='pending'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.proposalTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.badge {
+  padding: 1px var(--sp-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: 400;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.detail {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+/* The proposal beside what we hold. It scrolls inside its own container rather
+   than pushing the page sideways. */
+.compare {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  margin-top: var(--sp-1);
+  border-collapse: collapse;
+  font-size: var(--fs-1);
+}
+
+.compare th,
+.compare td {
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  color: var(--tx2);
+  white-space: nowrap;
+}
+
+.compare thead th {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--sp-1) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--radius-input);
+  background: var(--surface-sunken);
+  list-style: disc inside;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+.notes[data-tone='warning'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.notes[data-tone='blocker'] {
+  border-left: var(--bar-w) solid var(--red);
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

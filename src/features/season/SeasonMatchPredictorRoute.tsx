@@ -19,6 +19,8 @@ import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonMatchPredictorPage } from './SeasonMatchPredictorPage'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
+import { useOptionalAuth } from '../auth/AuthProvider'
+import type { OfflineDraftingOptions } from './useSeasonMatchPredictor'
 import styles from './SeasonMatchPredictorRoute.module.css'
 
 export type SeasonMatchPredictorRouteProps = {
@@ -105,6 +107,35 @@ export function SeasonMatchPredictorRoute({
     })
   }, [seasonRowName])
 
+  /**
+   * Which matchweek to open at.
+   *
+   * The play context answers "the one you can play now", which is the right
+   * default and was until now the only answer — so a player looking at a
+   * September fixture could not reach the card that predicts it. `?matchweek=`
+   * names one instead.
+   *
+   * IT FALLS BACK RATHER THAN REFUSING. An absent, unparseable or out-of-range
+   * value opens the current matchweek, because a stale or shared link should
+   * land somewhere useful rather than on an error. The season's own matchweek
+   * count is the bound; nothing here trusts the number into a read.
+   *
+   * IT IS RESOLVED ABOVE THE GUARDS BELOW because the offline-drafting hook
+   * needs it, and a hook after an early return is a hook that is sometimes not
+   * called. The context is nullable here for the same reason.
+   */
+  const playable = state.kind === 'ready' ? state : null
+  const requested = Number(search.get('matchweek'))
+  const withinSeason =
+    playable !== null &&
+    Number.isInteger(requested) &&
+    requested >= 1 &&
+    requested <= playable.context.matchweekCount
+  const matchweek = withinSeason ? requested : (playable?.matchweek ?? 1)
+
+  // INNOV-020. Null unless there is an account, a season and usable storage.
+  const offline = useOfflineDrafting(playable?.context.tournamentId ?? null, matchweek)
+
   if (!enabled) return <NotFoundPage />
 
   if (state.kind === 'loading') {
@@ -148,34 +179,18 @@ export function SeasonMatchPredictorRoute({
     )
   }
 
-  if (cardGateway === null) return null
-
-  /**
-   * Which matchweek to open at.
-   *
-   * The play context answers "the one you can play now", which is the right
-   * default and was until now the only answer — so a player looking at a
-   * September fixture could not reach the card that predicts it. `?matchweek=`
-   * names one instead.
-   *
-   * IT FALLS BACK RATHER THAN REFUSING. An absent, unparseable or out-of-range
-   * value opens the current matchweek, because a stale or shared link should
-   * land somewhere useful rather than on an error. The season's own matchweek
-   * count is the bound; nothing here trusts the number into a read.
-   */
-  const requested = Number(search.get('matchweek'))
-  const withinSeason =
-    Number.isInteger(requested) &&
-    requested >= 1 &&
-    requested <= state.context.matchweekCount
-  const matchweek = withinSeason ? requested : state.matchweek
+  if (cardGateway === null || playable === null) return null
 
   return (
     <SeasonMatchPredictorPage
       gateway={cardGateway}
       matchweek={matchweek}
-      competitionName={state.context.competitionName}
-      seasonLabel={state.context.seasonLabel}
+      // INNOV-020. Supplied only where all three things a draft needs exist —
+      // an account to scope it to, a season, and a browser with storage. Any
+      // of them missing leaves offline drafting off rather than half on.
+      offline={offline ?? undefined}
+      competitionName={playable.context.competitionName}
+      seasonLabel={playable.context.seasonLabel}
       destinations={destinations}
       registration={registration}
       consensus={consensusReader}
@@ -190,4 +205,54 @@ export function SeasonMatchPredictorRoute({
       }
     />
   )
+}
+
+/**
+ * `INNOV-020` — the device half of offline drafting, assembled where the route
+ * knows the account and the matchweek.
+ *
+ * IT IS NULL UNLESS EVERY PART EXISTS. No signed-in user, no season, or no
+ * `localStorage` (private mode, a disabled setting, a non-browser render) each
+ * leave offline drafting off. A partly-wired draft store is worse than none: it
+ * would hold work it cannot scope to an account, and a shared device would show
+ * one player another's predictions.
+ *
+ * THE CLOCK IT CARRIES IS FOR DISPLAY ONLY. It stamps "saved on this device"
+ * and reaches no server: contract 177 accepts no instant at all.
+ */
+function useOfflineDrafting(
+  tournamentId: string | null,
+  matchweek: number,
+): OfflineDraftingOptions | null {
+  // Optional on purpose: offline drafting is absent without an account, and a
+  // shell rendered outside the provider must lose the drafting rather than the
+  // page. Nothing here gates access.
+  const userId = useOptionalAuth()?.userId ?? null
+
+  return useMemo(() => {
+    if (!userId || !tournamentId) return null
+
+    let storage: Storage
+    try {
+      // Touched rather than assumed: Safari's private mode has thrown on
+      // access rather than on write, and a throw here would take the page down.
+      storage = window.localStorage
+      const probe = 'fph.storageProbe'
+      storage.setItem(probe, '1')
+      storage.removeItem(probe)
+    } catch {
+      return null
+    }
+
+    return {
+      storage,
+      scope: { userId, tournamentId, matchweek },
+      now: () => new Date(),
+      isOnline: () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false),
+      subscribeOnline: (listener) => {
+        window.addEventListener('online', listener)
+        return () => window.removeEventListener('online', listener)
+      },
+    }
+  }, [userId, tournamentId, matchweek])
 }

@@ -74,14 +74,22 @@ because they return `jsonb`. A field inside a `jsonb` payload never appears in a
 generated RPC type, at 168 or at 171, so regenerating could not have unblocked
 anything and its absence never blocked anything. Every one of these payloads is
 decoded by hand in `src/services/supabase/`, which is where the new fields were
-added. Regenerating the types at 171 remains worth doing on its own merits and is
-open as PR #704; it is not a dependency of this consumption.
+added. Regenerating the types at 171 remains worth doing on its own merits; it is not a
+dependency of this consumption. *(It was done on 12 August 2026 at contract
+**178** rather than 171, because Development had moved. PR #704's generated
+artefact was stale by then and was not merged; its documentation corrections —
+which are the paragraph above — were carried forward instead.)*
 
 **Contract 170 is still not consumed**, and deliberately: its action-centre feed
 is incomplete and unhosted — Production holds zero cron jobs, so its driver has
-no caller there — which is the same reason item 4 withholds contract 162.
+no caller there — which is the same reason item 4 withholds contract 162. *(The parenthetical
+"Production holds zero cron jobs" was false and is corrected rather than
+deleted: Production holds ten. What is true and narrower is that no job there
+calls this driver.)*
 
-**Contracts 172, 173 and 174 are not consumed either, and two of them are not consumable by a browser at all.** Contract 172 schedules jobs and adds one administrator read; contract 173 adds a generator behind an existing read. What a frontend gains from the pair is that `get_my_actions` stops answering every player with an empty list — which is a reason to build the notification control item 4 names, not a new read to call. Contract 174 adds two administrator functions that `/admin/season` does not yet show.
+**Contracts 172 and 173 are not consumed, and neither is consumable by a browser at all.** Contract 172 schedules jobs and adds one administrator read; contract 173 adds a generator behind an existing read. What a frontend gains from the pair is that `get_my_actions` stops answering every player with an empty list — which is a reason to build the notification control item 4 names, not a new read to call. `admin_reminder_delivery_health` is still not shown anywhere.
+
+**Contracts 174 to 178 are consumed as of 12 August 2026.** `database.types.ts` was regenerated against hosted Development at contract 178 through `regenerate-database-types.yml`, which is what made the five callable at all. Contract 174's staged calendar changes and contract 178's shadow-scoring report are both on `/admin/season`; contract 175's projection replaced the browser What-If derivation and contract 176's metrics replaced the browser Prediction DNA derivation, in each case DELETING the derivation rather than running it beside the read; and contract 177 carries the offline drafting `INNOV-020` had deferred. Contract 178 still has no scheduled caller, and its panel says "never checked" rather than inventing evidence — see `UI-F23` in [`design/ui-finalisation.md`](design/ui-finalisation.md).
 
 ## Domestic Frontend Alpha checkpoint — 8 August 2026
 

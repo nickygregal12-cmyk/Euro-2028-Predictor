@@ -13,7 +13,11 @@ import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonConsensusPanel } from './SeasonConsensusPanel'
 import type { SeasonConsensus } from '../../services/supabase/seasonConsensusModel'
 import { SeasonLmsRegistration } from './SeasonLmsRegistration'
-import { useSeasonMatchPredictor } from './useSeasonMatchPredictor'
+import {
+  useSeasonMatchPredictor,
+  type OfflineDraftingOptions,
+} from './useSeasonMatchPredictor'
+import { SeasonPredictionDrafts } from './SeasonPredictionDrafts'
 import { formatKickoffWithDay } from '../../shared/time/kickoff'
 import styles from './SeasonMatchPredictorPage.module.css'
 
@@ -35,6 +39,13 @@ export type SeasonMatchPredictorPageProps = {
    * owns URL construction; omitted by the DEV harness, which is not on one.
    */
   matchweekHref?: (matchweek: number) => string
+  /**
+   * `INNOV-020`. Offline drafting, supplied by the route where a real season
+   * and a signed-in player exist. Omitted by the DEV harness, which has no
+   * batch path and no account — the drafts strip is then absent rather than a
+   * control that cannot work.
+   */
+  offline?: OfflineDraftingOptions
 }
 
 const SKELETON_ROWS = 10
@@ -112,8 +123,9 @@ export function SeasonMatchPredictorPage({
   registration,
   consensus,
   matchweekHref,
+  offline,
 }: SeasonMatchPredictorPageProps) {
-  const view = useSeasonMatchPredictor(gateway, matchweek)
+  const view = useSeasonMatchPredictor(gateway, matchweek, offline)
 
   if (view.status === 'loading') {
     return (
@@ -315,6 +327,23 @@ export function SeasonMatchPredictorPage({
             ))}
           </div>
         )}
+
+        {/* INNOV-020. Above the card's own actions and below the fixtures: it is
+            about work already done, so it belongs after the thing that
+            produced it and before the controls that would produce more. It
+            renders nothing at all when there is nothing outstanding. */}
+        {view.drafts ? (
+          <SeasonPredictionDrafts
+            drafts={view.drafts}
+            labelFor={(fixtureId) => {
+              const fixture = page.fixtures.find((entry) => entry.fixtureId === fixtureId)
+              return fixture ? `${fixture.home.name} v ${fixture.away.name}` : 'This fixture'
+            }}
+            onSync={view.syncDrafts}
+            onRetry={view.retryDraft}
+            onDiscard={view.discardDraft}
+          />
+        ) : null}
 
         {/* NOTHING HERE IS DISABLED, and the two that used to be were the last
             disabled controls in the product. Each was a STATEMENT wearing a

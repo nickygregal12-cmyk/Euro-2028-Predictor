@@ -1,331 +1,270 @@
-import {
-  explainFixtureScore,
-  scoreMatchweek,
-  type FixtureScoreReason,
-} from '../../domain/season/scoring'
+import { explainFixtureScore, type FixtureScoreReason } from '../../domain/season/scoring'
+import type {
+  ProjectionLeague,
+  ProjectionScore,
+  SeasonMatchweekProjection,
+} from '../../services/supabase/seasonMatchweekProjectionModel'
 
 /**
- * `INNOV-001` — the What-If projection for one live fixture.
+ * `INNOV-001` — the What-If projection for one live fixture, PRESENTED.
  *
- * WHAT IT ANSWERS. "What does the current score, and the next goal, mean to
- * me?" — the one question a live fixture raises that no existing surface could
- * answer. The Match Centre already shows the prediction, the provisional score
- * and the settled points; none of them says what a 1–1 becoming 2–1 would do.
+ * WHAT CHANGED, AND WHY THIS FILE NO LONGER PROJECTS. This module used to do
+ * the projection itself: fold the league's revealed predictions over the
+ * matchweek's fixtures, apply the Joker, rank the result. It did that because
+ * contract 175 was written and not hosted, and a surface with no authority
+ * either derives or shows nothing. 175 is hosted now, so every number below
+ * arrives from `get_season_matchweek_projection` — the same
+ * `predictor_internal.season_fixture_points` settlement banks from — and this
+ * module's job is to decide what to SAY about them. Two answers to one question
+ * is the defect that removal closes; the projection had no way to disagree with
+ * settlement quietly, and now it has no way to disagree at all.
  *
- * EVERY NUMBER HERE IS A PROJECTION AND IS LABELLED AS ONE. Nothing this module
- * produces is a point, a rank or a standing. It is arithmetic over a provider's
- * provisional score, which can move, be corrected or be withdrawn, and the
- * caller must never render it where an official figure goes.
+ * THE ONE COMPARISON THAT REMAINS IS NOT A POINT VALUE. `explainFixtureScore`
+ * is still called, for the reason token alone — exact, right result, wrong,
+ * unscored — because the server returns the matchweek total under a branch and
+ * not what the branch would do to THIS fixture's outcome. No number in this
+ * file comes from that call: the points on screen are the server's matchweek
+ * totals and the difference between two of them.
  *
- * IT REIMPLEMENTS NO RULE. Points come from `explainFixtureScore` and matchweek
- * totals from `scoreMatchweek` — ADR 0012's authority, parity-checked against
- * the database — so a projection cannot disagree with the settlement it is
- * anticipating. There is no threshold, no multiplier and no comparison in this
- * file that the scoring authority does not own.
+ * EVERY FIGURE IS A PROJECTION AND IS LABELLED AS ONE. Nothing here is a point,
+ * a rank or a standing. It is the scoring authority applied to a provider's
+ * provisional score, which can move, be corrected or be withdrawn.
  *
- * IT PROJECTS ONLY WHILE THERE IS SOMETHING TO PROJECT. A fixture with a
- * confirmed result is history and returns `settled`: showing a player what
- * "might" happen to a match that has finished is a novelty, not information.
- * A fixture with no provider score at all returns `no_live_score` rather than
- * projecting from a kickoff time.
+ * IT PROJECTS ONLY WHILE THERE IS SOMETHING TO PROJECT. A settled matchweek, a
+ * fixture with a confirmed result, and a fixture with no provider score at all
+ * each return unavailable — the surface renders nothing rather than explaining
+ * why it has nothing.
  *
- * THE LEAGUE HALF IS OPTIONAL AND FAILS TO ABSENT. It needs the matchweek's
- * revealed league predictions (contract 149), which exist only after the
- * matchweek's own lock, and it is suppressed entirely once the matchweek has
- * settled — at that point the real table is the answer and a projection beside
- * it would be a second, worse one. It never reveals a prediction the server
- * withheld: the caller passes what contract 149 already returned, and that read
- * carries no member rows at all before the lock.
+ * THE LEAGUE HALF IS "AS IT STANDS", AND SAYS SO RATHER THAN IMPLYING MORE.
+ * Contract 175 projects each member's matchweek on the basis every fixture
+ * actually has; it does not project a league under a hypothetical, and this
+ * module does not build one. Reconstructing it here would mean re-deriving
+ * other players' points in the browser, which is the thing that was removed.
+ * Before the matchweek's own lock the server hides the block completely, and
+ * `revealed: false` is rendered as hidden rather than as empty or failed.
  *
- * FIXTURES WITH NO SCORE ARE COUNTED, NOT GUESSED. A matchweek in progress has
- * fixtures nobody knows the result of. They contribute zero to every member
- * equally and the count is reported, so the surface can say what the projection
- * does not know instead of implying it knows everything.
- *
- * PURE. No clock, no storage, no network; every input is given.
+ * PURE. No clock, no storage, no network; the decoded payload is given.
  */
 
-export type WhatIfScore = { home: number; away: number }
+export type WhatIfScore = ProjectionScore
 
 export type WhatIfBranchKey = 'now' | 'home' | 'away'
 
-/**
- * The largest scoreline this module will project into. A provider reporting an
- * implausible score is a data fault, and branching off it would multiply the
- * fault rather than contain it.
- */
-const MAX_PROJECTED_GOALS = 20
+export type WhatIfBranch = {
+  key: WhatIfBranchKey
+  /** "As it stands", "If Liverpool score", "If Arsenal score". */
+  label: string
+  score: WhatIfScore
+  scoreLabel: string
+  /** The player's WHOLE matchweek under this branch, post-Joker. The server's. */
+  matchweekPoints: number
+  /** Change against "as it stands". Always 0 on the `now` branch. */
+  change: number
+  /** What this branch would make of the player's prediction on this fixture. */
+  reason: FixtureScoreReason
+}
 
 export type WhatIfLeagueRow = {
   userId: string
   displayName: string
   isSelf: boolean
-  /** Projected points for the whole matchweek, Joker applied by the authority. */
-  matchweekPoints: number
-  /** Banked season points BEFORE this matchweek. Null when not supplied. */
-  seasonPointsBefore: number | null
-  /** `seasonPointsBefore + matchweekPoints`. Null when the former is null. */
-  projectedSeasonPoints: number | null
-  /** Position on projected season points, ties sharing a position. */
-  projectedRank: number | null
+  bankedPoints: number
+  projectedPoints: number
+  currentRank: number
+  projectedRank: number
 }
 
-export type WhatIfLeagueProjection = {
+export type WhatIfLeague = {
   leagueName: string
-  /** The league's real size, from the server. May exceed `rows.length`. */
-  memberCount: number
-  /** Matchweek fixtures with no score of any kind. Zero for every member. */
-  unknownFixtures: number
+  /** The league's real size where the server supplied one. */
+  membersTotal: number | null
+  membersReturned: number
+  membersTruncated: boolean
   rows: readonly WhatIfLeagueRow[]
   you: WhatIfLeagueRow | null
-  /** Whose projected total leads. Null when nothing can be ranked. */
+  /** Whose projected total leads the rows that were carried. */
   leaderName: string | null
-  /**
-   * Projected points between you and the leader, never negative. Null when you
-   * are the leader, or when season totals were not supplied.
-   */
+  /** Projected points between you and the leader, never negative. */
   gapToLeader: number | null
 }
 
-export type WhatIfBranch = {
-  key: WhatIfBranchKey
-  /** "Now", "If Liverpool score", "If Arsenal score". */
-  label: string
-  score: WhatIfScore
-  scoreLabel: string
-  /** The player's own projected points from this fixture alone. */
-  points: number
-  reason: FixtureScoreReason
-  league: WhatIfLeagueProjection | null
-}
+export type WhatIfLeagueBlock =
+  /** The server withheld it: the matchweek's own lock has not passed. */
+  | { revealed: false; leagueName: string; locksAt: string | null }
+  | ({ revealed: true } & WhatIfLeague)
 
 export type WhatIfUnavailable =
-  /** The fixture has a confirmed result. Nothing to project. */
+  /** The matchweek's points are banked. A projection over history is a novelty. */
   | 'settled'
-  /** No provider score at all — the match has not started, or nothing reported. */
+  /** The fixture has a confirmed result. Nothing left to project. */
+  | 'fixture_settled'
+  /** No provider score at all — not started, or nothing reported. */
   | 'no_live_score'
-  /** The provider score is not a usable pair of whole goal counts. */
-  | 'unusable_live_score'
+  /** The projection does not carry this fixture. */
+  | 'fixture_absent'
 
 export type WhatIfProjection =
   | { available: false; reason: WhatIfUnavailable }
   | {
       available: true
+      matchweek: number
       /** The provisional score every branch starts from. Never a result. */
       live: WhatIfScore
-      /** The player's own prediction, or null. */
+      /** Where the provisional score came from, for the caller to attribute. */
+      liveKind: string | null
+      /** The player's own prediction on this fixture, or null. */
       prediction: WhatIfScore | null
+      jokerPlayed: boolean
+      /** The whole matchweek as it stands, post-Joker. The server's. */
+      matchweekPoints: number
       branches: readonly WhatIfBranch[]
+      league: WhatIfLeagueBlock | null
     }
-
-export type WhatIfLeagueMember = {
-  userId: string
-  displayName: string
-  isSelf: boolean
-  jokerPlayed: boolean
-  /** Keyed by season fixture id. Empty for a member who did not predict. */
-  predictions: Readonly<Record<string, WhatIfScore>>
-  /**
-   * The member's BANKED matchweek points. A non-null value means the matchweek
-   * has settled, and settled matchweeks are never projected.
-   */
-  points: number | null
-}
-
-export type WhatIfLeagueFixture = {
-  id: string
-  /** The settled result, or null while the fixture is unconfirmed. */
-  result: WhatIfScore | null
-}
-
-export type WhatIfLeagueInput = {
-  leagueName: string
-  memberCount: number
-  members: readonly WhatIfLeagueMember[]
-  fixtures: readonly WhatIfLeagueFixture[]
-  /**
-   * Banked season points before this matchweek, by user id (contract 128).
-   * Optional: without it the projection ranks nothing and reports matchweek
-   * points only, which is a smaller answer rather than a guessed one.
-   */
-  seasonPointsBefore?: Readonly<Record<string, number>>
-}
-
-export type WhatIfInput = {
-  fixtureId: string
-  homeName: string
-  awayName: string
-  prediction: WhatIfScore | null
-  /** The confirmed result. Any value at all suppresses the whole projection. */
-  result: WhatIfScore | null
-  /** A provider's current score. Provisional, and the only thing projected from. */
-  live: WhatIfScore | null
-  league?: WhatIfLeagueInput | null
-}
-
-function isWholeScore(score: WhatIfScore | null | undefined): score is WhatIfScore {
-  return (
-    score != null &&
-    Number.isInteger(score.home) &&
-    Number.isInteger(score.away) &&
-    score.home >= 0 &&
-    score.away >= 0 &&
-    score.home <= MAX_PROJECTED_GOALS &&
-    score.away <= MAX_PROJECTED_GOALS
-  )
-}
 
 const scoreLabel = (score: WhatIfScore): string => `${score.home} – ${score.away}`
 
-/**
- * One member's projected matchweek points for a hypothetical score on one
- * fixture. Every other fixture keeps whatever it actually has: a settled result
- * scores, and an unconfirmed one scores nothing for anybody.
- */
-function projectMember(
-  member: WhatIfLeagueMember,
-  fixtures: readonly WhatIfLeagueFixture[],
-  fixtureId: string,
-  branchScore: WhatIfScore,
-): number {
-  const entries = fixtures.flatMap((fixture) => {
-    const result = fixture.id === fixtureId ? branchScore : fixture.result
-    if (result === null) return []
-    return [{ prediction: member.predictions[fixture.id] ?? null, result }]
-  })
-  // The authority applies the Joker, so the doubling cannot be re-expressed
-  // here and cannot drift from what settlement will actually bank.
-  return scoreMatchweek(entries, member.jokerPlayed).totalPoints
-}
+function presentLeague(league: ProjectionLeague | null): WhatIfLeagueBlock | null {
+  if (league === null) return null
+  if (!league.revealed) {
+    return { revealed: false, leagueName: league.name, locksAt: league.locksAt }
+  }
 
-function rankRows(rows: WhatIfLeagueRow[]): WhatIfLeagueRow[] {
-  const rankable = rows.every((row) => row.projectedSeasonPoints !== null)
-  if (!rankable) return rows
+  const rows = league.rows.map((row) => ({
+    userId: row.userId,
+    displayName: row.displayName,
+    isSelf: row.isSelf,
+    bankedPoints: row.bankedPoints,
+    projectedPoints: row.projectedPoints,
+    currentRank: row.currentRank,
+    projectedRank: row.projectedRank,
+  }))
 
-  const ordered = [...rows].sort((left, right) => {
-    const gap = (right.projectedSeasonPoints ?? 0) - (left.projectedSeasonPoints ?? 0)
-    if (gap !== 0) return gap
-    // A stable, stated tie-break so two renders cannot disagree. It is NOT a
-    // standings rule: tied projections share a rank below, and this only fixes
-    // the order they are printed in.
-    return left.displayName.localeCompare(right.displayName)
-  })
-
-  let lastPoints: number | null = null
-  let lastRank = 0
-  return ordered.map((row, index) => {
-    const points = row.projectedSeasonPoints
-    if (points !== lastPoints) {
-      lastRank = index + 1
-      lastPoints = points
-    }
-    return { ...row, projectedRank: lastRank }
-  })
-}
-
-function projectLeague(
-  league: WhatIfLeagueInput,
-  fixtureId: string,
-  branchScore: WhatIfScore,
-): WhatIfLeagueProjection | null {
-  // A settled matchweek has a real table. Projecting over it would produce a
-  // second answer to a question that already has one.
-  if (league.members.some((member) => member.points !== null)) return null
-  if (league.members.length === 0) return null
-
-  const banked = league.seasonPointsBefore ?? null
-  const rows = league.members.map((member) => {
-    const matchweekPoints = projectMember(member, league.fixtures, fixtureId, branchScore)
-    const before = banked?.[member.userId]
-    const seasonPointsBefore = typeof before === 'number' && Number.isFinite(before) ? before : null
-    return {
-      userId: member.userId,
-      displayName: member.displayName,
-      isSelf: member.isSelf,
-      matchweekPoints,
-      seasonPointsBefore,
-      projectedSeasonPoints:
-        seasonPointsBefore === null ? null : seasonPointsBefore + matchweekPoints,
-      projectedRank: null,
-    } satisfies WhatIfLeagueRow
-  })
-
-  const ranked = rankRows(rows)
-  const you = ranked.find((row) => row.isSelf) ?? null
-  const leader = ranked.find((row) => row.projectedRank === 1) ?? null
+  const you = rows.find((row) => row.isSelf) ?? null
+  // The leader among the rows that were CARRIED. Where the server truncated,
+  // the surface says so beside this rather than the model pretending the
+  // top of a page is the top of a league.
+  const leader = rows.find((row) => row.projectedRank === 1) ?? null
 
   return {
-    leagueName: league.leagueName,
-    memberCount: league.memberCount,
-    unknownFixtures: league.fixtures.filter(
-      (fixture) => fixture.id !== fixtureId && fixture.result === null,
-    ).length,
-    rows: ranked,
+    revealed: true,
+    leagueName: league.name,
+    membersTotal: league.membersTotal,
+    membersReturned: league.membersReturned,
+    membersTruncated: league.membersTruncated,
+    rows,
     you,
     leaderName: leader?.displayName ?? null,
     gapToLeader:
-      you && leader && you.projectedSeasonPoints !== null && leader.projectedSeasonPoints !== null
-        ? Math.max(0, leader.projectedSeasonPoints - you.projectedSeasonPoints)
-        : null,
+      you && leader ? Math.max(0, leader.projectedPoints - you.projectedPoints) : null,
   }
 }
 
-export function projectWhatIf(input: WhatIfInput): WhatIfProjection {
-  if (input.result !== null) return { available: false, reason: 'settled' }
-  if (input.live == null) return { available: false, reason: 'no_live_score' }
-  if (!isWholeScore(input.live)) return { available: false, reason: 'unusable_live_score' }
+/**
+ * One fixture's What-If, read out of the matchweek the server projected.
+ *
+ * @param projection the decoded contract 175 payload
+ * @param fixtureId  the fixture the surface is about
+ * @param homeName   club names for the branch labels; the projection carries
+ * @param awayName   team ids, and this surface already holds the names
+ */
+export function presentWhatIf(
+  projection: SeasonMatchweekProjection,
+  fixtureId: string,
+  homeName: string,
+  awayName: string,
+): WhatIfProjection {
+  // A banked matchweek has a real total. Projecting over it would be a second,
+  // worse answer to a question that already has one.
+  if (projection.settled) return { available: false, reason: 'settled' }
 
-  const live = input.live
-  const prediction = isWholeScore(input.prediction) ? input.prediction : null
-  const league = input.league ?? null
+  const fixture = projection.fixtures.find((entry) => entry.fixtureId === fixtureId)
+  if (!fixture) return { available: false, reason: 'fixture_absent' }
+  if (fixture.basis === 'official') return { available: false, reason: 'fixture_settled' }
+  if (fixture.basis === 'none' || fixture.provisional === null) {
+    return { available: false, reason: 'no_live_score' }
+  }
 
-  const candidates: { key: WhatIfBranchKey; label: string; score: WhatIfScore }[] = [
-    { key: 'now', label: 'As it stands', score: live },
-    {
-      key: 'home',
-      label: `If ${input.homeName} score`,
-      score: { home: live.home + 1, away: live.away },
-    },
-    {
-      key: 'away',
-      label: `If ${input.awayName} score`,
-      score: { home: live.home, away: live.away + 1 },
-    },
-  ]
+  const live: WhatIfScore = { home: fixture.provisional.home, away: fixture.provisional.away }
+  const prediction = fixture.prediction
 
-  const branches = candidates
-    // A branch that would run past the plausible ceiling is dropped rather than
-    // clamped: a clamped branch is a different match, silently.
-    .filter((candidate) => isWholeScore(candidate.score))
-    .map((candidate) => {
-      const explained = explainFixtureScore(prediction, candidate.score)
-      return {
-        key: candidate.key,
-        label: candidate.label,
-        score: candidate.score,
-        scoreLabel: scoreLabel(candidate.score),
-        points: explained.points,
-        reason: explained.reason,
-        league: league ? projectLeague(league, input.fixtureId, candidate.score) : null,
-      } satisfies WhatIfBranch
-    })
+  const now: WhatIfBranch = {
+    key: 'now',
+    label: 'As it stands',
+    score: live,
+    scoreLabel: scoreLabel(live),
+    matchweekPoints: projection.projectedPoints,
+    change: 0,
+    reason: explainFixtureScore(prediction, live).reason,
+  }
 
-  return { available: true, live, prediction, branches }
+  // Branches exist only where the server built them — a fixture actually in
+  // play. Without them the panel still says what the current score is worth,
+  // which is the smaller honest answer rather than an invented next goal.
+  const branches: WhatIfBranch[] = [now]
+  if (fixture.branches) {
+    const { homeScores, awayScores } = fixture.branches
+    branches.push(
+      {
+        key: 'home',
+        label: `If ${homeName} score`,
+        score: homeScores.score,
+        scoreLabel: scoreLabel(homeScores.score),
+        matchweekPoints: homeScores.matchweekPoints,
+        change: homeScores.matchweekPoints - projection.projectedPoints,
+        reason: explainFixtureScore(prediction, homeScores.score).reason,
+      },
+      {
+        key: 'away',
+        label: `If ${awayName} score`,
+        score: awayScores.score,
+        scoreLabel: scoreLabel(awayScores.score),
+        matchweekPoints: awayScores.matchweekPoints,
+        change: awayScores.matchweekPoints - projection.projectedPoints,
+        reason: explainFixtureScore(prediction, awayScores.score).reason,
+      },
+    )
+  }
+
+  return {
+    available: true,
+    matchweek: projection.matchweek.ordinal,
+    live,
+    liveKind: fixture.provisional.kind,
+    prediction,
+    jokerPlayed: projection.jokerPlayed,
+    matchweekPoints: projection.projectedPoints,
+    branches,
+    league: presentLeague(projection.league),
+  }
 }
 
 /**
  * One sentence for a branch, in the player's own terms. Kept beside the model
  * so the wording cannot claim something the numbers do not say.
+ *
+ * IT DESCRIBES THE MATCHWEEK, BECAUSE THAT IS WHAT THE NUMBER IS. A branch's
+ * figure is the whole matchweek under the hypothetical, not this fixture's
+ * share of it, and a sentence about "points from this fixture" beside a
+ * matchweek total would misread the one number on the panel that matters.
  */
 export function describeBranch(branch: WhatIfBranch): string {
-  switch (branch.reason) {
-    case 'exact_score':
-      return `Your prediction would be exact — ${branch.points} projected points.`
-    case 'correct_result':
-      return `Right result, wrong score — ${branch.points} projected points.`
-    case 'wrong':
-      return 'No projected points from this fixture.'
-    case 'unscored':
-      return 'You have no prediction on this fixture, so it projects nothing for you.'
-  }
+  const outcome =
+    branch.reason === 'exact_score'
+      ? 'Your prediction would be exact.'
+      : branch.reason === 'correct_result'
+        ? 'Right result, wrong score.'
+        : branch.reason === 'unscored'
+          ? 'You have no prediction on this fixture.'
+          : 'Your prediction would be wrong.'
+
+  if (branch.key === 'now') return outcome
+
+  const movement =
+    branch.change > 0
+      ? `${branch.change} more across the matchweek.`
+      : branch.change < 0
+        ? `${Math.abs(branch.change)} fewer across the matchweek.`
+        : 'No change across the matchweek.'
+
+  return `${outcome} ${movement}`
 }

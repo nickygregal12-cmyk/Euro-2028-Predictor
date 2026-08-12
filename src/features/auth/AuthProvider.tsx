@@ -108,3 +108,21 @@ export function useAuth(): AuthContextValue {
   if (!ctx) throw new Error('useAuth must be used within an AuthProvider')
   return ctx
 }
+
+/**
+ * The session where there is one, and null where the tree has no provider.
+ *
+ * WHEN TO REACH FOR THIS RATHER THAN `useAuth`. Only for a PROGRESSIVE
+ * ENHANCEMENT — something that is simply absent without an account, and whose
+ * absence changes nothing else on the surface. `INNOV-020`'s offline drafting
+ * is the case it was added for: a draft has to be scoped to an account or it
+ * must not exist at all, and a shell rendered without the provider should lose
+ * the drafting rather than throw.
+ *
+ * ANYTHING THAT GATES ACCESS STILL USES `useAuth`. A permission check that
+ * silently reads "no session" outside a provider is a permission check that
+ * fails open, and this must never become the convenient way to avoid wiring one.
+ */
+export function useOptionalAuth(): AuthContextValue | null {
+  return useContext(AuthContext) ?? null
+}

@@ -23,6 +23,13 @@ import {
 } from '../../services/supabase/seasonAdminInspection'
 import { SeasonAdminInspection } from './SeasonAdminInspection'
 import { ProviderReviewPanel } from './ProviderReviewPanel'
+import { ProviderChangePanel } from './ProviderChangePanel'
+import { ShadowScoringPanel } from './ShadowScoringPanel'
+import {
+  decideProviderChangeProposal,
+  fetchProviderChangeProposals,
+} from '../../services/supabase/providerChangeProposals'
+import { fetchShadowScoringReport } from '../../services/supabase/shadowScoringReport'
 import {
   fetchAdministeredSeasons,
   type AdministeredSeason,
@@ -484,6 +491,34 @@ export function SeasonAdminPage() {
           key={tournamentId}
           load={() => fetchProviderReviewQueues(tournamentId)}
           acknowledge={(kind, ids) => acknowledgeReviewItems(kind, ids)}
+        />
+      ) : null}
+
+      {/* Contract 174. The second administrator queue the review panel's own
+          notes anticipated: the calendar changes a provider proposed, and the
+          one decision in the repository that may act on one. It is separate
+          from the review queues above because those are acknowledged and these
+          are DECIDED, and one control that did both would be the ambiguity the
+          staging exists to remove. */}
+      {tournamentId ? (
+        <ProviderChangePanel
+          key={`changes-${tournamentId}`}
+          load={(proposalState) =>
+            fetchProviderChangeProposals(tournamentId, { state: proposalState })
+          }
+          decide={(proposalId, decision, reason) =>
+            decideProviderChangeProposal(proposalId, decision, reason)
+          }
+        />
+      ) : null}
+
+      {/* Contract 178. Evidence about the arithmetic, and no control that
+          could act on it: the verifier corrects nothing, and a page that
+          offered to would be claiming an authority that does not exist. */}
+      {tournamentId ? (
+        <ShadowScoringPanel
+          key={`shadow-${tournamentId}`}
+          load={() => fetchShadowScoringReport(tournamentId)}
         />
       ) : null}
 

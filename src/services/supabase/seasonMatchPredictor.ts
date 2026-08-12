@@ -1,5 +1,6 @@
 import { db } from './client'
 import { rpcArgs } from './rpcArguments'
+import { submitSeasonPredictionBatch } from './seasonPredictionBatch'
 import { resolveLockState } from '../../domain/competition/lockState'
 import { mainPredictorLockPolicy } from '../../domain/competition/game'
 import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityTokens'
@@ -237,6 +238,43 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           return
         }
       }
+    },
+
+    /**
+     * `INNOV-020` over contract 177 — the drafts a device wrote while it had no
+     * signal, in one call.
+     *
+     * THE VERSIONS ARE STILL PRIVATE. Each draft is stamped with the version
+     * this gateway last read or saved for that fixture, exactly as `apply`
+     * does; the caller supplies a fixture and a scoreline and never a number it
+     * could get wrong. Where the map has lost a version — a reload while
+     * offline, so `load` never ran — the draft goes with zero, which the server
+     * treats as "expected no existing row". Against a row that DOES exist that
+     * is a `PT409`, reported per item as a conflict with both scorelines, which
+     * is the correct and honest outcome rather than a silent overwrite.
+     *
+     * IT UPDATES THE MAP FROM WHAT THE SERVER ACCEPTED, so a device that
+     * reconciles and keeps drafting continues from the stored version rather
+     * than from the one it had before the batch.
+     */
+    async reconcile(_matchweek, drafts) {
+      const result = await submitSeasonPredictionBatch(
+        options.tournamentId,
+        drafts.map((draft) => ({
+          fixture_id: draft.fixtureId,
+          home: draft.prediction?.home ?? null,
+          away: draft.prediction?.away ?? null,
+          version: draft.prediction ? (versions.get(draft.fixtureId) ?? 0) : 0,
+        })),
+      )
+
+      for (const row of result.results) {
+        if (row.outcome !== 'accepted') continue
+        if (row.cleared) versions.delete(row.fixtureId)
+        else if (row.version !== null) versions.set(row.fixtureId, row.version)
+      }
+
+      return result
     },
   }
 }
