@@ -145,3 +145,51 @@ provider response has been archived, and the three provider API keys remain
 unproven. Those are reached only by a real poll, which needs the two `vault`
 secrets and a `provider_poll_targets` row.
 
+---
+
+## Production addendum — 12 August 2026
+
+The dated Development sequence above remains evidence of what happened on
+5 August. The current Production deployment is:
+
+| | |
+| --- | --- |
+| Project | Production, `vkfnsqdyhvtwyqkisxhk` |
+| Function | `provider-poll` |
+| Version | 14 |
+| Status | `ACTIVE` |
+| `verify_jwt` | `false` |
+| Bundle | `ezbr_sha256` `58655828e9ace1494705b218061b0336008a9d82ba8135305062e0e11f0127e7` |
+| Source | Exact contract-185 repository `main` at promotion time |
+
+`verify_jwt: false` remains intentional. The function authenticates its
+dedicated caller key in constant time before request parsing or provider I/O;
+enabling platform JWT verification would admit an unrelated signed-in session
+to the wrong boundary.
+
+The Production secret path was proved without a paid provider request. With
+`ai.api_budget.collection_enabled = false`, PostgreSQL called the function with
+the stored dedicated caller key and a valid Odds API-shaped request. The
+function authenticated the caller, loaded `ODDS_API`, evaluated the database
+budget and returned:
+
+```text
+HTTP 429
+odds_budget_exceeded
+collection_enabled=false
+used=0
+```
+
+The outbound provider `fetch` is after that branch, so the response proves
+`AI_ODDS_POLL` and `ODDS_API` resolve while spending no API credit. Production
+collection was then enabled at 500 monthly credits with a 450 soft cap. No live
+poll was run as smoke: the non-forced dispatcher returned
+`outside_collection_window`, and the final database state still held zero API
+usage, zero dispatch rows and zero raw responses. Development paid collection
+remains disabled with the same zero counts.
+
+The first paid Odds API request is therefore owned by the next scheduled
+Production collection window, not by migration verification. Monitor
+`ai.api_usage`, `ai.odds_api_dispatches`, `ai.odds_api_raw_responses` and
+`public.admin_ai_odds_api_status()` after that window; do not re-enable
+Development to obtain duplicate evidence.
