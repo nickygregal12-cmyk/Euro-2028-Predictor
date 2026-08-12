@@ -277,5 +277,9 @@ same paragraph existed in seven places at once.
 | 172 | The `pg_cron` schedule for action generation, reminder scheduling and stall reclamation, plus a competition-administrator health read. **Scheduling only — nothing sends** |
 | 173 | The settled-matchweek recap action, expiring seven days after settlement and carrying no deadline, so it never becomes a reminder |
 | 174 | Staged provider calendar changes — discovered, postponed, abandoned, cancelled, withdrawn — with an administrator decision that is the only thing able to change a fixture |
+| 175 | A read-only projection of a matchweek under the current or one hypothetical goal, through the existing scoring authority. Never banked, never official |
+| 176 | Deterministic per-player prediction metrics, each returned with its own denominator and a minimum-sample flag |
+| 177 | A batch prediction submission with per-fixture outcomes — accepted, locked, conflict, invalid, refused — so an offline device can reconcile without losing the drafts that were submittable |
+| 178 | An independent recomputation of settled scoring that records disagreements and corrects nothing |
 
-*Current to contract 174.*
+*Current to contract 178.*

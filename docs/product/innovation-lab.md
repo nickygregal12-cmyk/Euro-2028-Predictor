@@ -3,8 +3,10 @@
 **Status:** exploratory product opportunity register  
 **Authority:** none — this document records candidates, not decisions  
 **Owner:** product owner  
-**Last reviewed:** 11 August 2026  
+**Last reviewed:** 12 August 2026  
 **Implementation effect:** none  
+
+> **Twenty-four candidates were reviewed for BACKEND promotion on 12 August 2026 and the outcome is [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md).** Four had their backend foundations built (`INNOV-001`, `INNOV-002`, `INNOV-018`, `INNOV-020`); one was found already satisfied (`INNOV-023`); one has no backend dependency (`INNOV-024`); the rest wait on a named product, privacy or security decision. **The status lines below record where each moved. They do not make this document an authority** — [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) is the register of what was accepted, and the ADR is the record of why. A **Candidate** row here is still not approved scope, and an **Accepted** row means the backend direction was accepted, never that the product feature is approved for release.
 
 > **Core roadmap makes the product complete. Innovation Lab makes it distinctive.**
 >
@@ -66,7 +68,7 @@ Innovation must never weaken the product's existing boundaries. In particular:
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 175, no frontend |
 | Impact | **5/5** |
 | Value | Live engagement; private-league drama; differentiation |
 | Best timing | After the weekly Match Centre has reliable live-result invalidation and league consequence reads |
@@ -91,7 +93,7 @@ Example: `Liverpool 1–1 Arsenal · 72'` → current projected points/rank; `Li
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 176, no frontend |
 | Impact | **5/5** |
 | Value | Personalisation; retention; shareability |
 | Best timing | Once durable season prediction history is available |
@@ -115,7 +117,7 @@ The output should feel like a recognisable forecasting style rather than an inve
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — fact layer largely exists (contracts 129, 130, 150, 151, 176); the model half is blocked on an AI-provider decision and a privacy review |
 | Impact | **5/5** |
 | Value | Personal insight; makes accumulated data understandable |
 | Best timing | After player history, league comparison and football-insight reads are stable |
@@ -144,7 +146,7 @@ Provide a constrained natural-language analyst over verified structured data. It
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — blocked on the public visibility model and field allow-list, which `INNOV-007` and `INNOV-008` share |
 | Impact | **5/5** |
 | Value | Sharing; acquisition; league identity |
 | Best timing | After private league UX and visibility/privacy rules are mature |
@@ -166,7 +168,7 @@ Every public league page becomes a potential acquisition surface with a clear `C
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — blocked on guest retention and the first unauthenticated write decision |
 | Impact | **5/5** |
 | Value | Low-friction viral acquisition |
 | Best timing | After invitation/auth continuation is reliable |
@@ -188,7 +190,7 @@ Create a challenge link around one fixture rather than requiring a full private 
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — backend facts already exist; a composing read awaits a measurement |
 | Impact | **5/5** |
 | Value | Social viewing; private-league differentiation |
 | Best timing | After live league consequence data is stable |
@@ -210,7 +212,7 @@ A large-screen, read-only route designed for a television/monitor while a group 
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — one decision with `INNOV-004` |
 | Impact | **5/5** |
 | Value | Organic acquisition; premium sharing |
 
@@ -229,7 +231,7 @@ Generate safe, branded Open Graph/share images for league wins, matchweek recaps
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — one decision with `INNOV-004` |
 | Impact | **5/5** |
 | Value | Distribution through offices, supporters' clubs and community sites |
 
@@ -243,7 +245,7 @@ Offer a compact read-only widget for leagues that are explicitly public: standin
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — no consumer platform exists yet |
 | Impact | **5/5** |
 | Value | Put league information where groups already talk |
 
@@ -262,7 +264,7 @@ Provide bounded integrations such as Discord commands/webhooks for table, next d
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — recorded as a later integration; needs platform enrolment and signing material |
 | Impact | **5/5 potential; experimental** |
 | Value | Premium delight; quick-glance rank/deadline information |
 
@@ -278,7 +280,7 @@ Offer an optional wallet pass showing a bounded summary such as competition, pla
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Substantially delivered** — contracts 61 and 130 for the per-fixture distribution, contract 176 for the per-player half; scoreline-level distribution needs its own cohort decision |
 | Impact | **5/5** |
 | Value | Makes anonymous consensus personally meaningful |
 
@@ -292,7 +294,7 @@ After reveal, show how unusual the player's choice was: `Only 11% backed Chelsea
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — each honour's window, denominator and tie behaviour is a product definition |
 | Impact | **5/5** |
 | Value | Keeps more league members engaged when they are out of the title race |
 
@@ -310,7 +312,7 @@ Add deterministic secondary honours such as Exact Score King, Form Player, Bigge
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate — evidence audited and sufficient.** Contract 150 derives movement from banked totals; no snapshot table is needed and none should be added |
 | Impact | **5/5** |
 | Value | Turns historical data into an explorable product rather than a dead archive |
 
@@ -324,7 +326,7 @@ For an old fixture, show the player's prediction, final score, revealed communit
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — closest-miss analysis is derivable today; minute-level claims are not, because no event timeline is stored |
 | Impact | **5/5** |
 | Value | End-of-season exploration and shareable statistical stories |
 
@@ -338,7 +340,7 @@ Analyse nearest misses and counterfactuals without presenting them as official s
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — blocked on defining what outcome is being calibrated, before any column exists |
 | Impact | **5/5** |
 | Value | Adds real forecasting depth without touching game scoring |
 
@@ -352,7 +354,7 @@ Let a player optionally record confidence in a prediction. Over time show whethe
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — the action authority must not be duplicated; worth building after the action centre has a consumer |
 | Impact | **5/5** |
 | Value | A single glance that joins actions, football and competitive context |
 
@@ -368,7 +370,7 @@ This is not another Home redesign. It is a reusable daily summary that could lat
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — a sound commitment needs a reviewed construction; the existing audit trail is not weak, only unprovable to a sceptic |
 | Impact | **5/5** |
 | Value | Strong trust that locked predictions were not edited after the deadline |
 
@@ -388,7 +390,7 @@ Create a receipt/commitment for a submitted prediction set so the platform can l
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 178, no scheduled caller yet |
 | Impact | **5/5** |
 | Value | Detect silent correctness bugs where every job succeeds but the points are wrong |
 
@@ -407,7 +409,7 @@ After settlement, an independent read-only verifier recalculates expected scorin
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — contract 174 supplies most of the foundation; the cross-provider half needs a second provider |
 | Impact | **5/5** |
 | Value | Detect suspicious provider changes before they become player-facing truth |
 
@@ -427,7 +429,7 @@ Add cross-provider and domain-plausibility checks around ingestion: unexpected k
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Accepted (backend)** — promoted by [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md); backend delivered at contract 177 |
 | Impact | **5/5** |
 | Value | Mobile resilience on trains, stadiums and poor connections |
 
@@ -446,7 +448,7 @@ Allow pre-lock prediction edits to be stored as an explicitly local draft when o
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — platform capability must be measured first; no bespoke WebAuthn store may be built |
 | Impact | **5/5** |
 | Value | Remove repeated password friction from a high-frequency phone product |
 
@@ -460,7 +462,7 @@ Assess passkeys/WebAuthn as an additional authentication method so returning use
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — needs the same public-surface decision as `INNOV-004`, arriving from a different direction |
 | Impact | **5/5** |
 | Value | Prediction deadlines and relevant fixtures appear in the user's normal calendar |
 
@@ -474,7 +476,7 @@ Offer a private subscribed calendar feed containing selected competition fixture
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Already satisfied** — `get_my_actions` has returned `unseen` since contract 162; a second counter would be a duplicate authority |
 | Impact | **5/5 when supported; progressive enhancement** |
 | Value | At-a-glance signal that predictions/actions still need attention |
 
@@ -488,7 +490,7 @@ For an installed web app on supporting platforms, badge the icon with the bounde
 
 | Field | Value |
 | --- | --- |
-| Status | **Candidate** |
+| Status | **Candidate** — no backend dependency, recorded so it is not re-audited |
 | Impact | **5/5 for polish when used selectively** |
 | Value | Preserve context and make the premium desktop/phone product feel cohesive |
 
