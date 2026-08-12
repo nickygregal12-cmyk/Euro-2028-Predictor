@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { presentDivergence } from '../../../src/features/season/divergenceModel'
+import {
+  CONSENSUS_SHARE_FLOOR,
+  CONTRARIAN_SHARE_CEILING,
+  presentDivergence,
+} from '../../../src/features/season/divergenceModel'
 import type { SeasonConsensusFixture } from '../../../src/services/supabase/seasonConsensusModel'
 
 /**
@@ -36,6 +40,22 @@ describe('presentDivergence', () => {
 
   it('says nothing when nobody predicted the fixture', () => {
     expect(presentDivergence(fixtureOf({ predicted: 0 }), { home: 1, away: 0 })).toBeNull()
+  })
+
+  it('bands on the published thresholds rather than on a feeling', () => {
+    // The two constants are the definition, and the test reads them rather than
+    // restating them: a threshold a test hard-codes is one that can be moved in
+    // the model without anything noticing.
+    const at = (share: number) =>
+      presentDivergence(
+        fixtureOf({ shares: { homeWin: 100 - share, draw: 0, awayWin: share } }),
+        { home: 0, away: 1 },
+      )?.band
+
+    expect(at(CONTRARIAN_SHARE_CEILING)).toBe('against_the_field')
+    expect(at(CONTRARIAN_SHARE_CEILING + 1)).toBe('split')
+    expect(at(CONSENSUS_SHARE_FLOOR - 1)).toBe('split')
+    expect(at(CONSENSUS_SHARE_FLOOR)).toBe('with_the_field')
   })
 
   it('names a low-share away pick as against the field', () => {

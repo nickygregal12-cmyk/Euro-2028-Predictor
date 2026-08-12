@@ -113,10 +113,42 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // this ceiling has been. That is deliberate: it still refuses the lazy-
 // dispatcher shape by a wide margin, and it keeps the number that decides what a
 // first paint costs under pressure now that one shell serves two products.
+// RAISED FROM 322 TO 336 AND FROM 34 TO 36 ON 11 AUGUST 2026, FOR ELEVEN NEW
+// PRODUCT SURFACES, AND THE ENTRY CHUNK IS THE EVIDENCE THAT THEY LANDED IN THE
+// RIGHT PLACE. The Innovation Lab UI pass added the What-If projection and the
+// divergence line to the Match Centre, Prediction DNA to a player's season,
+// side honours to a private league, closest misses and a submission receipt to
+// the matchweek card, the matchday briefing to Home and `/play`, the Matchday
+// TV screen, the share entry points, the app badge and view transitions.
+// Measured against `main`, chunk by chunk:
+//
+//   • entry (`index`)                                       +0.3 KB gz
+//   • SeasonMatchCentreRoute                                +2.9 KB gz
+//   • SeasonGameRouteBundle                                 +2.4 KB gz
+//   • SeasonPlayerProfileRoute                              +2.1 KB gz
+//   • SeasonTvModeRoute (new, lazy, reached from one link)  +2.3 KB gz
+//   • BriefingPanel, ShareAction (new shared chunks)        +2.0 KB gz
+//   • HubPage                                               +0.2 KB gz
+//
+// TWELVE POINT SEVEN KILOBYTES OF WHICH THREE HUNDRED BYTES REACH A FIRST
+// PAINT. That distribution is the thing worth checking and it is why this raise
+// is a budget change rather than a defect: every heavy feature is inside the
+// route chunk of the surface that shows it, the television screen is its own
+// lazy chunk that no ordinary navigation loads, and the entry chunk — the
+// number that decides what a first paint costs — is 76.3 against a ceiling of
+// 77 and is NOT raised here. If the total is raised again while the entry chunk
+// also moves, the thing to check first is whether one of these panels has been
+// imported statically into the shell.
+//
+// 336 sits about four kilobytes above the measured 332.0, which is tighter than
+// the previous raises deliberately: this pass added eleven surfaces at once and
+// the next one should have to justify itself rather than inherit the headroom.
+// CSS is a single file here and is not route-split, so eleven new stylesheets
+// move one number; 36 leaves roughly a kilobyte over the measured 34.8.
 const BUDGETS = {
   entryChunkKb: 77,
-  totalJsKb: 322,
-  totalCssKb: 34,
+  totalJsKb: 336,
+  totalCssKb: 36,
 }
 
 /**
