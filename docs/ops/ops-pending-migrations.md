@@ -43,9 +43,29 @@ This is the operational migration inventory. Machine-readable hosted state is au
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository candidate | **178** | 178 canonical migrations through `20260812003000_shadow_scoring_verifier.sql`. | LEVEL |
-| Development Supabase `iouzoutneyjpugbbtdem` | **178** | Fast-lane run `31561781188` from exact `main` `cc8072a`, taken before Production as every prior boundary has been. | LEVEL WITH REPOSITORY |
-| Production Supabase | **178** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31565613954` from exact `main` `f85b18e`, gated on backup `31562346500` and rehearsal `31565189247`, with the four ledger rows named rather than counted. | LEVEL WITH REPOSITORY |
+| Repository candidate | **181** | 181 canonical migrations through `20260812030000_private_league_member_limit.sql`. | AHEAD OF BOTH |
+| Development Supabase `iouzoutneyjpugbbtdem` | **180** | Fast-lane run `31589683887` from exact `main` `9aef144`, applying contracts 179 and 180. Confirmed by an independent read-only postflight that **names** `20260812010000` and `20260812020000` and confirms `20260812030000` is **absent**, so the boundary held exactly. | ONE BEHIND REPOSITORY |
+| Production Supabase | **178** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31565613954` from exact `main` `f85b18e`, gated on backup `31562346500` and rehearsal `31565189247`, with the four ledger rows named rather than counted. **Contracts 179, 180 and 181 are applied to no production environment**, and moving it needs its own owner authorisation naming that exact boundary. | THREE BEHIND REPOSITORY |
+
+**The two rows above the Production one moved on 12 August 2026 and the paragraphs before this table did not.** They describe the 175–178 boundary and are correct about it; they are left as written rather than edited to look current, which is this document's own rule. The current position is the table.
+
+### Development reached 180 — fast-lane run 31589683887, 12 August 2026 (forty-second entry)
+
+Contracts **179** and **180**, the private-play lifecycle integrity batch (issue #728), applied through the ADR 0024 fast lane from exact `main` `9aef144`. Both additive; the lane proved that by reading the pending set rather than trusting the dispatcher.
+
+**The workflow's own record said only "Development fast-lane rollout".** The account in `config/development-hosted-contract.json` replaces it and comes from an independent read-only postflight rather than the job's output.
+
+**What was measured, on the installed definitions rather than the migration text:**
+
+- the ledger holds 180 rows and **names** `20260812010000` and `20260812020000`, and does **not** name `20260812030000`;
+- `get_my_private_competitions` and `get_private_competition_workspace` are executable by `authenticated` and by **no** anonymous role; `private_cup_launch_readiness` and `private_container_lifecycle` are executable by **no** browser role at all;
+- `uses_season_prediction_card` is true for `main_predictor`, `original_predictor` and `predictor_cup`, and **false** for `last_man_standing` and `ko_predictor` — marking Last Man Standing would have handed a season entry to every LMS entrant.
+
+**The defect is demonstrated fixed on real hosted data, which is the claim a pgTAP suite cannot make.** For a real user holding a private Predictor Championship membership on this project, the path `/leagues` actually uses — `public.leagues` joined to `league_members` — returns **zero** rows, while `get_my_private_competitions` returns **total 1** with a derived `lifecycle_state` of `running`. Development holds three private containers carrying **ten** live memberships and **none of the three is reachable through `public.leagues`**.
+
+**It scheduled nothing** — ten cron jobs before and after. Euro publication is still `hidden` and `EURO-001` is unchanged. No competition was launched, no Championship drawn, no provider result confirmed and no football imported. Neither migration contains an `insert`, `update` or `delete` against a player-owned relation, and the 24 auth users are unchanged.
+
+**The frontend half is not claimed.** `/leagues` still calls `get_my_game_leagues` for bonus-game containers, so the player-visible defect is live in the application even though the authority that fixes it is now hosted.
 
 ### The rehearsal earned its place, and this is the part worth reading
 
