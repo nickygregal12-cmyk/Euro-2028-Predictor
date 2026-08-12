@@ -70,7 +70,13 @@ export const ALWAYS_FULL_SUITE = [
 export const JOURNEY_MAP = [
   { prefix: 'src/features/admin/', specs: ['weekly-admin-access.spec.ts'] },
   { prefix: 'src/features/home/', specs: ['weekly-navigation.spec.ts'] },
-  { prefix: 'src/features/hub/', specs: ['weekly-navigation.spec.ts'] },
+  {
+    // The Hub carries the matchday briefing, whose absence-of-invented-football
+    // property the innovation surfaces spec asserts.
+    prefix: 'src/features/hub/',
+    specs: ['weekly-navigation.spec.ts', 'innovation-surfaces.spec.ts'],
+  },
+  { prefix: 'src/features/share/', specs: ['innovation-surfaces.spec.ts'] },
   {
     prefix: 'src/features/league/',
     specs: ['private-league-pagination.spec.ts'],
@@ -85,7 +91,7 @@ export const JOURNEY_MAP = [
     // season-only change to run, and an unmapped prefix correctly fell through
     // to the full suite rather than to nothing.
     prefix: 'src/features/season/',
-    specs: ['season-competition-journey.spec.ts'],
+    specs: ['season-competition-journey.spec.ts', 'innovation-surfaces.spec.ts'],
   },
   { prefix: 'src/features/profile/', specs: ['profile-h2h-surfaces.spec.ts'] },
   { prefix: 'src/features/h2h/', specs: ['profile-h2h-surfaces.spec.ts'] },

@@ -4,6 +4,7 @@ import { Skeleton } from '../../design-system'
 import { ordinal } from '../league/ordinal'
 import type { SeasonLeagueMatchweekPredictions } from '../../services/supabase/seasonLeaguePredictions'
 import type { SeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovement'
+import type { SeasonLeagueMatchweekPages } from './useSeasonLeagueMatchweek'
 import {
   presentLeagueFixture,
   presentLeagueMovement,
@@ -51,13 +52,30 @@ export type SeasonFixtureLeaguesLeague = {
   name: string
 }
 
+/**
+ * A caller must supply `pages` or `loadPredictions`. The types enforce neither,
+ * so the render below leaves such a league in its loading state — which is the
+ * honest rendering of "nothing has answered", and is never mistaken for
+ * "nobody in this league predicted".
+ */
+
 export type SeasonFixtureLeaguesProps = {
   fixtureId: string
   /** The matchweek this fixture belongs to, as a competition round id. */
   competitionRoundId: string | null
   /** The caller's private leagues in this season's Match Predictor. */
   leagues: readonly SeasonFixtureLeaguesLeague[]
-  loadPredictions: (
+  /**
+   * Contract 149's payload per league, already read by the page.
+   *
+   * SUPPLIED RATHER THAN FETCHED because the `INNOV-001` projection needs the
+   * same payload, and two components reading it separately would issue the same
+   * RPC twice per league and could disagree about the reveal if one failed.
+   * Omitted, this component reads for itself — which is what the component
+   * gallery does, and what the panel did before the projection existed.
+   */
+  pages?: SeasonLeagueMatchweekPages
+  loadPredictions?: (
     leagueId: string,
     competitionRoundId: string,
   ) => Promise<SeasonLeagueMatchweekPredictions>
@@ -78,50 +96,110 @@ export function SeasonFixtureLeagues({
   fixtureId,
   competitionRoundId,
   leagues,
+  pages,
   loadPredictions,
   loadMovement,
   playerHref,
 }: SeasonFixtureLeaguesProps) {
   const headingId = useId()
-  const [states, setStates] = useState<Record<string, LeagueState>>({})
+  const [fetched, setFetched] = useState<SeasonLeagueMatchweekPages>({})
+  const [movements, setMovements] = useState<Record<string, LeagueMovementLine | null>>({})
 
+  // Keyed on identity rather than the array, which the caller rebuilds every
+  // render.
+  const leagueKey = leagues.map((league) => league.id).join('|')
+
+  /**
+   * The predictions, fetched ONLY where the page did not supply them.
+   *
+   * The Match Centre supplies them because the projection needs the same
+   * payload; the component gallery does not, and this is the path it takes.
+   */
   useEffect(() => {
-    if (!competitionRoundId || leagues.length === 0) return
+    if (pages !== undefined) return
+    if (!competitionRoundId || leagueKey === '') return
+    const read = loadPredictions
+    if (!read) return
     let active = true
-    setStates(Object.fromEntries(leagues.map((league) => [league.id, { kind: 'loading' }])))
+    const ids = leagueKey.split('|')
+    setFetched(Object.fromEntries(ids.map((id) => [id, { kind: 'loading' as const }])))
 
-    for (const league of leagues) {
-      void (async () => {
-        try {
+    for (const id of ids) {
+      void read(id, competitionRoundId).then(
+        (page) => {
           // Each league fails alone. One unreadable league must not take the
           // section down for the others.
-          const page = await loadPredictions(league.id, competitionRoundId)
-          // Movement is asked for only once the predictions have revealed:
-          // before the lock there is nothing settled to have moved, and asking
-          // is a request that can only answer "no".
-          const movement = page.revealed
-            ? await loadMovement(league.id, competitionRoundId).catch(() => null)
-            : null
-          if (!active) return
-          setStates((current) => ({
-            ...current,
-            [league.id]: {
-              kind: 'ready',
-              view: presentLeagueFixture(page, fixtureId),
-              movement: movement ? presentLeagueMovement(movement) : null,
-            },
-          }))
-        } catch {
-          if (!active) return
-          setStates((current) => ({ ...current, [league.id]: { kind: 'failed' } }))
-        }
-      })()
+          if (active) setFetched((current) => ({ ...current, [id]: { kind: 'ready', page } }))
+        },
+        () => {
+          if (active) setFetched((current) => ({ ...current, [id]: { kind: 'failed' } }))
+        },
+      )
     }
-
     return () => {
       active = false
     }
-  }, [fixtureId, competitionRoundId, leagues, loadPredictions, loadMovement])
+  }, [pages, leagueKey, competitionRoundId, loadPredictions])
+
+  const effective = pages ?? fetched
+
+  /**
+   * Which leagues have revealed, as a stable string.
+   *
+   * THE MOVEMENT READ HANGS OFF THIS AND NOT OFF THE PAYLOAD ITSELF, and that
+   * is a fix rather than a style. Depending on the pages object re-ran the
+   * movement fetch every time any league's state changed identity — the same
+   * RPC issued once per league per transition, which is exactly the repeated
+   * identical query that lifting the predictions read was meant to remove.
+   * Movement is asked for only once a league has revealed, because before the
+   * lock there is nothing settled to have moved and the request can only answer
+   * "no".
+   */
+  const revealedKey = leagues
+    .filter((league) => {
+      const state = effective[league.id]
+      return state?.kind === 'ready' && state.page.revealed
+    })
+    .map((league) => league.id)
+    .join('|')
+
+  useEffect(() => {
+    if (!competitionRoundId || revealedKey === '') return
+    let active = true
+    for (const id of revealedKey.split('|')) {
+      void loadMovement(id, competitionRoundId).then(
+        (answer) => {
+          if (active) {
+            setMovements((current) => ({ ...current, [id]: presentLeagueMovement(answer) }))
+          }
+        },
+        () => {
+          // Movement is context beside the predictions. A failed read renders no
+          // movement line rather than failing the league.
+          if (active) setMovements((current) => ({ ...current, [id]: null }))
+        },
+      )
+    }
+    return () => {
+      active = false
+    }
+  }, [revealedKey, competitionRoundId, loadMovement])
+
+  const states: Record<string, LeagueState> = Object.fromEntries(
+    leagues.map((league) => {
+      const state = effective[league.id]
+      if (!state || state.kind === 'loading') return [league.id, { kind: 'loading' as const }]
+      if (state.kind === 'failed') return [league.id, { kind: 'failed' as const }]
+      return [
+        league.id,
+        {
+          kind: 'ready' as const,
+          view: presentLeagueFixture(state.page, fixtureId),
+          movement: movements[league.id] ?? null,
+        },
+      ]
+    }),
+  )
 
   // A player in no private league has no league section, rather than an empty
   // one telling them about a feature they have not used.

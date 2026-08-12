@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import { AppBar, PageShell, SideRail, type NavKey } from '../design-system'
 import { RouteFallback } from './RouteFallback'
@@ -18,12 +18,13 @@ import { useRailCollapsed } from './useRailCollapsed'
 // only needed once somebody opens it, and statically importing them put the
 // entry chunk over its compressed budget.
 import { outstandingCount } from './outstandingCount'
+import { applyAppBadge } from './appBadge'
 import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
 
 const ActionCentre = lazy(() =>
   import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
 )
-import { globalNavTab, isCompetitionModePath } from './shellRoutes'
+import { globalNavTab, isCompetitionModePath, isTvModePath } from './shellRoutes'
 
 function navLabel(
   items: readonly { key: NavKey; label: string }[],
@@ -101,6 +102,32 @@ function SignedInFrame() {
   const { status: inboxStatus, inbox } = useGlobalPlayInbox(player)
   const [actionsOpen, setActionsOpen] = useState(false)
 
+  // INNOV-023. The installed app's icon carries the SAME number the AppBar
+  // shows, from the same inbox — never a second count — and does nothing at all
+  // where the platform has no Badging API. It is deliberately not applied while
+  // the inbox is still loading: badging zero and then three reads as work
+  // appearing out of nowhere.
+  const outstanding = outstandingCount(inbox)
+  useEffect(() => {
+    if (inboxStatus !== 'ready') return
+    applyAppBadge(outstanding)
+  }, [inboxStatus, outstanding])
+
+  // INNOV-006. The matchday television screen is a competition surface like
+  // every other one — same authentication, same domestic boundary — and the one
+  // thing it must not inherit is this frame. A bar sized for a thumb and a
+  // bottom bar sized for a pocket are wrong on a screen across a room, and the
+  // mode carries no account or admin control by design. The exception lives
+  // HERE rather than as a second route boundary, because a second boundary is
+  // one a future route can be added to the wrong side of in silence.
+  if (isTvModePath(location.pathname)) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    )
+  }
+
   return (
     <PageShell
       active={tab}
@@ -123,7 +150,7 @@ function SignedInFrame() {
           displayName={displayName}
           onOpenProfile={() => navigate('/profile')}
           actions={{
-            outstanding: outstandingCount(inbox),
+            outstanding,
             onOpen: () => setActionsOpen(true),
           }}
         />

@@ -1,6 +1,10 @@
 import { Link } from 'react-router'
 import { Alert, Button, ClubMatchCard, Skeleton } from '../../design-system'
 import { MatchweekPoints } from '../scoring/MatchweekPoints'
+import { presentMatchweekPoints } from '../scoring/matchweekPointsModel'
+import { ShareAction } from '../share/ShareAction'
+import { SeasonClosestMisses } from './SeasonClosestMisses'
+import { SubmissionReceipt } from './SubmissionReceipt'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
 import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
@@ -166,6 +170,10 @@ export function SeasonMatchPredictorPage({
   if (page.settledPoints !== null) statusStrip.push(`${page.settledPoints} pts`)
 
   const lockConsequence = atLockCopy(presentation.atLock, presentation.entered, presentation.total)
+  // The breakdown, derived ONCE and used twice: `MatchweekPoints` renders it,
+  // and the share sentence quotes its exact-score count. Deriving it in both
+  // places would be two answers to one question about one matchweek.
+  const breakdown = presentMatchweekPoints(page)
 
   // Why each of the two card-level commands would be refused, asked of the
   // model that owns the answer. `null` means the command would be accepted, and
@@ -354,6 +362,12 @@ export function SeasonMatchPredictorPage({
               </Button>
             )
           ) : null}
+
+          {/* INNOV-017. What has actually been submitted, in the player's
+              terms, claiming only what the card read said. No reference number
+              and no submitted-at instant, because the server returns neither
+              and inventing one here would be a receipt for nothing. */}
+          <SubmissionReceipt card={page} />
         </div>
       </section>
 
@@ -362,7 +376,33 @@ export function SeasonMatchPredictorPage({
           has been using to explain ONE fixture since it shipped: the same
           authority, for the whole card, once. It renders nothing at all until
           the matchweek settles. */}
-      <MatchweekPoints card={page} />
+      <MatchweekPoints card={page} view={breakdown} />
+
+      {/* INNOV-014, below the official breakdown and visibly separate from it:
+          what the near misses WOULD have been worth. It renders nothing unless
+          a settled fixture came within two goals of exact, and it changes no
+          total. */}
+      <SeasonClosestMisses fixtures={page.fixtures} />
+
+      {/* INNOV-007. Only once the matchweek has SETTLED, and only about the
+          player's own banked result: there is no share kind for an unlocked
+          prediction, so this control cannot leak one. */}
+      {page.settledPoints !== null && breakdown.kind === 'itemised' ? (
+        <p className={styles.shareRow}>
+          <ShareAction
+            label="Share this matchweek"
+            url={window.location.pathname}
+            subject={{
+              kind: 'matchweek_result',
+              competitionName: page.competition.name,
+              matchweekLabel: `Matchweek ${page.matchweek.number}`,
+              points: page.settledPoints,
+              exactScores: breakdown.exact,
+              jokerPlayed: page.joker.playedHere,
+            }}
+          />
+        </p>
+      ) : null}
     </SeasonCompetitionShell>
   )
 }

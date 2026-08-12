@@ -78,6 +78,10 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     '/competitions/:competitionSlug/:seasonSlug/players/:playerId',
     'parameterised season player profile — a concrete co-member id needs the seeded domestic league harness',
   ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/tv',
+    'parameterised Matchday TV screen — concrete domestic season coverage remains harness work',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)

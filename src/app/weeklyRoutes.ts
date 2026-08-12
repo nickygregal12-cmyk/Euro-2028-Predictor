@@ -101,6 +101,14 @@ export function competitionPlayerRoute(
   )}`
 }
 
+/**
+ * The competition's Matchday TV screen (`INNOV-006`). Read-only, and outside
+ * the signed-in shell.
+ */
+export function competitionTvRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.tv, ref)
+}
+
 export function competitionGameRoute(
   ref: CompetitionRouteRef,
   game: DomesticGameRoute,
@@ -242,6 +250,11 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
       return { href: leagues, label: 'Back to Leagues' }
     }
     if (pathname.startsWith(`${competition}/players/`)) {
+      return { href: competition, label: 'Back to Competition' }
+    }
+    // INNOV-006. The television screen's own Exit link goes here, and this is
+    // the same answer stated once so the two cannot drift.
+    if (pathname === competitionTvRoute(ref)) {
       return { href: competition, label: 'Back to Competition' }
     }
     return { href: weeklyRoutes.hub, label: 'Back to Hub' }

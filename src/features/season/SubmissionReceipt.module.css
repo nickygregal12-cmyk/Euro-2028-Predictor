@@ -1,0 +1,34 @@
+/* INNOV-017. A plain statement of fact rather than a celebration: the job is
+   trust, and a receipt that shouts reads like marketing. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.line {
+  margin: 0;
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}

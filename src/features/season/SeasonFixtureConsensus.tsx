@@ -5,6 +5,7 @@ import {
   type SeasonConsensus,
   type SeasonConsensusFixture,
 } from '../../services/supabase/seasonConsensusModel'
+import { presentDivergence } from './divergenceModel'
 import styles from './SeasonFixtureConsensus.module.css'
 
 /**
@@ -36,6 +37,15 @@ export type SeasonFixtureConsensusProps = {
   matchweek: number
   fixtureId: string
   load: (matchweek: number) => Promise<SeasonConsensus>
+  /**
+   * The caller's own prediction for this fixture, when the page already holds
+   * it. Supplying it turns the distribution into `INNOV-011`: how unusual the
+   * player's pick was against the same cohort, derived here and read nowhere.
+   *
+   * OPTIONAL, AND ABSENT IS ORDINARY. A visitor who did not predict, or a page
+   * that has not read the card, gets the distribution alone.
+   */
+  prediction?: { home: number; away: number } | null
 }
 
 type State =
@@ -48,6 +58,7 @@ export function SeasonFixtureConsensus({
   matchweek,
   fixtureId,
   load,
+  prediction = null,
 }: SeasonFixtureConsensusProps) {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
@@ -113,13 +124,23 @@ export function SeasonFixtureConsensus({
     return null
   }
 
-  return <Distribution fixture={fixture} />
+  return <Distribution fixture={fixture} prediction={prediction} />
 }
 
-function Distribution({ fixture }: { fixture: SeasonConsensusFixture }) {
+function Distribution({
+  fixture,
+  prediction,
+}: {
+  fixture: SeasonConsensusFixture
+  prediction: { home: number; away: number } | null
+}) {
   // Generated: the panel is rendered more than once on a gallery page, and a
   // fixed id is a critical duplicate-id-aria the moment it is.
   const headingId = useId()
+  // INNOV-011. Derived from the counts already on this page and the player's
+  // own pick; it adds no read, names nobody and cannot outrun the reveal rule,
+  // because the payload it reads does not exist before the lock.
+  const divergence = presentDivergence(fixture, prediction)
   const bars = [
     { key: 'home', label: fixture.homeName, share: fixture.shares.homeWin, count: fixture.homeWin },
     { key: 'draw', label: 'Draw', share: fixture.shares.draw, count: fixture.draw },
@@ -136,6 +157,28 @@ function Distribution({ fixture }: { fixture: SeasonConsensusFixture }) {
           ? '1 prediction, anonymous'
           : `${fixture.predicted} predictions, anonymous`}
       </p>
+
+      {/* INNOV-011, above the bars because it is the thing the bars are FOR:
+          the distribution is context, and where the player sits in it is the
+          point. Marked by a word as well as a colour. */}
+      {divergence ? (
+        <p className={styles.divergence} data-band={divergence.band}>
+          <span className={styles.divergenceTag}>
+            {divergence.contrarianWin
+              ? 'Contrarian win'
+              : divergence.band === 'against_the_field'
+                ? 'Against the field'
+                : divergence.band === 'with_the_field'
+                  ? 'With the field'
+                  : 'Split'}
+          </span>
+          <span>{divergence.headline}</span>
+          <span className={styles.divergenceDetail}>{divergence.scorelineLine}</span>
+          {divergence.resultLine ? (
+            <span className={styles.divergenceDetail}>{divergence.resultLine}</span>
+          ) : null}
+        </p>
+      ) : null}
 
       <ul className={styles.bars}>
         {bars.map((bar) => (

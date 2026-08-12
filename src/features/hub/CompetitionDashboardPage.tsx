@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams } from 'react-router'
 import { Alert, Button, EmptyIllustration, Skeleton } from '../../design-system'
 import {
   competitionGameRoute,
   competitionSectionRoute,
+  competitionTvRoute,
   type DomesticGameRoute,
 } from '../../app/weeklyRoutes'
 import {
@@ -316,6 +317,12 @@ function CompetitionPage({ mode }: { mode: CompetitionPageMode }) {
           >
             View games
           </Button>
+          {/* INNOV-006. Quiet and last: a television screen is a thing a host
+              opens deliberately on matchday, not a destination competing with
+              the actions above it. */}
+          <Link className={h.tvLink} to={competitionTvRoute(competition)}>
+            Open Matchday TV
+          </Link>
         </section>
       ) : (
         <>

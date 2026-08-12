@@ -329,7 +329,11 @@ export function GlobalMatchesPage() {
                         directly, so a combined list is a way IN to a match
                         rather than a read-only summary. */}
                     {ref ? (
-                      <Link className={styles.match} to={competitionMatchCentreRoute(ref, row.id)}>
+                      <Link
+                        className={styles.match}
+                        to={competitionMatchCentreRoute(ref, row.id)}
+                        viewTransition
+                      >
                         {body}
                       </Link>
                     ) : (

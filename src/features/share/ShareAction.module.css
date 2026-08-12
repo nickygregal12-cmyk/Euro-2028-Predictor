@@ -1,0 +1,30 @@
+/* INNOV-007. A quiet secondary control: sharing is never the primary action on
+   any surface that carries it. */
+.wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+}
+
+.button {
+  min-height: var(--tap-min);
+  padding: var(--sp-1) var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  color: var(--tx);
+  font: inherit;
+  font-size: var(--fs-1);
+  cursor: pointer;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.status {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}

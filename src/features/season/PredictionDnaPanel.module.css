@@ -1,0 +1,163 @@
+/* INNOV-002. Reads as a description, not a scoreboard: the figures are small
+   and always paired with what they were measured over. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.subheading {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-1);
+  font-weight: 600;
+  color: var(--tx2);
+}
+
+.note,
+.footnote {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+/* The word never appears without the measurement it came from. */
+.signature {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+}
+
+.signatureWord {
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+.signatureNote {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+/* Desktop uses the width for a wider comparison grid rather than a taller
+   phone card. */
+@media (width >= 900px) {
+  .metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--surface-sunken);
+}
+
+.metricLabel {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.metricValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.metricDetail {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+/* A real table, with real headers: a comparison read aloud without them is a
+   run of numbers. */
+.comparison {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-1);
+}
+
+.comparison th,
+.comparison td {
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+
+.comparison thead th {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.comparisonLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-weight: 500;
+  color: var(--tx2);
+}
+
+.comparisonNote {
+  font-size: var(--fs-1);
+  font-weight: 400;
+  color: var(--tx3);
+}
+
+.comparisonValue {
+  font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* INNOV-007 — quiet and last. */
+.shareRow {
+  margin: 0;
+}

@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { ChevronDownIcon } from '../../design-system/icons'
 import type { MatchPredictorPage } from '../season/matchPredictorModel'
-import { presentMatchweekPoints } from './matchweekPointsModel'
+import { presentMatchweekPoints, type MatchweekPointsView } from './matchweekPointsModel'
 import s from './matchweekPoints.module.css'
 
 /**
@@ -23,10 +23,20 @@ import s from './matchweekPoints.module.css'
 
 export type MatchweekPointsProps = {
   card: MatchPredictorPage
+  /**
+   * The itemisation, when the page has already derived it.
+   *
+   * SUPPLIED RATHER THAN DERIVED TWICE. The Match Predictor page needs the same
+   * view for the `INNOV-007` share sentence — it quotes the exact-score count —
+   * and two calls would be two derivations of one answer, which is how a
+   * breakdown and a share start disagreeing about the same matchweek. Omitted,
+   * this derives for itself, which is what the component gallery does.
+   */
+  view?: MatchweekPointsView
 }
 
-export function MatchweekPoints({ card }: MatchweekPointsProps) {
-  const view = presentMatchweekPoints(card)
+export function MatchweekPoints({ card, view: supplied }: MatchweekPointsProps) {
+  const view = supplied ?? presentMatchweekPoints(card)
   const [open, setOpen] = useState(false)
   const panelId = useId()
 

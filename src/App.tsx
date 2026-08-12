@@ -89,6 +89,13 @@ const SeasonMatchCentreRoute = lazy(() =>
     default: m.SeasonMatchCentreRoute,
   })),
 )
+// INNOV-006. Lazy, and reached from nowhere in the ordinary navigation, so a
+// player who never opens a television screen never downloads one.
+const SeasonTvModeRoute = lazy(() =>
+  import('./features/season/SeasonTvModeRoute').then((m) => ({
+    default: m.SeasonTvModeRoute,
+  })),
+)
 const SeasonPlayerProfileRoute = lazy(() =>
   import('./features/season/SeasonPlayerProfileRoute').then((m) => ({
     default: m.SeasonPlayerProfileRoute,
@@ -306,6 +313,18 @@ export default function App() {
                         <Route
                           path={weeklyRoutePatterns.championshipWildcard}
                           element={<SeasonChampionshipRouter />}
+                        />
+                        {/* INNOV-006 — the matchday television screen. It is
+                            registered inside the one domestic boundary like
+                            every other competition surface, and `AppShell`
+                            renders it WITHOUT the app bar, bottom bar and rail:
+                            a frame designed for a phone in a pocket is the
+                            wrong frame for a screen on a wall. Declaring a
+                            second boundary to achieve that would have made the
+                            next route added to the wrong one silent. */}
+                        <Route
+                          path={weeklyRoutePatterns.tv}
+                          element={<SeasonTvModeRoute />}
                         />
                         <Route
                           path={weeklyRoutePatterns.leagues}

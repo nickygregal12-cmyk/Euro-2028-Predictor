@@ -314,6 +314,21 @@ The `INNOV-*` identifiers are the register's own and are permanent, so they are 
 | `INNOV-023` | A bounded outstanding-action count from the same authority as the action centre | Contract 162 | A count that cannot disagree with the inbox it opens | **Already satisfied — no work required.** `get_my_actions` has returned `unseen` since contract 162, computed from the same predicate as the list it returns, and its own header records why. A second counting read is the duplicate authority this row exists to forbid |
 | `INNOV-024` | Native-feeling view transitions | — | — | **No backend dependency.** Recorded so a later session does not re-audit it |
 
+## Innovation Lab UI
+
+Authority: the owner instruction of 11 August 2026 promoting the **UI-facing** portions of [`../product/innovation-lab.md`](../product/innovation-lab.md) into implementation, delivered as the UI pass recorded in that register. Twelve `INNOV-*` rows reached a production surface.
+
+**This section holds only what the backend section above does not.** Both sessions ran at once and both wrote requirement rows; where a UI gap and a backend gap are the same requirement — `INNOV-003`, `-004`, `-005`, `-008`, `-009`, `-010`, `-015`, `-020`, `-021`, `-022` — the row above is the one row, and it is not repeated here. Two lists of one requirement is how a requirement gets implemented twice.
+
+The four rows below are sub-requirements the UI pass discovered and the backend section does not carry. They take an `a` suffix rather than a new number, so the trail back to the Innovation Lab entry survives.
+
+| ID | Requirement | Depends on | Acceptance evidence | Status |
+| --- | --- | --- | --- | --- |
+| `INNOV-011a` | The cohort's predicted-goals distribution, so "your prediction was bolder than 86% of players" can be stated | A consensus read returning the distribution rather than the five most-predicted scorelines. Contract 176 added the per-PLAYER half; this is the per-COHORT half | The percentile derived from a full distribution and asserted against a seeded cohort, under the same minimum cohort | Accepted — unimplemented. The **outcome-share** half of `INNOV-011` is delivered in the UI; this is the half that was left out rather than approximated from five rows |
+| `INNOV-012a` | Season-wide league honours — Comeback of the Season, a season Exact Score King, a season Form Player | A read spanning matchweeks for a league; deriving them in a browser is one request per matchweek. Each honour's window, denominator and tie behaviour is a product definition, per `INNOV-012` above | Each honour computed server-side with a published definition and a tie rule, asserted over a seeded season | Accepted — unimplemented. The **per-matchweek** honours are delivered in the UI and publish their own definitions |
+| `INNOV-017a` | A server-supplied confirmation instant and receipt identifier for a submitted card — the ordinary half of `INNOV-017`, separable from the cryptographic commitment | `confirm_season_matchweek_card` returning them, and `get_season_matchweek_card` carrying them | A receipt quoting the server's own instant and identifier rather than the device's clock | Accepted — unimplemented. The shipped receipt **states no time and no reference**, and must never call an ordinary database write "verified". This row is deliberately narrower than `INNOV-017`: it needs no cryptographic review |
+| `INNOV-019a` | A bounded administrator read over the staged provider **change** proposals contract 174 stages | The change-proposal evidence being browser-readable | An administrator seeing a staged change with its warnings and blockers named, and refusing to auto-confirm from the interface | Accepted — unimplemented. The staged **calendar** proposals and entrant inspection are already reachable; the change proposals are not. The cross-provider half is `INNOV-019` above and needs a second provider |
+
 ## Documentation safeguards
 
 Authority: [`../ops/documentation-authorities.md`](../ops/documentation-authorities.md) § Safeguards for agent-readable documentation.
@@ -325,5 +340,7 @@ Authority: [`../ops/documentation-authorities.md`](../ops/documentation-authorit
 This register was created on 6 August 2026 by the documentation reconciliation that also produced [ADR 0026](../adr/0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md). It supersedes no prior file. Before it existed, accepted-but-unimplemented requirements were spread across ADR prose, the roadmap and `MASTER-TODO.md` without stable identifiers, which is how several were lost and later rediscovered by audit.
 
 The 10 August 2026 UI finalisation direction extends it again with `MIG-UI-01`–`MIG-UI-12`, for the same reason: those are the backend gaps a frontend session is most likely to discover, and a discovery recorded only in a session report is a discovery lost.
+
+The 11 August 2026 Innovation Lab UI pass extends it once more with the `INNOV-*` rows above. They keep the Innovation Lab's own identifiers on purpose: a requirement that changes its name between the document that proposed it and the document that tracks it is a requirement two sessions will implement twice.
 
 The 7 August 2026 Domestic Frontend Alpha reconciliation extends the same register rather than creating a second requirements file. Requirement rows remain here until implementation evidence exists; roadmap/TODO references may point to these identifiers without restating their acceptance evidence.

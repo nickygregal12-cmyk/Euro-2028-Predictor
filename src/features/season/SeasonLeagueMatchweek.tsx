@@ -12,6 +12,9 @@ import {
   LEAGUE_MEMBER_NOUN,
   type ListCoverage,
 } from '../shared/listCoverage'
+import type { SeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovementModel'
+import { presentSideHonours } from './sideHonoursModel'
+import { SeasonLeagueHonours } from './SeasonLeagueHonours'
 import styles from './SeasonLeagueMatchweek.module.css'
 
 /**
@@ -50,12 +53,26 @@ export type SeasonLeagueMatchweekProps = {
   playerHref?: (playerId: string) => string
   /** Deterministic zone for harnesses and tests; production resolves the viewer's. */
   timeZone?: string
+  /**
+   * Contract 150's movement for this same matchweek, when the caller has it.
+   * Present, the `INNOV-012` honours can award Biggest Mover; absent, they
+   * simply do not include it. This component never reads it for itself.
+   */
+  movement?: SeasonLeagueMovement | null
 }
 
 type State =
   | { kind: 'loading' }
   | { kind: 'failed' }
-  | { kind: 'ready'; view: LeagueMatchweekView }
+  | {
+      kind: 'ready'
+      view: LeagueMatchweekView
+      /**
+       * The payload the view came from, carried so the `INNOV-012` honours can
+       * be derived from it without a second read of the same matchweek.
+       */
+      page: SeasonLeagueMatchweekPredictions
+    }
 
 export function SeasonLeagueMatchweek({
   leagueId,
@@ -64,6 +81,7 @@ export function SeasonLeagueMatchweek({
   load,
   playerHref,
   timeZone,
+  movement = null,
 }: SeasonLeagueMatchweekProps) {
   const [state, setState] = useState<State>({ kind: 'loading' })
 
@@ -73,7 +91,9 @@ export function SeasonLeagueMatchweek({
     setState({ kind: 'loading' })
     load(leagueId, competitionRoundId)
       .then((page) => {
-        if (active) setState({ kind: 'ready', view: presentLeagueMatchweek(page, timeZone) })
+        if (active) {
+          setState({ kind: 'ready', view: presentLeagueMatchweek(page, timeZone), page })
+        }
       })
       .catch(() => {
         if (active) setState({ kind: 'failed' })
@@ -108,7 +128,7 @@ export function SeasonLeagueMatchweek({
     )
   }
 
-  const { view } = state
+  const { view, page } = state
 
   if (!view.revealed) {
     return (
@@ -205,6 +225,11 @@ export function SeasonLeagueMatchweek({
           </table>
         </div>
       </div>
+
+      {/* INNOV-012, below the matchweek it describes and never beside the
+          table: these change no points and no position, and a settled
+          matchweek is the only thing they are ever awarded from. */}
+      <SeasonLeagueHonours honours={presentSideHonours(page, movement)} />
     </div>
   )
 }

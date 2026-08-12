@@ -54,3 +54,30 @@ body {
   white-space: nowrap;
   border: 0;
 }
+
+/* INNOV-024 — native view transitions, used selectively and never required.
+   Only the links that opt in (react-router's `viewTransition`) animate; the
+   rest of the product navigates exactly as it did.
+
+   REDUCED MOTION IS SUPPRESSED HERE AND IN CODE. A view transition is driven by
+   the browser at document level, so this rule is what actually stops it — the
+   `!important` is load-bearing because the UA stylesheet supplies the default
+   cross-fade animation and an ordinary declaration does not beat it.
+   `withViewTransition` makes the same check for imperative callers. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
+/* Slightly faster than the UA default, so a transition never delays the page a
+   player asked for. Tokens, so it moves with the rest of the motion system. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--duration-enter);
+    animation-timing-function: var(--ease-out);
+  }
+}

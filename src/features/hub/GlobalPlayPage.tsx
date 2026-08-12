@@ -4,6 +4,7 @@ import { formatDeadline } from '../../shared/time/kickoff'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
 import { useGlobalPlayInbox } from './useGlobalPlayInbox'
+import { BriefingPanel } from './BriefingPanel'
 import type { InboxAction } from './playInboxModel'
 import styles from './GlobalPlayPage.module.css'
 import s from '../shared.module.css'
@@ -149,6 +150,25 @@ export function GlobalPlayPage() {
           panel. */}
       <Workspace>
       <h1 className={s.title}>Play</h1>
+
+      {/* INNOV-016, the same module the Hub carries and the same inbox behind
+          it. `/play` has no football list of its own, so the briefing here
+          speaks only about what is due and when — which is what this page is
+          for. It renders nothing when nothing is outstanding. */}
+      <BriefingPanel
+        input={{
+          now: new Date(),
+          fixturesToday: 0,
+          competitionsWithFixturesToday: 0,
+          outstanding: [...inbox.urgent, ...inbox.thisWeek].map((action) => ({
+            competitionName: action.competitionName,
+            gameName: action.gameName,
+            title: action.title,
+            locksAt: action.locksAt,
+          })),
+          standing: null,
+        }}
+      />
       <p className={styles.intro}>
         Everything your joined games are asking for, across every competition you play in.
       </p>

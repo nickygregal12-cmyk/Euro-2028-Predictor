@@ -8,6 +8,8 @@ import {
 } from '../../services/supabase/seasonPlayerProfile'
 import { competitionSectionRoute } from '../../app/weeklyRoutes'
 import { SeasonPlayerSeason } from './SeasonPlayerSeason'
+import { PredictionDnaPanel } from './PredictionDnaPanel'
+import { useAuth } from '../auth/AuthProvider'
 import { SeasonCompetitionShell } from './SeasonCompetitionShell'
 import { seasonBasePath, seasonShellDestinations } from './seasonDestinations'
 import { useSeasonPlayContext } from './useSeasonPlayContext'
@@ -55,6 +57,7 @@ export function SeasonPlayerProfileRoute() {
     playerId: string
   }>()
 
+  const { userId } = useAuth()
   const gateway = useMemo(() => createSeasonPlayContextGateway(), [])
   const state = useSeasonPlayContext(gateway, competitionSlug, seasonSlug)
   const context = state.kind === 'ready' || state.kind === 'season_over' ? state.context : null
@@ -83,6 +86,35 @@ export function SeasonPlayerProfileRoute() {
       active = false
     }
   }, [tournamentId, playerId])
+
+  /**
+   * The viewer's own season, for the `INNOV-002` comparison.
+   *
+   * ONE EXTRA READ, AND ONLY WHEN IT WOULD BE USED: never for a player looking
+   * at their own page, where the comparison would be against themselves. It
+   * fails to absent — a comparison is context, and losing it must not touch the
+   * profile the page exists for. Contract 151 always permits a player to read
+   * their own profile, so this cannot be refused by the privacy boundary.
+   */
+  const [me, setMe] = useState<SeasonPlayerProfile | null>(null)
+  useEffect(() => {
+    if (tournamentId === null || !userId || userId === playerId) {
+      setMe(null)
+      return
+    }
+    let active = true
+    fetchSeasonPlayerProfile(tournamentId, userId).then(
+      (answer) => {
+        if (active) setMe(answer)
+      },
+      () => {
+        if (active) setMe(null)
+      },
+    )
+    return () => {
+      active = false
+    }
+  }, [tournamentId, userId, playerId])
 
   if (state.kind === 'loading') {
     return (
@@ -137,7 +169,20 @@ export function SeasonPlayerProfileRoute() {
           Nothing is hidden here — the read failed. Try again shortly.
         </Alert>
       ) : (
-        <SeasonPlayerSeason profile={profile.profile} />
+        <>
+          <SeasonPlayerSeason profile={profile.profile} />
+          {/* INNOV-002, below the season it describes. It measures the
+              player's own recorded predictions and changes no points, rank or
+              standing. */}
+          <PredictionDnaPanel
+            profile={profile.profile}
+            compareWith={me}
+            share={{
+              competitionName: context.competitionName,
+              url: `${base}/players/${playerId ?? ''}`,
+            }}
+          />
+        </>
       )}
     </SeasonCompetitionShell>
   )

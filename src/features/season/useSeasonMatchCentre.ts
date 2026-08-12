@@ -26,7 +26,19 @@ export type SeasonMatchCentreState =
   | { status: 'loading' }
   | { status: 'not_playing' }
   | { status: 'failed'; error: string }
-  | { status: 'ready'; view: MatchCentreView }
+  | {
+      status: 'ready'
+      view: MatchCentreView
+      /**
+       * The card the view was derived from, carried rather than re-read.
+       *
+       * `MatchCentreView` formats the prediction as a string for display, and
+       * the `INNOV-001` projection needs the goals as numbers to score a
+       * hypothetical scoreline with. Parsing "2 - 1" back into a pair would be a
+       * second decoder over data this hook already holds.
+       */
+      card: MatchPredictorPage
+    }
 
 export type SeasonMatchCentreCardReader = (matchweek: number) => Promise<MatchPredictorPage>
 
@@ -50,7 +62,7 @@ export function useSeasonMatchCentre(
     read(matchweek)
       .then((card) => {
         if (!active) return
-        setState({ status: 'ready', view: presentMatchCentre(fixture, card) })
+        setState({ status: 'ready', view: presentMatchCentre(fixture, card), card })
       })
       .catch((cause: unknown) => {
         if (!active) return

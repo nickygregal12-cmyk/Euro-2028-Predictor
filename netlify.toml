@@ -191,6 +191,15 @@
   to = "/index.html"
   status = 200
 
+# The matchday television screen (INNOV-006). A 200 because it is an address a
+# host opens directly on a shared device, often typed or bookmarked rather than
+# navigated to; who may read it is still the server's decision and the signed-in
+# guard's, and this redirect makes neither.
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/tv"
+  to = "/index.html"
+  status = 200
+
 # One player's season inside a competition (contract 151). A 200 because it is
 # linked from private-league surfaces and the Match Centre and can be reloaded
 # or shared between co-members; who may actually READ it is the server's

@@ -76,6 +76,9 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
   // route is a longer path, not a different one.
   [weeklyRoutePatterns.player, 'Player'],
   [weeklyRoutePatterns.matches, 'Matches'],
+  // INNOV-006. Named rather than left to the competition overview: a screen on
+  // a wall is exactly the tab somebody hunts for among ten open ones.
+  [weeklyRoutePatterns.tv, 'Matchday TV'],
   [weeklyRoutePatterns.leagues, 'Leagues'],
   [weeklyRoutePatterns.play, 'Play'],
   [weeklyRoutePatterns.competition, ''],

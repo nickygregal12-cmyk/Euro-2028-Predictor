@@ -283,3 +283,28 @@ same paragraph existed in seven places at once.
 | 178 | An independent recomputation of settled scoring that records disagreements and corrects nothing |
 
 *Current to contract 178.*
+
+## Innovation Lab UI pass — 11 August 2026
+
+Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovation-lab.md) were promoted by the owner and worked on in one frontend session. The classification below is the baseline's own, and it is deliberately conservative: a surface counts as **Implemented in repository** and nothing stronger, because none of it has been published and no hosted claim is made here.
+
+**The backend halves of four of these rows landed separately and first**, as contracts 175 to 178 under [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md) — `INNOV-001`, `INNOV-002`, `INNOV-020` and `INNOV-018`. They are **repository-only**: Development is hosted at 174, so none is in the generated database types and none is reachable from a browser. Every surface below therefore derives from reads that were already granted and is unaffected; where one of those contracts answers a gap this pass recorded, the Innovation Lab's own delivery record says so.
+
+**This pass changed no database, no hosted environment, no provider configuration and no Edge Function.** It added **no** scoring, lock, settlement, reveal, membership or standings authority. Every figure any new surface renders is derived from a read the server already grants, using `src/domain/season/scoring.ts` — the authority the database is parity-checked against — rather than a value re-typed into a component.
+
+| Innovation | Baseline effect | Classification |
+| --- | --- | --- |
+| `INNOV-001` What-If | The Match Centre answers what the current score and the next goal are worth, and — after the matchweek's own lock — what they would do to a private league's table. Every figure is a labelled projection; the panel refuses to render for a settled fixture or without a provider score | Implemented in repository |
+| `INNOV-002` Prediction DNA | The player's season route describes how they predict, from their own recorded predictions. Below ten predictions it says so rather than quoting a share | Implemented in repository |
+| `INNOV-006` Matchday TV | A read-only large-screen route for a room, carrying no write path, no account control and no admin read. Rotation stops under reduced motion | Implemented in repository |
+| `INNOV-007` Share | One share control over an allow-list of share kinds. There is no kind for an unlocked prediction and no field for another player's name | Implemented in repository |
+| `INNOV-011` Divergence | How unusual the player's own pick was, derived from the consensus counts already on the page. It cannot outrun the reveal rule because the payload it reads does not exist before the lock | Implemented in repository |
+| `INNOV-012` Side honours | Five deterministic per-matchweek awards on a private league, each publishing its rule and sharing rather than breaking a tie. **They change no points and no league position** | Implemented in repository |
+| `INNOV-014` Closest misses | What a settled matchweek's near misses would have been worth, visually separated from the official total | Implemented in repository |
+| `INNOV-016` Matchday briefing | One strip on Home and `/play` joining the action inbox, today's football and the player's standing. It computes no deadline, lock or rank | Implemented in repository |
+| `INNOV-017` Submission receipt | What has actually been submitted, claiming only what the card read said. **No reference number, no timestamp and no cryptographic claim** — the server returns none of them | Implemented in repository |
+| `INNOV-023` App badge | The installed icon carries the same outstanding count the AppBar shows, from the same inbox. Absent platform support changes nothing | Implemented in repository |
+| `INNOV-024` View transitions | Opt-in per link on two high-value navigations, suppressed under reduced motion in code as well as in CSS | Implemented in repository |
+| `INNOV-013` Archaeology | **No new surface.** The historic-fixture experience was already carried by the Match Centre route, and `INNOV-011` supplied the one missing part. Recorded so a later session does not build a second one | Superseded |
+
+Twelve further rows did not ship, each for a stated reason, and the reasons are recorded in the register's own delivery record rather than restated here. **None of them is rendered as a disabled or decorative control**: where a feature needs a server authority that does not exist, no surface exists either.
