@@ -189,6 +189,56 @@ def test_history_parser() -> None:
     print("  [pass] a row with no closing odds parses cleanly rather than crashing")
 
 
+def test_header_only_fixtures_file_is_not_an_error() -> None:
+    """Football-Data publishes a header and no rows between rounds.
+
+    This is what actually happened on hosted Development on 12 August 2026,
+    nine days before the season's first fixture: the bootstrap imported 46,215
+    matches and then died on `KeyError: 'Div'`. `dropna(how='all', axis=1)`
+    drops EVERY column of a row-less frame, because each one is vacuously
+    all-NaN, and the next line asked for a column that had just been removed.
+
+    A quiet week is not a failure. If it were, the Tuesday and Friday jobs
+    would go red on every international break until nobody read them.
+    """
+    import fetch_fixtures_odds as F
+    import sync_fixtures as S
+
+    empty = FIXTURES_HEADER + "\n"
+
+    with mock.patch.object(S.requests, "get", return_value=_fake_response(empty)):
+        assert S.fetch() == []
+
+    with mock.patch.object(F.requests, "get", return_value=_fake_response(empty)):
+        assert F.fetch(include_markets=True) == ([], [])
+        assert F.fetch() == []
+
+    print("  [pass] a header-only fixtures.csv syncs nothing instead of crashing")
+
+
+def test_header_only_season_file_is_not_an_error() -> None:
+    """The same shape in a season results file, before its first match."""
+    import fetch_history as H
+    empty = SEASON_HEADER + "\n"
+    with mock.patch.object(H.requests, "get", return_value=_fake_response(empty)):
+        assert H.fetch_one("E0", "2627") == []
+    print("  [pass] a header-only season file skips instead of crashing")
+
+
+def test_a_genuine_shape_change_still_fails_loudly() -> None:
+    """Empty is tolerated; wrong is not, and it names what it received."""
+    import sync_fixtures as S
+    wrong = "Division,Kickoff,Home,Away\nE0,05/09/2026,Arsenal,Chelsea\n"
+    with mock.patch.object(S.requests, "get", return_value=_fake_response(wrong)):
+        try:
+            S.fetch()
+        except SystemExit as exit_error:
+            assert "Div" in str(exit_error) and "Division" in str(exit_error)
+        else:
+            raise AssertionError("a changed fixtures.csv shape must not pass")
+    print("  [pass] a changed shape still fails, naming the columns it got")
+
+
 def main() -> None:
     print("1. fixtures.csv (live price feed)")
     test_fixtures_parser()
@@ -196,6 +246,10 @@ def main() -> None:
     test_fixture_sync_parser()
     print("\n3. season results file")
     test_history_parser()
+    print("\n4. quiet weeks and genuine shape changes")
+    test_header_only_fixtures_file_is_not_an_error()
+    test_header_only_season_file_is_not_an_error()
+    test_a_genuine_shape_change_still_fails_loudly()
     print("\nALL PARSER CHECKS PASSED (against real column layouts)")
 
 
