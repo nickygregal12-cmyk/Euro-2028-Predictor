@@ -264,6 +264,13 @@ insert into expected_authenticated_functions (signature) values
   ('get_my_private_competitions(integer,integer)'),
   ('get_private_competition_workspace(uuid)');
 
+-- Contract 181's setter is service_role and nothing else, on exactly contract
+-- 44's terms for the two ceilings beside it: an operating limit is an
+-- operations action and no browser session has cause to change one. The cap
+-- ITSELF is a trigger on `public.league_members` and so has no signature here.
+insert into expected_service_functions (signature) values
+  ('set_league_member_limit(integer)');
+
 -- Contract 178's RUN is service_role and nothing else: it is a job rather than
 -- an action, it writes evidence, and no browser session has cause to start one.
 insert into expected_service_functions (signature) values
