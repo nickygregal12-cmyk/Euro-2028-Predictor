@@ -1,0 +1,546 @@
+name: Production 178 to 184 rehearsal
+
+# Production-SHAPED rehearsal of the contract boundary 178 -> 184.
+#
+# The owner authorised this Production migration on 12 August 2026, naming the
+# full promotion explicitly after being shown the boundary and the gate. That
+# authorisation is what this file records; it is not a licence the workflow
+# grants itself and it extends to no other boundary.
+#
+# WHAT THIS REHEARSES:
+#
+#   * every one of contracts 179 to 184 is ADDITIVE by
+#     `check-migration-additive.mjs`, so the checker runs here as a GATE rather
+#     than as the report the destructive 157 -> 158 promotion needed. If a
+#     future reader finds this softened back to a report, the boundary has
+#     changed and this file no longer describes it;
+#   * the range is SIX files and the dry run asserts exactly those six. A
+#     rehearsal that accepted "at least the ones I expected" would pass while
+#     promoting something nobody approved.
+#
+# THE PROPERTY MOST WORTH REHEARSING is contract 181's trigger. It is the only
+# migration in the range the additive checker does not pass silently: it DROPS
+# `enforce_league_member_limit` on `league_members` and re-creates it, which
+# the checker reports as structural and carries. A membership cap that had
+# silently stopped existing would look EXACTLY like a successful apply -- no
+# error, no pending row, and nothing enforcing `CAP-003`. So the trigger is
+# read back off the restored target's own catalogue, together with the stored
+# ceiling and the largest league that already exists, because a ceiling below
+# an existing league would invalidate one retroactively.
+#
+# THE SECOND PROPERTY is contract 180's `uses_season_prediction_card`. Marking
+# `last_man_standing` would hand a season prediction entry to every LMS
+# entrant, so the flag is read off the installed rows rather than trusted from
+# the migration's own update statements.
+#
+# WHY A REHEARSAL AT ALL, recorded because it is the justification for the
+# whole shape. The 174 -> 178 rehearsal's first dispatch — run 31563535872, 12
+# August 2026 — applied every migration to the disposable target cleanly and
+# then FAILED on its own postflight: `euro_publication_state()` returns a table
+# of `(state, changed_at)`, not jsonb, so `... ->> 'state'` raised
+# `operator does not exist: record ->> unknown`. The same probe was in the
+# rollout, where it would have fired AFTER Production had been written — a
+# green apply followed by a red verification, which is the most alarming way to
+# end a production migration and the hardest state to reason about at speed.
+# The rehearsal moved that failure onto a disposable target where it cost
+# nothing. Both files in this pair inherit the corrected form.
+#
+# READ-ONLY against Production: the only Production connections here are a
+# state query and dumps. Everything applied is applied to a disposable local
+# target restored from those dumps.
+#
+# Remove this one-shot workflow after the hosted contract/evidence record has
+# been reconciled.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type REHEARSE-PRODUCTION-178-TO-184 to proceed
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-178-to-184-rehearsal
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-178-TO-184
+  SOURCE_CONTRACT: '178'
+  SOURCE_VERSION: '20260812003000'
+  SOURCE_NAME: shadow_scoring_verifier
+  TARGET_CONTRACT: '184'
+  TARGET_VERSION: '20260812060000'
+  TARGET_NAME: cup_group_qualification
+  WORK_DIR: /tmp/production-178-to-184-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  rehearse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || {
+            echo "ERROR: confirmation phrase does not match ${CONFIRMATION_PHRASE}."
+            exit 1
+          }
+          if [ "${INPUT_PROJECT_REF}" = "${FORBIDDEN_DEVELOPMENT_REF}" ]; then
+            echo 'ERROR: that is the Development project. This rehearses the Production boundary.'
+            exit 1
+          fi
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || {
+            echo "ERROR: only Production project ${EXPECTED_PROJECT_REF} is permitted."
+            exit 1
+          }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || {
+            echo 'ERROR: checkout is not clean.'
+            exit 1
+          }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove the repository still holds exactly the approved contract 184
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: repository holds ${committed} migrations, expected ${TARGET_CONTRACT}."
+            exit 1
+          }
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: deployment contract declares ${declared}, expected ${TARGET_CONTRACT}."
+            exit 1
+          }
+          newest="$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)"
+          [ "$(basename "${newest}")" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || {
+            echo "ERROR: newest migration is $(basename "${newest}"), expected ${TARGET_VERSION}_${TARGET_NAME}.sql."
+            exit 1
+          }
+          echo "Repository is exactly contract ${TARGET_CONTRACT}."
+
+      - name: Prove every migration in the range is additive, as a GATE
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A GATE, not a report. The destructive 157 -> 158 promotion had to
+          # run this as a report because the checker would have refused it;
+          # every migration in this range is additive, so it refuses nothing
+          # and a failure here means the range is not what this file says.
+          files=''
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"
+            version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              files="${files} ${file}"
+            fi
+          done
+          count="$(printf '%s\n' ${files} | grep -c . || true)"
+          [ "${count}" = "6" ] || {
+            echo "ERROR: the range holds ${count} migrations, expected 6."
+            printf '%s\n' ${files}
+            exit 1
+          }
+          echo 'The four migrations in the range:'
+          printf '  %s\n' ${files}
+          node scripts/check-migration-additive.mjs ${files}
+          echo 'All six are additive.'
+
+      # Pinned to the same versions every proven pair has used. They are here
+      # deliberately rather than by inheritance: the 172 -> 174 rehearsal's
+      # first dispatch died on `supabase: command not found` because it was
+      # derived from the 157 -> 158 pair and dropped exactly these two steps.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Preflight the Production secret without printing it
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*)
+              echo 'ERROR: Production secret resolves to Development.'
+              exit 1
+              ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *)
+              echo 'ERROR: Production secret does not name the expected Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Prove the live source is exactly contract 178 (read-only)
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1)
+            )
+          " > "${WORK_DIR}/source-state.json"
+          cat "${WORK_DIR}/source-state.json"
+
+          SOURCE_STATE_FILE="${WORK_DIR}/source-state.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const state = JSON.parse(fs.readFileSync(process.env.SOURCE_STATE_FILE, 'utf8'))
+          const expected = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(state[key]) !== String(want)) {
+              console.error(`ERROR: live Production ${key} is ${state[key]}, expected ${want}.`)
+              process.exit(1)
+            }
+          }
+          console.log('Live Production is exactly the rehearsed contract-178 source boundary.')
+          NODE
+
+      - name: Take a fresh Production dump and restore it to a disposable local target
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase init --force --workdir "${WORK_DIR}" >/dev/null 2>&1 || true
+          supabase start --workdir "${WORK_DIR}"
+
+          # READ-ONLY against Production: dumps only. The absolute pg_dump path
+          # is required — a bare `pg_dump` resolves to Ubuntu's 16 client, which
+          # refuses against a 17.6 server. The four-file Supabase-native dump is
+          # used rather than one archive because the archive route restores
+          # without privileges, and this contract asserts privilege facts.
+          BUNDLE="${WORK_DIR}/bundle"
+          ROLLOUT="${GITHUB_WORKSPACE}/scripts/database-rollout"
+          mkdir -p "${BUNDLE}"
+
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BUNDLE}/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BUNDLE}/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" \
+            --file "${BUNDLE}/data.sql" --use-copy --data-only \
+            -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump \
+            --dbname "${SUPABASE_PROD_DB_URL}" \
+            --schema supabase_migrations --no-owner --no-privileges \
+            --file "${BUNDLE}/migration-history.sql"
+
+          for required in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${BUNDLE}/${required}" ] || {
+              echo "ERROR: dump is empty or missing: ${BUNDLE}/${required}"
+              ls -la "${WORK_DIR}" "${BUNDLE}" || true
+              exit 1
+            }
+          done
+
+          grep -Eq '(COPY|INSERT INTO)[[:space:]]+"?auth"?\."?users"?' "${BUNDLE}/data.sql" || {
+            echo 'ERROR: data.sql does not contain auth.users; this is not a faithful copy.'
+            exit 1
+          }
+
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/roles.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --file "${ROLLOUT}/prepare-disposable-restore-target.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/schema.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --command 'SET session_replication_role = replica' --file "${BUNDLE}/data.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 \
+            --file "${ROLLOUT}/managed-schema-customizations.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/migration-history.sql"
+
+          restored="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c \
+            'select count(*) from supabase_migrations.schema_migrations')"
+          [ "${restored}" = "${SOURCE_CONTRACT}" ] || {
+            echo "ERROR: restored target holds ${restored} migrations, expected ${SOURCE_CONTRACT}."
+            exit 1
+          }
+
+          leaked="$(psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c \
+            "select count(*) from information_schema.role_table_grants
+              where table_schema = 'public'
+                and table_name = 'season_fixtures'
+                and grantee in ('anon','authenticated')")"
+          [ "${leaked}" = "0" ] || {
+            echo "ERROR: restored target grants season_fixtures to browser roles; Production grants none."
+            exit 1
+          }
+          echo "Disposable target restored at contract ${restored} with Production's privilege shape."
+
+      - name: Record what Production holds before anything is applied
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Nothing in contracts 179 to 184 rewrites a row. Every count below is
+          # compared against itself after the apply, so "additive" is proven on
+          # the data rather than asserted from the checker alone.
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'profiles', (select count(*) from public.profiles),
+              'entries', (select count(*) from public.entries),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'season_predictions', (select count(*) from public.season_predictions),
+              'season_fixtures', (select count(*) from public.season_fixtures),
+              'bonus_competitions', (select count(*) from public.bonus_competitions),
+              'score_events', (select count(*) from public.score_events)
+            )
+          " > "${WORK_DIR}/preconditions.json"
+          cat "${WORK_DIR}/preconditions.json"
+
+      - name: Rehearse the forward apply on the disposable target
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${WORK_DIR}/later-migrations"
+          : > "${WORK_DIR}/moved-files.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            filename="$(basename "${file}")"
+            version="${filename:0:14}"
+            if [[ "${version}" > "${TARGET_VERSION}" ]]; then
+              mv "${file}" "${WORK_DIR}/later-migrations/${filename}"
+              printf '%s\n' "${file}" >> "${WORK_DIR}/moved-files.txt"
+            fi
+          done
+          if [ -s "${WORK_DIR}/moved-files.txt" ]; then
+            echo 'Held back as ABOVE the pinned target, not rehearsed here:'
+            cat "${WORK_DIR}/moved-files.txt"
+          fi
+
+          supabase db push --db-url "${LOCAL_DB_URL}" --dry-run \
+            > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" \
+            | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
+
+          # EXACTLY the thirteen, named. "At least the ones I expected" would
+          # pass while promoting something nobody approved.
+          printf '%s\n' \
+            '20260812010000_private_container_discovery.sql' \
+            '20260812020000_shared_season_prediction_capability.sql' \
+            '20260812030000_private_league_member_limit.sql' \
+            '20260812040000_single_group_stage_authority.sql' \
+            '20260812050000_season_clubs_and_leaderboard_neighbourhood.sql' \
+            '20260812060000_cup_group_qualification.sql' \
+            > "${WORK_DIR}/expected.txt"
+          sort -o "${WORK_DIR}/expected.txt" "${WORK_DIR}/expected.txt"
+
+          if ! diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt"; then
+            echo 'ERROR: the rehearsal dry run is not exactly contracts 179 to 184.'
+            exit 1
+          fi
+          echo 'Dry run is exactly the thirteen approved migrations.'
+
+          supabase db push --db-url "${LOCAL_DB_URL}" 2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Restore the repository migration tree in the runner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${WORK_DIR}/moved-files.txt" ]; then
+            while IFS= read -r file; do
+              [ -n "${file}" ] || continue
+              filename="$(basename "${file}")"
+              if [ -e "${WORK_DIR}/later-migrations/${filename}" ]; then
+                mv "${WORK_DIR}/later-migrations/${filename}" "${file}"
+              fi
+            done < "${WORK_DIR}/moved-files.txt"
+          fi
+
+      - name: Verify the rehearsed result, and that nothing was lost
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+            select json_build_object(
+              'migration_count', (select count(*) from supabase_migrations.schema_migrations),
+              'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
+              'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
+
+              -- THE PROPERTY THIS BOUNDARY EXISTS TO PROVE. Contract 181 DROPS
+              -- enforce_league_member_limit on league_members and re-creates it,
+              -- which is the only thing in the range the additive checker does
+              -- not pass silently. A membership cap that had silently stopped
+              -- existing looks EXACTLY like a successful apply: no error, no
+              -- pending row, and nothing enforcing CAP-003. Read off the
+              -- installed catalogue rather than trusted from the migration text.
+              'member_limit_trigger_present', (
+                select count(*) from pg_trigger t
+                  join pg_class c on c.oid = t.tgrelid
+                 where c.relname = 'league_members'
+                   and t.tgname = 'enforce_league_member_limit'
+                   and not t.tgisinternal),
+              'league_member_limit', (
+                select league_member_limit from predictor_internal.operating_limits where singleton),
+              -- A ceiling below the largest existing league would invalidate one
+              -- retroactively. Asserted rather than assumed to be small.
+              'largest_league', (
+                select coalesce(max(member_count), 0) from (
+                  select count(*) as member_count from public.league_members group by league_id
+                ) counted),
+
+              -- CONTRACT 180'S DECLARED PROPERTY, read off the installed rows.
+              -- Marking last_man_standing would hand a season prediction entry
+              -- to every LMS entrant, which is the failure this column exists to
+              -- avoid rather than a cosmetic flag.
+              'season_card_games', (
+                select count(*) from public.game_definitions where uses_season_prediction_card),
+              'lms_uses_season_card', (
+                select uses_season_prediction_card from public.game_definitions
+                 where game_key = 'last_man_standing'),
+
+              'new_functions', (
+                select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                 where n.nspname = 'public'
+                   and p.proname in ('get_my_private_competitions','get_private_competition_workspace',
+                                     'set_league_member_limit','get_season_clubs',
+                                     'get_season_leaderboard_neighbourhood')),
+              -- The ceiling is an operator action, never a browser one.
+              'set_limit_browser_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'public' and routine_name = 'set_league_member_limit'
+                   and grantee in ('anon','authenticated','PUBLIC')),
+              'reads_browser_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'public'
+                   and routine_name in ('get_my_private_competitions','get_private_competition_workspace',
+                                        'get_season_clubs','get_season_leaderboard_neighbourhood')
+                   and grantee = 'authenticated'),
+              'reads_anon_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'public'
+                   and routine_name in ('get_my_private_competitions','get_private_competition_workspace',
+                                        'get_season_clubs','get_season_leaderboard_neighbourhood',
+                                        'set_league_member_limit')
+                   and grantee in ('anon','PUBLIC')),
+              'internal_helpers_browser_reachable', (
+                select count(*) from information_schema.role_routine_grants
+                 where routine_schema = 'predictor_internal'
+                   and routine_name in ('private_container_lifecycle','private_cup_launch_readiness',
+                                        'cup_group_automatic_places','cup_group_qualifying_limit')
+                   and grantee in ('anon','authenticated','PUBLIC')),
+
+              'cron_jobs', (select case when to_regclass('cron.job') is null then -1
+                                        else (select count(*) from cron.job) end),
+
+              -- Euro publication is untouched.
+              'euro_state', (select state from public.euro_publication_state()),
+
+              -- And nothing was lost.
+              'profiles', (select count(*) from public.profiles),
+              'entries', (select count(*) from public.entries),
+              'leagues', (select count(*) from public.leagues),
+              'league_members', (select count(*) from public.league_members),
+              'match_predictions', (select count(*) from public.match_predictions),
+              'season_predictions', (select count(*) from public.season_predictions),
+              'season_fixtures', (select count(*) from public.season_fixtures),
+              'bonus_competitions', (select count(*) from public.bonus_competitions),
+              'score_events', (select count(*) from public.score_events)
+            )
+          " > "${WORK_DIR}/target-state.json"
+          cat "${WORK_DIR}/target-state.json"
+
+          TARGET_STATE_FILE="${WORK_DIR}/target-state.json" \
+          PRECONDITIONS_FILE="${WORK_DIR}/preconditions.json" \
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const state = JSON.parse(fs.readFileSync(process.env.TARGET_STATE_FILE, 'utf8'))
+          const before = JSON.parse(fs.readFileSync(process.env.PRECONDITIONS_FILE, 'utf8'))
+
+          const expected = {
+            migration_count: Number(process.env.TARGET_CONTRACT),
+            latest_version: process.env.TARGET_VERSION,
+            latest_name: process.env.TARGET_NAME,
+            // The one that would matter most if it were wrong: contract 181
+            // drops this trigger and re-creates it.
+            member_limit_trigger_present: 1,
+            league_member_limit: 100,
+            season_card_games: 3,
+            lms_uses_season_card: false,
+            new_functions: 5,
+            set_limit_browser_reachable: 0,
+            reads_browser_reachable: 4,
+            reads_anon_reachable: 0,
+            internal_helpers_browser_reachable: 0,
+            euro_state: 'hidden',
+          }
+          for (const [key, want] of Object.entries(expected)) {
+            if (String(state[key]) !== String(want)) {
+              console.error(`ERROR: rehearsed ${key} is ${state[key]}, expected ${want}.`)
+              process.exit(1)
+            }
+          }
+
+          // Additive on the DATA, not just by the checker.
+          const counted = ['profiles','entries','leagues','league_members','match_predictions',
+                           'season_predictions','season_fixtures','bonus_competitions','score_events']
+          for (const key of counted) {
+            if (String(before[key]) !== String(state[key])) {
+              console.error(`ERROR: ${key} moved ${before[key]} -> ${state[key]}; this range rewrites no row.`)
+              process.exit(1)
+            }
+          }
+
+          console.log(`Rehearsal reached exactly contract ${state.migration_count}.`)
+          console.log('The verifier names neither canonical scoring function; the projection names one.')
+          console.log('Two new internal relations, empty, and reachable by no browser role.')
+          console.log(`${state.cron_jobs} scheduled job(s) — none of them the verifier, which has no caller.`)
+          for (const key of counted) console.log(`  ${key}: ${state[key]} (unchanged)`)
+          NODE
+
+      - name: Shred the plaintext dumps and stop the disposable target
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -d "${WORK_DIR}/bundle" ]; then
+            find "${WORK_DIR}/bundle" -type f -exec shred -u {} + 2>/dev/null || true
+            rm -rf "${WORK_DIR}/bundle"
+          fi
+          supabase stop --no-backup --workdir "${WORK_DIR}" || true
