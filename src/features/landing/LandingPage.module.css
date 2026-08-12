@@ -35,12 +35,11 @@
 }
 
 /* The same skip link `PageShell` gives every signed-in route, restated because
-   this page has its own chrome and does not mount the app shell. */
-/* Matched to `PageShell`'s, including the 44px minimum it gained from the
-   same measurement. This page has its own chrome and does not mount the app
-   shell, so the rule is restated rather than shared — and a restated rule
-   that drifts from its original is worse than none, which is why the two are
-   corrected together. */
+   this page has its own chrome and does not mount the app shell — including
+   the 44px minimum `PageShell`'s gained from the `UI-F18` sweep, which
+   measured both a pixel under it. A restated rule that drifts from its
+   original is worse than no restatement, which is why the two were corrected
+   together. */
 .skipLink {
   position: absolute;
   display: inline-flex;
@@ -339,18 +338,25 @@
   min-width: 0;
 }
 
-/* The Euro deployment's hero. One column on a phone; on desktop the lifecycle
-   card sits beside the copy, which is what stops the page reading as a
-   headline alone in the middle of a 1200px shell. The card is narrower than
-   the copy on purpose — it is the answer to one question, not a second
-   proposition competing with the first. */
-.euroHeroGrid {
+/* A hero whose second column is a short status card rather than a product
+   preview. One column on a phone; on desktop the card sits beside the copy,
+   which is what stops the page reading as a headline alone in the middle of a
+   1200px shell. The card is narrower than the copy on purpose — it is the
+   answer to one question, not a second proposition competing with the first.
+
+   The tournament deployment uses it because that build has no draw, no teams
+   and no fixtures, so a simulated product preview there would be the
+   placeholder the design authority forbids. The class is named for the SHAPE
+   rather than for the site: `euroAbsentFromPublicSurfaces.test.ts` reads this
+   stylesheet as a public weekly surface, and a class name is served where a
+   comment is not. */
+.heroAsideGrid {
   display: grid;
   gap: calc(var(--sp-1) * 10);
   align-items: start;
 }
 
-.euroStatusCard {
+.heroStatusCard {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
@@ -361,7 +367,7 @@
   background: var(--card);
 }
 
-.euroStatusLabel {
+.heroStatusLabel {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
@@ -371,14 +377,14 @@
   color: var(--tx3);
 }
 
-.euroStatusList {
+.heroStatusList {
   display: flex;
   flex-direction: column;
   gap: 0;
   margin: 0;
 }
 
-.euroStatusRow {
+.heroStatusRow {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -387,24 +393,24 @@
   min-width: 0;
 }
 
-.euroStatusRow:last-child {
+.heroStatusRow:last-child {
   border-bottom: 0;
 }
 
-.euroStatusRow dt {
+.heroStatusRow dt {
   font-family: var(--font-display);
   font-size: var(--fs-2);
   font-weight: 600;
   color: var(--tx);
 }
 
-.euroStatusRow dd {
+.heroStatusRow dd {
   margin: 0;
   font-size: var(--fs-2);
   color: var(--tx2);
 }
 
-.euroStatusNote {
+.heroStatusNote {
   margin: 0;
   font-size: var(--fs-1);
   color: var(--tx3);
@@ -1312,7 +1318,7 @@
 
   /* Copy first and wider. The card answers one question and must not read as
      a second proposition beside the headline. */
-  .euroHeroGrid {
+  .heroAsideGrid {
     grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
   }
 

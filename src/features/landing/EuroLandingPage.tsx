@@ -118,7 +118,7 @@ export function EuroLandingPage({
                 with: is this open, and what can I do now. That answer comes
                 from contract 143 and the site configuration, and from nothing
                 else. */}
-            <div className={s.euroHeroGrid}>
+            <div className={s.heroAsideGrid}>
               <div className={s.heroCopy}>
                 <p className={s.eyebrow}>{presentation.status}</p>
                 <h1 className={s.heroHeading} id="euro-hero-heading">
@@ -135,10 +135,10 @@ export function EuroLandingPage({
                 </div>
               </div>
 
-              <aside className={s.euroStatusCard} aria-label="What is open on this site">
-                <p className={s.euroStatusLabel}>Right now</p>
-                <dl className={s.euroStatusList}>
-                  <div className={s.euroStatusRow}>
+              <aside className={s.heroStatusCard} aria-label="What is open on this site">
+                <p className={s.heroStatusLabel}>Right now</p>
+                <dl className={s.heroStatusList}>
+                  <div className={s.heroStatusRow}>
                     <dt>{primaryGames(site.variant)[0]?.name ?? 'The tournament'}</dt>
                     {/* The server's word, never a guess. `registrationOpen` is
                         false for every state except the two that genuinely
@@ -146,7 +146,7 @@ export function EuroLandingPage({
                     <dd>{presentation.registrationOpen ? 'Registration open' : 'Not open yet'}</dd>
                   </div>
                   {site.navigation.bonusGamesLabel && bonusGames(site.variant).length > 0 ? (
-                    <div className={s.euroStatusRow}>
+                    <div className={s.heroStatusRow}>
                       <dt>{site.navigation.bonusGamesLabel}</dt>
                       <dd>
                         {bonusGames(site.variant)
@@ -155,7 +155,7 @@ export function EuroLandingPage({
                       </dd>
                     </div>
                   ) : null}
-                  <div className={s.euroStatusRow}>
+                  <div className={s.heroStatusRow}>
                     <dt>Your account</dt>
                     <dd>
                       {sibling
@@ -164,7 +164,7 @@ export function EuroLandingPage({
                     </dd>
                   </div>
                 </dl>
-                <p className={s.euroStatusNote}>
+                <p className={s.heroStatusNote}>
                   Every game is joined separately. Creating an account enters you into nothing.
                 </p>
               </aside>
