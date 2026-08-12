@@ -273,4 +273,20 @@ describe('the smoke copies agree with the site authority', () => {
   it('refuses an unknown origin in the browser spec too, rather than guessing', () => {
     expect(browserSpec).toContain('this smoke does not guess which product an origin serves')
   })
+
+  it('dispatches only origins the smoke will accept', () => {
+    // The workflow chooses the origin and the script decides whether to smoke
+    // it. An origin the workflow can select but the script does not know is a
+    // run that dies on "refusing to smoke-test non-production origin" — a
+    // caller error by its wording, a configuration defect in fact.
+    const selectable = [...workflow.matchAll(/'(https:\/\/[^']+)'/g)].map((match) => match[1])
+    expect(selectable.length, 'the workflow selects no origin at all').toBeGreaterThan(0)
+    for (const origin of selectable) {
+      expect(smoke, `the workflow can dispatch ${origin} and the smoke would refuse it`).toContain(
+        `'${origin}'`,
+      )
+    }
+    // Both sites, so adding an input option without its origin fails here.
+    for (const origin of origins) expect(selectable).toContain(origin)
+  })
 })

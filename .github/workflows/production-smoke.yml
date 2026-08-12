@@ -27,6 +27,17 @@ name: Production Smoke
 on:
   workflow_dispatch:
     inputs:
+      site:
+        description: >-
+          Which production deployment to smoke. ADR 0026 builds two from one
+          commit and both must be verified separately: they share a Supabase
+          project and a release identity but not a bundle, so a green run
+          against one says nothing about the other.
+        type: choice
+        default: euro
+        options:
+          - euro
+          - hub
       expected_commit:
         description: Exact published production commit to verify
         required: true
@@ -41,7 +52,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-smoke
+  # PER SITE, so smoking one deployment never cancels or queues behind the
+  # other. They are independent artifacts and a release means checking both.
+  group: production-smoke-${{ inputs.site }}
   cancel-in-progress: false
 
 jobs:
@@ -50,7 +63,20 @@ jobs:
     timeout-minutes: 20
 
     env:
-      PRODUCTION_ORIGIN: https://euro28predictor.com
+      # ONE SUPABASE PROJECT, TWO ORIGINS. ADR 0026's two deployments share the
+      # backend and the account model, so the expected project reference is the
+      # same for both and only the address differs. `scripts/production-smoke.mjs`
+      # and `production-smoke/anonymous.spec.ts` derive the PRODUCT each origin
+      # must serve from the origin itself, so nothing here needs to name a brand.
+      #
+      # THE HUB IS SMOKEABLE ONLY WHILE IT SHARES THE EURO SITE'S PASSWORD. Both
+      # halves of this workflow assume that one perimeter: the anonymous half
+      # requires exactly 401, which is the site-password refusal and not what
+      # Netlify Team SSO returns, and the authenticated half opens a session by
+      # posting to the site-password form, which Team SSO does not have. If a
+      # project is moved back to Team SSO, this input stops working for it and
+      # the honest fix is to say so rather than to relax the 401.
+      PRODUCTION_ORIGIN: ${{ inputs.site == 'hub' && 'https://predictorhub.netlify.app' || 'https://euro28predictor.com' }}
       EXPECTED_SUPABASE_REF: vkfnsqdyhvtwyqkisxhk
 
     steps:
