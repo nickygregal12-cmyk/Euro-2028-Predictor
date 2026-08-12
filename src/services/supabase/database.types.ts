@@ -3586,6 +3586,10 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_decide_provider_change_proposal: {
+        Args: { p_decision: string; p_proposal_id: string; p_reason?: string }
+        Returns: Json
+      }
       admin_disqualify_competition_game_entry: {
         Args: {
           p_game_competition_id: string
@@ -3622,6 +3626,15 @@ export type Database = {
         Args: { p_competition_id: string }
         Returns: Json
       }
+      admin_provider_change_proposals: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_state?: string
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
       admin_provider_proposal_detail: {
         Args: {
           p_limit?: number
@@ -3645,6 +3658,7 @@ export type Database = {
         Args: { p_provider: string; p_reason: string; p_tournament_id: string }
         Returns: Json
       }
+      admin_reminder_delivery_health: { Args: never; Returns: Json }
       admin_resolve_actual_third_place_tie: {
         Args: {
           p_ordered_team_ids: string[]
@@ -3668,6 +3682,10 @@ export type Database = {
       }
       admin_settle_predictor_cup_round: {
         Args: { p_competition_id: string; p_window_id: string }
+        Returns: Json
+      }
+      admin_shadow_scoring_report: {
+        Args: { p_limit?: number; p_tournament_id: string }
         Returns: Json
       }
       admin_transition_euro_publication_state: {
@@ -4009,6 +4027,14 @@ export type Database = {
         Args: { p_matchweek: number; p_tournament_id: string }
         Returns: Json
       }
+      get_season_matchweek_projection: {
+        Args: {
+          p_league_id?: string
+          p_matchweek: number
+          p_tournament_id: string
+        }
+        Returns: Json
+      }
       get_season_period_standings:
         | {
             Args: {
@@ -4037,6 +4063,10 @@ export type Database = {
       }
       get_season_prediction_consensus: {
         Args: { p_matchweek: number; p_tournament_id: string }
+        Returns: Json
+      }
+      get_season_prediction_dna: {
+        Args: { p_player_id: string; p_tournament_id: string }
         Returns: Json
       }
       get_season_wrapped: { Args: { p_tournament_id: string }; Returns: Json }
@@ -4126,6 +4156,10 @@ export type Database = {
         Args: { p_league_id: string }
         Returns: string
       }
+      run_shadow_scoring_verification: {
+        Args: { p_max_rounds?: number; p_tournament_id: string }
+        Returns: Json
+      }
       save_knockout_prediction: {
         Args: {
           p_advancing_team_id: string
@@ -4152,6 +4186,10 @@ export type Database = {
           p_tournament_id: string
           p_version: number
         }
+        Returns: Json
+      }
+      save_season_predictions_batch: {
+        Args: { p_drafts: Json; p_tournament_id: string }
         Returns: Json
       }
       search_league_transfer_candidates: {
@@ -4343,3 +4381,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
