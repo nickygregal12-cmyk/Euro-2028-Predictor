@@ -234,31 +234,13 @@ test.describe('authentication and recovery', () => {
       await page.goto(confirmationLink)
       await expect(page).toHaveURL((url) => url.pathname === '/welcome', { timeout: 20_000 })
 
-      // `/welcome` USED TO BE ONE STATIC SCREEN with a Continue button, and
-      // this assertion used to read `heading "Welcome, <name>"`. It is now the
-      // four-step onboarding journey contract 157 made storable, so the page's
-      // own h1 names what the page is FOR and the greeting sits above it as an
-      // eyebrow. Promoting the greeting back to a heading would give the page
-      // two h1s to satisfy a test, which is the wrong way round — so the test
-      // moved to the markup rather than the markup to the test.
       await expect(page.getByRole('heading', { name: 'Set up your season' })).toBeVisible({
         timeout: 15_000,
       })
       await expect(page.getByText(`Welcome, ${DISPLAY_NAME}`, { exact: true })).toBeVisible()
       await expect(page.getByText('Step 1 of 4')).toBeVisible()
-
-      // `/welcome` was deferred for needing "a fixture user who has not
-      // completed it". This journey creates exactly that user and is standing
-      // on the page — the blocker named a fixture the suite already had.
       await expectNoSeriousAxeViolations(page, '/welcome')
 
-      // Walk the journey without answering anything. EVERY STEP IS SKIPPABLE by
-      // design, so a player who wants to get to their invite can, and that is
-      // exactly what this fixture user is doing — they arrived from an invite
-      // link and setup is the interruption. The advance control is located by
-      // its position in the step navigation rather than by its label, because
-      // the label is deliberately "Skip for now" or "Continue" depending on
-      // whether the step in front of the player has been answered.
       const advance = page.getByRole('navigation', { name: 'Setup steps' }).getByRole('button').last()
       for (const step of ['Step 2 of 4', 'Step 3 of 4', 'Step 4 of 4']) {
         await advance.click()
@@ -266,13 +248,6 @@ test.describe('authentication and recovery', () => {
       }
 
       await page.getByRole('button', { name: 'Finish setup', exact: true }).click()
-
-      // FINISHING MUST NOT FAIL SILENTLY, and this waits for whichever answer
-      // comes first rather than only for the one it hopes for. `finish` either
-      // hands the player onward or leaves them on the page with the reason —
-      // a partial-failure list or an error — and waiting only on the URL would
-      // spend twenty seconds and then report a timeout, which says the journey
-      // did not finish without saying why.
       await Promise.race([
         page.waitForURL((url) => url.pathname === `/join/${INVITE_CODE}`, { timeout: 30_000 }),
         page.getByRole('alert').first().waitFor({ state: 'visible', timeout: 30_000 }),
@@ -285,41 +260,15 @@ test.describe('authentication and recovery', () => {
         }`,
       ).toEqual([])
 
-      // The pending invite survived sign-up AND onboarding. It was captured on
-      // arrival at `/welcome` and is consumed only now, so somebody who had
-      // abandoned setup halfway would still have had it waiting.
       await expect(page).toHaveURL((url) => url.pathname === `/join/${INVITE_CODE}`, {
         timeout: 20_000,
       })
       await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
-
-      // The owner's name is ABSENT, and that is the assertion rather than the
-      // loss of one. Contract 158 stopped `get_league_preview` returning
-      // `owner_name`, because answering any authenticated guess with a real
-      // person's name is what turned a guessed code into a positively
-      // identified group. The name reappears on the league page after joining,
-      // where a member may see the membership — which the join below still
-      // proves.
       await expect(page.getByText('Owner: E2E Tester', { exact: true })).toBeHidden()
-
-      // The valid-invite preview, which is a different page from the stale
-      // `/join/NOSUCH` state `axe-unauthenticated` scans: a league name and a
-      // join action rather than a not-found message.
       await expectNoSeriousAxeViolations(page, '/join/:code')
       await waitForWelcomeStamp()
 
-      // WHY THE JOIN CONTROL IS OR IS NOT OFFERED. `join_league` refuses a
-      // caller with no ACTIVE `game_memberships` row for the league's game, and
-      // `resolve_invite_code` reports exactly that as `requires_game_entry` —
-      // so the preview withholds the button rather than offering one the server
-      // would refuse. That makes this journey depend on a precondition it never
-      // used to state: the invited player must hold the league's game. Stated
-      // here, with what the caller actually holds, so a failure says which of
-      // the two is missing rather than "the button was not there".
       await joinTheLeaguesGame(await authUserId())
-      // Re-resolved rather than assumed: the preview decided there was no join
-      // control from the answer it had, so it has to ask again now the answer
-      // has changed.
       await page.reload()
       await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
 
@@ -332,11 +281,23 @@ test.describe('authentication and recovery', () => {
       ).toBe(1)
 
       await page.getByRole('button', { name: 'Join league', exact: true }).click()
-      await expect(page).toHaveURL((url) => url.pathname === `/league/${inviteLeagueId}`, {
-        timeout: 20_000,
-      })
-      await expect(page.getByRole('heading', { name: INVITE_LEAGUE_NAME })).toBeVisible()
-      await expect(page.getByText('2 members', { exact: true })).toBeVisible()
+      await expect(page).toHaveURL((url) => url.pathname === '/leagues', { timeout: 20_000 })
+      await expect(page.getByRole('heading', { name: 'Leagues', exact: true })).toBeVisible()
+
+      // The fixture is a legacy Euro tournament league, while Hub `/leagues`
+      // intentionally lists weekly-season private play only. Prove the join at
+      // the authoritative membership row rather than reopening a Euro-only
+      // route on the Hub or pretending the weekly list owns tournament data.
+      const joinedUserId = await authUserId()
+      expect(joinedUserId).not.toBeNull()
+      const { data: joinedMembership, error: joinedMembershipError } = await createLocalAdmin()
+        .from('league_members')
+        .select('role')
+        .eq('league_id', inviteLeagueId)
+        .eq('user_id', joinedUserId!)
+        .maybeSingle()
+      if (joinedMembershipError) throw joinedMembershipError
+      expect(joinedMembership?.role).toBe('member')
 
       await signOut(page)
       await logIn(page, OLD_PASSWORD)
