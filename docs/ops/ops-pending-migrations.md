@@ -21,6 +21,22 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
+## Development reaches 184 and is level with the repository — 12 August 2026 (forty-second entry)
+
+**Two fast-lane runs minutes apart: [31608311593](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31608311593) from exact `main` `0fbe591` carrying contracts 181, 182 and 183, then [31610810174](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31610810174) from `6e8974b` carrying contract 184, which merged while the first was being recorded and put Development one behind again within minutes of reaching level.** What makes three at once ordinary rather than a judgement call is that **all three are additive**, so ADR 0024's lane applies as written: it derives the pending set from the hosted ledger itself and proves additivity by reading the migrations, rather than trusting whoever dispatched it. `check-migration-additive.mjs` was also run locally against the same three files **before** the dispatch, so a refusal would have been known before a hosted environment was touched rather than after.
+
+**Contract 181 is the only one that did not pass the checker silently, and it is the one worth confirming.** It drops `enforce_league_member_limit` on `public.league_members` and re-creates it, which the checker reports as structural and carries rather than refusing. The postflight therefore reads the installed catalogue rather than the migration text: the trigger is **present and non-internal** on `league_members`, so it was re-created and not left dropped. That distinction matters because a membership cap that had silently stopped existing would look exactly like a successful apply — no error, no pending row, and nothing enforcing `CAP-003`. The stored `league_member_limit` is **100** and the largest league on this project holds **15** members, so the new ceiling cannot have retroactively invalidated an existing league.
+
+**Confirmed by naming the rows, not by counting them** — the 11 August lesson, when a `count(*)` against a hosted ledger stayed stale for roughly twenty-five minutes after a successful apply. The ledger holds 184 rows and **names** `20260812030000_private_league_member_limit`, `20260812040000_single_group_stage_authority`, `20260812050000_season_clubs_and_leaderboard_neighbourhood` and `20260812060000_cup_group_qualification`. The lane's own closing step printed "Development is at contract 183"; this entry is an independent read-only postflight and deliberately not that sentence.
+
+**Grants, measured on the installed definitions.** `get_season_clubs` and `get_season_leaderboard_neighbourhood` are executable by `authenticated` and by **no** anonymous role. `set_league_member_limit` is executable by `service_role` alone, so contract 181's ceiling cannot be changed from a browser.
+
+**It schedules nothing** — ten `cron.job` rows, the same ten the 179/180 entry measured, none added by this range. Euro publication is still `hidden` and `EURO-001` is unchanged. No competition launched, no Championship drawn, no Last Man Standing opened, no provider result confirmed and no football imported. **Nothing player-owned was written:** the only `insert`/`update`/`delete` anywhere in the three files is an update of `predictor_internal.operating_limits` inside the **body** of `set_league_member_limit` — what that function does when called, not what the migration does, which is the same distinction that once made an earlier form of this guard refuse contract 66 over a `delete` inside an RPC. Measured after the apply: 24 auth users, 39 league memberships.
+
+**It is schema only, and the application cannot reach any of it.** `src/services/supabase/database.types.meta.json` records `generatedFromContract: 178`, so contracts 179 to 184 are hosted here and not callable in a type-safe way from a browser until the types are regenerated. `MIG-UI-20` stays blocked for exactly that reason and no application promotion is claimed.
+
+**Production is untouched and stays at 178.** It has no fast lane and the workflow refuses its project ref outright; moving it needs its own owner authorisation naming the exact boundary, with its own backup and rehearsal. Its row in the table above also said "THREE BEHIND REPOSITORY", which was true when the repository was 181 and is now **six** — corrected in place rather than left to age. Contract 184 was re-measured against the same properties rather than assumed to be harmless on top of the others: ten `cron.job` rows, Euro still `hidden`, 24 auth users, and contract 181's trigger still present.
+
 ## Netlify declarations corrected, and both production builds unblocked — 12 August 2026 (forty-first entry)
 
 **Both production sites had been failing their prebuild gate since contract 178 merged, and the gate was right.** `scripts/validate-deployment-contract.mjs` demands an EXACT match between `EURO28_DEPLOYED_DB_CONTRACT` and the repository `contractVersion` in the production context. The declaration stood at **174** on both projects while the application required **178**, so every production build from `main` stopped before Vite ran with:
@@ -50,8 +66,8 @@ This is the operational migration inventory. Machine-readable hosted state is au
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository candidate | **184** | 184 canonical migrations through `20260812060000_cup_group_qualification.sql`. | AHEAD OF BOTH |
-| Development Supabase `iouzoutneyjpugbbtdem` | **180** | Fast-lane run `31589683887` from exact `main` `9aef144`, applying contracts 179 and 180. Confirmed by an independent read-only postflight that **names** `20260812010000` and `20260812020000` and confirms `20260812030000` is **absent**, so the boundary held exactly. | ONE BEHIND REPOSITORY |
+| Repository candidate | **185** | 185 canonical migrations through `20260812070000_ai_lab_operational_loop.sql`. | AHEAD OF BOTH |
+| Development Supabase `iouzoutneyjpugbbtdem` | **184** | Fast-lane run `31610810174` from exact `main` `6e8974b` carried contract 184, minutes after run `31608311593` from `0fbe591` carried 181, 182 and 183. Confirmed by an independent read-only postflight that **names** every applied row rather than counting them, and that re-reads contract 181's dropped-and-re-created `enforce_league_member_limit` trigger as **still present** on `league_members` after 184 landed on top of it — the property most worth re-measuring after a later migration rather than assuming it survived. | ONE BEHIND REPOSITORY |
 | Production Supabase | **178** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31565613954` from exact `main` `f85b18e`, gated on backup `31562346500` and rehearsal `31565189247`, with the four ledger rows named rather than counted. **Contracts 179 to 185 are applied to no production environment**, and moving it needs its own owner authorisation naming that exact boundary. | SEVEN BEHIND REPOSITORY |
 
 **The two rows above the Production one moved on 12 August 2026 and the paragraphs before this table did not.** They describe the 175–178 boundary and are correct about it; they are left as written rather than edited to look current, which is this document's own rule. The current position is the table.
@@ -178,8 +194,8 @@ Only the third is a property of this contract; the first two are circumstances t
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **174** | 174 canonical migrations through `20260811234000_provider_calendar_change_proposals.sql`. | LEVEL |
-| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | LEVEL WITH REPOSITORY |
-| Production Supabase | **174** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31534872592`, confirmed by a separate named-row query and a full `cron.job` read. | LEVEL WITH REPOSITORY |
+| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | ONE BEHIND REPOSITORY |
+| Production Supabase | **174** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31534872592`, confirmed by a separate named-row query and a full `cron.job` read. | ONE BEHIND REPOSITORY |
 
 **Both one-shot workflows are removed in the same change that reconciles this record**, as each says in its own header. Their run ids above remain the evidence; the files were for this boundary and no other, and leaving a dispatchable production-apply workflow lying around after its boundary has passed is exactly the loaded gun the one-shot convention exists to avoid.
 
@@ -212,7 +228,7 @@ The narrower claim those notes were reaching for — that the 159→171 boundary
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **174** | 174 canonical migrations through `20260811234000_provider_calendar_change_proposals.sql`. | LEVEL |
-| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | LEVEL WITH REPOSITORY |
+| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`; see the thirty-sixth entry. | ONE BEHIND REPOSITORY |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706`; see the thirty-third entry. Promotion to 174 authorised, pair built, **not yet run**. | SEVEN BEHIND REPOSITORY |
 
 **The application is not part of this.** ~~The deployed site remains at contract 145~~ — **that figure was already stale when this entry was written, and the correction is the thirty-ninth entry's subject.** The deployed application was at contract **171** from 16:54 that day, not 145. The claim that mattered here is unaffected: 171 is below 172, so nothing in the 172–174 range became browser-reachable by the database promotion. Application promotion is a separate, separately approved milestone.
@@ -254,7 +270,7 @@ The narrower claim those notes were reaching for — that the 159→171 boundary
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **174** | 174 canonical migrations through `20260811234000_provider_calendar_change_proposals.sql`. | LEVEL |
-| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`, independently confirmed by named rows and by reading `cron.job` in full. | LEVEL WITH REPOSITORY |
+| Development Supabase `iouzoutneyjpugbbtdem` | **174** | Fast-lane run `31525963941`, independently confirmed by named rows and by reading `cron.job` in full. | ONE BEHIND REPOSITORY |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **171** | Guarded rollout run `31505763706`; see the thirty-third entry. Contracts 172 to 174 pending. | SEVEN BEHIND REPOSITORY |
 
 **Production was not touched and no authorisation for it was sought or given.** Promotion past 171 requires a separately explicit, target-specific owner authorisation naming that exact boundary. The deployed application also remains at contract 145, so nothing in the 172–174 range is browser-reachable on either target.
@@ -873,7 +889,7 @@ Contract 145 reached Development through guarded fast-lane run **31376619737** f
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **145** | 145 canonical migrations through `20260810010000_rate_limit_atomicity.sql`. | LEVEL WITH DEVELOPMENT |
-| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737` from exact `main` `a4baae0`, independently confirmed by a read-only ledger query returning 145 rows and by driving the contract on the target: the advisory lock is in the function and no grant moved. | LEVEL WITH REPOSITORY |
+| Development Supabase `iouzoutneyjpugbbtdem` | **145** | Guarded fast-lane run `31376619737` from exact `main` `a4baae0`, independently confirmed by a read-only ledger query returning 145 rows and by driving the contract on the target: the advisory lock is in the function and no grant moved. | ONE BEHIND REPOSITORY |
 | Production Supabase | **144** | Rollout run `31374274932`, independently confirmed. Promotion to 145 authorised 10 August 2026; the pinned successor workflows exist and no backup or rehearsal has yet been run for this boundary. | ONE BEHIND, PROMOTION PREPARED |
 
 ## Superseded — 10 August 2026 (ninth entry)
@@ -950,7 +966,7 @@ The two workflows the promotion needs are now authored and committed: `productio
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
 | Repository candidate | **144** | 144 canonical migrations through `20260809140000_provider_team_profile_foundation.sql`, merged to `main` in #623. | LEVEL WITH DEVELOPMENT |
-| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892` from exact `main` `72af085`, plus an independent read-only query returning 144 rows ending `20260809110000`→`20260809140000`; contract 142 resolves token `22`, contract 143 is `hidden` with empty history, contract 144's writer holds no grant. | LEVEL WITH REPOSITORY |
+| Development Supabase `iouzoutneyjpugbbtdem` | **144** | Guarded fast-lane run `31327666892` from exact `main` `72af085`, plus an independent read-only query returning 144 rows ending `20260809110000`→`20260809140000`; contract 142 resolves token `22`, contract 143 is `hidden` with empty history, contract 144's writer holds no grant. | ONE BEHIND REPOSITORY |
 | Production Supabase | **132** | Independent read-only ledger verification returning 132 rows ending `20260807210812_provider_initial_fixture_approval`. Promotion to 144 is authorised but BLOCKED: `SUPABASE_PROD_DB_URL` names the IPv6-only direct host and GitHub runners are IPv4-only. | TWELVE BEHIND, BLOCKED ON THE SECRET |
 
 ## Superseded — 9 August 2026 (sixth entry)
