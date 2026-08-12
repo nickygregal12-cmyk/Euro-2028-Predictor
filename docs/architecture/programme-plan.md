@@ -248,6 +248,9 @@ nothing to say.
 
 | 184 | `CUP-001` under ADR 0028 § 6. **It moves no phase** and unblocks `CUP-002`, which is the driver that would actually run it |
 
-**This table accounts for every contract up to and including contract 185.** Saying so is
+| 186 | `CUP-002`'s prerequisite. **It moves no phase** |
+| 187 | `CUP-002` itself. **It moves no phase**, and it closes the last thing preventing a season Championship from finishing its group stage. `CUP-003` and `CUP-004` remain |
+
+**This table accounts for every contract up to and including contract 187.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

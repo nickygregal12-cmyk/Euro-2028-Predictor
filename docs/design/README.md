@@ -226,4 +226,7 @@ same paragraph existed in seven places at once.
 
 | 184 | No presentation change. A qualification rule that works at every group size |
 
-*Current to contract 185.*
+| 186 | No presentation change. A stored fact about where a group stage ends |
+| 187 | No presentation change **yet**, and one becomes possible: a season Championship now has a bracket to render. The read of it is `CUP-003` and is not built |
+
+*Current to contract 187.*

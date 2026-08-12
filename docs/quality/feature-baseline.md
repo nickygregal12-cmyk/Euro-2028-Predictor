@@ -293,7 +293,10 @@ same paragraph existed in seven places at once.
 
 | 184 | A Championship group of any permitted size can qualify somebody, instead of only its winner |
 
-*Current to contract 185.*
+| 186 | A season Championship records where its group stage ends, so anything downstream can ask |
+| 187 | A season Championship can actually finish its group stage: it qualifies, seeds and brackets, over the matchdays it plays rather than over three |
+
+*Current to contract 187.*
 
 ## Innovation Lab UI pass — 11 August 2026
 

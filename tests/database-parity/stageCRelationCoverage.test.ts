@@ -292,6 +292,13 @@ const PROVIDER_RELATIONS = [
   // `auth.users` at send time so this never becomes a second copy of everyone's
   // contact details.
   'table:reminder_deliveries',
+  // Contract 186. Where one season Championship's group stage ends, captured at
+  // launch. A table rather than a column because the span is per COMPETITION —
+  // `bonus_cup_groups` holds one row per group per phase, and `bonus_competitions`
+  // is the game-neutral container Last Man Standing shares. Browser-revoked and
+  // immutable once written: predictions are made against fixtures placed inside
+  // this span.
+  'table:bonus_cup_launches',
 ]
 
 const reviewedRelations = [
@@ -311,10 +318,11 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // provider identity map, and 51 → 52 by contract 114's poll target list.
     // Contract 114's other new table is in `predictor_internal` and so is not
     // counted here. Raised 56 → 59 by contract 160's three league-table
-    // relations. This count is a positive control on the migration parser:
+    // relations, and 62 → 63 by contract 186’s Championship launch record. This
+    // count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(62)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(63)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])
