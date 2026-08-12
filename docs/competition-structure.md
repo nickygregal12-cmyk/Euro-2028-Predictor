@@ -166,4 +166,6 @@ same paragraph existed in seven places at once.
 
 | 183 | **No structural change.** Two bounded reads over facts that already exist: a season's clubs, and a window of the standings around the caller |
 
-*Current to contract 183.*
+| 184 | **One rule generalised, no structure moved.** Qualification from a Championship group is now defined at every size 3 to 20 rather than at 3 and 4 only. The tournament's own two sizes are unchanged, asserted |
+
+*Current to contract 184.*

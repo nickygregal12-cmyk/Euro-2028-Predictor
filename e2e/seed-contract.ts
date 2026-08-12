@@ -1045,8 +1045,16 @@
  * neighbourhood reuses contract 95's existing membership boundary rather than
  * adding one. No relation is created or altered, no grant moves and no existing
  * function is redefined.
+ *
+ * Raised to 184 after checking what it changes: two `immutable` arithmetic
+ * functions granted to nobody, and a redefinition of
+ * `admin_finalise_predictor_cup_groups` whose only behavioural change is which
+ * ranks qualify in a group of 5 or more. **The seed draws no Predictor Cup and
+ * finalises no group stage**, and the function is unreachable without a drawn
+ * competition with three settled windows, which the seed does not create. The
+ * tournament's own 3- and 4-player behaviour is asserted unchanged.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 183
+export const SEED_REVIEWED_AT_CONTRACT = 184
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

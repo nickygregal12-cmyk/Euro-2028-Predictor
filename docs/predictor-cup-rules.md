@@ -136,12 +136,69 @@ Target qualifiers = round(total entrants × 2 ÷ 3).
 
 ### 6.2 Automatic and wildcard positions
 
-| Group size | Automatic | Wildcard pool | Eliminated |
-| --- | --- | --- | --- |
-| 4 players | 1st and 2nd | 3rd | 4th |
-| 3 players | 1st | 2nd | 3rd |
+**One rule covers every group size ADR 0014 permits, 3 to 20**, and it is stated
+as arithmetic rather than as a list so that no size can be missing:
 
-Wildcard places are awarded until the target is reached — deliberately compensating for the different fixture counts in three- and four-player groups.
+| Quantity | Rule |
+| --- | --- |
+| Automatic places | `floor(N / 2)` — the top half of the group, rounded down |
+| Wildcard pool | the ranks from `floor(N / 2) + 1` to `ceil(2N / 3)` |
+| Eliminated | every rank below `ceil(2N / 3)` |
+
+`ceil(2N / 3)` is the § 6.1 two-thirds line taken **per group and rounded up**,
+which is what guarantees the pool is always large enough to reach the § 6.1
+target: automatic places alone never exceed it, because `floor(N/2) ≤ 2N/3` for
+every N.
+
+**The tournament's own two sizes are reproduced exactly.** That is the point of
+expressing it this way — the rule below is an extension of the table that stood
+here, not a replacement for it, and `233_cup_group_qualification.sql` asserts
+the 3- and 4-player rows against the values the original table gave.
+
+| Group size N | Automatic | Wildcard pool | Eliminated | |
+| ---: | ---: | :---: | :---: | --- |
+| **3** | 1 | 2 | 3 | *(unchanged)*
+| **4** | 2 | 3 | 4 | *(unchanged)*
+| **5** | 2 | 3–4 | 5 |
+| **6** | 3 | 4 | 5–6 |
+| **7** | 3 | 4–5 | 6–7 |
+| **8** | 4 | 5–6 | 7–8 |
+| **9** | 4 | 5–6 | 7–9 |
+| **10** | 5 | 6–7 | 8–10 |
+| **11** | 5 | 6–8 | 9–11 |
+| **12** | 6 | 7–8 | 9–12 |
+| **13** | 6 | 7–9 | 10–13 |
+| **14** | 7 | 8–10 | 11–14 |
+| **15** | 7 | 8–10 | 11–15 |
+| **16** | 8 | 9–11 | 12–16 |
+| **17** | 8 | 9–12 | 13–17 |
+| **18** | 9 | 10–12 | 13–18 |
+| **19** | 9 | 10–13 | 14–19 |
+| **20** | 10 | 11–14 | 15–20 |
+
+Worked example: a 100-entrant season Championship drawn as 5 groups of 20 takes
+50 automatic qualifiers, has 20 wildcard candidates (ranks 11–14 in each group),
+and needs `round(100 × 2 ÷ 3) = 67`, so 17 of those 20 are promoted.
+
+Wildcard places are awarded until the target is reached — deliberately
+compensating for the different fixture counts in groups of different sizes. The
+§ 6.3 ordering already normalises table points **per game** for exactly that
+reason, so it needs no change to serve a group of twenty.
+
+**A group of 1 or 2 is arithmetically degenerate** — `ceil(2N/3) = N`, so nobody
+is eliminated — and is left that way deliberately rather than special-cased: a
+group that small is refused upstream by `bonus_cup_groups_size_allowed`, which
+admits 3 to 20 for an initial group stage. A split half of 2 never reaches
+qualification.
+
+### 6.2.1 Where this rule was decided
+
+The 3- and 4-player rows are the original tournament rules. Sizes 5 to 20 were
+authorised by [ADR 0028](adr/0028-owner-decisions-unblocking-product-work.md) § 6
+on 12 August 2026, which asked for "a consistent and fair automatic-qualification
+plus wildcard table for every group size from 5 through 20" and deliberately did
+not invent the numbers itself. `CUP-001` in the accepted-requirements register
+is the row this closes.
 
 ### 6.3 Wildcard ranking across different groups
 1. Head-to-head table points **per game**.

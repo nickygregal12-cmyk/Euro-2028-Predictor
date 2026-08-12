@@ -334,6 +334,8 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 
 | 183 | **Stage E** season surfaces and **Stage H** hub/social: two bounded reads a season surface may call. No write, no rule, no provider path |
 
-**This table accounts for every contract up to and including contract 183.** Saying so is
+| 184 | **Stage G** season Predictor Cup. A rule, not a driver: `CUP-002` still owns the window gate and the knockout windows a season lacks |
+
+**This table accounts for every contract up to and including contract 184.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
