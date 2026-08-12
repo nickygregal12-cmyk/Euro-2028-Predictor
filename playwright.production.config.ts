@@ -62,6 +62,30 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: 'list',
+  /**
+   * Longer than the 5s default, and the reason is measured rather than
+   * defensive.
+   *
+   * Run 31578733898 failed on `toHaveTitle("Sign up | …")` after clicking
+   * through from the login page, having polled fourteen times over five seconds
+   * and seen the login page's title throughout. Run 31579449516, against the
+   * same commit and the same published artifact, passed the whole suite — its
+   * browser step took four seconds where the failing one took 6.9.
+   *
+   * WHAT MAKES THAT A TIMEOUT AND NOT A DEFECT. `/auth/signup` is the one route
+   * behind a lazily-imported gate (`EuroSignupGate`, the `EURO-003` control),
+   * and React holds the OLD committed UI — including its title — while a route
+   * transition suspends on a chunk. So a cold CDN edge shows exactly this: the
+   * URL already changed, the title has not yet. Driven locally against a real
+   * Euro build the title changed within 250ms, so nothing is stuck.
+   *
+   * IT WEAKENS NO ASSERTION. Every expectation still has to come true; a wrong
+   * title fails at fifteen seconds exactly as it failed at five. What it stops
+   * is a red that means nothing, which `scripts/production-smoke.mjs` already
+   * argues for in its retry policy: a check that cries wolf teaches people to
+   * ignore red, and this suite's whole job is to be believed.
+   */
+  expect: { timeout: 15_000 },
   use: {
     baseURL: origin.origin,
     storageState,

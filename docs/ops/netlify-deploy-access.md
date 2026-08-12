@@ -2,12 +2,24 @@
 
 This runbook defines the live Netlify project boundary for the Football Prediction Hub.
 
-## Authoritative project
+## Authoritative projects
 
-- Live Netlify project: `euro28predictor`.
-- Production domain: `https://euro28predictor.com`.
+**Two, not one.** This section said "Live Netlify project: `euro28predictor`"
+until 12 August 2026, which was true before ADR 0026 and had been false since
+the site split shipped. It is corrected rather than deleted, because a reader
+who only skims the first heading would otherwise conclude the Hub is not a
+production deployment.
+
+| Project | Variant | Production URL | Perimeter |
+| --- | --- | --- | --- |
+| `predictorhub` | `VITE_SITE_VARIANT=hub` | `https://predictorhub.netlify.app` | Netlify Team SSO, all contexts |
+| `euro28predictor` | `VITE_SITE_VARIANT=euro` | `https://euro28predictor.com` | Site password, all contexts |
+
+- The Hub has **no permanent brand domain**; its Netlify address is the production
+  URL until `SITE-003` is decided, which ADR 0028 defers to the pre-public-beta
+  brand decision.
 - Historic project `euro28-predictor-dev` is retired and must not be configured, deployed or treated as current evidence.
-- The project is protected on **all deploy contexts**, including production. The protection *mechanism* changed on 10 August 2026 and needs an owner confirmation — see [Access-control posture](#access-control-posture).
+- Both projects are protected on **all deploy contexts**, including production, and they are protected by **different mechanisms** — see [Access-control posture](#access-control-posture). The Euro project's mechanism changed on 10 August 2026 and the owner confirmed it.
 
 ## Contract declarations
 
@@ -51,28 +63,58 @@ The blank `dev-server` override is a Netlify configuration debt. Remove it or se
 
 ## Published production artifact
 
-The published production deploy is **`6a79b4d5a5e45e0008beec70`**, built from commit
-`ff1fe15db680dd5f5f6698749a8371aba2584cec` and published at **11:24:44Z on
-10 August 2026**. It is the first application artifact to move since 30 July, and
-the first ever to target a Production database at contract 145.
+**There are two of them**, and from 12 August 2026 they are the pair below. Both
+were built by Netlify's own repository build on the push to `main`, both carry
+the exact `commit_ref` they were built from, and both are `ready` and published
+in the `production` context.
 
-| Field | Value |
-| --- | --- |
-| Source commit | `9ab0ad5c042b14e41f41c1d73ba97f92573bca27` (`main`) |
-| Deploy ID | `6a7a2d87b532990008e72ca8` |
-| State / context / branch | `ready` / `production` / `main` |
-| Published | 2026-08-10T20:00:13.167Z, build time 69s |
-| Application contract | 151 |
-| Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 151 |
-| Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=151` (production context) |
-| Access-control posture | Protected; anonymous requests answer 401 |
-| Rollback deploy | `6a79e0d575a053000855286b` (10 August 14:32, `9a5d0749…`) |
-| Deploy summary | 54 files uploaded, 37 redirect rules, 1 header rule, no functions |
-| Secret scan | 1763 files scanned, 0 matches |
+| Field | `predictorhub` (hub) | `euro28predictor` (euro) |
+| --- | --- | --- |
+| Source commit | `33f425b70e4618add59d94307ba03621db06eb06` | `33f425b70e4618add59d94307ba03621db06eb06` |
+| Deploy ID | `6a7c2ec4d5182500084a64cb` | `6a7c2ec4d7558300084ea83e` |
+| Primary URL | `https://predictorhub.netlify.app` | `https://euro28predictor.com` |
+| Published | 2026-08-12T08:30:06.306Z, 48s | 2026-08-12T08:30:04.200Z, 46s |
+| Application contract | 178 | 178 |
+| Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 178 | `vkfnsqdyhvtwyqkisxhk` / 178 |
+| Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=178` | `EURO28_DEPLOYED_DB_CONTRACT=178` |
+| Perimeter | Team SSO, all contexts | Site password, all contexts |
+| Deploy summary | 49 files, 40 redirect rules, 1 header rule, no functions | 49 files, 40 redirect rules, 1 header rule, no functions |
+| Secret scan | 2042 files, 0 matches | 2044 files, 0 matches |
 
-It was produced by **Netlify's own repository build on the push to `main`**, not by
-an upload — which is the stronger of the two evidence paths, because the deploy
-record carries the exact `commit_ref` it was built from.
+**The Euro artifact is verified by a smoke run; the Hub artifact is not, and the
+difference is the perimeter rather than the artifact.** `production-smoke.yml`
+run [31579449516](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31579449516)
+passed in full against `euro28predictor.com` at this exact commit and contract:
+the anonymous perimeter answered 401, the release identity matched, thirty-odd
+routes served the SPA shell, the unknown path answered 404, Supabase endpoint
+isolation held and the browser journeys passed. The Hub cannot be smoked at all
+today — see [the two production projects do not share a
+perimeter](#the-two-production-projects-do-not-share-a-perimeter--recorded-12-august-2026)
+— so its evidence is its deploy record alone, and this table says so rather than
+implying a check covered it.
+
+**The first attempt failed and it is worth knowing why**, because the next
+person to see it red should not go hunting. Run 31578733898, against the same
+published artifact, passed the entire HTTP smoke and then failed one browser
+assertion: after clicking through from the login page the URL was already
+`/auth/signup` while the document title still read `Log in | Euro 2028
+Predictor`, polled fourteen times over five seconds. `/auth/signup` is the one
+route behind a lazily-imported gate — `EuroSignupGate`, the `EURO-003` control —
+and React holds the previously committed UI, title included, while a route
+transition suspends on a chunk. A cold CDN edge therefore looks exactly like
+that. Driven locally against a real Euro build the title changed within 250ms,
+and the passing run's browser step took four seconds where the failing one took
+6.9. The expectation timeout in `playwright.production.config.ts` is now fifteen
+seconds; no assertion was relaxed.
+
+### The superseded single-site artifact, for reference
+
+The previous published production deploy was **`6a7a2d87b532990008e72ca8`**, from
+commit `9ab0ad5c042b14e41f41c1d73ba97f92573bca27`, published 2026-08-10T20:00:13.167Z
+at application contract 151 — 54 files, 37 redirect rules, 1 header rule, secret
+scan 1763 files and 0 matches, rollback target `6a79e0d575a053000855286b`. It is
+the last artifact from before ADR 0026 split one deployment into two, which is
+why the table above has two columns and this paragraph has one.
 
 ### The superseded artifact, for reference
 
