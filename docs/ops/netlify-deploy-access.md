@@ -13,14 +13,33 @@ This runbook defines the live Netlify project boundary for the Football Predicti
 
 Netlify's `EURO28_DEPLOYED_DB_CONTRACT` value describes the hosted database reached by a build in that deploy context. It is compatibility metadata for the build gate; it is **not** proof that an application bundle has been rebuilt or published.
 
+**There are now TWO production Netlify projects, not one**, and they carry the
+same four declarations: `predictorhub` (`VITE_SITE_VARIANT=hub`) and
+`euro28predictor` (`VITE_SITE_VARIANT=euro`), which is ADR 0026's two-deployment
+model. One table serves both because the values are identical; a future
+divergence needs a second table rather than a footnote.
+
 | Context | Supabase target | Declared hosted contract |
 | --- | --- | ---: |
-| `dev` | Development | 151 |
-| `branch-deploy` | Development | 151 |
-| `deploy-preview` | Development | 151 |
-| `production` | Production | 151 |
+| `dev` | Development | 178 |
+| `branch-deploy` | Development | 178 |
+| `deploy-preview` | Development | 178 |
+| `production` | Production | 178 |
 
-A direct Netlify project/environment read on 10 August 2026 confirmed all four values above. The three non-production contexts point to the Development Supabase project; production points to the Production Supabase project. A fifth `dev-server` context still carries an empty declaration and therefore fails closed under `scripts/validate-deployment-contract.mjs`.
+A direct Netlify environment read and write on **12 August 2026** set all four
+values on both projects, and each moved **after** the database it names, never
+before. Production Supabase reached 178 through guarded rollout run
+`31565613954`, confirmed by a postflight that NAMED the four new ledger rows;
+Development reached 178 through fast-lane run `31561781188`. The production
+declaration had stood at **174** and the three non-production ones at **171**,
+so every production build from `main` failed
+`scripts/validate-deployment-contract.mjs` — which demands an exact match — from
+the moment contract 178 merged. **That is the guard doing its job**, and the
+remedy is the one its own error message names: verify the target database, then
+update the context value.
+
+A direct Netlify project/environment read on 10 August 2026 confirmed the
+earlier values of 151. The three non-production contexts point to the Development Supabase project; production points to the Production Supabase project. A fifth `dev-server` context still carries an empty declaration and therefore fails closed under `scripts/validate-deployment-contract.mjs`.
 
 Each of the four moved on 10 August 2026 and each moved **after** the database it names, never before. The three non-production contexts were raised to 145 once the guarded fast lane had applied contract 145 to Development; production was raised from 144 to 145 only after guarded rollout run `31379974246` had applied contract 145 to Production Supabase and an independent read-only query had confirmed the 145-row ledger. Production Supabase reached 144 and then 145 on the same day, which is why the production declaration was raised twice and why neither raise led its database.
 

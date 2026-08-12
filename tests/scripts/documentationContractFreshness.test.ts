@@ -222,11 +222,19 @@ describe('the two documents that state the Netlify declaration agree', () => {
   const inventory = read('docs/ops/ops-pending-migrations.md')
   const runbook = read('docs/ops/netlify-deploy-access.md')
 
-  const inventoryRows = new Map(
-    [...inventory.matchAll(/\|\s*Netlify\s+`euro28predictor`\s+([^|]+?)\s*\|\s*\*\*(\d+) hosted declaration\*\*/g)].map(
-      (match) => [match[1], Number(match[2])],
-    ),
-  )
+  // NEWEST wins, and that is a correction rather than a preference. The
+  // inventory is written newest-entry-first and every entry carries these two
+  // rows, so `new Map(...)` over the matches in document order kept the LAST
+  // occurrence — the OLDEST entry in the file. The assertion below therefore
+  // compared the live runbook against a historical declaration, and only
+  // passed because the number had not moved since. It went red the first time
+  // it did, on 12 August 2026, which is how it was found.
+  const inventoryRows = new Map<string, number>()
+  for (const match of inventory.matchAll(
+    /\|\s*Netlify\s+`euro28predictor`\s+([^|]+?)\s*\|\s*\*\*(\d+) hosted declaration\*\*/g,
+  )) {
+    if (!inventoryRows.has(match[1])) inventoryRows.set(match[1], Number(match[2]))
+  }
 
   const runbookRows = new Map(
     [...runbook.matchAll(/\|\s*`([a-z-]+)`\s*\|\s*(?:Development|Production)\s*\|\s*(\d+)\s*\|/g)].map(
