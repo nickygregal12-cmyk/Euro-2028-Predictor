@@ -214,5 +214,7 @@ same paragraph existed in seven places at once.
 | 176 | A player profile may show how somebody predicts, with every denominator supplied so the surface never invents one. Metrics below the sample minimum arrive flagged rather than hidden. **Not consumed** |
 | 177 | An offline draft surface can submit a batch and render a per-fixture answer — accepted, locked, conflicted — instead of one exception. A conflict arrives with both the stored and the drafted score, which is exactly the choice such a surface has to offer. **Not consumed** |
 | 178 | `/admin/season` gains a third thing it could show: the latest scoring verification and any disagreement it found. **Not consumed** |
+| 179 | `/leagues` gains the read it needs to show private Last Man Standing and Championship containers at all, and `MIG-UI-20`'s private workspace gains its server half. **Not consumed** |
+| 180 | No presentation change. A Championship-only player can now reach the matchweek card, which is a capability rather than a screen |
 
-*Current to contract 178.*
+*Current to contract 180.*
