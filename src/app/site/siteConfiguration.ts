@@ -136,7 +136,7 @@ export type SiteConfiguration = {
 
 /** Environment-supplied addressing. Absent values stay absent. */
 export type SiteOrigins = {
-  /** `VITE_PUBLIC_ORIGIN` — the origin of the site being built. */
+  /** `VITE_PUBLIC_SITE_ORIGIN` — the origin of the site being built. */
   readonly publicOrigin?: string | undefined
   /** `VITE_SIBLING_SITE_ORIGIN` — the other deployment's origin. */
   readonly siblingOrigin?: string | undefined

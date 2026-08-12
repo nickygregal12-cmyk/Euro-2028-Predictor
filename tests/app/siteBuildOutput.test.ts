@@ -122,7 +122,7 @@ describe('netlify.toml', () => {
       .filter((line) => !line.trimStart().startsWith('#'))
       .join('\n')
     expect(environmentBlocks).not.toMatch(/^\s*VITE_SITE_VARIANT\s*=/m)
-    expect(environmentBlocks).not.toMatch(/^\s*VITE_PUBLIC_ORIGIN\s*=/m)
+    expect(environmentBlocks).not.toMatch(/^\s*VITE_PUBLIC_SITE_ORIGIN\s*=/m)
     expect(environmentBlocks).not.toMatch(/^\s*VITE_SIBLING_SITE_ORIGIN\s*=/m)
   })
 })
