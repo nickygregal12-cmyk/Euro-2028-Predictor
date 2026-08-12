@@ -288,7 +288,9 @@ same paragraph existed in seven places at once.
 
 | 182 | There is exactly one way a season Championship group is ranked, and the database refuses to hold a second |
 
-*Current to contract 182.*
+| 183 | Picking a favourite club takes one request instead of two, and a club that plays nobody still has its badge; a player ranked deep in the table can see who is immediately above them |
+
+*Current to contract 183.*
 
 ## Innovation Lab UI pass — 11 August 2026
 

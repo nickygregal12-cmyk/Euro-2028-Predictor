@@ -317,7 +317,12 @@ RPC changes C1 identity or auth ownership semantics:
 Contract 133 adds caller-owned private Predictor Championship discovery. The
 RPC takes `p_tournament_id`, remains bounded to the authenticated caller's own
 season-cup memberships, and introduces no profile-owned identity or C2 account
-erasure semantics. It is therefore another consumer of the existing C1 season
+erasure semantics. Contract 183's two additions are the same shape and are
+listed for the same reason: `get_season_clubs` reads `public.teams` and contract
+136's identity reference and touches no player-owned row at all, and
+`get_season_leaderboard_neighbourhood` reuses contract 95's existing entry
+boundary and takes its whole ranking from `season_standings`, so neither
+introduces an ownership question C2 would have to answer. It is therefore another consumer of the existing C1 season
 boundary rather than a change to that boundary:
 
 - `get_my_season_cup_instances`
@@ -326,6 +331,8 @@ boundary rather than a change to that boundary:
 - `get_game_leave_eligibility`
 - `get_season_club_form`
 - `get_season_club_head_to_head`
+- `get_season_clubs`
+- `get_season_leaderboard_neighbourhood`
 
 Bonus Game C1 scope review covers:
 

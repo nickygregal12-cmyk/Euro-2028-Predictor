@@ -164,4 +164,6 @@ same paragraph existed in seven places at once.
 
 | 182 | **No structural change, and one rule pinned.** ADR 0028 § 7 names `cup_season_group_tables` the sole season Championship group-stage authority; a guard now refuses any function that reaches the per-tie rule and also writes the group stage. Nothing about what a competition is, how it is scored or who is in it moves |
 
-*Current to contract 182.*
+| 183 | **No structural change.** Two bounded reads over facts that already exist: a season's clubs, and a window of the standings around the caller |
+
+*Current to contract 183.*

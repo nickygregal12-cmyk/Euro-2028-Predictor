@@ -243,6 +243,8 @@ nothing to say.
 
 | 182 | `CUP-005` under ADR 0028 § 7. **It moves no phase** and unblocks `CUP-002` by settling which authority that driver must read |
 
-**This table accounts for every contract up to and including contract 182.** Saying so is
+| 183 | `MIG-UI-16` and `MIG-UI-18`. **They move no phase.** Both replace a browser workaround that works, so neither is urgent alone; the clubs read closes a real data-loss path for a club with no fixture |
+
+**This table accounts for every contract up to and including contract 183.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
