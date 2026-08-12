@@ -2,6 +2,9 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { siteConfiguration } from '../../src/app/site/siteConfiguration'
+import { euroLandingPresentation } from '../../src/features/landing/euroLandingModel'
+
 /**
  * Production is password protected, so the release smoke has to authenticate.
  * The hazard in that change is subtle and worth pinning: an authenticated-only
@@ -21,6 +24,8 @@ const workflow = readFileSync(resolve(root, '.github/workflows/production-smoke.
 const session = readFileSync(resolve(root, 'scripts/production-site-session.mjs'), 'utf8')
 const waiter = readFileSync(resolve(root, 'scripts/wait-for-production-release.mjs'), 'utf8')
 const smoke = readFileSync(resolve(root, 'scripts/production-smoke.mjs'), 'utf8')
+const browserSpec = readFileSync(resolve(root, 'production-smoke/anonymous.spec.ts'), 'utf8')
+const browserConfig = readFileSync(resolve(root, 'playwright.production.config.ts'), 'utf8')
 
 describe('the anonymous half still asserts the perimeter', () => {
   it('makes a credential-free request and requires exactly 401', () => {
@@ -148,14 +153,24 @@ describe('each production origin must serve its own product', () => {
    * It had to change because ADR 0026's site-variant seam made
    * `Euro 2028 Predictor` the CURRENT title of the Euro deployment, which is
    * the same string the contract-63 cleanup had just retired as legacy. The
-   * hard-coded check then asserted the Hub's brand against the Euro site and
-   * failed the first time anyone ran it, on 11 August 2026.
+   * hard-coded check then asserted the Hub's brand against the Euro site, and
+   * failed the first Euro production build after the split — run 31574100495,
+   * 12 August 2026, against a deploy serving the expected commit at the
+   * expected contract.
    */
 
   it('derives the expected product from the origin rather than hard-coding one', () => {
-    expect(smoke).toContain("['euro28predictor.com', 'Euro 2028 Predictor']")
-    expect(smoke).toContain("['predictorhub.netlify.app', 'Football Prediction Hub']")
+    expect(smoke).toContain("['https://euro28predictor.com', 'Euro 2028 Predictor']")
+    expect(smoke).toContain("['https://predictorhub.netlify.app', 'Football Prediction Hub']")
     expect(smoke).toContain('assertServesItsOwnProduct(root.body)')
+  })
+
+  it('leaves no hard-coded brand at the assertion site', () => {
+    // A literal there is what made the check origin-blind: whichever origin the
+    // workflow pointed at was measured against the other site's brand.
+    expect(smoke).not.toMatch(
+      /assertIncludes\(\s*root\.body,\s*'(Football Prediction Hub|Euro 2028 Predictor)'/,
+    )
   })
 
   it('still refuses to accept either brand on one origin', () => {
@@ -163,6 +178,7 @@ describe('each production origin must serve its own product', () => {
     // domain, or the reverse. Neither brand may appear as an alternative.
     expect(smoke).not.toMatch(/includes\('Football Prediction Hub'\)\s*\|\|/)
     expect(smoke).not.toMatch(/includes\('Euro 2028 Predictor'\)\s*\|\|/)
+    expect(smoke).not.toMatch(/!root\.body\.includes\('Euro 2028 Predictor'\)/)
   })
 
   it('fails when an origin serves the other deployment as well as its own', () => {
@@ -173,7 +189,88 @@ describe('each production origin must serve its own product', () => {
     expect(smoke).toContain('an unset value fails closed to the Hub.')
   })
 
+  it('draws the perimeter from the same map, so a brand and an origin cannot disagree', () => {
+    // One list decides both which origins may be smoked and what each must
+    // serve. Two lists could disagree about what "production" means, and the
+    // origin guard is the half that would win silently.
+    expect(smoke).toContain('if (!PRODUCTION_SITES.has(origin) && !allowNonProduction)')
+    expect(smoke).toContain('EVERY_PRODUCT = [...new Set(PRODUCTION_SITES.values())]')
+  })
+
   it('refuses an origin whose product nothing declares', () => {
-    expect(smoke).toContain('no expected product is declared for ${host}')
+    expect(smoke).toContain('no expected product is declared for ${origin}')
+  })
+})
+
+/**
+ * THE THREE COPIES, COMPARED AGAINST THE ONE SOURCE.
+ *
+ * The HTTP smoke, the browser spec and the Playwright configuration each carry
+ * the production origins literally, and the browser spec also carries each
+ * site's product name and landing heading. They are literal because Playwright
+ * reads a config and a spec before any bundling — the reason
+ * `playwright.euro.config.ts` gives for restating its own spec list — and
+ * because `production-smoke.mjs` is plain JavaScript that cannot import a
+ * TypeScript module at all.
+ *
+ * That makes drift the hazard, and it is a quiet one: a site added to the smoke
+ * and missed in the config produces "refusing to browser-smoke non-production
+ * origin", which reads as a caller mistake; a renamed product produces a red
+ * production smoke against a correct deploy, which is exactly what happened on
+ * 12 August 2026. So the copies are compared here against
+ * `siteConfiguration()` and the landing models, which are the authorities that
+ * decide what each build actually serves.
+ */
+describe('the smoke copies agree with the site authority', () => {
+  const origins = ['https://euro28predictor.com', 'https://predictorhub.netlify.app']
+
+  it('names the same production origins in all three places', () => {
+    for (const origin of origins) {
+      expect(smoke, `${origin} missing from production-smoke.mjs`).toContain(`'${origin}'`)
+      expect(browserSpec, `${origin} missing from anonymous.spec.ts`).toContain(`'${origin}'`)
+      expect(browserConfig, `${origin} missing from the Playwright config`).toContain(
+        `'${origin}'`,
+      )
+    }
+  })
+
+  it('pins each origin to the product name its variant actually builds', () => {
+    // Not a second copy of the names: they come from the configuration the
+    // running application reads, so a rename moves both together or fails here.
+    const hub = siteConfiguration('hub').brand.productName
+    const euro = siteConfiguration('euro').brand.productName
+
+    expect(smoke).toContain(`['https://predictorhub.netlify.app', '${hub}']`)
+    expect(smoke).toContain(`['https://euro28predictor.com', '${euro}']`)
+    expect(browserSpec).toContain(`appName: '${hub}'`)
+    expect(browserSpec).toContain(`appName: '${euro}'`)
+  })
+
+  it('maps each origin to the variant that deployment builds', () => {
+    // `docs/ops/netlify-deploy-access.md` records the declarations:
+    // predictorhub is VITE_SITE_VARIANT=hub, euro28predictor is =euro.
+    expect(browserSpec).toContain("['https://euro28predictor.com', 'euro']")
+    expect(browserSpec).toContain("['https://predictorhub.netlify.app', 'hub']")
+  })
+
+  it('expects each build own landing heading, from the model that produces it', () => {
+    // The Euro deployment fails closed to the same headline whether contract
+    // 143 answers `hidden` or the read does not answer at all, and asserting
+    // the model's value rather than a transcription is what keeps that true.
+    expect(euroLandingPresentation('unknown').headline).toBe(
+      euroLandingPresentation('hidden').headline,
+    )
+    expect(browserSpec).toContain(
+      `landingHeading: '${euroLandingPresentation('hidden').headline}'`,
+    )
+
+    const hubLanding = readFileSync(resolve(root, 'src/features/landing/LandingPage.tsx'), 'utf8')
+    const hubHeading = 'Make every match mean more.'
+    expect(hubLanding, 'the Hub hero heading moved').toContain(hubHeading)
+    expect(browserSpec).toContain(`landingHeading: '${hubHeading}'`)
+  })
+
+  it('refuses an unknown origin in the browser spec too, rather than guessing', () => {
+    expect(browserSpec).toContain('this smoke does not guess which product an origin serves')
   })
 })

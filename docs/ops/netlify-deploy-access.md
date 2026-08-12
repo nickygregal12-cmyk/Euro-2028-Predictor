@@ -111,6 +111,41 @@ The password is a **convenience perimeter, not a confidentiality control**. It k
 
 The perimeter is **not** an age control, and after 11 August 2026 there is no age control to be absent: `AGE-001` was **rejected by owner decision** — a free football predictor is not a betting product, so no 18+ rule, age gate or date-of-birth field applies. The sentence that stood here said the restriction was accepted and unimplemented and that a shared password was no substitute for it; it is corrected rather than deleted, because the reasoning it supported (the password is a convenience control) is unchanged. **This remains not a public launch.**
 
+### The two production projects do not share a perimeter — recorded 12 August 2026
+
+A project read on 12 August 2026 shows the two production sites protected by
+**different mechanisms**:
+
+| Project | Variant | Primary URL | Perimeter |
+| --- | --- | --- | --- |
+| `euro28predictor` | `euro` | `https://euro28predictor.com` | Site password, all contexts |
+| `predictorhub` | `hub` | `https://predictorhub.netlify.app` | Netlify **Team SSO login**, all contexts |
+
+`predictorhub` is where the weekly platform now lives, and it is still on the
+mechanism `euro28predictor` moved **off** on 10 August. That has one operational
+consequence worth stating plainly rather than discovering during an incident:
+
+**`production-smoke.yml` cannot run against the Hub.** Its anonymous half demands
+exactly 401, which is the site-password refusal and not what Team SSO returns,
+and its authenticated half opens a session by posting to Netlify's site-password
+form — a flow that does not exist for Team SSO, and for which this repository
+holds no credential. Pointing the workflow at the Hub would fail on the
+perimeter step and tell nobody anything about the artifact, which is the same
+"fails by construction" shape recorded further down for the pre-password era.
+
+The verification code is nonetheless two-site aware as of this date:
+`scripts/production-smoke.mjs`, `production-smoke/anonymous.spec.ts` and
+`playwright.production.config.ts` each know both origins and pin each one to the
+product its variant builds. What is missing is a way in, not a way to check.
+
+**Closing it is an owner decision with two shapes**, and neither should be
+guessed here: put the Hub on the same site password as the Euro site, at which
+point the existing workflow smokes it with only an origin input; or leave Team
+SSO in place and accept that the Hub's evidence is its Netlify deploy record and
+its deploy-preview smoke rather than a published-artifact smoke. Until one is
+taken, a Hub release is evidenced by the deploy record alone, and this runbook
+says so rather than implying a smoke covered it.
+
 ### Sharing the password
 
 The password must not be pasted into an agent session transcript. It has no use there — the session egress policy blocks `euro28predictor.com` outright, so an agent cannot reach the site with or without it.
