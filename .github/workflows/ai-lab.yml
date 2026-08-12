@@ -16,7 +16,18 @@ on:
         required: true
         default: predict
         type: choice
-        options: [import, predict, evaluate, train, free-odds, value, settle, odds-plan]
+        options:
+          # bootstrap is the empty-lab path: history, fixtures, prices and one
+          # challenger per league in a single run. It promotes nothing.
+          - bootstrap
+          - import
+          - predict
+          - evaluate
+          - train
+          - free-odds
+          - value
+          - settle
+          - odds-plan
 
 permissions:
   contents: read
@@ -75,18 +86,27 @@ jobs:
         if: steps.task.outputs.name == 'morning'
         working-directory: ai
         run: |
-          python fetch_history.py --all-divisions --seasons 2627
+          # 'current' rather than a literal season code. A hard-coded 2627
+          # would keep fetching a finished season from 1 July 2027 onwards:
+          # HTTP 200, a healthy row count, a succeeded job_run, and never
+          # another result to grade or bet to settle.
+          python fetch_history.py --all-divisions --seasons current
           python sync_fixtures.py
-          for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do
-            python evaluate.py --league "$L"
-            python predict.py --league "$L" || echo "no current model for $L"
-          done
+          # Grading a finished fixture and predicting the next one are
+          # independent, so a failure in one is reported without cancelling
+          # the other. The step still ends red.
+          status=0
+          ./run_leagues.sh evaluate.py || status=1
+          ./run_leagues.sh predict.py || status=1
+          exit "$status"
       - name: Evaluate and settle
         if: steps.task.outputs.name == 'evening'
         working-directory: ai
         run: |
-          for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python evaluate.py --league "$L"; done
-          for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python settle_bets.py --league "$L"; done
+          status=0
+          ./run_leagues.sh evaluate.py || status=1
+          ./run_leagues.sh settle_bets.py || status=1
+          exit "$status"
       - name: Collect free fixture odds and find value
         if: steps.task.outputs.name == 'free-odds'
         working-directory: ai
@@ -100,9 +120,7 @@ jobs:
           fi
           python sync_fixtures.py
           python fetch_fixtures_odds.py
-          for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do
-            python find_value.py --league "$L" || echo "no current model for $L"
-          done
+          ./run_leagues.sh find_value.py
       - name: Run manual task
         if: github.event_name == 'workflow_dispatch'
         working-directory: ai
@@ -110,22 +128,30 @@ jobs:
         run: |
           case "${{ steps.task.outputs.name }}" in
             import) python fetch_history.py --all-divisions ;;
-            predict) for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python predict.py --league "$L" || true; done ;;
-            evaluate) for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python evaluate.py --league "$L"; done ;;
-            value) for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python find_value.py --league "$L" || true; done ;;
-            settle) for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do python settle_bets.py --league "$L"; done ;;
+            predict) ./run_leagues.sh predict.py ;;
+            evaluate) ./run_leagues.sh evaluate.py ;;
+            value) ./run_leagues.sh find_value.py ;;
+            settle) ./run_leagues.sh settle_bets.py ;;
             odds-plan) python odds_api.py plan ;;
-            train|free-odds) ;;
+            bootstrap|train|free-odds) ;;
           esac
       - name: Train challengers
-        if: steps.task.outputs.name == 'train'
+        if: steps.task.outputs.name == 'train' || steps.task.outputs.name == 'bootstrap'
         working-directory: ai
+        shell: bash
         run: |
           stamp="$(date -u +%Y%m%d)"
           python fetch_history.py --all-divisions
-          for L in EPL ECH EL1 EL2 ENL SPL SCH SL1 SL2; do
-            python train.py --league "$L" --family poisson --version "auto-$stamp"
-          done
+          # Bootstrap is the first-run path: an empty lab needs its fixtures
+          # and its prices as well as its history, because a challenger nobody
+          # can compare to an upcoming fixture proves nothing. Training itself
+          # is identical, and neither task promotes anything — a model becomes
+          # current only through admin_ai_promote_model, with a written reason.
+          if [ "${{ steps.task.outputs.name }}" = bootstrap ]; then
+            python sync_fixtures.py
+            python fetch_fixtures_odds.py
+          fi
+          ./run_leagues.sh train.py --family poisson --version "auto-$stamp"
       - name: Keep reports and convenience artefacts
         if: always()
         uses: actions/upload-artifact@v7

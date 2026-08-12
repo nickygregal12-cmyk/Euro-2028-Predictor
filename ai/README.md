@@ -38,6 +38,9 @@ ai/
   test_parsers.py             parsers against the REAL Football-Data headers
   test_oddsapi.py             cost model, budget guard, response parsing
   test_db_lifecycle.py        PostgreSQL proof of SC3 + EPL lifecycle variants
+  run_leagues.sh              one command across all nine leagues: every league
+                              attempted, any failure named and the exit status
+                              non-zero
   models/                     trained artefacts (gitignored)
   reports/                    validation reports (gitignored)
 ```
@@ -65,6 +68,13 @@ python train.py --league EPL --family baseline --version v0.1
 python train.py --league EPL --family logistic --version v0.2
 python train.py --league EPL --family poisson  --version v0.3 --walk-forward
 ```
+
+Hosted Development does the same thing in one action: run the **AI Lab
+development jobs** workflow with task `bootstrap`. It imports every division's
+full history, syncs fixtures, collects the free prices and trains one
+challenger per league. It promotes nothing, so the lab still produces no
+prediction until a human promotes a model — which is the next step and is
+deliberately not automated.
 
 Then promote one from `/admin/ai`, or:
 
@@ -97,6 +107,14 @@ select public.admin_ai_promote_model('<model-uuid>', 'first live model');
   and its overround is often below 1, so de-vigging it is meaningless.
 - Nothing in the lab depends on `public.season_fixtures`. All nine divisions
   run off `ai.fixtures`; the link to the website is a convenience.
+- The season to import is derived from the date, never listed. `SEASONS` ends
+  at `current_season()` and the daily job asks for `--seasons current`. A
+  hard-coded code is the worst kind of wrong here: after 1 July the finished
+  season's file still answers 200 with a healthy row count and the job still
+  records success, while no new result is ever graded and no bet ever settled.
+- A per-league loop attempts all nine and fails loudly. `predict.py` and
+  `find_value.py` return 0 when there is no current model, so a `|| true`
+  guard around them can only ever hide a real error.
 - Fixture odds cannot be inserted without an `ai.fixtures.id`. A parsed row
   that fails canonical matching aborts the transaction instead of becoming an
   invisible orphan.

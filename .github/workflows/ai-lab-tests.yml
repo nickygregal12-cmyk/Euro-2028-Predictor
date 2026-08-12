@@ -5,7 +5,13 @@ on:
     paths:
       - 'ai/**'
       - 'supabase/functions/provider-poll/**'
-      - 'supabase/migrations/20260812060000_ai_lab_operational_loop.sql'
+      # Matched by name rather than by exact timestamp. The literal
+      # 20260812060000_ai_lab_operational_loop.sql stood here and named no file
+      # in the repository: the migration landed at 20260812070000 after a
+      # rebase, and 20260812060000 is cup_group_qualification. This suite
+      # therefore did not run for the contract it exists to guard, and would
+      # have run for an unrelated Championship change.
+      - 'supabase/migrations/*_ai_lab_*.sql'
       - '.github/workflows/ai-lab*.yml'
       - 'config/deployment-contract.json'
   workflow_dispatch:
