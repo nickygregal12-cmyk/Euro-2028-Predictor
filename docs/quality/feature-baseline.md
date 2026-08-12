@@ -289,10 +289,11 @@ same paragraph existed in seven places at once.
 | 182 | There is exactly one way a season Championship group is ranked, and the database refuses to hold a second |
 
 | 183 | Picking a favourite club takes one request instead of two, and a club that plays nobody still has its badge; a player ranked deep in the table can see who is immediately above them |
+| 185 | A private nine-league modelling and paper-betting lab has a complete fixture-to-CLV lifecycle, secret-safe paid-odds custody, free historical/fixture price ingestion and bounded admin evidence; it has no platform-result or player-product authority and is not hosted by this record |
 
 | 184 | A Championship group of any permitted size can qualify somebody, instead of only its winner |
 
-*Current to contract 184.*
+*Current to contract 185.*
 
 ## Innovation Lab UI pass — 11 August 2026
 

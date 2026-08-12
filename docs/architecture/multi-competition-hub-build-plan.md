@@ -333,9 +333,10 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 182 | **Stage G** season Predictor Cup. A rule-authority guard, no driver and no new read |
 
 | 183 | **Stage E** season surfaces and **Stage H** hub/social: two bounded reads a season surface may call. No write, no rule, no provider path |
+| 185 | **No hub stage movement.** A private analytical AI Lab and paper-betting loop with secret-safe paid-odds custody; no player surface and no platform-result authority |
 
 | 184 | **Stage G** season Predictor Cup. A rule, not a driver: `CUP-002` still owns the window gate and the knockout windows a season lacks |
 
-**This table accounts for every contract up to and including contract 184.** Saying so is
+**This table accounts for every contract up to and including contract 185.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

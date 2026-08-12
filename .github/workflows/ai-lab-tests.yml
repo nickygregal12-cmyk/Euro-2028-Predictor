@@ -1,0 +1,51 @@
+name: AI Lab tests
+
+on:
+  pull_request:
+    paths:
+      - 'ai/**'
+      - 'supabase/functions/provider-poll/**'
+      - 'supabase/migrations/20260812060000_ai_lab_operational_loop.sql'
+      - '.github/workflows/ai-lab*.yml'
+      - 'config/deployment-contract.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-and-lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ai_lab_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ai_lab_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_lab_test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_lab_test
+      AI_ENV: test
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+      - name: Install Python dependencies
+        working-directory: ai
+        run: pip install -r requirements.txt pytest
+      - name: Compile and run unit plus database lifecycle tests
+        working-directory: ai
+        run: |
+          python -m compileall -q .
+          pytest -q

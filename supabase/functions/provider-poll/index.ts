@@ -10,6 +10,7 @@ declare const Deno: {
 }
 
 const DECODER_VERSION = 'contract-132-v1'
+const ODDS_DECODER_VERSION = 'contract-185-v1'
 // UNDERSCORE, and not the same string as the function slug. The function is
 // deployed as `provider-poll` and lives at `/functions/v1/provider-poll`; the
 // secret key it authorises callers against is `provider_poll`, because Supabase
@@ -32,14 +33,15 @@ const FORBIDDEN_CREDENTIAL_PARAMETERS = new Set([
 ])
 
 type PollRequest = {
-  provider: ProviderName
+  provider: ProviderName | 'the-odds-api'
   path: string
 }
 
 type ProviderConfig = {
   baseUrl: string
   headers: (secret: string) => Record<string, string>
-  secretName: string
+  secretNames: string[]
+  queryCredential?: string
 }
 
 class ProviderResponseTooLargeError extends Error {
@@ -54,21 +56,30 @@ class ProviderResponseTooLargeError extends Error {
   }
 }
 
-const PROVIDERS: Record<ProviderName, ProviderConfig> = {
+const PROVIDERS: Record<PollRequest['provider'], ProviderConfig> = {
   sportmonks: {
     baseUrl: 'https://api.sportmonks.com/v3/football/',
-    secretName: 'SPORTMONKS_API_TOKEN',
+    secretNames: ['SPORTMONKS_API_TOKEN'],
     headers: (secret) => ({ Authorization: secret }),
   },
   'api-football': {
     baseUrl: 'https://v3.football.api-sports.io/',
-    secretName: 'API_FOOTBALL_API_KEY',
+    secretNames: ['API_FOOTBALL_API_KEY'],
     headers: (secret) => ({ 'x-apisports-key': secret }),
   },
   'football-data': {
     baseUrl: 'https://api.football-data.org/v4/',
-    secretName: 'FOOTBALL_DATA_API_KEY',
+    secretNames: ['FOOTBALL_DATA_API_KEY'],
     headers: (secret) => ({ 'X-Auth-Token': secret }),
+  },
+  'the-odds-api': {
+    baseUrl: 'https://api.the-odds-api.com/v4/',
+    // ODDS_API is the hosted project name. Keep the scaffold's older aliases
+    // so local/dev deployments remain compatible. The value is never returned,
+    // archived or logged.
+    secretNames: ['ODDS_API', 'ODDS_API_KEY', 'THE_ODDS_API_KEY'],
+    headers: () => ({}),
+    queryCredential: 'apiKey',
   },
 }
 
@@ -80,6 +91,14 @@ function requiredEnvironment(name: string): string {
   const value = Deno.env.get(name)
   if (!value) throw new Error(`Missing required Edge Function secret: ${name}`)
   return value
+}
+
+function requiredEnvironmentAny(names: string[]): string {
+  for (const name of names) {
+    const value = Deno.env.get(name)
+    if (value) return value
+  }
+  throw new Error(`Missing required Edge Function secret: ${names.join(' or ')}`)
 }
 
 function localLegacyServiceKey(): string | null {
@@ -112,6 +131,12 @@ function projectSecretKey(): string {
     const key = (parsed as Record<string, unknown>)[CALLER_KEY_NAME]
     if (typeof key === 'string' && key.length > 0) return key
   }
+
+  // A dedicated Edge Function secret is easier to rotate than the shared JSON
+  // map. The database caller must hold the same value in Vault under
+  // provider_poll_caller_key; neither value is returned or logged.
+  const dedicatedCallerKey = Deno.env.get('AI_ODDS_POLL')
+  if (dedicatedCallerKey) return dedicatedCallerKey
 
   const localLegacyKey = localLegacyServiceKey()
   if (localLegacyKey) return localLegacyKey
@@ -146,8 +171,11 @@ function parseRequest(value: unknown): PollRequest {
     provider !== 'sportmonks'
     && provider !== 'api-football'
     && provider !== 'football-data'
+    && provider !== 'the-odds-api'
   ) {
-    throw new Error('provider must be sportmonks, api-football, or football-data')
+    throw new Error(
+      'provider must be sportmonks, api-football, football-data, or the-odds-api',
+    )
   }
   if (
     typeof path !== 'string'
@@ -195,6 +223,9 @@ function responseHeaders(response: Response): Record<string, string> {
     'x-ratelimit-limit',
     'x-ratelimit-remaining',
     'x-ratelimit-reset',
+    'x-requests-last',
+    'x-requests-remaining',
+    'x-requests-used',
   ]
   return Object.fromEntries(
     retained.flatMap((name) => {
@@ -275,6 +306,109 @@ async function rpcUuid(
   return parsed
 }
 
+async function rpcJson(
+  supabaseUrl: string,
+  secretKey: string,
+  functionName: string,
+  body: Record<string, unknown>,
+): Promise<unknown> {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: { apikey: secretKey, 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(20_000),
+  })
+  const text = await response.text()
+  if (!response.ok) {
+    throw new Error(`${functionName} failed (${response.status}): ${text.slice(0, 500)}`)
+  }
+  return text === '' ? null : JSON.parse(text)
+}
+
+const ODDS_TEAM_ALIASES: Record<string, string> = {
+  'AFC Bournemouth': 'Bournemouth',
+  'Brighton and Hove Albion': 'Brighton',
+  'Brighton & Hove Albion': 'Brighton',
+  'Manchester City': 'Man City',
+  'Manchester United': 'Man United',
+  'Newcastle United': 'Newcastle',
+  'Nottingham Forest': "Nott'm Forest",
+  'Tottenham Hotspur': 'Tottenham',
+  'Wolverhampton Wanderers': 'Wolves',
+  'Heart of Midlothian': 'Hearts',
+  'St. Johnstone': 'St Johnstone',
+  'St. Mirren': 'St Mirren',
+}
+
+function canonicalOddsTeam(name: unknown): string {
+  if (typeof name !== 'string' || name.trim() === '') {
+    throw new Error('Odds event has an invalid team name')
+  }
+  return ODDS_TEAM_ALIASES[name] ?? name.trim()
+}
+
+function parseOddsJson(raw: string): unknown {
+  return JSON.parse(raw)
+}
+
+function flattenOddsPayload(payload: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(payload)) throw new Error('Odds payload must be an array')
+  const rows: Array<Record<string, unknown>> = []
+  const bookCodes: Record<string, string> = {
+    pinnacle: 'PS', betfair_ex_uk: 'BFE', betfair_ex_eu: 'BFE',
+    smarkets: 'SMK', matchbook: 'MTB',
+  }
+  for (const event of payload) {
+    if (typeof event !== 'object' || event === null || Array.isArray(event)) {
+      throw new Error('Odds event must be an object')
+    }
+    const ev = event as Record<string, unknown>
+    const eventId = String(ev.id ?? '')
+    const commenceTime = String(ev.commence_time ?? '')
+    const homeTeam = String(ev.home_team ?? '')
+    const awayTeam = String(ev.away_team ?? '')
+    if (!eventId || !Number.isFinite(Date.parse(commenceTime))) {
+      throw new Error('Odds event is missing an id or commence_time')
+    }
+    for (const rawBook of Array.isArray(ev.bookmakers) ? ev.bookmakers : []) {
+      const book = rawBook as Record<string, unknown>
+      const bookmaker = bookCodes[String(book.key ?? '')]
+      if (!bookmaker) continue
+      for (const rawMarket of Array.isArray(book.markets) ? book.markets : []) {
+        const market = rawMarket as Record<string, unknown>
+        const marketKey = String(market.key ?? '')
+        if (marketKey !== 'h2h' && marketKey !== 'totals') continue
+        for (const rawOutcome of Array.isArray(market.outcomes) ? market.outcomes : []) {
+          const outcome = rawOutcome as Record<string, unknown>
+          const price = Number(outcome.price)
+          if (!Number.isFinite(price) || price <= 1) continue
+          const name = String(outcome.name ?? '')
+          const selection = marketKey === 'h2h'
+            ? (name === homeTeam ? 'H' : name === awayTeam ? 'A' : name === 'Draw' ? 'D' : '')
+            : name
+          if (!selection) continue
+          rows.push({
+            event_id: eventId,
+            sport_key: ev.sport_key,
+            commence_time: commenceTime,
+            home_team: homeTeam,
+            away_team: awayTeam,
+            home_canonical: canonicalOddsTeam(homeTeam),
+            away_canonical: canonicalOddsTeam(awayTeam),
+            bookmaker,
+            market: marketKey === 'h2h' ? '1X2' : 'OU',
+            line: outcome.point ?? null,
+            selection,
+            odds: price,
+            captured_at: market.last_update ?? book.last_update ?? new Date().toISOString(),
+          })
+        }
+      }
+    }
+  }
+  return rows
+}
+
 async function recordFailure(
   supabaseUrl: string,
   secretKey: string,
@@ -298,9 +432,9 @@ Deno.serve(async (request) => {
   try {
     secretKey = projectSecretKey()
   } catch (error) {
+    console.error('provider-poll configuration failed', error instanceof Error ? error.name : 'unknown')
     return json(500, {
       error: 'function_not_configured',
-      detail: error instanceof Error ? error.message : String(error),
     })
   }
   if (!authorized(request, secretKey)) return json(401, { error: 'unauthorized' })
@@ -308,10 +442,9 @@ Deno.serve(async (request) => {
   let poll: PollRequest
   try {
     poll = parseRequest(await request.json())
-  } catch (error) {
+  } catch {
     return json(400, {
       error: 'invalid_request',
-      detail: error instanceof Error ? error.message : String(error),
     })
   }
 
@@ -320,28 +453,50 @@ Deno.serve(async (request) => {
   let providerSecret: string
   try {
     supabaseUrl = requiredEnvironment('SUPABASE_URL')
-    providerSecret = requiredEnvironment(config.secretName)
+    providerSecret = requiredEnvironmentAny(config.secretNames)
   } catch (error) {
+    console.error('provider-poll provider configuration failed', error instanceof Error ? error.name : 'unknown')
     return json(500, {
       error: 'function_not_configured',
-      detail: error instanceof Error ? error.message : String(error),
     })
   }
 
   let target: URL
   try {
     target = providerUrl(config, poll.path)
-  } catch (error) {
+  } catch {
     return json(400, {
       error: 'invalid_request',
-      detail: error instanceof Error ? error.message : String(error),
     })
+  }
+  const archivedTarget = target.toString()
+  const fetchTarget = new URL(target)
+  if (config.queryCredential) {
+    fetchTarget.searchParams.set(config.queryCredential, providerSecret)
   }
   const correlationId = crypto.randomUUID()
 
+  if (poll.provider === 'the-odds-api') {
+    const requestedMarkets = target.searchParams.get('markets')?.split(',') ?? ['h2h']
+    const estimatedCost = Math.max(1, requestedMarkets.length)
+    try {
+      const budget = await rpcJson(supabaseUrl, secretKey, 'ai_odds_budget_check', {
+        p_estimated_cost: estimatedCost,
+      }) as Record<string, unknown>
+      if (budget?.allowed !== true) {
+        return json(429, { error: 'odds_budget_exceeded', budget })
+      }
+    } catch (error) {
+      console.error('provider-poll odds budget check failed', error instanceof Error ? error.name : 'unknown')
+      return json(500, {
+        error: 'odds_budget_check_failed',
+      })
+    }
+  }
+
   let providerResponse: Response
   try {
-    providerResponse = await fetch(target, {
+    providerResponse = await fetch(fetchTarget, {
       method: 'GET',
       headers: {
         accept: 'application/json',
@@ -350,10 +505,12 @@ Deno.serve(async (request) => {
       redirect: 'error',
       signal: AbortSignal.timeout(20_000),
     })
-  } catch (error) {
+  } catch {
+    // A transport error may include the full request URL. For The Odds API
+    // that in-memory URL carries apiKey, so caught provider text must never be
+    // returned or logged. correlationId is the only public diagnostic handle.
     return json(502, {
       error: 'provider_transport_failed',
-      detail: error instanceof Error ? error.message : String(error),
       correlationId,
     })
   }
@@ -374,18 +531,64 @@ Deno.serve(async (request) => {
         correlationId,
       })
     }
+    console.error('provider-poll body read failed', error instanceof Error ? error.name : 'unknown')
     return json(502, {
       error: 'provider_body_read_failed',
-      detail: error instanceof Error ? error.message : String(error),
       correlationId,
     })
+  }
+
+  if (poll.provider === 'the-odds-api') {
+    let normalized: Array<Record<string, unknown>> = []
+    let decodeError: string | null = null
+    if (providerResponse.ok) {
+      try {
+        normalized = flattenOddsPayload(parseOddsJson(rawBody))
+      } catch (error) {
+        decodeError = error instanceof Error ? error.message : String(error)
+      }
+    }
+    try {
+      const stored = await rpcJson(supabaseUrl, secretKey, 'record_ai_odds_snapshot', {
+        p_request_url: archivedTarget,
+        p_response_status: providerResponse.status,
+        p_response_headers: responseHeaders(providerResponse),
+        p_raw_body: rawBody,
+        p_normalized_payload: normalized,
+        p_estimated_cost: Math.max(
+          1,
+          target.searchParams.get('markets')?.split(',').length ?? 1,
+        ),
+        p_reported_cost: Number(providerResponse.headers.get('x-requests-last')) || null,
+        p_reported_remaining:
+          Number(providerResponse.headers.get('x-requests-remaining')) || null,
+        p_reported_used: Number(providerResponse.headers.get('x-requests-used')) || null,
+        p_decoder_version: ODDS_DECODER_VERSION,
+        p_error_detail: decodeError,
+      })
+      if (!providerResponse.ok) {
+        return json(502, {
+          error: 'provider_http_error', status: providerResponse.status, stored, correlationId,
+        })
+      }
+      if (decodeError) {
+        return json(422, { error: 'provider_contract_mismatch', stored })
+      }
+      return json(200, { correlationId, rows: normalized.length, stored })
+    } catch (error) {
+      console.error('provider-poll odds archive failed', error instanceof Error ? error.name : 'unknown')
+      return json(500, {
+        error: 'odds_archive_failed',
+        correlationId,
+      })
+    }
   }
 
   let rawResponseId: string
   try {
     rawResponseId = await rpcUuid(supabaseUrl, secretKey, 'archive_provider_response', {
       p_provider: poll.provider,
-      p_request_url: target.toString(),
+      p_request_url: archivedTarget,
       p_request_method: 'GET',
       p_response_status: providerResponse.status,
       p_response_headers: responseHeaders(providerResponse),
@@ -393,9 +596,9 @@ Deno.serve(async (request) => {
       p_correlation_id: correlationId,
     })
   } catch (error) {
+    console.error('provider-poll archive failed', error instanceof Error ? error.name : 'unknown')
     return json(500, {
       error: 'archive_failed',
-      detail: error instanceof Error ? error.message : String(error),
       correlationId,
     })
   }
@@ -410,9 +613,9 @@ Deno.serve(async (request) => {
         `Provider returned HTTP ${providerResponse.status}`,
       )
     } catch (error) {
+      console.error('provider-poll processing record failed', error instanceof Error ? error.name : 'unknown')
       return json(500, {
         error: 'processing_record_failed',
-        detail: error instanceof Error ? error.message : String(error),
         rawResponseId,
         correlationId,
       })
@@ -435,9 +638,9 @@ Deno.serve(async (request) => {
         `Provider response was ${responseBytes} bytes; processing limit is ${PROCESSING_MAX_RESPONSE_BYTES}`,
       )
     } catch (error) {
+      console.error('provider-poll oversized response record failed', error instanceof Error ? error.name : 'unknown')
       return json(500, {
         error: 'processing_record_failed',
-        detail: error instanceof Error ? error.message : String(error),
         rawResponseId,
         correlationId,
       })
@@ -474,9 +677,12 @@ Deno.serve(async (request) => {
         error instanceof Error ? error.message : String(error),
       )
     } catch (recordError) {
+      console.error(
+        'provider-poll decode failure record failed',
+        recordError instanceof Error ? recordError.name : 'unknown',
+      )
       return json(500, {
         error: 'processing_record_failed',
-        detail: recordError instanceof Error ? recordError.message : String(recordError),
         rawResponseId,
         correlationId,
       })
