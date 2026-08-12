@@ -355,6 +355,14 @@ Nine gallery sections are declared in `e2e/visual-gallery.spec.ts` beyond the or
 
 The fix restores the coverage rather than relaxing it: `mobile-bottom-navigation` renders `BottomNav` directly, which is viewport-independent and is the same thing the rail section has always done. Two framing corrections came from reviewing the same images — the rail frame was 420px tall and clipped everything below the third competition shortcut, so the baseline could not show that "All competitions" exists, which is the bound's whole point; and the frame stretched to the panel, leaving ~900px of empty pixels for a pixel comparison to look through.
 
+**The Innovation Lab pass found the harness's second sharp edge, 11 August 2026, and it is worth stating because the next design change will meet it too.** `INNOV-012`'s honours panel makes one section — `league-matchweek-comparison` — 218px taller. The comparison run then failed **65 of 124** images, most of them sections the change never touches: `alert`, `emptystate`, `textinput`, the state matrix, the onboarding steps. That looks exactly like a broken change and was not one, and the difference between those two readings was measured rather than argued:
+
+- **`main`'s own baselines were dispatched against the same runner and passed**, so it was not environment drift and re-rendering absorbed no pre-existing failure;
+- **one dev server with `src/` swapped between `main` and the branch** showed exactly one section changing height. Every other section measured identical;
+- **the committed images agree**: the four `league-matchweek-comparison` files grew by 16–24 KB, and **53 of the 65 changed by 200 bytes or less**.
+
+The cause is that the gallery is one scrolling page and each section is photographed after `scrollIntoViewIfNeeded`. A section that grows moves everything after it, and elements land on different sub-pixel offsets, so their antialiasing changes by a fraction of a percent — which is above `maxDiffPixelRatio` and below anything a reader would call a difference. **Do not read a large failing count as a large change.** Check `main` against the current runner first, then measure the sections rather than the images; the count of failures is not a measure of how much moved.
+
 `AWAITING_BASELINE` in the same spec names any section declared but not yet rendered. `visualContractHarness` excludes those from its baseline count and **fails once a name in it has baselines on disk**, so an entry expires with the dispatch that satisfies it and cannot become the way new sections are added.
 
 ## 15. What the browser suite caught
