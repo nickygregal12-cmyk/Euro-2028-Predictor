@@ -54,4 +54,7 @@ jobs:
         working-directory: ai
         run: |
           python -m compileall -q .
+          # The same guard the job workflow runs before it resolves a hosted
+          # credential. Here it is a review gate; there it is a runtime one.
+          python check_write_scope.py
           pytest -q
