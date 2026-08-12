@@ -88,27 +88,34 @@ export function ExploreCompetitionsPage() {
     }
   }
 
+  // The failure and loading states take the SAME measure as the ready one.
+  // Without it the page is 1440px wide while it resolves and 820px after,
+  // which reads as a layout jump rather than as a page arriving.
   if (status === 'failed') {
     return (
-      <div className={s.page}>
-        <h1 className={s.title}>All competitions</h1>
-        <Alert variant="error" title="We could not load your competitions">
-          The catalogue is still below, but which of these are yours could not be checked.
-        </Alert>
-        <Button variant="secondary" onClick={reload}>
-          Try again
-        </Button>
-      </div>
+      <Workspace width="reading">
+        <div className={s.page}>
+          <h1 className={s.title}>All competitions</h1>
+          <Alert variant="error" title="We could not load your competitions">
+            The catalogue is still below, but which of these are yours could not be checked.
+          </Alert>
+          <Button variant="secondary" onClick={reload}>
+            Try again
+          </Button>
+        </div>
+      </Workspace>
     )
   }
 
   if (status === 'loading') {
     return (
-      <div className={s.page} aria-busy="true">
-        <h1 className={s.title}>All competitions</h1>
-        <Skeleton width="100%" height={56} />
-        <Skeleton width="100%" height={96} />
-      </div>
+      <Workspace width="reading">
+        <div className={s.page} aria-busy="true">
+          <h1 className={s.title}>All competitions</h1>
+          <Skeleton width="100%" height={56} />
+          <Skeleton width="100%" height={96} />
+        </div>
+      </Workspace>
     )
   }
 
