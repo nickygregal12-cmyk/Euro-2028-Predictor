@@ -128,6 +128,11 @@
   status = 200
 
 [[redirects]]
+  from = "/admin/ai"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
   from = "/admin/users"
   to = "/index.html"
   status = 200

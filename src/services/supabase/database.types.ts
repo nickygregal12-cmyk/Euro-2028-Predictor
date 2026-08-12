@@ -1388,6 +1388,7 @@ export type Database = {
           game_key: string
           lock_scope: string
           requires_prediction_entry: boolean
+          uses_season_prediction_card: boolean
         }
         Insert: {
           allow_rejoin: boolean
@@ -1397,6 +1398,7 @@ export type Database = {
           game_key: string
           lock_scope: string
           requires_prediction_entry?: boolean
+          uses_season_prediction_card?: boolean
         }
         Update: {
           allow_rejoin?: boolean
@@ -1406,6 +1408,7 @@ export type Database = {
           game_key?: string
           lock_scope?: string
           requires_prediction_entry?: boolean
+          uses_season_prediction_card?: boolean
         }
         Relationships: []
       }
@@ -3511,6 +3514,27 @@ export type Database = {
         Args: { p_tournament_id: string }
         Returns: Json
       }
+      admin_ai_betting_dashboard: { Args: { p_league?: string }; Returns: Json }
+      admin_ai_betting_gate_status: { Args: never; Returns: Json }
+      admin_ai_dashboard: { Args: { p_league?: string }; Returns: Json }
+      admin_ai_evidence_by_market: { Args: never; Returns: Json }
+      admin_ai_odds_api_status: { Args: never; Returns: Json }
+      admin_ai_performance_breakdown: {
+        Args: { p_league?: string }
+        Returns: Json
+      }
+      admin_ai_promote_model: {
+        Args: { p_model_id: string; p_reason: string }
+        Returns: Json
+      }
+      admin_ai_recent_results: {
+        Args: { p_league?: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_ai_upcoming_predictions: {
+        Args: { p_league?: string; p_limit?: number }
+        Returns: Json
+      }
       admin_approve_initial_provider_fixtures: {
         Args: { p_provider: string; p_reason: string; p_tournament_id: string }
         Returns: Json
@@ -3699,6 +3723,10 @@ export type Database = {
           state: string
         }[]
       }
+      ai_odds_budget_check: {
+        Args: { p_estimated_cost: number }
+        Returns: Json
+      }
       archive_provider_response: {
         Args: {
           p_correlation_id?: string
@@ -3810,6 +3838,7 @@ export type Database = {
         Returns: boolean
       }
       dismiss_action: { Args: { p_action_key: string }; Returns: Json }
+      dispatch_ai_odds_polls: { Args: { p_force?: boolean }; Returns: Json }
       dispatch_due_provider_polls: { Args: { p_now?: string }; Returns: Json }
       enforce_rate_limit: {
         Args: { p_action: string; p_max_per_min: number }
@@ -3926,6 +3955,10 @@ export type Database = {
         Returns: Json
       }
       get_my_preferences: { Args: never; Returns: Json }
+      get_my_private_competitions: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: Json
+      }
       get_my_season_cup_instances: {
         Args: { p_tournament_id: string }
         Returns: Json
@@ -3940,6 +3973,10 @@ export type Database = {
       }
       get_prediction_consensus: {
         Args: { p_tournament_id: string }
+        Returns: Json
+      }
+      get_private_competition_workspace: {
+        Args: { p_competition_id: string }
         Returns: Json
       }
       get_provider_review_queues: {
@@ -3974,6 +4011,7 @@ export type Database = {
         }
         Returns: Json
       }
+      get_season_clubs: { Args: { p_tournament_id: string }; Returns: Json }
       get_season_cup_group_stage: {
         Args: { p_competition_id: string; p_group_ordinal?: number }
         Returns: Json
@@ -4004,6 +4042,10 @@ export type Database = {
       }
       get_season_leaderboard: {
         Args: { p_after?: string; p_limit?: number; p_tournament_id: string }
+        Returns: Json
+      }
+      get_season_leaderboard_neighbourhood: {
+        Args: { p_tournament_id: string; p_window?: number }
         Returns: Json
       }
       get_season_league_matchweek_predictions: {
@@ -4117,6 +4159,22 @@ export type Database = {
         Args: { p_tournament_id: string }
         Returns: undefined
       }
+      record_ai_odds_snapshot: {
+        Args: {
+          p_decoder_version: string
+          p_error_detail?: string
+          p_estimated_cost: number
+          p_normalized_payload: Json
+          p_raw_body: string
+          p_reported_cost: number
+          p_reported_remaining: number
+          p_reported_used: number
+          p_request_url: string
+          p_response_headers: Json
+          p_response_status: number
+        }
+        Returns: Json
+      }
       record_provider_response_processing: {
         Args: {
           p_decoded_fixture_count?: number
@@ -4207,6 +4265,7 @@ export type Database = {
         }
         Returns: Json
       }
+      set_league_member_limit: { Args: { p_limit: number }; Returns: Json }
       set_onboarding_progress: {
         Args: { p_completed?: boolean; p_step: string }
         Returns: Json
@@ -4381,4 +4440,3 @@ export const Constants = {
     Enums: {},
   },
 } as const
-

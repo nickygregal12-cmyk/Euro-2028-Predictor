@@ -29,6 +29,17 @@ test('the protected administrator routes remain reachable in the weekly app', as
   await expect(page.getByRole('heading', { name: 'Competition administration' })).toBeVisible()
   await expectNoSeriousAxeViolations(page, '/admin/season')
 
+  // The AI Lab belongs only to the Hub's domestic route tree and reads the
+  // bounded contract-185 administration RPCs. It may be empty before the first
+  // training run, but its private status and page structure remain testable.
+  await page.goto('/admin/ai')
+  await expect(page).toHaveURL((url) => url.pathname === '/admin/ai', {
+    timeout: 15_000,
+  })
+  await expect(page.getByRole('heading', { name: 'AI Lab' })).toBeVisible()
+  await expect(page.getByText('Private analysis · administrators only')).toBeVisible()
+  await expectNoSeriousAxeViolations(page, '/admin/ai')
+
   // Euro publication renders its chrome from the route and one bounded read.
   // The state itself is whatever this environment holds — the fixture does
   // advance it to `prelaunch` for the tournament routes — so this asserts the

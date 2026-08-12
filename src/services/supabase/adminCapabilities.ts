@@ -1,4 +1,9 @@
-export type AdminCapability = 'results' | 'users' | 'leagues' | 'tournament'
+export type AdminCapability =
+  | 'results'
+  | 'users'
+  | 'leagues'
+  | 'tournament'
+  | 'competitions'
 
 export function metadataAllowsAdminCapability(
   metadata: unknown,

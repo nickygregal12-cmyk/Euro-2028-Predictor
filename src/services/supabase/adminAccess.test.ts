@@ -5,6 +5,22 @@ describe('metadataAllowsAdminCapability', () => {
   it('allows a super administrator for every capability', () => {
     expect(metadataAllowsAdminCapability({ admin_role: 'super_admin' }, 'results')).toBe(true)
     expect(metadataAllowsAdminCapability({ admin_role: 'super_admin' }, 'users')).toBe(true)
+    expect(metadataAllowsAdminCapability({ admin_role: 'super_admin' }, 'competitions')).toBe(true)
+  })
+
+  it('recognises the server-owned competitions capability used by the AI Lab', () => {
+    expect(
+      metadataAllowsAdminCapability(
+        { admin_role: 'admin', admin_capabilities: ['competitions'] },
+        'competitions',
+      ),
+    ).toBe(true)
+    expect(
+      metadataAllowsAdminCapability(
+        { admin_role: 'admin', admin_capabilities: ['results'] },
+        'competitions',
+      ),
+    ).toBe(false)
   })
 
   it('allows only explicitly assigned capabilities', () => {

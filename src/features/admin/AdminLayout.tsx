@@ -1,7 +1,9 @@
 import { NavLink, Outlet } from 'react-router'
+import { useSite } from '../../app/site/SiteProvider'
 import a from './admin.module.css'
 
 export function AdminLayout() {
+  const site = useSite()
   return (
     <div className={a.controlRoom}>
       <nav className={a.adminNav} aria-label="Admin control room">
@@ -21,6 +23,16 @@ export function AdminLayout() {
         >
           Competitions
         </NavLink>
+        {site.servesDomesticCompetitions ? (
+          <NavLink
+            to="/admin/ai"
+            className={({ isActive }) =>
+              isActive ? a.adminNavActive : a.adminNavLink
+            }
+          >
+            AI Lab
+          </NavLink>
+        ) : null}
         <NavLink
           to="/admin/euro"
           className={({ isActive }) =>

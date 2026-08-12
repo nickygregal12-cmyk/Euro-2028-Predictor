@@ -36,6 +36,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/admin/results', title: 'Results Centre' },
   { path: '/admin/users', title: 'Users' },
   { path: '/admin/season', title: 'Competition administration' },
+  { path: '/admin/ai', title: 'AI Lab' },
   { path: '/admin/euro', title: 'Euro 2028 publication' },
   { path: '/admin', title: 'Admin' },
 ]
@@ -57,6 +58,7 @@ const DEV_ROUTE_TITLES: { path: string; title: string }[] = import.meta.env.DEV
       { path: '/dev/season-standings', title: 'Season standings preview' },
       { path: '/dev/season-lms', title: 'Season LMS preview' },
       { path: '/dev/season-cup', title: 'Season Championship preview' },
+      { path: '/dev/ai-lab', title: 'AI Lab preview' },
     ]
   : []
 
