@@ -70,7 +70,7 @@ export function pendingDrafts(drafts: readonly PredictionDraft[]): readonly Pred
   return drafts.filter((draft) => !draft.refusal)
 }
 
-export function draftState(draft: PredictionDraft, syncing: boolean): DraftFixtureState {
+function draftState(draft: PredictionDraft, syncing: boolean): DraftFixtureState {
   if (draft.refusal) {
     switch (draft.refusal.outcome) {
       case 'locked':

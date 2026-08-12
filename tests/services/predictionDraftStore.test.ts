@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createPredictionDraftStore,
+  DRAFT_SCHEMA,
   draftKey,
   parseDraftRecord,
   type DraftStorage,
@@ -56,6 +57,9 @@ const clock = () => new Date('2026-08-12T14:32:00.000Z')
 describe('the prediction draft key', () => {
   it('names the schema, the account, the season and the matchweek', () => {
     expect(draftKey(SCOPE)).toBe('fph.predictionDrafts.v1.user-a.season-1.5')
+    // The schema version is IN the key as well as in the payload, so a build
+    // that bumps it cannot read the previous build's records at all.
+    expect(draftKey(SCOPE)).toContain(`.v${DRAFT_SCHEMA}.`)
   })
 
   it('gives two matchweeks of one season different keys', () => {

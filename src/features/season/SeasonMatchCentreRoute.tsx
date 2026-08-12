@@ -320,12 +320,13 @@ export function SeasonMatchCentreRoute() {
 /**
  * The page's own composition, once the fixture and the card reader exist.
  *
- * WHY IT IS A COMPONENT AND NOT MORE OF THE ROUTE. Three surfaces on this page
- * need the player's own prediction as numbers — the panel, the `INNOV-001`
- * projection and the `INNOV-011` divergence line — and hooks cannot be called
- * conditionally, so the read has to happen where the fixture is known to exist.
- * Splitting here means ONE card read and one league-predictions read serving all
- * of them, rather than each surface asking again.
+ * WHY IT IS A COMPONENT AND NOT MORE OF THE ROUTE. Two surfaces on this page
+ * need the player's own prediction as numbers — the panel and the `INNOV-011`
+ * divergence line — and hooks cannot be called conditionally, so the read has to
+ * happen where the fixture is known to exist. Splitting here means ONE card read
+ * and one league-predictions read serving both, rather than each surface asking
+ * again. The `INNOV-001` projection needs neither: contract 175 answers the
+ * whole matchweek from the season and the matchweek alone.
  */
 function MatchCentreComposition({
   fixture,
@@ -400,10 +401,11 @@ function MatchCentreComposition({
         football={football}
         predictHref={predictHref}
       />
-      {/* INNOV-001, below the player's own confirmed side of the match and
-          never above it. A projection must not be the first number on a page
-          that also carries real ones; it renders nothing at all unless the
-          fixture is unsettled and a provider is reporting a score. */}
+      {/* INNOV-001 over contract 175, below the player's own confirmed side of
+          the match and never above it. A projection must not be the first
+          number on a page that also carries real ones; it renders nothing at
+          all unless the matchweek is unbanked and a provider is reporting a
+          score for this fixture. */}
       {projection ? (
         <SeasonMatchWhatIf
           projection={projection}
