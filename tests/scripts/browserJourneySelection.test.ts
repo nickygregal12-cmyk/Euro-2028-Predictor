@@ -60,31 +60,42 @@ describe('narrowing is earned, never assumed', () => {
     expect(selectJourneys(['e2e/h2h-local.ts']).full).toBe(true)
   })
 
-  it('never selects a parked Euro journey against the weekly app', () => {
+  it('never selects a Euro-deployment journey against the weekly app', () => {
     for (const spec of parkedEuroSpecs) {
       const decision = selectJourneys([`e2e/${spec}`])
       expect(decision.full).toBe(true)
-      expect(decision.reason).toContain('parked Euro evidence')
+      expect(decision.reason).toContain('Euro-deployment evidence')
     }
   })
 })
 
 describe('a genuinely focused weekly change narrows', () => {
-  it('runs the profile journey for a profile-only change', () => {
-    const decision = selectJourneys(['src/features/profile/ProfileCard.tsx'])
+  /*
+   * THESE USED TO BE WRITTEN OVER `src/features/profile/`, and cannot be any
+   * more. `profile-h2h-surfaces.spec.ts` drives `/tournament/profile` and
+   * `/h2h/:rivalId`, which only the Euro deployment serves since `EURO-001`'s
+   * route half turned on; it moved to `PARKED_EURO_SPECS` with the flip, and its
+   * prefixes are deliberately unmapped so a change there falls through to the
+   * full suite rather than selecting a spec this selector no longer collects.
+   *
+   * The narrowing behaviour is unchanged and is now stated over a weekly prefix
+   * that still has a weekly journey.
+   */
+  it('runs the hub journey for a hub-only change', () => {
+    const decision = selectJourneys(['src/features/hub/HubPage.tsx'])
     expect(decision.full).toBe(false)
-    expect(decision.specs).toContain('profile-h2h-surfaces.spec.ts')
+    expect(decision.specs).toContain('weekly-navigation.spec.ts')
     expect(decision.specs).not.toContain('bonus-games.spec.ts')
   })
 
   it('runs a changed active spec itself', () => {
-    const decision = selectJourneys(['e2e/profile-h2h-surfaces.spec.ts'])
+    const decision = selectJourneys(['e2e/weekly-navigation.spec.ts'])
     expect(decision.full).toBe(false)
-    expect(decision.specs).toContain('profile-h2h-surfaces.spec.ts')
+    expect(decision.specs).toContain('weekly-navigation.spec.ts')
   })
 
   it('always includes the weekly browser floor in any subset', () => {
-    const decision = selectJourneys(['src/features/profile/ProfileCard.tsx'])
+    const decision = selectJourneys(['src/features/hub/HubPage.tsx'])
     expect(decision.full).toBe(false)
     for (const baseline of baselineSpecs) {
       expect(decision.specs).toContain(baseline)
@@ -93,12 +104,20 @@ describe('a genuinely focused weekly change narrows', () => {
 
   it('unions journeys when several mapped areas change', () => {
     const decision = selectJourneys([
-      'src/features/profile/ProfileCard.tsx',
+      'src/features/season/SeasonGameRoutes.tsx',
       'src/features/hub/HubPage.tsx',
     ])
     expect(decision.full).toBe(false)
-    expect(decision.specs).toContain('profile-h2h-surfaces.spec.ts')
+    expect(decision.specs).toContain('season-competition-journey.spec.ts')
     expect(decision.specs).toContain('weekly-navigation.spec.ts')
+  })
+
+  it('falls through to the full suite for a now-Euro-only prefix', () => {
+    // The conservative direction, and the one the map's own note names: an
+    // unmapped prefix runs everything rather than nothing.
+    expect(selectJourneys(['src/features/profile/ProfileCard.tsx']).full).toBe(true)
+    expect(selectJourneys(['src/features/h2h/H2HScreen.tsx']).full).toBe(true)
+    expect(selectJourneys(['src/features/league/LeaguePage.tsx']).full).toBe(true)
   })
 })
 
@@ -112,11 +131,11 @@ describe('the map cannot rot', () => {
     expect(missing, `selector journeys that do not exist: ${missing.join(', ')}`).toEqual([])
     expect(
       parkedNamed,
-      `parked Euro journeys must not be current weekly selector targets: ${parkedNamed.join(', ')}`,
+      `Euro-deployment journeys must not be current weekly selector targets: ${parkedNamed.join(', ')}`,
     ).toEqual([])
   })
 
-  it('keeps every parked Euro spec present for the recorded return', () => {
+  it('keeps every Euro-deployment spec present for the dedicated workflow', () => {
     const onDisk = new Set(specsOnDisk() as string[])
     expect(parkedEuroSpecs.filter((spec) => !onDisk.has(spec))).toEqual([])
   })
