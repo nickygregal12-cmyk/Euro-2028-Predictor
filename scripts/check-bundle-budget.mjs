@@ -211,10 +211,19 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // than the last two raises left: a ceiling with less headroom than a single
 // component costs is not a ratchet, it is a stop, and the last two CSS raises
 // were each one component away from that.
+//
+// RAISED FROM 352 TO 356 AND FROM 38 TO 39 ON 12 AUGUST 2026, FOR THE PRIVATE
+// HUB-ONLY AI LAB DASHBOARD. CI measured all JS at 354.9 KB gz and all CSS at
+// 38.6 KB gz. The heavy page remains a lazy 8.1 KB chunk behind both the Hub
+// deployment boundary and the competitions-admin capability; the Euro build
+// emits no AiLabPage chunk at all. Most importantly, the largest/entry chunk
+// remains inside the unchanged 77 KB cap at 76.5 KB, so no player first paint
+// inherits the laboratory. The aggregate ceilings move only enough to admit
+// the measured private surface and preserve the tighter per-chunk control.
 const BUDGETS = {
   entryChunkKb: 77,
-  totalJsKb: 352,
-  totalCssKb: 38,
+  totalJsKb: 356,
+  totalCssKb: 39,
 }
 
 /**
