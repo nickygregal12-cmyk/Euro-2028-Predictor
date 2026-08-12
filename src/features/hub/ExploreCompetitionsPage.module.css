@@ -57,9 +57,24 @@
   }
 }
 
+/* The card and its Follow control. The card takes the width and the control
+   sits at the end of the row, so the two never compete for the same tap and
+   the button is never nested inside the link. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.row > .card {
+  flex: 1 1 auto;
+}
+
 .card {
   display: grid;
   gap: 2px;
+  min-width: 0;
   min-height: var(--tap-min);
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--line);

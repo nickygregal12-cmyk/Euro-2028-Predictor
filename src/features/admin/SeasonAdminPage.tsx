@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Alert, Button, Skeleton, TextInput } from '../../design-system'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Alert, Button, Skeleton, TextInput, Workspace } from '../../design-system'
 import {
   fetchHubMembership,
   type HubSeasonMembership,
@@ -25,6 +25,7 @@ import { SeasonAdminInspection } from './SeasonAdminInspection'
 import { ProviderReviewPanel } from './ProviderReviewPanel'
 import { ProviderChangePanel } from './ProviderChangePanel'
 import { ShadowScoringPanel } from './ShadowScoringPanel'
+import { ReminderHealthPanel } from './ReminderHealthPanel'
 import {
   decideProviderChangeProposal,
   fetchProviderChangeProposals,
@@ -259,7 +260,37 @@ export function SeasonAdminPage() {
   const readiness = fixturesView.status === 'ready' ? fixturesView.readiness : null
   const games = membership ? openableGames(membership.seasonGames.games) : []
 
+  /**
+   * Contract 172's operational health, as the contextual panel.
+   *
+   * IT IS BESIDE THE SEASON WORK RATHER THAN IN IT, because it is the one
+   * thing on this page that is not about the selected season: the three jobs
+   * and the two ledgers are platform-wide, and stacking them under a matchweek
+   * chooser would imply a season scope the read does not have. It also takes
+   * no argument, which is why the memo has no dependency and the panel does
+   * not re-read when the operator changes season.
+   *
+   * THE SERVICE IS IMPORTED LAZILY. Naming it at module scope pulls
+   * `client.ts` into this page's own graph, and that module throws at load
+   * without configuration — which is the difference between a page a test can
+   * mount and one it cannot. Every other panel here reaches its service
+   * through a prop the page builds; this one builds it the same way and defers
+   * the module with it.
+   */
+  const loadReminderHealth = useMemo(
+    () => () =>
+      import('../../services/supabase/reminderDeliveryHealth').then(
+        ({ fetchReminderDeliveryHealth }) => fetchReminderDeliveryHealth(),
+      ),
+    [],
+  )
+
   return (
+    <Workspace
+      width="full"
+      asideLabel="Platform operations"
+      aside={<ReminderHealthPanel load={loadReminderHealth} />}
+    >
     <div className={styles.page}>
       <section className={styles.panel} aria-labelledby="season-admin-heading">
         <h1 className={styles.heading} id="season-admin-heading">
@@ -548,5 +579,6 @@ export function SeasonAdminPage() {
         />
       ) : null}
     </div>
+    </Workspace>
   )
 }

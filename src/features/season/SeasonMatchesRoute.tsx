@@ -278,6 +278,27 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
       statusStrip={[`${context.matchweekCount} matchweeks`]}
       active="matches"
       destinations={seasonShellDestinations(base)}
+      // The fixture list, the table and an opened Match Centre are all things
+      // a reader compares across a row, so the main column takes the width
+      // rather than sitting in a 820px measure with 600px of nothing beside
+      // it.
+      width="full"
+      asideLabel="Club form"
+      // The football half of the Matches section's accepted shape, BESIDE the
+      // fixtures rather than a scroll below them. Contract 141's derivation is
+      // explicitly NOT a league table — capped at twenty matches and knowing
+      // none of the competition's rules — so it stays Club form and says so.
+      // The TABLE in the main column is contract 160's, which closed
+      // `MIG-UI-13`; the two are different reads answering different questions
+      // and neither stands in for the other.
+      //
+      // It stacks under the fixtures below 1280px, which is exactly where it
+      // was before, so the phone reading order is unchanged.
+      aside={
+        clubForm && formWindow !== null ? (
+          <SeasonCompetitionForm clubs={clubForm} matches={formWindow} layout="panel" />
+        ) : undefined
+      }
     >
       {/* No `openAt`. The window is the server's default — the last week and
           the next fortnight — because "what is on around now" is the question
@@ -293,15 +314,6 @@ export function SeasonMatchesRoute({ contextGateway }: SeasonMatchesRouteProps =
         predictHref={predictHref}
         readTable={readTable}
       />
-      {/* The football half of the Matches section's accepted shape. Contract
-          141's derivation is explicitly NOT a league table — capped at twenty
-          matches and knowing none of the competition's rules — so it stays
-          Recent form and says so. The TABLE above it is contract 160's, which
-          closed `MIG-UI-13` on 11 August 2026; the two are different reads
-          answering different questions and neither stands in for the other. */}
-      {clubForm && formWindow !== null ? (
-        <SeasonCompetitionForm clubs={clubForm} matches={formWindow} />
-      ) : null}
     </SeasonCompetitionShell>
   )
 }

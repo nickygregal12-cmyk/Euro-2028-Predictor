@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
-import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
+import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import { CreatePrivateJourney } from '../leagues/CreatePrivateJourney'
 import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
 import { OrganiserPanel } from '../leagues/OrganiserPanel'
+import { PrivatePlayExplainer } from './PrivatePlayExplainer'
 import {
   fetchMyOrganisedCompetition,
   fetchMyOrganisedCompetitions,
@@ -166,6 +167,29 @@ export function GlobalLeaguesPage() {
   }
 
   return (
+    <Workspace
+      asideLabel="About private play"
+      /**
+       * The explainer the navigation label deliberately does not carry, and
+       * the organiser's own entrants where there are any.
+       *
+       * BOTH ARE CONTEXT, NEVER A ROUTE. Create and Join stay at the top of
+       * the main column at every width; nothing on this page is reachable only
+       * from here. Below 1280px the panel stacks under the list, which is
+       * where the organiser panel already sat.
+       */
+      aside={
+        <>
+          <PrivatePlayExplainer />
+          {/* Contract 165. Renders nothing at all for a player who organises
+              nothing, which is most of them. */}
+          <OrganiserPanel
+            list={() => fetchMyOrganisedCompetitions()}
+            open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
+          />
+        </>
+      }
+    >
     <div className={s.page}>
       <h1 className={s.title}>Leagues</h1>
       <p className={styles.intro}>
@@ -201,13 +225,6 @@ export function GlobalLeaguesPage() {
           </Button>
         </div>
       )}
-
-      {/* Contract 165. Renders nothing at all for a player who organises
-          nothing, which is most of them. */}
-      <OrganiserPanel
-        list={() => fetchMyOrganisedCompetitions()}
-        open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
-      />
 
       <JoinLeagueModal
         open={joining}
@@ -296,5 +313,6 @@ export function GlobalLeaguesPage() {
       )}
 
     </div>
+    </Workspace>
   )
 }

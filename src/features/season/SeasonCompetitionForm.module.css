@@ -7,6 +7,18 @@
   border-top: 1px solid var(--line);
 }
 
+/* In the contextual column it is a card of its own rather than a continuation
+   of the column above it, so the rule that separated it from the fixture list
+   would be separating it from nothing. */
+.panel[data-layout='panel'] {
+  margin-top: 0;
+  padding: var(--sp-4);
+  border-top: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
 .heading {
   margin: 0;
   font-family: var(--font-display);
@@ -56,6 +68,46 @@
   text-overflow: ellipsis;
   font-weight: 500;
   color: var(--tx);
+}
+
+/* The `panel` layout: the same facts stacked per club, for the 320px
+   contextual column. It is a list rather than a table because at that width a
+   table is a horizontal scroll, and a scroll inside a sticky panel is a
+   gesture nobody finds. */
+.clubList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.clubRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.clubRow:last-child {
+  border-bottom: 0;
+}
+
+.clubRowName {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.clubRowMeta {
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
 }
 
 .form {

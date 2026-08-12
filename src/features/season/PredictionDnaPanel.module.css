@@ -63,19 +63,17 @@
   color: var(--tx3);
 }
 
+/* Desktop uses the width for a wider comparison grid rather than a taller
+   phone card — but the breakpoint is the TRACK, not the viewport. This panel is
+   mounted in the 320px contextual column of the player's season as well as in
+   a full-width page, and a viewport media query cannot tell those apart: it
+   would lay three columns inside a 320px box on a 1440px screen and overflow
+   the page. `auto-fit` measures the container the grid is actually in. */
 .metrics {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   gap: var(--sp-2);
   margin: 0;
-}
-
-/* Desktop uses the width for a wider comparison grid rather than a taller
-   phone card. */
-@media (width >= 900px) {
-  .metrics {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
 }
 
 .metric {

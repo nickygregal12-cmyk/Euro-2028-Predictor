@@ -589,7 +589,18 @@ export function SeasonLeaguesRoute() {
   const state = useSeasonRoute()
 
   return (
-    <RouteFrame title="Leagues" section="leagues" state={state}>
+    <RouteFrame
+      title="Leagues"
+      section="leagues"
+      state={state}
+      // An open league's Matchweek tab is a comparison matrix across every
+      // fixture in the matchweek, and a 820px reading column made it scroll
+      // inside its own container on a 1440px screen while 600px sat empty
+      // beside it. The matrix is the widest thing this section holds, so the
+      // section takes the width. The phone layout is untouched: below the
+      // shell's own cap this is one column either way.
+      width="full"
+    >
       {(resolved) => {
         const game = resolved.games.find((entry) => entry.gameKey === 'main_predictor')
         if (!game) return <MissingGame name="The Match Predictor" />

@@ -34,9 +34,26 @@ export type SeasonCompetitionFormProps = {
   clubs: readonly SeasonClubForm[]
   /** How many matches back the server was asked for. */
   matches: number
+  /**
+   * How the same facts are laid out.
+   *
+   * `table` is the eight-column grid this panel has always been. `panel` is
+   * the SAME numbers stacked per club, for the 320px contextual column, where
+   * an eight-column table would either overflow the page or become a
+   * horizontal scroll nobody discovers. Nothing is dropped between the two —
+   * played, won, drawn, lost, goals for and against and the form string all
+   * appear in both, and the screen-reader sentence is identical — because a
+   * layout that quietly holds less information is a different panel wearing
+   * the same name.
+   */
+  layout?: 'table' | 'panel'
 }
 
-export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormProps) {
+export function SeasonCompetitionForm({
+  clubs,
+  matches,
+  layout = 'table',
+}: SeasonCompetitionFormProps) {
   // Generated: the gallery renders this panel twice, once per theme, and a
   // fixed id is a critical duplicate-id-aria the moment it does.
   const headingId = useId()
@@ -57,7 +74,7 @@ export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormP
   })
 
   return (
-    <section className={styles.panel} aria-labelledby={headingId}>
+    <section className={styles.panel} data-layout={layout} aria-labelledby={headingId}>
       {/* "Club form", not "Recent form". The Match Centre already heads the
           two clubs of an OPENED fixture with "Recent form", and both live on
           this page — a fixture opens inside the list. Two headings with the
@@ -73,6 +90,20 @@ export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormP
         rules and is not derived here.
       </p>
 
+      {layout === 'panel' ? (
+        <ul className={styles.clubList}>
+          {ordered.map((club) => (
+            <li key={club.teamId} className={styles.clubRow}>
+              <span className={styles.clubRowName}>{club.name}</span>
+              <FormString club={club} goals />
+              <span className={styles.clubRowMeta} aria-hidden="true">
+                {club.played}P · {club.won}W {club.drawn}D {club.lost}L · {club.goalsFor}–
+                {club.goalsAgainst}
+              </span>
+            </li>
+          ))}
+        </ul>
+      ) : (
       <div className={styles.scroll}>
         <table className={styles.table}>
           <thead>
@@ -102,38 +133,55 @@ export function SeasonCompetitionForm({ clubs, matches }: SeasonCompetitionFormP
                 <td>{club.goalsFor}</td>
                 <td>{club.goalsAgainst}</td>
                 <td>
-                  {/* The record in one sentence for assistive technology; the
-                      pills beside it are the visual form string and are hidden
-                      from it, because "W W L D W" read letter by letter is
-                      noise rather than information. */}
-                  <span className={styles.srOnly}>
-                    Won {club.won}, drawn {club.drawn}, lost {club.lost} of the last{' '}
-                    {club.played}
-                  </span>
-                  <span className={styles.form} aria-hidden="true">
-                    {club.form.map((outcome, index) => (
-                      <span
-                        // The form string is positional and a club can have two
-                        // identical results, so the index IS the identity here.
-                        key={`${club.teamId}-${index}`}
-                        className={[
-                          styles.letter,
-                          outcome === 'W' ? styles.letterWon : '',
-                          outcome === 'L' ? styles.letterLost : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
-                      >
-                        {outcome}
-                      </span>
-                    ))}
-                  </span>
+                  <FormString club={club} />
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      )}
     </section>
+  )
+}
+
+/**
+ * The record in one sentence for assistive technology; the pills beside it are
+ * the visual form string and are hidden from it, because "W W L D W" read
+ * letter by letter is noise rather than information.
+ *
+ * Extracted so both layouts spell the accessible sentence exactly once. Two
+ * copies of it would be two things to keep in step, and the one that drifted
+ * would be the one nobody can see.
+ */
+function FormString({ club, goals = false }: { club: SeasonClubForm; goals?: boolean }) {
+  return (
+    <>
+      <span className={styles.srOnly}>
+        Won {club.won}, drawn {club.drawn}, lost {club.lost} of the last {club.played}
+        {/* Only in the panel layout. In the table the goals are their own two
+            columns with their own headers, so repeating them here would make a
+            screen reader say each number twice. */}
+        {goals ? `, scoring ${club.goalsFor} and conceding ${club.goalsAgainst}` : ''}
+      </span>
+      <span className={styles.form} aria-hidden="true">
+        {club.form.map((outcome, index) => (
+          <span
+            // The form string is positional and a club can have two identical
+            // results, so the index IS the identity here.
+            key={`${club.teamId}-${index}`}
+            className={[
+              styles.letter,
+              outcome === 'W' ? styles.letterWon : '',
+              outcome === 'L' ? styles.letterLost : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          >
+            {outcome}
+          </span>
+        ))}
+      </span>
+    </>
   )
 }

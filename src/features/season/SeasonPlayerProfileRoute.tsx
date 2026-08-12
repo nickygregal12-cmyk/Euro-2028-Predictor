@@ -187,6 +187,27 @@ export function SeasonPlayerProfileRoute() {
       statusStrip={[heading]}
       active="overview"
       destinations={seasonShellDestinations(base)}
+      asideLabel="Prediction DNA"
+      // `INNOV-002` BESIDE the season it describes rather than beneath it. The
+      // season record answers "how are they doing"; the DNA answers "how do
+      // they predict", and on a desktop the second is the context you read the
+      // first against. Below 1280px it stacks under the season in source
+      // order, which is where it already was.
+      //
+      // Only once the read has answered. An `aside` that is present and empty
+      // makes the main column narrower to hold nothing.
+      aside={
+        profile.kind === 'ready' && dna ? (
+          <PredictionDnaPanel
+            dna={dna}
+            compareWith={myDna}
+            share={{
+              competitionName: context.competitionName,
+              url: `${base}/players/${playerId ?? ''}`,
+            }}
+          />
+        ) : undefined
+      }
     >
       {profile.kind === 'loading' ? (
         <div aria-busy="true">
@@ -206,22 +227,7 @@ export function SeasonPlayerProfileRoute() {
           Nothing is hidden here — the read failed. Try again shortly.
         </Alert>
       ) : (
-        <>
-          <SeasonPlayerSeason profile={profile.profile} />
-          {/* INNOV-002, below the season it describes. It measures the
-              player's own recorded predictions and changes no points, rank or
-              standing. */}
-          {dna ? (
-            <PredictionDnaPanel
-              dna={dna}
-              compareWith={myDna}
-              share={{
-                competitionName: context.competitionName,
-                url: `${base}/players/${playerId ?? ''}`,
-              }}
-            />
-          ) : null}
-        </>
+        <SeasonPlayerSeason profile={profile.profile} />
       )}
     </SeasonCompetitionShell>
   )

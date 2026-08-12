@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Alert, EmptyState, Skeleton } from '../../design-system'
+import { Alert, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { competitionPlayerRoute, competitionRoute, weeklyRoutes } from '../../app/weeklyRoutes'
@@ -48,6 +48,30 @@ export function PlatformProfilePage() {
   const { status, player } = usePlayerCompetitions()
 
   return (
+    <Workspace
+      asideLabel="Season history"
+      /**
+       * Contract 161's history BESIDE the competitions rather than beneath
+       * them, because the two answer the reader's two halves of the same
+       * question: which seasons am I in now, and which have I played. On a
+       * desktop the history was previously a scroll below a short list, which
+       * is the composition the 10 August direction calls a stretched phone
+       * page.
+       *
+       * Keyed on PARTICIPATION, so it does not depend on the shell's catalogue
+       * and is rendered whatever that read did. A season archived and
+       * unpublished is still the player's.
+       */
+      aside={
+        <SeasonHistorySection
+          read={() =>
+            import('../../services/supabase/seasonHistory').then(({ fetchMySeasonHistory }) =>
+              fetchMySeasonHistory(),
+            )
+          }
+        />
+      }
+    >
     <div className={s.page}>
       <div className={s.header}>
         <h1 className={s.title}>Profile</h1>
@@ -124,16 +148,7 @@ export function PlatformProfilePage() {
         own. Open a competition above to see the season you are having in it.
       </p>
 
-      {/* Contract 161: keyed on PARTICIPATION, so it does not depend on the
-          shell's catalogue and is rendered whatever that read did. A season
-          archived and unpublished is still the player's. */}
-      <SeasonHistorySection
-        read={() =>
-          import('../../services/supabase/seasonHistory').then(({ fetchMySeasonHistory }) =>
-            fetchMySeasonHistory(),
-          )
-        }
-      />
     </div>
+    </Workspace>
   )
 }
