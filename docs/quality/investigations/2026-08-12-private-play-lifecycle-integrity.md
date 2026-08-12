@@ -375,3 +375,18 @@ Add the five lifecycle journeys under `PPLAY-005`, using real local Supabase sta
 ## Closure rule
 
 This investigation may be marked resolved only when every confirmed finding has implementation evidence and the real lifecycle tests pass. If the work is split across multiple PRs, keep this document as the parent checklist and link each closing PR rather than rewriting the original evidence.
+
+## Closing work, appended rather than merged into the evidence above
+
+Nothing above is edited. This section is the parent checklist the closure rule asks for.
+
+| Finding | State | Evidence |
+| --- | --- | --- |
+| `PPLAY-001` | **Backend closed; surface open** | [#732](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/732), contract 179. `get_my_private_competitions` returns every private container the caller owns or holds a membership in, in any membership status, and takes no competition, game, season or player argument — so it cannot run through public-game membership and cannot become a directory. `228_private_container_discovery.sql` asserts the fixture holds **no** public-game membership before it starts, which is the property a suite seeded the ordinary way would not have. **`/leagues` still calls `fetchMyGameLeagues` for bonus-game containers, so the player-visible defect is live.** |
+| `MIG-UI-20` | **Server half closed** | [#732](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/732), contract 179. `get_private_competition_workspace` resolves one container by its own id, refuses a non-member exactly as it refuses an unknown id, and shows THAT a Last Man Standing entrant has picked and never what. The page does not exist. |
+| `PPLAY-002` | **Closed at the database** | [#732](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/732), contract 180. **Option B** of the two rules this document set out. `game_definitions.uses_season_prediction_card` declares which games read the shared card; entering one establishes the card and writes no membership of the game that owns it. `229_shared_season_prediction_capability.sql` starts from a user with no entry, no membership and no entrant row anywhere, as § "Why current Development fixtures can hide the bug" requires. |
+| `PPLAY-003` | **Server half closed** | [#732](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/pull/732), contract 179. Read-only launch readiness composed from the authorities `launch_season_cup` already uses, and differential-tested against a real launch over a short field, a viable field and an already-launched one. **No organiser surface exists yet**, so the acceptance journey this document specifies — leave without launching, add an entrant, re-enter, launch — cannot yet be run in a browser. |
+| `PPLAY-004` | **Open** | Depends on the surface consuming contract 179. |
+| `PPLAY-005` | **Open** | None of the five local-Supabase browser journeys exists. Contract 179's and 180's pgTAP suites prove the server contracts; this document is explicit that they are not the same evidence. |
+
+**Two of this document's own diagnoses were confirmed against hosted Development on 12 August 2026, read-only.** Three private containers exist there holding **ten** live memberships, and **none** of the three is reachable through `public.leagues` — so ten memberships were held in containers the `/leagues` read could not return. Separately, all **twelve** Championship entrants on that project already held a season entry, which is exactly the § "Why current Development fixtures can hide the bug" claim: the broken state looks healthy on every seeded account.
