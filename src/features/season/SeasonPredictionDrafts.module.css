@@ -1,0 +1,102 @@
+/* INNOV-020. Deliberately NOT shaped like a saved card: a dashed edge and a
+   sunken surface, so work that is only on this device cannot be mistaken at a
+   glance for work the server has. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border: 1px dashed var(--amb);
+  border-radius: var(--radius-card);
+  background: var(--surface-sunken);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.lede {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--tx2);
+}
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+/* The three states that need the player to do something carry the accent edge;
+   an ordinary draft does not, because a draft waiting to send is normal. */
+.row[data-state='conflict'],
+.row[data-state='failed'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.row[data-state='locked'] {
+  border-left: var(--bar-w) solid var(--red);
+}
+
+.fixture {
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* A word, never only a colour: every state above is named in text as well. */
+.state {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.score {
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.reason {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.note {
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}

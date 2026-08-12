@@ -3,6 +3,7 @@ import type { ResolvedLockState } from '../../domain/competition/lockState'
 import type { CardStatus } from '../../domain/season/cardSubmission'
 import type { ScorelinePrediction } from '../../domain/season/scoring'
 import { type LockExplanation, explainLock } from './lockExplanation'
+import type { PredictionBatchResult } from '../../services/supabase/seasonPredictionBatchModel'
 
 /**
  * The page contract for the season Match Predictor.
@@ -206,6 +207,16 @@ export function commandRefusal(
   return null
 }
 
+/**
+ * One offline draft as the gateway reconciles it. Deliberately carries NO
+ * version and NO instant: the version is the gateway's private concern, exactly
+ * as it is for `apply`, and contract 177 accepts no instant at all.
+ */
+export type MatchPredictorDraft = {
+  fixtureId: string
+  prediction: ScorelinePrediction | null
+}
+
 /** The read/write boundary. One implementation reads fixtures; another an RPC. */
 export type MatchPredictorGateway = {
   /** Load one matchweek, or fail with a reason the page can render. */
@@ -215,4 +226,17 @@ export type MatchPredictorGateway = {
    * underneath us, which is what drives `conflict_requires_refresh`.
    */
   apply(matchweek: number, command: MatchPredictorCommand): Promise<void>
+  /**
+   * `INNOV-020`. Submit a batch of drafts written while the device was offline
+   * and answer per fixture.
+   *
+   * OPTIONAL, AND ITS ABSENCE IS THE FEATURE BEING OFF. The development
+   * fixture gateway has no batch path and never claims one, so a surface asks
+   * whether the method exists rather than being told by a flag that can
+   * disagree with the gateway it is describing.
+   */
+  reconcile?(
+    matchweek: number,
+    drafts: readonly MatchPredictorDraft[],
+  ): Promise<PredictionBatchResult>
 }
