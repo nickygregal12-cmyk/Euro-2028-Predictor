@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **184** | latest `20260812060000_cup_group_qualification.sql` |
-| Development hosted | **180** | at `20260812020000_shared_season_prediction_capability.sql`, verified `2026-08-12T10:59:51.001Z`, fast-lane run `31589683887` |
+| Development hosted | **184** | at `20260812060000_cup_group_qualification.sql`, verified `2026-08-12T15:22:00.000Z`, fast-lane run `31610810174` |
 | Production | **178** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 4 — `20260812030000_private_league_member_limit.sql`, `20260812040000_single_group_stage_authority.sql`, `20260812050000_season_clubs_and_leaderboard_neighbourhood.sql`, `20260812060000_cup_group_qualification.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 185. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
