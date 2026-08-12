@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 174,
-  "latestMigrationVersion": "20260811234000",
-  "latestMigrationName": "provider_calendar_change_proposals",
-  "verifiedAt": "2026-08-11T19:12:00.000Z",
+  "requiredMigrationCount": 178,
+  "latestMigrationVersion": "20260812003000",
+  "latestMigrationName": "shadow_scoring_verifier",
+  "verifiedAt": "2026-08-12T04:05:00.000Z",
   "evidence": {
-    "source": "Development fast-lane rollout of contracts 172 to 174, confirmed independently of the workflow by read-only queries that NAME the three new rows in supabase_migrations.schema_migrations (20260811230000 action_centre_and_reminder_drivers, 20260811233000 matchweek_settled_actions, 20260811234000 provider_calendar_change_proposals) rather than counting to 174, and by reading cron.job in full: ten jobs, the seven pre-existing plus player-action-centre-generate, player-reminder-schedule and player-reminder-reclaim-stalled, each with an argument list that is empty, none naming claim_due_reminders and none passing false. player_action_items, reminder_deliveries and provider_calendar_change_proposals all hold zero rows on apply, the new predictor_internal functions are executable by the owner alone and the three new admin reads by authenticated alone, and euro_publication_state() still returns hidden",
-    "workflowRunId": 31525963941,
-    "repositoryHead": "09214df645e916b0043df7e7af7c14eb3f1c9eb3"
+    "source": "Development fast-lane rollout of contracts 175 to 178, run 31561781188 from exact main cc8072af9cc7f2d7002f63fdad8b9efbc43b76ce, applied under ADR 0024 because all four migrations are additive and the lane proves that by reading the pending set rather than trusting the dispatcher. Development received this range BEFORE Production, which is the ordering every prior boundary has followed: Production has never held a contract Development did not already hold. The four contracts are the Innovation Lab backend foundations promoted by ADR 0027 -- the what-if projection, Prediction DNA, offline draft reconciliation and the independent shadow scoring verifier. They create two predictor_internal relations with row-level security and no browser grant, add five public functions of which one is service_role-only and one is competition-admin gated, redefine no existing function, alter no relation, policy, trigger or grant, and schedule no job",
+    "workflowRunId": 31561781188,
+    "repositoryHead": "cc8072af9cc7f2d7002f63fdad8b9efbc43b76ce"
   }
 }
