@@ -6,22 +6,51 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Pending — contracts 175 to 178, Innovation Lab backend foundations (12 August 2026, fortieth entry)
+## Current state — 12 August 2026 (fortieth entry)
 
-**The repository is at contract 178. Development and Production both hold 174, so four migrations are pending on both.** Nothing in this entry is a hosted claim: none of the four has been applied anywhere.
+**Production is at contract 178, and so is Development. Nothing is pending on either.** Guarded rollout run [31565613954](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31565613954) applied contracts 175 to 178 from exact `main` `f85b18e`, on the owner authorisation of 12 August 2026 recorded in [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md). Backup `31562346500` and rehearsal `31565189247` were verified **by the rollout against the API** rather than asserted by whoever dispatched it, the dry run asserted the four files by name with `diff`, and all four being additive meant `check-migration-additive.mjs` ran as a **gate**.
 
-| Migration | Contract | What it adds |
-| --- | --- | --- |
-| `20260812000000_what_if_projection.sql` | 175 | `predictor_internal.season_matchweek_projection` and the bounded `get_season_matchweek_projection` read |
-| `20260812001000_prediction_dna.sql` | 176 | `predictor_internal.season_dna_window` and `get_season_prediction_dna` |
-| `20260812002000_offline_draft_reconciliation.sql` | 177 | `save_season_predictions_batch` |
-| `20260812003000_shadow_scoring_verifier.sql` | 178 | `predictor_internal.shadow_scoring_runs` and `shadow_scoring_mismatches`, the independent recomputation, `run_shadow_scoring_verification` and `admin_shadow_scoring_report` |
+**Development received the range first**, through ADR 0024 fast-lane run [31561781188](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31561781188) from exact `main` `cc8072a`. That ordering is not a formality: Production has never held a contract Development did not already hold, and this boundary did not make it the exception.
 
-**All four are additive**, so they route to the ADR 0024 **fast lane** rather than the guarded one: no relation is altered, no function is dropped, no grant is withdrawn and no policy moves. `check-migration-additive.mjs` derives that from the pending set rather than trusting this sentence.
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **178** | 178 canonical migrations through `20260812003000_shadow_scoring_verifier.sql`. | LEVEL |
+| Development Supabase `iouzoutneyjpugbbtdem` | **178** | Fast-lane run `31561781188` from exact `main` `cc8072a`, taken before Production as every prior boundary has been. | LEVEL WITH REPOSITORY |
+| Production Supabase | **178** | `vkfnsqdyhvtwyqkisxhk`. Guarded rollout run `31565613954` from exact `main` `f85b18e`, gated on backup `31562346500` and rehearsal `31565189247`, with the four ledger rows named rather than counted. | LEVEL WITH REPOSITORY |
 
-**What applying them would and would not do.** It creates two `predictor_internal` tables, both empty on apply, both with row-level security on and no grant to any browser role. It adds five functions to the public schema: three ordinary authenticated reads or writes, one competition-admin gated read, and one `service_role`-only job. **It schedules no job** — contract 178's verifier has no caller, deliberately, and giving it one is a separate decision. It writes no fixture, result, prediction, score, membership or standing, and it changes no existing function, relation, trigger, policy or grant. `euro_publication_state()` is untouched.
+### The rehearsal earned its place, and this is the part worth reading
 
-**Production promotion is not authorised by anything in this entry.** The 12 August 2026 owner authorisation recorded in [ADR 0027](../adr/0027-innovation-lab-backend-foundations.md) covers repository implementation and explicitly separates hosted rollout; a Production boundary needs its own authorisation naming it exactly, as the 172-to-174 boundary did.
+**Its first dispatch failed, and it failed in the right place.** Run [31563535872](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31563535872) applied all four migrations to the disposable target cleanly and then died on its own postflight: `euro_publication_state()` returns a table of `(state, changed_at)`, not jsonb, and the probe read it as `->> 'state'`, raising `operator does not exist: record ->> unknown`.
+
+**The identical probe was in the rollout.** There it would have fired *after* Production had been written — a green apply followed by a red verification, which is the most alarming way to end a production migration and the hardest state to reason about at speed. Nothing would have been wrong with Production; the evidence that it was fine would simply have been missing, and somebody would have had to establish it by hand. Both files were corrected (PR #720), the rehearsal was re-run to success, and only then was the rollout dispatched.
+
+### What the postflight measured
+
+| Property | Value |
+| --- | --- |
+| Ledger | 178 rows; `20260812000000`, `20260812001000`, `20260812002000`, `20260812003000` all **named** present; latest `shadow_scoring_verifier` |
+| `shadow_matchweek_points` names a canonical scoring function | **No** — neither `season_fixture_points` nor `season_matchweek_points` |
+| `season_matchweek_projection` names `season_fixture_points` | **Yes** |
+| `save_season_predictions_batch` writes `season_predictions` directly | **No**; it reaches `save_season_prediction` |
+| New public functions | 5 |
+| `run_shadow_scoring_verification` reachable by a browser role | **0** |
+| Other four reachable by `authenticated` | 4 |
+| Any of the five reachable by `anon`/`PUBLIC` | **0** |
+| New `predictor_internal` relations | 2, RLS on, **0** browser grants, **0** rows |
+| `cron.job` | **10 before, 10 after**, and no command names the verifier |
+| `euro_publication_state()` | `hidden` |
+
+**Rows named rather than counted**, which is deliberate: on 11 August 2026 a `select count(*)` against a hosted ledger returned a stale value for roughly twenty-five minutes after a successful apply while a row-level query returned the truth immediately.
+
+**`cron_jobs` is compared before-against-after rather than to an absolute.** The 172 → 174 rehearsal recorded why: a disposable target restored from a Production dump holds zero cron jobs, because `supabase db dump` does not carry managed extension state.
+
+### What this did not do
+
+**It scheduled nothing.** Contract 178's verifier has no caller in Production and generates nothing until one is given, which is a separate decision. **It corrects nothing** by construction — a disagreement is recorded as evidence and the verifier holds no authority over a banked total. It published no Euro 2028 (`euro_publication_state()` is still `hidden`, and `EURO-001` remains a recorded defect), launched no competition, drew no Championship, opened no Last Man Standing, confirmed no provider result, added or voided no fixture, and imported no football. Every player-owned count is unchanged: 1 auth user, 1 profile, 3 entries, 578 season fixtures, 16 season predictions, 36 match predictions, 2 player action items, 0 reminder deliveries.
+
+**Application promotion is not claimed here** and remains separately controlled.
+
+**The one-shot pair is removed in this same change**, as both files instruct, now that the hosted records are reconciled.
 
 ## Current state — 11 August 2026 (thirty-ninth entry)
 

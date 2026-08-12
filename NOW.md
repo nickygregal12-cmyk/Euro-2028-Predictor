@@ -14,15 +14,15 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **178** | latest `20260812003000_shadow_scoring_verifier.sql` |
-| Development hosted | **174** | at `20260811234000_provider_calendar_change_proposals.sql`, verified `2026-08-11T19:12:00.000Z`, fast-lane run `31525963941` |
-| Production | **174** | promotion **not authorised** |
+| Development hosted | **178** | at `20260812003000_shadow_scoring_verifier.sql`, verified `2026-08-12T04:05:00.000Z`, fast-lane run `31561781188` |
+| Production | **178** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 4 — `20260812000000_what_if_projection.sql`, `20260812001000_prediction_dna.sql`, `20260812002000_offline_draft_reconciliation.sql`, `20260812003000_shadow_scoring_verifier.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 179. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
