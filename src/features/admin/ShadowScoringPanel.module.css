@@ -1,0 +1,135 @@
+/* Contract 178's evidence. Tokens only; desktop-leaning like the rest of the
+   administration surface, and wrapping rather than overflowing. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  min-width: 0;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--fs-3);
+  color: var(--tx);
+}
+
+.caption {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+/* Four figures the administrator reads at a glance. Desktop gets a real row;
+   a phone stacks them two by two rather than shrinking the numbers. */
+.summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  margin: 0;
+}
+
+@media (width >= 800px) {
+  .summary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+/* The count of disagreements is the one figure worth an edge, and only when it
+   is not zero. A clean run must not look like a green light. */
+.figure[data-tone='alert'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.figureLabel {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.figureValue {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx);
+}
+
+.findings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+}
+
+.finding[data-severity='critical'] {
+  border-left: var(--bar-w) solid var(--red);
+}
+
+.finding[data-severity='advisory'] {
+  border-left: var(--bar-w) solid var(--amb);
+}
+
+.findingTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+}
+
+/* The severity is a word as well as a colour, so it survives greyscale. */
+.severity {
+  padding: 1px var(--sp-1);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  font-weight: 400;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx2);
+}
+
+.findingDetail {
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
