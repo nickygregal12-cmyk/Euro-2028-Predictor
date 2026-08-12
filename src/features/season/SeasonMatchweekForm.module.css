@@ -118,3 +118,13 @@
   font-size: var(--fs-1);
   color: var(--tx3);
 }
+
+/* The league position, under the form run. Quieter than the record because it
+   is the slower-moving of the two facts, and a full-width row so it never
+   competes with the form pills for the same line. */
+.standing {
+  flex: 1 1 100%;
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx3);
+}

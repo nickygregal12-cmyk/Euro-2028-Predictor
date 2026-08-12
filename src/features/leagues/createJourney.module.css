@@ -2,14 +2,31 @@
    three-step wizard inside a sheet fights the keyboard, and on a desktop the
    reading column already gives it the right measure. */
 
+/* A three-step form, capped at a form's measure.
+   `/leagues` gives its main column the width its list of private play needs,
+   and this wizard inherits it — which made a card of radio-like choices and a
+   single name field roughly a metre wide on a desktop. A form is read down
+   rather than across; the cap is what stops the label of a text input sitting
+   an inch from its own field. */
 .journey {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  max-width: 640px;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
+}
+
+/* The running choices. Quieter than the step line above it, because it is
+   context rather than progress. */
+.chosen {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
 }
 
 .title {

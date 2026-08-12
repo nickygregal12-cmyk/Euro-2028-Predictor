@@ -1,6 +1,5 @@
 import { useId } from 'react'
-import type { ClubFormSummary } from './clubFormModel'
-import type { MatchweekFormGuide } from './matchweekFormModel'
+import type { MatchweekFormClub, MatchweekFormGuide } from './matchweekFormModel'
 import styles from './SeasonMatchweekForm.module.css'
 
 /**
@@ -19,6 +18,12 @@ import styles from './SeasonMatchweekForm.module.css'
  * THE WINDOW IS STATED ONCE, ABOVE, rather than implied per row, and a club
  * that has played fewer matches than the window shows its own count — because
  * a record over four matches is not a record over six.
+ *
+ * THE TABLE POSITION SITS UNDER THE FORM, which is `UI-F06`'s hierarchy: a run
+ * of six results can flatter or slander a club, and where it actually sits is
+ * the season. It is contract 160's number under the competition's own stored
+ * rules, and it is simply absent where the competition has no table or the
+ * club is not in it — never a default, because a default position is a claim.
  *
  * THE LETTERS ARE DECORATIVE AND THE SENTENCE IS SPOKEN. "W W D L" read aloud
  * one character at a time is noise; the record beside it is the same fact in
@@ -45,15 +50,15 @@ export function SeasonMatchweekForm({ guide }: SeasonMatchweekFormProps) {
         Recent form
       </h3>
       <p className={styles.note}>
-        Each club&rsquo;s last {guide.window} settled matches, most recent first. Form only — no
-        prediction is made for you.
+        Each club&rsquo;s last {guide.window} settled matches, most recent first, with its league
+        position. Form and standing only — no prediction is made for you.
       </p>
 
       <ul className={styles.list}>
         {guide.fixtures.map((fixture) => (
           <li key={fixture.fixtureId} className={styles.fixture}>
-            <ClubForm name={fixture.home.name} summary={fixture.home.summary} />
-            <ClubForm name={fixture.away.name} summary={fixture.away.summary} />
+            <ClubForm club={fixture.home} />
+            <ClubForm club={fixture.away} />
           </li>
         ))}
       </ul>
@@ -61,7 +66,8 @@ export function SeasonMatchweekForm({ guide }: SeasonMatchweekFormProps) {
   )
 }
 
-function ClubForm({ name, summary }: { name: string; summary: ClubFormSummary }) {
+function ClubForm({ club }: { club: MatchweekFormClub }) {
+  const { name, summary, table } = club
   return (
     <div className={styles.club}>
       <span className={styles.clubName}>{name}</span>
@@ -88,6 +94,28 @@ function ClubForm({ name, summary }: { name: string; summary: ClubFormSummary })
           </span>
         </>
       )}
+      {/* Absent rather than defaulted where the competition has no table or
+          does not contain this club. Rendered even when the club has no
+          settled form, because a newly promoted side with no run still has a
+          position and that is the more useful of the two. */}
+      {table ? (
+        <span className={styles.standing}>
+          {ordinalPosition(table.position)} · {table.points} pts from {table.played}
+        </span>
+      ) : null}
     </div>
   )
+}
+
+/**
+ * A position as an ordinal. Local and deliberately tiny, for the reason the
+ * Match Centre's copy of it records: the league ordinal helper lives under the
+ * tournament's own feature folder, and a season surface importing from there
+ * would cross a boundary for four lines of string handling.
+ */
+function ordinalPosition(position: number): string {
+  const tens = position % 100
+  if (tens >= 11 && tens <= 13) return `${position}th`
+  const suffix = ['th', 'st', 'nd', 'rd'][position % 10] ?? 'th'
+  return `${position}${suffix}`
 }

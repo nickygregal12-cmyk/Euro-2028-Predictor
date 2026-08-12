@@ -4,6 +4,7 @@ import type { SeasonLeagueMatchweekPredictions } from '../../services/supabase/s
 import type { SeasonLeagueMovement } from '../../services/supabase/seasonLeagueMovementModel'
 import { presentLeagueMovement, type LeagueMovementLine } from './leagueFixtureModel'
 import { ordinal } from '../league/ordinal'
+import { formatFieldSize } from './rankContext'
 import { SeasonLeagueMatchweek } from './SeasonLeagueMatchweek'
 import { SeasonLeagueMembers } from './SeasonLeagueMembers'
 import {
@@ -27,7 +28,26 @@ import styles from './SeasonLeagueWorkspace.module.css'
  * scrolling past the first two on a phone every time.
  *
  * MOVEMENT SITS ABOVE THE TABS, not inside one, because it is a fact about the
- * league rather than about a view of it — and it is rendered only when contract
+ * league rather than about a view of it — which also makes it the only place
+ * the caller's standing survives a tab change. The Table tab ranks the league;
+ * Matchweek and Members do not, so without this line a player reading their
+ * league-mates' predictions has lost sight of where they are.
+ *
+ * WHICH IS WHY THE RANK CARRIES ITS FIELD SIZE. § 4A is binding on this: never
+ * a bare rank. `presentLeagueMovement` has computed `fieldSize` since it was
+ * written and this component printed the ordinal without it, so the one line
+ * that has to hold a player's position across three views was saying "4th" of
+ * an unstated number. Corrected rather than left, because a rank against
+ * nothing is the exact shape that rule exists to forbid.
+ *
+ * NO CONTEXTUAL PANEL, AND THAT IS A COMPOSITION JUDGEMENT RATHER THAN AN
+ * OMISSION. `Workspace` composes a PAGE — a main column with a 320px sticky
+ * rail beside it. This workspace is rendered inside a card inside a list of
+ * leagues, so a rail here would be a sticky element scoped to a list item, and
+ * it would take its width from the Matchweek tab's comparison matrix, which is
+ * the widest thing this surface holds and the reason the section takes the full
+ * width at all. The context a panel would carry is this line, and it is already
+ * above the tabs where every view can see it — and it is rendered only when contract
  * 150 says the matchweek SETTLED. An unsettled matchweek produces no line at
  * all: reporting a climb out of totals that are still changing would show a
  * player a position they never held.
@@ -178,7 +198,8 @@ function MovementLine({ movement }: { movement: LeagueMovementLine }) {
   return (
     <p className={styles.movement}>
       <span className={styles.movementRank}>
-        {ordinal(movement.rankBefore)} → {ordinal(movement.rankAfter)}
+        {ordinal(movement.rankBefore)} → {ordinal(movement.rankAfter)} of{' '}
+        {formatFieldSize(movement.fieldSize)}
       </span>
       <span className={direction.className}>{direction.text}</span>
       <span>

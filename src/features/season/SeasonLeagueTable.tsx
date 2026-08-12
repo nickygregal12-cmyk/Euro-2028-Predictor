@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
 import { Alert, Skeleton } from '../../design-system'
 import type {
   CompetitionTable,
   CompetitionTableRow,
 } from '../../services/supabase/competitionTableModel'
+import type { CompetitionTableState } from './useCompetitionTable'
 import {
   isProvisional,
   tieBreakerLabel,
@@ -38,6 +38,15 @@ import styles from './SeasonLeagueTable.module.css'
  * is a real table of an incomplete season; provenance comes from the read and
  * is stated rather than left for the reader to assume the season is over.
  *
+ * IT NO LONGER OWNS THE READ. The table has three readers now — this segment,
+ * the Match Centre's football context and the Match Predictor's insight panel —
+ * so the route reads it once through `useCompetitionTable` and every consumer
+ * renders the same answer. Three components each running their own effect would
+ * be three requests for one answer, and three chances for two surfaces on the
+ * same screen to disagree about a club's position while one was still in
+ * flight. The retry travels with the failure state, so "Try again" keeps
+ * working over a read this component no longer owns.
+ *
  * THE PHONE LAYOUT DROPS COLUMNS, NOT ROWS. Played, goal difference and points
  * survive at every width because they are what a table is for; won, drawn,
  * lost, and goals for and against appear when there is room. Nothing is
@@ -45,34 +54,11 @@ import styles from './SeasonLeagueTable.module.css'
  */
 
 export type SeasonLeagueTableProps = {
-  /** Reads contract 160's table for this season. */
-  read: () => Promise<CompetitionTable>
+  /** Contract 160's table for this season, already read by the route. */
+  state: CompetitionTableState
 }
 
-type State =
-  | { status: 'loading' }
-  | { status: 'failed' }
-  | { status: 'ready'; table: CompetitionTable }
-
-export function SeasonLeagueTable({ read }: SeasonLeagueTableProps) {
-  const [state, setState] = useState<State>({ status: 'loading' })
-  const [nonce, setNonce] = useState(0)
-
-  useEffect(() => {
-    let active = true
-    setState({ status: 'loading' })
-    read()
-      .then((table) => {
-        if (active) setState({ status: 'ready', table })
-      })
-      .catch(() => {
-        if (active) setState({ status: 'failed' })
-      })
-    return () => {
-      active = false
-    }
-  }, [read, nonce])
-
+export function SeasonLeagueTable({ state }: SeasonLeagueTableProps) {
   if (state.status === 'loading') {
     return (
       <section className={styles.section} aria-busy="true">
@@ -89,7 +75,7 @@ export function SeasonLeagueTable({ read }: SeasonLeagueTableProps) {
         {/* Not an empty table. A table of nothing and a table we could not read
             are different, and only one of them is about the football. */}
         <Alert variant="warning" title="We could not load the table">
-          <button type="button" className={styles.retry} onClick={() => setNonce((n) => n + 1)}>
+          <button type="button" className={styles.retry} onClick={state.retry}>
             Try again
           </button>
         </Alert>

@@ -1,4 +1,5 @@
 import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
+import type { CompetitionTableRow } from '../../services/supabase/competitionTableModel'
 import { summariseClubForm, type ClubFormSummary } from './clubFormModel'
 import type { MatchPredictorFixture } from './matchPredictorModel'
 
@@ -42,13 +43,26 @@ import type { MatchPredictorFixture } from './matchPredictorModel'
  * rather than a fuzzy match. The card's fixtures carry no team id, which is why
  * the name is all there is to join on here.
  *
- * PURE. Both inputs are arguments; no clock, no storage, no network.
+ * FORM FIRST, THEN THE TABLE, which is `UI-F06`'s own hierarchy. A run of six
+ * results can flatter or slander a club; where it actually sits is the season.
+ * The position is contract 160's, applied under the competition's stored rules
+ * server-side — this model ranks nothing and re-derives nothing, and a club the
+ * table does not contain simply has no position rather than a default one.
+ *
+ * PURE. Every input is an argument; no clock, no storage, no network.
  */
+
+export type MatchweekFormClub = {
+  name: string
+  summary: ClubFormSummary
+  /** Contract 160's row, or null where the table has none for this club. */
+  table: CompetitionTableRow | null
+}
 
 export type MatchweekFormFixture = {
   fixtureId: string
-  home: { name: string; summary: ClubFormSummary }
-  away: { name: string; summary: ClubFormSummary }
+  home: MatchweekFormClub
+  away: MatchweekFormClub
 }
 
 export type MatchweekFormGuide = {
@@ -67,6 +81,12 @@ export function presentMatchweekForm(
   fixtures: readonly MatchPredictorFixture[],
   clubs: readonly SeasonClubForm[] | null,
   window: number | null,
+  /**
+   * Contract 160's table row for a club, by name. Optional and independent of
+   * the form: a competition that is not a league season has no table at all,
+   * and the panel still has form to show.
+   */
+  tableFor?: (clubName: string) => CompetitionTableRow | null,
 ): MatchweekFormGuide | null {
   // No guide at all when the read has not answered. An empty panel beside a
   // prediction card is worse than no panel: it reads as "these clubs have
@@ -80,10 +100,12 @@ export function presentMatchweekForm(
     home: {
       name: fixture.home.name,
       summary: summariseClubForm(byName.get(fixture.home.name) ?? null),
+      table: tableFor?.(fixture.home.name) ?? null,
     },
     away: {
       name: fixture.away.name,
       summary: summariseClubForm(byName.get(fixture.away.name) ?? null),
+      table: tableFor?.(fixture.away.name) ?? null,
     },
   }))
 

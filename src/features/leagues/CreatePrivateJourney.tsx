@@ -159,6 +159,22 @@ export function CreatePrivateJourney({
         {step === 'review' ? `Step 3 of ${totalSteps} · Review` : null}
       </p>
 
+      {/* WHAT HAS BEEN CHOSEN SO FAR, on every step after the first.
+          A three-step wizard hides its own earlier answers: on "Set it up" the
+          player has already picked a game and a competition and could not see
+          either without going back, which is how somebody creates a Last Man
+          Standing in the wrong league. Review states them at the end; this
+          states them throughout.
+
+          It is a summary and never a control: changing a choice is Back, which
+          is one control rather than two ways to do one thing. */}
+      {game ? (
+        <p className={styles.chosen}>
+          {game.name}
+          {host ? ` · ${host.competitionName} ${host.seasonLabel}` : ''}
+        </p>
+      ) : null}
+
       {step === 'game' ? (
         <>
           <p className={styles.lead}>

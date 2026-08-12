@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { SeasonLeagueTable } from '../../../src/features/season/SeasonLeagueTable'
 import { mapCompetitionTable } from '../../../src/services/supabase/competitionTableModel'
@@ -75,10 +75,12 @@ function payload(overrides: Record<string, unknown> = {}) {
   }
 }
 
+// The component no longer reads: the route does, through `useCompetitionTable`,
+// so three consumers share one answer. These render the decoded table directly.
 function renderTable(overrides: Record<string, unknown> = {}) {
-  const read = vi.fn(async () => mapCompetitionTable(payload(overrides)))
-  render(<SeasonLeagueTable read={read} />)
-  return read
+  const table = mapCompetitionTable(payload(overrides))
+  render(<SeasonLeagueTable state={{ status: 'ready', table }} />)
+  return table
 }
 
 describe('the competition league table', () => {
@@ -196,13 +198,22 @@ describe('the competition league table', () => {
   })
 
   it('reports a failed read as a failure, never as an empty table', async () => {
-    const read = vi.fn(async () => {
-      throw new Error('network')
-    })
-    render(<SeasonLeagueTable read={read} />)
+    const retry = vi.fn()
+    render(<SeasonLeagueTable state={{ status: 'failed', retry }} />)
 
     expect(await screen.findByText(/could not load the table/i)).toBeInTheDocument()
     expect(screen.queryByRole('table')).toBeNull()
+  })
+
+  it('offers a retry that reaches the read the route now owns', async () => {
+    // The read moved out of this component and the control had to keep
+    // working. A "Try again" wired to nothing is worse than none at all,
+    // because it looks like the failure is being handled.
+    const retry = vi.fn()
+    render(<SeasonLeagueTable state={{ status: 'failed', retry }} />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /try again/i }))
+    expect(retry).toHaveBeenCalledTimes(1)
   })
 
   it('says a season with nothing settled has no table yet', async () => {
