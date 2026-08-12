@@ -165,6 +165,36 @@ describe('row-level security', () => {
       // `admin_shadow_scoring_report`, which names entries and never people.
       { schema: 'predictor_internal', name: 'shadow_scoring_runs' },
       { schema: 'predictor_internal', name: 'shadow_scoring_mismatches' },
+      // Contract 184. A separately revoked analytical schema: private model,
+      // odds and paper-betting evidence only. Browser access is through the
+      // bounded admin RPCs above it, never direct table privileges.
+      { schema: 'ai', name: 'team_aliases' },
+      { schema: 'ai', name: 'raw_matches' },
+      { schema: 'ai', name: 'models' },
+      { schema: 'ai', name: 'predictions' },
+      { schema: 'ai', name: 'prediction_results' },
+      { schema: 'ai', name: 'job_runs' },
+      { schema: 'ai', name: 'publication_gate' },
+      { schema: 'ai', name: 'observations' },
+      { schema: 'ai', name: 'market_snapshots' },
+      { schema: 'ai', name: 'feature_experiments' },
+      { schema: 'ai', name: 'bookmakers' },
+      { schema: 'ai', name: 'bets' },
+      { schema: 'ai', name: 'bet_results' },
+      { schema: 'ai', name: 'fixture_odds' },
+      { schema: 'ai', name: 'fixtures' },
+      { schema: 'ai', name: 'model_artifacts' },
+      { schema: 'ai', name: 'evidence_gate' },
+      { schema: 'ai', name: 'markets' },
+      { schema: 'ai', name: 'market_prices' },
+      { schema: 'ai', name: 'api_usage' },
+      { schema: 'ai', name: 'api_budget' },
+      { schema: 'ai', name: 'odds_api_events' },
+      { schema: 'ai', name: 'odds_api_snapshots' },
+      { schema: 'ai', name: 'odds_api_coverage' },
+      { schema: 'ai', name: 'historical_market_prices' },
+      { schema: 'ai', name: 'odds_api_raw_responses' },
+      { schema: 'ai', name: 'odds_api_dispatches' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

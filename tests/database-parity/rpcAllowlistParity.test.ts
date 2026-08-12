@@ -124,6 +124,10 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'admin_draw_predictor_cup(uuid,text)',
       'admin_finalise_predictor_cup_groups(uuid)',
       'admin_settle_predictor_cup_round(uuid,uuid)',
+      // Contract 185's paid-odds boundary. The Edge Function performs the
+      // preflight and custody write. The dispatcher is owner/pg_cron-only and
+      // therefore deliberately absent from this service-role list.
+      'ai_odds_budget_check(integer)',
       'archive_provider_response(text,text,text,integer,jsonb,text,uuid)',
       // Contract 163's four delivery jobs. A browser role that could run any of
       // them could cause mail to be sent, or claim a batch and never resolve it.
@@ -134,6 +138,7 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'process_player_action_items()',
       'process_reminder_schedule(interval,boolean)',
       'reclaim_stalled_reminders(interval)',
+      'record_ai_odds_snapshot(text,integer,jsonb,text,jsonb,integer,integer,integer,integer,text,text)',
       'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
       'record_reminder_result(uuid,boolean,text,text,text)',
       // Contract 178's verification run. A job rather than an action: it

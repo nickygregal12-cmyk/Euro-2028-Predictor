@@ -244,9 +244,10 @@ nothing to say.
 | 182 | `CUP-005` under ADR 0028 § 7. **It moves no phase** and unblocks `CUP-002` by settling which authority that driver must read |
 
 | 183 | `MIG-UI-16` and `MIG-UI-18`. **They move no phase.** Both replace a browser workaround that works, so neither is urgent alone; the clubs read closes a real data-loss path for a club with no fixture |
+| 185 | **Moves no platform phase.** Private modelling/paper-betting evidence and secret-safe paid odds under ADR 0029; no player surface or platform-result authority |
 
 | 184 | `CUP-001` under ADR 0028 § 6. **It moves no phase** and unblocks `CUP-002`, which is the driver that would actually run it |
 
-**This table accounts for every contract up to and including contract 184.** Saying so is
+**This table accounts for every contract up to and including contract 185.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

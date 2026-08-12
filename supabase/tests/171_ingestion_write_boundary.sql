@@ -156,6 +156,10 @@ insert into ingestion_functions (name, permitted_writes) values
    'the append-only dispatch record, and public.provider_poll_targets to stamp '
    'when a target was last polled. Ingestion configuration, not competition '
    'truth: no result, score or lock derives from it.'),
+  ('dispatch_ai_odds_polls',
+   'contract 184. Owner/pg_cron-only paid-odds dispatch: writes only the '
+   'private append-only ai.odds_api_dispatches evidence and calls the '
+   'server-only provider-poll endpoint. It writes no public competition truth.'),
   ('post_provider_poll',               'the outbound request; no competition relation.'),
   ('due_provider_poll_targets',        'reads poll targets; writes nothing.'),
   ('resolve_provider_poll_path',

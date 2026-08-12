@@ -20,6 +20,12 @@
       "why": "Session summary; states the current implementation boundary."
     },
     {
+      "path": "ai/README.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Operational reference for the private AI Lab package. Its commands and safeguards are verified alongside the code and it does not state the repository or hosted contract position."
+    },
+    {
       "path": "MASTER-TODO.md",
       "kind": "live",
       "sweep": true,

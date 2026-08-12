@@ -1053,8 +1053,15 @@
  * finalises no group stage**, and the function is unreachable without a drawn
  * competition with three settled windows, which the seed does not create. The
  * tournament's own 3- and 4-player behaviour is asserted unchanged.
+ * Raised to 185 after checking the private AI Lab boundary. Its relations are
+ * all in the separately revoked `ai` schema; the seed reads and writes none of
+ * them. Its new public functions are either competition-admin gated reads or
+ * service-only Odds API custody jobs plus an owner/cron-only dispatcher; none
+ * is called by global setup, and it redefines
+ * no entry, membership, prediction-card or player-facing read. The scheduled
+ * paid collection also defaults disabled.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 184
+export const SEED_REVIEWED_AT_CONTRACT = 185
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -1,0 +1,503 @@
+"""Database access for the AI Lab jobs.
+
+Uses a direct Postgres connection with the service role, which bypasses RLS.
+That is correct here and nowhere else: these jobs run on a server, the
+connection string never reaches a browser, and the `ai` schema is unreachable
+from `anon`/`authenticated` by design.
+"""
+from __future__ import annotations
+
+import json
+from contextlib import contextmanager
+from datetime import date, datetime
+from typing import Any, Iterable
+
+import pandas as pd
+import psycopg
+from psycopg.rows import dict_row
+
+from config import database_url
+
+
+@contextmanager
+def connect():
+    with psycopg.connect(database_url(), row_factory=dict_row) as conn:
+        yield conn
+
+
+def query_df(sql: str, params: tuple | dict | None = None) -> pd.DataFrame:
+    with connect() as conn:
+        rows = conn.execute(sql, params).fetchall()
+    return pd.DataFrame(rows)
+
+
+# ---------------------------------------------------------------------------
+# Job bookkeeping
+# ---------------------------------------------------------------------------
+
+@contextmanager
+def job(name: str, league: str | None = None):
+    """Records a row in ai.job_runs so the admin page can answer 'did it run?'.
+
+    A failure is recorded and re-raised. A job that dies without writing a
+    terminal status shows as 'running' forever, which is the correct and
+    visible symptom of a killed process.
+    """
+    with connect() as conn:
+        run = conn.execute(
+            "insert into ai.job_runs (job, league) values (%s, %s) returning id",
+            (name, league),
+        ).fetchone()
+        conn.commit()
+        run_id = run["id"]
+
+    state = {"rows": 0, "detail": {}}
+    try:
+        yield state
+    except Exception as exc:
+        with connect() as conn:
+            conn.execute(
+                "update ai.job_runs set finished_at=now(), status='failed', "
+                "message=%s, detail=%s where id=%s",
+                (f"{type(exc).__name__}: {exc}"[:2000], json.dumps(state["detail"], default=str), run_id),
+            )
+            conn.commit()
+        raise
+    else:
+        with connect() as conn:
+            conn.execute(
+                "update ai.job_runs set finished_at=now(), status='succeeded', "
+                "rows_written=%s, detail=%s where id=%s",
+                (state["rows"], json.dumps(state["detail"], default=str), run_id),
+            )
+            conn.commit()
+
+
+# ---------------------------------------------------------------------------
+# Reads
+# ---------------------------------------------------------------------------
+
+def load_history(divisions: Iterable[str]) -> pd.DataFrame:
+    df = query_df(
+        """
+        select id, division, season, match_date, home_canonical, away_canonical,
+               home_goals, away_goals, result,
+               home_reds, away_reds, red_card_distorted,
+               mkt_home_prob, mkt_draw_prob, mkt_away_prob,
+               odds_avg_h, odds_avg_d, odds_avg_a,
+               odds_max_h, odds_max_d, odds_max_a,
+               close_avg_h, close_avg_d, close_avg_a,
+               close_max_h, close_max_d, close_max_a,
+               close_ps_h, close_ps_d, close_ps_a
+          from ai.raw_matches
+         where division = any(%s)
+         order by match_date, home_canonical
+        """,
+        ([list(divisions)]),
+    )
+    if not df.empty:
+        df["match_date"] = pd.to_datetime(df["match_date"]).dt.date
+    return df
+
+
+def load_upcoming_fixtures(tournament_name: str, days_ahead: int = 10) -> pd.DataFrame:
+    """Fixtures still to be played, with team names as this platform holds them."""
+    return query_df(
+        """
+        select sf.id           as season_fixture_id,
+               sf.kickoff_at,
+               ht.name         as home_team_name,
+               at.name         as away_team_name
+          from public.season_fixtures sf
+          join public.tournaments t  on t.id  = sf.tournament_id
+          join public.teams ht       on ht.id = sf.home_team_id
+          join public.teams at       on at.id = sf.away_team_id
+         where t.name = %s
+           and sf.home_score is null
+           and sf.kickoff_at between now() and now() + make_interval(days => %s)
+         order by sf.kickoff_at
+        """,
+        (tournament_name, days_ahead),
+    )
+
+
+def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
+    return query_df(
+        """
+        select p.id as prediction_id, p.p_home, p.p_draw, p.p_away,
+               p.predicted_result, p.predicted_score,
+               f.home_goals as home_score, f.away_goals as away_score
+          from ai.predictions p
+          join ai.fixtures f             on f.id = p.fixture_id
+     left join ai.prediction_results r   on r.prediction_id = p.id
+         where p.league = %s
+           and f.status = 'played'
+           and f.home_goals is not null
+           and f.away_goals is not null
+           and r.prediction_id is null
+        """,
+        (league_key,),
+    )
+
+
+def current_model(league: str) -> dict[str, Any] | None:
+    with connect() as conn:
+        return conn.execute(
+            "select * from ai.models where league=%s and status='current'", (league,)
+        ).fetchone()
+
+
+def team_id_map(tournament_name: str) -> dict[str, str]:
+    df = query_df(
+        """
+        select tm.name, tm.id
+          from public.teams tm
+          join public.tournaments t on t.id = tm.tournament_id
+         where t.name = %s
+        """,
+        (tournament_name,),
+    )
+    return {} if df.empty else dict(zip(df["name"], df["id"].astype(str)))
+
+
+# ---------------------------------------------------------------------------
+# Writes
+# ---------------------------------------------------------------------------
+
+def upsert_raw_matches(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    cols = [
+        "source", "division", "season", "match_date", "home_canonical", "away_canonical",
+        "home_goals", "away_goals", "result", "home_shots", "away_shots",
+        "home_shots_ot", "away_shots_ot", "home_corners", "away_corners",
+        "ht_home_goals", "ht_away_goals",
+        "home_reds", "away_reds", "home_yellows", "away_yellows",
+        "home_fouls", "away_fouls", "referee",
+        "mkt_home_prob", "mkt_draw_prob", "mkt_away_prob",
+        "odds_avg_h", "odds_avg_d", "odds_avg_a",
+        "odds_max_h", "odds_max_d", "odds_max_a",
+        "odds_ps_h", "odds_ps_d", "odds_ps_a",
+        "odds_bfe_h", "odds_bfe_d", "odds_bfe_a",
+        "close_avg_h", "close_avg_d", "close_avg_a",
+        "close_max_h", "close_max_d", "close_max_a",
+        "close_ps_h", "close_ps_d", "close_ps_a",
+        "overround_avg", "overround_max",
+    ]
+    placeholders = "(" + ",".join(["%s"] * len(cols)) + ")"
+    update_cols = [c for c in cols if c not in {
+        "source", "division", "season", "match_date",
+        "home_canonical", "away_canonical",
+    }]
+    sql = (
+        f"insert into ai.raw_matches ({','.join(cols)}) values {placeholders} "
+        "on conflict (source, division, season, match_date, home_canonical, away_canonical) "
+        "do update set " + ",".join(f"{c}=excluded.{c}" for c in update_cols)
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
+        conn.commit()
+    return len(rows)
+
+
+def upsert_historical_market_prices(rows: list[dict]) -> int:
+    """Persist free O/U and AH prices parsed alongside historical results."""
+    price_rows = []
+    for match in rows:
+        for price in match.get("_market_prices", []):
+            price_rows.append((match, price))
+    if not price_rows:
+        return 0
+
+    sql = """
+      insert into ai.historical_market_prices
+        (raw_match_id,market,line,selection,bookmaker,odds,phase,source)
+      select rm.id,%s,%s,%s,%s,%s,'pre','football-data.co.uk'
+        from ai.raw_matches rm
+       where rm.source=%s and rm.division=%s and rm.season=%s
+         and rm.match_date=%s and rm.home_canonical=%s and rm.away_canonical=%s
+      on conflict (raw_match_id,market,line,selection,bookmaker,phase)
+      do update set odds=excluded.odds
+    """
+    written = 0
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for match, price in price_rows:
+                cur.execute(sql, (
+                    price["market"], price["line"], price["selection"],
+                    price["bookmaker"], price["odds"], match["source"],
+                    match["division"], match["season"], match["match_date"],
+                    match["home_canonical"], match["away_canonical"],
+                ))
+                if cur.rowcount != 1:
+                    raise RuntimeError(
+                        "Historical market price could not resolve its raw match: "
+                        f"{match['division']} {match['match_date']} "
+                        f"{match['home_canonical']} v {match['away_canonical']}"
+                    )
+                written += 1
+        conn.commit()
+    return written
+
+
+def insert_model(record: dict) -> str:
+    cols = list(record.keys())
+    sql = (
+        f"insert into ai.models ({','.join(cols)}) "
+        f"values ({','.join(['%s'] * len(cols))}) returning id"
+    )
+    with connect() as conn:
+        row = conn.execute(sql, tuple(record[c] for c in cols)).fetchone()
+        conn.commit()
+    return str(row["id"])
+
+
+def insert_predictions(rows: list[dict]) -> int:
+    """Skips fixtures already predicted by this model, and refuses anything
+    that has already kicked off — the database enforces both, this just keeps
+    the job from failing on a rerun."""
+    if not rows:
+        return 0
+    cols = [
+        "model_id", "league", "fixture_id", "season_fixture_id", "raw_match_id",
+        "kickoff_at", "home_canonical", "away_canonical", "p_home", "p_draw", "p_away",
+        "exp_home_goals", "exp_away_goals", "predicted_result", "predicted_score",
+        "scoreline_grid", "features", "market_probabilities",
+    ]
+    sql = (
+        f"insert into ai.predictions ({','.join(cols)}) "
+        f"values ({','.join(['%s'] * len(cols))}) "
+        "on conflict do nothing"
+    )
+    written = 0
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for r in rows:
+                values = []
+                for c in cols:
+                    v = r.get(c)
+                    if c in ("scoreline_grid", "features",
+                             "market_probabilities") and v is not None:
+                        v = json.dumps(v)
+                    values.append(v)
+                cur.execute(sql, tuple(values))
+                written += cur.rowcount
+        conn.commit()
+    return written
+
+
+def insert_prediction_results(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    cols = [
+        "prediction_id", "actual_home_goals", "actual_away_goals", "actual_result",
+        "result_correct", "exact_score_correct", "log_loss", "brier", "rps",
+    ]
+    sql = (
+        f"insert into ai.prediction_results ({','.join(cols)}) "
+        f"values ({','.join(['%s'] * len(cols))}) on conflict (prediction_id) do nothing"
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(sql, [tuple(r[c] for c in cols) for r in rows])
+        conn.commit()
+    return len(rows)
+
+
+# ---------------------------------------------------------------------------
+# Model artefacts
+#
+# A code review found that training wrote a .joblib to the runner's disk,
+# .gitignore excluded it, and the workflow uploaded it as a run artefact --
+# so a later prediction run on a fresh runner had a database saying "model X
+# is current" and no file to load. Artefacts now live in Postgres beside the
+# model row: one store, atomic with the metadata, SHA verified on read.
+# ---------------------------------------------------------------------------
+
+def store_model_artifact(model_id: str, path) -> str:
+    import hashlib
+    from pathlib import Path
+
+    payload = Path(path).read_bytes()
+    sha = hashlib.sha256(payload).hexdigest()
+    with connect() as conn:
+        inserted = conn.execute(
+            "insert into ai.model_artifacts (model_id, payload, sha256) "
+            "values (%s, %s, %s) "
+            "on conflict (model_id) do nothing",
+            (model_id, payload, sha),
+        ).rowcount
+        if not inserted:
+            existing = conn.execute(
+                "select sha256 from ai.model_artifacts where model_id=%s",
+                (model_id,),
+            ).fetchone()
+            if existing is None or existing["sha256"] != sha:
+                raise ValueError(
+                    f"Model {model_id} already has a different immutable artefact."
+                )
+        conn.commit()
+    return sha
+
+
+def insert_model_with_artifact(record: dict, path) -> str:
+    """Insert model metadata and immutable bytes in one transaction."""
+    import hashlib
+    from pathlib import Path
+
+    payload = Path(path).read_bytes()
+    sha = hashlib.sha256(payload).hexdigest()
+    supplied = record.get("artifact_sha256")
+    if supplied is not None and supplied != sha:
+        raise ValueError("Model metadata SHA does not match the artefact bytes.")
+    record = {**record, "artifact_sha256": sha}
+    cols = list(record.keys())
+    with connect() as conn:
+        row = conn.execute(
+            f"insert into ai.models ({','.join(cols)}) "
+            f"values ({','.join(['%s'] * len(cols))}) returning id",
+            tuple(record[c] for c in cols),
+        ).fetchone()
+        model_id = str(row["id"])
+        conn.execute(
+            "insert into ai.model_artifacts (model_id, payload, sha256) "
+            "values (%s, %s, %s)",
+            (model_id, payload, sha),
+        )
+        conn.commit()
+    return model_id
+
+
+def load_model_artifact(model_id: str):
+    """Returns the deserialised bundle, or raises with a useful message.
+
+    Verifies the SHA on the way out. A silently corrupted artefact would
+    produce a model that loads and predicts nonsense, which is worse than one
+    that fails to load.
+    """
+    import hashlib
+    import io
+
+    import joblib
+
+    with connect() as conn:
+        row = conn.execute(
+            "select a.payload, a.sha256, m.artifact_sha256 as expected_sha256 "
+            "from ai.model_artifacts a join ai.models m on m.id=a.model_id "
+            "where a.model_id = %s",
+            (model_id,),
+        ).fetchone()
+    if row is None:
+        raise SystemExit(
+            f"Model {model_id} is marked current but has no stored artefact. "
+            "Re-run train.py; the database trigger should have prevented this."
+        )
+    actual = hashlib.sha256(row["payload"]).hexdigest()
+    if actual != row["sha256"] or actual != row["expected_sha256"]:
+        raise SystemExit(f"Artefact for model {model_id} failed its checksum.")
+    return joblib.load(io.BytesIO(row["payload"]))
+
+
+# ---------------------------------------------------------------------------
+# ai.fixtures — the lab's own fixture lifecycle
+# ---------------------------------------------------------------------------
+
+def upsert_fixtures(rows: list[dict]) -> int:
+    if not rows:
+        return 0
+    cols = ["division", "season", "league_key", "match_date", "kickoff_at",
+            "home_canonical", "away_canonical", "season_fixture_id"]
+    sql = (
+        f"insert into ai.fixtures ({','.join(cols)}) "
+        f"values ({','.join(['%s'] * len(cols))}) "
+        "on conflict (division, match_date, home_canonical, away_canonical) "
+        "do update set kickoff_at = coalesce(excluded.kickoff_at, ai.fixtures.kickoff_at), "
+        "season_fixture_id = coalesce(excluded.season_fixture_id, "
+        "                             ai.fixtures.season_fixture_id)"
+    )
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.executemany(sql, [tuple(r.get(c) for c in cols) for r in rows])
+        conn.commit()
+    return len(rows)
+
+
+def settle_fixtures_from_history() -> int:
+    """Attach provider identity and results, regardless of arrival order.
+
+    This is the join that makes the seven leagues without a competition on this
+    platform work end to end: Football-Data supplies both the fixture and,
+    later, the result, so nothing needs public.season_fixtures at any point.
+    """
+    changed: set[str] = set()
+    with connect() as conn:
+        # Identity attachment is independent of status.  A platform result can
+        # mark EPL/SPL played before Football-Data publishes its closing line;
+        # the later raw row must still attach or CLV is lost forever.
+        rows = conn.execute(
+            """
+            update ai.fixtures f
+               set raw_match_id = rm.id
+              from ai.raw_matches rm
+             where rm.division       = f.division
+               and rm.match_date     = f.match_date
+               and rm.home_canonical = f.home_canonical
+               and rm.away_canonical = f.away_canonical
+               and f.raw_match_id is distinct from rm.id
+             returning f.id
+            """
+        ).fetchall()
+        changed.update(str(r["id"]) for r in rows)
+
+        rows = conn.execute(
+            """
+            update ai.fixtures f
+               set home_goals = rm.home_goals,
+                   away_goals = rm.away_goals,
+                   status = 'played'
+              from ai.raw_matches rm
+             where f.raw_match_id = rm.id
+               and f.status = 'scheduled'
+             returning f.id
+            """
+        ).fetchall()
+        changed.update(str(r["id"]) for r in rows)
+        # Where this platform also runs the competition, take the result from
+        # there too: it is confirmed by an operator rather than a provider.
+        rows = conn.execute(
+            """
+            update ai.fixtures f
+               set home_goals = sf.home_score,
+                   away_goals = sf.away_score,
+                   status     = 'played'
+              from public.season_fixtures sf
+             where f.season_fixture_id = sf.id
+               and sf.home_score is not null
+               and sf.away_score is not null
+               and (f.status <> 'played'
+                    or f.home_goals is distinct from sf.home_score
+                    or f.away_goals is distinct from sf.away_score)
+             returning f.id
+            """
+        ).fetchall()
+        changed.update(str(r["id"]) for r in rows)
+        conn.commit()
+    return len(changed)
+
+
+def load_upcoming_ai_fixtures(league_key: str, days_ahead: int = 10):
+    return query_df(
+        """
+        select f.id as fixture_id, f.division, f.season, f.match_date,
+               coalesce(f.kickoff_at, f.match_date::timestamptz + interval '15 hours')
+                 as kickoff_at,
+               f.home_canonical, f.away_canonical, f.season_fixture_id
+          from ai.fixtures f
+         where f.league_key = %s
+           and f.status = 'scheduled'
+           and f.match_date between current_date and current_date + %s
+         order by 5
+        """,
+        (league_key, days_ahead),
+    )

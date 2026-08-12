@@ -287,6 +287,27 @@ insert into expected_service_functions (signature) values
 insert into expected_service_functions (signature) values
   ('run_shadow_scoring_verification(uuid,integer)');
 
+-- Contract 185. The private AI Lab exposes bounded competition-admin reads
+-- and one promotion command to authenticated callers; every function applies
+-- require_competition_admin() internally and no table grant is added.
+insert into expected_authenticated_functions (signature) values
+  ('admin_ai_dashboard(text)'),
+  ('admin_ai_upcoming_predictions(text,integer)'),
+  ('admin_ai_recent_results(text,integer)'),
+  ('admin_ai_promote_model(uuid,text)'),
+  ('admin_ai_performance_breakdown(text)'),
+  ('admin_ai_betting_dashboard(text)'),
+  ('admin_ai_betting_gate_status()'),
+  ('admin_ai_evidence_by_market()'),
+  ('admin_ai_odds_api_status()');
+
+-- The Odds API budget preflight and custody writer are Edge jobs. The outbound
+-- dispatcher is owner/pg_cron-only and therefore belongs to neither execution
+-- allowlist. A browser session can neither spend credits nor fabricate evidence.
+insert into expected_service_functions (signature) values
+  ('ai_odds_budget_check(integer)'),
+  ('record_ai_odds_snapshot(text,integer,jsonb,text,jsonb,integer,integer,integer,integer,text,text)');
+
 insert into expected_authenticated_functions (signature) values
   ('get_competition_table(uuid)'),
   ('admin_set_competition_table_rules(uuid,smallint,smallint,smallint,text[],smallint,smallint,smallint)'),

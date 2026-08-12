@@ -7,11 +7,15 @@ const migrationSource = readFileSync(
   'utf8',
 )
 const supabaseConfig = readFileSync('supabase/config.toml', 'utf8')
+const aiMigrationSource = readFileSync(
+  'supabase/migrations/20260812070000_ai_lab_operational_loop.sql',
+  'utf8',
+)
 
 describe('provider poll contract', () => {
   it('uses named secret-key authentication before any provider fetch', () => {
     const authorization = edgeSource.indexOf('if (!authorized(request, secretKey))')
-    const providerFetch = edgeSource.indexOf('providerResponse = await fetch(target')
+    const providerFetch = edgeSource.indexOf('providerResponse = await fetch(fetchTarget')
     expect(authorization).toBeGreaterThan(-1)
     expect(providerFetch).toBeGreaterThan(authorization)
     expect(edgeSource).toContain("request.headers.get('apikey')")
@@ -22,6 +26,7 @@ describe('provider poll contract', () => {
     expect(edgeSource).toContain("const CALLER_KEY_NAME = 'provider_poll'")
     expect(edgeSource).not.toContain("const CALLER_KEY_NAME = 'provider-poll'")
     expect(edgeSource).toContain("Deno.env.get('SUPABASE_SECRET_KEYS')")
+    expect(edgeSource).toContain("Deno.env.get('AI_ODDS_POLL')")
     expect(edgeSource).not.toContain("request.headers.get('authorization')")
     expect(supabaseConfig).toContain('[functions.provider-poll]')
     expect(supabaseConfig).toContain('verify_jwt = false')
@@ -43,6 +48,31 @@ describe('provider poll contract', () => {
     expect(edgeSource).toContain("headers: (secret) => ({ 'x-apisports-key': secret })")
     expect(edgeSource).toContain("headers: (secret) => ({ 'X-Auth-Token': secret })")
     expect(edgeSource).not.toContain('api_token=')
+  })
+
+  it('keeps the paid odds credential in the Edge Function and archives only a sanitized URL', () => {
+    expect(edgeSource).toContain(
+      "secretNames: ['ODDS_API', 'ODDS_API_KEY', 'THE_ODDS_API_KEY']",
+    )
+    expect(edgeSource).toContain("queryCredential: 'apiKey'")
+    expect(edgeSource).toContain('const archivedTarget = target.toString()')
+    expect(edgeSource).toContain('fetchTarget.searchParams.set(config.queryCredential, providerSecret)')
+    expect(edgeSource).toContain('p_request_url: archivedTarget')
+    expect(edgeSource).not.toContain('p_request_url: fetchTarget')
+    expect(aiMigrationSource).toContain("request_url !~* '([?&])(api[_-]?key|apikey|token|authorization)='")
+    expect(edgeSource).not.toContain('detail: error instanceof Error ? error.message')
+    expect(edgeSource).not.toContain('detail: recordError instanceof Error ? recordError.message')
+    expect(edgeSource).toContain('caught provider text must never be')
+  })
+
+  it('routes odds into a separate custody path and installs disabled collection', () => {
+    expect(edgeSource).toContain("poll.provider === 'the-odds-api'")
+    expect(edgeSource).toContain("'record_ai_odds_snapshot'")
+    expect(aiMigrationSource).toContain('create table if not exists ai.odds_api_raw_responses')
+    expect(aiMigrationSource).toContain('collection_enabled boolean not null default false')
+    expect(aiMigrationSource).toContain('public.ai_odds_budget_check(10)')
+    expect(aiMigrationSource).toContain('/sports/soccer_england_league2/odds')
+    expect(aiMigrationSource).not.toContain("update public.season_fixtures")
   })
 
   it('rejects credential-shaped query parameters instead of silently rewriting them', () => {
