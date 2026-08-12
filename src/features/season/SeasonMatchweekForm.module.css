@@ -1,0 +1,120 @@
+/* The matchweek's form, in the prediction surface's contextual column. The
+   pill treatment matches the Match Centre's exactly — a player who opens a
+   fixture after reading this panel must not be shown the same fact in a
+   different visual language. */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One fixture is two clubs, stacked. They are a pair rather than a row so the
+   panel reads the same at 320px and at full width — and the card beside it is
+   already the place where a fixture is a row. */
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-3) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.fixture:last-child {
+  border-bottom: 0;
+}
+
+.club {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.clubName {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
+  overflow-wrap: anywhere;
+}
+
+.letters {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+}
+
+/* The letter carries the meaning; the tint only reinforces it. §11.8 forbids
+   colour alone, and "W" is legible with every tint removed. */
+.letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  color: var(--tx2);
+}
+
+.letter[data-outcome='W'] {
+  border-color: var(--acc);
+  color: var(--tx);
+}
+
+.letter[data-outcome='L'] {
+  border-style: dashed;
+}
+
+.record {
+  flex: 1 1 100%;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+}
+
+.none {
+  flex: 1 1 100%;
+  font-size: var(--fs-1);
+  color: var(--tx3);
+}

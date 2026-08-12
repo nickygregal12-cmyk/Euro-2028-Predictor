@@ -18,6 +18,9 @@ import {
   type OfflineDraftingOptions,
 } from './useSeasonMatchPredictor'
 import { SeasonPredictionDrafts } from './SeasonPredictionDrafts'
+import { SeasonMatchweekForm } from './SeasonMatchweekForm'
+import { presentMatchweekForm } from './matchweekFormModel'
+import type { SeasonClubForm } from '../../services/supabase/seasonClubFormModel'
 import { formatKickoffWithDay } from '../../shared/time/kickoff'
 import styles from './SeasonMatchPredictorPage.module.css'
 
@@ -46,6 +49,20 @@ export type SeasonMatchPredictorPageProps = {
    * control that cannot work.
    */
   offline?: OfflineDraftingOptions
+  /**
+   * Contract 141's club form for this whole season, for the football half of
+   * the contextual panel (`UI-F06`).
+   *
+   * SUPPLIED RATHER THAN FETCHED, and by the route, because the route is where
+   * the season id is and because the form read answers for every club in one
+   * request — a card of ten fixtures costs one request, not twenty. Omitted by
+   * the DEV harness, which has no season to read one from; the panel is then
+   * absent rather than a grid of clubs with no football behind them.
+   *
+   * `matches` is how many settled matches back the server was ASKED for, which
+   * the panel states rather than assumes.
+   */
+  clubForm?: { clubs: readonly SeasonClubForm[]; matches: number } | null
 }
 
 const SKELETON_ROWS = 10
@@ -124,6 +141,7 @@ export function SeasonMatchPredictorPage({
   consensus,
   matchweekHref,
   offline,
+  clubForm,
 }: SeasonMatchPredictorPageProps) {
   const view = useSeasonMatchPredictor(gateway, matchweek, offline)
 
@@ -171,6 +189,15 @@ export function SeasonMatchPredictorPage({
   }
 
   const { page, presentation } = view
+  // Derived from the card's own fixtures, so the panel and the card cannot
+  // disagree about which matches this matchweek holds. Null when the form read
+  // has not answered — which is not the same as every club having played
+  // nothing, and the panel is then absent rather than empty.
+  const form = presentMatchweekForm(
+    page.fixtures,
+    clubForm?.clubs ?? null,
+    clubForm?.matches ?? null,
+  )
   // The matchweek is in the strip only where there is no stepper to say it.
   // Printing "Matchweek 3 of 38" twice on one screen is how a page starts
   // looking like two pages stitched together.
@@ -205,13 +232,25 @@ export function SeasonMatchPredictorPage({
       active="games"
       destinations={destinations}
       // The flagship desktop composition the direction names: the prediction
-      // workspace in the main column, what everybody else predicted beside it
-      // rather than a scroll below it. On a phone the panel is not a panel —
-      // it stacks under the card in source order, exactly where it was.
+      // workspace in the main column, the match insights beside it rather than
+      // a scroll below it. On a phone the panel is not a panel — it stacks
+      // under the card in source order, exactly where it was.
+      //
+      // TWO INSIGHTS, IN THE ORDER THE QUESTIONS ARRIVE. `UI-F06` answers
+      // "what should I predict" and `UI-F07` answers "what did everybody else
+      // predict"; the second is withheld until the matchweek locks, so before
+      // the lock this column held nothing at exactly the moment it was most
+      // useful. Form is first because it is the question in front of the
+      // player while the card is still editable.
       asideLabel="Match insights"
       aside={
-        consensus ? (
-          <SeasonConsensusPanel matchweek={page.matchweek.number} load={consensus} />
+        form || consensus ? (
+          <>
+            {form ? <SeasonMatchweekForm guide={form} /> : null}
+            {consensus ? (
+              <SeasonConsensusPanel matchweek={page.matchweek.number} load={consensus} />
+            ) : null}
+          </>
         ) : undefined
       }
     >
