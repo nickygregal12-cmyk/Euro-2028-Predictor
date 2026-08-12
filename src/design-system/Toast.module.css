@@ -28,7 +28,14 @@
   color: var(--tx);
 }
 
+/* The glyph is 24px and the target is 44px — see the long note in
+   `Alert.module.css`, which owns the reasoning for both. The case for NOT
+   growing the box is stronger here: a Toast is `align-items: center`, so a
+   44px control would make every toast twenty pixels taller, and a floating
+   transient notification is the one surface where extra height is most
+   obviously furniture. */
 .dismiss {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -40,6 +47,20 @@
   border: 0;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.dismiss::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  transform: translate(-50%, -50%);
+}
+
+.dismiss:hover {
+  color: var(--tx);
 }
 
 .dismiss:focus-visible {

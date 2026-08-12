@@ -44,7 +44,16 @@ export function Alert({ variant = 'info', title, children, onDismiss }: AlertPro
         <div className={styles.message}>{children}</div>
       </div>
       {onDismiss ? (
-        <button type="button" className={styles.dismiss} aria-label="Dismiss" onClick={onDismiss}>
+        <button
+          type="button"
+          className={styles.dismiss}
+          // The visible glyph is 24px; the pointer target is 44px, expanded by a
+          // pseudo-element rather than by growing the box. The stylesheet owns
+          // the reasoning; this marks the decision where a sweep can find it.
+          data-tap="expanded"
+          aria-label="Dismiss"
+          onClick={onDismiss}
+        >
           <CloseIcon size={16} />
         </button>
       ) : null}

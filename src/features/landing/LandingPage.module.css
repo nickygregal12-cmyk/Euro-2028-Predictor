@@ -36,11 +36,19 @@
 
 /* The same skip link `PageShell` gives every signed-in route, restated because
    this page has its own chrome and does not mount the app shell. */
+/* Matched to `PageShell`'s, including the 44px minimum it gained from the
+   same measurement. This page has its own chrome and does not mount the app
+   shell, so the rule is restated rather than shared — and a restated rule
+   that drifts from its original is worse than none, which is why the two are
+   corrected together. */
 .skipLink {
   position: absolute;
+  display: inline-flex;
+  align-items: center;
   top: var(--sp-2);
   left: var(--sp-2);
   z-index: var(--z-toast);
+  min-height: var(--tap-min);
   transform: translateY(calc(-100% - var(--sp-4)));
   padding: var(--sp-2) var(--sp-3);
   border: 2px solid var(--acc);
@@ -136,7 +144,15 @@
   gap: var(--sp-6);
 }
 
+/* 44px of target, not 22px of text. The `UI-F18` sweep measured these anchors
+   at 22px tall in every width and both themes: a text link in a nav row is
+   only as tall as its line box, and a public acquisition page is precisely
+   where a mis-tapped link costs a visitor. The row keeps its visual height —
+   the header's own `min-height` already exceeds this — so nothing moves. */
 .headerNav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   color: var(--tx2);
   font-size: var(--fs-2);
   white-space: nowrap;
@@ -1240,7 +1256,13 @@
   font-size: var(--fs-2);
 }
 
+/* Same 44px target as the header's, for the same reason: Sign in and Create
+   account appear here too, and a conversion action that is 22px tall on a
+   phone is the one worth getting right. */
 .footerLinks a {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   color: var(--tx2);
   text-decoration: none;
   transition: color var(--duration-micro) var(--ease-out);
