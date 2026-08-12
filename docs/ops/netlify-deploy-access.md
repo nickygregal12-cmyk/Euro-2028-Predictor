@@ -12,7 +12,7 @@ production deployment.
 
 | Project | Variant | Production URL | Perimeter |
 | --- | --- | --- | --- |
-| `predictorhub` | `VITE_SITE_VARIANT=hub` | `https://predictorhub.netlify.app` | Netlify Team SSO, all contexts |
+| `predictorhub` | `VITE_SITE_VARIANT=hub` | `https://predictorhub.netlify.app` | Site password, all contexts (Team SSO until 12 August 2026) |
 | `euro28predictor` | `VITE_SITE_VARIANT=euro` | `https://euro28predictor.com` | Site password, all contexts |
 
 - The Hub has **no permanent brand domain**; its Netlify address is the production
@@ -65,33 +65,38 @@ The blank `dev-server` override is a Netlify configuration debt. Remove it or se
 
 **There are two of them**, and from 12 August 2026 they are the pair below. Both
 were built by Netlify's own repository build on the push to `main`, both carry
-the exact `commit_ref` they were built from, and both are `ready` and published
-in the `production` context.
+the exact `commit_ref` they were built from, both are `ready` and published in
+the `production` context, and — for the first time — **both are verified by a
+smoke run at the same commit**.
 
 | Field | `predictorhub` (hub) | `euro28predictor` (euro) |
 | --- | --- | --- |
-| Source commit | `33f425b70e4618add59d94307ba03621db06eb06` | `33f425b70e4618add59d94307ba03621db06eb06` |
-| Deploy ID | `6a7c2ec4d5182500084a64cb` | `6a7c2ec4d7558300084ea83e` |
+| Source commit | `d2fdd355e1baea94c67774322147d7c04f120980` | `d2fdd355e1baea94c67774322147d7c04f120980` |
+| Deploy ID | `6a7c41e719ee920008fadfdb` | `6a7c41e7693a740008621202` |
 | Primary URL | `https://predictorhub.netlify.app` | `https://euro28predictor.com` |
-| Published | 2026-08-12T08:30:06.306Z, 48s | 2026-08-12T08:30:04.200Z, 46s |
+| Published | 2026-08-12T09:51:19.699Z, 47s | 2026-08-12T09:51:25.265Z, 51s |
 | Application contract | 178 | 178 |
 | Supabase project / contract | `vkfnsqdyhvtwyqkisxhk` / 178 | `vkfnsqdyhvtwyqkisxhk` / 178 |
 | Netlify declaration | `EURO28_DEPLOYED_DB_CONTRACT=178` | `EURO28_DEPLOYED_DB_CONTRACT=178` |
-| Perimeter | Team SSO, all contexts | Site password, all contexts |
+| Perimeter | Site password, all contexts | Site password, all contexts |
 | Deploy summary | 49 files, 40 redirect rules, 1 header rule, no functions | 49 files, 40 redirect rules, 1 header rule, no functions |
-| Secret scan | 2042 files, 0 matches | 2044 files, 0 matches |
+| Secret scan | 2070 files, 0 matches | 2072 files, 0 matches |
+| Smoke run | [31584941688](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31584941688) | [31585089127](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31585089127) |
 
-**The Euro artifact is verified by a smoke run; the Hub artifact is not, and the
-difference is the perimeter rather than the artifact.** `production-smoke.yml`
-run [31579449516](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31579449516)
-passed in full against `euro28predictor.com` at this exact commit and contract:
-the anonymous perimeter answered 401, the release identity matched, thirty-odd
-routes served the SPA shell, the unknown path answered 404, Supabase endpoint
-isolation held and the browser journeys passed. The Hub cannot be smoked at all
-today — see [the two production projects do not share a
-perimeter](#the-two-production-projects-do-not-share-a-perimeter--recorded-12-august-2026)
-— so its evidence is its deploy record alone, and this table says so rather than
-implying a check covered it.
+Each run asserted the same things against its own origin: an anonymous
+`/release.json` refused with 401, the release identity matching on commit **and**
+contract, every `netlify.toml` 200 rule serving the SPA shell, an unknown path
+answering 404, Supabase endpoint isolation, and the anonymous browser journeys.
+See [Closed on 12 August 2026, and the Hub is
+smoked](#closed-on-12-august-2026-and-the-hub-is-smoked) for how the Hub became
+reachable by the workflow, and for the evidence that its run really was against
+the Hub.
+
+**The earlier pair the same day** was `6a7c2ec4d5182500084a64cb` and
+`6a7c2ec4d7558300084ea83e`, from `33f425b70e4618add59d94307ba03621db06eb06`,
+published at 08:30Z. Only the Euro half of that pair could be smoked — run
+[31579449516](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31579449516),
+green — because the Hub was still behind Team SSO.
 
 **The first attempt failed and it is worth knowing why**, because the next
 person to see it red should not go hunting. Run 31578733898, against the same
@@ -161,59 +166,72 @@ A project read on 12 August 2026 shows the two production sites protected by
 | Project | Variant | Primary URL | Perimeter |
 | --- | --- | --- | --- |
 | `euro28predictor` | `euro` | `https://euro28predictor.com` | Site password, all contexts |
-| `predictorhub` | `hub` | `https://predictorhub.netlify.app` | Netlify **Team SSO login**, all contexts |
+| `predictorhub` | `hub` | `https://predictorhub.netlify.app` | Site password, all contexts |
 
-`predictorhub` is where the weekly platform now lives, and it is still on the
-mechanism `euro28predictor` moved **off** on 10 August. That has one operational
-consequence worth stating plainly rather than discovering during an incident:
+**They now share one mechanism, and until 12 August 2026 they did not.** The Hub
+was on Netlify **Team SSO** — the mechanism the Euro site moved off on 10 August
+— and that had one consequence worth recording rather than rediscovering during
+an incident: `production-smoke.yml` could not run against the Hub at all. Its
+anonymous half demands exactly 401, which is the site-password refusal and not
+what Team SSO returns, and its authenticated half opens a session by posting to
+the site-password form, which Team SSO does not have. Pointing the workflow at
+the Hub would have failed on the perimeter step and told nobody anything about
+the artifact — the same "fails by construction" shape recorded further down for
+the pre-password era.
 
-**`production-smoke.yml` cannot run against the Hub.** Its anonymous half demands
-exactly 401, which is the site-password refusal and not what Team SSO returns,
-and its authenticated half opens a session by posting to Netlify's site-password
-form — a flow that does not exist for Team SSO, and for which this repository
-holds no credential. Pointing the workflow at the Hub would fail on the
-perimeter step and tell nobody anything about the artifact, which is the same
-"fails by construction" shape recorded further down for the pre-password era.
+#### Closed on 12 August 2026, and the Hub is smoked
 
-The verification code is nonetheless two-site aware as of this date:
+The owner chose the site password over leaving Team SSO in place, and set it on
+`predictorhub` with SSO cleared **in the same save** — which is the ordering that
+matters, because clearing SSO first would leave the Hub publicly reachable while
+it still serves the Euro tournament's player routes (`EURO-001`), publishing Euro
+2028 by accident. A project read confirms `requiresPassword: true`,
+`whichProjectsRequirePassword: "all"` and `requiresSSOTeamLogin: false`.
+
+`production-smoke.yml` takes a `site` input of `euro` or `hub` and resolves the
+origin from it before the perimeter check. Everything after that is unchanged:
+the two deployments share one Supabase project and one release identity, and
 `scripts/production-smoke.mjs`, `production-smoke/anonymous.spec.ts` and
-`playwright.production.config.ts` each know both origins and pin each one to the
-product its variant builds. What is missing is a way in, not a way to check.
+`playwright.production.config.ts` each derive the PRODUCT from the origin, so
+nothing has to be told which brand to expect. `productionSmokePerimeter` asserts
+that every origin the workflow can dispatch is one the script accepts, so an
+option added without its origin fails CI rather than dying mid-run on "refusing
+to smoke-test non-production origin".
 
-**Closing it was an owner decision with two shapes** — put the Hub on the same
-site password as the Euro site, at which point the existing workflow smokes it
-with only an origin input; or leave Team SSO in place and accept that the Hub's
-evidence is its Netlify deploy record and its deploy-preview smoke rather than a
-published-artifact smoke.
+**Both sites are now verified at the same commit**, which is the first time that
+has been possible:
 
-#### The owner chose the site password — 12 August 2026
+| | `predictorhub` (hub) | `euro28predictor` (euro) |
+| --- | --- | --- |
+| Smoke run | [31584941688](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31584941688) | [31585089127](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31585089127) |
+| Commit | `d2fdd355e1baea94c67774322147d7c04f120980` | `d2fdd355e1baea94c67774322147d7c04f120980` |
+| Deploy ID | `6a7c41e719ee920008fadfdb` | `6a7c41e7693a740008621202` |
+| Published | 2026-08-12T09:51:19.699Z, 47s | 2026-08-12T09:51:25.265Z, 51s |
+| Secret scan | 2070 files, 0 matches | 2072 files, 0 matches |
 
-**The repository half has landed.** `production-smoke.yml` takes a `site` input
-of `euro` or `hub` and resolves the origin from it before the perimeter check;
-everything after that is unchanged, because the two deployments share one
-Supabase project and one release identity and differ only in address and bundle.
-`productionSmokePerimeter` asserts that every origin the workflow can dispatch
-is one `scripts/production-smoke.mjs` will accept, so an option added without its
-origin fails CI rather than dying mid-run on "refusing to smoke-test
-non-production origin" — which reads as a caller mistake and is a configuration
-defect.
+**That the Hub's session opened at all is the proof the passwords match.** The
+workflow holds one `PRODUCTION_SITE_PASSWORD` secret and
+`scripts/production-site-session.mjs` throws when a login sets no cookie, so a
+different password on the Hub would have failed the run rather than passing it
+quietly. The run is measurably against the Hub and not accidentally against the
+Euro site twice: its log records
+`EURO28_SMOKE_ORIGIN: https://predictorhub.netlify.app`, and the asset hashes it
+fetched (`index-C-G1Tc7O.js`, `style-Cui5Tot0.css`) are not the Euro build's
+(`index-D6lEbOIc.js`, `style-CdBTx5Rc.css`).
 
-**The Netlify half is an owner action and this runbook does not claim it.** The
-password is a repository secret whose value must not enter an agent transcript
-(below), so an agent can add the input and cannot set the credential. Until a
-project read shows `predictorhub` with `requiresPassword: true` and
-`requiresSSOTeamLogin: false`, dispatching `site: hub` fails on the perimeter
-step, which demands exactly 401 — correctly, and that failure is about the
-perimeter rather than the artifact.
+**A release means running it twice, once per site.** Concurrency is keyed per
+site so the two do not queue behind each other, and a green run against one says
+nothing about the other: they share a backend and a release identity but not a
+bundle.
 
-**Both flags must move in one save.** Clearing Team SSO first leaves the Hub
-publicly reachable in between, and the Hub still serves the Euro tournament's
-player routes (`EURO-001`), so that window would publish Euro 2028 by accident —
-the one outcome contract 143's publication state exists to prevent.
-
-When it is done, what belongs here is a Hub smoke run against the published
-commit, recorded beside the Euro one, replacing this subsection rather than
-sitting under it as a plan.
+**On the deploy IDs in this runbook going stale.** Recording a deploy is itself a
+commit, which produces a newer deploy — so the pair named above is the pair that
+was *smoked*, and any deploy built from the commit that recorded them differs
+only by documentation. That is a property of the smoke being dispatched by hand
+after the fact. The way to end it is to run the smoke automatically on a
+successful production deploy rather than on demand; until then, read these tables
+as "the artifact that carried this evidence" rather than "the bytes currently
+being served".
 
 ### Sharing the password
 
