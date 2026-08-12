@@ -329,7 +329,11 @@ test.describe('Admin result workflow', () => {
       await expect(
         page.getByRole('heading', { name: 'Results Centre' }),
       ).toHaveCount(0)
-      await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+      // The Euro build's signed-in home. See `authenticated-browser.spec.ts`
+      // for why this is no longer the weekly Hub's heading. What this journey
+      // asserts is unchanged: a non-admin is bounced off `/admin/results` and
+      // lands somewhere real rather than on a blank screen.
+      await expect(page.getByRole('heading', { name: /^Euro 2028 is/ })).toBeVisible()
     } finally {
       await deleteOrdinaryUser(ordinary.id)
     }

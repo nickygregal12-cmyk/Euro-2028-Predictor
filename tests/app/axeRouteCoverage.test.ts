@@ -82,6 +82,62 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     '/competitions/:competitionSlug/:seasonSlug/tv',
     'parameterised Matchday TV screen — concrete domestic season coverage remains harness work',
   ],
+  /*
+   * THE TOURNAMENT'S OWN ROUTES, DEFERRED TO THE DEPLOYMENT THAT SERVES THEM.
+   * They are registered on one static table and refused on the Hub by the
+   * deployment gate, so this weekly sweep cannot reach any of them: it drives a
+   * Hub build, where every one redirects. Their accessibility evidence is the
+   * Euro-specific browser suite, which builds the Euro product and carries
+   * `expectNoSeriousAxeViolations` in the journeys that can currently execute.
+   */
+  [
+    '/predict',
+    'a Euro-deployment route — tournament entry, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/predict/groups/:letter',
+    'a Euro-deployment route — tournament group predictions, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/predict/third-place',
+    'a Euro-deployment route — tournament third place, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/predict/bracket',
+    'a Euro-deployment route — tournament bracket, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/predict/jokers',
+    'a Euro-deployment route — tournament jokers, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/predict/review',
+    'a Euro-deployment route — tournament entry review, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/games',
+    'a Euro-deployment route — tournament bonus games, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/games/knockout',
+    'a Euro-deployment route — tournament knockout predictions, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/games/ko-predictor',
+    'a Euro-deployment route — tournament KO Predictor standings, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/games/lms',
+    'a Euro-deployment route — tournament Last Man Standing, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/games/cup',
+    'a Euro-deployment route — tournament Predictor Cup, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
+  [
+    '/league/overall',
+    'a Euro-deployment route — tournament overall standings, scanned by the Euro-specific browser suite rather than the weekly sweep',
+  ],
 ]
 
 const deferredRoutes = DEFERRED.map(([route]) => route)

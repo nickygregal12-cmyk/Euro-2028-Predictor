@@ -55,6 +55,8 @@ export type VariantSurface =
   | 'euro-matches'
   /** Euro 2028 leagues and standings. */
   | 'euro-leagues'
+  /** The weekly redirect from the tournament's old singular Leagues address. */
+  | 'hub-leagues-redirect'
 
 export type VariantRouteOwnership = {
   readonly path: string
@@ -75,6 +77,18 @@ export const VARIANT_ROUTE_OWNERSHIP: readonly VariantRouteOwnership[] = [
   { path: weeklyRoutes.play, hub: 'hub-play', euro: 'euro-predict' },
   { path: weeklyRoutes.matches, hub: 'hub-matches', euro: 'euro-matches' },
   { path: weeklyRoutes.leagues, hub: 'hub-leagues', euro: 'euro-leagues' },
+  /**
+   * `/league`, singular, which is NOT one of the four global destinations.
+   *
+   * It is here because it satisfies this table's own rule — both builds answer
+   * it and mean different things — and because it is a collision rather than a
+   * choice. It is the tournament's own Leagues address, and three of the parked
+   * Euro journeys drive it; on the weekly platform it has been a legacy redirect
+   * to `/leagues` since the plural address replaced it. One static route table
+   * cannot register two elements for one path, so the disambiguation has to
+   * happen here, where every other one already does.
+   */
+  { path: '/league', hub: 'hub-leagues-redirect', euro: 'euro-leagues' },
 ]
 
 /**

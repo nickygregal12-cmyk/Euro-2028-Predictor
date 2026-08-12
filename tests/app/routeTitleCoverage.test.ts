@@ -10,6 +10,9 @@ const SAMPLE_PARAMS: Record<string, string> = {
   playerId: '42',
   competitionSlug: 'premier-league',
   seasonSlug: '2026-27',
+  // The tournament's own journeys, un-parked 11 August 2026.
+  letter: 'A',
+  matchRef: 'R16-1',
 }
 
 function concretePath(route: string): string {
@@ -21,6 +24,23 @@ function concretePath(route: string): string {
 }
 
 const NOT_FOUND = 'Page not found'
+
+/**
+ * Addresses that share a title with another route because they share the PAGE.
+ *
+ * The assertion below exists to catch a parameterised sibling swallowing its
+ * neighbour's title — `/league/overall` answering "League details" because
+ * `/league/:id` was listed first. That is a list-order defect. This is not one:
+ * `/league` and `/leagues` are one surface at two addresses on the Euro build,
+ * and on the Hub `/league` renders a redirect to `/leagues`, so a title that
+ * differed would name a page neither address shows.
+ *
+ * It cannot be detected the way `redirectRoutes` is, because that reads
+ * `element={<Navigate` out of `App.tsx` and this element is a variant dispatcher
+ * that decides at runtime. Named here, with the reason, rather than widened into
+ * a rule — a second entry needs the same argument made again.
+ */
+const ONE_PAGE_TWO_ADDRESSES = ['/league']
 
 describe('route titles', () => {
   it('finds the routes to check, so the sweep is not vacuous', () => {
@@ -52,7 +72,13 @@ describe('route titles', () => {
     }
 
     const collisions = [...shared.entries()]
-      .map(([title, routes]) => [title, routes.filter((r) => !redirectRoutes.includes(r))] as const)
+      .map(
+        ([title, routes]) =>
+          [
+            title,
+            routes.filter((r) => !redirectRoutes.includes(r) && !ONE_PAGE_TWO_ADDRESSES.includes(r)),
+          ] as const,
+      )
       .filter(([, routes]) => routes.length > 1)
       .map(([title, routes]) => `${title}: ${routes.join(', ')}`)
 
@@ -110,10 +136,24 @@ describe('route titles', () => {
     expect(getRouteTitle(`${base}/fixtures`)).toBe(title)
   })
 
-  it('does not title retired Euro/tournament routes as shipped pages', () => {
+  it('titles the tournament routes now that they are registered', () => {
+    // THIS ASSERTION USED TO SAY THE OPPOSITE, and inverting it is the point
+    // rather than an accident. While the tournament journeys were parked, a
+    // title for `/predict` would have named a page that answered 404, so the
+    // guard demanded the not-found fallback. They are registered now — refused
+    // on the Hub by the deployment gate rather than absent — and a registered
+    // route with no title is exactly what `routeTitleCoverage` exists to catch.
+    expect(getRouteTitle('/predict')).toBe('Predict')
+    expect(getRouteTitle('/predict/groups/A')).toBe('Group predictions')
+    expect(getRouteTitle('/games/lms')).toBe('Last Man Standing')
+    expect(getRouteTitle('/match/R16-1')).toBe('Match Centre')
+    expect(getRouteTitle('/league/overall')).toBe('Overall standings')
+  })
+
+  it('still reports the one Euro address nothing registers as not found', () => {
+    // `/competitions/euro/2028/original` was never un-parked with the rest: the
+    // weekly competition tree is the Hub's product and the tournament does not
+    // live inside it. Kept as the check that the inversion above was scoped.
     expect(getRouteTitle('/competitions/euro/2028/original')).toBe(NOT_FOUND)
-    expect(getRouteTitle('/predict')).toBe(NOT_FOUND)
-    expect(getRouteTitle('/games/lms')).toBe(NOT_FOUND)
-    expect(getRouteTitle('/match/R16-1')).toBe(NOT_FOUND)
   })
 })

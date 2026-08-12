@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Navigate, Outlet, useLocation } from 'react-router'
 import { AuthSplash } from '../features/auth/AuthSplash'
 import {
@@ -12,6 +12,26 @@ import { useSite } from './site/SiteProvider'
 export type TournamentJourneyProps = {
   /** Injectable so the publication gate is proven without mocking Supabase. */
   readPublicationState?: () => Promise<EuroPublicationSnapshot>
+}
+
+export type TournamentBoundaryProps = TournamentJourneyProps & {
+  readonly children: ReactNode
+  /**
+   * What to render instead of a redirect when this build serves the tournament
+   * but its owner has not published it.
+   *
+   * WHY IT EXISTS. A route LAYOUT can only redirect, because it has no idea
+   * which of its children was being asked for. A shared top-level path does:
+   * `/matches` on the Euro build is the tournament's matches, and when the
+   * tournament is closed the honest answer is the closed-state page for THAT
+   * destination — which is what `EuroDestinationPage` renders, and what the
+   * four shared paths rendered unconditionally before the tournament journeys
+   * were wired. Redirecting them to `/` instead would have deleted that answer
+   * and left a visitor bounced to a home page with no explanation.
+   *
+   * Omitted, the boundary redirects, which is right for the layout.
+   */
+  readonly closed?: ReactNode
 }
 
 /**
@@ -76,6 +96,32 @@ export type TournamentJourneyProps = {
 export function TournamentJourney({
   readPublicationState = fetchEuroPublicationState,
 }: TournamentJourneyProps) {
+  return (
+    <TournamentBoundary readPublicationState={readPublicationState}>
+      <Outlet />
+    </TournamentBoundary>
+  )
+}
+
+/**
+ * The two gates and the two providers, without assuming a route layout.
+ *
+ * `TournamentJourney` is this with an `<Outlet />` inside it, and remains the
+ * only way the tournament's OWN addresses are reached. This form exists for the
+ * shared top-level paths — `/play`, `/matches`, `/leagues` — which ADR 0026
+ * gives to a different product on each build: the element registered at each of
+ * them has to be one component that resolves per variant, so the Euro branch has
+ * to be able to mount the boundary around a page rather than under a layout.
+ *
+ * The gates, their order and their reasons are unchanged, and there is exactly
+ * one copy of them. A second implementation of "may this visitor see the
+ * tournament" is the thing this refactor exists to avoid.
+ */
+export function TournamentBoundary({
+  readPublicationState = fetchEuroPublicationState,
+  children,
+  closed,
+}: TournamentBoundaryProps) {
   const site = useSite()
   const location = useLocation()
   const isAdminPreparation = location.pathname === '/admin/results'
@@ -110,13 +156,13 @@ export function TournamentJourney({
     return <Navigate to={site.routes.signedInHome} replace />
   }
   if (published === null) return <AuthSplash />
-  if (!published) return <Navigate to="/" replace />
+  // A caller that supplied a closed-state page gets it; a layout gets the
+  // redirect it has always got, because it cannot know what was asked for.
+  if (!published) return closed ? <>{closed}</> : <Navigate to="/" replace />
 
   return (
     <TournamentDataProvider>
-      <PredictionsProvider>
-        <Outlet />
-      </PredictionsProvider>
+      <PredictionsProvider>{children}</PredictionsProvider>
     </TournamentDataProvider>
   )
 }

@@ -53,21 +53,6 @@ export function competitionSectionRoute(
   }
 }
 
-/**
- * One fixture's own Match Centre, at an address of its own.
- *
- * SELF-CONTAINED, AND THAT IS THE POINT. It carries no date hint and needs
- * none: contract 148's `get_season_fixture` is addressed by the fixture id, so
- * the route resolves the fixture directly instead of loading a date window and
- * searching it.
- *
- * WHAT IT REPLACED. The route used to take an `?on=` day, load a three-week
- * window around it and look for the fixture in the result — which meant a
- * perfectly valid link to a match outside that window was answered "that match
- * is not in this window". That workaround existed only because no read was
- * addressed by fixture id; `MIG-UI-11` recorded the gap and contract 148 closed
- * it, so nothing generates or consumes the query any more.
- */
 export function competitionMatchCentreRoute(
   ref: CompetitionRouteRef,
   fixtureId: string,
@@ -78,19 +63,6 @@ export function competitionMatchCentreRoute(
   )}`
 }
 
-/**
- * One player's season inside a competition — what they scored and, after each
- * matchweek's own lock, what they predicted (contract 151).
- *
- * IT IS A COMPETITION-SCOPED ADDRESS, deliberately. A player's season is a fact
- * about them IN a competition: points, rank and prediction history are all
- * per-season, and a platform-level `/profile/:id` would have to pick one season
- * to show or invent a combined total that no authority computes.
- *
- * IT IS NOT A DIRECTORY. The address is reachable only from somewhere that
- * already names the player — a private-league table, the Match Centre — and the
- * server refuses a caller who shares no private league with them.
- */
 export function competitionPlayerRoute(
   ref: CompetitionRouteRef,
   playerId: string,
@@ -101,10 +73,7 @@ export function competitionPlayerRoute(
   )}`
 }
 
-/**
- * The competition's Matchday TV screen (`INNOV-006`). Read-only, and outside
- * the signed-in shell.
- */
+/** The competition's Matchday TV screen (`INNOV-006`). */
 export function competitionTvRoute(ref: CompetitionRouteRef): string {
   return renderCompetitionPattern(weeklyRoutePatterns.tv, ref)
 }
@@ -125,21 +94,6 @@ export function competitionGameRoute(
   }
 }
 
-/**
- * The Match Predictor, opened at a NAMED matchweek.
- *
- * A QUERY RATHER THAN A SEGMENT, deliberately. The matchweek is an opening
- * position, not an identity: `.../games/match-predictor` is one page whose
- * default is "the matchweek you can play now", and a path segment would make
- * every link that omits it a different route. A query also degrades correctly —
- * an absent, unparseable or out-of-range value falls back to the current
- * matchweek instead of 404ing, which is what a shared or stale link should do.
- *
- * WHY IT EXISTS. Until now the route always opened at the current matchweek, so
- * a player looking at a September fixture had no way to reach the card that
- * predicts it. That was reported as navigation that does not flow, and it was
- * exactly right.
- */
 export function competitionMatchPredictorRoute(
   ref: CompetitionRouteRef,
   matchweek?: number,
@@ -198,17 +152,9 @@ export type LogicalParent = {
     | 'Back to Leagues'
     | 'Back to Matches'
     | 'Back to More'
+    | 'Back to Predict'
 }
 
-/**
- * Deterministic weekly parent for routes whose parent can be derived from their
- * address alone. Browser history is deliberately irrelevant here.
- *
- * Championship instances are one level below the game index. The instance is
- * the parent of My Fixture/Table/Fixtures, while the Championship index is the
- * parent of the instance itself. That keeps a direct/reloaded URL useful and
- * avoids treating a private competition as if it were the only Championship.
- */
 export function logicalWeeklyParent(pathname: string): LogicalParent | null {
   const ref = competitionRefFromPath(pathname)
   if (ref) {
@@ -252,8 +198,6 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     if (pathname.startsWith(`${competition}/players/`)) {
       return { href: competition, label: 'Back to Competition' }
     }
-    // INNOV-006. The television screen's own Exit link goes here, and this is
-    // the same answer stated once so the two cannot drift.
     if (pathname === competitionTvRoute(ref)) {
       return { href: competition, label: 'Back to Competition' }
     }
@@ -264,8 +208,6 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     pathname === weeklyRoutes.play ||
     pathname === weeklyRoutes.matches ||
     pathname === weeklyRoutes.leagues ||
-    // Discovery sits under the Hub: it is how a player finds a competition to
-    // play, and it is reached from the Hub and from the rail.
     pathname === weeklyRoutes.competitions ||
     pathname === weeklyRoutes.more
   ) {
@@ -276,9 +218,6 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
     return { href: weeklyRoutes.more, label: 'Back to More' }
   }
 
-  // The Euro tournament's own profiles. `/tournament/profile` is the player's
-  // own and belongs under More beside the platform profile it sits next to;
-  // another player's is reached from private play, as the head-to-head is.
   if (pathname === '/tournament/profile') {
     return { href: weeklyRoutes.more, label: 'Back to More' }
   }
@@ -291,6 +230,18 @@ export function logicalWeeklyParent(pathname: string): LogicalParent | null {
   }
   if (/^\/match\/[^/]+$/.test(pathname)) {
     return { href: weeklyRoutes.matches, label: 'Back to Matches' }
+  }
+
+  // Euro tournament journey parents. Which deployment may serve these paths is
+  // decided by the site/TournamentJourney boundary, not by this pure path map.
+  if (pathname.startsWith('/predict/')) {
+    return { href: '/predict', label: 'Back to Predict' }
+  }
+  if (pathname.startsWith('/games/')) {
+    return { href: '/games', label: 'Back to Games' }
+  }
+  if (pathname === '/predict' || pathname === '/games' || pathname === '/prediction-trends') {
+    return { href: weeklyRoutes.hub, label: 'Back to Hub' }
   }
 
   return null

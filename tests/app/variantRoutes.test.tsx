@@ -59,12 +59,19 @@ describe('the variant route matrix', () => {
     ).toEqual([])
   })
 
-  it('covers exactly the four global destinations, which is what navigation offers', () => {
+  it('covers the four global destinations, and the one collision that is not one', () => {
+    // `/league` is the fifth and is deliberately not a global destination: it is
+    // the tournament's own Leagues address, driven by three of its journeys, and
+    // a legacy redirect to `/leagues` on the weekly platform. One static route
+    // table cannot register two elements for one path, so it is disambiguated
+    // here with everything else that has to be. Listed explicitly so a sixth row
+    // is a decision somebody takes rather than a default it inherits.
     expect([...SHARED_TOP_LEVEL_PATHS]).toEqual([
       weeklyRoutes.hub,
       weeklyRoutes.play,
       weeklyRoutes.matches,
       weeklyRoutes.leagues,
+      '/league',
     ])
   })
 

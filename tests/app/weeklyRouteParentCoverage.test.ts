@@ -27,7 +27,24 @@ const SHIPPED_WEEKLY_ROUTES = [
   '/competitions/:competitionSlug/:seasonSlug/tv',
   '/competitions/:competitionSlug/:seasonSlug/players/:playerId',
   '/league/:id',
+  '/league/overall',
   '/h2h/:rivalId',
+  // The tournament's own journeys live inside the signed-in shell but are
+  // deployment-gated by TournamentJourney. They still need a deterministic
+  // logical parent on the Euro deployment even though the Hub refuses them.
+  '/predict',
+  '/predict/groups/:letter',
+  '/predict/third-place',
+  '/predict/bracket',
+  '/predict/jokers',
+  '/predict/review',
+  '/prediction-trends',
+  '/match/:matchRef',
+  '/games',
+  '/games/knockout',
+  '/games/ko-predictor',
+  '/games/lms',
+  '/games/cup',
   '/account',
   '/profile',
   '/tournament/profile',
@@ -43,6 +60,8 @@ function materialise(template: string): string {
     .replace(':rivalId', 'player-2')
     .replace(':playerId', 'player-2')
     .replace(':fixtureId', 'fixture-1')
+    .replace(':letter', 'A')
+    .replace(':matchRef', 'R16-1')
     .replace('*', 'private-1')
 }
 

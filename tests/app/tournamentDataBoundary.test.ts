@@ -165,6 +165,25 @@ function reachesTournamentData(entry: string): boolean {
   return targets.some((target) => graph.has(target))
 }
 
+/**
+ * Whether a route element mounts the boundary for itself.
+ *
+ * THERE IS A SECOND LEGITIMATE PLACE, AND EXACTLY ONE. ADR 0026 gives `/play`,
+ * `/matches`, `/leagues` and `/league` to a different product on each build, so
+ * one element has to resolve per variant; on the Euro build three of them ARE
+ * the tournament. Those routes therefore reach tournament data while being
+ * registered outside the `TournamentJourney` layout — which is not the stranded
+ * case this file was written to catch, because the element wraps itself in
+ * `TournamentBoundary`, the same two gates from the same module.
+ *
+ * Read from the element's own source rather than listed here, so a component
+ * that stops mounting the boundary is reported the day it stops rather than
+ * inheriting an exemption somebody once typed.
+ */
+function mountsBoundaryItself(file: string): boolean {
+  return readFileSync(resolve(repositoryRoot, file), 'utf8').includes('<TournamentBoundary')
+}
+
 const modules = routeElementModules(appSource)
 const routes = routesByBoundary(appSource)
 
@@ -174,7 +193,13 @@ const analysed = routes
     if (!specifier) return null
     const file = resolveSpecifier(resolve(repositoryRoot, 'src/App.tsx'), specifier)
     if (!file) return null
-    return { ...route, file: relative(repositoryRoot, file), needs: reachesTournamentData(file) }
+    const relativeFile = relative(repositoryRoot, file)
+    return {
+      ...route,
+      file: relativeFile,
+      needs: reachesTournamentData(file),
+      selfMounts: mountsBoundaryItself(relativeFile),
+    }
   })
   .filter((route): route is NonNullable<typeof route> => route !== null)
 
@@ -198,6 +223,13 @@ describe('the tournament-data boundary', () => {
     const journey = readFileSync(resolve(repositoryRoot, 'src/app/TournamentJourney.tsx'), 'utf8')
     expect(journey).toContain('<TournamentDataProvider>')
     expect(journey).toContain('<PredictionsProvider>')
+    // The variant dispatcher mounts the BOUNDARY, never the providers. If it
+    // ever reached for them directly it would be a second answer to "may this
+    // visitor see the tournament", and the two would drift.
+    expect(
+      readFileSync(resolve(repositoryRoot, 'src/app/destinations/VariantDestinations.tsx'), 'utf8'),
+      'the variant dispatcher mounts a provider instead of the boundary',
+    ).not.toContain('<TournamentDataProvider')
     expect(
       readFileSync(resolve(repositoryRoot, 'src/app/Providers.tsx'), 'utf8'),
       'RequireAuth still mounts the tournament providers above the whole shell',
@@ -207,11 +239,27 @@ describe('the tournament-data boundary', () => {
   it('never registers a tournament consumer outside the boundary', () => {
     // This is the crash case: `useTournamentData` throws on mount without its
     // provider, so the route is a white screen for whoever opens it.
-    const stranded = analysed.filter((route) => route.needs && !route.inside)
+    const stranded = analysed.filter(
+      (route) => route.needs && !route.inside && !route.selfMounts,
+    )
     expect(
       stranded.map((route) => `${route.path} (${route.file})`),
       'these routes read tournament data with no provider above them',
     ).toEqual([])
+  })
+
+  it('lets a shared path serve the tournament only by mounting the boundary', () => {
+    // The exemption above is only sound if something proves it is being used
+    // rather than merely available. The four paths ADR 0026 splits between the
+    // two products are the whole of it: each reaches tournament data, none is
+    // inside the layout, and every one resolves through the dispatcher that
+    // mounts the boundary for itself.
+    const exempt = analysed.filter((route) => route.needs && !route.inside)
+    expect(exempt.length).toBeGreaterThan(0)
+    for (const route of exempt) {
+      expect(route.selfMounts, `${route.path} (${route.file})`).toBe(true)
+      expect(route.file).toBe('src/app/destinations/VariantDestinations.tsx')
+    }
   })
 
   it('never puts the tournament fetch on a route that does not read it', () => {
@@ -229,13 +277,35 @@ describe('the tournament-data boundary', () => {
     // Stated over the weekly feature tree rather than over today's route list,
     // so a season page added tomorrow cannot reach for the tournament without
     // this failing — ADR 0011's separation, at the surface layer.
-    const domestic = analysed.filter(
-      (route) => route.path === '/' || route.path.startsWith('/competitions/'),
-    )
+    const domestic = analysed.filter((route) => route.path.startsWith('/competitions/'))
     expect(domestic.length).toBeGreaterThan(5)
     expect(
       domestic.filter((route) => route.needs).map((route) => `${route.path} (${route.file})`),
       'a domestic competition surface reaches the Euro tournament data',
     ).toEqual([])
+  })
+
+  it('keeps the Hub surfaces of the shared paths clear of it', () => {
+    // `/` USED TO BE IN THE ASSERTION ABOVE AND CANNOT BE ANY MORE, which is
+    // worth stating rather than quietly dropping. The four shared paths resolve
+    // through one module, and since the Euro branch of it serves the tournament
+    // that module reaches the providers — so an import-graph question about `/`
+    // now answers for both products at once and can only say "yes". The module
+    // is the wrong granularity for a per-variant fact.
+    //
+    // So the fact is asserted where it lives: in the dispatcher's own switch.
+    // Every `hub-` surface must resolve to a page, never to the boundary. That
+    // is the same guarantee, at the granularity that can still carry it.
+    const dispatcher = readFileSync(
+      resolve(repositoryRoot, 'src/app/destinations/VariantDestinations.tsx'),
+      'utf8',
+    )
+    const hubCases = [...dispatcher.matchAll(/case '(hub-[\w-]+)':\s*\n\s*return ([^\n]+)/g)]
+    expect(hubCases.length, 'the dispatcher no longer has hub cases to check').toBeGreaterThan(3)
+    for (const [, surface, returned] of hubCases) {
+      expect(returned, `${surface} mounts the tournament boundary`).not.toContain(
+        'TournamentBoundary',
+      )
+    }
   })
 })

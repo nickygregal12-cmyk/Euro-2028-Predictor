@@ -6,11 +6,6 @@ import { useSite } from './site/SiteProvider'
 const SIGNED_OUT_ROOT_TITLE = 'Home'
 
 const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
-  // "Home", not "Competitions". The root used to be a competition chooser and
-  // the title described it; it is now the personalised dashboard, its heading
-  // says Home and the global destination that reaches it says Home. A tab
-  // reading "Competitions" was the last place the retired shape survived, and
-  // the catalogue it named lives at `/competitions` with a title of its own.
   { path: weeklyRoutes.hub, title: 'Home' },
   { path: '/auth/login', title: 'Log in' },
   { path: '/auth/signup', title: 'Sign up' },
@@ -24,7 +19,23 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: weeklyRoutes.leagues, title: 'Leagues' },
   { path: weeklyRoutes.competitions, title: 'All competitions' },
   { path: '/league', title: 'Leagues' },
+  { path: '/league/overall', title: 'Overall standings' },
   { path: '/league/:id', title: 'League details' },
+  // Tournament-only routes live on the Euro deployment. Longer routes precede
+  // their shorter parents so matchPath cannot let a parent steal the title.
+  { path: '/predict/groups/:letter', title: 'Group predictions' },
+  { path: '/predict/third-place', title: 'Third place' },
+  { path: '/predict/bracket', title: 'Bracket' },
+  { path: '/predict/jokers', title: 'Jokers' },
+  { path: '/predict/review', title: 'Review' },
+  { path: '/predict', title: 'Predict' },
+  { path: '/prediction-trends', title: 'Prediction trends' },
+  { path: '/match/:matchRef', title: 'Match Centre' },
+  { path: '/games/knockout', title: 'Knockout predictions' },
+  { path: '/games/ko-predictor', title: 'KO Predictor standings' },
+  { path: '/games/lms', title: 'Last Man Standing' },
+  { path: '/games/cup', title: 'Predictor Cup' },
+  { path: '/games', title: 'Games' },
   { path: '/h2h/:rivalId', title: 'Head-to-head' },
   { path: '/more/scoring', title: 'Scoring rules' },
   { path: '/more/points', title: 'Profile' },
@@ -40,13 +51,6 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/admin', title: 'Admin' },
 ]
 
-/**
- * Titles for the `/dev/*` preview harnesses, which only exist in a development
- * build — `src/App.tsx` registers those routes behind the same condition.
- * Shipping their titles to production was shipping nine strings naming routes
- * that answer 404 there. `import.meta.env.DEV` is replaced at build time, so
- * the array below is dead code in a production bundle and is dropped.
- */
 const DEV_ROUTE_TITLES: { path: string; title: string }[] = import.meta.env.DEV
   ? [
       { path: '/dev/components', title: 'Component gallery' },
@@ -68,16 +72,9 @@ const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: s
   [weeklyRoutePatterns.championshipWildcard, 'Predictor Championship'],
   [weeklyRoutePatterns.lms, 'Last Man Standing'],
   [weeklyRoutePatterns.games, 'Games'],
-  // Before the section it sits under, because `matchPath` with `end: true`
-  // would otherwise never reach it — a fixture route is a longer path, not a
-  // different one.
   [weeklyRoutePatterns.matchCentre, 'Match Centre'],
-  // Before the competition overview pattern, for the same reason: a player
-  // route is a longer path, not a different one.
   [weeklyRoutePatterns.player, 'Player'],
   [weeklyRoutePatterns.matches, 'Matches'],
-  // INNOV-006. Named rather than left to the competition overview: a screen on
-  // a wall is exactly the tab somebody hunts for among ten open ones.
   [weeklyRoutePatterns.tv, 'Matchday TV'],
   [weeklyRoutePatterns.leagues, 'Leagues'],
   [weeklyRoutePatterns.play, 'Play'],
@@ -118,13 +115,6 @@ export function RouteAccessibility({ signedOut = false }: { signedOut?: boolean 
   const { pathname } = useLocation()
   const isFirstRender = useRef(true)
   const routeTitle = getRouteTitle(pathname, { signedOut })
-  // THE PRODUCT'S OWN NAME, NOT A CONSTANT. This was hard-coded to the weekly
-  // platform's name, so every tab on the Euro deployment would have read
-  // "Home | Football Prediction Hub" — the browser tab and every bookmark
-  // naming the other product. The document head's `<title>` is generated per
-  // deployment; this is the same fact at runtime and must come from the same
-  // place. It still resolves to the weekly name on the Hub and when the variant
-  // is unset, so nothing about that deployment's titles moves.
   const appName = useSite().brand.productName
 
   useEffect(() => {

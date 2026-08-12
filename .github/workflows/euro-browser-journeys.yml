@@ -11,35 +11,33 @@ name: Euro browser journeys
 # for those specs to run under". `playwright.euro.config.ts` is that
 # configuration, and this workflow is how it is run.
 #
-# What it CANNOT do yet is pass. `src/App.tsx` does not register `/predict`,
-# `/match/:matchRef`, `/games`, `/league/overall`, `/prediction-trends` or
-# `/competitions/euro/2028/original`, and `tests/app/parkedEuroBoundary.test.ts`
-# asserts their absence, because `MASTER-TODO.md` parks the remaining Euro scope
-# to January 2028. The fourteen journeys below drive routes that are not
-# registered. Adding this to `ci.yml` or `browser-e2e.yml` today would attach
-# fourteen permanently-red checks to every pull request, and the usual next step
-# for a suite nobody can make green is to delete it — which would destroy the
-# `euro-2028-baseline` return evidence this whole arrangement exists to keep.
+# THE PREREQUISITE LANDED ON 11 AUGUST 2026, AND STEPS 2 AND 3 OF THE PLAN THIS
+# NOTE USED TO CARRY ARE DONE. `src/App.tsx` registers the tournament's own
+# journeys under `TournamentJourney`; the four shared top-level paths resolve to
+# the tournament on the Euro build through `VariantDestinations`;
+# `servesEuroTournament` is FALSE on the Hub, which is the whole of EURO-001's
+# route half; and `tests/app/parkedEuroBoundary.test.ts` has been rewritten as a
+# VARIANT boundary — the tournament must stay unreachable from the HUB build —
+# rather than deleted. Two specs that drive tournament-only routes moved here
+# from the weekly suite with the flip, which is what stopped it deleting their
+# coverage.
 #
-# So it follows `visual-contracts.yml`: reachable on demand, gated into pull
-# requests only once its prerequisite has landed.
-#
-# WHAT WOULD CHANGE THAT. The tournament routes being registered against
-# `VITE_SITE_VARIANT=euro` — the work sequenced behind PR #707's variant route
-# dispatcher. When that lands:
+# WHAT REMAINS IS STEP 1, AND IT IS THE ONE THAT NEEDS A PERSON. These sixteen
+# journeys have not executed since the routes were withdrawn, and the session
+# that un-parked them could not run them: a seeded database needs a Docker
+# daemon and the development container has none. So this stays dispatch-only
+# until a run has been read.
 #
 #   1. run this workflow on the branch and read the result. It is the first
-#      evidence the parked journeys still work, and the first time they have
-#      been executed since the routes were withdrawn;
-#   2. rewrite `parkedEuroBoundary.test.ts` as a VARIANT boundary — the
-#      tournament tree must stay unreachable from the HUB build, rather than
-#      from the application at all. Rewritten, never deleted: the fact it
-#      guards changes shape, it does not stop mattering;
-#   3. add a `pull_request` trigger below, filtered to the paths that can move
-#      these journeys.
+#      evidence the parked journeys still work;
+#   2. then add a `pull_request` trigger below, filtered to the paths that can
+#      move these journeys, and remove the dispatch-only note from
+#      `playwright.euro.config.ts`'s header.
 #
 # Until step 1 has been read by a person, a green run here proves the harness
-# builds the Euro product — not that the journeys pass.
+# builds the Euro product — not that the journeys pass. Nothing about the
+# repository's other gates depends on this being green: the flip is held by the
+# unit guards, and a red run here is information rather than a regression.
 
 on:
   workflow_dispatch:

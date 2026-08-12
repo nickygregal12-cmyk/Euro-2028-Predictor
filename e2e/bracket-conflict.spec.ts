@@ -53,7 +53,8 @@ async function loginAs(page: Page, email: string, password: string) {
   await page.getByRole('textbox', { name: 'Password' }).fill(password)
   await page.getByRole('button', { name: 'Log in', exact: true }).click()
   await expectAuthenticatedPath(page, '/')
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+  // The Euro build's signed-in home — see `authenticated-browser.spec.ts`.
+  await expect(page.getByRole('heading', { name: /^Euro 2028 is/ })).toBeVisible()
 }
 
 async function openBracket(page: Page) {

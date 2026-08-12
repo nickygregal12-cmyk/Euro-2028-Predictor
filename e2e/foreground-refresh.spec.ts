@@ -36,8 +36,8 @@ async function loginAs(page: Page, email: string, password: string) {
 
 async function groupScoreInputs(page: Page) {
   await page.goto('/predict/groups/A')
-  const home = page.getByLabel('Team A1 score').first()
-  const away = page.getByLabel('Team A2 score').first()
+  const home = page.getByLabel('Team A1 score', { exact: true }).first()
+  const away = page.getByLabel('Team A2 score', { exact: true }).first()
   await expect(home).toBeVisible()
   await expect(away).toBeVisible()
   return { home, away }
@@ -68,6 +68,17 @@ async function setPageVisibility(page: Page, value: DocumentVisibilityState) {
   }, value)
 }
 
+/*
+ * BLOCKED FOR THE SAME REASON AS `entry-creation.spec.ts`, and it is worth
+ * naming here because the symptom looks different. This waits for a prediction
+ * WRITE and times out; the cause is that its fixture is `prepareEntryRaceUser`,
+ * which makes a user with no entry, and nothing in the product creates one any
+ * more (`tests/app/noSilentTournamentEntry.test.ts`). No entry, nothing to write
+ * a prediction against.
+ *
+ * The stale locator this spec ALSO had was real and is fixed — `getByLabel`
+ * matched the score stepper's button by substring. That was masking this.
+ */
 test('a background page refreshes a score changed in a second page', async ({ page }, testInfo) => {
   desktopOnly(testInfo)
   test.setTimeout(120_000)

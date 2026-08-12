@@ -68,6 +68,35 @@ const ALLOWED: Record<string, string> = {
     'derives a competition-day key and validates a zone identifier; renders nothing',
 }
 
+/**
+ * Tournament surfaces that format their own instants, and are DEBT rather than
+ * exemptions. Kept apart from `ALLOWED` so the difference is visible.
+ *
+ * WHERE THEY CAME FROM. Un-parking the Euro journeys on 11 August 2026 — the
+ * route half of `EURO-001` — put the tournament's own pages into the shipping
+ * graph for the first time since `src/shared/time/kickoff.ts` became the
+ * authority under `UI-F02`. They predate it. Nothing about them changed; what
+ * changed is that this guard can now see them.
+ *
+ * WHY THEY ARE NOT FIXED IN THE SAME CHANGE. Each is a kickoff or a deadline
+ * shown to a player, so converting it moves what a player reads on a tournament
+ * surface, and the only evidence for those surfaces is the browser suite — which
+ * needs a seeded database and could not be run in the session that un-parked
+ * them. Rewriting five presentation paths blind, inside a change whose whole
+ * purpose is to prove the journeys still work, would make the browser run
+ * unable to tell a routing failure from a formatting one.
+ *
+ * They are recorded in `docs/quality/current-status.md` and belong to the
+ * parked tournament programme's return, not to this list growing quietly.
+ */
+const TOURNAMENT_PARKED: Record<string, string> = {
+  'src/domain/tournament/matchCentrePageModel.ts': 'tournament Match Centre day and kickoff',
+  'src/features/games/CupPage.tsx': 'Predictor Cup tie kickoff',
+  'src/features/games/GamesPage.tsx': 'bonus-game deadlines',
+  'src/features/games/LmsPage.tsx': 'Last Man Standing round deadline',
+  'src/features/predict/ReviewWorkspacePage.tsx': 'entry review lock instant',
+}
+
 function productionModules(): string[] {
   const graph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
     // The component gallery is behind `import.meta.env.DEV` and never ships;
@@ -85,7 +114,7 @@ function productionModules(): string[] {
 describe('kickoff and date presentation has one authority', () => {
   it('is the only module in the shipping graph that formats an instant', () => {
     const offenders = productionModules().filter((file) => {
-      if (file === AUTHORITY || file in ALLOWED) return false
+      if (file === AUTHORITY || file in ALLOWED || file in TOURNAMENT_PARKED) return false
       return INSTANT_FORMATTERS.test(readFileSync(resolve(repositoryRoot, file), 'utf8'))
     })
 
@@ -93,6 +122,19 @@ describe('kickoff and date presentation has one authority', () => {
       offenders,
       'Format kickoffs, deadlines and match days through src/shared/time/kickoff.ts. ' +
         'If the value genuinely is not one of those, add the module to ALLOWED with the reason.',
+    ).toEqual([])
+  })
+
+  it('keeps the tournament debt list honest, and shrinking', () => {
+    // An entry that has been converted must LEAVE this list rather than sit in
+    // it for ever looking like an approved exemption. Each is asserted to still
+    // format an instant; when one stops, this fails and the row comes out.
+    const stale = Object.keys(TOURNAMENT_PARKED).filter(
+      (file) => !INSTANT_FORMATTERS.test(readFileSync(resolve(repositoryRoot, file), 'utf8')),
+    )
+    expect(
+      stale,
+      'these modules no longer format an instant — remove them from TOURNAMENT_PARKED',
     ).toEqual([])
   })
 

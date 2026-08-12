@@ -2,18 +2,9 @@
 /**
  * Chooses which authenticated browser journeys a change has to run (ADR 0024).
  * Narrowing must be earned. Unrecognised, shell, schema and contract changes
- * widen to the whole active weekly suite. Tournament-only browser journeys
- * whose routes were deliberately retired from the weekly frontend are retained
- * as parked Euro 2028 return evidence and are never selected against this App.
- *
- * "Never selected against THIS App" is the precise claim, and it is unchanged.
- * `PARKED_EURO_SPECS` now has somewhere to run — `playwright.euro.config.ts`
- * collects exactly this list against a `VITE_SITE_VARIANT=euro` build — but
- * that is a different product from the one this selector narrows, so nothing
- * here selects it. `playwright.euro.config.ts` is deliberately absent from
- * `ALWAYS_FULL_SUITE` for the same reason `playwright.visual.config.ts` is: it
- * cannot affect a weekly journey. An edit to it still falls through to the
- * full suite as an unmapped path, which is the conservative direction.
+ * widen to the whole active weekly suite. Tournament-only browser journeys run
+ * under the Euro-specific Playwright configuration and are never selected as
+ * weekly-Hub evidence.
  */
 
 import { execFileSync } from 'node:child_process'
@@ -38,6 +29,11 @@ export const PARKED_EURO_SPECS = [
   'overall-standings.spec.ts',
   'prediction-trends.spec.ts',
   'private-league-invite.spec.ts',
+  // These two used to pass in the weekly suite only because the Hub still
+  // served tournament-only profile/league/H2H routes. They move with the route
+  // boundary to the Euro suite rather than being deleted.
+  'private-league-pagination.spec.ts',
+  'profile-h2h-surfaces.spec.ts',
 ]
 
 export const ALWAYS_FULL_SUITE = [
@@ -48,9 +44,6 @@ export const ALWAYS_FULL_SUITE = [
   'playwright.auth.config.ts',
   'playwright.production.config.ts',
   'e2e/global-setup.ts',
-  // The shared global-navigation helper: which navigation a width shows is a
-  // property every weekly journey depends on, so a change to it is not one
-  // journey's business.
   'e2e/global-navigation.ts',
   'e2e/seed-contract.ts',
   'e2e/local-supabase.ts',
@@ -71,30 +64,22 @@ export const JOURNEY_MAP = [
   { prefix: 'src/features/admin/', specs: ['weekly-admin-access.spec.ts'] },
   { prefix: 'src/features/home/', specs: ['weekly-navigation.spec.ts'] },
   {
-    // The Hub carries the matchday briefing, whose absence-of-invented-football
-    // property the innovation surfaces spec asserts.
     prefix: 'src/features/hub/',
     specs: ['weekly-navigation.spec.ts', 'innovation-surfaces.spec.ts'],
   },
   { prefix: 'src/features/share/', specs: ['innovation-surfaces.spec.ts'] },
-  {
-    prefix: 'src/features/league/',
-    specs: ['private-league-pagination.spec.ts'],
-  },
+  // `src/features/league/` is the tournament's singular league feature and is
+  // intentionally unmapped here; its evidence lives in the Euro suite.
   {
     prefix: 'src/features/leagues/',
-    specs: ['private-league-pagination.spec.ts'],
+    specs: ['season-competition-journey.spec.ts'],
   },
   {
-    // Mapped now that a season journey exists to map to. Until the browser
-    // environment held a playable league season there was nothing for a
-    // season-only change to run, and an unmapped prefix correctly fell through
-    // to the full suite rather than to nothing.
     prefix: 'src/features/season/',
     specs: ['season-competition-journey.spec.ts', 'innovation-surfaces.spec.ts'],
   },
-  { prefix: 'src/features/profile/', specs: ['profile-h2h-surfaces.spec.ts'] },
-  { prefix: 'src/features/h2h/', specs: ['profile-h2h-surfaces.spec.ts'] },
+  // Tournament profile/H2H specs move to the Euro suite with their routes.
+  { prefix: 'src/features/welcome/', specs: ['weekly-navigation.spec.ts'] },
   { prefix: 'src/features/account/', specs: ['weekly-navigation.spec.ts'] },
 ]
 
@@ -104,10 +89,7 @@ export const BASELINE_SPECS = [
   'axe-accessibility.spec.ts',
 ]
 
-/**
- * @param {string} path
- * @returns {string[] | null}
- */
+/** @param {string} path @returns {string[] | null} */
 function specForE2eFile(path) {
   const file = path.slice('e2e/'.length)
   if (PARKED_EURO_SPECS.includes(file)) return null
@@ -136,7 +118,7 @@ export function selectJourneys(changedPaths) {
         return {
           full: true,
           reason: PARKED_EURO_SPECS.includes(path.slice('e2e/'.length))
-            ? `${path} is parked Euro evidence and cannot narrow the weekly suite`
+            ? `${path} is Euro-deployment evidence and cannot narrow the weekly suite`
             : `${path} is a shared browser fixture`,
         }
       }

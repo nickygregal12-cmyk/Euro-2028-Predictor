@@ -33,6 +33,11 @@ export default defineConfig({
     'overall-standings.spec.ts',
     'prediction-trends.spec.ts',
     'private-league-invite.spec.ts',
+    // Moved to the Euro suite when the EURO-001 route flip landed on
+    // 11 August 2026: both drive routes only the Euro deployment serves, and
+    // both passed here only while the Hub was still serving them.
+    'private-league-pagination.spec.ts',
+    'profile-h2h-surfaces.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

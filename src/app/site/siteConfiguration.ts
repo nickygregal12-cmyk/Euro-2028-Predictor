@@ -87,29 +87,14 @@ export type SiteConfiguration = {
     readonly siblingSiteName: string
   }
   /**
-   * Whether this build serves the Euro 2028 tournament's own PLAYER routes —
-   * `/tournament/profile`, `/league/:id` and `/h2h/:rivalId`.
+   * Whether this build serves the Euro 2028 tournament's own PLAYER routes.
    *
-   * IT IS TRUE ON BOTH DEPLOYMENTS TODAY, AND THAT IS THE HONEST VALUE RATHER
-   * THAN THE TARGET ONE. ADR 0026 wants the weekly platform to stop serving
-   * them, and `EURO-001` records that it still does. This session set the Hub
-   * to `false` and the browser suite caught what that actually costs: the
-   * preserved Euro journeys — the tournament profile, a tournament league's
-   * pagination and the head-to-head — are covered by specs the repository keeps
-   * deliberately as "Euro 2028 return evidence against the `euro-2028-baseline`
-   * recovery point", and there is no Euro-variant browser configuration for
-   * them to run under. Withdrawing the routes deleted that evidence rather than
-   * moving it.
-   *
-   * SO THE FLIP IS AN OWNER DECISION, NOT A FRONTEND ONE, and it needs two
-   * things this session cannot supply: the Euro deployment actually serving
-   * those journeys, and the browser suite pointed at it. The mechanism and its
-   * refusal are built and proven in `tests/app/TournamentJourney.test.tsx`
-   * against an explicitly-configured site, so the flip is one value here plus
-   * that evidence — not a new control to design.
-   *
-   * The publication gate is unaffected either way: `euro_publication_state()`
-   * still decides whether a served tournament may be SEEN, on both sites.
+   * ADR 0028 resolved the deployment question on 12 August 2026: the Hub and
+   * Euro experiences are separate sites, with contextual links between them.
+   * Therefore the Hub refuses the tournament's player routes and the Euro
+   * deployment serves them. This deployment gate is separate from publication:
+   * `euro_publication_state()` still decides whether a tournament served by the
+   * Euro build may actually be seen.
    */
   readonly servesEuroTournament: boolean
   /**
@@ -117,19 +102,8 @@ export type SiteConfiguration = {
    * published catalogue at `/competitions` and everything under
    * `/competitions/:competitionSlug/:seasonSlug`.
    *
-   * IT IS THE MIRROR OF `servesEuroTournament`, AND UNLIKE THAT ONE IT IS
-   * ALREADY FALSE WHERE IT SHOULD BE. The weekly tree is the Prediction Hub's
-   * whole product: a season, its matchweeks, its games and its private leagues.
-   * The Euro deployment was serving all of it — the catalogue, every season
-   * overview, every domestic game surface — behind navigation that says
-   * "Tournament", so a visitor to the tournament's own domain could arrive at
-   * the Scottish Premiership's Match Predictor and never learn they had left.
-   *
-   * The Euro build is not the place to discover, follow or play a domestic
-   * season; the Hub is, and each site links to the other. Withdrawing the routes
-   * strands nothing, because the tournament deployment has no browser journey
-   * that enters them — which is exactly the evidence `servesEuroTournament` is
-   * still waiting on for its own flip.
+   * The weekly tree belongs to the Hub. The Euro build links back to the Hub
+   * instead of duplicating domestic seasons under tournament branding.
    */
   readonly servesDomesticCompetitions: boolean
 }
@@ -184,10 +158,7 @@ function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
       siblingSiteOrigin: normaliseOrigin(origins.siblingOrigin),
       siblingSiteName: 'Euro 2028 Predictor',
     },
-    // See the field's own note: `false` is the target and it is not today's
-    // truth. The weekly app is still where the tournament is administered and
-    // where its preserved journeys live.
-    servesEuroTournament: true,
+    servesEuroTournament: false,
     servesDomesticCompetitions: true,
   }
 }
@@ -214,7 +185,6 @@ function euroConfiguration(origins: SiteOrigins): SiteConfiguration {
       siblingSiteName: 'Football Prediction Hub',
     },
     servesEuroTournament: true,
-    // The weekly tree belongs to the Hub. See the field's note.
     servesDomesticCompetitions: false,
   }
 }

@@ -219,6 +219,80 @@
   to = "/index.html"
   status = 200
 
+# Euro tournament routes. Netlify serves the SPA shell on either deployment;
+# `TournamentJourney` is the application boundary that refuses them on the Hub
+# and then applies the server-owned publication state on the Euro site. A 200
+# here is document routing, never tournament permission.
+[[redirects]]
+  from = "/predict"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/groups/:letter"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/third-place"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/bracket"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/jokers"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/predict/review"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/prediction-trends"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/match/:matchRef"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/knockout"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/ko-predictor"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/lms"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/games/cup"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/league/overall"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/league/:id"
   to = "/index.html"
@@ -242,8 +316,8 @@
   to = "/index.html"
   status = 200
 
-# Old Euro/tournament and old domestic game routes are intentionally absent.
-# They fall through to the ordinary weekly 404 rather than receiving a 200.
+# Retired routes fall through to the ordinary 404. The active tournament routes
+# above remain explicit because the Euro deployment owns them under ADR 0028.
 [[redirects]]
   from = "/*"
   to = "/index.html"

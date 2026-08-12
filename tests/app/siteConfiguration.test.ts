@@ -116,13 +116,16 @@ describe('the two products differ where they are meant to', () => {
     }
   })
 
-  // Today's honest value, not the target one. ADR 0026 wants the Hub to stop
-  // serving the tournament's player routes and `EURO-001` records that it has
-  // not; the refusal is built and proven in `TournamentJourney.test.tsx`, and
-  // flipping this is an owner decision that also needs the browser suite
-  // pointed at the Euro build. See the field's own note.
-  it('still serves the Euro tournament on both deployments', () => {
-    expect(hub.servesEuroTournament).toBe(true)
+  // FLIPPED 11 AUGUST 2026, and this assertion is the record of it. It read
+  // `true` on both deployments for as long as the tournament's browser evidence
+  // had nowhere else to run: withdrawing the routes from the weekly build
+  // deleted the `euro-2028-baseline` journeys rather than moving them.
+  // `playwright.euro.config.ts` is that somewhere, the journeys are registered
+  // against a Euro build, and the parked specs have moved to it. Asserted rather
+  // than assumed, because this one value is the whole of `EURO-001`'s route
+  // half — the refusal it drives is proven in `TournamentJourney.test.tsx`.
+  it('serves the Euro tournament on the Euro deployment and nowhere else', () => {
+    expect(hub.servesEuroTournament).toBe(false)
     expect(euro.servesEuroTournament).toBe(true)
   })
 

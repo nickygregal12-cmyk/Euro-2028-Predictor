@@ -94,8 +94,8 @@ async function readBracketSnapshot(page: Page): Promise<BracketSnapshot> {
 async function openGroupA(page: Page, homeName: string, awayName: string) {
   await page.goto('/predict/groups/A')
   await expectAuthenticatedPath(page, '/predict/groups/A')
-  const home = page.getByLabel(`${homeName} score`).first()
-  const away = page.getByLabel(`${awayName} score`).first()
+  const home = page.getByLabel(`${homeName} score`, { exact: true }).first()
+  const away = page.getByLabel(`${awayName} score`, { exact: true }).first()
   await expect(home).toBeVisible()
   await expect(away).toBeVisible()
   return { home, away }

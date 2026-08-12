@@ -97,8 +97,8 @@ async function completeBracket(page: Page) {
 async function openFirstGroupMatch(page: Page, prepared: PreparedEntry) {
   await page.goto('/predict/groups/A')
   await expectAuthenticatedPath(page, '/predict/groups/A')
-  const home = page.getByLabel(`${prepared.firstHomeName} score`).first()
-  const away = page.getByLabel(`${prepared.firstAwayName} score`).first()
+  const home = page.getByLabel(`${prepared.firstHomeName} score`, { exact: true }).first()
+  const away = page.getByLabel(`${prepared.firstAwayName} score`, { exact: true }).first()
   await expect(home).toBeVisible()
   await expect(away).toBeVisible()
   return { home, away }
@@ -107,7 +107,18 @@ async function openFirstGroupMatch(page: Page, prepared: PreparedEntry) {
 test('authenticated user reaches core routes', async ({ page }) => {
   await page.goto('/')
   await expectAuthenticatedPath(page, '/')
-  await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
+  // THE SIGNED-IN HOME HERE IS THE EURO ONE, and asserting the weekly Hub's
+  // heading was what this line did until 11 August 2026. `EURO-001`'s route half
+  // turned on: this suite builds `VITE_SITE_VARIANT=euro`, where `/` is
+  // `EuroDestinationPage` — deliberately OUTSIDE `TournamentBoundary`, because
+  // both variants set `signedInHome: '/'` and a boundary there would redirect
+  // `/` to `/` for ever.
+  //
+  // The pattern rather than a literal because the heading follows contract 143's
+  // publication state — "Euro 2028 is not open yet." / "is open." / "is over." —
+  // and this journey is about reaching the route, not about which state the
+  // seeded environment publishes.
+  await expect(page.getByRole('heading', { name: /^Euro 2028 is/ })).toBeVisible()
 
   await page.goto('/predict')
   await expectAuthenticatedPath(page, '/predict')
@@ -132,8 +143,20 @@ test('group score persists, clears, and stays cleared after reload', async ({
   await expectAuthenticatedPath(page, '/predict/groups/A')
   await expect(page.getByText('Group A', { exact: true }).first()).toBeVisible()
 
-  const home = page.getByLabel('Team A1 score').first()
-  const away = page.getByLabel('Team A2 score').first()
+  /*
+   * `exact: true`, AND IT IS LOAD-BEARING. `getByLabel` matches on substring by
+   * default, and `ScoreInput` renders `aria-label={ariaLabel}` on the input and
+   * `Add one to ${ariaLabel}` / `Subtract one from ${ariaLabel}` on the two
+   * steppers beside it. Without `exact`, `.first()` resolves to the `+` BUTTON,
+   * and Playwright reports "Element is not an <input>" — which reads as the page
+   * having failed to render when the page is perfectly correct.
+   *
+   * The steppers were added while these journeys were parked, so the first run
+   * after `EURO-001`'s route flip was the first time anything executed this
+   * locator against them. Five specs failed on it. Fixed in all of them.
+   */
+  const home = page.getByLabel('Team A1 score', { exact: true }).first()
+  const away = page.getByLabel('Team A2 score', { exact: true }).first()
   await expect(home).toBeVisible()
   await expect(away).toBeVisible()
 
@@ -240,8 +263,8 @@ test.describe('submission barriers', () => {
       // 2. Optimistic-concurrency conflict: an external local client advances
       //    the row version. Submit stays blocked until explicit Keep mine.
       // ---------------------------------------------------------------------
-      home = page.getByLabel(`${prepared.firstHomeName} score`).first()
-      away = page.getByLabel(`${prepared.firstAwayName} score`).first()
+      home = page.getByLabel(`${prepared.firstHomeName} score`, { exact: true }).first()
+      away = page.getByLabel(`${prepared.firstAwayName} score`, { exact: true }).first()
       currentHome = Number(await home.inputValue())
       currentAway = Number(await away.inputValue())
 
@@ -276,7 +299,7 @@ test.describe('submission barriers', () => {
       //    submitting. The validator cannot run until that request succeeds.
       // ---------------------------------------------------------------------
       await navigateToGroupA(page)
-      home = page.getByLabel(`${prepared.firstHomeName} score`).first()
+      home = page.getByLabel(`${prepared.firstHomeName} score`, { exact: true }).first()
       currentHome = Number(await home.inputValue())
 
       let releaseHeldSave!: () => void

@@ -23,6 +23,7 @@ import {
   LeaguesDestination,
   MatchesDestination,
   PlayDestination,
+  SingularLeagueDestination,
 } from './app/destinations/VariantDestinations'
 import { DomesticCompetitions } from './app/DomesticCompetitions'
 import { RequireAdmin } from './features/admin/RequireAdmin'
@@ -101,6 +102,24 @@ const SeasonPlayerProfileRoute = lazy(() =>
     default: m.SeasonPlayerProfileRoute,
   })),
 )
+// The tournament's own journeys, un-parked on 11 August 2026 so `EURO-001`'s
+// route half can be turned on. Every one is lazy and every one is registered
+// under `TournamentJourney`, so a Hub visitor downloads none of them: the
+// deployment gate refuses before the boundary resolves a child.
+const PredictEntryPage = lazy(() => import('./features/predict/PredictEntryPage').then((m) => ({ default: m.PredictEntryPage })))
+const GroupPredictorPage = lazy(() => import('./features/predict/GroupPredictorPage').then((m) => ({ default: m.GroupPredictorPage })))
+const ThirdPlacePage = lazy(() => import('./features/predict/ThirdPlacePage').then((m) => ({ default: m.ThirdPlacePage })))
+const BracketRound = lazy(() => import('./features/bracket').then((m) => ({ default: m.BracketRound })))
+const JokersPage = lazy(() => import('./features/predict/JokersPage').then((m) => ({ default: m.JokersPage })))
+const ReviewWorkspacePage = lazy(() => import('./features/predict/ReviewWorkspacePage').then((m) => ({ default: m.ReviewWorkspacePage })))
+const PredictionTrendsPage = lazy(() => import('./features/trends/PredictionTrendsPage').then((m) => ({ default: m.PredictionTrendsPage })))
+const MatchCentrePage = lazy(() => import('./features/matches/MatchCentrePage').then((m) => ({ default: m.MatchCentrePage })))
+const GamesPage = lazy(() => import('./features/games/GamesPage').then((m) => ({ default: m.GamesPage })))
+const KnockoutPredictionsPage = lazy(() => import('./features/games/KnockoutPredictionsPage').then((m) => ({ default: m.KnockoutPredictionsPage })))
+const KoPredictorStandingsPage = lazy(() => import('./features/games/KoPredictorStandingsPage').then((m) => ({ default: m.KoPredictorStandingsPage })))
+const LmsPage = lazy(() => import('./features/games/LmsPage').then((m) => ({ default: m.LmsPage })))
+const CupPage = lazy(() => import('./features/games/CupPage').then((m) => ({ default: m.CupPage })))
+const OverallStandingsPage = lazy(() => import('./features/league/OverallStandingsPage').then((m) => ({ default: m.OverallStandingsPage })))
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
@@ -255,9 +274,7 @@ export default function App() {
                           their own right rather than competition choosers,
                           because the chooser they replaced got worse with every
                           competition the platform adds. On the Euro deployment
-                          they are the tournament's own, which until PR #702's
-                          successor landed were literally the Hub's pages with
-                          Euro labels on the navigation above them. */}
+                          they are the tournament's own. */}
                       <Route path={weeklyRoutes.hub} element={<HomeDestination />} />
                       <Route path={weeklyRoutes.play} element={<PlayDestination />} />
                       <Route path={weeklyRoutes.matches} element={<MatchesDestination />} />
@@ -267,13 +284,8 @@ export default function App() {
                       {/* THE DOMESTIC WEEKLY TREE, AND WHOSE IT IS. The
                           catalogue and every `/competitions/:c/:s/**` surface
                           are the Prediction Hub's product. The Euro deployment
-                          was serving all of them, so a visitor to the
-                          tournament's domain could reach a domestic season's
-                          Match Predictor under navigation reading "Tournament".
-                          A catalogue omission is not a control — a guessable
-                          URL still resolves — so the boundary is the route. */}
+                          does not serve them; it links back to the Hub. */}
                       <Route element={<DomesticCompetitions />}>
-                        {/* The catalogue, as deliberate discovery. Not a tab. */}
                         <Route
                           path={weeklyRoutes.competitions}
                           element={<ExploreCompetitionsPage />}
@@ -314,14 +326,7 @@ export default function App() {
                           path={weeklyRoutePatterns.championshipWildcard}
                           element={<SeasonChampionshipRouter />}
                         />
-                        {/* INNOV-006 — the matchday television screen. It is
-                            registered inside the one domestic boundary like
-                            every other competition surface, and `AppShell`
-                            renders it WITHOUT the app bar, bottom bar and rail:
-                            a frame designed for a phone in a pocket is the
-                            wrong frame for a screen on a wall. Declaring a
-                            second boundary to achieve that would have made the
-                            next route added to the wrong one silent. */}
+                        {/* INNOV-006 — the matchday television screen. */}
                         <Route
                           path={weeklyRoutePatterns.tv}
                           element={<SeasonTvModeRoute />}
@@ -330,49 +335,40 @@ export default function App() {
                           path={weeklyRoutePatterns.leagues}
                           element={<SeasonLeaguesRoute />}
                         />
-                        {/* One player's season (contract 151). Competition-scoped
-                            because points, rank and prediction history are facts
-                            about a player IN a season; the server refuses any
-                            caller who shares no private league with them, and
-                            nothing here enumerates players. */}
                         <Route
                           path={weeklyRoutePatterns.player}
                           element={<SeasonPlayerProfileRoute />}
                         />
                       </Route>
 
-                      {/* Compatibility only: the old global chooser name remains a
-                          redirect, never a second weekly information architecture. */}
                       <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
-                      <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
+                      {/* `/league` belongs to different products on the two
+                          deployments, so one variant destination owns it. */}
+                      <Route path="/league" element={<SingularLeagueDestination />} />
                       <Route path="/more/points" element={<Navigate to="/profile" replace />} />
                       <Route path="/more/scoring" element={<ScoringRulesPage />} />
-                      {/* The PLATFORM profile, outside the tournament boundary
-                          below. It used to be the Euro tournament profile, which
-                          meant every visible Profile control — the top bar, More,
-                          the desktop rail — sent a domestic player into a route
-                          that `EURO-004` refuses while Euro is hidden, and
-                          bounced them back to Home. It reads the account and the
-                          shell's membership and nothing about any tournament. */}
                       <Route path="/profile" element={<PlatformProfilePage />} />
-                      {/* Outside the tournament boundary below, because the
-                          account is the platform's rather than a competition's.
-                          It stopped printing one competition's points and rank
-                          under a player's name, and with that gone it reads
-                          nothing from the tournament at all. */}
                       <Route path="/account" element={<AccountPage />} />
 
-                      {/* Everything below answers for the Euro tournament and only
-                          for it, so the tournament data and predictions providers
-                          mount here rather than above the whole shell. A domestic
-                          player never pays for a dataset they cannot reach.
-                          See src/app/TournamentJourney.tsx. */}
+                      {/* Tournament-only routes are registered once and refused
+                          on the Hub by TournamentJourney's deployment gate. */}
                       <Route element={<TournamentJourney />}>
+                        <Route path="/predict" element={<PredictEntryPage />} />
+                        <Route path="/predict/groups/:letter" element={<GroupPredictorPage />} />
+                        <Route path="/predict/third-place" element={<ThirdPlacePage />} />
+                        <Route path="/predict/bracket" element={<BracketRound />} />
+                        <Route path="/predict/jokers" element={<JokersPage />} />
+                        <Route path="/predict/review" element={<ReviewWorkspacePage />} />
+                        <Route path="/prediction-trends" element={<PredictionTrendsPage />} />
+                        <Route path="/match/:matchRef" element={<MatchCentrePage />} />
+                        <Route path="/games" element={<GamesPage />} />
+                        <Route path="/games/knockout" element={<KnockoutPredictionsPage />} />
+                        <Route path="/games/ko-predictor" element={<KoPredictorStandingsPage />} />
+                        <Route path="/games/lms" element={<LmsPage />} />
+                        <Route path="/games/cup" element={<CupPage />} />
+                        <Route path="/league/overall" element={<OverallStandingsPage />} />
                         <Route path="/league/:id" element={<LeagueDetailRoutePage />} />
                         <Route path="/h2h/:rivalId" element={<H2HPage />} />
-                        {/* Euro's own player profiles, kept inside the boundary
-                            and addressed under `/tournament/` so no domestic
-                            surface can link into them by accident. */}
                         <Route path="/tournament/profile" element={<TournamentProfilePage />} />
                         <Route
                           path="/tournament/profile/:playerId"
@@ -383,24 +379,11 @@ export default function App() {
                       <Route element={<RequireAdmin />}>
                         <Route path="/admin" element={<Navigate to="/admin/results" replace />} />
                         <Route element={<AdminLayout />}>
-                          {/* The Results Centre confirms Euro match results and
-                              reads the tournament to do it. Users administration
-                              does not, and wrapping the whole admin tree would
-                              have made every visit to it load the tournament. */}
                           <Route element={<TournamentJourney />}>
                             <Route path="/admin/results" element={<AdminResultsWorkspacePage />} />
                           </Route>
                           <Route path="/admin/users" element={<AdminUsersPage />} />
-                          {/* Season administration reads and writes only season
-                              authorities, so it sits outside the tournament
-                              boundary above rather than inside it. */}
                           <Route path="/admin/season" element={<SeasonAdminPage />} />
-                          {/* Euro publication reads and writes only the Contract
-                              143 publication authority. It is deliberately
-                              OUTSIDE the tournament boundary above: publishing a
-                              tournament must not require loading it, and while
-                              the state is hidden that load is exactly what the
-                              route guard refuses. */}
                           <Route path="/admin/euro" element={<EuroPublicationPage />} />
                         </Route>
                       </Route>

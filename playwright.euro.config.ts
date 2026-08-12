@@ -79,6 +79,9 @@ export default defineConfig({
     'overall-standings.spec.ts',
     'prediction-trends.spec.ts',
     'private-league-invite.spec.ts',
+    // The two the flip moved. See `PARKED_EURO_SPECS`.
+    'private-league-pagination.spec.ts',
+    'profile-h2h-surfaces.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

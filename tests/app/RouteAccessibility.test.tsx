@@ -24,7 +24,10 @@ function NavigationHarness() {
 describe('RouteAccessibility', () => {
   it('derives stable titles for canonical dynamic and unknown routes', () => {
     expect(getRouteTitle(LMS_PATH)).toBe('Premier League 2026/27 Last Man Standing')
-    expect(getRouteTitle('/predict/groups/d')).toBe('Page not found')
+    // Titled now, not 404: the tournament's journeys are registered as of
+    // 11 August 2026 and refused on the Hub by the deployment gate rather than
+    // by being absent. See `routeTitleCoverage.test.ts` for the same inversion.
+    expect(getRouteTitle('/predict/groups/d')).toBe('Group predictions')
     expect(getRouteTitle('/league/league-id')).toBe('League details')
     expect(getRouteTitle('/not-a-real-page')).toBe('Page not found')
   })

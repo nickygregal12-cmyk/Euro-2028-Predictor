@@ -2,6 +2,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { JoinLandingPage } from '../../../src/features/leagues/JoinLandingPage'
+import { SiteProvider } from '../../../src/app/site/SiteProvider'
+import { siteConfiguration } from '../../../src/app/site/siteConfiguration'
 import {
   clearPendingJoin,
   getPendingJoin,
@@ -49,16 +51,36 @@ vi.mock('../../../src/services/supabase/predictions', () => ({
   getOrCreateEntry: mocks.getOrCreateEntry,
 }))
 
-function renderInvite(code = 'ABC234DEF567') {
+/**
+ * The site configuration matters here now, and only for where a joined LEAGUE
+ * lands.
+ *
+ * `/league/:id` is the tournament's league table — see
+ * `src/features/leagues/joinDestination.ts` for the measurement — so a build
+ * that does not serve the tournament cannot open it and lands on private play
+ * instead.
+ *
+ * IT IS OVERRIDDEN RATHER THAN SELECTED BY VARIANT, and that is not a shortcut.
+ * `EURO-001` records that BOTH deployments still set `servesEuroTournament`
+ * true, so `siteConfiguration('hub')` and `siteConfiguration('euro')` agree on
+ * the one field this rule reads and passing a variant would assert nothing. The
+ * override states the condition the rule is actually keyed on, which is also the
+ * state the Hub takes when the owner's flip lands.
+ */
+function renderInvite(code = 'ABC234DEF567', servesEuroTournament = true) {
   return render(
-    <MemoryRouter initialEntries={[`/join/${code}`]}>
-      <Routes>
-        <Route path="/join/:code" element={<JoinLandingPage />} />
-        <Route path="/auth/signup" element={<p>Signup destination</p>} />
-        <Route path="/leagues" element={<p>Private play destination</p>} />
-        <Route path="/league/:leagueId" element={<p>Joined league destination</p>} />
-      </Routes>
-    </MemoryRouter>,
+    <SiteProvider
+      configuration={{ ...siteConfiguration('hub'), servesEuroTournament }}
+    >
+      <MemoryRouter initialEntries={[`/join/${code}`]}>
+        <Routes>
+          <Route path="/join/:code" element={<JoinLandingPage />} />
+          <Route path="/auth/signup" element={<p>Signup destination</p>} />
+          <Route path="/leagues" element={<p>Private play destination</p>} />
+          <Route path="/league/:leagueId" element={<p>Joined league destination</p>} />
+        </Routes>
+      </MemoryRouter>
+    </SiteProvider>,
   )
 }
 
@@ -114,18 +136,36 @@ describe('the invite deep link', () => {
     expect(mocks.resolveInviteCode).toHaveBeenCalledWith('ABC234DEF567')
   })
 
-  it('joins a league through join_league and opens it', async () => {
+  it('joins a league through join_league and opens it where the tournament is served', async () => {
     mocks.auth.userId = '00000000-0000-0000-0000-000000000123'
     mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
     mocks.joinLeague.mockResolvedValue({ id: 'lg-1', name: 'Office League' })
 
-    renderInvite('ABC234DEF567')
+    renderInvite('ABC234DEF567', true)
     fireEvent.click(await screen.findByRole('button', { name: 'Join league' }))
 
     await screen.findByText('Joined league destination')
     expect(mocks.joinLeague).toHaveBeenCalledWith('ABC234DEF567')
     // No tournament entry is created as a side effect of opening a link.
     expect(mocks.getOrCreateEntry).not.toHaveBeenCalled()
+  })
+
+  it('joins the same league on the Hub and lands on private play instead', async () => {
+    // The JOIN is identical — same code, same function, same success. Only the
+    // destination differs, because `/league/:id` is a tournament surface whose
+    // own server read refuses a season league. Asserted through the page rather
+    // than only in `joinDestination.test.ts` so a future edit that reinstates
+    // the literal path here fails.
+    mocks.auth.userId = '00000000-0000-0000-0000-000000000123'
+    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+    mocks.joinLeague.mockResolvedValue({ id: 'lg-1', name: 'Office League' })
+
+    renderInvite('ABC234DEF567', false)
+    fireEvent.click(await screen.findByRole('button', { name: 'Join league' }))
+
+    await screen.findByText('Private play destination')
+    expect(mocks.joinLeague).toHaveBeenCalledWith('ABC234DEF567')
+    expect(screen.queryByText('Joined league destination')).toBeNull()
   })
 
   it('joins a private competition through join_private_competition', async () => {

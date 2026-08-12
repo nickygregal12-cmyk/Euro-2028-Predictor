@@ -1,7 +1,9 @@
 import { lazy, type ReactElement } from 'react'
+import { Navigate } from 'react-router'
 import { useSite } from '../site/SiteProvider'
 import { variantSurface, type VariantSurface } from '../site/variantRoutes'
 import { weeklyRoutes } from '../shellRoutes'
+import { TournamentBoundary } from '../TournamentJourney'
 
 /**
  * The four shared top-level paths, resolved to the product this build actually
@@ -56,6 +58,35 @@ const EuroDestinationPage = lazy(() =>
 )
 
 /**
+ * The tournament's own surfaces at the shared addresses.
+ *
+ * WHY THEY ARE HERE AND NOT IN `App.tsx`. React Router registers one element per
+ * path, and ADR 0026 gives `/play`, `/matches` and `/leagues` to a different
+ * product on each build. So the Euro branch of this dispatcher is the only place
+ * the tournament's matches, leagues and prediction entry can be reached at those
+ * addresses at all. The tournament's OWN addresses — `/predict/**`, `/games/**`,
+ * `/match/:matchRef` and the rest — stay in `App.tsx` under `TournamentJourney`,
+ * because nothing on the Hub claims them and there is nothing to disambiguate.
+ *
+ * `TournamentBoundary` rather than the providers directly: it is the same two
+ * gates, in the same order, from the same module `TournamentJourney` is built
+ * from. Mounting `TournamentDataProvider` here instead would be a second answer
+ * to "may this visitor see the tournament", and the second answer is the one
+ * that goes wrong.
+ */
+const TournamentMatchesPage = lazy(() =>
+  import('../../features/matches/MatchesPage').then((m) => ({ default: m.MatchesPage })),
+)
+const TournamentLeaguePage = lazy(() =>
+  import('../../features/league/LeaguePage').then((m) => ({ default: m.LeaguePage })),
+)
+const TournamentPredictEntryPage = lazy(() =>
+  import('../../features/predict/PredictEntryPage').then((m) => ({
+    default: m.PredictEntryPage,
+  })),
+)
+
+/**
  * One surface identifier to one element.
  *
  * Exhaustive over `VariantSurface` by construction: adding a surface to the table
@@ -72,14 +103,35 @@ function render(surface: VariantSurface): ReactElement {
       return <GlobalMatchesPage />
     case 'hub-leagues':
       return <GlobalLeaguesPage />
+    // `/` STAYS OUTSIDE THE BOUNDARY, and that is load-bearing rather than an
+    // omission. Both variants set `routes.signedInHome: '/'`, so a boundary that
+    // redirects an unpublished tournament to its signed-in home would redirect
+    // `/` to `/` for ever. The Euro home is the state-aware page, which fails
+    // closed and says so, and it is what the redirect target has to be.
     case 'euro-home':
       return <EuroDestinationPage destination="home" />
+    // The other three are the tournament, behind its own two gates, falling back
+    // to exactly the closed-state page they used to render unconditionally.
     case 'euro-predict':
-      return <EuroDestinationPage destination="play" />
+      return (
+        <TournamentBoundary closed={<EuroDestinationPage destination="play" />}>
+          <TournamentPredictEntryPage />
+        </TournamentBoundary>
+      )
     case 'euro-matches':
-      return <EuroDestinationPage destination="matches" />
+      return (
+        <TournamentBoundary closed={<EuroDestinationPage destination="matches" />}>
+          <TournamentMatchesPage />
+        </TournamentBoundary>
+      )
     case 'euro-leagues':
-      return <EuroDestinationPage destination="leagues" />
+      return (
+        <TournamentBoundary closed={<EuroDestinationPage destination="leagues" />}>
+          <TournamentLeaguePage />
+        </TournamentBoundary>
+      )
+    case 'hub-leagues-redirect':
+      return <Navigate to={weeklyRoutes.leagues} replace />
   }
 }
 
@@ -106,4 +158,12 @@ export function MatchesDestination(): ReactElement {
 
 export function LeaguesDestination(): ReactElement {
   return <Destination path={weeklyRoutes.leagues} />
+}
+
+/**
+ * `/league`, singular — a redirect on the Hub and the tournament's own Leagues
+ * page on the Euro build. See the row for it in `variantRoutes.ts`.
+ */
+export function SingularLeagueDestination(): ReactElement {
+  return <Destination path="/league" />
 }
