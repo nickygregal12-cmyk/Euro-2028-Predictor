@@ -223,4 +223,6 @@ same paragraph existed in seven places at once.
 
 | 183 | The favourite-club picker loses its two-read join, and a leaderboard can show the caller's neighbours without paging to them. **Not consumed** |
 
-*Current to contract 183.*
+| 184 | No presentation change. A qualification rule that works at every group size |
+
+*Current to contract 184.*

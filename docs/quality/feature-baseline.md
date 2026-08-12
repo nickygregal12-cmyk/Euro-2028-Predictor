@@ -290,7 +290,9 @@ same paragraph existed in seven places at once.
 
 | 183 | Picking a favourite club takes one request instead of two, and a club that plays nobody still has its badge; a player ranked deep in the table can see who is immediately above them |
 
-*Current to contract 183.*
+| 184 | A Championship group of any permitted size can qualify somebody, instead of only its winner |
+
+*Current to contract 184.*
 
 ## Innovation Lab UI pass — 11 August 2026
 
