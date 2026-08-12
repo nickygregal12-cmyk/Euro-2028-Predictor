@@ -67,6 +67,8 @@ Contracts **179** and **180**, the private-play lifecycle integrity batch (issue
 
 **The frontend half is not claimed.** `/leagues` still calls `get_my_game_leagues` for bonus-game containers, so the player-visible defect is live in the application even though the authority that fixes it is now hosted.
 
+**One comment in contract 179 is inaccurate, and it is recorded here rather than corrected, because the migration is now hosted and migrations are append-only after hosted application.** `get_my_private_competitions` carries the note *"Owned OR joined. Expressed once, as a CTE both the count and the page read"*. The CTE is in fact written **twice** — once for the total and once for the page — because a PL/pgSQL `with` clause does not span two statements. **The behavioural claim the comment makes is still true**: the two CTE bodies are textually identical and both are evaluated inside one function call, so the total cannot disagree with the list it accompanies. Only the description of how that is achieved is wrong. It is noted because a later reader trusting the comment would look for a single CTE, not find one, and reasonably wonder which of the two the total came from.
+
 ### The rehearsal earned its place, and this is the part worth reading
 
 **Its first dispatch failed, and it failed in the right place.** Run [31563535872](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31563535872) applied all four migrations to the disposable target cleanly and then died on its own postflight: `euro_publication_state()` returns a table of `(state, changed_at)`, not jsonb, and the probe read it as `->> 'state'`, raising `operator does not exist: record ->> unknown`.
