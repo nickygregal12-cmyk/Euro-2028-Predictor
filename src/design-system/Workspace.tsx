@@ -60,7 +60,9 @@ export function Workspace({ children, aside, asideLabel, width = 'reading' }: Wo
   return (
     <div className={`${styles.workspace} ${styles.split}`}>
       <div className={styles.main}>{children}</div>
-      <aside className={styles.aside} aria-label={asideLabel}>
+      {/* At desktop width this landmark becomes its own overflow region. A
+          focus target is therefore required so keyboard users can scroll it. */}
+      <aside className={styles.aside} aria-label={asideLabel} tabIndex={0}>
         <div className={styles.asideInner}>{aside}</div>
       </aside>
     </div>
