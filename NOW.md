@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **185** | latest `20260812070000_ai_lab_operational_loop.sql` |
+| Repository | **187** | latest `20260812090000_season_cup_qualification_driver.sql` |
 | Development hosted | **184** | at `20260812060000_cup_group_qualification.sql`, verified `2026-08-12T15:22:00.000Z`, fast-lane run `31610810174` |
 | Production | **178** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260812070000_ai_lab_operational_loop.sql`
+**Pending development migrations:** 3 — `20260812070000_ai_lab_operational_loop.sql`, `20260812080000_cup_group_stage_span.sql`, `20260812090000_season_cup_qualification_driver.sql`
 
-**Next free contract number:** 186. Check open pull requests
+**Next free contract number:** 188. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**63** accepted requirements are outstanding, of which **14** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 3, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 5, PRIV 5, SITE 6, TABLE 1. A further 36 are marked implemented and retained in the register.
+**63** accepted requirements are outstanding, of which **13** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 3, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 5, PRIV 5, SITE 6, TABLE 1. A further 37 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

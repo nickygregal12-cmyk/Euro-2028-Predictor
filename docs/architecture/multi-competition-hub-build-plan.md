@@ -337,6 +337,9 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 
 | 184 | **Stage G** season Predictor Cup. A rule, not a driver: `CUP-002` still owns the window gate and the knockout windows a season lacks |
 
-**This table accounts for every contract up to and including contract 185.** Saying so is
+| 186 | **Stage G** season Predictor Cup. The stored group-stage span `CUP-002` reads |
+| 187 | **Stage G** season Predictor Cup. `CUP-002`: the driver, the window gate and the knockout windows, all three. `CUP-003` (the bracket and Penalty Number read) and `CUP-004` (walkover and withdrawal) remain |
+
+**This table accounts for every contract up to and including contract 187.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

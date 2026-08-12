@@ -234,7 +234,9 @@ describe('Stage C trigger binding coverage after C1b', () => {
     // `public.league_members` — a table that predates Stage C entirely. That is
     // the point of this control: a new trigger on an EXISTING table has to be
     // noticed here, because it changes what happens on every insert into it.
-    expect(effectiveBindings).toHaveLength(100)
+    // 100 → 101 at contract 186, whose immutability trigger binds only to the
+    // launch record the same migration creates.
+    expect(effectiveBindings).toHaveLength(101)
     // Contract 72: the setup belongs to a last_man_standing competition, and an
     // entrant never holds more than that setup granted.
     expect(

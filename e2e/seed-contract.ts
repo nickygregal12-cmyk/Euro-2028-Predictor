@@ -1060,8 +1060,17 @@
  * is called by global setup, and it redefines
  * no entry, membership, prediction-card or player-facing read. The scheduled
  * paid collection also defaults disabled.
+ * Raised to 187 after checking contracts 186 and 187. Contract 186 creates
+ * `public.bonus_cup_launches`, which the seed neither reads nor writes and which
+ * is revoked from every browser role. Contract 187 generalises the Championship
+ * qualification driver, adds `admin_finalise_season_cup_groups` behind
+ * `require_competition_admin`, and makes both season launchers record
+ * `draw_completed_at` — **the seed launches no Championship**, so no seeded row
+ * moves. Neither redefines an entry, membership, prediction-card or
+ * player-facing read, and the tournament Championship's behaviour is unchanged
+ * by construction.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 185
+export const SEED_REVIEWED_AT_CONTRACT = 187
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -169,4 +169,7 @@ same paragraph existed in seven places at once.
 
 | 184 | **One rule generalised, no structure moved.** Qualification from a Championship group is now defined at every size 3 to 20 rather than at 3 and 4 only. The tournament's own two sizes are unchanged, asserted |
 
-*Current to contract 185.*
+| 186 | **No structure moved.** Where a season group stage ends becomes a stored fact rather than an inference |
+| 187 | **The season Championship gains the structure it was missing.** A season group stage is now qualified over the matchdays it actually plays, and its knockout windows are appended after it rather than assumed at the tournament's sequence 4. The tournament's own shape is unchanged, asserted |
+
+*Current to contract 187.*

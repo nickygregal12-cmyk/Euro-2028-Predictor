@@ -22,14 +22,30 @@ select ok(
   'the Cup qualification gate no longer creates a temporary table'
 );
 
+-- Contract 187 moved this from `cup_final_group_tables` to
+-- `cup_initial_group_tables`, contract 169's dispatcher, and the assertion is
+-- corrected rather than deleted because its SUBJECT has not changed: contract 60
+-- removed a temporary relation from this driver and required it to read an
+-- authoritative table function directly, which it still does.
+--
+-- What changed is WHICH authority. `cup_final_group_tables` measures four of its
+-- nine ADR 0014 § 5.2 keys over `sequence between 1 and 3` — correct for the
+-- tournament, wrong for a season group stage of fourteen or thirty-eight — and
+-- the dispatcher returns exactly those rows for a tournament while returning
+-- contract 169's season table for a league season. So the tournament reads the
+-- same numbers it always did, through one more hop.
+--
+-- The `gate` alias is kept in the match. Without it this would also pass on the
+-- single unaliased `count(*)` read, which is not the qualification-and-seeding
+-- read the assertion is about.
 select ok(
   position(
-    'predictor_internal.cup_final_group_tables(p_competition_id) gate'
+    'predictor_internal.cup_initial_group_tables(p_competition_id) gate'
     in lower(pg_get_functiondef(
       'public.admin_finalise_predictor_cup_groups(uuid)'::regprocedure
     ))
   ) > 0,
-  'qualification and seeding read the authoritative final table function directly'
+  'qualification and seeding read the authoritative table function directly, through contract 169''s dispatcher'
 );
 
 select ok(
