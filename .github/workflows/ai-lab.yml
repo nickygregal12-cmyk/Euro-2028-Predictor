@@ -10,23 +10,27 @@ name: AI Lab jobs
 # closed unless SUPABASE_PROD_DB_URL names the expected Production project.
 
 on:
-  # Changing this workflow on main also gives Production an idempotent
-  # reconciliation/activation pass. Existing history, fixtures, odds and models
-  # are detected before any provider/feed work, so later workflow edits do not
-  # waste collection calls or retrain merely because this trigger fires again.
+  # Changing the Production reconciliation path on main gives the live lab an
+  # idempotent activation pass. Existing history, fixtures, odds and models are
+  # detected before any provider/feed work, so this trigger does not waste
+  # collection calls or retrain merely because implementation changed.
   push:
     branches:
       - main
     paths:
       - '.github/workflows/ai-lab.yml'
+      - 'ai/reconcile_paid_fixture_evidence.py'
   schedule:
     - cron: '30 5 * * *'
     - cron: '0 23 * * *'
     - cron: '0 7 * * 1'
-    - cron: '30 16 * * 5'
-    - cron: '30 17 * * 5'
-    - cron: '30 12 * * 2'
-    - cron: '30 13 * * 2'
+    # The Production database dispatches the paid odds poll at :30. Run the
+    # repository reconciliation fifteen minutes later so it consumes retained
+    # responses rather than racing the provider poll.
+    - cron: '45 16 * * 5'
+    - cron: '45 17 * * 5'
+    - cron: '45 12 * * 2'
+    - cron: '45 13 * * 2'
   workflow_dispatch:
     inputs:
       target:
@@ -58,8 +62,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Schedules and the bootstrap-on-workflow-change are Production. Development
-  # can only be selected deliberately through workflow_dispatch.
+  # Schedules and the bootstrap-on-reconciliation-change are Production.
+  # Development can only be selected deliberately through workflow_dispatch.
   group: ai-lab-${{ inputs.target || 'production' }}
   cancel-in-progress: false
 
@@ -166,7 +170,7 @@ jobs:
           if [ "${fixtures}" -eq 0 ]; then
             python sync_fixtures.py
           else
-            echo "Fixtures already present; skipping fixture bootstrap."
+            echo "Fixtures already present; skipping free fixture bootstrap."
           fi
 
           if [ "${odds}" -eq 0 ]; then
@@ -174,8 +178,11 @@ jobs:
             # invoke the paid Odds API.
             python fetch_fixtures_odds.py
           else
-            echo "Fixture odds already present; skipping odds bootstrap."
+            echo "Fixture odds already present; skipping free odds bootstrap."
           fi
+
+          # Consumes retained Production evidence only; never calls a provider.
+          python reconcile_paid_fixture_evidence.py
 
           if [ "${models}" -eq 0 ]; then
             stamp="$(date -u +%Y%m%dT%H%MZ)"
@@ -190,6 +197,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # A paid poll may have retained future events after the free fixture
+          # feed was last published. Reconcile them before deciding what can be
+          # predicted; this makes no API call.
+          python reconcile_paid_fixture_evidence.py
           current_models="$(python - <<'PY'
           from db import connect
           with connect() as conn:
@@ -211,6 +222,7 @@ jobs:
         run: |
           python fetch_history.py --all-divisions --seasons current
           python sync_fixtures.py
+          python reconcile_paid_fixture_evidence.py
           status=0
           ./run_leagues.sh evaluate.py || status=1
           ./run_leagues.sh predict.py || status=1
@@ -237,6 +249,9 @@ jobs:
             { [ "$day" = 5 ] && [ "$hour" = 17 ]; } || exit 0
           fi
           python sync_fixtures.py
+          # The Production paid poll ran fifteen minutes before this scheduled
+          # job. Consume its retained fixtures/prices; do not call it again.
+          python reconcile_paid_fixture_evidence.py
           python fetch_fixtures_odds.py
           ./run_leagues.sh find_value.py
 
@@ -247,9 +262,9 @@ jobs:
         run: |
           case "${{ steps.task.outputs.name }}" in
             import) python fetch_history.py --all-divisions ;;
-            predict) ./run_leagues.sh predict.py ;;
+            predict) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh predict.py ;;
             evaluate) ./run_leagues.sh evaluate.py ;;
-            value) ./run_leagues.sh find_value.py ;;
+            value) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh find_value.py ;;
             settle) ./run_leagues.sh settle_bets.py ;;
             odds-plan) python odds_api.py plan ;;
             ablate)
@@ -270,6 +285,7 @@ jobs:
           python fetch_history.py --all-divisions
           if [ "${{ steps.task.outputs.name }}" = bootstrap ]; then
             python sync_fixtures.py
+            python reconcile_paid_fixture_evidence.py
             python fetch_fixtures_odds.py
           fi
           ./run_leagues.sh train.py --family poisson --version "auto-$stamp" --walk-forward
