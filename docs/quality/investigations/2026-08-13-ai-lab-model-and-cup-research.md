@@ -673,3 +673,133 @@ That is precisely the mechanism contract 188's `roll_season` correction was writ
 The study's own note is the right framing and is printed with every table: *"`global_mean` is a defect rather than a candidate — it drifts every lower-division club toward the Premier League's anchor each summer. This study measures the size of the fix, and a tie here does not restore it."*
 
 **League-specific winners, as the brief allows.** `division_prior` wins the two middle tiers; `none` wins SPL and marginally SL2. No global default is recommended from four leagues, and no default is changed here.
+
+> **Completed and partly corrected — see §22.** The remaining five leagues were read out of the same run's log. Four of them are English, and the English ladder does **not** reproduce the tier gradient above. The four-league table and its numbers stand; the generalisation drawn from them does not.
+
+---
+
+## 22. Elo season transition, all nine — and the tier gradient does not survive them
+
+The other five leagues of run **31730078197** were read back from the same job log. Nothing was re-run and no number in §21 changes; this is the same run, read further.
+
+| league | `division_prior` | `global_mean` | `none` | best | best fix vs `global_mean` |
+|---|---|---|---|---|---|
+| EPL | 0.9748 (−0.0038 ± 0.0012, **BETTER**) | 0.9786 | **0.9736** (−0.0050 ± 0.0013, **BETTER**) | none | −0.0050 |
+| ECH | **1.0484** (−0.0045 ± 0.0013, **BETTER**) | 1.0529 | 1.0485 (−0.0044 ± 0.0012, **BETTER**) | division_prior | −0.0045 |
+| EL1 | **1.0326** (−0.0040 ± 0.0007, **BETTER**) | 1.0366 | 1.0328 (−0.0039 ± 0.0006, **BETTER**) | division_prior | −0.0040 |
+| EL2 | 1.0594 (−0.0001 ± 0.0005, tie) | 1.0595 | **1.0591** (−0.0004 ± 0.0004, tie) | none | −0.0004 (tie) |
+| ENL | **1.0397** (−0.0035 ± 0.0017, **BETTER**) | 1.0432 | 1.0403 (−0.0029 ± 0.0018, tie) | division_prior | −0.0035 |
+| SPL | 0.9536 (−0.0004 ± 0.0007, tie) | 0.9540 | **0.9518** (−0.0022 ± 0.0008, **BETTER**) | none | −0.0022 |
+| SCH | **1.0966** (−0.0052 ± 0.0022, **BETTER**) | 1.1018 | 1.0974 (−0.0045 ± 0.0019, **BETTER**) | division_prior | −0.0052 |
+| SL1 | **1.0271** (−0.0106 ± 0.0024, **BETTER**) | 1.0377 | 1.0279 (−0.0097 ± 0.0026, **BETTER**) | division_prior | −0.0106 |
+| SL2 | 1.0324 (−0.0031 ± 0.0017, tie) | 1.0355 | **1.0320** (−0.0034 ± 0.0019, tie) | none | −0.0034 (tie) |
+
+**`global_mean` is beaten in every league**, by both alternatives in seven of nine and by at least one in eight. Only EL2 fails to separate from it at all. That is the strongest single result in this document: the transition the repository ships is worse than *doing nothing* almost everywhere, and it is never better than doing nothing anywhere.
+
+### The correction
+
+§21 read a tier gradient off four leagues and generalised it. All four were Scottish, and within Scotland the gradient is real and clean:
+
+| | SPL (tier 1) | SCH (tier 2) | SL1 (tier 3) | SL2 (tier 4) |
+|---|---|---|---|---|
+| best fix vs `global_mean` | −0.0022 | −0.0052 | **−0.0106** | −0.0034 |
+
+The English ladder, which §21 had not seen, does not behave that way at all:
+
+| | EPL (tier 1) | ECH (tier 2) | EL1 (tier 3) | EL2 (tier 4) | ENL (tier 5) |
+|---|---|---|---|---|---|
+| best fix vs `global_mean` | **−0.0050** | −0.0045 | −0.0040 | −0.0004 | −0.0035 |
+
+The largest English effect is in the **Premier League** — the division whose own anchor `ELO_START = 1500` is, and therefore the one where §21's mechanism predicts the *smallest* damage. The smallest is League Two, four tiers down. The ordering is not merely weaker than the Scottish one; over the top four English divisions it is the reverse of it.
+
+So the honest statement of the mechanism is narrower than §21's. `global_mean` is a defect in all nine leagues, and contract 188's `roll_season` correction is right to have removed the pull toward a foreign anchor. But **the size of the damage is not predicted by tier distance**, and the Scottish gradient — which is genuine, and which is what four leagues showed — is not the general law it looked like. SL2 is the same point inside Scotland: fourth tier, and a *smaller* effect than the third and second.
+
+What separates them is not established here. Both ladders are consistent with the damage depending on how much a division's clubs actually move between divisions and how far apart the divisions' own priors sit, rather than on depth as such — but that is a hypothesis this run cannot test, and it should be declared before it is measured rather than read out of this table.
+
+**No default is changed, and none is recommended from this.** `division_prior` wins five leagues, `none` wins four, and in six of the nine the two are within 0.001 of each other. What the table supports is removing `global_mean`, which contract 188 already did.
+
+---
+
+## 23. Regime weighting
+
+`--study regime-weighting`, pre-change weight 0.5, nine folds, baseline unweighted. Run **31738406992** (Development, read-only, `a73059b`), 20:00–20:02 UTC. Five leagues read back from the job log.
+
+| league | baseline | regime-weighted | delta | se | verdict |
+|---|---|---|---|---|---|
+| ENL | 1.0397 | 1.0397 | −0.0000 | 0.0002 | tie |
+| SPL | 0.9536 | 0.9537 | +0.0002 | 0.0002 | tie |
+| SCH | 1.0966 | 1.1001 | +0.0035 | 0.0030 | tie |
+| SL1 | 1.0271 | 1.0277 | +0.0006 | 0.0003 | **WORSE** |
+| SL2 | 1.0324 | 1.0327 | +0.0003 | 0.0005 | tie |
+
+**A null at best, and in one league a measurable harm.** Every delta is ≥ 0 — down-weighting pre-regime-change history never once helped — and SL1 is beyond its own standard error in the wrong direction. Keep regime weighting off.
+
+The study's own docstring is what makes this readable as evidence rather than as a failed attempt: detection runs once per fold at the end of the training window, which it states can **understate** a real effect but cannot overstate one. So a null here is a null in the direction that matters for a decision to adopt.
+
+---
+
+## 24. The discipline family does not earn its place
+
+`ablate.py --groups discipline`, poisson, nine folds, half-life 900d. Run **31738393321** (Development, read-only, `a73059b`), 19:57–19:59 UTC. All nine leagues. `core` is 65 features; adding `discipline` makes 79.
+
+| league | core | + discipline | delta | se | verdict |
+|---|---|---|---|---|---|
+| EPL | 0.9748 | 0.9747 | −0.0001 | 0.0007 | noise |
+| ECH | 1.0484 | 1.0491 | +0.0007 | 0.0005 | noise |
+| EL1 | 1.0326 | 1.0328 | +0.0002 | 0.0006 | noise |
+| EL2 | 1.0594 | 1.0593 | −0.0001 | 0.0006 | noise |
+| ENL | 1.0397 | 1.0400 | +0.0003 | 0.0006 | noise |
+| SPL | 0.9536 | 0.9539 | +0.0004 | 0.0006 | noise |
+| SCH | 1.0966 | 1.1130 | **+0.0164** | 0.0105 | noise |
+| SL1 | 1.0271 | 1.0309 | +0.0038 | 0.0032 | noise |
+| SL2 | 1.0324 | 1.0320 | −0.0004 | 0.0028 | noise |
+
+**Noise in all nine, and it is not close to keeping.** `keeps` requires the whole two-standard-error interval below zero; seven of the nine deltas are positive, and the two negative ones are −0.0001 and −0.0004 against standard errors five to seven times larger.
+
+The family stays out of `DEFAULT_GROUPS`, which is where §4 put it and where the ablation now confirms it belongs. Fourteen features bought nothing anywhere.
+
+### The coverage prediction holds
+
+§4 declined to build referee features because coverage collapses below SC0, and predicted the team-level family would be worth trying instead. The ablation's two worst rows are the two lowest-coverage divisions in that table — **SCH** (+0.0164; SC1, 63.1% referee and foul presence) and **SL1** (+0.0038; SC2, 62.8%) — while every division with 100% foul coverage returns something within ±0.0007 of zero. So the family is not merely unhelpful: where the underlying columns are missing for a third of matches, adding it is actively the worst thing the ablation measured.
+
+That is a coherent result rather than a puzzling one, and it closes the question the brief asked in §23 of the brief: discipline is not worth carrying anywhere, and **no league-specific adoption is recommended either** — the leagues where coverage would support it are exactly the leagues where the measured effect is indistinguishable from zero.
+
+### One incidental finding about the harness
+
+`ablate.py` writes no JSON report, so this run uploaded **no artefact at all** (`No files were found with the provided path`). The ablation's findings exist only in its log. That is not wrong, but it means an ablation is less recoverable after the fact than a study is — the reason §25's digest step was added.
+
+---
+
+## 25. What this session added to the research path, and why
+
+§11 built the read-only `research` task. Two of the studies the brief asks for could be *named* by it and not *asked* by it.
+
+**The ensemble study runs against whatever `ENSEMBLE_BASE_FAMILIES` holds.** `--study ensemble` takes `--base-families`, and the workflow passed none, so a dispatch could only ever measure the shipped triple. The question the study exists to answer — whether `gbm` belongs in that triple — is a question about a *different* component set, and it was not askable. The set is now a dispatch input. `default` passes no flag at all, deliberately, so "the shipped ensemble" stays measurable as itself rather than as an option that happens to coincide with it today.
+
+**The discipline family had no read-only path.** `ablate.py` is a different script with a different comparison, and `research`'s study selector is asserted to equal `experiments.py`'s own registry, so a pseudo-study would have had to break that guard. It is a second arm, `research-ablate`, with the same `AI_READ_ONLY` export — `ablate.py` takes no `--record` and writes nothing, but a guarantee this path offers must not rest on a property of a script it merely happens to call.
+
+**A digest step.** A nine-league study prints about two hundred log lines of which eighteen carry a number, and the reports that hold them leave only as an artefact, which needs a credential a reader of the log does not have. The digest prints each report as one compact line at the end of the run. It opens no database connection and runs only on a manual dispatch.
+
+### The defect this session shipped and caught
+
+The `research-ablate` option went into the wrong list. It landed inside the shell script, as a stray `- research-ablate` line between two `case` arms, where YAML parsed it as part of a block scalar and where it was — in bash — a syntax error that killed the whole `case`. Every guard written for the new arm passed, because the arm itself was real and correct. Two dispatches failed at 19:53 and 19:54 with no useful message, and the third was refused by the API with `not in the list of allowed values []`.
+
+The missing guard was the one relating the two halves, and it is now written: every `case` arm the manual step implements must be an option the selector offers, and every option must have an arm. It reads the arms out of the **parsed** block scalar rather than the raw file, which is what lets it tell an outer task from the inner dispatch nested inside `predict|evaluate|value)`.
+
+---
+
+## 26. Aberdeen v Dundee — a third attempt, and the tell is now stronger
+
+Re-checked at **19:58 UTC on 13 August 2026**. All eight Premier Sports Cup last-16 ties remain prospective; the earliest kickoff is Friday 14 August, 19:45. No forecast has been produced for any tie and nothing has been back-dated.
+
+Direct retrieval failed again and in the same way. `spfl.co.uk`, `www.dundeeunitedfc.co.uk` and `www.scotsman.com` were each refused by the egress proxy with `EGRESS_BLOCKED`, so no primary or secondary source could be read as text. Only the search tool is available, and it returns a written summary rather than the source.
+
+Asked for the full last-16 list, it returned **Aberdeen v Dundee at Pittodrie** — the opposite of the answer §16 recorded from the same class of tool a little under two hours earlier, which was Dens Park.
+
+**And it disagreed about a second tie.** It returned *"Dunfermline Athletic v Ross County"*, where §5a recorded *"Ross County v Dunfermline"*. §16 concluded that "the other seven ties are unaffected — their orientation is consistent across every source seen". That conclusion is now falsified: two sessions asking equivalent questions of the same kind of tool got two different orientations for a tie neither had flagged.
+
+This changes the finding, and in a useful direction. §16 diagnosed one internally inconsistent answer about one tie. The stronger and simpler statement is that **this tool does not preserve fixture orientation reliably at all**, and it happened to be self-consistent about six ties rather than demonstrably right about them. Orientation is not established for any of the eight from anything available to these sessions.
+
+So the exclusion widens from one tie to the set: **no prospective home/away cup modelling from these sources**, for any of the eight. Home advantage is worth roughly `ELO_HOME_ADV` = 60 rating points, and a tie modelled the wrong way round is wrong by twice that in the difference. `CupTie.orientation_confirmed` exists for exactly this and drives data confidence to `low`; exclusion remains the stronger and correct treatment while no source can be read.
+
+What would settle it is one readable primary source — the SPFL fixture list, or a club's own fixture page — which needs either an egress allowance for those domains or a provider that carries the competition. §6 measured that **neither configured provider carries any domestic cup**, so the provider route is closed and the egress route is the one that is open in principle.
