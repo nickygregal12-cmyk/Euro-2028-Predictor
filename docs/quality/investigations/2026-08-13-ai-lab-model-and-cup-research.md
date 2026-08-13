@@ -1210,6 +1210,147 @@ diagnostic cannot justify one either — at most it can say which hypothesis the
 data supports, which is a prerequisite for that argument rather than the
 argument.
 
+### 35b. The tables, read back — and the cause is one season
+
+Read on 13 August 2026 from run **31744135390**. The artefact zip itself is
+unreachable from this container (`api.github.com` and every object host are
+refused by the egress proxy at CONNECT), so the nine reports were taken from
+the run's own **`DIGEST` log lines**, which the workflow's digest step writes
+verbatim. That is the same JSON the artefact holds, from the same run.
+
+**A correction to §35a before anything else.** §35a said the diagnostic
+produced only a per-season description. It produces more than that: nine of
+each league's seasons are scored out-of-fold and carry `baseline_log_loss`,
+`poisson_log_loss`, `elo_log_loss`, `poisson_ece` and `elo_ece`. **H10 is
+answerable from this artefact after all**, and it turns out to be the
+hypothesis that points at the answer.
+
+#### The nine-league frame (14 completed seasons; the partial 2627 is excluded)
+
+| league | matches/season | clubs | home | draw | away | goals | churn | no history | stat cover |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **SCH** | 173 | 10.0 | 0.413 | **0.267** | 0.319 | 2.70 | 0.569 | 1.31 | **0.641** |
+| SPL | 223 | 12.0 | 0.436 | 0.240 | 0.324 | 2.71 | 0.218 | 0.38 | 0.997 |
+| SL1 | 171 | 10.0 | 0.437 | 0.223 | 0.340 | 2.93 | 0.662 | 1.69 | 0.637 |
+| SL2 | 171 | 10.0 | 0.431 | 0.231 | 0.337 | 2.84 | 0.431 | 1.15 | 0.634 |
+| EPL | 378 | 20.0 | 0.446 | 0.238 | 0.316 | 2.80 | 0.300 | 1.31 | 1.000 |
+| ECH | 549 | 24.0 | 0.430 | 0.269 | 0.301 | 2.56 | 0.500 | 2.15 | 1.000 |
+| EL1 | 538 | 23.9 | 0.431 | 0.258 | 0.310 | 2.61 | 0.579 | 3.46 | 1.000 |
+| EL2 | 541 | 24.0 | 0.418 | 0.271 | 0.311 | 2.54 | 0.494 | 2.85 | 0.996 |
+| ENL | 534 | 23.9 | 0.429 | 0.252 | 0.319 | 2.73 | 0.463 | 3.62 | 0.293 |
+
+#### The measurement that matters
+
+Poisson log loss **minus** the season's own class base rate, over the nine
+scored seasons. Negative means the model beat the distribution it was scored
+against.
+
+| league | 1718 | mean, all 9 | beats base |
+| --- | --- | --- | --- |
+| **SCH** | **+0.2299** | **+0.0162** | 6/9 |
+| SPL | −0.0864 | −0.1089 | 9/9 |
+| SL1 | −0.0542 | −0.0391 | 8/9 |
+| SL2 | −0.0444 | −0.0299 | 7/9 |
+| EPL | −0.1074 | −0.0869 | 9/9 |
+| ECH | −0.0316 | −0.0268 | 9/9 |
+| EL1 | −0.0252 | −0.0397 | 9/9 |
+| EL2 | −0.0237 | −0.0185 | 9/9 |
+| ENL | −0.0151 | −0.0362 | 9/9 |
+
+SCH is the only league whose Poisson is worse than a base rate on average.
+**Remove 1718 and it is −0.0105** — unremarkable, and comparable with EL2's
+−0.0185. The whole of SCH's outlier status is one season.
+
+`poisson_ece` agrees and was the tell. SCH 1718 is **0.1777**, the largest
+single league-season calibration error anywhere in the nine-league table (next
+is SL1 2021 at 0.1350). SCH's ECE standard deviation across seasons, 0.0381,
+is the largest of the nine; excluding 1718 its mean ECE is ≈0.058, ordinary.
+**H10 predicted exactly this shape** — error concentrated in particular
+seasons rather than spread evenly — and said it would point at a data break.
+
+#### The break, and the test that nearly killed the explanation
+
+1718 is the first out-of-fold season, so its model trained on 1213–1617. SCH's
+match-statistic coverage in that window is `0.000, 0.008, 0.017, 0.007, 0.011`
+and its coverage in the test season is **0.926**. Shots, corners and cards
+essentially do not exist before 1718 and essentially always exist after it.
+
+That looks conclusive, and on its own it is wrong, because **SL1 and SL2 have
+the same break and were not harmed**:
+
+| league | train window 1213–1617 coverage | test 1718 | Poisson Δ | Elo Δ |
+| --- | --- | --- | --- | --- |
+| **SCH** | 0.000, 0.008, 0.017, 0.007, 0.011 | 0.926 | **+0.2299** | −0.1179 |
+| SL1 | 0.000, 0.000, 0.000, 0.000, 0.000 | 0.917 | −0.0542 | −0.0673 |
+| SL2 | 0.000, 0.000, 0.000, 0.000, 0.000 | 0.917 | −0.0444 | −0.0369 |
+| SPL | ≈0.99 throughout | 0.993 | −0.0864 | −0.0678 |
+| EPL | 1.000 throughout | 1.000 | −0.1074 | −0.0997 |
+
+The difference between SCH and its two neighbours is **near-zero versus
+exactly zero**. SL1 and SL2's `*_known` indicators are constant at 0 across
+the whole training window; a constant column has no variance, so no
+coefficient can be fitted to it and the model is structurally immune to the
+transition. SCH's are non-constant — roughly **eight matches out of 885**
+carry real statistics — which is enough for a coefficient to be fitted and far
+too few for it to be right. In 1718 that indicator flips on for 92.6% of rows
+and carries the badly-fitted coefficient with it.
+
+Two further facts corroborate it. **Elo was fine in SCH 1718** (−0.1179, its
+second-best season) — Elo consumes no match statistics, and the family that
+does not read the broken feature did not break. And the harm is one-directional
+and enormous: +0.2299 nats is roughly ten times any other single-season
+deviation in the table.
+
+#### Verdicts on the ten declared hypotheses
+
+| # | hypothesis | verdict |
+| --- | --- | --- |
+| H1 | sample size | **Supported, not distinguishing.** SCH 173/season, effectively equal to SL1 (171) and SL2 (171), neither of which is an outlier. |
+| H2 | division churn | **Supported, not distinguishing.** 56.9% of clubs change each summer — high, but SL1's 66.2% is higher. |
+| H3 | identity break | **Rejected.** 1.31 clubs/season with no matched history, mid-range of the nine, and 0, 0, 1 in the last three completed seasons. No canonicalisation defect. |
+| H4 | class balance | **Supported as a real difference, rejected as the cause.** SCH's 0.267 draw rate is the highest of the four Scottish leagues and drifts +0.039 across the period to 0.339 in 2526. But SCH's eight non-1718 seasons are unremarkable, so this does not explain the outlier. |
+| H5 | scoring regime | **Weakly supported, not distinguishing.** Goals fall from 3.21 to ≈2.45, but the level (2.70) is indistinguishable from SPL's 2.71. |
+| H6 | coverage break | **Supported, and causal — but only in interaction.** The break is real and large (five seasons at ≈0 coverage) and is shared with SL1/SL2, which were unharmed. What distinguishes SCH is near-zero rather than exactly-zero training coverage. |
+| H7 | market coverage | **Rejected.** `odds_coverage` is 1.000 in every SCH season and ≈1.0 in all nine. |
+| H8 | season structure | **Supported, not aligned.** 1920 (137 matches) and 2021 (135) are Covid-truncated while SPL kept 228 in 2021. Real, but neither is the harmed season. |
+| H9 | promoted-club transfer | **Not answerable.** The diagnostic emits `clubs_changed` undirected, with no promoted/relegated split. A gap in the diagnostic, recorded as one. |
+| H10 | calibration drift | **Supported, and it was the tell.** SCH's ECE is concentrated in one season, not spread — the largest single value in the nine-league table and the largest across-season spread — which is what pointed at a data break rather than a model mismatch. |
+
+#### Conclusion: (A) an identifiable data-quality issue
+
+Not (B) a structural league difference — SCH's class balance genuinely differs
+but its ordinary seasons are ordinary. Not (C) sample or churn — SL1 is
+smaller-sampled and higher-churn and is fine. Not (D) model mismatch — the same
+model on the same league is fine in eight of nine seasons.
+
+**The cause is a coverage-regime change interacting with a near-constant
+`*_known` indicator.** It is specific to SCH in this data only because SCH
+happens to be the league whose pre-2018 statistics are sparse rather than
+absent.
+
+#### Recommended follow-up — general, not bespoke
+
+**No SCH-specific model, no SCH-specific tuning, no SCH exclusion.** §35's own
+condition — bespoke handling only if the artefact supports it — is not met, and
+what the artefact supports is a defect that would recur in any league whose
+coverage transitions with a small non-zero prior sample.
+
+Two candidates, both to be predeclared before running:
+
+1. **A coverage-regime guard.** Where a `*_known` indicator's mean over the
+   training window is below a threshold but non-zero, drop it and its paired
+   value column for that fold. It should recover most of the +0.2299 on SCH
+   1718 and be a **no-op everywhere else** — the second half is the real test,
+   and a guard that changes any other league-season has changed the wrong
+   thing.
+2. **Emit the two missing columns** — `ece` is already there, but split
+   `clubs_changed` into promoted and relegated so **H9 becomes answerable**,
+   and record the per-season `*_known` means so the interaction above is
+   readable from the report rather than reconstructed from `stat_coverage`.
+
+Neither is implemented here. This section identifies a cause; it changes no
+model.
+
 ## 36. The domestic cups — blocked on the authority, and this is the third session it has blocked
 
 The brief was explicit: use official SPFL fixture data, not generic search
@@ -1278,6 +1419,66 @@ unreachable source. **The congestion re-test was therefore not run**: running
 league-only congestion against league-only congestion would measure nothing,
 and that is the comparison this environment can actually perform.
 
+### 36a. Fourth session, and the egress is now total
+
+Measured 13 August 2026, ~21:40 UTC, from this session's container. Every
+football source tested is refused by the egress proxy at CONNECT, including
+ones earlier sessions did reach:
+
+| host | result |
+| --- | --- |
+| `spfl.co.uk` | blocked (also blocked through the hosted fetch path, not only `curl`) |
+| `en.wikipedia.org` | blocked |
+| `www.bbc.co.uk` | blocked |
+| `api.football-data.org` | blocked |
+| `api.sportmonks.com` | blocked |
+| `www.football-data.co.uk` | blocked |
+
+The last row is the new information and it is worth stating plainly: the
+**free CSV archive this whole lab is built on** is unreachable from an
+interactive session. It is not unreachable from a **GitHub Actions runner**,
+which is where `fetch_history.py` has always run and where run 31746786543 ran
+today. So the constraint is a property of the interactive container, not of
+the project — and the correct route for any future retrieval is a workflow
+job, not another attempt from here.
+
+**No cup forecast is produced.** §28's precondition is an authoritative
+orientation, and none is reachable. The provisional draw recorded in §36
+remains provisional evidence and explicitly not an authority; home advantage
+is far too large an effect to publish eight probability triples on top of an
+unverified home/away orientation, which is the mistake three previous sessions
+correctly declined to make. **Nothing was written to `ai.predictions`.**
+
+The July League Cup schedule is unobtainable for the same reason, so the
+congestion re-test (`matches_7d`, `matches_14d`, `third_in_7d`,
+`fourth_in_14d`, `matches_7d_diff`) is **not run** and stays open.
+
+### 6a. football-data.org entitlement — the call was authorised and is not possible from here
+
+The deferral recorded in §6 is lifted: Production is at contract 188 and the
+closeout is finished, so the one catalogue call is no longer blocked by
+promotion instability. It was still not made, for two independent reasons,
+either of which alone is sufficient:
+
+1. **`api.football-data.org` is refused by this container's egress proxy**
+   (CONNECT 403), as above.
+2. **The credential is not reachable from here.** `FOOTBALL_DATA_API_KEY` is a
+   Supabase **Edge Function** secret, read via `Deno.env.get` inside the
+   `provider-poll` runtime. It is not a repository secret — nothing under
+   `.github/` references it — and it is not readable through SQL. An
+   unauthenticated `/v4/competitions` call would return the free catalogue and
+   would therefore **answer a different question** than "is the configured
+   Production key upgraded", while looking like an answer.
+
+**Provider calls made for this: zero.** The entitlement question stays open
+with the 5 and 13 August retained evidence as its most recent answer — the
+standard 12-competition catalogue, containing no domestic cup.
+
+The way to close it, for a later session: a one-off `workflow_dispatch` job on
+a runner (which has egress) with the key added as a repository secret. That is
+a new provider-calling path and does not belong in #770, which is
+provider-free by construction and asserted to be so.
+
 ## 37. The Over/Under 2.5 benchmark — designed, declared, not run
 
 This is the largest single item this session did not complete, and it is
@@ -1321,6 +1522,112 @@ representation, quarter and half lines, push, half-win and half-loss,
 home/away semantics and which bookmakers quote pairs. A settlement rule that
 is wrong on quarter lines produces a clean-looking number that is wrong for
 every quarter-line fixture in the sample.
+
+## 39. The Over/Under 2.5 benchmark — run, and the model has no goal information the book lacks
+
+Run **31746786543**, Development, `research` arm, `AI_READ_ONLY=1`, head
+`17bd396`, 21:41–21:5x UTC 13 August 2026. All nine leagues. **Zero provider
+calls** — every collection step resolved to `skipped`, and the arm names no
+provider script. **Zero database writes.** The design in §37 was declared
+before this ran and is unchanged.
+
+### The archive supports exactly one bookmaker
+
+`AVG`, `B365` and `MAX` are the only price sources present. Two of the three
+are aggregates and are excluded by name, so **every number below rests on
+B365 alone** — 22,686 fixture pairs, mean overround 1.051–1.058. This is a
+real constraint on the study, not a detail: "bookmaker coverage" is one book.
+
+Match rate is 76–78% in every league, and the shortfall is entirely
+structural: **1718 and 1819 match zero fixtures and every season from 1920
+matches ~100%**, exactly reproducing the archive's known coverage boundary.
+
+### Headline: the book wins in eight of nine
+
+| league | matched | over rate | Poisson LL | market LL | ΔLL | Poisson Brier | market Brier | ΔBrier | Poisson ECE | market ECE |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| EPL | 2659 | 0.550 | 0.6820 | 0.6744 | **+0.0076** | 0.2445 | 0.2408 | +0.0037 | 0.0246 | 0.0084 |
+| ECH | 3863 | 0.469 | 0.6885 | 0.6845 | **+0.0040** | 0.2477 | 0.2457 | +0.0020 | 0.0058 | 0.0101 |
+| EL1 | 3710 | 0.490 | 0.6928 | 0.6854 | **+0.0074** | 0.2498 | 0.2462 | +0.0037 | 0.0239 | 0.0158 |
+| EL2 | 3746 | 0.468 | 0.6901 | 0.6830 | **+0.0071** | 0.2485 | 0.2450 | +0.0035 | 0.0100 | 0.0130 |
+| ENL | 3626 | 0.525 | 0.6902 | 0.6853 | **+0.0049** | 0.2486 | 0.2461 | +0.0024 | 0.0182 | 0.0084 |
+| SPL | 1545 | 0.526 | 0.6857 | 0.6763 | **+0.0094** | 0.2464 | 0.2417 | +0.0047 | 0.0313 | 0.0262 |
+| SCH | 1171 | 0.486 | 0.6924 | 0.6884 | **+0.0040** | 0.2496 | 0.2477 | +0.0020 | 0.0368 | 0.0062 |
+| SL1 | 1142 | 0.534 | 0.6987 | 0.6876 | **+0.0111** | 0.2526 | 0.2473 | +0.0053 | 0.0478 | 0.0151 |
+| SL2 | 1146 | 0.513 | 0.6858 | 0.6885 | *−0.0028* | 0.2464 | 0.2477 | −0.0013 | 0.0205 | 0.0239 |
+
+Log loss and Brier agree in all nine. **SL2 is the single exception** — the
+smallest sample, and it loses its own `>15pp` bucket by +0.0661, so it does
+not survive where a disagreement would be acted on. Treat it as noise.
+
+The absolute gaps are small — 0.004 to 0.011 nats against a ~0.685 baseline,
+so 0.6–1.6%. **The grid is not broken.** It describes goals about as well as a
+priced market. It just never describes them better.
+
+### The result that matters: our disagreement is inertia, not information
+
+Pooled over all nine leagues, by how far the two sides disagree:
+
+| bucket | n | share | actual over | Poisson LL | market LL | model − market | Poisson mean p | market mean p |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| <5pp | 14839 | 0.656 | 0.490 | 0.6869 | 0.6854 | +0.0015 | 0.490 | 0.492 |
+| 5–10pp | 6137 | 0.271 | 0.513 | 0.6927 | 0.6820 | +0.0107 | 0.492 | 0.512 |
+| 10–15pp | 1384 | 0.061 | 0.547 | 0.6941 | 0.6686 | +0.0255 | 0.492 | 0.550 |
+| >15pp | 248 | 0.011 | 0.585 | 0.7282 | 0.6751 | **+0.0531** | 0.494 | 0.564 |
+
+**The market is better in every bucket and the margin grows monotonically —
+it is 35× wider in the largest bucket than the smallest.**
+
+Read the last three columns together, because they contain the whole
+diagnosis. As disagreement widens the realised over rate moves 0.490 → 0.513
+→ 0.547 → 0.585, and the **market's** mean probability tracks it almost
+exactly: 0.492 → 0.512 → 0.550 → 0.564. The **model's** does not move at all:
+0.490 → 0.492 → 0.492 → 0.494, flat to within four thousandths across every
+bucket.
+
+So the disagreement is not two informed opinions differing. It is **the book
+moving and the model standing still.** Every apparent edge this study could
+have reported is the model's failure to identify a high-scoring fixture, and
+the book identifying it correctly.
+
+### The five declared hypotheses
+
+| # | hypothesis | verdict |
+| --- | --- | --- |
+| B1 | goal level | **Weakly supported.** Total goals under-predicted in 7 of 9 (EPL −0.072, ENL −0.086) and over-predicted in 2 (SL1 +0.095). Pooled bias on P(Over) is −0.011 for the model against +0.000 for the book. Real, small, league-varying — not the main story. |
+| B2 | early season | **Not supported as declared.** The declared column is bias, and the model's bias is *smaller* in the opening fifth (−0.0018) than in the rest of the season (−0.0127). Its log loss gap is marginally wider early (+0.0084 vs +0.0054), but that is a different quantity from the one declared and it is not claimed as support. |
+| B3 | promoted clubs | **Supported.** Model − market log loss is **+0.0146 on fixtures involving a club new to the division against +0.0057 elsewhere — 2.6× worse**, over 775 fixtures. The expected-total errors are large: SL1 newcomer fixtures expect 3.04 goals and get 2.54; ECH expect 2.67 and get 3.05. The model does not know a promoted or relegated club's goal level. |
+| B4 | disagreement | **Strongly supported, and monotonically.** See above. |
+| B5 | dispersion | **Rejected, and in the opposite direction where it matters.** The model is *less* dispersed than the book in the six larger leagues (EPL 0.067 vs 0.079, ECH 0.041 vs 0.055, EL1 0.035 vs 0.046, EL2 0.042 vs 0.050, ENL 0.039 vs 0.055, SPL 0.077 vs 0.085) and *more* dispersed in the three smallest (SCH 0.066 vs 0.052, SL1 0.058 vs 0.046, SL2 0.069 vs 0.047). Under-confident where there is data, over-confident where there is not. |
+
+### What follows, and what does not
+
+**Nothing is promoted and no selection is emitted.** The benchmark authorises
+no market-informed model on its own, and §37's boundary is unchanged.
+
+Three things it does establish:
+
+1. **Do not build an Over/Under selection engine on this grid.** Not because
+   the grid is bad, but because B4's monotone table says every large
+   disagreement is the model being wrong. A value gate over this signal would
+   fire hardest exactly where it is least reliable.
+2. **B3 is the actionable defect**, and it connects to live Production: five
+   of the 41 clean forecasts carry `is_newcomer = 1` (Lincoln, West Ham,
+   Leicester, Bromley, Coventry — all genuine division changes). This
+   benchmark says those are precisely the fixtures whose goal distribution is
+   least trustworthy, independent of whether the identity is correct.
+3. **If a market-informed family is ever built, anchor on the price and model
+   the adjustment** — not model-versus-market. The pooled table is a direct
+   measurement that the price already contains what our features do not.
+
+**This is a prematch benchmark. It is not CLV**, the report declares
+`is_clv: false`, and no closing price exists in this archive for this market.
+
+### Asian handicap
+
+Still not started, as §37 planned. It needs its settlement semantics written
+down first — whole, half and quarter lines, push, half-win, half-loss and the
+sign convention on the home side — and none of that is documented yet.
 
 ## 38. Safety
 
