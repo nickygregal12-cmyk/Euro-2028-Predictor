@@ -23,7 +23,8 @@ import pandas as pd
 import requests
 
 from aliases import LIVE_CLUBS, canonical_for
-from config import ALL_DIVISIONS, FOOTBALL_DATA_FIXTURES_URL, LEAGUES
+from config import (ALL_DIVISIONS, FOOTBALL_DATA_FIXTURES_URL, LEAGUES,
+                    strip_bom)
 from db import connect, job, query_df, settle_fixtures_from_history, upsert_fixtures
 
 DIVISION_TO_LEAGUE = {lg.top_division: key for key, lg in LEAGUES.items()}
@@ -89,7 +90,7 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60) -> list[dict]:
     resp = requests.get(FOOTBALL_DATA_FIXTURES_URL, timeout=timeout,
                         headers={"User-Agent": "ai-lab/0.1"})
     resp.raise_for_status()
-    df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
+    df = pd.read_csv(io.BytesIO(strip_bom(resp.content)), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
     if df.empty:
         # A fixtures.csv with a header and no rows is Football-Data's ordinary
@@ -97,11 +98,12 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60) -> list[dict]:
         # error, and it must not be one, or the Tuesday and Friday jobs go red
         # on quiet weeks until nobody reads them.
         #
-        # It used to crash: `dropna(how='all', axis=1)` drops EVERY column of
-        # a row-less frame, because each one is vacuously all-NaN, and the
-        # next line asked for `Div`. Measured on hosted Development on
-        # 12 August 2026, nine days before the season's first fixture, the
-        # bootstrap imported 46,215 matches and then died on `KeyError: 'Div'`.
+        # Without this guard it crashes rather than reporting: `dropna(how=
+        # 'all', axis=1)` below drops EVERY column of a row-less frame, since
+        # each one is vacuously all-NaN, and the `Div` lookup then fails. That
+        # is a latent bug rather than the one observed — the hosted failure of
+        # 13 August 2026 was the UTF-8 BOM `strip_bom` now removes, on a file
+        # that had rows all along.
         print("  fixtures.csv has no rows yet; nothing to sync")
         return []
     df = df.dropna(how="all", axis=1)

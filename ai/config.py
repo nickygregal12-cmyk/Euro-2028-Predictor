@@ -125,6 +125,28 @@ def seasons_from(first: str, today: date | None = None) -> tuple[str, ...]:
 FOOTBALL_DATA_URL = "https://www.football-data.co.uk/mmz4281/{season}/{division}.csv"
 FOOTBALL_DATA_FIXTURES_URL = "https://www.football-data.co.uk/fixtures.csv"
 
+UTF8_BOM = b"\xef\xbb\xbf"
+
+
+def strip_bom(content: bytes) -> bytes:
+    """Remove a UTF-8 byte-order mark before the CSV is decoded as Latin-1.
+
+    Football-Data's files are Latin-1, and `fixtures.csv` is served with a
+    UTF-8 BOM in front of it. Decoding those three bytes as Latin-1 turns them
+    into the characters `ï»¿`, which become part of the FIRST column's name —
+    so `Div` arrives as `ï»¿Div` and every lookup of `Div` fails.
+
+    Measured on hosted Development on 13 August 2026: the bootstrap imported
+    46,215 matches and then died on the fixture sync, and the columns it
+    reported were `['ï»¿Div', 'Date', 'Time', ...]`. Only the first column is
+    affected, which is why the season files were unharmed — nothing reads
+    their first column, because the division is passed in rather than read.
+
+    Stripped from the bytes rather than patched in the column names, so the
+    frame never carries a name that depends on which encoding was guessed.
+    """
+    return content[len(UTF8_BOM):] if content.startswith(UTF8_BOM) else content
+
 OUTCOMES = ("H", "D", "A")
 
 

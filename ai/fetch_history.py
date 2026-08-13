@@ -30,7 +30,7 @@ import requests
 from aliases import canonical_for
 from config import (AH_MARKET_COLUMNS, ALL_DIVISIONS, FOOTBALL_DATA_URL,
                     LEAGUES, ODDS_COLUMNS, OU_MARKET_COLUMNS, SEASONS,
-                    current_season)
+                    current_season, strip_bom)
 from db import job, upsert_historical_market_prices, upsert_raw_matches
 
 def _parse_date(value):
@@ -128,7 +128,7 @@ def fetch_one(division: str, season: str, timeout: int = 60) -> list[dict]:
     resp.raise_for_status()
 
     # These files are Latin-1 and contain trailing blank columns.
-    df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
+    df = pd.read_csv(io.BytesIO(strip_bom(resp.content)), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
     if df.empty:
         # A season file published with only a header — the normal state of the
