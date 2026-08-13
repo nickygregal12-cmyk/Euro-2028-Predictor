@@ -57,6 +57,13 @@ name: Production 185 to 188 rehearsal
 # state query and dumps. Everything applied is applied to a disposable local
 # target restored from those dumps.
 #
+# IT STILL REQUIRES A FRESH BACKUP, and the reason is worth stating because the
+# read-only property above makes it look unnecessary. The backup does not
+# protect this run; it protects the ROLLOUT this rehearsal exists to authorise.
+# Demanding it at the FIRST step of the sequence rather than the last is what
+# stops "take a backup first" from being a rule that survives only as long as
+# the person in a hurry remembers it.
+#
 # Remove this one-shot workflow after the hosted contract/evidence record has
 # been reconciled.
 
@@ -69,9 +76,13 @@ on:
       confirmation:
         description: Type REHEARSE-PRODUCTION-185-TO-188 to proceed
         required: true
+      backup_run_id:
+        description: Run id of the successful FRESH Production backup
+        required: true
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: production-185-to-188-rehearsal
@@ -124,6 +135,35 @@ jobs:
             exit 1
           }
           mkdir -p "${WORK_DIR}"
+
+      - name: Prove a successful FRESH backup exists before Production is read
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The rehearsal is read-only against Production — dumps and a state
+          # query, nothing else — so a backup is not what protects THIS run. It
+          # is required here because the backup is what protects the ROLLOUT
+          # this rehearsal exists to authorise, and requiring it at the first
+          # step of the sequence rather than the last is what stops "take a
+          # backup first" from being a rule that survives only as long as the
+          # person in a hurry remembers it. Checked against the API rather than
+          # asserted by whoever dispatched this.
+          json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}")"
+          conclusion="$(printf '%s' "${json}" | jq -r '.conclusion')"
+          path="$(printf '%s' "${json}" | jq -r '.path')"
+          created="$(printf '%s' "${json}" | jq -r '.created_at')"
+          [ "${conclusion}" = 'success' ] || {
+            echo "ERROR: backup run ${BACKUP_RUN_ID} concluded '${conclusion}', not success."
+            exit 1
+          }
+          [ "${path}" = '.github/workflows/production-backup.yml' ] || {
+            echo "ERROR: backup run ${BACKUP_RUN_ID} is ${path}, not the Production backup workflow."
+            exit 1
+          }
+          echo "Backup run ${BACKUP_RUN_ID} verified: success, ${path}, created ${created}."
 
       - name: Prove the repository still holds exactly the approved contract 188
         shell: bash

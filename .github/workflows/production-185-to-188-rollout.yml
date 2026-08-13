@@ -171,6 +171,17 @@ jobs:
           }
           echo 'The rehearsal ran at exactly the head being promoted.'
 
+          # And the backup must PRECEDE the rehearsal. A backup taken after the
+          # rehearsal is not the state this promotion would be rolled back to,
+          # and the ordering is the whole point of requiring both.
+          backup_at="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}" --jq '.created_at')"
+          rehearsal_at="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${REHEARSAL_RUN_ID}" --jq '.created_at')"
+          [ "${backup_at}" \< "${rehearsal_at}" ] || {
+            echo "ERROR: backup ${backup_at} does not precede rehearsal ${rehearsal_at}."
+            exit 1
+          }
+          echo "Sequence verified: backup ${backup_at} -> rehearsal ${rehearsal_at} -> this rollout."
+
       - name: Prove the repository still holds exactly the approved contract 188
         shell: bash
         run: |
