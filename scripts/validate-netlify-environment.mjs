@@ -10,6 +10,18 @@ const NON_PRODUCTION_CONTEXTS = new Set([
   'dev',
 ])
 
+// Cloudflare publishes these site keys specifically for testing. A production
+// Turnstile secret rejects their dummy tokens, so allowing one into a production
+// Vite bundle turns valid credentials into Supabase `captcha_failed` errors.
+// Keep the list explicit so a real site key is never inferred from its shape.
+const TURNSTILE_TEST_SITE_KEYS = new Set([
+  '1x00000000000000000000AA',
+  '2x00000000000000000000AB',
+  '1x00000000000000000000BB',
+  '2x00000000000000000000BB',
+  '3x00000000000000000000FF',
+])
+
 // `VITE_SUPABASE_ANON_KEY` is compiled into the browser bundle, so it must be a
 // key that is safe to publish. Anything server-side grade bypasses row-level
 // security for every visitor.
@@ -96,6 +108,30 @@ function verifySupabaseKey(key, expectedProjectRef, context) {
       'VITE_SUPABASE_ANON_KEY format. Expected a publishable key ' +
       `("${PUBLISHABLE_KEY_PREFIX}…") or an anon JWT.`,
   )
+}
+
+/**
+ * Production auth is fail-closed: the browser must carry a real Turnstile site
+ * key, never one of Cloudflare's public dummy keys. Non-production may continue
+ * to use test keys because its Supabase project is configured independently.
+ *
+ * @param {Record<string, string | undefined>} env
+ */
+function verifyProductionTurnstile(env) {
+  const siteKey = env.VITE_TURNSTILE_SITE_KEY?.trim()
+  if (!siteKey) {
+    throw new Error(
+      'Production Netlify build is missing VITE_TURNSTILE_SITE_KEY; ' +
+        'production authentication must not ship with anti-bot protection disabled.',
+    )
+  }
+
+  if (TURNSTILE_TEST_SITE_KEYS.has(siteKey)) {
+    throw new Error(
+      'Production Netlify build supplies a Cloudflare Turnstile test site key. ' +
+        'Use the real production widget key; test keys are only valid outside production.',
+    )
+  }
 }
 
 /**
@@ -188,6 +224,7 @@ export function validateNetlifyEnvironment(env = process.env) {
       )
     }
 
+    verifyProductionTurnstile(env)
     const key = verifySupabaseKey(supabaseKey, PRODUCTION_PROJECT_REF, context)
 
     return {
