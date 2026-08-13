@@ -254,6 +254,43 @@ describe('a merge does not run the forecasting path against a database that cann
   })
 })
 
+describe('every task the manual step implements is one the selector offers', () => {
+  /**
+   * Written after a dispatch was refused with `not in the list of allowed
+   * values []`. The arm existed and its guards passed; the option had been
+   * added to the wrong list and sat inside the shell script as a stray `-
+   * research-ablate` line. Both halves parse, both halves read plausibly, and
+   * the only symptom is a 422 at dispatch time from the API rather than from
+   * anything in the repository.
+   */
+  // Two-space indent is the outer `case`'s own arms once YAML has stripped
+  // the block scalar's base indent. The nested case inside `predict|evaluate|
+  // value)` sits deeper and is deliberately not matched — its arms are not
+  // tasks, they are a second dispatch on the same already-offered task.
+  const arms = [...manualStep.matchAll(/^ {2}([a-z|-]+)\)/gm)]
+    .flatMap((m) => m[1].split('|'))
+
+  it('finds the arms at all', () => {
+    expect(arms).toContain('research')
+    expect(arms.length).toBeGreaterThan(5)
+  })
+
+  it('offers each one in the task selector', () => {
+    for (const arm of arms) {
+      expect(dispatch.task?.options, `task ${arm} is implemented but not offered`)
+        .toContain(arm)
+    }
+  })
+
+  it('leaves no option that would fall through to nothing', () => {
+    // `bootstrap|train|free-odds` is a deliberate no-op arm — those tasks are
+    // run by later steps — so it is an arm like any other and must be listed.
+    for (const option of dispatch.task?.options ?? []) {
+      expect(arms, `task ${option} is offered but has no arm`).toContain(option)
+    }
+  })
+})
+
 describe('the studies are runnable and promote nothing', () => {
   it('offers every study the module implements', () => {
     const module = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')

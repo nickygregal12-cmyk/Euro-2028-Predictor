@@ -124,6 +124,12 @@ on:
           # that a workstation cannot egress, and running them here must not
           # be able to leave a mark on the environment that holds them.
           - research
+          # The same read-only plane, for the question that is not a study:
+          # does a candidate feature family earn its place in DEFAULT_GROUPS.
+          # A separate arm rather than a pseudo-study because `ablate.py` is a
+          # different script with a different comparison, and because the
+          # study selector is asserted to equal experiments.py's own registry.
+          - research-ablate
 
 permissions:
   contents: read
@@ -418,13 +424,7 @@ jobs:
                   --study "${{ inputs.study }}" --record || status=1
               done
               exit "$status" ;;
-            # The same read-only plane as `research`, for the question that is
-          # not a study: does a candidate feature family earn its place. It is
-          # a separate arm rather than a pseudo-study because `ablate.py` is a
-          # different script with a different comparison, and because the
-          # study selector is asserted to equal experiments.py's own registry.
-          - research-ablate
-          # Bulk read-only research over a chosen league or all nine.
+            # Bulk read-only research over a chosen league or all nine.
             #
             # Provider-free by construction: no fetch_history.py,
             # sync_fixtures.py, fetch_fixtures_odds.py or odds_api.py appears
