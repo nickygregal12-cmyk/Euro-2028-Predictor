@@ -40,6 +40,12 @@ NEUTRAL_SOT_PCT = 0.35        # share of shots that hit the target
 NEUTRAL_CONVERSION = 0.30     # goals per shot on target
 NEUTRAL_CORNERS = 5.0
 NEUTRAL_HT_GOALS = 0.65       # goals in one half
+# Discipline. Measured on Production, 13 August 2026, over all nine divisions:
+# 3.14 to 3.73 cards and 20.3 to 23.3 fouls per match, which is a remarkably
+# narrow band across four English tiers and four Scottish ones.
+NEUTRAL_FOULS = 11.0          # fouls committed by ONE team per match
+NEUTRAL_CARDS = 1.7           # yellows shown to ONE team per match
+NEUTRAL_REDS = 0.06           # sendings-off per team per match
 
 # Every column this module reads out of `ai.raw_matches`, declared so the
 # loader can be checked against it rather than trusted.
@@ -61,6 +67,9 @@ SOURCE_COLUMNS: frozenset[str] = frozenset({
     "home_shots", "away_shots",
     "home_corners", "away_corners",
     "ht_home_goals", "ht_away_goals",
+    "home_fouls", "away_fouls",
+    "home_yellows", "away_yellows",
+    "home_reds", "away_reds",
 })
 
 
@@ -263,6 +272,9 @@ class TeamState:
                 "ht_gf": NEUTRAL_HT_GOALS, "ht_ga": NEUTRAL_HT_GOALS,
                 "sh_gf": NEUTRAL_HT_GOALS, "sh_ga": NEUTRAL_HT_GOALS,
                 "ht_known": 0.0,
+                "fouls_f": NEUTRAL_FOULS, "fouls_a": NEUTRAL_FOULS,
+                "cards_f": NEUTRAL_CARDS, "cards_a": NEUTRAL_CARDS,
+                "reds_f": NEUTRAL_REDS, "discipline_known": 0.0,
                 "overperf": 0.0, "perf_margin": 0.0, "perf_disagree": 0.0,
                 "perf_known": 0.0,
                 "distorted": 0.0}
@@ -285,6 +297,9 @@ class TeamState:
         total_rows = [r for r in rows if r.get("shots_f") is not None]
         corner_rows = [r for r in rows if r.get("corners_f") is not None]
         ht_rows = [r for r in rows if r.get("ht_gf") is not None]
+        foul_rows = [r for r in rows if r.get("fouls_f") is not None]
+        card_rows = [r for r in rows if r.get("cards_f") is not None]
+        red_rows = [r for r in rows if r.get("reds_f") is not None]
 
         # Conversion. This is the half a rolling average of shot VOLUME cannot
         # express, and the reason volume alone measured as noise: eleven goals
@@ -358,6 +373,15 @@ class TeamState:
             "perf_margin": perf_margin,
             "perf_disagree": disagree,
             "perf_known": (k / n) if n else 0.0,
+            # Discipline. A team's own foul and card rate is a stable style
+            # signal available almost everywhere; the REFEREE's identity is
+            # not, and is deliberately absent — see FEATURE_GROUPS["discipline"].
+            "fouls_f": mean_of("fouls_f", foul_rows, NEUTRAL_FOULS),
+            "fouls_a": mean_of("fouls_a", foul_rows, NEUTRAL_FOULS),
+            "cards_f": mean_of("cards_f", card_rows, NEUTRAL_CARDS),
+            "cards_a": mean_of("cards_a", card_rows, NEUTRAL_CARDS),
+            "reds_f": mean_of("reds_f", red_rows, NEUTRAL_REDS),
+            "discipline_known": (len(card_rows) / n) if n else 0.0,
             # Share of the window played with a sending-off. Form built from
             # ten-man matches is weaker evidence about an eleven-a-side
             # fixture, and this lets the model discount it rather than
@@ -415,7 +439,10 @@ class TeamState:
                sot_f: float | None = None, sot_a: float | None = None,
                shots_f: float | None = None, shots_a: float | None = None,
                corners_f: float | None = None, corners_a: float | None = None,
-               ht_gf: float | None = None, ht_ga: float | None = None) -> None:
+               ht_gf: float | None = None, ht_ga: float | None = None,
+               fouls_f: float | None = None, fouls_a: float | None = None,
+               cards_f: float | None = None, cards_a: float | None = None,
+               reds_f: float | None = None) -> None:
         pts = 3 if gf > ga else (1 if gf == ga else 0)
         # Both or neither, per pair: a match with one side's shots and not the
         # other's would bias every ratio built from it, so it is unmeasured.
@@ -427,11 +454,21 @@ class TeamState:
             corners_f = corners_a = None
         if ht_gf is None or ht_ga is None:
             ht_gf = ht_ga = None
+        # Discipline travels as ONE unit: fouls, cards and sendings-off come
+        # from the same Football-Data columns and are absent together. Pairing
+        # them per side as well means a match with the home fouls and not the
+        # away fouls cannot bias the "fouls drawn" half of the family.
+        if fouls_f is None or fouls_a is None:
+            fouls_f = fouls_a = None
+        if cards_f is None or cards_a is None:
+            cards_f = cards_a = None
         row = {"pts": pts, "gf": gf, "ga": ga, "distorted": 1 if distorted else 0,
                "sot_f": sot_f, "sot_a": sot_a,
                "shots_f": shots_f, "shots_a": shots_a,
                "corners_f": corners_f, "corners_a": corners_a,
-               "ht_gf": ht_gf, "ht_ga": ht_ga}
+               "ht_gf": ht_gf, "ht_ga": ht_ga,
+               "fouls_f": fouls_f, "fouls_a": fouls_a,
+               "cards_f": cards_f, "cards_a": cards_a, "reds_f": reds_f}
         self.match_dates.append(when)
         self.recent.append(row)
         (self.recent_home if venue == "home" else self.recent_away).append(row)
@@ -535,6 +572,44 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "home_perf_disagree", "away_perf_disagree",
         "home_perf_known", "away_perf_known",
     ),
+    # Team discipline: how a side fouls, is fouled, and collects cards.
+    #
+    # A CANDIDATE, measured by `ablate.py` before it may join DEFAULT_GROUPS.
+    #
+    # There are deliberately NO REFEREE FEATURES here, and the reason is a
+    # measurement rather than a preference. Per-referee match counts on
+    # Production, 13 August 2026, over the whole archive:
+    #
+    #   division  referees  median matches  share of matches by a
+    #                       per referee     referee with 100+ matches
+    #   E0          66          50            79.2%
+    #   E1         137          21            69.5%
+    #   SC0         50          28            70.6%
+    #   E2         181          31            32.4%
+    #   E3         194          26            27.2%
+    #   EC         199          28            16.6%
+    #   SC1         51          28             0.0%
+    #   SC2         66          22             0.0%
+    #   SC3         70          20             0.0%
+    #
+    # In the three Scottish lower divisions NOT ONE referee has officiated a
+    # hundred matches in fifteen seasons, and the median is twenty. A
+    # per-referee card or foul rate estimated from twenty matches is mostly
+    # the noise of which fixtures they happened to be given, and a model that
+    # reads it as a referee's disposition will confidently attribute a
+    # bad-tempered derby to whoever was in the middle. Referee identity is
+    # also only 63% present at all below SC0.
+    #
+    # So the family is what the data supports: the TEAM's own rates, which are
+    # available for 100% of English league rows and 63% of Scottish lower-tier
+    # rows, and which describe a persistent style rather than a person.
+    "discipline": (
+        "home_fouls_f", "home_fouls_a", "away_fouls_f", "away_fouls_a",
+        "home_cards_f", "home_cards_a", "away_cards_f", "away_cards_a",
+        "home_reds_f", "away_reds_f",
+        "fouls_f_diff", "cards_f_diff",
+        "home_discipline_known", "away_discipline_known",
+    ),
     "congestion": (
         "home_matches_7d", "away_matches_7d",
         "home_matches_14d", "away_matches_14d",
@@ -543,6 +618,105 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "matches_7d_diff",
     ),
 }
+
+
+# ---------------------------------------------------------------------------
+# Which columns are a NEUTRAL PRIOR rather than a measurement
+# ---------------------------------------------------------------------------
+#
+# Every column below is filled with a NEUTRAL_* constant when its source stat
+# was not recorded, and paired with a `*_known` column so a model can tell
+# "average" from "unmeasured". That pairing is the whole reason the neutral
+# constants are safe.
+#
+# It also means something that was asserted about this feature block and is
+# NOT true: the frame handed to a model contains no NaN anywhere, on any
+# league, including the National League where shots, corners and half-time
+# goals are absent from every row. `GradientBoostedModel` was chosen partly
+# for its native missingness handling, described there as letting "the
+# neutral-prior columns become a fallback rather than the only
+# representation". Measured, they ARE the only representation and the tree's
+# NaN branch is never taken, because nothing upstream ever emits a NaN.
+#
+# This map exists so that claim can be TESTED rather than repeated: a model
+# may opt in to reconstructing genuine missingness from it. It is deliberately
+# not applied by default, because turning neutral priors back into NaN changes
+# what every model sees and that is a measurement, not a tidy-up.
+#
+# The flag is a COVERAGE FRACTION (k/n over the form window), not a boolean.
+# Reconstruction therefore applies only where it is exactly zero — nothing in
+# the window was measured. A partially covered window has a real, if noisy,
+# mean, and blanking it would discard a measurement rather than mark its
+# absence.
+NEUTRAL_FILLED_BY_FLAG: dict[str, tuple[str, ...]] = {
+    "home_sot_known": ("home_form5_sot_f", "home_form5_sot_a",
+                       "home_sot_ratio", "home_sot_pct"),
+    "away_sot_known": ("away_form5_sot_f", "away_form5_sot_a",
+                       "away_sot_ratio", "away_sot_pct"),
+    "home_shots_known": ("home_shots_f", "home_shots_a"),
+    "away_shots_known": ("away_shots_f", "away_shots_a"),
+    "home_corners_known": ("home_corners_f", "home_corners_a"),
+    "away_corners_known": ("away_corners_f", "away_corners_a"),
+    "home_ht_known": ("home_ht_gf", "home_ht_ga", "home_sh_gf", "home_sh_ga"),
+    "away_ht_known": ("away_ht_gf", "away_ht_ga", "away_sh_gf", "away_sh_ga"),
+    "home_perf_known": ("home_overperformance", "home_perf_margin",
+                        "home_perf_disagree"),
+    "away_perf_known": ("away_overperformance", "away_perf_margin",
+                        "away_perf_disagree"),
+    "home_discipline_known": ("home_fouls_f", "home_fouls_a",
+                              "home_cards_f", "home_cards_a", "home_reds_f"),
+    "away_discipline_known": ("away_fouls_f", "away_fouls_a",
+                              "away_cards_f", "away_cards_a", "away_reds_f"),
+    # Conversion is derived from shots on target, so it is unmeasured exactly
+    # when the shot data is.
+    "home_sot_known_conversion": ("home_goals_per_sot", "home_conceded_per_sot"),
+    "away_sot_known_conversion": ("away_goals_per_sot", "away_conceded_per_sot"),
+}
+
+# A difference column is a measurement only when BOTH sides are measured, so
+# it is blanked if either flag is zero. Listing them separately keeps the
+# one-flag map above honest rather than pretending a diff has a single owner.
+NEUTRAL_FILLED_DIFFS: dict[str, tuple[str, str]] = {
+    "sot_f_diff": ("home_sot_known", "away_sot_known"),
+    "sot_a_diff": ("home_sot_known", "away_sot_known"),
+    "shots_f_diff": ("home_shots_known", "away_shots_known"),
+    "goals_per_sot_diff": ("home_sot_known", "away_sot_known"),
+    "corners_diff": ("home_corners_known", "away_corners_known"),
+    "ht_gd_diff": ("home_ht_known", "away_ht_known"),
+    "overperformance_diff": ("home_perf_known", "away_perf_known"),
+    "perf_margin_diff": ("home_perf_known", "away_perf_known"),
+    "fouls_f_diff": ("home_discipline_known", "away_discipline_known"),
+    "cards_f_diff": ("home_discipline_known", "away_discipline_known"),
+}
+
+
+def reconstruct_missing(frame: "pd.DataFrame") -> "pd.DataFrame":
+    """Return a copy where neutral-prior cells become NaN.
+
+    "Neutral prior" means the source stat was never recorded for that window,
+    which the paired `*_known` coverage fraction reports as exactly zero. The
+    `*_known` columns themselves are LEFT IN PLACE: they are real measurements
+    about the data, a learner that can use them should still see them, and
+    removing them here would confound "the tree got NaN" with "the tree lost
+    its coverage signal".
+    """
+    out = frame.copy()
+    for flag, columns in NEUTRAL_FILLED_BY_FLAG.items():
+        real_flag = flag.replace("_conversion", "")
+        if real_flag not in out.columns:
+            continue
+        blank = out[real_flag] == 0.0
+        for column in columns:
+            if column in out.columns:
+                out.loc[blank, column] = np.nan
+    for column, (left, right) in NEUTRAL_FILLED_DIFFS.items():
+        if column not in out.columns:
+            continue
+        if left not in out.columns or right not in out.columns:
+            continue
+        out.loc[(out[left] == 0.0) | (out[right] == 0.0), column] = np.nan
+    return out
+
 
 # What a model trains on unless told otherwise. A family is in this tuple
 # because `ablate.py` measured it beating the fold-to-fold noise, not because
@@ -670,6 +844,16 @@ def _row_from_state(
         "perf_margin_diff": hf["perf_margin"] - af["perf_margin"],
         "home_perf_disagree": hf["perf_disagree"], "away_perf_disagree": af["perf_disagree"],
         "home_perf_known": hf["perf_known"], "away_perf_known": af["perf_known"],
+        # -- discipline --------------------------------------------------------
+        "home_fouls_f": hf["fouls_f"], "home_fouls_a": hf["fouls_a"],
+        "away_fouls_f": af["fouls_f"], "away_fouls_a": af["fouls_a"],
+        "home_cards_f": hf["cards_f"], "home_cards_a": hf["cards_a"],
+        "away_cards_f": af["cards_f"], "away_cards_a": af["cards_a"],
+        "home_reds_f": hf["reds_f"], "away_reds_f": af["reds_f"],
+        "fouls_f_diff": hf["fouls_f"] - af["fouls_f"],
+        "cards_f_diff": hf["cards_f"] - af["cards_f"],
+        "home_discipline_known": hf["discipline_known"],
+        "away_discipline_known": af["discipline_known"],
         # -- halves -----------------------------------------------------------
         "home_ht_gf": hf["ht_gf"], "home_ht_ga": hf["ht_ga"],
         "away_ht_gf": af["ht_gf"], "away_ht_ga": af["ht_ga"],
@@ -741,13 +925,19 @@ class FeatureBuilder:
                 sot_f=stats["h_sot"], sot_a=stats["a_sot"],
                 shots_f=stats["h_shots"], shots_a=stats["a_shots"],
                 corners_f=stats["h_corners"], corners_a=stats["a_corners"],
-                ht_gf=stats["h_ht"], ht_ga=stats["a_ht"])
+                ht_gf=stats["h_ht"], ht_ga=stats["a_ht"],
+                fouls_f=stats["h_fouls"], fouls_a=stats["a_fouls"],
+                cards_f=stats["h_cards"], cards_a=stats["a_cards"],
+                reds_f=stats["h_reds"])
             self.state[away_name].record(
                 ag, hg, "away", when, top, division, distorted,
                 sot_f=stats["a_sot"], sot_a=stats["h_sot"],
                 shots_f=stats["a_shots"], shots_a=stats["h_shots"],
                 corners_f=stats["a_corners"], corners_a=stats["h_corners"],
-                ht_gf=stats["a_ht"], ht_ga=stats["h_ht"])
+                ht_gf=stats["a_ht"], ht_ga=stats["h_ht"],
+                fouls_f=stats["a_fouls"], fouls_a=stats["h_fouls"],
+                cards_f=stats["a_cards"], cards_a=stats["h_cards"],
+                reds_f=stats["a_reds"])
 
             h, a = self.state[home_name], self.state[away_name]
             expected = _elo_expected(h.elo, a.elo)
@@ -870,6 +1060,12 @@ class FeatureBuilder:
                      "a_corners": _optional_number(getattr(rec, "away_corners", None)),
                      "h_ht": _optional_number(getattr(rec, "ht_home_goals", None)),
                      "a_ht": _optional_number(getattr(rec, "ht_away_goals", None)),
+                     "h_fouls": _optional_number(getattr(rec, "home_fouls", None)),
+                     "a_fouls": _optional_number(getattr(rec, "away_fouls", None)),
+                     "h_cards": _optional_number(getattr(rec, "home_yellows", None)),
+                     "a_cards": _optional_number(getattr(rec, "away_yellows", None)),
+                     "h_reds": _optional_number(getattr(rec, "home_reds", None)),
+                     "a_reds": _optional_number(getattr(rec, "away_reds", None)),
                  })
             )
 

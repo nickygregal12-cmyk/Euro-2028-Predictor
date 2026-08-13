@@ -42,17 +42,61 @@ on:
           - production
           - development
       study:
-        description: Which experiments study to run (task=experiments only)
+        description: Which experiments study to run (task=experiments or research)
         required: false
         default: half-life
         type: choice
         options:
           - half-life
+          - time-weighting
           - elo-transition
           - elo-margin
           - ensemble
           - calibration
           - regime-weighting
+          - gbm-diagnostic
+          - base-model
+          - league-diagnostic
+          - market-ou
+      league:
+        description: Which league the study covers (task=research only; `all` is the nine)
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - EPL
+          - ECH
+          - EL1
+          - EL2
+          - ENL
+          - SPL
+          - SCH
+          - SL1
+          - SL2
+      base_families:
+        description: >-
+          Ensemble components (task=research, study=ensemble). `default` is
+          whatever ENSEMBLE_BASE_FAMILIES currently holds; the others are the
+          predeclared component sets the ensemble question is asked with.
+        required: false
+        default: default
+        type: choice
+        options:
+          - default
+          - poisson elo
+          - poisson elo logistic
+          - poisson elo gbm
+      groups:
+        description: Which candidate feature family to ablate (task=research-ablate)
+        required: false
+        default: discipline
+        type: choice
+        options:
+          - discipline
+          - halftime
+          - performance
+          - congestion
       task:
         description: Job to run
         required: true
@@ -77,6 +121,18 @@ on:
           # feature groups. Reads only; trains no deployable model and
           # promotes nothing. `study` chooses which question is asked.
           - experiments
+          # The same studies over a chosen league or all nine, with the
+          # database session opened READ-ONLY and no --record. It exists
+          # because the studies need the forty-six thousand historical rows
+          # that a workstation cannot egress, and running them here must not
+          # be able to leave a mark on the environment that holds them.
+          - research
+          # The same read-only plane, for the question that is not a study:
+          # does a candidate feature family earn its place in DEFAULT_GROUPS.
+          # A separate arm rather than a pseudo-study because `ablate.py` is a
+          # different script with a different comparison, and because the
+          # study selector is asserted to equal experiments.py's own registry.
+          - research-ablate
 
 permissions:
   contents: read
@@ -371,6 +427,50 @@ jobs:
                   --study "${{ inputs.study }}" --record || status=1
               done
               exit "$status" ;;
+            # Bulk read-only research over a chosen league or all nine.
+            #
+            # Provider-free by construction: no fetch_history.py,
+            # sync_fixtures.py, fetch_fixtures_odds.py or odds_api.py appears
+            # in this branch, so it cannot spend a request of any kind.
+            #
+            # Read-only by enforcement rather than by convention. AI_READ_ONLY
+            # opens the session with default_transaction_read_only=on, so an
+            # insert raises read_only_sql_transaction from PostgreSQL; and
+            # experiments.py refuses --record outright under it, so the
+            # contradictory request fails before the study runs rather than
+            # twenty minutes later. It writes its JSON reports to the runner
+            # and they leave as artefacts.
+            research)
+              export AI_READ_ONLY=1
+              # The ensemble question is asked of a COMPONENT SET, so the set
+              # is a dispatch input rather than whatever the source default
+              # happens to be on the day. `default` passes nothing, which is
+              # what makes "the shipped ensemble" itself measurable.
+              families=()
+              if [ "${{ inputs.study }}" = ensemble ] \
+                 && [ "${{ inputs.base_families }}" != default ]; then
+                read -r -a families <<< "${{ inputs.base_families }}"
+                families=(--base-families "${families[@]}")
+              fi
+              if [ "${{ inputs.league }}" = all ]; then
+                ./run_leagues.sh experiments.py --study "${{ inputs.study }}" \
+                  ${families[@]+"${families[@]}"}
+              else
+                python experiments.py --league "${{ inputs.league }}" \
+                  --study "${{ inputs.study }}" ${families[@]+"${families[@]}"}
+              fi ;;
+            # `ablate.py` has no --record and writes nothing at all, so the
+            # read-only session is belt and braces rather than the only guard.
+            # It is exported anyway: the guarantee this arm offers must not
+            # depend on a property of a script it merely happens to call.
+            research-ablate)
+              export AI_READ_ONLY=1
+              if [ "${{ inputs.league }}" = all ]; then
+                ./run_leagues.sh ablate.py --groups "${{ inputs.groups }}"
+              else
+                python ablate.py --league "${{ inputs.league }}" \
+                  --groups "${{ inputs.groups }}"
+              fi ;;
             bootstrap|train|free-odds) ;;
           esac
 
@@ -387,6 +487,27 @@ jobs:
             python fetch_fixtures_odds.py
           fi
           ./run_leagues.sh train.py --family poisson --version "auto-$stamp" --walk-forward
+
+      # A nine-league study prints roughly two hundred lines, of which about
+      # eighteen carry a number. The artefact holds the reports, but reading it
+      # needs a credential the reader of a log does not have, so the run's own
+      # findings were only ever recoverable by paging the log. This restates
+      # them compactly at the end. It reads files the run just wrote, touches
+      # no database and changes no result.
+      - name: Digest the study reports into the log
+        if: always() && github.event_name == 'workflow_dispatch'
+        working-directory: ai
+        run: |
+          python - <<'PY'
+          import glob, json, os
+          paths = sorted(glob.glob("reports/*.json"))
+          if not paths:
+              print("no study reports written by this task")
+          for path in paths:
+              with open(path) as handle:
+                  print(f"DIGEST {os.path.basename(path)} "
+                        f"{json.dumps(json.load(handle), separators=(',', ':'), default=str)}")
+          PY
 
       - name: Keep reports and convenience artefacts
         if: always()

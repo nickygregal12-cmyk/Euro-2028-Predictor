@@ -24,6 +24,24 @@ def database_url() -> str:
     return url
 
 
+def read_only() -> bool:
+    """Whether this process may write to the database at all.
+
+    Set by the research execution path, which runs the paired studies against a
+    hosted database to READ forty-six thousand historical matches and must
+    leave every row exactly as it found it.
+
+    It is enforced in `db.connect` by opening the session with
+    `default_transaction_read_only=on`, so an insert raises
+    `read_only_sql_transaction` from PostgreSQL rather than depending on every
+    caller having remembered to withhold a `--record` flag. That is a guard
+    against a mistake, not against a determined caller: the GUC is settable by
+    any role, so code that deliberately turned it off could still write. The
+    mistake is the thing that actually happens, and this catches it.
+    """
+    return os.environ.get("AI_READ_ONLY", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 @dataclass(frozen=True)
 class League:
     """One modelling unit.

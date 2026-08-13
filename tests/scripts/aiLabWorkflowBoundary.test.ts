@@ -50,6 +50,16 @@ const workflow = parse(source) as {
 const steps = workflow.jobs.run.steps
 const dispatch = workflow.on.workflow_dispatch?.inputs ?? {}
 
+const manualStep = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
+
+/** One `case` arm of the manual task, from its label to its terminating `;;`. */
+const branch = (label: string): string => {
+  const start = manualStep.indexOf(label)
+  expect(start, `the manual task has no ${label} arm`).toBeGreaterThan(-1)
+  const end = manualStep.indexOf(';;', start)
+  return manualStep.slice(start, end === -1 ? undefined : end)
+}
+
 describe('the AI Lab runs against Production by default', () => {
   it('resolves the target to production when nothing chooses one', () => {
     expect(workflow.jobs.run.env.AI_ENV).toBe("${{ inputs.target || 'production' }}")
@@ -244,6 +254,43 @@ describe('a merge does not run the forecasting path against a database that cann
   })
 })
 
+describe('every task the manual step implements is one the selector offers', () => {
+  /**
+   * Written after a dispatch was refused with `not in the list of allowed
+   * values []`. The arm existed and its guards passed; the option had been
+   * added to the wrong list and sat inside the shell script as a stray `-
+   * research-ablate` line. Both halves parse, both halves read plausibly, and
+   * the only symptom is a 422 at dispatch time from the API rather than from
+   * anything in the repository.
+   */
+  // Two-space indent is the outer `case`'s own arms once YAML has stripped
+  // the block scalar's base indent. The nested case inside `predict|evaluate|
+  // value)` sits deeper and is deliberately not matched — its arms are not
+  // tasks, they are a second dispatch on the same already-offered task.
+  const arms = [...manualStep.matchAll(/^ {2}([a-z|-]+)\)/gm)]
+    .flatMap((m) => m[1].split('|'))
+
+  it('finds the arms at all', () => {
+    expect(arms).toContain('research')
+    expect(arms.length).toBeGreaterThan(5)
+  })
+
+  it('offers each one in the task selector', () => {
+    for (const arm of arms) {
+      expect(dispatch.task?.options, `task ${arm} is implemented but not offered`)
+        .toContain(arm)
+    }
+  })
+
+  it('leaves no option that would fall through to nothing', () => {
+    // `bootstrap|train|free-odds` is a deliberate no-op arm — those tasks are
+    // run by later steps — so it is an arm like any other and must be listed.
+    for (const option of dispatch.task?.options ?? []) {
+      expect(arms, `task ${option} is offered but has no arm`).toContain(option)
+    }
+  })
+})
+
 describe('the studies are runnable and promote nothing', () => {
   it('offers every study the module implements', () => {
     const module = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')
@@ -253,16 +300,137 @@ describe('the studies are runnable and promote nothing', () => {
   })
 
   it('records each study rather than only printing it', () => {
-    const manual = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
-    expect(manual).toMatch(/experiments\.py --league .* --study .* --record/s)
+    // Scoped to the `experiments)` branch. Read against the whole step this
+    // passed on the mere presence of `--record` anywhere in it, which the
+    // read-only `research)` branch below must NOT satisfy.
+    expect(branch('experiments)')).toMatch(/experiments\.py --league .* --study .* --record/s)
   })
 
   it('trains and promotes nothing from a study', () => {
-    const manual = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
-    const experiments = manual.slice(
-      manual.indexOf('experiments)'),
-      manual.indexOf('bootstrap|train|free-odds'),
+    const experiments = manualStep.slice(
+      manualStep.indexOf('experiments)'),
+      manualStep.indexOf('bootstrap|train|free-odds'),
     )
     expect(experiments).not.toMatch(/train\.py|promote/)
+  })
+})
+
+/**
+ * The bulk-research path.
+ *
+ * The studies need the whole historical archive — tens of thousands of rows —
+ * and the environment that holds it is Production. So the one execution plane
+ * with the access is also the one where a stray write would matter most, and
+ * the properties below are what make running there acceptable at all.
+ */
+describe('research runs against a hosted database without being able to change it', () => {
+  const research = branch('research)')
+
+  it('opens the session read-only rather than trusting a withheld flag', () => {
+    expect(research).toMatch(/AI_READ_ONLY=1/)
+  })
+
+  it('writes nothing: no --record, and no other write-capable script', () => {
+    expect(research).not.toMatch(/--record/)
+    expect(research).not.toMatch(/train\.py|promote|settle_bets\.py|repair_identity\.py/)
+  })
+
+  it('calls no provider', () => {
+    // Every script in the package that can spend a request, by name. A
+    // research run that grew one of these would stop being free.
+    expect(research).not.toMatch(
+      /fetch_history\.py|sync_fixtures\.py|fetch_fixtures_odds\.py|odds_api\.py/,
+    )
+  })
+
+  it('covers all nine leagues or one named league', () => {
+    expect(research).toMatch(/run_leagues\.sh experiments\.py/)
+    expect(research).toMatch(/--league "\$\{\{ inputs\.league \}\}"/)
+    const leagues = ['EPL', 'ECH', 'EL1', 'EL2', 'ENL', 'SPL', 'SCH', 'SL1', 'SL2']
+    expect(dispatch.league?.options).toEqual(['all', ...leagues])
+    expect(dispatch.league?.default).toBe('all')
+    // The nine the selector offers must be the nine the loop actually runs.
+    const runner = readFileSync(resolve(process.cwd(), 'ai/run_leagues.sh'), 'utf8')
+    expect(runner).toContain(`LEAGUES=(${leagues.join(' ')})`)
+  })
+
+  it('is enforced in the package, not only in this file', () => {
+    // The workflow exporting AI_READ_ONLY means nothing unless the connection
+    // honours it. Asserted here because this is the file that promises it.
+    const db = readFileSync(resolve(process.cwd(), 'ai/db.py'), 'utf8')
+    expect(db).toMatch(/default_transaction_read_only=on/)
+    const experiments = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')
+    expect(experiments).toMatch(/args\.record and read_only\(\)/)
+  })
+
+  it('asks the ensemble question of a chosen component set', () => {
+    // Whether `gbm` belongs in the default ensemble cannot be answered by a
+    // dispatch that can only ever run the default. The `default` option
+    // passes no flag, so the shipped set stays measurable as itself.
+    expect(research).toMatch(/--base-families/)
+    expect(dispatch.base_families?.default).toBe('default')
+    expect(dispatch.base_families?.options).toContain('poisson elo')
+    const zoo = readFileSync(resolve(process.cwd(), 'ai/model_zoo.py'), 'utf8')
+    // The shipped set is DERIVED from the admission register rather than
+    // hand-written, which is what stopped `gbm` sitting in every default
+    // blend on the strength of a comment. A literal tuple here would restore
+    // exactly that: registered and default one edit apart.
+    expect(zoo).toMatch(/ENSEMBLE_BASE_FAMILIES = tuple\(/)
+    expect(zoo).toMatch(/if verdict\.earned/)
+    expect(zoo).toMatch(/ENSEMBLE_ADMISSION: dict\[str, Admission\]/)
+    // Every option must name families the zoo actually registers, or the
+    // dispatch offers a run that dies in argparse twenty minutes in.
+    const registered = [...zoo.matchAll(/^ {4}"([a-z_]+)": /gm)].map((m) => m[1])
+    expect(registered.length).toBeGreaterThan(0)
+    for (const option of dispatch.base_families?.options ?? []) {
+      if (option === 'default') continue
+      for (const family of option.split(' ')) {
+        expect(registered, `base_families offers unregistered ${family}`).toContain(family)
+      }
+    }
+  })
+})
+
+/**
+ * The ablation arm. A feature family enters `DEFAULT_GROUPS` by winning paired
+ * folds, and the folds need the whole archive, so it needs the same hosted
+ * plane and the same guarantees as the studies above.
+ */
+describe('research-ablate measures a candidate family without writing one in', () => {
+  const ablation = branch('research-ablate)')
+
+  it('opens the session read-only and records nothing', () => {
+    expect(ablation).toMatch(/AI_READ_ONLY=1/)
+    expect(ablation).not.toMatch(/--record/)
+    expect(ablation).not.toMatch(/train\.py|promote|settle_bets\.py|repair_identity\.py/)
+  })
+
+  it('calls no provider', () => {
+    expect(ablation).not.toMatch(
+      /fetch_history\.py|sync_fixtures\.py|fetch_fixtures_odds\.py|odds_api\.py/,
+    )
+  })
+
+  it('covers all nine leagues or one named league', () => {
+    expect(ablation).toMatch(/run_leagues\.sh ablate\.py/)
+    expect(ablation).toMatch(/--league "\$\{\{ inputs\.league \}\}"/)
+  })
+
+  it('offers only families that are candidates rather than already default', () => {
+    // Offering a member of DEFAULT_GROUPS would ablate a feature the model
+    // already carries, which answers a different question than the one the
+    // selector's description claims to ask.
+    const features = readFileSync(resolve(process.cwd(), 'ai/features.py'), 'utf8')
+    const defaults = [
+      ...(/DEFAULT_GROUPS: tuple\[str, \.\.\.\] = \(([^)]*)\)/.exec(features)?.[1] ?? '')
+        .matchAll(/"([a-z_]+)"/g),
+    ].map((m) => m[1])
+    const known = [...features.matchAll(/^ {4}"([a-z_]+)": \(/gm)].map((m) => m[1])
+    const offered = dispatch.groups?.options ?? []
+    expect(offered.length).toBeGreaterThan(0)
+    for (const group of offered) {
+      expect(known, `groups offers unknown family ${group}`).toContain(group)
+      expect(defaults, `groups offers already-default family ${group}`).not.toContain(group)
+    }
   })
 })
