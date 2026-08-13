@@ -59,6 +59,7 @@ on:
           - league-diagnostic
           - market-ou
           - newcomer-transfer
+          - coverage-guard
       league:
         description: Which league the study covers (task=research only; `all` is the nine)
         required: false

@@ -519,20 +519,30 @@ class TeamState:
         return _rank_move(self.previous_division, self.division)
 
     def division_move_into(self, division: str | None) -> int:
-        """The same verdict, for a match this club has NOT played yet.
+        """Did this club change division to arrive at THIS match?
 
-        `division_move` compares `division` with `previous_division`, and both
-        are set by `roll_season`, so it reads 0 until the club has played its
-        first match in the new division and `observe` has moved `division` on.
-        That is one match too late: the opening fixture of a promoted club's
-        season is the single row where a carried goal rate is most wrong, and
-        it is exactly the row `division_move` cannot see.
+        Answered against `previous_division` — the division of the club's last
+        match before the most recent season roll — rather than against
+        `division`, and the difference is the whole usefulness of the method.
 
-        This compares the division of the match being built against the
-        division of the club's most recent match, which is known before a ball
-        is kicked and uses no information from the fixture's own result.
+        `division_move` compares `division` with `previous_division`, both set
+        by `roll_season`, so it reads 0 until the club has played once in its
+        new division. One match too late, and that match is where a carried
+        goal rate is most wrong.
+
+        Comparing against `division` instead fixes that and introduces a worse
+        fault, which real data caught and a synthetic fixture did not:
+        `observe` moves `division` on after the club's FIRST match in the new
+        tier, so the verdict is true for exactly one fixture per club per
+        season and false for the other forty-five. Measured on the
+        Championship it labelled 71 rows out of 7,692 as newcomer fixtures,
+        against the ~270 a season the division actually holds.
+
+        `previous_division` is fixed for the whole season by `roll_season`, so
+        this is stable from the opening fixture to the last, and it still uses
+        nothing from the match's own result.
         """
-        return _rank_move(self.division, division)
+        return _rank_move(self.previous_division, division)
 
 
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
@@ -811,6 +821,64 @@ ALL_FEATURE_NAMES: list[str] = feature_names(tuple(FEATURE_GROUPS))
 
 # Backwards compatible: the name the rest of the package already imports.
 FEATURE_NAMES: list[str] = feature_names()
+
+
+# ---------------------------------------------------------------------------
+# Coverage-regime guard
+#
+# PREDECLARED in the same document as the transfer study. The dangerous state
+# is a `*_known` indicator that is NEAR zero across the training window but
+# not exactly zero. Exactly zero is safe: a constant column admits no
+# coefficient at all. Near-zero is not: SCH 1718 trains on coverage of
+# 0.000, 0.008, 0.017, 0.007, 0.011 — a handful of matches in nearly nine
+# hundred — which admits a coefficient fitted on almost no support, and that
+# coefficient then multiplies a feature active across 92.6% of the next
+# season's rows.
+#
+# The rule is written against MEASURED SUPPORT and never against a league.
+# `if league == "SCH"` would fix one fold and leave the mechanism live
+# everywhere else, and its real test is being a no-op in the eight leagues
+# whose histories contain the same break without the same harm.
+# ---------------------------------------------------------------------------
+
+# The indicator that says how much of a family's window was actually observed.
+# Derived from FEATURE_GROUPS rather than retyped, so a family that gains or
+# loses an indicator cannot fall out of step with this table.
+def known_indicators(group: str) -> tuple[str, ...]:
+    return tuple(c for c in FEATURE_GROUPS.get(group, ()) if c.endswith("_known"))
+
+
+# Below this mean support a family is treated as unavailable. Declared before
+# the first run. SCH 1718's training coverage tops out at 0.017, so 0.05 is
+# comfortably above the regime this exists to catch and comfortably below the
+# 0.9+ a genuinely covered family carries — the gap is two orders of
+# magnitude, so the threshold is not a tuned quantity.
+COVERAGE_SUPPORT_FLOOR = 0.05
+
+# `core` is never dropped: `home_matches_known` counts matches played, which
+# is always observed, and dropping core would leave no model at all.
+COVERAGE_PROTECTED_GROUPS = ("core",)
+
+
+def groups_with_support(train, groups, floor: float = COVERAGE_SUPPORT_FLOOR):
+    """The subset of `groups` whose coverage indicators clear the floor.
+
+    Returns (kept, dropped). A family with no indicator cannot be measured
+    this way and is always kept — silence is not evidence of absence.
+    """
+    kept, dropped = [], []
+    for group in groups:
+        indicators = known_indicators(group)
+        if group in COVERAGE_PROTECTED_GROUPS or not indicators:
+            kept.append(group)
+            continue
+        present = [c for c in indicators if c in train.columns]
+        if not present:
+            kept.append(group)
+            continue
+        support = float(train[present].to_numpy().mean())
+        (kept if support >= floor else dropped).append(group)
+    return tuple(kept), tuple(dropped)
 
 
 # ---------------------------------------------------------------------------

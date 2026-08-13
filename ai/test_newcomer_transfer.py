@@ -149,6 +149,59 @@ def test_a_policy_moves_a_club_that_changed_division(policy, club,
     assert changed, f"{policy} left the {direction} club's goal rates untouched"
 
 
+@pytest.mark.parametrize("club, expected", [(PROMOTED, 1), (RELEGATED, -1)])
+def test_a_moved_club_is_flagged_for_the_WHOLE_season(club, expected) -> None:
+    """The regression test for the bug real data found and this suite missed.
+
+    An earlier `division_move_into` compared the match's division against the
+    club's most recent one. `observe` moves that on after the club's first
+    match in the new tier, so the flag was true for exactly ONE fixture per
+    club per season — 71 rows out of 7,692 on the real Championship, against
+    the ~270 a season it actually holds. Every assertion here passed while
+    that was true, because they only ever asked whether SOMETHING changed.
+
+    Every match the club plays in its first season in the new division must
+    carry the move, not just the opener.
+    """
+    frame = _frame_for(NEWCOMER_TRANSFER_DEFAULT)
+    season = frame[frame["season"] == "2526"]
+    at_home = season[season["home_canonical"] == club]["home_division_move"]
+    away = season[season["away_canonical"] == club]["away_division_move"]
+
+    played = len(at_home) + len(away)
+    assert played == 10, f"fixture sanity: expected 10 matches, got {played}"
+    flagged = list(at_home) + list(away)
+    assert flagged == [expected] * played, (
+        f"{club} carried the move on {flagged.count(expected)} of {played} "
+        f"matches; it must be every one")
+
+
+def test_the_move_does_not_persist_into_the_following_season() -> None:
+    """And it must expire, or every club is a newcomer for ever."""
+    history = _history()
+    # A second season in the new division for the promoted club.
+    settled = [c for c in UPPER_CLUBS[1:]] + [PROMOTED]
+    rows = _fixture_rows(settled, UPPER, "2627", date(2026, 8, 1), 1)
+    extra = pd.DataFrame(rows)
+    extra["result"] = ["H" if h > a else ("A" if a > h else "D")
+                       for h, a in zip(extra["home_goals"], extra["away_goals"])]
+    for column in history.columns:
+        if column not in extra.columns:
+            extra[column] = None
+    combined = (pd.concat([history, extra[history.columns]], ignore_index=True)
+                .sort_values("match_date").reset_index(drop=True))
+
+    builder = FeatureBuilder(UPPER)
+    builder.MIN_DIVISION_PRIOR_MATCHES = 20
+    frame = builder.build_training_frame(combined)
+
+    later = frame[frame["season"] == "2627"]
+    at_home = later[later["home_canonical"] == PROMOTED]["home_division_move"]
+    away = later[later["away_canonical"] == PROMOTED]["away_division_move"]
+    assert list(at_home) + list(away) == [0] * (len(at_home) + len(away)), (
+        "a club settled in its division is not a newcomer a year later")
+
+
 def test_an_unknown_policy_is_refused_at_construction() -> None:
     with pytest.raises(ValueError, match="newcomer transfer policy"):
         FeatureBuilder(UPPER, newcomer_transfer="shrink_a_bit")

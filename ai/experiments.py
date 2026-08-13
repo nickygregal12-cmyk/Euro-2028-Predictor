@@ -58,7 +58,7 @@ from train import build_dataset, column_map_for
 STUDIES = ("half-life", "time-weighting", "elo-transition", "elo-margin",
            "regime-weighting", "ensemble", "calibration", "gbm-diagnostic",
            "base-model", "league-diagnostic", "market-ou",
-           "newcomer-transfer")
+           "newcomer-transfer", "coverage-guard")
 
 
 # ---------------------------------------------------------------------------
@@ -1283,8 +1283,95 @@ def study_newcomer_transfer(args) -> dict:
                 "so a non-zero established delta is a defect, not football.")}
 
 
+# ---------------------------------------------------------------------------
+# The coverage-regime guard, and its falsification test
+#
+# The guard is only acceptable if it removes SCH 1718's catastrophic fold AND
+# is a no-op in the other eight leagues. This study reports BOTH, and reports
+# the per-fold deltas rather than only a mean, because a guard that fires in
+# one fold and nowhere else is invisible in an average over nine.
+# ---------------------------------------------------------------------------
+
+def study_coverage_guard(args) -> dict:
+    """Does dropping a barely-supported feature family help, and where?
+
+    The guard is applied per FOLD, because training support is a property of
+    the training window rather than of the league — which is also why this
+    cannot reuse `fold_log_loss`, whose column list is fixed for every fold.
+    """
+    from features import (COVERAGE_SUPPORT_FLOOR, groups_with_support,
+                          known_indicators)
+
+    frame = build_dataset(args.league)
+    groups = tuple(args.feature_groups)
+    folds = list(expanding_season_folds(frame, args.min_train_seasons))
+    if len(folds) < 3:
+        return {"error": f"{args.league} has {len(folds)} usable folds; "
+                         f"a paired comparison needs at least 3"}
+
+    control, guarded, fired = {}, {}, []
+    for fold in folds:
+        train, test = frame.iloc[fold.train_index], frame.iloc[fold.test_index]
+        kept, dropped = groups_with_support(train, groups, COVERAGE_SUPPORT_FLOOR)
+
+        support = {}
+        for group in groups:
+            present = [c for c in known_indicators(group) if c in train.columns]
+            if present:
+                support[group] = float(train[present].to_numpy().mean())
+
+        for label, use in (("control", groups), ("guarded", kept)):
+            columns = feature_names(use)
+            weights = time_weights(train["match_date"], args.half_life_days)
+            model = fit_family(args.family, train, columns, args.half_life_days,
+                               weights=weights)
+            score = metrics.summarise(model.predict_proba(test[columns]),
+                                      test["result"].values)["log_loss"]
+            (control if label == "control" else guarded)[fold.season] = score
+
+        if dropped:
+            fired.append({"season": fold.season, "dropped": list(dropped),
+                          "train_support": {g: round(support.get(g, -1.0), 4)
+                                            for g in dropped},
+                          # The test-side coverage is what makes the regime
+                          # BREAK visible rather than merely the sparsity.
+                          "test_support": {
+                              g: round(float(test[[c for c in known_indicators(g)
+                                                   if c in test.columns]]
+                                             .to_numpy().mean()), 4)
+                              for g in dropped},
+                          "control_log_loss": control[fold.season],
+                          "guarded_log_loss": guarded[fold.season]})
+
+    result = compare(control, guarded)
+    print(f"\n=== {args.league}: coverage-regime guard, "
+          f"floor = {COVERAGE_SUPPORT_FLOOR} ===")
+    print(f"{'folds':<18}{len(folds):>10}")
+    print(f"{'guard fired in':<18}{len(fired):>10}  "
+          f"{[f['season'] for f in fired]}")
+    print(f"{'control mean':<18}{np.mean(list(control.values())):>10.4f}")
+    print(f"{'guarded mean':<18}{np.mean(list(guarded.values())):>10.4f}")
+    print(_verdict_line("guard", float(np.mean(list(guarded.values()))), result))
+    for row in fired:
+        print(f"  {row['season']}: dropped {row['dropped']} "
+              f"train {row['train_support']} -> test {row['test_support']} | "
+              f"{row['control_log_loss']:.4f} -> {row['guarded_log_loss']:.4f}")
+
+    return {"study": "coverage-guard", "league": args.league,
+            "floor": COVERAGE_SUPPORT_FLOOR, "folds": len(folds),
+            "fired": fired, "control": control, "guarded": guarded, **result,
+            "predeclared": "docs/quality/investigations/"
+                           "2026-08-13-newcomer-goal-transfer-predeclaration.md",
+            "recommendation": (
+                "Adopt only if the guard removes the catastrophic fold in the "
+                "league that motivated it AND is within noise in the other "
+                "eight. A guard that improves one league and moves the rest is "
+                "not a general rule, whatever its mean says.")}
+
+
 STUDY_FUNCTIONS = {
     "newcomer-transfer": study_newcomer_transfer,
+    "coverage-guard": study_coverage_guard,
     "half-life": study_half_life,
     "time-weighting": study_time_weighting,
     "elo-transition": study_elo_transition,
