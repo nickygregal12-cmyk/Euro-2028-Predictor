@@ -1526,7 +1526,7 @@ every quarter-line fixture in the sample.
 ## 39. The Over/Under 2.5 benchmark — run, and the model has no goal information the book lacks
 
 Run **31746786543**, Development, `research` arm, `AI_READ_ONLY=1`, head
-`17bd396`, 21:41–21:5x UTC 13 August 2026. All nine leagues. **Zero provider
+`17bd396`, 21:41:48–21:44:40 UTC 13 August 2026. All nine leagues. **Zero provider
 calls** — every collection step resolved to `skipped`, and the arm names no
 provider script. **Zero database writes.** The design in §37 was declared
 before this ran and is unchanged.
