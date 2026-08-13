@@ -81,12 +81,14 @@ values
    'Q189', md5('q189-f-drop')::uuid, 'D', now(), now() + interval '4 days',
    'B365', 4.000, 0.00500, -0.98000, 0.05000, 5.0000, '1X2', 'advised');
 
+-- `settlement_outcome` is not null and is the canonical settlement across every
+-- market; `won` is the 1X2 shorthand beside it and is nullable.
 insert into ai.bet_results (
-  bet_id, actual_result, won, pnl_units, return_per_unit, odds_closing,
-  fair_prob_closing, clv, beat_closing_price)
+  bet_id, actual_result, won, settlement_outcome, pnl_units, return_per_unit,
+  odds_closing, fair_prob_closing, clv, beat_closing_price)
 values
-  (md5('q189-b-keep-settled')::uuid, 'H', true,  3.0000,  1.50000, 2.200, 0.45000, 0.12500, true),
-  (md5('q189-b-drop-settled')::uuid, 'D', false, -20.0000, -1.00000, 8.000, 0.12000, -0.64000, false);
+  (md5('q189-b-keep-settled')::uuid, 'H', true,  'win',  3.0000,  1.50000, 2.200, 0.45000, 0.12500, true),
+  (md5('q189-b-drop-settled')::uuid, 'D', false, 'loss', -20.0000, -1.00000, 8.000, 0.12000, -0.64000, false);
 
 -- The competition-administrator door. Every read below goes through it.
 select set_config('request.jwt.claims',
