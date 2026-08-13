@@ -61,20 +61,21 @@ def _env_truthy(name: str) -> bool | None:
 
 
 def coverage_guard_enabled(explicit: bool | None = None) -> bool:
-    """Whether normal model fitting applies the adopted coverage guard.
+    """Whether model fitting applies the adopted coverage guard.
 
-    Deployable training is guarded by default. The hosted research plane is
-    deliberately exempt unless it explicitly opts in: `coverage-guard` needs
-    an unguarded control arm to remain a falsifiable experiment rather than a
-    comparison of the guard with itself. A final, corrected research study can
-    pass `coverage_guard=True` explicitly while remaining read-only.
+    The guard is a property of the model definition, not of whether the
+    database session is writable. Deployable training and ordinary read-only
+    research therefore use identical semantics by default. A falsification
+    study that needs the pre-guard control must ask for `coverage_guard=False`
+    on that fit explicitly; read-only is a database safety boundary and must
+    never silently change the model being measured.
     """
     if explicit is not None:
         return bool(explicit)
     configured = _env_truthy("AI_COVERAGE_GUARD")
     if configured is not None:
         return configured
-    return _env_truthy("AI_READ_ONLY") is not True
+    return True
 
 
 def _coverage_groups_for(columns: list[str]) -> tuple[str, ...]:
@@ -189,8 +190,8 @@ def fit_family(family: str, frame: pd.DataFrame, columns: list[str],
     The coverage guard is part of deployable fitting after its nine-league
     falsification on 13 August 2026. It is resolved on the training rows of
     EACH fit, so a historical walk-forward fold cannot borrow later coverage.
-    The read-only research plane remains unguarded by default so the dedicated
-    guard study keeps a genuine control arm; corrected studies opt in explicitly.
+    Read-only research uses the same model definition; only a study whose
+    declared control is the pre-guard model may disable it explicitly.
     """
     if family not in MODEL_FAMILIES:
         raise ValueError(f"unknown model family: {family!r}; "
