@@ -48,6 +48,7 @@ on:
         type: choice
         options:
           - half-life
+          - time-weighting
           - elo-transition
           - elo-margin
           - ensemble

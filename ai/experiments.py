@@ -6,6 +6,7 @@ error on the DIFFERENCE rather than on either mean. Everything here uses the
 same machinery for the other decisions this lab has to take:
 
     half-life          how fast old matches should stop counting, per league
+    time-weighting     whether old matches should stop counting at all
     elo-transition     how ratings move between seasons
     elo-margin         whether a red card should damp how far a rating moves
     regime-weighting   whether pre-change history should count for less
@@ -52,8 +53,9 @@ from fitting import DEFAULT_HALF_LIFE_DAYS, HALF_LIFE_GRID, fit_family, time_wei
 from model_zoo import ENSEMBLE_BASE_FAMILIES
 from train import build_dataset, column_map_for
 
-STUDIES = ("half-life", "elo-transition", "elo-margin", "regime-weighting",
-           "ensemble", "calibration", "gbm-diagnostic", "base-model")
+STUDIES = ("half-life", "time-weighting", "elo-transition", "elo-margin",
+           "regime-weighting", "ensemble", "calibration", "gbm-diagnostic",
+           "base-model")
 
 
 # ---------------------------------------------------------------------------
@@ -170,6 +172,100 @@ def study_half_life(args) -> dict:
     print(f"\nrecommendation: {recommendation}")
     return {"study": "half-life", "league": args.league, "rows": rows,
             "chosen": chosen, "recommendation": recommendation}
+
+
+# The candidates, and the mechanism, DECLARED BEFORE THE RUN.
+#
+# `study_half_life` asked whether the shipped 900-day half-life should be
+# tuned per league and answered no. It also produced an observation nobody
+# asked it for: the `0` row was negative in eight of nine leagues and had the
+# best raw mean in five. That observation is POST HOC — it is the best of
+# seven rows chosen after seeing them — so it cannot be promoted out of the
+# study that produced it, and the half-life study is deliberately NOT being
+# reinterpreted to make `0` its winner. This is a new question with its own
+# declared candidates.
+#
+# What `0` actually means, named accurately because the label is misleading:
+# `fitting.time_weights` returns None for any half-life <= 0, and a None
+# weight vector is UNIFORM weighting — every match in the training window
+# counts the same. Read literally, a zero-day half-life would mean infinitely
+# fast decay, i.e. only the newest match counts, which is the exact opposite.
+# So the candidate is called `uniform` here and never `0d`.
+#
+# MECHANISM, declared so the result can disagree with it. Recency weighting
+# pays for itself only if what is being estimated moves. What these folds
+# estimate is not team strength — Elo, form and rest already carry that, and
+# they are recomputed per fixture — but the LEAGUE-LEVEL mapping from those
+# features onto outcomes: home advantage, how an Elo gap becomes a win
+# probability, the draw rate. Those are stable over decades. If that is right,
+# down-weighting old matches removes no bias and only shrinks the effective
+# sample, so uniform should win, and it should win MOST where the sample is
+# smallest. That gives the study a side-prediction it can fail: if uniform's
+# advantage does not shrink as league sample grows, the mechanism is wrong
+# even where the headline result holds.
+TIME_WEIGHTING_CANDIDATES = (
+    ("uniform", 0.0, "no recency weighting; every training match counts once"),
+    ("900d", 900.0, "the shipped incumbent, and the baseline every delta is against"),
+    ("1200d", 1200.0, "moderate-long decay; the longest half-life the grid ever offered"),
+    ("1800d", 1800.0, "long decay; nearly uniform over a ten-season window, and the "
+                      "bridge between 1200d and uniform"),
+)
+
+
+def study_time_weighting(args) -> dict:
+    """Does the outcome model want recency weighting at all?
+
+    Baseline is the incumbent 900 days, so a delta of zero means "no reason to
+    change" and a negative delta means the candidate is better. The incumbent
+    is included as a candidate as well as being the baseline: its row must
+    come back at exactly zero, which is a live check that the pairing is
+    against what it claims to be against rather than a re-fit.
+    """
+    frame = build_dataset(args.league)
+    columns = feature_names(tuple(args.feature_groups))
+    baseline = fold_log_loss(frame, columns, args.family,
+                             DEFAULT_HALF_LIFE_DAYS, args.min_train_seasons)
+    if len(baseline) < 3:
+        return {"error": f"{args.league} has too few folds to weight time"}
+
+    rows = []
+    print(f"\n=== {args.league}: time weighting, {len(baseline)} folds, "
+          f"baseline {DEFAULT_HALF_LIFE_DAYS:g}d ===")
+    print(f"{'candidate':<18}{'mean':>10}{'delta':>10}{'se':>9}{'verdict':>10}")
+    for name, half_life, rationale in TIME_WEIGHTING_CANDIDATES:
+        scores = fold_log_loss(frame, columns, args.family, half_life,
+                               args.min_train_seasons)
+        result = compare(baseline, scores)
+        mean = float(np.mean(list(scores.values())))
+        rows.append({"candidate": name, "half_life_days": half_life,
+                     "rationale": rationale, "mean_log_loss": mean, **result})
+        print(_verdict_line(name, mean, result))
+
+    # Sample size is reported beside the verdict because the declared
+    # mechanism predicts the effect shrinks as it grows. Without it the
+    # side-prediction cannot be checked from the artefact alone.
+    matches = int(len(frame))
+    winners = [r for r in rows if r["beats_noise"]]
+    if winners:
+        chosen = min(winners, key=lambda r: r["mean_delta"])
+        recommendation = (
+            f"{chosen['candidate']} beats the incumbent by more than twice the "
+            f"standard error on the paired difference. This is a MODEL "
+            f"AUTHORITY change and is a recommendation only; nothing is "
+            f"promoted by this study.")
+    else:
+        chosen = None
+        recommendation = (f"keep {DEFAULT_HALF_LIFE_DAYS:g} days: no candidate "
+                          f"beat it beyond noise.")
+    print(f"\nmatches: {matches}")
+    print(f"recommendation: {recommendation}")
+    return {"study": "time-weighting", "league": args.league, "rows": rows,
+            "matches": matches, "chosen": chosen,
+            "recommendation": recommendation,
+            "declared_mechanism": (
+                "League-level feature-to-outcome mapping is stable, so recency "
+                "weighting shrinks the effective sample without removing bias; "
+                "predicts uniform wins, and wins most in the smallest leagues.")}
 
 
 def study_elo_transition(args) -> dict:
@@ -480,6 +576,7 @@ def study_base_model(args) -> dict:
 
 STUDY_FUNCTIONS = {
     "half-life": study_half_life,
+    "time-weighting": study_time_weighting,
     "elo-transition": study_elo_transition,
     "elo-margin": study_elo_margin,
     "regime-weighting": study_regime_weighting,
@@ -544,6 +641,9 @@ def ledger_entry(study: str, result: dict) -> dict:
 
     if study == "half-life":
         return _from_rows(result, "half_life_days",
+                          f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
+    if study == "time-weighting":
+        return _from_rows(result, "candidate",
                           f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
     if study == "elo-transition":
         return _from_rows(result, "transition", "global_mean (the defect)")
