@@ -833,3 +833,43 @@ Three things worth separating, because they are different failures:
 - **The stacker's near-tie is not evidence for a stacker.** A meta-model that costs six folds of fitting to arrive back where the best single model already was is not earning its complexity, and in ECH it lands at +0.0001 ± 0.0015 — the clearest possible statement that it has learned to pick Poisson.
 
 Fold counts are six here against §13's nine, and the two are not in conflict: the ensemble needs earlier folds to fit the meta-model out of time, so it has fewer scored folds by construction. The pooled per-model numbers in each report's `base_summary` reproduce §13's exactly — EPL poisson 0.97479, elo 0.97471, gbm 1.13870 — which is the check that the two studies are looking at the same fits.
+
+---
+
+## 28. The same ensemble without the GBM — and the answer changes
+
+`--study ensemble --base-families poisson elo`, six out-of-time folds. Run **31739455060** (Development, read-only, `d187466`), 20:10–20:12 UTC. Identical folds, identical data, one component removed.
+
+| league | poisson | elo | best base | equal blend | blend − best | stacker | stacker − best |
+|---|---|---|---|---|---|---|---|
+| EPL | 0.9873 | **0.9872** | elo | 0.9846 | **−0.0026 ± 0.0016** | 0.9893 | +0.0021 ± 0.0023 |
+| EL2 | **1.0599** | 1.0628 | poisson | 1.0600 | +0.0001 ± 0.0008 | 1.0614 | +0.0015 ± 0.0014 |
+| ENL | 1.0240 | **1.0228** | elo | 1.0224 | **−0.0005 ± 0.0008** | 1.0239 | +0.0011 ± 0.0022 |
+| SPL | 0.9532 | **0.9523** | elo | 0.9495 | **−0.0028 ± 0.0028** | 0.9541 | +0.0019 ± 0.0040 |
+| SCH | **1.0637** | 1.0645 | poisson | 1.0609 | **−0.0027 ± 0.0016** | 1.0669 | +0.0032 ± 0.0029 |
+| SL1 | **1.0206** | 1.0207 | poisson | 1.0175 | **−0.0031 ± 0.0029** | 1.0219 | +0.0013 ± 0.0083 |
+| SL2 | **1.0527** | 1.0595 | poisson | 1.0518 | **−0.0009 ± 0.0038** | 1.0608 | +0.0081 ± 0.0047 |
+
+### This is the result that decides the GBM question
+
+§27's blend was **positive in all nine and beyond noise in seven**. Remove one component and the same blend, on the same folds, is **negative in six of the seven measured and +0.0001 in the seventh**. Nothing else changed.
+
+So the finding is stronger than "the GBM is a weak model". **The GBM's presence is what was making the ensemble lose.** §13 and §20 establish that it is bad on its own and stays bad when repaired; §27 and §28 together establish that including it inverts the sign of the ensemble's benefit. In EL1 the equal blend went from nearly seven standard errors *worse* than Poisson to — on the two-component set — a question worth asking at all.
+
+### What it does **not** establish
+
+**No blend clears noise.** `beats_noise` is false in all fourteen rows here too. The largest improvement is −0.0031 against a standard error of 0.0029 (SL1), which is barely one standard error, and EPL's −0.0026 ± 0.0016 is the closest thing to a real effect in the table at about 1.6. Six leagues agreeing in sign is suggestive in the way §14's `0d` observation was suggestive, and it is not a licence to change a default — the same discipline applies here as there.
+
+**The stacker still never wins.** It is positive in all seven, and worse than the equal blend in all seven. Whatever the two-model combination is worth, a learned meta-model is not the way to collect it: with only two well-behaved components there is nothing for a stacker to discover that an equal average does not already have, and it pays fold-fitting variance for the attempt.
+
+### Recommendation
+
+**Remove `gbm` from `ENSEMBLE_BASE_FAMILIES`**, and this branch still does not do it — that is a model-authority decision with its own approval. The evidence is now three-sided rather than one-sided:
+
+1. it is worse than the best family in nine of nine and worse than the class base rate in eight of nine (§13);
+2. repairing its configuration recovers ~0.40 log loss and still does not make it competitive (§20);
+3. its removal flips the ensemble's sign from *worse than its best component* to *better than it*, on identical folds (§27 vs §28).
+
+The third is the one that was missing before this session, and it is the one that makes the removal a fix rather than a tidy-up.
+
+**Do not adopt an equal blend of Poisson and Elo either — yet.** It is the most promising thing measured today, and "promising, consistently signed, inside noise" is exactly the state §14 refused to act on for the half-life. It deserves its own predeclared study with more folds, not a default change read out of the run that suggested it.
