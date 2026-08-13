@@ -173,4 +173,4 @@ same paragraph existed in seven places at once.
 | 187 | **The season Championship gains the structure it was missing.** A season group stage is now qualified over the matchdays it actually plays, and its knockout windows are appended after it rather than assumed at the tournament's sequence 4. The tournament's own shape is unchanged, asserted |
 | 188 | **No structure moved.** Everything is inside the separately revoked `ai` schema |
 
-*Current to contract 188.*
+*Current to contract 189.*

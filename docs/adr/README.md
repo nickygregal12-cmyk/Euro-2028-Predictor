@@ -96,4 +96,4 @@ same paragraph existed in seven places at once.
 | 187 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) §§ 6–8** and **[ADR 0014](0014-predictor-cup-season-formats.md)**: `CUP-002`, implemented by generalising the one qualification authority rather than writing a second. ADR 0014 § 5.2's keys, § 6.1's target and § 7.1–7.3 are read from where they already live |
 | 188 | **No new decision.** [ADR 0029](0029-private-ai-lab-and-odds-custody.md)'s laboratory, given the model evidence, identity custody and quarantine it was missing |
 
-*Current to contract 188.*
+*Current to contract 189.*

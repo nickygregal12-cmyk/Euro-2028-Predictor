@@ -230,4 +230,4 @@ same paragraph existed in seven places at once.
 | 187 | No presentation change **yet**, and one becomes possible: a season Championship now has a bracket to render. The read of it is `CUP-003` and is not built |
 | 188 | One private presentation change: an administrator-only AI Lab Bet Builder. No player-facing surface moves |
 
-*Current to contract 188.*
+*Current to contract 189.*
