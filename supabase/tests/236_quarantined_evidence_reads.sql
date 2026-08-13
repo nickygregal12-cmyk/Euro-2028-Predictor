@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(30);
+select plan(33);
 
 -- ---------------------------------------------------------------------------
 -- A model, a fixture each, and two forecasts
@@ -312,8 +312,14 @@ select is(
     where n.nspname = 'public'
       and p.proname like 'admin\_ai\_%'
       and p.proname <> 'admin_ai_recommendation_log'
-      and (pg_get_functiondef(p.oid) ~ '\mai\.predictions\M'
-        or pg_get_functiondef(p.oid) ~ '\mai\.bets\M')),
+      -- Line comments are stripped before the question is asked. The first
+      -- version of this guard failed on a comment inside
+      -- `admin_ai_betting_dashboard` that NAMED `ai.bets` while explaining why
+      -- it does not read it. A guard prose can satisfy is worthless; one prose
+      -- can break is merely annoying, and both are fixed the same way — ask
+      -- what the function READS.
+      and (regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\mai\.predictions\M'
+        or regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\mai\.bets\M')),
   '',
   'no admin AI read reaches the base prediction or bet tables; every one goes through valid custody'
 );

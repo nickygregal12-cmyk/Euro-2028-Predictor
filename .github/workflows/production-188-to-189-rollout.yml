@@ -465,8 +465,11 @@ jobs:
                   select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public' and p.proname like 'admin\_ai\_%'
                      and p.proname <> 'admin_ai_recommendation_log'
-                     and (pg_get_functiondef(p.oid) ~ '\mai\.predictions\M'
-                       or pg_get_functiondef(p.oid) ~ '\mai\.bets\M')),
+                     -- Line comments stripped first: a comment that NAMES a
+                     -- base table while explaining why the function does not
+                     -- read it is prose, not a read.
+                     and (regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\mai\.predictions\M'
+                       or regexp_replace(pg_get_functiondef(p.oid), '--[^\n]*', '', 'g') ~ '\mai\.bets\M')),
                 'prediction_reads_on_valid', (
                   select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                    where n.nspname = 'public'
