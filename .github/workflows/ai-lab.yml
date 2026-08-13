@@ -202,7 +202,13 @@ jobs:
             python sync_fixtures.py
             python fetch_fixtures_odds.py
           fi
-          ./run_leagues.sh train.py --family poisson --version "auto-$stamp"
+          # --walk-forward, because a single two-season holdout has a standard
+          # error of roughly 0.02 on log loss and most feature changes are
+          # smaller than that. Without folds the weekly job cannot tell an
+          # improvement from a lucky split, and it is the only validation
+          # anybody looks at.
+          ./run_leagues.sh train.py --family poisson --version "auto-$stamp" \
+            --walk-forward
       - name: Keep reports and convenience artefacts
         if: always()
         uses: actions/upload-artifact@v7

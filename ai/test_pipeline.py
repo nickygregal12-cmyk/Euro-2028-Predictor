@@ -18,7 +18,7 @@ import pandas as pd
 import metrics
 from config import (FIRST_SEASON, SEASONS, current_season, season_date_bounds,
                     seasons_from)
-from features import FEATURE_NAMES, FeatureBuilder
+from features import FEATURE_NAMES, NEUTRAL_SOT, FeatureBuilder
 from model_zoo import MODEL_FAMILIES
 
 RNG = np.random.default_rng(20280611)
@@ -119,6 +119,62 @@ def check_no_self_or_sameday_leakage() -> None:
     print("  [pass] no self-leakage; same-day matches are blind to each other")
 
 
+def test_shot_features_are_leak_safe_and_honest_about_gaps() -> None:
+    """Shots on target must obey the same walls as everything else.
+
+    Two failure modes are being pinned. A match must not see its own shots —
+    the same wall the goal features already have. And a missing shot count
+    must read as `unmeasured`, never as `created nothing`: the National League
+    carries shots for 29.5% of its matches, so a zero-fill would tell the
+    model that two thirds of that division never troubled a keeper.
+    """
+    rows = [
+        {"match_date": date(2026, 8, 1), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Beta",
+         "home_goals": 1, "away_goals": 0, "result": "H",
+         "home_shots_ot": 9, "away_shots_ot": 2},
+        {"match_date": date(2026, 8, 8), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Gamma",
+         "home_goals": 0, "away_goals": 0, "result": "D",
+         "home_shots_ot": None, "away_shots_ot": None},
+        {"match_date": date(2026, 8, 15), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Delta",
+         "home_goals": 2, "away_goals": 1, "result": "H",
+         "home_shots_ot": 7, "away_shots_ot": 3},
+    ]
+    out = FeatureBuilder("E0").build_training_frame(pd.DataFrame(rows))
+    first, second, third = out.iloc[0], out.iloc[1], out.iloc[2]
+
+    assert first["home_sot_known"] == 0.0, "a club's first match saw shot history"
+    assert first["home_form5_sot_f"] == NEUTRAL_SOT, (
+        "an unmeasured window must fall back to the neutral prior, not zero")
+
+    # After one measured match: 9 for, 2 against, and it is fully measured.
+    assert second["home_form5_sot_f"] == 9.0 and second["home_form5_sot_a"] == 2.0
+    assert second["home_sot_known"] == 1.0
+    assert second["home_sot_ratio"] > 0.8, "9-2 on target is not a balanced game"
+
+    # The second match had no shot data. Two matches played, one measured.
+    assert third["home_sot_known"] == 0.5, (
+        "a match with no shot data must lower `known`, not the shot average")
+    assert third["home_form5_sot_f"] == 9.0, (
+        "an unmeasured match dragged the average down — it was counted as zero")
+    print("  [pass] shots are leak-safe, and a gap reads as unmeasured not zero")
+
+
+def test_time_weights_halve_over_the_half_life() -> None:
+    """The decay must be the thing it claims to be, and switchable off."""
+    import train as trainer
+
+    dates = pd.Series([date(2024, 2, 26), date(2026, 8, 13)])   # ~900 days apart
+    w = trainer.time_weights(dates, 900.0)
+    assert abs(float(w[0] / w[1]) - 0.5) < 0.02, "a half-life did not halve the weight"
+    assert abs(float(np.mean(w)) - 1.0) < 1e-9, (
+        "weights are not mean-normalised, so alpha's meaning would drift")
+    assert trainer.time_weights(dates, 0) is None, "0 must restore equal weighting"
+    print("  [pass] time decay halves over its half-life and can be disabled")
+
+
 def check_features_are_finite(frame: pd.DataFrame) -> None:
     X = frame[FEATURE_NAMES]
     assert not X.isna().any().any(), f"NaN features: {X.columns[X.isna().any()].tolist()}"
@@ -159,6 +215,8 @@ def evaluate_models(frame: pd.DataFrame, shuffle_target: bool = False) -> dict:
 def main() -> None:
     print("1. leakage guards")
     check_no_self_or_sameday_leakage()
+    test_shot_features_are_leak_safe_and_honest_about_gaps()
+    test_time_weights_halve_over_the_half_life()
 
     print("\n2. building features from 10 synthetic seasons")
     seasons = [f"{y % 100:02d}{(y + 1) % 100:02d}" for y in range(2015, 2025)]

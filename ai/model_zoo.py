@@ -76,9 +76,12 @@ class LogisticModel:
         self.classes_: list[str] = list(OUTCOMES)
         self.feature_names_: list[str] = []
 
-    def fit(self, X: pd.DataFrame, y: pd.Series) -> "LogisticModel":
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight=None) -> "LogisticModel":
         self.feature_names_ = list(X.columns)
-        self.pipeline.fit(X.values, y.values)
+        fit_kwargs = {}
+        if sample_weight is not None:
+            fit_kwargs["clf__sample_weight"] = np.asarray(sample_weight, dtype=float)
+        self.pipeline.fit(X.values, y.values, **fit_kwargs)
         self.classes_ = list(self.pipeline.named_steps["clf"].classes_)
         return self
 
@@ -132,12 +135,20 @@ class PoissonModel:
         self.feature_names_: list[str] = []
         self.dc = DixonColesParams()
 
-    def fit(self, X: pd.DataFrame, y: pd.Series, home_goals=None, away_goals=None) -> "PoissonModel":
+    def fit(self, X: pd.DataFrame, y: pd.Series, home_goals=None, away_goals=None,
+            sample_weight=None) -> "PoissonModel":
         if home_goals is None or away_goals is None:
             raise ValueError("PoissonModel.fit needs home_goals and away_goals")
         self.feature_names_ = list(X.columns)
-        self.home.fit(X.values, np.asarray(home_goals))
-        self.away.fit(X.values, np.asarray(away_goals))
+        # `sample_weight` is Dixon-Coles' other half. The tau correction below
+        # is the one this codebase already had; the paper's phi(t) — recent
+        # matches counting for more than old ones — was missing entirely, so a
+        # match from 2013 carried exactly the weight of one from April.
+        fit_kwargs = {}
+        if sample_weight is not None:
+            fit_kwargs["reg__sample_weight"] = np.asarray(sample_weight, dtype=float)
+        self.home.fit(X.values, np.asarray(home_goals), **fit_kwargs)
+        self.away.fit(X.values, np.asarray(away_goals), **fit_kwargs)
         self.dc.rho = self._fit_rho(X, np.asarray(home_goals), np.asarray(away_goals))
         return self
 

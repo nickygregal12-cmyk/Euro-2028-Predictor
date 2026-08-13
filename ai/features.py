@@ -31,6 +31,31 @@ ELO_START = 1500.0
 ELO_K = 20.0
 ELO_HOME_ADV = 60.0          # rating points, roughly the long-run home edge
 ELO_SEASON_REGRESSION = 0.25  # pull 25% back to the mean between seasons
+# Shots on target per team per match, roughly, across these divisions. Used as
+# the neutral prior when a window carries no shot data at all — never as a
+# stand-in for a real measurement, which is what `sot_known` distinguishes.
+NEUTRAL_SOT = 4.5
+
+
+def _optional_number(value) -> float | None:
+    """A missing shot count must stay missing, not become zero.
+
+    The column is nullable on purpose — older files and the National League
+    simply do not carry it — and `0` would read as "created nothing", which is
+    a strong and false claim about a team.
+    """
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
 ELO_DIVISION_OFFSET = {       # a promoted club is not a mid-table top-flight club
     "E0": 0.0, "E1": -180.0, "E2": -320.0, "E3": -430.0,
     "SC0": 0.0, "SC1": -170.0, "SC2": -300.0, "SC3": -400.0,
@@ -90,16 +115,33 @@ class TeamState:
         n = len(rows)
         if n == 0:
             return {"n": 0.0, "ppg": 1.35, "gf": 1.35, "ga": 1.35, "gd": 0.0,
+                "sot_f": NEUTRAL_SOT, "sot_a": NEUTRAL_SOT, "sot_known": 0.0,
                 "distorted": 0.0}
         pts = sum(r["pts"] for r in rows)
         gf = sum(r["gf"] for r in rows)
         ga = sum(r["ga"] for r in rows)
+        # Shots on target, over the subset of the window that HAS them.
+        # Goals are a small, noisy sample of the chances a team created; shots
+        # on target are the cheapest honest proxy for those chances, and
+        # Football-Data has given them away for free all along. Measured on
+        # hosted Development: 82.7% of 46,215 imported matches carry them, and
+        # 100% of E0, E1, E2, E3 and SC0.
+        shot_rows = [r for r in rows if r.get("sot_f") is not None]
+        k = len(shot_rows)
         return {
             "n": float(n),
             "ppg": pts / n,
             "gf": gf / n,
             "ga": ga / n,
             "gd": (gf - ga) / n,
+            # NEUTRAL_SOT rather than 0 when nothing is known, paired with
+            # `sot_known` so the model can tell "average" from "unmeasured".
+            # The National League carries shots for 29.5% of its matches, so
+            # without that pair every unmeasured side would look league-average
+            # — the same mistake `matches_known` already exists to prevent.
+            "sot_f": (sum(r["sot_f"] for r in shot_rows) / k) if k else NEUTRAL_SOT,
+            "sot_a": (sum(r["sot_a"] for r in shot_rows) / k) if k else NEUTRAL_SOT,
+            "sot_known": (k / n) if n else 0.0,
             # Share of the window played with a sending-off. Form built from
             # ten-man matches is weaker evidence about an eleven-a-side
             # fixture, and this lets the model discount it rather than
@@ -127,9 +169,15 @@ class TeamState:
     # -- mutation ------------------------------------------------------------
 
     def record(self, gf: int, ga: int, venue: str, when: date, top_flight: bool,
-               distorted: bool = False) -> None:
+               distorted: bool = False,
+               sot_f: float | None = None, sot_a: float | None = None) -> None:
         pts = 3 if gf > ga else (1 if gf == ga else 0)
-        row = {"pts": pts, "gf": gf, "ga": ga, "distorted": 1 if distorted else 0}
+        # Both or neither: a match with one side's shots and not the other's
+        # would bias the ratio, so it is treated as unmeasured.
+        if sot_f is None or sot_a is None:
+            sot_f = sot_a = None
+        row = {"pts": pts, "gf": gf, "ga": ga, "distorted": 1 if distorted else 0,
+               "sot_f": sot_f, "sot_a": sot_a}
         self.recent.append(row)
         (self.recent_home if venue == "home" else self.recent_away).append(row)
         self.season_played += 1
@@ -155,6 +203,11 @@ FEATURE_NAMES: list[str] = [
     "form5_ppg_diff", "venue_ppg_diff", "season_ppg_diff", "season_gd_diff",
     "home_rest_days", "away_rest_days", "rest_diff",
     "home_form5_distorted", "away_form5_distorted",
+    "home_form5_sot_f", "home_form5_sot_a",
+    "away_form5_sot_f", "away_form5_sot_a",
+    "sot_f_diff", "sot_a_diff",
+    "home_sot_ratio", "away_sot_ratio",
+    "home_sot_known", "away_sot_known",
     "home_matches_known", "away_matches_known",
     "home_is_newcomer", "away_is_newcomer",
     "season_progress",
@@ -188,6 +241,20 @@ def _row_from_state(
         "season_gd_diff": hs["gd_pm"] - as_["gd_pm"],
         "home_form5_distorted": hf["distorted"],
         "away_form5_distorted": af["distorted"],
+        # Chance creation and concession, and how much of each window actually
+        # measured it. The ratio is the shape most of the signal lives in: a
+        # side out-shooting opponents 6-3 on target is a better side than the
+        # scoreline often says, and the reverse decays faster than form does.
+        "home_form5_sot_f": hf["sot_f"],
+        "home_form5_sot_a": hf["sot_a"],
+        "away_form5_sot_f": af["sot_f"],
+        "away_form5_sot_a": af["sot_a"],
+        "sot_f_diff": hf["sot_f"] - af["sot_f"],
+        "sot_a_diff": hf["sot_a"] - af["sot_a"],
+        "home_sot_ratio": hf["sot_f"] / max(hf["sot_f"] + hf["sot_a"], 1e-6),
+        "away_sot_ratio": af["sot_f"] / max(af["sot_f"] + af["sot_a"], 1e-6),
+        "home_sot_known": hf["sot_known"],
+        "away_sot_known": af["sot_known"],
         "home_rest_days": home.rest_days(when),
         "away_rest_days": away.rest_days(when),
         "rest_diff": home.rest_days(when) - away.rest_days(when),
@@ -222,10 +289,13 @@ class FeatureBuilder:
     def _flush(self) -> None:
         """Apply every result buffered for the previous date. Called only when
         the date advances, so same-day matches never see one another."""
-        for home_name, away_name, hg, ag, when, division, distorted in self._pending:
+        for (home_name, away_name, hg, ag, when, division, distorted,
+             h_sot, a_sot) in self._pending:
             top = division == self.top_division
-            self.state[home_name].record(hg, ag, "home", when, top, distorted)
-            self.state[away_name].record(ag, hg, "away", when, top, distorted)
+            self.state[home_name].record(hg, ag, "home", when, top, distorted,
+                                         sot_f=h_sot, sot_a=a_sot)
+            self.state[away_name].record(ag, hg, "away", when, top, distorted,
+                                         sot_f=a_sot, sot_a=h_sot)
 
             h, a = self.state[home_name], self.state[away_name]
             expected = _elo_expected(h.elo, a.elo)
@@ -291,7 +361,9 @@ class FeatureBuilder:
             self._pending.append(
                 (rec.home_canonical, rec.away_canonical,
                  int(rec.home_goals), int(rec.away_goals), when, rec.division,
-                 bool(getattr(rec, "red_card_distorted", False) or False))
+                 bool(getattr(rec, "red_card_distorted", False) or False),
+                 _optional_number(getattr(rec, "home_shots_ot", None)),
+                 _optional_number(getattr(rec, "away_shots_ot", None)))
             )
 
         self._flush()
