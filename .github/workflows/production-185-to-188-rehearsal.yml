@@ -268,7 +268,8 @@ jobs:
           # meaningful against a faithful copy of the retained history — a dump
           # that silently omitted the `ai` schema would make every one of them
           # pass vacuously.
-          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -f - > "${WORK_DIR}/source-state.json" <<'VERIFY_SQL'
             select json_build_object(
               'migration_count', (select count(*) from supabase_migrations.schema_migrations),
               'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
@@ -279,7 +280,7 @@ jobs:
               'ai_market_prices', (select count(*) from ai.market_prices),
               'ai_collection_enabled', (select collection_enabled from ai.api_budget limit 1)
             )
-          " > "${WORK_DIR}/source-state.json"
+          VERIFY_SQL
           cat "${WORK_DIR}/source-state.json"
 
           SOURCE_STATE_FILE="${WORK_DIR}/source-state.json" node --input-type=module <<'NODE'
@@ -400,7 +401,8 @@ jobs:
           # AI counts are here too: the identity repair contract 188 SHIPS must
           # not run merely because the schema arrived — installing the authority
           # and calling it are separate decisions.
-          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -f - > "${WORK_DIR}/preconditions.json" <<'VERIFY_SQL'
             select json_build_object(
               'auth_users', (select count(*) from auth.users),
               'profiles', (select count(*) from public.profiles),
@@ -427,7 +429,7 @@ jobs:
               'ai_bets', (select count(*) from ai.bets),
               'ai_api_usage', (select count(*) from ai.api_usage)
             )
-          " > "${WORK_DIR}/preconditions.json"
+          VERIFY_SQL
           cat "${WORK_DIR}/preconditions.json"
 
       - name: Rehearse the forward apply on the disposable target
@@ -492,8 +494,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
-            select json_build_object(
+          psql "${LOCAL_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -f - > "${WORK_DIR}/target-state.json" <<'VERIFY_SQL'
+            -- Split across several jsonb_build_object calls and concatenated:
+            -- PostgreSQL refuses more than 100 arguments to one function, and
+            -- 73 keys is 146. Rehearsal run 31730622906 died here.
+            select (
+              jsonb_build_object(
               'migration_count', (select count(*) from supabase_migrations.schema_migrations),
               'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
               'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
@@ -688,6 +695,8 @@ jobs:
               -- in `public` or `predictor_internal` retains a temporary-table
               -- dependency. This is `114_predictor_cup_lint_safe_qualification`
               -- evaluated against what is installed.
+              ) ||
+              jsonb_build_object(
               'temp_table_lint_violations', (
                 select count(*) from pg_proc p
                   join pg_namespace n on n.oid = p.pronamespace
@@ -767,8 +776,9 @@ jobs:
               'ai_market_prices', (select count(*) from ai.market_prices),
               'ai_fixture_odds', (select count(*) from ai.fixture_odds),
               'ai_bets', (select count(*) from ai.bets)
-            )
-          " > "${WORK_DIR}/target-state.json"
+              )
+            )::text
+          VERIFY_SQL
           cat "${WORK_DIR}/target-state.json"
 
           TARGET_STATE_FILE="${WORK_DIR}/target-state.json" \
