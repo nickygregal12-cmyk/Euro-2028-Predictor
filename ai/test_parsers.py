@@ -239,6 +239,55 @@ def test_a_genuine_shape_change_still_fails_loudly() -> None:
     print("  [pass] a changed shape still fails, naming the columns it got")
 
 
+def _bom_response(text: str):
+    """The real thing: a UTF-8 BOM in front of a Latin-1 body."""
+    r = mock.Mock()
+    r.status_code = 200
+    r.content = b"\xef\xbb\xbf" + text.encode("latin-1")
+    r.raise_for_status = lambda: None
+    return r
+
+
+def test_utf8_bom_does_not_rename_the_first_column() -> None:
+    """What actually broke the first hosted bootstrap.
+
+    Football-Data serves fixtures.csv with a UTF-8 BOM, and the body is
+    Latin-1. Decoding those three bytes as Latin-1 turns them into `ï»¿` and
+    welds them onto the first column's name, so `Div` arrives as `ï»¿Div`.
+
+    Measured on hosted Development on 13 August 2026: the bootstrap imported
+    46,215 matches and then died on the fixture sync, reporting
+    `['ï»¿Div', 'Date', 'Time', ...]`. Only the FIRST column is affected,
+    which is why the season files were unharmed — nothing reads their first
+    column, because the division is passed in rather than parsed out.
+    """
+    import fetch_fixtures_odds as F
+    import sync_fixtures as S
+    csv = FIXTURES_HEADER + "\n" + "\n".join(FIXTURES_ROWS) + "\n"
+
+    with mock.patch.object(S.requests, "get", return_value=_bom_response(csv)), \
+         mock.patch.object(S, "platform_fixture_links", return_value={}):
+        rows = S.fetch()
+    assert {r["division"] for r in rows} == {"SC3", "E3", "SC0"}, \
+        "a BOM on the first column must not lose every fixture"
+
+    with mock.patch.object(F.requests, "get", return_value=_bom_response(csv)):
+        priced = F.fetch()
+    assert {r["division"] for r in priced} == {"SC3", "E3", "SC0"}
+
+    print("  [pass] a UTF-8 BOM is stripped; Div survives as Div")
+
+
+def test_bom_on_a_season_file_is_also_stripped() -> None:
+    """The season files are the same family; do not wait to be surprised."""
+    import fetch_history as H
+    csv = SEASON_HEADER + "\n" + "\n".join(SEASON_ROWS) + "\n"
+    with mock.patch.object(H.requests, "get", return_value=_bom_response(csv)):
+        rows = H.fetch_one("E0", "2526")
+    assert len(rows) == 2 and rows[0]["home_canonical"] == "Arsenal"
+    print("  [pass] a BOM on a season file parses cleanly too")
+
+
 def main() -> None:
     print("1. fixtures.csv (live price feed)")
     test_fixtures_parser()
@@ -246,7 +295,9 @@ def main() -> None:
     test_fixture_sync_parser()
     print("\n3. season results file")
     test_history_parser()
-    print("\n4. quiet weeks and genuine shape changes")
+    print("\n4. the BOM, quiet weeks and genuine shape changes")
+    test_utf8_bom_does_not_rename_the_first_column()
+    test_bom_on_a_season_file_is_also_stripped()
     test_header_only_fixtures_file_is_not_an_error()
     test_header_only_season_file_is_not_an_error()
     test_a_genuine_shape_change_still_fails_loudly()

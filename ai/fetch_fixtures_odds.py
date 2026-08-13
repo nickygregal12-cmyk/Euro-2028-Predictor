@@ -31,7 +31,7 @@ import requests
 from aliases import canonical_for
 from config import (AH_MARKET_COLUMNS, ALL_DIVISIONS,
                     FOOTBALL_DATA_FIXTURES_URL, ODDS_COLUMNS,
-                    OU_MARKET_COLUMNS)
+                    OU_MARKET_COLUMNS, strip_bom)
 from db import connect, job
 
 WANTED_BOOKS = ("AVG", "MAX", "BFE", "B365")
@@ -51,7 +51,7 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60,
     resp = requests.get(FOOTBALL_DATA_FIXTURES_URL, timeout=timeout,
                         headers={"User-Agent": "ai-lab/0.1"})
     resp.raise_for_status()
-    df = pd.read_csv(io.BytesIO(resp.content), encoding="latin-1",
+    df = pd.read_csv(io.BytesIO(strip_bom(resp.content)), encoding="latin-1",
                      on_bad_lines="skip", low_memory=False)
     if df.empty:
         # No rows published yet. Not a shape change, and not a failure: see
