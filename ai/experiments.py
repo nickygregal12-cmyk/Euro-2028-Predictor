@@ -53,7 +53,7 @@ from model_zoo import ENSEMBLE_BASE_FAMILIES
 from train import build_dataset, column_map_for
 
 STUDIES = ("half-life", "elo-transition", "elo-margin", "regime-weighting",
-           "ensemble", "calibration")
+           "ensemble", "calibration", "gbm-diagnostic", "base-model")
 
 
 # ---------------------------------------------------------------------------
@@ -62,22 +62,55 @@ STUDIES = ("half-life", "elo-transition", "elo-margin", "regime-weighting",
 
 def fold_log_loss(frame: pd.DataFrame, columns: list[str], family: str,
                   half_life_days: float, min_train_seasons: int,
-                  weight_hook=None) -> dict[str, float]:
+                  weight_hook=None, model_kwargs: dict | None = None,
+                  calibrate: bool = False) -> dict[str, float]:
     """Log loss per season fold for one configuration.
 
     `weight_hook(train_frame, weights) -> weights` lets a study modify the
     training weights without touching the fold structure, which is what keeps
     a weighting study paired with its own baseline.
+
+    `model_kwargs` reaches the family's constructor, which is what lets a
+    hyperparameter candidate be measured on exactly the folds every other
+    configuration sees. `fit_family` has always forwarded them; nothing here
+    ever passed any, so a GBM setting could not be compared without writing a
+    second fold loop — and a second fold loop is how two studies end up
+    measuring different things.
+
+    `calibrate` fits a temperature on a held-out TAIL of the training fold —
+    never on the training fit itself and never on the test fold. Both
+    alternatives look reasonable and are useless: an overfitted model's
+    in-sample probabilities are already near-perfect, so a temperature fitted
+    on them is ~1 and does nothing, and one fitted on the test fold is
+    leakage. The tail is the last season of the training window, which is also
+    the closest thing in time to the fold being scored.
     """
+    kwargs = dict(model_kwargs or {})
     out: dict[str, float] = {}
     for fold in expanding_season_folds(frame, min_train_seasons):
         train = frame.iloc[fold.train_index]
         test = frame.iloc[fold.test_index]
+
+        holdout = None
+        if calibrate:
+            seasons = sorted(train["season"].unique())
+            if len(seasons) >= 2:
+                mask = train["season"] == seasons[-1]
+                holdout, train = train[mask], train[~mask]
+
         weights = time_weights(train["match_date"], half_life_days)
         if weight_hook is not None:
             weights = weight_hook(train, weights)
-        model = fit_family(family, train, columns, half_life_days, weights=weights)
+        model = fit_family(family, train, columns, half_life_days,
+                           weights=weights, **kwargs)
         probs = model.predict_proba(test[columns])
+
+        if holdout is not None and len(holdout):
+            import calibration as calibration_mod
+            calibrator = calibration_mod.TemperatureCalibrator().fit(
+                model.predict_proba(holdout[columns]), holdout["result"].values)
+            probs = calibrator.transform(probs)
+
         out[fold.season] = metrics.summarise(probs, test["result"].values)["log_loss"]
     return out
 
@@ -304,6 +337,147 @@ def study_calibration(args) -> dict:
             "before": before, "after": after}
 
 
+def study_gbm_diagnostic(args) -> dict:
+    """Why is the boosted model losing to a base-rate baseline?
+
+    Runs `model_candidates.GBM_CANDIDATES` — declared in that module before
+    any of this was run — on identical folds, paired against the shipped
+    configuration. It is a DIAGNOSTIC and not a search: eleven rows, each with
+    a stated mechanism, and the grid does not grow once the numbers are in.
+
+    Train loss is reported beside test loss on purpose. A candidate that
+    scores 1.05 on held-out folds while scoring 0.09 on its own training data
+    has not learned a weak signal, it has memorised, and the two cases need
+    opposite responses. A test column alone cannot tell them apart.
+    """
+    from model_candidates import GBM_BASELINE, GBM_CANDIDATES, declared_grid
+
+    frame = build_dataset(args.league)
+    default_columns = feature_names(tuple(args.feature_groups))
+
+    def columns_for(candidate):
+        if candidate.feature_groups is None:
+            return default_columns
+        return feature_names(tuple(candidate.feature_groups))
+
+    def half_life_for(candidate):
+        return (args.half_life_days if candidate.half_life_days is None
+                else candidate.half_life_days)
+
+    # `study_half_life` has always refused here and these two must too. Without
+    # it a run with no usable folds prints eleven rows of `nan`, a verdict of
+    # "tie" on every one and the recommendation "no candidate beat the shipped
+    # configuration" — which is indistinguishable from a real null result and
+    # is how an empty measurement gets recorded as evidence.
+    probe = list(expanding_season_folds(frame, args.min_train_seasons))
+    if len(probe) < 3:
+        return {"error": f"{args.league} has {len(probe)} usable folds; "
+                         f"a paired comparison needs at least 3"}
+
+    scores: dict[str, dict[str, float]] = {}
+    train_scores: dict[str, float] = {}
+    for candidate in GBM_CANDIDATES:
+        columns = columns_for(candidate)
+        scores[candidate.name] = fold_log_loss(
+            frame, columns, "gbm", half_life_for(candidate),
+            args.min_train_seasons, model_kwargs=candidate.model_kwargs,
+            calibrate=candidate.calibrate)
+        # In-sample loss on the largest fold, purely as an overfitting
+        # witness. It is never compared across candidates as a quality
+        # measure; it exists so "memorised" is distinguishable from "weak".
+        folds = list(expanding_season_folds(frame, args.min_train_seasons))
+        if folds:
+            train = frame.iloc[folds[-1].train_index]
+            weights = time_weights(train["match_date"], half_life_for(candidate))
+            model = fit_family("gbm", train, columns, half_life_for(candidate),
+                               weights=weights, **candidate.model_kwargs)
+            train_scores[candidate.name] = metrics.summarise(
+                model.predict_proba(train[columns]), train["result"].values)["log_loss"]
+
+    baseline = scores[GBM_BASELINE]
+    rows = []
+    print(f"\n=== {args.league}: GBM diagnostic, {len(baseline)} folds, "
+          f"baseline {GBM_BASELINE} ===")
+    print(f"{'candidate':<18}{'train':>9}{'test':>10}{'delta':>10}{'se':>9}{'verdict':>10}")
+    for candidate in GBM_CANDIDATES:
+        result = compare(baseline, scores[candidate.name])
+        mean = float(np.mean(list(scores[candidate.name].values())))
+        rows.append({"candidate": candidate.name,
+                     "hypothesis": candidate.hypothesis,
+                     "mean_log_loss": mean,
+                     "train_log_loss": train_scores.get(candidate.name),
+                     **result})
+        train_value = train_scores.get(candidate.name)
+        print(f"{candidate.name:<18}"
+              f"{(f'{train_value:.4f}' if train_value is not None else '-'):>9}"
+              f"{mean:>10.4f}{result['mean_delta']:>+10.4f}"
+              f"{result['se_delta']:>9.4f}"
+              f"{('BETTER' if result['beats_noise'] else 'WORSE' if result['harmful'] else 'tie'):>10}")
+
+    winners = [r for r in rows if r["beats_noise"]]
+    if winners:
+        chosen = min(winners, key=lambda r: r["mean_log_loss"])
+        recommendation = (
+            f"{chosen['candidate']}: beats the shipped configuration by "
+            f"{-chosen['mean_delta']:.5f} ±{chosen['se_delta']:.5f}. This is a "
+            f"CANDIDATE, not a promotion: changing the shipped defaults is a "
+            f"model-authority decision with its own approval.")
+    else:
+        chosen = None
+        recommendation = ("no candidate beat the shipped configuration by more "
+                          "than twice the standard error on the paired difference.")
+    print(f"\nrecommendation: {recommendation}")
+    return {"study": "gbm-diagnostic", "league": args.league, "rows": rows,
+            "chosen": chosen, "recommendation": recommendation,
+            "declared_grid": declared_grid()}
+
+
+def study_base_model(args) -> dict:
+    """Every base family on identical folds, including the logistic one.
+
+    `LogisticModel` is excluded from `ENSEMBLE_BASE_FAMILIES` on the stated
+    grounds that the Poisson family "already occupies the smooth-linear corner
+    of the space". That has never been measured. It is a real independent
+    competitor here — paired against the best of the others, so the question
+    is whether it earns a seat rather than whether it beats the worst.
+    """
+    from model_candidates import BASE_MODEL_FAMILIES
+
+    frame = build_dataset(args.league)
+    columns = feature_names(tuple(args.feature_groups))
+    families = tuple(args.base_families) if args.base_families else BASE_MODEL_FAMILIES
+    column_map = column_map_for(families, columns)
+
+    probe = list(expanding_season_folds(frame, args.min_train_seasons))
+    if len(probe) < 3:
+        return {"error": f"{args.league} has {len(probe)} usable folds; "
+                         f"a paired comparison needs at least 3"}
+
+    scores = {f: fold_log_loss(frame, column_map[f], f, args.half_life_days,
+                               args.min_train_seasons)
+              for f in families}
+    means = {f: float(np.mean(list(s.values()))) for f, s in scores.items()}
+    ranked = sorted((f for f in families if f != "baseline"),
+                    key=lambda f: means[f])
+    best = ranked[0]
+
+    print(f"\n=== {args.league}: base models, "
+          f"{len(next(iter(scores.values())))} folds, best = {best} ===")
+    print(f"{'family':<18}{'mean':>10}{'vs best':>10}{'se':>9}{'verdict':>10}")
+    rows = []
+    for family in families:
+        result = compare(scores[best], scores[family])
+        rows.append({"family": family, "mean_log_loss": means[family], **result})
+        print(_verdict_line(family, means[family], result))
+
+    return {"study": "base-model", "league": args.league, "rows": rows,
+            "best": best, "means": means,
+            "recommendation": (
+                f"{best} is the strongest single family on these folds. A family "
+                f"that ties it may still earn an ensemble seat by being wrong in "
+                f"different places, which the ensemble study measures next.")}
+
+
 STUDY_FUNCTIONS = {
     "half-life": study_half_life,
     "elo-transition": study_elo_transition,
@@ -311,6 +485,8 @@ STUDY_FUNCTIONS = {
     "regime-weighting": study_regime_weighting,
     "ensemble": study_ensemble,
     "calibration": study_calibration,
+    "gbm-diagnostic": study_gbm_diagnostic,
+    "base-model": study_base_model,
 }
 
 
@@ -409,6 +585,33 @@ def ledger_entry(study: str, result: dict) -> dict:
             "chosen": name if vs["beats_noise"] else best_base,
             "candidates_tested": len(candidates),
         }
+    if study == "gbm-diagnostic":
+        # The baseline is the SHIPPED configuration, so a ledger row here says
+        # "this candidate beat what we run today" rather than "this candidate
+        # was the best of eleven" — which would be true of something whatever
+        # the numbers were.
+        return _from_rows(result, "candidate", "shipped gbm configuration")
+    if study == "base-model":
+        rows = result.get("rows") or []
+        best = result.get("best")
+        others = [r for r in rows if r["family"] not in (best, "baseline")]
+        if not others:
+            return {"baseline": best, "candidate": None, "folds": 0,
+                    "mean_delta": None, "se_delta": None,
+                    "beats_noise": False, "harmful": False,
+                    "error": "no competing family to compare"}
+        closest = min(others, key=lambda r: r["mean_delta"])
+        return {
+            "baseline": f"best single family ({best})",
+            "candidate": closest["family"],
+            "folds": closest.get("folds", 0),
+            "mean_delta": closest.get("mean_delta"),
+            "se_delta": closest.get("se_delta"),
+            "beats_noise": bool(closest.get("beats_noise")),
+            "harmful": bool(closest.get("harmful")),
+            "chosen": best,
+            "families_tested": len(rows),
+        }
     if study == "calibration":
         choice = result.get("choice") or {}
         before = (result.get("before") or {}).get("log_loss")
@@ -479,13 +682,23 @@ def main() -> int:
     ap.add_argument("--feature-groups", nargs="*", default=list(DEFAULT_GROUPS))
     ap.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
     ap.add_argument("--min-train-seasons", type=int, default=5)
-    ap.add_argument("--base-families", nargs="*", default=list(ENSEMBLE_BASE_FAMILIES))
+    # Left unset so each study can resolve its OWN default. Defaulting this to
+    # ENSEMBLE_BASE_FAMILIES for every study would have quietly excluded
+    # `logistic` from the base-model comparison — which is the one family that
+    # comparison exists to measure.
+    ap.add_argument("--base-families", nargs="*", default=None)
     ap.add_argument("--meta", default="logistic_stack")
     ap.add_argument("--pre-change-weight", type=float, default=0.5)
     ap.add_argument("--record", action="store_true",
                     help="Write the result to ai.feature_experiments, including "
                          "a null result. Rejections are results.")
     args = ap.parse_args()
+
+    if args.base_families is None:
+        from model_candidates import BASE_MODEL_FAMILIES
+        args.base_families = list(
+            BASE_MODEL_FAMILIES if args.study == "base-model"
+            else ENSEMBLE_BASE_FAMILIES)
 
     result = STUDY_FUNCTIONS[args.study](args)
     path = REPORT_DIR / f"study-{args.study}-{args.league.lower()}.json"

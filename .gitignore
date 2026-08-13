@@ -58,3 +58,4 @@ creative-source/
 # responses are licensed third-party data whose retention terms are the open
 # Stage D question — never commit them.
 provider-bakeoff/
+.venv-ai/

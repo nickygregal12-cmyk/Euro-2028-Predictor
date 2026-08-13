@@ -361,10 +361,27 @@ class GradientBoostedModel:
 
       * NATIVE missingness. `sot_known` and its siblings exist because a
         missing shot count must not read as zero. A tree that can send NaN down
-        its own branch expresses that directly, so the neutral-prior columns
-        become a fallback rather than the only representation.
+        its own branch expresses that directly.
 
-    It is registered, and it is deliberately NOT in any default configuration.
+    That second reason is worth stating carefully, because as shipped it was
+    NOT true of the data this model receives. `FeatureBuilder` substitutes a
+    NEUTRAL_* constant for every unrecorded stat before any model sees it, so
+    the frame contains no NaN on any league — including the National League,
+    where shots, corners and half-time goals are absent from every row. The
+    neutral columns are therefore the ONLY representation and the tree's NaN
+    branch is never taken. `test_models.py` pins that as a fact rather than
+    leaving it as a belief.
+
+    `native_missing=True` opts in to `features.reconstruct_missing`, which
+    turns a neutral prior back into NaN wherever its coverage flag is exactly
+    zero. It is off by default: it changes what the model sees, so it is a
+    candidate to be measured on paired folds, not a correction to apply.
+
+    It is registered, and it is deliberately NOT in any default TRAINING
+    configuration. Note that this is narrower than it sounds — `gbm` IS in
+    `ENSEMBLE_BASE_FAMILIES`, so the blend and the stacker do carry it by
+    default. See the note there.
+
     A boosted model will beat a Poisson regression on the training set every
     time and that is not evidence of anything; it enters an ensemble only by
     winning paired walk-forward folds, which is what `experiments.py` measures.
@@ -375,9 +392,19 @@ class GradientBoostedModel:
 
     def __init__(self, learning_rate: float = 0.05, max_iter: int = 400,
                  max_leaf_nodes: int = 15, min_samples_leaf: int = 40,
-                 l2_regularization: float = 1.0, random_state: int = 20280611) -> None:
+                 l2_regularization: float = 1.0, random_state: int = 20280611,
+                 early_stopping: bool = False, validation_fraction: float = 0.1,
+                 n_iter_no_change: int = 20,
+                 native_missing: bool = False) -> None:
         from sklearn.ensemble import HistGradientBoostingClassifier
 
+        # `early_stopping=False` was commented "chronological folds do the
+        # stopping". They do not: a fold SCORES a model, it does not limit its
+        # boosting. Nothing bounded 400 iterations at a 0.05 learning rate, and
+        # measured, that reaches a training log loss of ~0.09 on a three-class
+        # outcome whose irreducible loss is ~0.99 — total memorisation. The
+        # default is unchanged here because changing it is a model-authority
+        # decision; `model_candidates.py` carries the alternatives.
         self.clf = HistGradientBoostingClassifier(
             loss="log_loss",
             learning_rate=learning_rate,
@@ -385,17 +412,48 @@ class GradientBoostedModel:
             max_leaf_nodes=max_leaf_nodes,
             min_samples_leaf=min_samples_leaf,
             l2_regularization=l2_regularization,
-            early_stopping=False,     # chronological folds do the stopping
+            early_stopping=early_stopping,
+            validation_fraction=validation_fraction if early_stopping else None,
+            n_iter_no_change=n_iter_no_change,
             random_state=random_state,
         )
+        self.native_missing = bool(native_missing)
         self.feature_names_: list[str] = []
         self.classes_: list[str] = list(OUTCOMES)
         self.medians_: np.ndarray | None = None
+        self.dropped_all_missing_: list[str] = []
+
+    def _prepare(self, X: pd.DataFrame) -> np.ndarray:
+        """The frame as the estimator should see it, missingness included."""
+        if self.native_missing:
+            from features import reconstruct_missing
+            X = reconstruct_missing(X)
+        return X.values.astype(float)
 
     def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight=None,
             **_ignored) -> "GradientBoostedModel":
         self.feature_names_ = list(X.columns)
-        values = X.values.astype(float)
+        values = self._prepare(X)
+
+        # A column that is missing in EVERY training row carries no
+        # information, and `HistGradientBoostingClassifier` cannot bin it — it
+        # dies inside the binner with "window shape cannot be larger than
+        # input array shape", which names nothing and points nowhere. This is
+        # not hypothetical: it is exactly the National League under
+        # `native_missing`, where shots, shots on target and corners are
+        # absent from all 7,518 rows, so reconstruction blanks those columns
+        # whole. They are dropped by NAME and the name is kept, so predict
+        # applies the identical subset and the drop is inspectable rather than
+        # implicit.
+        if self.native_missing:
+            usable = ~np.isnan(values).all(axis=0)
+            if not usable.all():
+                self.dropped_all_missing_ = [
+                    name for name, keep in zip(self.feature_names_, usable) if not keep]
+                self.feature_names_ = [
+                    name for name, keep in zip(self.feature_names_, usable) if keep]
+                values = values[:, usable]
+
         self.medians_ = np.nanmedian(values, axis=0)
         kwargs = {}
         if sample_weight is not None:
@@ -405,7 +463,7 @@ class GradientBoostedModel:
         return self
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
-        raw = self.clf.predict_proba(X[self.feature_names_].values.astype(float))
+        raw = self.clf.predict_proba(self._prepare(X[self.feature_names_]))
         order = [self.classes_.index(o) for o in OUTCOMES]
         return raw[:, order]
 
@@ -430,8 +488,14 @@ class GradientBoostedModel:
         """
         if self.medians_ is None:
             raise ValueError("contributions() needs a fitted model")
-        frame = X[self.feature_names_].values.astype(float)
-        base = self.predict_proba(X)
+        # Prepared ONCE, and the swapped rows are scored through the estimator
+        # directly. Going back through `predict_proba` would re-run the
+        # missingness reconstruction over an already-reconstructed row, and
+        # under `native_missing` a NaN cell swapped to its median would then be
+        # blanked again — attributing zero to every feature that was missing.
+        frame = self._prepare(X[self.feature_names_])
+        order = [self.classes_.index(o) for o in OUTCOMES]
+        base = self.clf.predict_proba(frame)[:, order]
         out: list[list[dict]] = []
         for i in range(len(frame)):
             row = frame[i]
@@ -441,8 +505,7 @@ class GradientBoostedModel:
                     continue
                 swapped = row.copy()
                 swapped[j] = self.medians_[j]
-                one = pd.DataFrame([swapped], columns=self.feature_names_)
-                alt = self.predict_proba(one)[0]
+                alt = self.clf.predict_proba(swapped.reshape(1, -1))[0][order]
                 deltas.append({
                     "feature": name,
                     "value": float(row[j]),
@@ -547,6 +610,29 @@ PURE_FOOTBALL_FAMILIES = frozenset(set(MODEL_FAMILIES) - MARKET_FAMILIES)
 # over the same evidence. `baseline` is excluded because it carries no
 # information about a fixture, and `logistic` because the Poisson model
 # already occupies the smooth-linear corner of the space.
+#
+# UNMEASURED, AND KNOWN TO BE COSTING SOMETHING. This tuple is the default for
+# `--base-families` in both `experiments.py` and `train.py`, so `gbm` is in
+# every default blend and every default stacker. `GradientBoostedModel`'s own
+# docstring says it "enters an ensemble only by winning paired walk-forward
+# folds"; it never won any. Measured over six chronological folds on hosted
+# Development, 13 August 2026, mean log loss:
+#
+#              EPL      SPL      EL2
+#   poisson  0.98725  0.95319  1.05991
+#   elo      0.98722  0.95225  1.06277
+#   gbm      1.13503  1.22041  1.18890     <- worse than a base-rate baseline
+#   blend    0.99415  0.97054  1.07381     <- worse than either component
+#   stacker  0.99010  0.95838  1.06190
+#
+# The blend loses to its own best component in all three leagues, which is
+# what including a memorising learner in an equal-weight average does.
+#
+# It is left in place deliberately. Removing a family from here changes the
+# default model authority, and that is a promotion decision with its own
+# evidence and approval; `model_candidates.py` carries the measurement that
+# such a decision would need, and `logistic` is a declared candidate for the
+# seat rather than an assumed replacement.
 ENSEMBLE_BASE_FAMILIES = ("poisson", "elo", "gbm")
 
 
