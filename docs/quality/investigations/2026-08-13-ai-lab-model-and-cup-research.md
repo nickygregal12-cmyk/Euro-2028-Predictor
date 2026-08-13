@@ -838,11 +838,13 @@ Fold counts are six here against §13's nine, and the two are not in conflict: t
 
 ## 28. The same ensemble without the GBM — and the answer changes
 
-`--study ensemble --base-families poisson elo`, six out-of-time folds. Run **31739455060** (Development, read-only, `d187466`), 20:10–20:12 UTC. Identical folds, identical data, one component removed.
+`--study ensemble --base-families poisson elo`, six out-of-time folds. Run **31739455060** (Development, read-only, `d187466`), 20:10–20:12 UTC, with ECH and EL1 from single-league runs **31739795274** and **31740065451** on the same target and the same guarantees. Identical folds, identical data, one component removed.
 
 | league | poisson | elo | best base | equal blend | blend − best | stacker | stacker − best |
 |---|---|---|---|---|---|---|---|
 | EPL | 0.9873 | **0.9872** | elo | 0.9846 | **−0.0026 ± 0.0016** | 0.9893 | +0.0021 ± 0.0023 |
+| ECH | **1.0467** | 1.0468 | poisson | 1.0453 | **−0.0014 ± 0.0006 — beats noise** | 1.0464 | −0.0003 ± 0.0016 |
+| EL1 | **1.0273** | 1.0314 | poisson | 1.0274 | +0.00002 ± 0.0017 | 1.0300 | +0.0027 ± 0.0023 |
 | EL2 | **1.0599** | 1.0628 | poisson | 1.0600 | +0.0001 ± 0.0008 | 1.0614 | +0.0015 ± 0.0014 |
 | ENL | 1.0240 | **1.0228** | elo | 1.0224 | **−0.0005 ± 0.0008** | 1.0239 | +0.0011 ± 0.0022 |
 | SPL | 0.9532 | **0.9523** | elo | 0.9495 | **−0.0028 ± 0.0028** | 0.9541 | +0.0019 ± 0.0040 |
@@ -852,15 +854,15 @@ Fold counts are six here against §13's nine, and the two are not in conflict: t
 
 ### This is the result that decides the GBM question
 
-§27's blend was **positive in all nine and beyond noise in seven**. Remove one component and the same blend, on the same folds, is **negative in six of the seven measured and +0.0001 in the seventh**. Nothing else changed.
+§27's blend was **positive in all nine and beyond noise in seven**. Remove one component and the same blend, on the same folds, is **negative in seven of the nine**, and the two exceptions are +0.00002 (EL1) and +0.0001 (EL2) — smaller in magnitude than every other cell in the column. Nothing else changed.
 
-So the finding is stronger than "the GBM is a weak model". **The GBM's presence is what was making the ensemble lose.** §13 and §20 establish that it is bad on its own and stays bad when repaired; §27 and §28 together establish that including it inverts the sign of the ensemble's benefit. In EL1 the equal blend went from nearly seven standard errors *worse* than Poisson to — on the two-component set — a question worth asking at all.
+So the finding is stronger than "the GBM is a weak model". **The GBM's presence is what was making the ensemble lose.** §13 and §20 establish that it is bad on its own and stays bad when repaired; §27 and §28 together establish that including it inverts the sign of the ensemble's benefit. EL1 is the cleanest single demonstration: the equal blend goes from **+0.0134 ± 0.0020** — nearly seven standard errors worse than simply using the Poisson model — to **+0.00002 ± 0.0017**, an exact tie with it. The same two good models, the same folds; only the third component removed.
 
 ### What it does **not** establish
 
-**No blend clears noise.** `beats_noise` is false in all fourteen rows here too. The largest improvement is −0.0031 against a standard error of 0.0029 (SL1), which is barely one standard error, and EPL's −0.0026 ± 0.0016 is the closest thing to a real effect in the table at about 1.6. Six leagues agreeing in sign is suggestive in the way §14's `0d` observation was suggestive, and it is not a licence to change a default — the same discipline applies here as there.
+**One blend clears noise; the rest do not.** ECH's equal blend is −0.0014 ± 0.0006 with `beats_noise: true` — the only ensemble result in this whole document that separates from its best component. Everywhere else the sign is right and the magnitude is not: SL1's −0.0031 sits against a standard error of 0.0029, and EPL's −0.0026 ± 0.0016 is about 1.6 standard errors. Seven of nine leagues negative, with one clearing noise, is suggestive in the way §14's `0d` observation was suggestive. It is not a licence to change a default: one significant league out of nine is what a real small effect looks like *and* what a multiple-comparison artefact looks like, and this run cannot tell them apart.
 
-**The stacker still never wins.** It is positive in all seven, and worse than the equal blend in all seven. Whatever the two-model combination is worth, a learned meta-model is not the way to collect it: with only two well-behaved components there is nothing for a stacker to discover that an equal average does not already have, and it pays fold-fitting variance for the attempt.
+**The stacker still never wins.** It is worse than the equal blend in all nine, and positive against the best base in eight of nine — ECH's −0.0003 ± 0.0016 is a tie, not a win. Whatever the two-model combination is worth, a learned meta-model is not the way to collect it: with only two well-behaved components there is nothing for a stacker to discover that an equal average does not already have, and it pays fold-fitting variance for the attempt.
 
 ### Recommendation
 
@@ -873,3 +875,69 @@ So the finding is stronger than "the GBM is a weak model". **The GBM's presence 
 The third is the one that was missing before this session, and it is the one that makes the removal a fix rather than a tidy-up.
 
 **Do not adopt an equal blend of Poisson and Elo either — yet.** It is the most promising thing measured today, and "promising, consistently signed, inside noise" is exactly the state §14 refused to act on for the half-life. It deserves its own predeclared study with more folds, not a default change read out of the run that suggested it.
+
+---
+
+## 29. Calibration
+
+`--study calibration`, poisson, out-of-fold probabilities, candidates `identity` / `temperature` / `isotonic` selected on held-out folds. Run **31739736529** (Development, read-only, `a32b914`), 20:13–20:15 UTC. All nine leagues.
+
+| league | chosen | identity | temperature | isotonic | ECE before → after | log loss before → after |
+|---|---|---|---|---|---|---|
+| EPL | identity | 0.97916 | 0.97906 | — | 0.0102 → 0.0102 | 0.97479 → 0.97479 |
+| ECH | identity | 1.04605 | 1.04614 | 1.04805 | 0.0200 → 0.0200 | 1.04837 → 1.04837 |
+| EL1 | **temperature 0.9028** | 1.02180 | **1.02101** | 1.07630 | **0.0132 → 0.0037** | 1.03296 → 1.03235 |
+| EL2 | identity | 1.05547 | 1.05547 | 1.05833 | 0.0079 → 0.0079 | 1.05905 → 1.05905 |
+| ENL | identity | 1.02228 | 1.02262 | 1.11619 | 0.0103 → 0.0103 | 1.03940 → 1.03940 |
+| SPL | identity | 0.94986 | 0.94984 | — | 0.0130 → 0.0130 | 0.95405 → 0.95405 |
+| SCH | identity | 1.06231 | 1.07209 | — | **0.0546 → 0.0546** | 1.09736 → 1.09736 |
+| SL1 | identity | 1.02339 | 1.02299 | — | 0.0180 → 0.0180 | 1.02761 → 1.02761 |
+| SL2 | identity | 1.06859 | 1.06960 | — | 0.0153 → 0.0153 | 1.03585 → 1.03585 |
+
+**Identity wins in eight of nine.** The Poisson model's probabilities are already close to honest: expected calibration error is 0.008–0.020 in seven leagues, and the study's own rule — a calibrator must beat doing nothing on held-out folds — refuses to adopt one. Only EL1 adopts temperature, at 0.9028 (sharpening slightly), for a held-out gain of 0.00079 log loss and a genuine ECE improvement from 0.0132 to 0.0037.
+
+Two things in the table are worth naming.
+
+**Isotonic is dangerous here and the selection catches it.** Where it was a candidate at all it is the worst of the three, and in ENL it is 1.11619 against identity's 1.02228 — nine hundredths of log loss worse. A free-form monotone fit on a few thousand rows overfits the reliability curve; this is what the held-out selection exists to refuse, and it refused it.
+
+**SCH is the badly calibrated league, and no calibrator fixes it.** Its ECE is 0.0546, more than twice any other league's, and its reliability table is monotonically overconfident in one direction: every bin's predicted rate exceeds the actual, rising from +0.019 in the lowest bin to +0.514 and +0.699 in the two highest. The model is confidently wrong about Scottish Championship favourites. And temperature scaling scores *worse* on held-out folds (1.07209 vs 1.06231), so the study correctly adopts nothing.
+
+That is the same league §13 flagged as the outlier where Poisson is worse than the base rate and the logistic fit came apart, and §23–§24 found the largest harm from regime weighting and from the discipline family. Four independent studies now single out SCH. Whatever is different about the Scottish Championship is a real thing about the data rather than an artefact of any one method, and it deserves a study of its own rather than a footnote in four.
+
+---
+
+## 30. Where the studies now stand, and what this session did not do
+
+### Complete over all nine leagues
+
+| study | run | target | verdict |
+|---|---|---|---|
+| `base-model` | 31729652899 | Development | Poisson/Elo pair; logistic and GBM both rejected (§13) |
+| `half-life` | 31730086103 | Development | no default change; `0d` observation declared, not acted on (§14) |
+| `gbm-diagnostic` | 31729251308 | Production (read-only) | all ten alternatives beat the incumbent; none competitive (§20) |
+| `elo-transition` | 31730078197 | Production (read-only) | `global_mean` beaten in nine of nine; tier gradient does not generalise (§21–§22) |
+| `ensemble` (default) | 31738869955 | Development | no ensemble beats its best component anywhere (§27) |
+| `ensemble` (poisson+elo) | 31739455060 / 31739795274 / 31740065451 | Development | sign flips; one league clears noise (§28) |
+| `calibration` | 31739736529 | Development | identity in eight of nine (§29) |
+| `discipline` ablation | 31738393321 | Development | noise in all nine (§24) |
+
+### Read back in part
+
+| study | run | covered | why it stands anyway |
+|---|---|---|---|
+| `elo-margin` | 31730431239 | 4 of 9 (§15) | every delta positive and inside its own standard error; the four agree on sign and magnitude to the fourth decimal |
+| `regime-weighting` | 31738406992 | 5 of 9 (§23) | every delta ≥ 0; one league beyond noise in the wrong direction |
+| `gbm-diagnostic` | 31729251308 | 3 of 9 read in full (§20) | all ten alternatives beat the incumbent in every league read, and §13 measures the incumbent in all nine |
+
+Each of these ran over all nine leagues and wrote all nine reports; what is partial is the **reading**, not the running, and the artefacts hold the rest for thirty days. None of the three is a study whose conclusion could be changed by a league not yet read: all three are nulls or unanimous, and a single dissenting league would not overturn "keep the default", it would make the default a per-league question — which is a new study, not a re-reading of this one.
+
+### Not run, and why
+
+- **The market-benchmark experiment of §12.** Specified, declared before being seen, and not implemented. It is a new study rather than a new dispatch.
+- **The `0d` time-weighting study of §14.** Declared; deliberately not run in the same session that noticed the observation.
+- **The congestion re-ablation.** Blocked upstream: it needs real cup dates, and §5c/§26 record why those cannot be assembled here.
+- **A fresh football-data.org catalogue call.** Deferred on the brief's own instruction while the Production promotion is unstable. The Production backup succeeded at 18:20 UTC but the 185 → 188 **rehearsal failed twice** (runs 31730622906 and 31733094027) and PR #773 was open against it at the time of writing. One request costs nothing to postpone and the retained evidence of §6 already answers the question for the credential as it stood.
+
+### Nothing was promoted
+
+`ai.models.status` untouched. No artefact trained or serialised. `ENSEMBLE_BASE_FAMILIES`, `DEFAULT_GROUPS`, the half-life, the Elo transition, the margin rule and the calibration default are all exactly as they were. Every recommendation in §18 and §28 is a recommendation.
