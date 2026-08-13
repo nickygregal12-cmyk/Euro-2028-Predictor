@@ -55,7 +55,7 @@ from train import build_dataset, column_map_for
 
 STUDIES = ("half-life", "time-weighting", "elo-transition", "elo-margin",
            "regime-weighting", "ensemble", "calibration", "gbm-diagnostic",
-           "base-model")
+           "base-model", "league-diagnostic")
 
 
 # ---------------------------------------------------------------------------
@@ -266,6 +266,165 @@ def study_time_weighting(args) -> dict:
                 "League-level feature-to-outcome mapping is stable, so recency "
                 "weighting shrinks the effective sample without removing bias; "
                 "predicts uniform wins, and wins most in the smallest leagues.")}
+
+
+# The hypotheses for the league diagnostic, FINITE AND DECLARED BEFORE THE
+# RUN, because the temptation this study exists to resist is tuning a league
+# until it looks good and calling that an explanation.
+#
+# SCH — the Scottish Championship — has surfaced independently in five
+# measurements now: the Poisson family lost to a class base rate there, the
+# logistic fit became unstable, regime weighting did its largest harm
+# (+0.0035), the discipline family did its largest harm (+0.0164), and it
+# carries the worst calibration error of the nine (ECE ~0.0546) with no
+# calibrator repairing it. Five independent tests pointing at one league is
+# either a property of that league's data or a property of our handling of it,
+# and those need telling apart BEFORE anybody writes SCH-specific code.
+#
+# Each hypothesis names the column in the per-season table that would support
+# it, so the table is readable as evidence rather than as a data dump.
+LEAGUE_DIAGNOSTIC_HYPOTHESES = (
+    ("H1 sample size", "Fewer matches per season than the leagues it is "
+                       "compared against, so every estimate is noisier.",
+     "matches"),
+    ("H2 division churn", "Promotion and relegation move a large fraction of "
+                          "the clubs each summer, so last season's ratings "
+                          "describe a different population.", "clubs_changed"),
+    ("H3 identity break", "Clubs arriving with no matched history at all, "
+                          "which is an alias/canonicalisation defect rather "
+                          "than a football fact.", "clubs_without_history"),
+    ("H4 class balance", "A home/draw/away distribution far enough from the "
+                         "other leagues that a shared prior is wrong.",
+     "home_rate/draw_rate/away_rate"),
+    ("H5 scoring regime", "Goals per match moving between seasons, which "
+                          "moves the Poisson means the grid is built from.",
+     "goals_per_match"),
+    ("H6 coverage break", "Match-statistic coverage (shots, corners, cards) "
+                          "collapsing in some seasons, so the model sees "
+                          "neutral priors instead of evidence.", "stat_coverage"),
+    ("H7 market coverage", "Bookmaker price coverage differing, which biases "
+                           "any market-benchmarked comparison.", "odds_coverage"),
+    ("H8 season structure", "Truncated or restructured seasons — the Covid "
+                            "years are the obvious case — changing the match "
+                            "count without changing the league.", "matches"),
+    ("H9 promoted-club transfer", "Clubs whose rating was earned in another "
+                                  "division carrying it across, which is what "
+                                  "ELO_DIVISION_OFFSET exists to handle.",
+     "clubs_promoted/clubs_relegated"),
+    ("H10 calibration drift", "Calibration error concentrated in particular "
+                              "seasons rather than spread evenly, which points "
+                              "at a data break rather than a model mismatch.",
+     "ece"),
+)
+
+
+def study_league_diagnostic(args) -> dict:
+    """Per-season description of one league, against the declared hypotheses.
+
+    This measures NOTHING against a baseline and recommends no change: it is
+    the step that has to happen before anybody is allowed to write
+    league-specific handling. Run over `--league all` it produces the same
+    table for every league, which is what makes SCH comparable with SPL, SL1
+    and the similarly-sized English divisions rather than merely described.
+
+    Every figure is a fact about the stored data or about an out-of-fold
+    probability. No configuration is tuned here and no verdict is issued.
+    """
+    frame = build_dataset(args.league)
+    columns = feature_names(tuple(args.feature_groups))
+
+    # Out-of-fold probabilities for the two families that actually contest the
+    # league, so per-season log loss is comparable with §13's headline numbers.
+    families = ("poisson", "elo")
+    column_map = column_map_for(families, columns)
+    oof = out_of_fold(frame, column_map, families, args.half_life_days,
+                      args.min_train_seasons)
+    scored_seasons = {str(s) for s in oof.fold_labels}
+
+    stat_columns = [c for c in ("home_shots_known", "home_corners_known",
+                                "home_cards_known") if c in frame.columns]
+    odds_columns = [c for c in ("mkt_known",) if c in frame.columns]
+
+    rows = []
+    previous_clubs: set[str] = set()
+    seen_clubs: set[str] = set()
+    for season in sorted(frame["season"].unique()):
+        block = frame[frame["season"] == season]
+        clubs = set(block["home_canonical"]) | set(block["away_canonical"])
+        results = block["result"].value_counts(normalize=True)
+        goals = float((block["home_goals"] + block["away_goals"]).mean())
+
+        row = {
+            "season": str(season),
+            "matches": int(len(block)),
+            "clubs": len(clubs),
+            "home_rate": float(results.get("H", 0.0)),
+            "draw_rate": float(results.get("D", 0.0)),
+            "away_rate": float(results.get("A", 0.0)),
+            "goals_per_match": goals,
+            # Churn is measured against the season before, so the first season
+            # reports null rather than pretending every club is new.
+            "clubs_changed": (len(clubs ^ previous_clubs) if previous_clubs
+                              else None),
+            "clubs_without_history": len(clubs - seen_clubs) if seen_clubs else None,
+            "stat_coverage": (float(block[stat_columns].mean().mean())
+                              if stat_columns else None),
+            "odds_coverage": (float(block[odds_columns].mean().mean())
+                              if odds_columns else None),
+        }
+
+        # Out-of-fold seasons only. A season the folds never scored gets nulls
+        # rather than a number computed some other way, because a per-season
+        # log loss that quietly changed definition mid-table is worse than a
+        # gap in the table.
+        mask = np.asarray([str(s) == str(season) for s in oof.fold_labels])
+        if str(season) in scored_seasons and mask.any():
+            actual = oof.actual[mask]
+            # The class base rate is THIS season's own outcome distribution,
+            # which is the number the Poisson family failed to beat in SCH. It
+            # is deliberately the in-season rate: a model that cannot beat the
+            # distribution it is scored against is the finding, and computing
+            # it from the training window instead would soften that.
+            base = block["result"].value_counts(normalize=True)
+            prior = np.tile([[base.get("H", 1e-9), base.get("D", 1e-9),
+                              base.get("A", 1e-9)]], (len(actual), 1))
+            row["baseline_log_loss"] = metrics.summarise(prior, actual)["log_loss"]
+            for family in families:
+                probs = oof.probs[family][mask]
+                summary = metrics.summarise(probs, actual)
+                row[f"{family}_log_loss"] = summary["log_loss"]
+                row[f"{family}_brier"] = summary["brier"]
+                row[f"{family}_ece"] = float(
+                    metrics.calibration_error(probs, actual))
+                row[f"{family}_beats_base"] = bool(
+                    summary["log_loss"] < row["baseline_log_loss"])
+        rows.append(row)
+        previous_clubs = clubs
+        seen_clubs |= clubs
+
+    print(f"\n=== {args.league}: per-season diagnostic, {len(rows)} seasons ===")
+    print(f"{'season':<10}{'matches':>8}{'clubs':>7}{'home':>7}{'draw':>7}"
+          f"{'goals':>7}{'churn':>7}{'newhist':>8}{'stat':>7}{'odds':>7}"
+          f"{'base':>8}{'pois':>8}{'elo':>8}{'ece':>7}")
+    for row in rows:
+        def fmt(key, spec=">7.3f"):
+            value = row.get(key)
+            return format(value, spec) if isinstance(value, float) else f"{'-':>7}"
+        print(f"{row['season']:<10}{row['matches']:>8}{row['clubs']:>7}"
+              f"{fmt('home_rate')}{fmt('draw_rate')}{fmt('goals_per_match')}"
+              f"{str(row['clubs_changed'] if row['clubs_changed'] is not None else '-'):>7}"
+              f"{str(row['clubs_without_history'] if row['clubs_without_history'] is not None else '-'):>8}"
+              f"{fmt('stat_coverage')}{fmt('odds_coverage')}"
+              f"{fmt('baseline_log_loss', '>8.4f')}{fmt('poisson_log_loss', '>8.4f')}"
+              f"{fmt('elo_log_loss', '>8.4f')}{fmt('poisson_ece')}")
+
+    return {"study": "league-diagnostic", "league": args.league, "rows": rows,
+            "hypotheses": [{"id": h, "statement": s, "column": c}
+                           for h, s, c in LEAGUE_DIAGNOSTIC_HYPOTHESES],
+            "recommendation": (
+                "Diagnostic only. It identifies which declared hypothesis the "
+                "data supports; it tunes nothing and justifies no "
+                "league-specific model by itself.")}
 
 
 def study_elo_transition(args) -> dict:
@@ -584,6 +743,7 @@ STUDY_FUNCTIONS = {
     "calibration": study_calibration,
     "gbm-diagnostic": study_gbm_diagnostic,
     "base-model": study_base_model,
+    "league-diagnostic": study_league_diagnostic,
 }
 
 
@@ -685,6 +845,16 @@ def ledger_entry(study: str, result: dict) -> dict:
             "chosen": name if vs["beats_noise"] else best_base,
             "candidates_tested": len(candidates),
         }
+    if study == "league-diagnostic":
+        # It compares no configuration against any other, so every comparison
+        # column is honestly null. A ledger row still exists because the run
+        # happened and the seasons it described are evidence.
+        return {"baseline": None, "candidate": None,
+                "folds": len(result.get("rows") or []),
+                "mean_delta": None, "se_delta": None,
+                "beats_noise": False, "harmful": False,
+                "chosen": None,
+                "error": "diagnostic only: no configuration was compared"}
     if study == "gbm-diagnostic":
         # The baseline is the SHIPPED configuration, so a ledger row here says
         # "this candidate beat what we run today" rather than "this candidate
