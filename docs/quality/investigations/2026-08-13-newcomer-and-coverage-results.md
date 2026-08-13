@@ -163,22 +163,85 @@ newcomer gains do not clear noise.
 
 ## 2. Coverage-regime guard — all nine leagues
 
-Run **RUN_ID_COVERAGE**, floor `COVERAGE_SUPPORT_FLOOR = 0.05`, applied per
+Run **31751424020**, floor `COVERAGE_SUPPORT_FLOOR = 0.05`, applied per
 fold, `core` protected.
 
-RESULTS_COVERAGE_TABLE
+| league | folds | guard fired | mean Δ | verdict |
+| --- | ---: | --- | ---: | --- |
+| EPL | 9 | never | 0.0 | untouched |
+| ECH | 9 | never | 0.0 | untouched |
+| EL1 | 9 | never | 0.0 | untouched |
+| EL2 | 9 | never | 0.0 | untouched |
+| ENL | 9 | never | 0.0 | untouched |
+| SPL | 9 | never | 0.0 | untouched |
+| **SCH** | 9 | **1718** | **−0.02830** | **catastrophe removed** |
+| SL1 | 9 | 1718 | **0.0** | fired, changed nothing |
+| SL2 | 9 | 1718 | **0.0** | fired, changed nothing |
 
 ### SCH 1718, the fold that motivated it
 
-RESULTS_SCH
+The fold that motivated the whole study, and the guard removes it:
+
+| | SCH 1718 |
+| --- | --- |
+| training support, `shots_volume` / `corners` | **0.0085** |
+| test support, same families | **0.925** |
+| control log loss | **1.30312** |
+| guarded log loss | **1.04841** |
+| change | **−0.25471** |
+
+1718 was the largest single league-season calibration error anywhere in the
+nine-league table. Guarded, it lands at 1.0484 — **inside the range of SCH's
+own other eight folds** (1.017 to 1.097) rather than half a nat outside it.
+
+The paired-fold statistic reports `beats_noise: false`, and that is correct
+rather than a disappointment: one fold moving out of nine cannot clear a
+paired test over nine, and the standard error equals the mean for exactly that
+reason. **The evidence here is the fold, not the mean.**
 
 ### The falsification half
 
-RESULTS_FALSIFICATION
+This is the half that decides whether the rule is general, and it passes in the
+strongest available form.
+
+* **Six leagues — EPL, ECH, EL1, EL2, ENL, SPL — the guard never fires at all.**
+  Every fold's log loss is byte-identical to the control and `mean_delta` is
+  exactly `0.0`.
+* **SL1 and SL2 fire on the same 1718 break and change nothing.** Control and
+  guarded log loss agree to all seventeen significant figures
+  (SL1 `0.9934835963887985` both ways; SL2 `1.0283209671766476` both ways).
+
+That second bullet is the mechanism confirming itself. SL1 and SL2 carry
+training support of **exactly 0.000**, and a constant column admits no
+coefficient at all — so dropping it is provably a no-op, and the measurement
+shows precisely that. SCH carries **0.0085**: near zero but *not* zero, which
+admits a coefficient fitted on about eight matches in nine hundred, and that
+coefficient then multiplies a feature live across 92.5% of the next season.
+
+**The predeclared distinction between "exactly zero" and "near zero" is
+therefore not a rationalisation written after the result — it is visible in the
+numbers, in three leagues, in the same season.** SL1 and SL2 are the
+falsification example #770 identified, and they behave exactly as a correct
+general rule requires.
 
 ### Verdict
 
-RESULTS_COVERAGE_VERDICT
+**ADOPT.** Both predeclared conditions are met:
+
+1. it removes SCH 1718's catastrophic behaviour — 1.30312 → 1.04841;
+2. it is a no-op in the other eight — never firing in six, and bit-identical
+   where it fires in two.
+
+No league is named anywhere in the rule; the indicators are derived from
+`FEATURE_GROUPS`, and `core` is protected so a model always exists.
+
+**The one action this does not take.** `groups_with_support` is implemented,
+tested and measured, but the training path does **not** call it: `build_dataset`
+and `train.py` are unchanged, so nothing trained today is affected. Wiring it
+into the fit is a change to what the scheduled Monday `task=train` job would
+produce, and that is a model-behaviour decision with a scheduled consequence.
+The evidence above supports it and the decision is left explicit rather than
+taken silently.
 
 ### A limitation this study does not close
 
