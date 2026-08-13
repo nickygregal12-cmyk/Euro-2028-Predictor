@@ -35,6 +35,7 @@ function isNetworkError(e: MaybeError): boolean {
 
 const NETWORK =
   "We couldn't reach the server. Check your connection and try again."
+const CAPTCHA = 'The security check failed or expired. Please complete it again and retry.'
 const GENERIC = 'Something went wrong. Please try again.'
 
 /** Turn any thrown auth error into one stable, safe sentence. */
@@ -44,6 +45,18 @@ export function friendlyAuthError(error: unknown, action: AuthAction): string {
 
   const code = asText(e.code)
   const message = asText(e.message)
+
+  // Supabase reports a rejected Turnstile token as `captcha_failed`; depending
+  // on client/version the message can instead carry its Siteverify wording.
+  // Do not make a valid password look wrong and do not expose provider internals.
+  if (
+    code === 'captcha_failed' ||
+    message.includes('captcha protection') ||
+    message.includes('invalid-input-response') ||
+    message.includes('captcha verification')
+  ) {
+    return CAPTCHA
+  }
 
   if (
     code === 'user_already_exists' ||

@@ -12,6 +12,19 @@ describe('friendlyAuthError', () => {
     expect(byMessage).toBe(byCode)
   })
 
+  it('maps a rejected Turnstile token to retry-the-check guidance', () => {
+    const expected = 'The security check failed or expired. Please complete it again and retry.'
+    expect(friendlyAuthError({ code: 'captcha_failed', status: 400 }, 'login')).toBe(expected)
+    expect(
+      friendlyAuthError(
+        { message: 'captcha protection: request disallowed (invalid-input-response)' },
+        'login',
+      ),
+    ).toBe(expected)
+    expect(friendlyAuthError({ code: 'captcha_failed' }, 'signup')).toBe(expected)
+    expect(friendlyAuthError({ code: 'captcha_failed' }, 'reset')).toBe(expected)
+  })
+
   it('maps an existing account on sign-up to a "log in instead" message', () => {
     const byCode = friendlyAuthError({ code: 'user_already_exists', status: 422 }, 'signup')
     const byMessage = friendlyAuthError({ message: 'User already registered' }, 'signup')
