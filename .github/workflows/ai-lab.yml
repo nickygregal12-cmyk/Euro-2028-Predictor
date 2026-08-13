@@ -313,7 +313,7 @@ jobs:
 
           if [ "${models}" -eq 0 ]; then
             stamp="$(date -u +%Y%m%dT%H%MZ)"
-            ./run_leagues.sh train.py --family poisson --version "auto-${stamp}" --walk-forward
+            python train_selected_challengers.py --version "auto-${stamp}"
           else
             echo "Models already present; skipping challenger bootstrap."
           fi
@@ -488,7 +488,10 @@ jobs:
             python reconcile_paid_fixture_evidence.py
             python fetch_fixtures_odds.py
           fi
-          ./run_leagues.sh train.py --family poisson --version "auto-$stamp" --walk-forward
+          # The 14-Aug guarded study selected family/window per league. This
+          # creates those nine configurations as challengers; promotion remains
+          # a separate admin/human action.
+          python train_selected_challengers.py --version "auto-$stamp"
 
       # A nine-league study prints roughly two hundred lines, of which about
       # eighteen carry a number. The artefact holds the reports, but reading it
