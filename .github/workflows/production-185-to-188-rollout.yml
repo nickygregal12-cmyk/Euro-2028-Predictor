@@ -592,9 +592,9 @@ jobs:
               -- THE DEFECT CONTRACT 188 WAS REWRITTEN TO AVOID, read off the
               -- INSTALLED definition rather than the migration text.
               'snapshot_uses_temp_table', (
-                select pg_get_functiondef(p.oid) ~* 'create\\s+(temporary|temp)\\s+table'
+                select pg_get_functiondef(p.oid) ~* 'create\s+(temporary|temp)\s+table'
                   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                 where n.nspname = 'public' and p.proname = 'record_ai_odds_snapshot'),
+                 where n.nspname = 'public' and p.proname = 'record_ai_odds_snapshot')
               ) ||
               jsonb_build_object(
               'temp_table_lint_violations', (
