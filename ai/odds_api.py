@@ -5,11 +5,28 @@
     python odds_api.py backfill --preset btts-el2 --confirm
     python odds_api.py live
 
-`plan` exists for a future paid historical-data upgrade. The default free tier
-supports live odds only, and live collection stays beneath its 500-credit cap.
-It prints the exact credit cost of a backfill and refuses to be skipped:
+`plan` prints the exact credit cost of a backfill and refuses to be skipped:
 `backfill` will not run without `--confirm`, and it stops the moment the
-month's soft cap is in sight.
+period's soft cap is in sight.
+
+THE ALLOWANCE IS MEASURED, NOT ASSUMED. This module was written around a
+500-credit free tier with 450 reserved as a soft cap, and that number survived
+into the code, into the documentation and into `ai.api_budget` long after it
+stopped being true: Production's own retained response headers report `used 20,
+remaining 19,980`, which is a 20,000-credit period. A cap set an order of
+magnitude below the real allowance is not conservative, it silently refuses the
+collection the budget was supposed to permit.
+
+So the allowance comes from the provider, through headers already retained on
+past successful calls — `ai.reconcile_api_budget` reads `reported_used +
+reported_remaining` off the newest one and never makes a request to find out.
+`budget_state` surfaces any disagreement between what is configured and what
+the provider last said, rather than trusting either silently.
+
+A larger allowance is not permission to spend it. `ai/oddsapi.py` decides WHEN
+to call; the cadence work in contract 146 is what stops a live target polling
+288 times a day at a fixture eleven days away. This module only decides whether
+there is room.
 """
 from __future__ import annotations
 
@@ -109,14 +126,58 @@ MATCHES_PER_SEASON = {"EPL": 380, "ECH": 552, "EL1": 552, "EL2": 552, "SPL": 228
 MATCHDAYS_PER_SEASON = 120
 
 
-def budget_state() -> tuple[int, int, int]:
+# No hard-coded plan. This is the shape of an EMPTY answer — a lab with no
+# budget row has no allowance at all, which is the correct fail-closed state
+# and is nothing like "assume 500".
+NO_BUDGET = (0, 0, 0)
+
+
+def budget_state(verbose: bool = False) -> tuple[int, int, int]:
+    """(allowance, soft cap, used this period), from the configured budget.
+
+    Returns (0, 0, 0) when no budget row exists, which refuses every call. The
+    previous fallback of `(500, 450, 0)` was a guess that outlived the plan it
+    described and let a misconfigured lab spend against a number nobody had
+    checked.
+    """
     df = query_df(
-        "select monthly_credits, soft_cap, ai.credits_used_this_month(provider) as used "
+        "select monthly_credits, soft_cap, "
+        "       ai.credits_used_this_month(provider) as used, "
+        "       observed_period_credits, observed_used, observed_remaining, "
+        "       observed_at "
         "from ai.api_budget where provider = 'the-odds-api'")
     if df.empty:
-        return 500, 450, 0
+        print("REFUSING ALL COLLECTION: no ai.api_budget row for the-odds-api.")
+        return NO_BUDGET
     r = df.iloc[0]
-    return int(r["monthly_credits"]), int(r["soft_cap"]), int(r["used"])
+    configured = int(r["monthly_credits"])
+    observed = r.get("observed_period_credits")
+    if observed is not None and int(observed) != configured:
+        # Surfaced every time rather than only on request: this disagreement is
+        # exactly what hid a 20,000-credit plan behind a 500-credit cap.
+        print(f"WARNING - the provider last reported an allowance of "
+              f"{int(observed):,} credits (used {r['observed_used']} + "
+              f"remaining {r['observed_remaining']}, observed "
+              f"{r['observed_at']}), while ai.api_budget is configured at "
+              f"{configured:,}. Run `python odds_api.py budget --apply` to "
+              f"reconcile; it makes no provider request.")
+    if verbose:
+        print(f"budget: {int(r['used']):,}/{int(r['soft_cap']):,} used this "
+              f"period, allowance {configured:,}")
+    return configured, int(r["soft_cap"]), int(r["used"])
+
+
+def reconcile_budget(apply: bool = False) -> dict:
+    """Reconcile the configured allowance against the provider's own headers.
+
+    Costs nothing. Every number it reads is already retained in `ai.api_usage`
+    from calls that were already paid for, which is the point: rediscovering a
+    quota by making a request would spend a credit to learn how many credits
+    there are.
+    """
+    df = query_df("select ai.reconcile_api_budget(%s, %s) as report",
+                  ("the-odds-api", apply))
+    return {} if df.empty else df.iloc[0]["report"]
 
 
 # ---------------------------------------------------------------------------
@@ -165,7 +226,7 @@ def print_plan(pl: dict) -> None:
           f"historical call")
     print(f"  TOTAL {pl['total']:,} credits")
     print(f"  budget: {pl['used']:,} used this month, soft cap {pl['soft_cap']:,}, "
-          f"plan {pl['monthly']:,}/month")
+          f"allowance {pl['monthly']:,} per period")
     if pl["months"] <= 1:
         print(f"  -> FITS: {pl['total'] / pl['soft_cap']:.0%} of this month's cap")
     else:
@@ -268,8 +329,33 @@ def store_prices(rows: list[dict], league_key: str) -> int:
                                       - %s::timestamptz)))
                               limit 1))
                     on conflict (event_id) do update set
-                      fixture_id = coalesce(ai.odds_api_events.fixture_id,
-                                            excluded.fixture_id),
+                      -- Identity is REFRESHED, not preserved. This clause used
+                      -- to set only `fixture_id` and `matched_by`, so an event
+                      -- first retained under a wrong canonical name stayed
+                      -- wrong for ever, no matter how correct the alias table
+                      -- later became. That is exactly what happened to
+                      -- fifty-two Production events: `aliases.py` mapped
+                      -- Leicester City correctly the whole time and nothing
+                      -- ever re-derived the stored value.
+                      sport_key      = excluded.sport_key,
+                      commence_time  = excluded.commence_time,
+                      home_team      = excluded.home_team,
+                      away_team      = excluded.away_team,
+                      home_canonical = excluded.home_canonical,
+                      away_canonical = excluded.away_canonical,
+                      -- A corrected identity RELINKS to the corrected fixture.
+                      -- `coalesce(old, new)` pinned the event to whatever it
+                      -- first resolved to and made the correction invisible to
+                      -- every price, prediction and bet downstream.
+                      fixture_id = case
+                        when ai.odds_api_events.home_canonical
+                               is distinct from excluded.home_canonical
+                          or ai.odds_api_events.away_canonical
+                               is distinct from excluded.away_canonical
+                        then excluded.fixture_id
+                        else coalesce(ai.odds_api_events.fixture_id,
+                                      excluded.fixture_id)
+                      end,
                       matched_by = excluded.matched_by
                     """,
                     (eid, r["sport_key"], r["commence_time"], r["home_team"],
@@ -326,6 +412,11 @@ def main() -> int:
     bf = sub.add_parser("backfill")
     bf.add_argument("--preset", choices=sorted(PRESETS), required=True)
     bf.add_argument("--confirm", action="store_true")
+    bg = sub.add_parser("budget")
+    bg.add_argument("--apply", action="store_true",
+                    help="Write the measured allowance and its soft cap back "
+                         "to ai.api_budget. Without it, the disagreement is "
+                         "reported and nothing changes.")
     lv = sub.add_parser("live")
     lv.add_argument("--markets", nargs="*", default=["h2h", "totals"])
     args = ap.parse_args()
@@ -341,6 +432,15 @@ def main() -> int:
         print(f"\n{len(fits)} of {len(plans)} presets fit inside one month at "
               f"{plans[0]['soft_cap']:,} credits.")
         print("Nothing above has been spent. `plan` costs no credits.")
+        return 0
+
+    if args.cmd == "budget":
+        report = reconcile_budget(args.apply)
+        for key in sorted(report or {}):
+            print(f"  {key}: {report[key]}")
+        if not report:
+            print("  no budget row for the-odds-api")
+        print("\nNo provider request was made.")
         return 0
 
     if args.cmd == "backfill":
@@ -367,7 +467,7 @@ def main() -> int:
 
     if args.cmd == "probe":
         with job("odds_api_probe") as state:
-            print(f"budget: {used:,}/{soft_cap:,} used this month\n")
+            print(f"budget: {used:,}/{soft_cap:,} used this period\n")
             rows = probe(client)
             n = store_probe(rows)
             record_usage(client)
@@ -383,6 +483,9 @@ def main() -> int:
             state["rows"] = written
             print(f"\nstored {written} prices; spent {client.spent_this_run} credits "
                   f"({client.remaining:,} left under the cap)")
+            # Free: the response we just paid for carries the authoritative
+            # allowance in its headers, so read it rather than assume it.
+            reconcile_budget(apply=False)
         return 0
     return 0
 

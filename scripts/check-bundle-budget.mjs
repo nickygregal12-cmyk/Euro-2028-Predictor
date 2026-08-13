@@ -220,10 +220,41 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // remains inside the unchanged 77 KB cap at 76.5 KB, so no player first paint
 // inherits the laboratory. The aggregate ceilings move only enough to admit
 // the measured private surface and preserve the tighter per-chunk control.
+//
+// RAISED FROM 356 TO 366 AND FROM 39 TO 41 ON 13 AUGUST 2026, FOR CONTRACT
+// 188'S BET BUILDER, AND THE PREVIOUS RAISES' OWN TEST IS WHAT JUSTIFIES IT.
+// Those notes say: whenever the total is raised, check whether the ENTRY chunk
+// also moved, because that is what would mean a panel had been imported
+// statically into the shell. Measured against `main` at `2301b48`, built in a
+// clean worktree from the same `node_modules`, ONE chunk moved at all:
+//
+//   • AiLabPage                  7.91 -> 14.48 KB gz  +6.58
+//   • entry (`index`)                                  0.00 KB gz
+//   • every other chunk                                below 0.05 KB gz
+//
+// SIX POINT SIX KILOBYTES IN A SINGLE LAZY CHUNK THAT NO PLAYER LOADS. The Bet
+// Builder is administrator-only, behind the `competitions` capability and the
+// Hub deployment boundary, and the Euro build emits no `AiLabPage` chunk at
+// all — so the entire increase is unreachable from both a first paint and the
+// tournament product. The largest-chunk ceiling, which is the number that
+// decides what a first paint costs, is unchanged at 77 and measures 76.5.
+//
+// That distribution is why this is a budget change rather than a defect: the
+// aggregate ceiling exists to bound how much JavaScript the product IS, and a
+// private laboratory surface genuinely added some. Reducing was considered and
+// rejected as the wrong lever here — splitting the Bet Builder out of a page
+// that is ALREADY a lazy chunk would hoist its shared modules and grow the
+// total, which is the effect measured three times in the notes above.
+//
+// 366 sits about four and a half kilobytes above the measured 361.5, the same
+// deliberate tightness the last four raises chose. CSS went 38.6 -> 39.2 and is
+// a single unsplit file, so 41 keeps roughly the kilobyte-and-a-half of headroom
+// the 12 August note argued for: a ceiling with less headroom than one
+// component costs is a stop rather than a ratchet.
 const BUDGETS = {
   entryChunkKb: 77,
-  totalJsKb: 356,
-  totalCssKb: 39,
+  totalJsKb: 366,
+  totalCssKb: 41,
 }
 
 /**

@@ -149,7 +149,8 @@ class PoissonModel:
             fit_kwargs["reg__sample_weight"] = np.asarray(sample_weight, dtype=float)
         self.home.fit(X.values, np.asarray(home_goals), **fit_kwargs)
         self.away.fit(X.values, np.asarray(away_goals), **fit_kwargs)
-        self.dc.rho = self._fit_rho(X, np.asarray(home_goals), np.asarray(away_goals))
+        self.dc.rho = self._fit_rho(X, np.asarray(home_goals), np.asarray(away_goals),
+                                    sample_weight=sample_weight)
         return self
 
     # -- Dixon-Coles ---------------------------------------------------------
@@ -167,13 +168,28 @@ class PoissonModel:
         t[m11] = 1.0 - rho
         return np.clip(t, 1e-9, None)
 
-    def _fit_rho(self, X: pd.DataFrame, hg: np.ndarray, ag: np.ndarray) -> float:
+    def _fit_rho(self, X: pd.DataFrame, hg: np.ndarray, ag: np.ndarray,
+                 sample_weight=None) -> float:
+        """Maximise the tau likelihood, under the same weights the rates saw.
+
+        The two rate regressions received `sample_weight` and this did not, so
+        with decay enabled the model listened to 2013 a tenth as much as April
+        for how many goals a team scores, and exactly as much for how often a
+        match finishes 1-1. Rho is estimated from a handful of low-score cells,
+        which is precisely where a stale decade of scoring conventions has room
+        to move a number that nothing else corrects.
+        """
         lh = self.home.predict(X.values)
         la = self.away.predict(X.values)
+        w = (np.ones_like(lh, dtype=float) if sample_weight is None
+             else np.asarray(sample_weight, dtype=float))
+        if w.shape != lh.shape:
+            raise ValueError(
+                f"sample_weight has {w.shape} entries for {lh.shape} matches")
         best, best_ll = 0.0, -np.inf
         for rho in np.linspace(-0.20, 0.10, 31):
             tau = self._tau(hg, ag, lh, la, rho)
-            ll = float(np.log(tau).sum())
+            ll = float((w * np.log(tau)).sum())
             if np.isfinite(ll) and ll > best_ll:
                 best, best_ll = float(rho), ll
         return best
@@ -231,8 +247,308 @@ class PoissonModel:
         return out
 
 
+# ---------------------------------------------------------------------------
+# v0.4 — Elo as a forecast in its own right
+# ---------------------------------------------------------------------------
+
+class EloOrderedLogitModel:
+    """An ordered logit on the Elo rating difference. Nothing else.
+
+    Elo has been in this package since the beginning and has never been a
+    forecast: it was a COLUMN, one of thirty-odd fed to a Poisson regression.
+    That matters for the ensemble, because two models that disagree are only
+    informative if they can disagree — and a "second opinion" built by feeding
+    the same features through the same regression is not a second opinion, it
+    is the first one with different rounding.
+
+    So this model sees exactly one number, `elo_diff`, and maps it to H/D/A
+    through a functional form the Poisson model does not have: a latent
+    home-superiority scale cut into three ordered pieces. The draw is the
+    middle band rather than a category, which is the one structural claim about
+    football results that neither the multinomial logistic nor the independent
+    Poissons make. It will lose to the Poisson model on log loss. It is here
+    because of WHERE it loses, which is not the same place.
+
+        P(A) = sigma(c1 - b*x)
+        P(D) = sigma(c2 - b*x) - sigma(c1 - b*x)
+        P(H) = 1 - sigma(c2 - b*x)
+
+    with c2 > c1 enforced by construction, and b, c1, c2 fitted by weighted
+    maximum likelihood so the same time decay the other families receive
+    applies here too.
+    """
+
+    family = "elo"
+    uses_market = False
+    REQUIRED = ("elo_diff",)
+
+    def __init__(self, scale: float = 400.0) -> None:
+        self.scale = scale
+        self.beta_ = 1.0
+        self.cut_lo_ = -0.5
+        self.cut_hi_ = 0.5
+        self.feature_names_: list[str] = list(self.REQUIRED)
+
+    @staticmethod
+    def _sigmoid(z: np.ndarray) -> np.ndarray:
+        return 1.0 / (1.0 + np.exp(-np.clip(z, -35.0, 35.0)))
+
+    def _x(self, X: pd.DataFrame) -> np.ndarray:
+        missing = [c for c in self.REQUIRED if c not in X.columns]
+        if missing:
+            raise KeyError(f"{self.family} model needs {missing}")
+        return np.asarray(X["elo_diff"], dtype=float) / self.scale
+
+    def _probs(self, x: np.ndarray, beta: float, c_lo: float, c_hi: float) -> np.ndarray:
+        lo = self._sigmoid(c_lo - beta * x)
+        hi = self._sigmoid(c_hi - beta * x)
+        p_a = lo
+        p_d = np.clip(hi - lo, 1e-9, None)
+        p_h = np.clip(1.0 - hi, 1e-9, None)
+        out = np.stack([p_h, p_d, p_a], axis=1)
+        return out / out.sum(axis=1, keepdims=True)
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight=None,
+            **_ignored) -> "EloOrderedLogitModel":
+        from scipy.optimize import minimize
+
+        x = self._x(X)
+        idx = {o: i for i, o in enumerate(OUTCOMES)}
+        target = np.array([idx[v] for v in np.asarray(y)], dtype=int)
+        w = (np.ones_like(x) if sample_weight is None
+             else np.asarray(sample_weight, dtype=float))
+
+        def nll(theta):
+            beta, c_lo, gap = theta
+            probs = self._probs(x, beta, c_lo, c_lo + np.exp(gap))
+            return float(-(w * np.log(probs[np.arange(len(target)), target])).sum())
+
+        best = minimize(nll, x0=np.array([2.0, -0.6, np.log(1.2)]),
+                        method="Nelder-Mead",
+                        options={"maxiter": 2000, "xatol": 1e-6, "fatol": 1e-6})
+        beta, c_lo, gap = best.x
+        self.beta_, self.cut_lo_ = float(beta), float(c_lo)
+        self.cut_hi_ = float(c_lo + np.exp(gap))
+        return self
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        return self._probs(self._x(X), self.beta_, self.cut_lo_, self.cut_hi_)
+
+    def predict_goals(self, X: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        n = len(X)
+        return np.full(n, np.nan), np.full(n, np.nan)
+
+    def describe(self) -> dict:
+        return {"family": self.family, "beta": round(self.beta_, 4),
+                "cut_lo": round(self.cut_lo_, 4), "cut_hi": round(self.cut_hi_, 4),
+                "scale": self.scale}
+
+
+# ---------------------------------------------------------------------------
+# v0.5 — gradient-boosted trees
+# ---------------------------------------------------------------------------
+
+class GradientBoostedModel:
+    """Histogram gradient boosting over the same pre-match feature block.
+
+    scikit-learn's `HistGradientBoostingClassifier` rather than CatBoost or
+    LightGBM, and that is a deliberate choice rather than a convenience. It is
+    already installed — `requirements.txt` pins scikit-learn and the CI job
+    installs exactly that file — so the lab gains a nonlinear learner without
+    gaining a compiled dependency that has to be present on every runner, in
+    every rehearsal and in whatever environment a future rollout uses. It also
+    gives the one property that actually matters for this data:
+
+      * NATIVE missingness. `sot_known` and its siblings exist because a
+        missing shot count must not read as zero. A tree that can send NaN down
+        its own branch expresses that directly, so the neutral-prior columns
+        become a fallback rather than the only representation.
+
+    It is registered, and it is deliberately NOT in any default configuration.
+    A boosted model will beat a Poisson regression on the training set every
+    time and that is not evidence of anything; it enters an ensemble only by
+    winning paired walk-forward folds, which is what `experiments.py` measures.
+    """
+
+    family = "gbm"
+    uses_market = False
+
+    def __init__(self, learning_rate: float = 0.05, max_iter: int = 400,
+                 max_leaf_nodes: int = 15, min_samples_leaf: int = 40,
+                 l2_regularization: float = 1.0, random_state: int = 20280611) -> None:
+        from sklearn.ensemble import HistGradientBoostingClassifier
+
+        self.clf = HistGradientBoostingClassifier(
+            loss="log_loss",
+            learning_rate=learning_rate,
+            max_iter=max_iter,
+            max_leaf_nodes=max_leaf_nodes,
+            min_samples_leaf=min_samples_leaf,
+            l2_regularization=l2_regularization,
+            early_stopping=False,     # chronological folds do the stopping
+            random_state=random_state,
+        )
+        self.feature_names_: list[str] = []
+        self.classes_: list[str] = list(OUTCOMES)
+        self.medians_: np.ndarray | None = None
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight=None,
+            **_ignored) -> "GradientBoostedModel":
+        self.feature_names_ = list(X.columns)
+        values = X.values.astype(float)
+        self.medians_ = np.nanmedian(values, axis=0)
+        kwargs = {}
+        if sample_weight is not None:
+            kwargs["sample_weight"] = np.asarray(sample_weight, dtype=float)
+        self.clf.fit(values, np.asarray(y), **kwargs)
+        self.classes_ = list(self.clf.classes_)
+        return self
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        raw = self.clf.predict_proba(X[self.feature_names_].values.astype(float))
+        order = [self.classes_.index(o) for o in OUTCOMES]
+        return raw[:, order]
+
+    def predict_goals(self, X: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        n = len(X)
+        return np.full(n, np.nan), np.full(n, np.nan)
+
+    def contributions(self, X: pd.DataFrame, top_n: int = 8) -> list[list[dict]]:
+        """Per-row feature contributions by occlusion, not by SHAP.
+
+        Stated plainly because the difference matters: each feature is replaced
+        in turn by its TRAINING median and the change in the model's own
+        probability vector is recorded. That is a real, deterministic,
+        model-derived attribution and it is not a Shapley value — it does not
+        average over coalitions, so correlated features share credit rather
+        than splitting it, and the parts do not sum to the whole.
+
+        TreeSHAP would be exact for this model class and needs `shap`, which is
+        a compiled dependency this package has not taken. When it does, this
+        method is the thing to replace, and the explanation layer reads the
+        `method` key rather than assuming.
+        """
+        if self.medians_ is None:
+            raise ValueError("contributions() needs a fitted model")
+        frame = X[self.feature_names_].values.astype(float)
+        base = self.predict_proba(X)
+        out: list[list[dict]] = []
+        for i in range(len(frame)):
+            row = frame[i]
+            deltas = []
+            for j, name in enumerate(self.feature_names_):
+                if np.isclose(row[j], self.medians_[j], equal_nan=True):
+                    continue
+                swapped = row.copy()
+                swapped[j] = self.medians_[j]
+                one = pd.DataFrame([swapped], columns=self.feature_names_)
+                alt = self.predict_proba(one)[0]
+                deltas.append({
+                    "feature": name,
+                    "value": float(row[j]),
+                    "delta_home": float(base[i][0] - alt[0]),
+                    "delta_draw": float(base[i][1] - alt[1]),
+                    "delta_away": float(base[i][2] - alt[2]),
+                    "method": "occlusion_vs_training_median",
+                })
+            deltas.sort(key=lambda d: -max(abs(d["delta_home"]), abs(d["delta_away"])))
+            out.append(deltas[:top_n])
+        return out
+
+    def describe(self) -> dict:
+        return {"family": self.family,
+                "estimator": type(self.clf).__name__,
+                "n_features": len(self.feature_names_)}
+
+
+# ---------------------------------------------------------------------------
+# v0.6 — the market-informed variant
+# ---------------------------------------------------------------------------
+
+class MarketInformedModel:
+    """Football features PLUS what the pre-match market already believes.
+
+    `ai.predictions.uses_market` exists for exactly this and its comment says
+    why: once betting prices are a feature, "does my football model add
+    information?" stops being answerable. So this is a separate family, marked
+    separately, and it must never be confused with the pure model — which is
+    enforced rather than remembered, by `market_features.assert_pure`.
+
+    Two rules it keeps:
+
+      * only prices that existed at `data_snapshot_at`. Closing lines are the
+        benchmark this lab is measured against; feeding them to a model that
+        claims to have forecast on Thursday is the single most flattering
+        mistake available in this field, and it produces a model that looks
+        superhuman and cannot be traded.
+
+      * the market block is de-vigged before it is a feature. Raw implied
+        probabilities carry the bookmaker's margin, which is a property of the
+        bookmaker rather than of the match.
+    """
+
+    family = "market"
+    uses_market = True
+
+    def __init__(self, C: float = 0.5) -> None:
+        self.pipeline = Pipeline([
+            ("scale", StandardScaler()),
+            ("clf", LogisticRegression(C=C, max_iter=3000, solver="lbfgs")),
+        ])
+        self.feature_names_: list[str] = []
+        self.classes_: list[str] = list(OUTCOMES)
+
+    def fit(self, X: pd.DataFrame, y: pd.Series, sample_weight=None,
+            **_ignored) -> "MarketInformedModel":
+        from market_features import assert_no_closing_features
+
+        assert_no_closing_features(list(X.columns))
+        self.feature_names_ = list(X.columns)
+        kwargs = {}
+        if sample_weight is not None:
+            kwargs["clf__sample_weight"] = np.asarray(sample_weight, dtype=float)
+        self.pipeline.fit(X.values.astype(float), np.asarray(y), **kwargs)
+        self.classes_ = list(self.pipeline.named_steps["clf"].classes_)
+        return self
+
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
+        raw = self.pipeline.predict_proba(X[self.feature_names_].values.astype(float))
+        order = [self.classes_.index(o) for o in OUTCOMES]
+        return raw[:, order]
+
+    def predict_goals(self, X: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+        n = len(X)
+        return np.full(n, np.nan), np.full(n, np.nan)
+
+    def coefficients(self) -> pd.DataFrame:
+        clf = self.pipeline.named_steps["clf"]
+        return pd.DataFrame(clf.coef_.T, index=self.feature_names_, columns=self.classes_)
+
+    def describe(self) -> dict:
+        return {"family": self.family, "n_features": len(self.feature_names_)}
+
+
 MODEL_FAMILIES = {
     "baseline": BaselineModel,
     "logistic": LogisticModel,
     "poisson": PoissonModel,
+    "elo": EloOrderedLogitModel,
+    "gbm": GradientBoostedModel,
+    "market": MarketInformedModel,
 }
+
+# Which families are allowed to see a price. Read by the training entry point
+# and by the tests, so "the pure model stayed pure" is a property of the
+# registry rather than of whoever last edited a command line.
+MARKET_FAMILIES = frozenset({"market"})
+PURE_FOOTBALL_FAMILIES = frozenset(set(MODEL_FAMILIES) - MARKET_FAMILIES)
+
+# The families that make a useful ensemble: structurally different learners
+# over the same evidence. `baseline` is excluded because it carries no
+# information about a fixture, and `logistic` because the Poisson model
+# already occupies the smooth-linear corner of the space.
+ENSEMBLE_BASE_FAMILIES = ("poisson", "elo", "gbm")
+
+
+def uses_market(family: str) -> bool:
+    return family in MARKET_FAMILIES

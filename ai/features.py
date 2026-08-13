@@ -84,9 +84,92 @@ def _optional_number(value) -> float | None:
         return None
 
 ELO_DIVISION_OFFSET = {       # a promoted club is not a mid-table top-flight club
-    "E0": 0.0, "E1": -180.0, "E2": -320.0, "E3": -430.0,
+    "E0": 0.0, "E1": -180.0, "E2": -320.0, "E3": -430.0, "EC": -520.0,
     "SC0": 0.0, "SC1": -170.0, "SC2": -300.0, "SC3": -400.0,
 }
+
+# Rank within a national pyramid, smaller is higher. Used to tell a promotion
+# from a relegation, which the offset table alone cannot: -180 is further from
+# zero than -170, and those two numbers belong to different countries.
+DIVISION_RANK = {
+    "E0": 1, "E1": 2, "E2": 3, "E3": 4, "EC": 5,
+    "SC0": 1, "SC1": 2, "SC2": 3, "SC3": 4,
+}
+
+
+def division_prior(division: str | None) -> float:
+    """The rating an average club in this division carries.
+
+    `ELO_DIVISION_OFFSET` had no `EC` entry, so a National League club seeded
+    at 1500 — the Premier League's own anchor — which is the identical defect
+    the offset table was added to fix one tier higher. EL2 trains on
+    ("E3", "E2", "EC"), so it was reached in practice rather than theory.
+    """
+    return ELO_START + ELO_DIVISION_OFFSET.get(division or "", 0.0)
+
+
+# How a club's rating moves between seasons. A parameter rather than a
+# constant because the three candidates are a real modelling question and
+# `experiments.py --study elo-transition` compares them on paired folds.
+#
+#   division_prior  shrink toward the mean of the division the rating was
+#                   EARNED in. The default, and the fix for the defect below.
+#   global_mean     shrink toward 1500. What this file did until now.
+#   none            carry the rating unchanged into the new season.
+#
+# The defect: `roll_season` pulled every club a quarter of the way to
+# ELO_START = 1500 each summer, and 1500 is the PREMIER LEAGUE's anchor. A
+# League Two club sitting correctly at its division's own prior of 1070 was
+# therefore moved to 1177 by nothing more than a summer passing, and again to
+# 1257 the summer after — an unearned +187 over two seasons, applied to every
+# club in the division at once, from a function whose stated purpose is to
+# express that LESS is known in August than in May.
+#
+# The anchor is the division the rating was earned in rather than the one the
+# club is about to play in, and that choice is the whole design:
+#
+#   * an unchanged lower-division club shrinks toward its own level, so the
+#     upward drift disappears entirely;
+#   * a promoted club shrinks DOWN toward the division it just won, which is
+#     the honest statement — a good Championship side is not a mid-table
+#     Premier League side — and it means promotion cannot hand a club rating
+#     points for a change of division code, which shrinking toward the
+#     DESTINATION prior would do;
+#   * a relegated club shrinks UP toward the top flight it just left, keeping
+#     the earned strength that makes it a favourite in the division below,
+#     rather than destroying it.
+#
+# Nothing here is applied twice: the seed in `_state_for` and this anchor are
+# the same number, so a club that never moves is not re-seeded every August.
+ELO_TRANSITIONS = ("division_prior", "global_mean", "none")
+ELO_TRANSITION_DEFAULT = "division_prior"
+
+# How a rating update treats a match played with ten men.
+#
+#   plain            every result moves the rating by the same rule.
+#   red_card_aware   a match flagged `red_card_distorted` moves it less.
+#
+# The principle is LEARN FROM EVERY RESULT, OVERREACT TO NONE. A 4-0 after an
+# eighth-minute sending-off is still evidence — it is not evidence about
+# eleven-a-side football of the same strength as a 4-0 at full strength, and
+# the margin multiplier is the part of the update that treats it as though it
+# were. The damping is partial rather than total precisely so the upset still
+# counts: a rule that ignored distorted results would be a rule for deleting
+# the results a model finds inconvenient.
+#
+# `plain` remains the default until `experiments.py --study elo-margin` shows
+# otherwise on paired folds, for the same reason `halftime` is not in
+# DEFAULT_GROUPS: a mechanism that sounds right is not evidence.
+ELO_MARGIN_POLICIES = ("plain", "red_card_aware")
+ELO_MARGIN_POLICY_DEFAULT = "plain"
+ELO_DISTORTED_DAMPING = 0.5
+
+# Goals of result margin that one shot-on-target of dominance is worth, used
+# only to express the gap between what a team DID and what it DESERVED. A
+# fixed constant rather than a fitted one: this is a descriptive feature handed
+# to a model that will fit its own coefficient on it, and fitting it here would
+# be a second, hidden model whose errors nothing measures.
+PERF_GOALS_PER_SOT_MARGIN = 0.25
 
 
 def _elo_expected(home_rating: float, away_rating: float) -> float:
@@ -121,17 +204,41 @@ class TeamState:
     season_ga: int = 0
     last_played: date | None = None
     top_flight_matches: int = 0
+    # Where this club's rating was earned, and where it was earned the season
+    # before. `division` is the division of its most recent match (or, before
+    # it has played, the one it was seeded from); `previous_division` is what
+    # `division` held at the last season change, which is what makes a
+    # promotion distinguishable from a relegation without a fixture list.
+    division: str | None = None
+    previous_division: str | None = None
+    seasons_seen: int = 0
     # Kick-off dates, for congestion. Rest days answers 'how long since
     # the last one'; it cannot answer 'how many in the last fortnight',
     # which is the question a third match in seven days poses.
     match_dates: deque = field(default_factory=lambda: deque(maxlen=12))
+    # Cup and European dates supplied by `schedule_context`, which are not in
+    # ai.raw_matches and are the reason the league-only congestion counts
+    # understate exactly the clubs congestion is about. Empty unless a context
+    # was supplied, so the default behaviour is unchanged.
+    extra_dates: tuple = ()
 
-    def roll_season(self, season: str) -> None:
+    def roll_season(self, season: str,
+                    transition: str = ELO_TRANSITION_DEFAULT) -> None:
         if self.season == season:
             return
         # Between seasons ratings regress toward the mean: squads change, and a
         # club's June rating overstates how much is actually known in August.
-        self.elo = self.elo + (ELO_START - self.elo) * ELO_SEASON_REGRESSION
+        # WHICH mean is the question `ELO_TRANSITIONS` documents: the mean of
+        # the division this rating was earned in, not the top flight's.
+        if transition not in ELO_TRANSITIONS:
+            raise ValueError(f"unknown Elo transition: {transition!r}; "
+                             f"known: {list(ELO_TRANSITIONS)}")
+        if transition != "none":
+            anchor = (division_prior(self.division)
+                      if transition == "division_prior" else ELO_START)
+            self.elo = self.elo + (anchor - self.elo) * ELO_SEASON_REGRESSION
+        self.previous_division = self.division
+        self.seasons_seen += 1
         self.season = season
         self.season_played = 0
         self.season_points = 0
@@ -156,6 +263,8 @@ class TeamState:
                 "ht_gf": NEUTRAL_HT_GOALS, "ht_ga": NEUTRAL_HT_GOALS,
                 "sh_gf": NEUTRAL_HT_GOALS, "sh_ga": NEUTRAL_HT_GOALS,
                 "ht_known": 0.0,
+                "overperf": 0.0, "perf_margin": 0.0, "perf_disagree": 0.0,
+                "perf_known": 0.0,
                 "distorted": 0.0}
         pts = sum(r["pts"] for r in rows)
         gf = sum(r["gf"] for r in rows)
@@ -188,6 +297,26 @@ class TeamState:
         ga_when_measured = sum(r["ga"] for r in shot_rows)
         shots_f_tot = sum(r["shots_f"] for r in total_rows)
         shots_a_tot = sum(r["shots_a"] for r in total_rows)
+
+        # Result against performance. A bottom club winning 1-0 having been
+        # out-shot 3-24 on target is not the same evidence about future
+        # strength as one winning 1-0 while dominating, and a form window built
+        # from points alone cannot tell those apart — it records three points
+        # both times. This does not DISCOUNT the upset: the win is in `ppg`
+        # exactly as before. It adds the second half of the observation.
+        perf_margin = 0.0
+        overperf = 0.0
+        disagree = 0.0
+        if shot_rows:
+            result_margins = [r["gf"] - r["ga"] for r in shot_rows]
+            shot_margins = [r["sot_f"] - r["sot_a"] for r in shot_rows]
+            perf_margin = sum(shot_margins) / len(shot_rows)
+            overperf = (sum(result_margins) / len(shot_rows)
+                        - PERF_GOALS_PER_SOT_MARGIN * perf_margin)
+            disagree = sum(
+                1 for rm, sm in zip(result_margins, shot_margins)
+                if rm != 0 and sm != 0 and (rm > 0) != (sm > 0)
+            ) / len(shot_rows)
 
         return {
             "n": float(n),
@@ -222,6 +351,13 @@ class TeamState:
             "sh_gf": mean_of("sh_gf", [dict(r, sh_gf=r["gf"] - r["ht_gf"]) for r in ht_rows], NEUTRAL_HT_GOALS),
             "sh_ga": mean_of("sh_ga", [dict(r, sh_ga=r["ga"] - r["ht_ga"]) for r in ht_rows], NEUTRAL_HT_GOALS),
             "ht_known": (len(ht_rows) / n) if n else 0.0,
+            # Positive `overperf`: this side has taken more from its recent
+            # matches than the underlying play produced. It is a candidate for
+            # regression rather than a claim that the team is lucky.
+            "overperf": overperf,
+            "perf_margin": perf_margin,
+            "perf_disagree": disagree,
+            "perf_known": (k / n) if n else 0.0,
             # Share of the window played with a sending-off. Form built from
             # ten-man matches is weaker evidence about an eleven-a-side
             # fixture, and this lets the model discount it rather than
@@ -249,13 +385,16 @@ class TeamState:
         days is a different physical proposition from a first one after a
         week's rest even though both can show six rest days.
 
-        League fixtures only, for now: cup and European matches are not in
+        League fixtures, plus whatever `schedule_context` supplied. Without a
+        context this counts Saturdays only: cup and European matches are not in
         `ai.raw_matches`, so a Premier League club's Thursday in Europe is
-        invisible here. That is a real limitation and it understates
-        congestion for exactly the clubs that suffer it most.
+        invisible, and that understates congestion for exactly the clubs that
+        suffer it most. It is why the measured null result for this family is
+        not evidence that fixture congestion does not matter.
         """
-        last7 = sum(1 for d in self.match_dates if 0 < (today - d).days <= 7)
-        last14 = sum(1 for d in self.match_dates if 0 < (today - d).days <= 14)
+        every = list(self.match_dates) + [d for d in self.extra_dates if d < today]
+        last7 = sum(1 for d in every if 0 < (today - d).days <= 7)
+        last14 = sum(1 for d in every if 0 < (today - d).days <= 14)
         return {
             "matches_7d": float(last7),
             "matches_14d": float(last14),
@@ -271,6 +410,7 @@ class TeamState:
     # -- mutation ------------------------------------------------------------
 
     def record(self, gf: int, ga: int, venue: str, when: date, top_flight: bool,
+               division: str | None = None,
                distorted: bool = False,
                sot_f: float | None = None, sot_a: float | None = None,
                shots_f: float | None = None, shots_a: float | None = None,
@@ -300,8 +440,26 @@ class TeamState:
         self.season_gf += gf
         self.season_ga += ga
         self.last_played = when
+        # The division the rating is being earned in, which is the anchor the
+        # next season change will shrink toward.
+        if division is not None:
+            self.division = division
         if top_flight:
             self.top_flight_matches += 1
+
+    # -- transition state, for regime detection and reporting -----------------
+
+    def division_move(self) -> int:
+        """+1 promoted, -1 relegated, 0 unchanged or unknown.
+
+        Ranks rather than rating offsets, so E1 -> E0 and SC1 -> SC0 read the
+        same and an English club is never compared with a Scottish one.
+        """
+        here = DIVISION_RANK.get(self.division or "")
+        there = DIVISION_RANK.get(self.previous_division or "")
+        if here is None or there is None or here == there:
+            return 0
+        return 1 if here < there else -1
 
 
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
@@ -368,6 +526,15 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
         "home_sh_gf", "home_sh_ga", "away_sh_gf", "away_sh_ga",
         "ht_gd_diff", "home_ht_known", "away_ht_known",
     ),
+    # Result against underlying performance. A candidate family: measured by
+    # `ablate.py` before it may enter DEFAULT_GROUPS, exactly as shots,
+    # corners, conversion, half-time and congestion were.
+    "performance": (
+        "home_overperformance", "away_overperformance", "overperformance_diff",
+        "home_perf_margin", "away_perf_margin", "perf_margin_diff",
+        "home_perf_disagree", "away_perf_disagree",
+        "home_perf_known", "away_perf_known",
+    ),
     "congestion": (
         "home_matches_7d", "away_matches_7d",
         "home_matches_14d", "away_matches_14d",
@@ -402,6 +569,17 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
 # of the same shot features reported them as noise, which is what an error bar
 # ten times too wide will do to a real effect.
 DEFAULT_GROUPS: tuple[str, ...] = ("core", "shots_volume", "corners", "conversion")
+
+
+# Bumped when the MEANING of a feature changes without its NAME changing.
+#
+# 'f1' is everything up to and including contract 185. 'f2' is this change:
+# `elo_home`, `elo_away`, `elo_diff` and `elo_expected_home` are all still
+# spelled the same and are all computed under a different between-seasons
+# transition, and `division_prior` now knows about the National League. A
+# name-for-name column check cannot see any of that, which is exactly why the
+# version is stored on the artefact and compared on load.
+FEATURES_VERSION = "f2"
 
 
 def feature_names(groups: "tuple[str, ...] | list[str] | None" = None) -> list[str]:
@@ -485,6 +663,13 @@ def _row_from_state(
         "away_corners_f": af["corners_f"], "away_corners_a": af["corners_a"],
         "corners_diff": (hf["corners_f"] - hf["corners_a"]) - (af["corners_f"] - af["corners_a"]),
         "home_corners_known": hf["corners_known"], "away_corners_known": af["corners_known"],
+        # -- result against performance ---------------------------------------
+        "home_overperformance": hf["overperf"], "away_overperformance": af["overperf"],
+        "overperformance_diff": hf["overperf"] - af["overperf"],
+        "home_perf_margin": hf["perf_margin"], "away_perf_margin": af["perf_margin"],
+        "perf_margin_diff": hf["perf_margin"] - af["perf_margin"],
+        "home_perf_disagree": hf["perf_disagree"], "away_perf_disagree": af["perf_disagree"],
+        "home_perf_known": hf["perf_known"], "away_perf_known": af["perf_known"],
         # -- halves -----------------------------------------------------------
         "home_ht_gf": hf["ht_gf"], "home_ht_ga": hf["ht_ga"],
         "away_ht_gf": af["ht_gf"], "away_ht_ga": af["ht_ga"],
@@ -521,8 +706,20 @@ class FeatureBuilder:
     apart.
     """
 
-    def __init__(self, top_division: str) -> None:
+    def __init__(self, top_division: str,
+                 elo_transition: str = ELO_TRANSITION_DEFAULT,
+                 elo_margin_policy: str = ELO_MARGIN_POLICY_DEFAULT,
+                 schedule_context=None) -> None:
         self.top_division = top_division
+        if elo_transition not in ELO_TRANSITIONS:
+            raise ValueError(f"unknown Elo transition: {elo_transition!r}; "
+                             f"known: {list(ELO_TRANSITIONS)}")
+        if elo_margin_policy not in ELO_MARGIN_POLICIES:
+            raise ValueError(f"unknown Elo margin policy: {elo_margin_policy!r}; "
+                             f"known: {list(ELO_MARGIN_POLICIES)}")
+        self.elo_transition = elo_transition
+        self.elo_margin_policy = elo_margin_policy
+        self.schedule_context = schedule_context
         # A plain dict, not a defaultdict: every club must enter through
         # `_state_for`, which seeds its rating from the division it first
         # appears in. A defaultdict would silently hand back an unseeded
@@ -540,13 +737,13 @@ class FeatureBuilder:
              stats) in self._pending:
             top = division == self.top_division
             self.state[home_name].record(
-                hg, ag, "home", when, top, distorted,
+                hg, ag, "home", when, top, division, distorted,
                 sot_f=stats["h_sot"], sot_a=stats["a_sot"],
                 shots_f=stats["h_shots"], shots_a=stats["a_shots"],
                 corners_f=stats["h_corners"], corners_a=stats["a_corners"],
                 ht_gf=stats["h_ht"], ht_ga=stats["a_ht"])
             self.state[away_name].record(
-                ag, hg, "away", when, top, distorted,
+                ag, hg, "away", when, top, division, distorted,
                 sot_f=stats["a_sot"], sot_a=stats["h_sot"],
                 shots_f=stats["a_shots"], shots_a=stats["h_shots"],
                 corners_f=stats["a_corners"], corners_a=stats["h_corners"],
@@ -556,6 +753,12 @@ class FeatureBuilder:
             expected = _elo_expected(h.elo, a.elo)
             actual = 1.0 if hg > ag else (0.5 if hg == ag else 0.0)
             mult = _elo_margin_multiplier(hg - ag, (h.elo + ELO_HOME_ADV) - a.elo)
+            if distorted and self.elo_margin_policy == "red_card_aware":
+                # Damp the MARGIN term only. The win, draw or defeat still
+                # moves the rating by its full amount; what is discounted is
+                # the extra credit a wide scoreline earns, which is the part a
+                # sending-off actually manufactures.
+                mult = 1.0 + (mult - 1.0) * ELO_DISTORTED_DAMPING
             delta = ELO_K * mult * (actual - expected)
             h.elo += delta
             a.elo -= delta
@@ -581,7 +784,11 @@ class FeatureBuilder:
         """
         if name not in self.state:
             state = TeamState()
-            state.elo = ELO_START + ELO_DIVISION_OFFSET.get(division, 0.0)
+            state.elo = division_prior(division)
+            # The seed division is also the first anchor: a club seeded in
+            # League Two and then rolled into a new season before playing must
+            # shrink toward League Two, not toward the Premier League.
+            state.division = division
             # The seed is also the club's first season, so the between-seasons
             # regression does not immediately undo it. Without this, a League
             # Two club seeded at 1070 was pulled a quarter of the way back to
@@ -589,6 +796,12 @@ class FeatureBuilder:
             # fires whenever the stored season differs, and None differs from
             # everything. The counters it would reset are already zero.
             state.season = season
+            # Cup and European dates, when a schedule context was supplied.
+            # Attached at seeding rather than looked up per row so that the
+            # congestion counts cost the same whether the context is present
+            # or absent.
+            if self.schedule_context is not None:
+                state.extra_dates = tuple(self.schedule_context.for_team(name))
             self.state[name] = state
         return self.state[name]
 
@@ -619,8 +832,8 @@ class FeatureBuilder:
 
             home = self._state_for(rec.home_canonical, rec.division, rec.season)
             away = self._state_for(rec.away_canonical, rec.division, rec.season)
-            home.roll_season(rec.season)
-            away.roll_season(rec.season)
+            home.roll_season(rec.season, self.elo_transition)
+            away.roll_season(rec.season, self.elo_transition)
 
             season_start, season_end = season_date_bounds(rec.season)
             span = max((season_end - season_start).days, 1)
@@ -673,8 +886,8 @@ class FeatureBuilder:
         # club now, not a 1500 default.
         home = self._state_for(home_name, self.top_division, season)
         away = self._state_for(away_name, self.top_division, season)
-        home.roll_season(season)
-        away.roll_season(season)
+        home.roll_season(season, self.elo_transition)
+        away.roll_season(season, self.elo_transition)
         span = max((season_end - season_start).days, 1)
         progress = min(max((when - season_start).days / span, 0.0), 1.0)
         return _row_from_state(home, away, when, progress)

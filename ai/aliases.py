@@ -156,6 +156,42 @@ ODDS_API_TO_CANONICAL: dict[str, str] = {
     "Bradford City": "Bradford",
     "Grimsby Town": "Grimsby",
     "Harrogate Town": "Harrogate",
+    # A second sweep, added after the 13 August 2026 Production audit measured
+    # what the first one missed. These twenty-one club spellings had no alias
+    # entry AND no shape match — `normalise('Huddersfield Town')` is
+    # 'huddersfield town' and the history's key is 'huddersfield' — so each was
+    # scored as a club with no matches at all, exactly as Leicester was, while
+    # its six hundred-odd historical rows sat under the shorter name. Every
+    # canonical name on the right was read out of `ai.raw_matches` rather than
+    # guessed, with its match count checked.
+    "Accrington Stanley": "Accrington",
+    "Bristol Rovers": "Bristol Rvs",
+    "Bromley FC": "Bromley",
+    "Bromley": "Bromley",
+    "Burton Albion": "Burton",
+    "Cambridge United": "Cambridge",
+    "Chesterfield FC": "Chesterfield",
+    "Chesterfield": "Chesterfield",
+    "Exeter City": "Exeter",
+    "Huddersfield Town": "Huddersfield",
+    "Lincoln City": "Lincoln",
+    "Mansfield Town": "Mansfield",
+    "Northampton Town": "Northampton",
+    "Oldham Athletic": "Oldham",
+    "Plymouth Argyle": "Plymouth",
+    "Rotherham United": "Rotherham",
+    "Salford City": "Salford",
+    "Stockport County FC": "Stockport",
+    "Stockport County": "Stockport",
+    "Swindon Town": "Swindon",
+    "Wigan Athletic": "Wigan",
+    "Wimbledon": "AFC Wimbledon",
+    "AFC Wimbledon": "AFC Wimbledon",
+    "Wrexham AFC": "Wrexham",
+    "Wrexham": "Wrexham",
+    "York City": "York",
+    "Dundee FC": "Dundee",
+    "Falkirk F.C.": "Falkirk",
     # Scotland
     "Heart of Midlothian": "Hearts",
     "Hibernian": "Hibernian",
@@ -169,7 +205,7 @@ ODDS_API_TO_CANONICAL: dict[str, str] = {
     "Inverness Caledonian Thistle": "Inverness C",
     "Partick Thistle": "Partick",
     "Queen's Park": "Queens Park",
-    "Raith Rovers": "Raith Rovers",
+    "Raith Rovers": "Raith Rvs",
     "Airdrieonians": "Airdrie Utd",
     "Hamilton Academical": "Hamilton",
     "Alloa Athletic": "Alloa",

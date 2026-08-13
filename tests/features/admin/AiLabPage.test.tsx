@@ -9,6 +9,17 @@ vi.mock('../../../src/services/supabase/aiLab', () => ({
   promoteAiModel: vi.fn(),
 }))
 
+// The Bet Builder tab reaches its own two bounded RPCs. Mocked at the service
+// boundary, like the snapshot above it, so this suite stays about the page.
+vi.mock('../../../src/services/supabase/betBuilder', () => ({
+  fetchBetBuilderBookmakers: vi.fn(async () => []),
+  fetchBetBuilderCandidates: vi.fn(async () => ({
+    bookmaker: { code: '', name: '', kind: 'unknown', isRealPrice: false, exchangeCommission: null },
+    legs: [], legCount: 0, truncatedAt: 0,
+    window: { from: '', to: '' }, generatedAt: '',
+  })),
+}))
+
 const snapshot = mapAiLabSnapshot({
   dashboard: {
     as_of: '2026-08-12T17:00:00Z',

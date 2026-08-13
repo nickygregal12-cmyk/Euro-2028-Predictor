@@ -15,7 +15,7 @@
 .selectLabel { display: grid; gap: .35rem; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
 .selectLabel select { min-width: min(19rem, 70vw); min-height: var(--tap-min); padding-inline: .8rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; }
 .scope { flex: 1; color: var(--tx3); font-size: var(--fs-1); }
-.tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--input-bg); }
+.tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--input-bg); }
 .tabs button { min-height: var(--tap-min); padding: .5rem; border: 0; border-radius: var(--radius-input); background: transparent; color: var(--tx2); font: inherit; font-weight: 750; cursor: pointer; }
 .tabs button[aria-pressed='true'] { background: var(--card); color: var(--tx); box-shadow: 0 2px 8px rgb(0 0 0 / .09); }
 .tabs button:focus-visible, .textAction:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }

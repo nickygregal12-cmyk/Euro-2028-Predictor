@@ -3514,6 +3514,17 @@ export type Database = {
         Args: { p_tournament_id: string }
         Returns: Json
       }
+      admin_ai_bet_builder_books: { Args: never; Returns: Json }
+      admin_ai_bet_builder_candidates: {
+        Args: {
+          p_bookmaker: string
+          p_leagues?: string[] | null
+          p_from?: string | null
+          p_to?: string | null
+          p_limit?: number
+        }
+        Returns: Json
+      }
       admin_ai_betting_dashboard: { Args: { p_league?: string }; Returns: Json }
       admin_ai_betting_gate_status: { Args: never; Returns: Json }
       admin_ai_dashboard: { Args: { p_league?: string }; Returns: Json }

@@ -11,10 +11,11 @@ import {
   type AiRecentResult,
 } from '../../services/supabase/aiLabModel'
 import { fetchAiLabSnapshot, promoteAiModel } from '../../services/supabase/aiLab'
+import { BetBuilderPanel } from './BetBuilderPanel'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import styles from './AiLabPage.module.css'
 
-type View = 'overview' | 'predictions' | 'betting' | 'operations'
+type View = 'overview' | 'predictions' | 'betting' | 'betBuilder' | 'operations'
 type State =
   | { kind: 'loading' }
   | { kind: 'failed'; message: string }
@@ -24,6 +25,7 @@ const VIEW_LABELS: readonly { key: View; label: string }[] = [
   { key: 'overview', label: 'Overview' },
   { key: 'predictions', label: 'Predictions' },
   { key: 'betting', label: 'Betting evidence' },
+  { key: 'betBuilder', label: 'Bet Builder' },
   { key: 'operations', label: 'Operations' },
 ]
 
@@ -180,6 +182,7 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
         ) : null}
         {snapshot && view === 'predictions' ? <Predictions snapshot={snapshot} /> : null}
         {snapshot && view === 'betting' ? <Betting snapshot={snapshot} /> : null}
+        {view === 'betBuilder' ? <BetBuilderPanel /> : null}
         {snapshot && view === 'operations' ? <Operations snapshot={snapshot} /> : null}
 
         <Modal

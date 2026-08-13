@@ -41,6 +41,18 @@ on:
         options:
           - production
           - development
+      study:
+        description: Which experiments study to run (task=experiments only)
+        required: false
+        default: half-life
+        type: choice
+        options:
+          - half-life
+          - elo-transition
+          - elo-margin
+          - ensemble
+          - calibration
+          - regime-weighting
       task:
         description: Job to run
         required: true
@@ -57,6 +69,14 @@ on:
           - settle
           - odds-plan
           - ablate
+          # Provider-free. Walks retained events, fixtures, prices and the
+          # derived odds projection back into agreement with the alias
+          # authority, then quarantines the forecasts built on a broken one.
+          - repair-identity
+          # Paired walk-forward studies for the decisions that are not
+          # feature groups. Reads only; trains no deployable model and
+          # promotes nothing. `study` chooses which question is asked.
+          - experiments
 
 permissions:
   contents: read
@@ -116,6 +136,38 @@ jobs:
         working-directory: ai
         run: pip install -r requirements.txt
 
+      # Contract 188 added `ai.valid_predictions`, and every read that produces
+      # or consumes a forecast now goes through it rather than through
+      # `ai.predictions`. A database below 188 cannot serve those reads.
+      #
+      # This matters most on the `push` trigger: merging a change to this file
+      # starts a Production run, and if the migration has not been applied the
+      # run would fail inside prediction with an "undefined relation" that reads
+      # like a code defect rather than like a pending rollout. It SKIPS rather
+      # than fails, because a scheduled job that turns red every morning until
+      # somebody promotes a migration is noise, and noise is what gets a red
+      # tick ignored. Import, training and the read-only studies do not touch
+      # the new objects and are deliberately not gated on this.
+      - name: Check the target holds the contract the forecasting path needs
+        id: schema
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready="$(python - <<'PY'
+          import os, psycopg
+          with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
+              row = conn.execute(
+                  "select to_regclass('ai.valid_predictions') is not null "
+                  "   and to_regproc('ai.canonical_from_odds_api(text)') is not null"
+              ).fetchone()
+          print('true' if row[0] else 'false')
+          PY
+          )"
+          echo "ready=${ready}" >> "$GITHUB_OUTPUT"
+          if [ "${ready}" != true ]; then
+            echo "::notice::${AI_ENV} is below contract 188 (ai.valid_predictions absent). Prediction, evaluation and value selection are skipped until it is applied. Nothing was collected, trained or written."
+          fi
+
       - name: Resolve task
         id: task
         shell: bash
@@ -135,7 +187,7 @@ jobs:
           fi
 
       - name: Bootstrap empty Production AI Lab
-        if: steps.task.outputs.name == 'bootstrap-if-empty'
+        if: steps.task.outputs.name == 'bootstrap-if-empty' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         shell: bash
         run: |
@@ -192,7 +244,7 @@ jobs:
           fi
 
       - name: Activate Production forecasts after bootstrap reconciliation
-        if: steps.task.outputs.name == 'bootstrap-if-empty'
+        if: steps.task.outputs.name == 'bootstrap-if-empty' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         shell: bash
         run: |
@@ -217,7 +269,7 @@ jobs:
           ./run_leagues.sh find_value.py
 
       - name: Import history and predict
-        if: steps.task.outputs.name == 'morning'
+        if: steps.task.outputs.name == 'morning' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         run: |
           python fetch_history.py --all-divisions --seasons current
@@ -229,7 +281,7 @@ jobs:
           exit "$status"
 
       - name: Evaluate and settle
-        if: steps.task.outputs.name == 'evening'
+        if: steps.task.outputs.name == 'evening' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         run: |
           status=0
@@ -238,7 +290,7 @@ jobs:
           exit "$status"
 
       - name: Collect free fixture odds and find value
-        if: steps.task.outputs.name == 'free-odds'
+        if: steps.task.outputs.name == 'free-odds' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         shell: bash
         run: |
@@ -262,15 +314,44 @@ jobs:
         run: |
           case "${{ steps.task.outputs.name }}" in
             import) python fetch_history.py --all-divisions ;;
-            predict) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh predict.py ;;
-            evaluate) ./run_leagues.sh evaluate.py ;;
-            value) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh find_value.py ;;
+            # These three read `ai.valid_predictions`. A manual dispatch
+            # against a database below contract 188 says so rather than
+            # failing inside psycopg with an undefined relation.
+            predict|evaluate|value)
+              if [ "${{ steps.schema.outputs.ready }}" != true ]; then
+                echo "Refusing ${{ steps.task.outputs.name }}: ${AI_ENV} is below contract 188."
+                exit 1
+              fi
+              case "${{ steps.task.outputs.name }}" in
+                predict) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh predict.py ;;
+                evaluate) ./run_leagues.sh evaluate.py ;;
+                value) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh find_value.py ;;
+              esac ;;
+            # Provider-free identity repair over retained rows. It needs the
+            # contract too, and makes no request of any kind.
+            repair-identity)
+              if [ "${{ steps.schema.outputs.ready }}" != true ]; then
+                echo "Refusing repair-identity: ${AI_ENV} is below contract 188."
+                exit 1
+              fi
+              python repair_identity.py --apply ;;
             settle) ./run_leagues.sh settle_bets.py ;;
             odds-plan) python odds_api.py plan ;;
             ablate)
               status=0
               for L in EPL SPL EL2; do
                 python ablate.py --league "$L" || status=1
+              done
+              exit "$status" ;;
+            # Same three leagues as `ablate`, and for the same reason: a
+            # paired verdict per league beats a sweep nobody reads. Every
+            # study writes its report and, with --record, a row in
+            # ai.feature_experiments — including a null result.
+            experiments)
+              status=0
+              for L in EPL SPL EL2; do
+                python experiments.py --league "$L" \
+                  --study "${{ inputs.study }}" --record || status=1
               done
               exit "$status" ;;
             bootstrap|train|free-odds) ;;

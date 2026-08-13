@@ -228,5 +228,6 @@ same paragraph existed in seven places at once.
 
 | 186 | No presentation change. A stored fact about where a group stage ends |
 | 187 | No presentation change **yet**, and one becomes possible: a season Championship now has a bracket to render. The read of it is `CUP-003` and is not built |
+| 188 | One private presentation change: an administrator-only AI Lab Bet Builder. No player-facing surface moves |
 
-*Current to contract 187.*
+*Current to contract 188.*

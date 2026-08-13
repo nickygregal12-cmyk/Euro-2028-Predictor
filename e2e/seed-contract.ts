@@ -1059,7 +1059,7 @@
  * players carry neither admin capability. Contract 185 redefines
  * no entry, membership, prediction-card or player-facing read. The scheduled
  * paid collection also defaults disabled.
- * Raised to 187 after checking contracts 186 and 187. Contract 186 creates
+ * Raised to 188 after checking contracts 186, 187 and 188. Contract 186 creates
  * `public.bonus_cup_launches`, which the seed neither reads nor writes and which
  * is revoked from every browser role. Contract 187 generalises the Championship
  * qualification driver, adds `admin_finalise_season_cup_groups` behind
@@ -1068,8 +1068,17 @@
  * moves. Neither redefines an entry, membership, prediction-card or
  * player-facing read, and the tournament Championship's behaviour is unchanged
  * by construction.
+ *
+ * Contract 188 is entirely inside the separately revoked `ai` schema: nullable
+ * evidence columns on `ai.models`, `ai.predictions` and
+ * `ai.prediction_results`, three new append-only tables
+ * (`ai.recommendations`, `ai.prediction_invalidations`,
+ * `ai.provider_identity_repairs`), one provider identity authority, and two
+ * bounded reads on the existing competition-admin gate. Global setup writes
+ * none of those relations, no existing function is redefined, no grant moves,
+ * and nothing an ordinary seeded player reads is touched.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 187
+export const SEED_REVIEWED_AT_CONTRACT = 188
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

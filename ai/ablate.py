@@ -34,31 +34,25 @@ import pandas as pd
 
 import metrics
 from config import LEAGUES
+from ensemble import expanding_season_folds
 from features import DEFAULT_GROUPS, FEATURE_GROUPS, feature_names
+from fitting import DEFAULT_HALF_LIFE_DAYS, fit_family
 from model_zoo import MODEL_FAMILIES
-from train import DEFAULT_HALF_LIFE_DAYS, build_dataset, time_weights
+from train import build_dataset
 
 
 def fold_scores(frame: pd.DataFrame, columns: list[str], family: str,
                 half_life_days: float, min_train_seasons: int) -> dict[str, float]:
     """Log loss per season fold, for one column selection."""
-    seasons = sorted(frame["season"].unique())
+    # One shared fold definition and one shared fitting path, so a family is
+    # never compared against a baseline that was fitted differently from it.
     out: dict[str, float] = {}
-    for i in range(min_train_seasons, len(seasons)):
-        train = frame[frame["season"].isin(seasons[:i])]
-        test = frame[frame["season"] == seasons[i]]
-        if len(test) < 100:
-            continue
-        weights = time_weights(train["match_date"], half_life_days)
-        model = MODEL_FAMILIES[family]()
-        if family == "poisson":
-            model.fit(train[columns], train["result"],
-                      home_goals=train["home_goals"], away_goals=train["away_goals"],
-                      sample_weight=weights)
-        else:
-            model.fit(train[columns], train["result"], sample_weight=weights)
+    for fold in expanding_season_folds(frame, min_train_seasons):
+        train = frame.iloc[fold.train_index]
+        test = frame.iloc[fold.test_index]
+        model = fit_family(family, train, columns, half_life_days)
         probs = model.predict_proba(test[columns])
-        out[seasons[i]] = metrics.summarise(probs, test["result"].values)["log_loss"]
+        out[fold.season] = metrics.summarise(probs, test["result"].values)["log_loss"]
     return out
 
 
