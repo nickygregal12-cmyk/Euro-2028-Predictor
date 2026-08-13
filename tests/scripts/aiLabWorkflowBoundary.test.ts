@@ -325,4 +325,70 @@ describe('research runs against a hosted database without being able to change i
     const experiments = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')
     expect(experiments).toMatch(/args\.record and read_only\(\)/)
   })
+
+  it('asks the ensemble question of a chosen component set', () => {
+    // Whether `gbm` belongs in the default ensemble cannot be answered by a
+    // dispatch that can only ever run the default. The `default` option
+    // passes no flag, so the shipped set stays measurable as itself.
+    expect(research).toMatch(/--base-families/)
+    expect(dispatch.base_families?.default).toBe('default')
+    expect(dispatch.base_families?.options).toContain('poisson elo')
+    const zoo = readFileSync(resolve(process.cwd(), 'ai/model_zoo.py'), 'utf8')
+    const shipped = /ENSEMBLE_BASE_FAMILIES = \(([^)]*)\)/.exec(zoo)?.[1] ?? ''
+    const families = [...shipped.matchAll(/"([a-z]+)"/g)].map((m) => m[1])
+    // Every option must name families the zoo actually registers, or the
+    // dispatch offers a run that dies in argparse twenty minutes in.
+    const registered = [...zoo.matchAll(/^ {4}"([a-z_]+)": /gm)].map((m) => m[1])
+    for (const option of dispatch.base_families?.options ?? []) {
+      if (option === 'default') continue
+      for (const family of option.split(' ')) {
+        expect(registered, `base_families offers unregistered ${family}`).toContain(family)
+      }
+    }
+    expect(families.length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * The ablation arm. A feature family enters `DEFAULT_GROUPS` by winning paired
+ * folds, and the folds need the whole archive, so it needs the same hosted
+ * plane and the same guarantees as the studies above.
+ */
+describe('research-ablate measures a candidate family without writing one in', () => {
+  const ablation = branch('research-ablate)')
+
+  it('opens the session read-only and records nothing', () => {
+    expect(ablation).toMatch(/AI_READ_ONLY=1/)
+    expect(ablation).not.toMatch(/--record/)
+    expect(ablation).not.toMatch(/train\.py|promote|settle_bets\.py|repair_identity\.py/)
+  })
+
+  it('calls no provider', () => {
+    expect(ablation).not.toMatch(
+      /fetch_history\.py|sync_fixtures\.py|fetch_fixtures_odds\.py|odds_api\.py/,
+    )
+  })
+
+  it('covers all nine leagues or one named league', () => {
+    expect(ablation).toMatch(/run_leagues\.sh ablate\.py/)
+    expect(ablation).toMatch(/--league "\$\{\{ inputs\.league \}\}"/)
+  })
+
+  it('offers only families that are candidates rather than already default', () => {
+    // Offering a member of DEFAULT_GROUPS would ablate a feature the model
+    // already carries, which answers a different question than the one the
+    // selector's description claims to ask.
+    const features = readFileSync(resolve(process.cwd(), 'ai/features.py'), 'utf8')
+    const defaults = [
+      ...(/DEFAULT_GROUPS: tuple\[str, \.\.\.\] = \(([^)]*)\)/.exec(features)?.[1] ?? '')
+        .matchAll(/"([a-z_]+)"/g),
+    ].map((m) => m[1])
+    const known = [...features.matchAll(/^ {4}"([a-z_]+)": \(/gm)].map((m) => m[1])
+    const offered = dispatch.groups?.options ?? []
+    expect(offered.length).toBeGreaterThan(0)
+    for (const group of offered) {
+      expect(known, `groups offers unknown family ${group}`).toContain(group)
+      expect(defaults, `groups offers already-default family ${group}`).not.toContain(group)
+    }
+  })
 })

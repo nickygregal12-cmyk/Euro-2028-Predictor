@@ -71,6 +71,29 @@ on:
           - SCH
           - SL1
           - SL2
+      base_families:
+        description: >-
+          Ensemble components (task=research, study=ensemble). `default` is
+          whatever ENSEMBLE_BASE_FAMILIES currently holds; the others are the
+          predeclared component sets the ensemble question is asked with.
+        required: false
+        default: default
+        type: choice
+        options:
+          - default
+          - poisson elo
+          - poisson elo logistic
+          - poisson elo gbm
+      groups:
+        description: Which candidate feature family to ablate (task=research-ablate)
+        required: false
+        default: discipline
+        type: choice
+        options:
+          - discipline
+          - halftime
+          - performance
+          - congestion
       task:
         description: Job to run
         required: true
@@ -395,7 +418,13 @@ jobs:
                   --study "${{ inputs.study }}" --record || status=1
               done
               exit "$status" ;;
-            # Bulk read-only research over a chosen league or all nine.
+            # The same read-only plane as `research`, for the question that is
+          # not a study: does a candidate feature family earn its place. It is
+          # a separate arm rather than a pseudo-study because `ablate.py` is a
+          # different script with a different comparison, and because the
+          # study selector is asserted to equal experiments.py's own registry.
+          - research-ablate
+          # Bulk read-only research over a chosen league or all nine.
             #
             # Provider-free by construction: no fetch_history.py,
             # sync_fixtures.py, fetch_fixtures_odds.py or odds_api.py appears
@@ -410,11 +439,34 @@ jobs:
             # and they leave as artefacts.
             research)
               export AI_READ_ONLY=1
+              # The ensemble question is asked of a COMPONENT SET, so the set
+              # is a dispatch input rather than whatever the source default
+              # happens to be on the day. `default` passes nothing, which is
+              # what makes "the shipped ensemble" itself measurable.
+              families=()
+              if [ "${{ inputs.study }}" = ensemble ] \
+                 && [ "${{ inputs.base_families }}" != default ]; then
+                read -r -a families <<< "${{ inputs.base_families }}"
+                families=(--base-families "${families[@]}")
+              fi
               if [ "${{ inputs.league }}" = all ]; then
-                ./run_leagues.sh experiments.py --study "${{ inputs.study }}"
+                ./run_leagues.sh experiments.py --study "${{ inputs.study }}" \
+                  ${families[@]+"${families[@]}"}
               else
                 python experiments.py --league "${{ inputs.league }}" \
-                  --study "${{ inputs.study }}"
+                  --study "${{ inputs.study }}" ${families[@]+"${families[@]}"}
+              fi ;;
+            # `ablate.py` has no --record and writes nothing at all, so the
+            # read-only session is belt and braces rather than the only guard.
+            # It is exported anyway: the guarantee this arm offers must not
+            # depend on a property of a script it merely happens to call.
+            research-ablate)
+              export AI_READ_ONLY=1
+              if [ "${{ inputs.league }}" = all ]; then
+                ./run_leagues.sh ablate.py --groups "${{ inputs.groups }}"
+              else
+                python ablate.py --league "${{ inputs.league }}" \
+                  --groups "${{ inputs.groups }}"
               fi ;;
             bootstrap|train|free-odds) ;;
           esac
