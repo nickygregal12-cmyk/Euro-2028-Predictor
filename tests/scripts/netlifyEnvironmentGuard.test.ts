@@ -43,6 +43,10 @@ function run(overrides: NodeJS.ProcessEnv = {}) {
     })
 }
 
+// Shaped like a real Cloudflare widget key and deliberately not one of the
+// documented test keys, which the guard refuses in production.
+const prodTurnstileKey = '0x4AAAAAAABkMYinukE8nzYS'
+
 describe('Netlify environment guard', () => {
   it('skips ordinary non-Netlify builds', () => {
     expect(run()).not.toThrow()
@@ -55,6 +59,53 @@ describe('Netlify environment guard', () => {
         CONTEXT: 'production',
         VITE_SUPABASE_URL: prodUrl,
         VITE_SUPABASE_ANON_KEY: dummyKey,
+        VITE_TURNSTILE_SITE_KEY: prodTurnstileKey,
+      }),
+    ).not.toThrow()
+  })
+
+  // The guard these three cover was added without any test of its own, and the
+  // two production cases above were left asserting that a build with no key is
+  // accepted — so the whole rule shipped red rather than proven.
+  it('refuses a production build with no Turnstile site key', () => {
+    expect(
+      run({
+        NETLIFY: 'true',
+        CONTEXT: 'production',
+        VITE_SUPABASE_URL: prodUrl,
+        VITE_SUPABASE_ANON_KEY: dummyKey,
+      }),
+    ).toThrow(/missing VITE_TURNSTILE_SITE_KEY/)
+  })
+
+  it.each([
+    '1x00000000000000000000AA',
+    '2x00000000000000000000AB',
+    '3x00000000000000000000FF',
+  ])('refuses the Turnstile test key %s in production', (testKey) => {
+    // A test key always passes, so shipping one turns the anti-bot check into
+    // decoration while leaving every appearance of protection in place.
+    expect(
+      run({
+        NETLIFY: 'true',
+        CONTEXT: 'production',
+        VITE_SUPABASE_URL: prodUrl,
+        VITE_SUPABASE_ANON_KEY: dummyKey,
+        VITE_TURNSTILE_SITE_KEY: testKey,
+      }),
+    ).toThrow(/test site key/)
+  })
+
+  it('allows a Turnstile test key outside production', () => {
+    // Previews are where a test key belongs; refusing it there would push
+    // people to put the real key somewhere it does not need to be.
+    expect(
+      run({
+        NETLIFY: 'true',
+        CONTEXT: 'deploy-preview',
+        VITE_SUPABASE_URL: devUrl,
+        VITE_SUPABASE_ANON_KEY: dummyKey,
+        VITE_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
       }),
     ).not.toThrow()
   })
@@ -126,6 +177,7 @@ describe('Netlify environment guard', () => {
           CONTEXT: 'production',
           VITE_SUPABASE_URL: prodUrl,
           VITE_SUPABASE_ANON_KEY: anonKey(prodRef),
+          VITE_TURNSTILE_SITE_KEY: prodTurnstileKey,
         }),
       ).not.toThrow()
       expect(
