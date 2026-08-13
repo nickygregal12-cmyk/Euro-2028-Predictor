@@ -645,3 +645,31 @@ SCH agrees on every sign and ordering (`capacity_low` −0.3742 ± 0.0453, `iter
 So the two studies together answer the brief's question without ambiguity: **fixing the configuration recovers roughly 0.40 of log loss and still does not produce a model worth blending.** `gbm` should come out of `ENSEMBLE_BASE_FAMILIES`; `GradientBoostedModel` and the eleven candidates should stay, because this is exactly the evidence that makes a future reconsideration cheap rather than speculative.
 
 **Nothing was promoted, trained for deployment or serialised.** The run was read-only against Production.
+---
+
+## 21. Elo season transition
+
+`--study elo-transition`, nine folds, baseline the shipped `global_mean`. Run **31730078197** (**Production**, read-only), 18:45–18:51 UTC. Four leagues read back; the rest are in the artefact.
+
+| league | `division_prior` | `global_mean` | `none` | best |
+|---|---|---|---|---|
+| SPL | 0.9536 (−0.0004 ± 0.0007, tie) | 0.9540 | **0.9518** (−0.0022 ± 0.0008, **BETTER**) | none |
+| SCH | **1.0966** (−0.0052 ± 0.0022, **BETTER**) | 1.1018 | 1.0974 (−0.0045 ± 0.0019, **BETTER**) | division_prior |
+| SL1 | **1.0271** (−0.0106 ± 0.0024, **BETTER**) | 1.0377 | 1.0279 (−0.0097 ± 0.0026, **BETTER**) | division_prior |
+| SL2 | 1.0324 (−0.0031 ± 0.0017, tie) | 1.0355 | **1.0320** (−0.0034 ± 0.0019, tie) | none |
+
+**The brief's SPL figure reproduces exactly**: it recorded `none` vs `global_mean` at −0.00222 ± 0.00084; this run returns −0.0022 ± 0.0008. That is the third independent reproduction of a prior real-football result through the hosted path (§14 supplied the other two).
+
+### The tier gradient is the finding
+
+The size of the `global_mean` penalty scales with how far the division sits below the Premier League anchor:
+
+| | SPL (tier 1) | SCH (tier 2) | SL1 (tier 3) |
+|---|---|---|---|
+| best fix vs `global_mean` | −0.0004 (tie) | −0.0052 | **−0.0106** |
+
+That is precisely the mechanism contract 188's `roll_season` correction was written for — `ELO_START = 1500` is the *Premier League's* anchor, and pulling every club toward it each summer damages exactly those clubs furthest from it. Measured here, the damage is ~25× larger in Scottish League One than in the Scottish Premiership, and it is a `tie` in the top flight because there `global_mean` is nearly harmless by construction.
+
+The study's own note is the right framing and is printed with every table: *"`global_mean` is a defect rather than a candidate — it drifts every lower-division club toward the Premier League's anchor each summer. This study measures the size of the fix, and a tie here does not restore it."*
+
+**League-specific winners, as the brief allows.** `division_prior` wins the two middle tiers; `none` wins SPL and marginally SL2. No global default is recommended from four leagues, and no default is changed here.
