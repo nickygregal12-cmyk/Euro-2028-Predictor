@@ -217,6 +217,19 @@ insert into expected_authenticated_functions (signature) values
   ('admin_provider_proposal_detail(uuid,text,integer,integer)'),
   ('admin_competition_entrants(uuid,integer,integer)');
 
+-- Contract 187 / `CUP-002`. The season Championship qualification caller, in the
+-- same shape: `authenticated` admits a signed-in caller and
+-- `require_competition_admin` decides inside.
+--
+-- The driver it reaches, `admin_finalise_predictor_cup_groups`, deliberately
+-- stays out of this list and in `expected_service_functions`. It is now
+-- competition-neutral, so granting it to `authenticated` would put the
+-- TOURNAMENT Championship's qualification behind the same door as the season's,
+-- and the tournament's is an operational path with its own evidence. `235`
+-- asserts the caller refuses a tournament competition by name.
+insert into expected_authenticated_functions (signature) values
+  ('admin_finalise_season_cup_groups(uuid)');
+
 -- Contract 172. Granted to `authenticated` and refusing inside on
 -- `require_competition_admin()`, on the same terms as the four rows above: the
 -- grant is the reachable surface and the function decides. It reports counts,

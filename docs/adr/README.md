@@ -92,4 +92,7 @@ same paragraph existed in seven places at once.
 
 | 184 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) § 6**, which authorised the session to define the 5-to-20 table and deliberately did not invent it. The numbers are in `../predictor-cup-rules.md` § 6.2 — the rule authority — and the SQL reads them rather than being them |
 
-*Current to contract 185.*
+| 186 | **No new decision.** The `CUP-002` prerequisite ADR 0028 §§ 6–8 already authorised; it records a fact the launchers computed rather than making one |
+| 187 | **[ADR 0028](0028-owner-decisions-unblocking-product-work.md) §§ 6–8** and **[ADR 0014](0014-predictor-cup-season-formats.md)**: `CUP-002`, implemented by generalising the one qualification authority rather than writing a second. ADR 0014 § 5.2's keys, § 6.1's target and § 7.1–7.3 are read from where they already live |
+
+*Current to contract 187.*

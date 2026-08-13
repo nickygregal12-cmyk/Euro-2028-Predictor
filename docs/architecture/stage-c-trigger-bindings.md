@@ -71,6 +71,7 @@ No hosted database write or C2 ownership change is claimed by this inventory.
 | `group_teams.validate_group_team_scope` | `predictor_internal.validate_group_team_scope` | preserve group/team validation |
 | `league_members.rate_limit_league_membership` | `public.trg_rate_limit_league_membership` | preserve membership rate limiting |
 | `league_members.enforce_league_member_limit` | `predictor_internal.enforce_league_member_limit` | contract 181 / `CAP-003`: refuse the 101st member of one ordinary private league, serialised per league before counting |
+| `bonus_cup_launches.bonus_cup_launches_immutable` | `predictor_internal.block_cup_launch_update` | contract 186 / `CUP-002` prerequisite: refuse any UPDATE of a Championship launch record. DELETE is deliberately not blocked, so the competition's own deletion still cascades; what must not move is the group-stage span, because fixtures are played and predicted inside it |
 | `leagues.trg_register_league_invite_code` | `predictor_internal.register_league_invite_code` | register a league's code in the shared namespace so a private competition cannot reissue it |
 | `bonus_competitions.trg_register_competition_invite_code` | `predictor_internal.register_competition_invite_code` | register a private competition's code in the same namespace, and release it when the code is cleared or the row is deleted |
 | `season_wrapped.trg_season_wrapped_immutable` | `predictor_internal.refuse_wrapped_rewrite` | keep a finalised season archive immutable, so a later formula cannot restate a past a player was already shown |

@@ -76,8 +76,18 @@ values
   (md5('pp-lms')::uuid, current_setting('test.pp_season')::uuid, 'last_man_standing',
    'The Local', md5('pp-lmsown')::uuid, 'PPLMSCODE001', true, 'active', false,
    'private', now() - interval '2 days'),
+  -- `draw_required` is TRUE for the Championship and false for Last Man
+  -- Standing, which is what `create_private_season_cup` writes and what every
+  -- `predictor_cup` row on hosted Development carries.
+  --
+  -- It stood at false here until contract 187, and that was a fixture modelling
+  -- a competition the creation path cannot produce: `bonus_competitions_draw_shape`
+  -- is `draw_required or draw_completed_at is null`, so a Championship with
+  -- `draw_required = false` can never record having been drawn and can therefore
+  -- never be finalised. Contract 187 made the launcher record its own draw and
+  -- refuse that configuration by name, which is what surfaced it here.
   (md5('pp-cup')::uuid, current_setting('test.pp_season')::uuid, 'predictor_cup',
-   'Office Championship', md5('pp-cupown')::uuid, 'PPCUPCODE001', true, 'active', false,
+   'Office Championship', md5('pp-cupown')::uuid, 'PPCUPCODE001', true, 'active', true,
    'private', now() - interval '2 days');
 
 insert into public.season_lms_setups (
