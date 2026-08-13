@@ -103,9 +103,9 @@ class CoverageGuardedModel:
 
     Keeping the public schema is important for old callers and for
     `ModelBundle.matrix`: callers may hand the model every requested feature,
-    but the wrapper slices to exactly the columns the estimator was fitted on.
-    The effective groups are carried on the model so an artefact can explain
-    not only what was requested, but what actually reached the fit.
+    but the wrapper reproduces the estimator's own fitted-column contract. The
+    effective groups are carried on the model so an artefact can explain not
+    only what was requested, but what actually reached the fit.
     """
 
     def __init__(self, model, requested_columns: list[str], effective_columns: list[str],
@@ -127,14 +127,34 @@ class CoverageGuardedModel:
         self.uses_market = bool(getattr(model, "uses_market", False))
 
     def __getattr__(self, name):
-        return getattr(self.model, name)
+        # During pickle/joblib reconstruction `__getattr__` can be asked about
+        # special methods before `model` has been restored. Looking up
+        # `self.model` in that state recursively calls this method forever, so
+        # reach into __dict__ and fail normally until the wrapped estimator is
+        # present.
+        model = self.__dict__.get("model")
+        if model is None:
+            raise AttributeError(name)
+        return getattr(model, name)
 
     def _matrix(self, rows):
-        if isinstance(rows, pd.DataFrame):
-            missing = [c for c in self.effective_columns if c not in rows.columns]
+        if not isinstance(rows, pd.DataFrame):
+            return rows
+
+        # Preserve each estimator's prediction contract. Most families record
+        # the columns they were actually fitted on; Elo deliberately records
+        # only `elo_diff` because it supports diagnostic one-column probes even
+        # though training is handed the full guarded frame. The wrapper must
+        # not turn that valid narrow probe into a requirement for every core
+        # feature. When a family exposes no fitted-column list (e.g. baseline),
+        # pass the frame through unchanged.
+        fitted_columns = getattr(self.model, "feature_names_", None)
+        if fitted_columns:
+            fitted_columns = list(fitted_columns)
+            missing = [c for c in fitted_columns if c not in rows.columns]
             if missing:
                 raise KeyError(f"coverage-guarded model is missing fitted columns: {missing}")
-            return rows.loc[:, self.effective_columns]
+            return rows.loc[:, fitted_columns]
         return rows
 
     def predict_proba(self, rows):
