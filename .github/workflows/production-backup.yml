@@ -196,8 +196,28 @@ jobs:
           # created (applied migrations, seed rows) so the production dump can
           # restore into an empty target, mirroring the documented restore
           # sequence in docs/ops/ops-production-backup-restore.md.
+          #
+          # EVERY application schema the repository's migrations create must be
+          # dropped here, and the assertion below is what makes that true rather
+          # than remembered. `supabase start` runs in the repository root, so it
+          # applies all committed migrations before the dump is restored on top.
+          # A schema left behind does NOT fail as "already exists": Supabase's
+          # dump creates tables with IF NOT EXISTS, so the pre-existing table is
+          # silently skipped and the failure surfaces later as
+          #
+          #   ERROR: multiple primary keys for table "api_budget" are not allowed
+          #
+          # on the first table of that schema in alphabetical order — a message
+          # that points at the production dump and at a table that is perfectly
+          # sound in production. Run 31727747217 on 13 August 2026 died exactly
+          # there, on `ai`, which contract 185 introduced and this step had never
+          # been taught about. Every backup since production reached 185 would
+          # have failed the same way; the last successful one, 31617219376 on 12
+          # August, ran while production was still at 178 and had no `ai` schema
+          # at all, which is why the gap went unnoticed for a day.
           psql "${LOCAL_DB_URL}" -X -v ON_ERROR_STOP=1 <<'SQL'
           begin;
+          drop schema if exists ai cascade;
           drop schema if exists predictor_internal cascade;
           drop schema if exists public cascade;
           create schema public;
@@ -209,6 +229,31 @@ jobs:
           -- Local-only cleanup. TRUNCATE avoids Storage's protect_delete()
           -- row trigger while clearing the disposable restore target.
           truncate table storage.objects, storage.buckets cascade;
+
+          -- Fail HERE, naming the schema, rather than 30,000 lines into the
+          -- restore with a message about a production table. The allowlist is
+          -- the Supabase-managed set; anything else belongs to this repository
+          -- and has to be dropped above before the dump can restore cleanly.
+          do $prepared$
+          declare
+            leftover text;
+          begin
+            select string_agg(nspname, ', ' order by nspname) into leftover
+              from pg_namespace
+             where nspname not like 'pg\_%'
+               and nspname <> 'information_schema'
+               and nspname not in ('auth','cron','extensions','graphql',
+                                   'graphql_public','net','pgbouncer','pgsodium',
+                                   'pgsodium_masks','realtime','_realtime',
+                                   'storage','supabase_functions','vault','public');
+            if leftover is not null then
+              raise exception
+                'Disposable restore target still holds application schema(s): %. '
+                'Add a drop for each above, or the production dump will fail '
+                'later with a misleading primary-key error.', leftover;
+            end if;
+          end
+          $prepared$;
           commit;
           SQL
 
