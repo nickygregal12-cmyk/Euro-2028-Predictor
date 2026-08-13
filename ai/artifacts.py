@@ -41,6 +41,30 @@ class MissingFeatureError(KeyError):
     """A stored model asked for a feature the current builder cannot produce."""
 
 
+def _coverage_provenance(model: Any) -> dict[str, Any] | None:
+    """Read the support decision back from a fitted model, including ensembles.
+
+    This is deliberately derived from the fitted bytes rather than reconstructed
+    from source defaults. A model trained in a sparse historical regime must be
+    able to say which groups actually reached that fit even after DEFAULT_GROUPS
+    changes again.
+    """
+    direct = getattr(model, "coverage_provenance", None)
+    if isinstance(direct, dict):
+        return dict(direct)
+
+    components = getattr(model, "models", None)
+    if isinstance(components, dict):
+        per_family = {}
+        for family, component in components.items():
+            found = _coverage_provenance(component)
+            if found is not None:
+                per_family[str(family)] = found
+        if per_family:
+            return {"components": per_family}
+    return None
+
+
 @dataclass
 class ModelBundle:
     """A model plus everything needed to feed it the inputs it was fitted on."""
@@ -71,6 +95,13 @@ class ModelBundle:
     def to_payload(self) -> dict[str, Any]:
         """What `joblib.dump` is given. `model` and `features` keep their
         original names and positions so an older reader still works."""
+        metadata = dict(self.metadata)
+        coverage = _coverage_provenance(self.model)
+        if coverage is not None:
+            # The caller may add other training metadata, but the effective
+            # groups are a property of the fitted bytes and are therefore
+            # always sourced from the model rather than trusted from a report.
+            metadata["coverage_guard"] = coverage
         return {
             "model": self.model,
             "features": list(self.features),
@@ -85,7 +116,7 @@ class ModelBundle:
             "components": self.components,
             "trained_through": self.trained_through,
             "schema": self.schema,
-            "metadata": self.metadata,
+            "metadata": metadata,
         }
 
     @classmethod
