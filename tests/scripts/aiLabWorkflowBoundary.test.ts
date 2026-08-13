@@ -1,5 +1,7 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
@@ -108,6 +110,109 @@ describe('a merge does not run the forecasting path against a database that cann
     expect(check, 'the contract preflight is missing').toBeDefined()
     expect(check?.run).toMatch(/ai\.valid_predictions/)
     expect(check?.run).toMatch(/ai\.canonical_from_odds_api/)
+  })
+
+  // On 13 August 2026 this gate refused a Production that genuinely held
+  // contract 188 (run 31740574108). The fault was not the database: the probe
+  // asked `to_regproc('ai.canonical_from_odds_api(text)')`, and `to_regproc`
+  // resolves a bare function NAME, so a parenthesised signature returns null
+  // for a function that exists. The gate could not have passed anywhere. That
+  // is measured rather than recalled — against the live Production catalogue at
+  // contract 188, `to_regproc` with a signature returns false while
+  // `to_regprocedure` with the same signature returns true.
+  // The step explains its own history in comments, and that prose necessarily
+  // quotes both defective spellings. A guard that read the comments would
+  // reject the very change that documents the fix, so the negative assertions
+  // below run against executable lines only.
+  const probeCode = (steps.find((step) => step.id === 'schema')?.run ?? '')
+    .split('\n')
+    .filter((line) => !/^\s*#/.test(line))
+    .join('\n')
+
+  it('probes the function by a signature-accepting resolver, never to_regproc', () => {
+    expect(probeCode).toMatch(/to_regprocedure\('ai\.canonical_from_odds_api\(text\)'\)/)
+    // `to_regproc(` cannot match `to_regprocedure(` — the guard is exact.
+    expect(probeCode, 'to_regproc cannot resolve a signature').not.toMatch(/to_regproc\(/)
+    expect(probeCode).toMatch(/to_regclass\('ai\.valid_predictions'\)/)
+  })
+
+  it('names the object it actually measured rather than a fixed guessed cause', () => {
+    // The old notice hard-coded "(ai.valid_predictions absent)" whatever the
+    // probe found, which sent a reader to the database instead of to the bug.
+    expect(probeCode).not.toMatch(/ai\.valid_predictions absent/)
+    expect(probeCode).toMatch(/\$\{missing\}/)
+  })
+
+  /**
+   * The derivation above is executed rather than read. The workflow's own
+   * Python is extracted verbatim and run against a stub `psycopg`, so the
+   * mapping from "what the catalogue said" to "what the gate reports" is
+   * proved, not reviewed. The SQL text itself is asserted separately: the stub
+   * records it, and the live-catalogue behaviour of the two resolvers is what
+   * the test above pins.
+   */
+  const probeSource = (() => {
+    const run = steps.find((step) => step.id === 'schema')?.run ?? ''
+    const start = run.indexOf("<<'PY'\n")
+    const end = run.indexOf('\nPY\n', start)
+    return start === -1 || end === -1 ? '' : run.slice(start + "<<'PY'\n".length, end)
+  })()
+
+  const runProbe = (view: boolean, fn: boolean) => {
+    const dir = mkdtempSync(join(tmpdir(), 'ai-lab-probe-'))
+    writeFileSync(
+      join(dir, 'psycopg.py'),
+      [
+        'import os',
+        'class _Cur:',
+        '    def __init__(self, row): self._row = row',
+        '    def fetchone(self): return self._row',
+        'class _Conn:',
+        '    def __init__(self, row): self._row = row',
+        '    def execute(self, sql):',
+        '        open(os.environ["PROBE_SQL_OUT"], "w").write(sql)',
+        '        return _Cur(self._row)',
+        '    def __enter__(self): return self',
+        '    def __exit__(self, *a): return False',
+        'def connect(url):',
+        '    return _Conn((os.environ["STUB_VIEW"] == "1", os.environ["STUB_FN"] == "1"))',
+        '',
+      ].join('\n'),
+    )
+    writeFileSync(join(dir, 'probe.py'), probeSource)
+    const sqlOut = join(dir, 'sql.txt')
+    const stdout = execFileSync('python3', [join(dir, 'probe.py')], {
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        PYTHONPATH: dir,
+        DATABASE_URL: 'postgresql://stub/stub',
+        PROBE_SQL_OUT: sqlOut,
+        STUB_VIEW: view ? '1' : '0',
+        STUB_FN: fn ? '1' : '0',
+      },
+    }).trim()
+    return { stdout, sql: readFileSync(sqlOut, 'utf8') }
+  }
+
+  it('extracts as a runnable program', () => {
+    expect(probeSource).toMatch(/import os, psycopg/)
+  })
+
+  it('passes a database that holds both contract-188 objects', () => {
+    const { stdout, sql } = runProbe(true, true)
+    expect(stdout).toBe('true|')
+    // Both objects are genuinely asked about at execution time.
+    expect(sql).toMatch(/to_regclass\('ai\.valid_predictions'\)/)
+    expect(sql).toMatch(/to_regprocedure\('ai\.canonical_from_odds_api\(text\)'\)/)
+  })
+
+  it('reports the genuinely missing object, and only that one', () => {
+    expect(runProbe(false, true).stdout).toBe('false|ai.valid_predictions')
+    expect(runProbe(true, false).stdout).toBe('false|ai.canonical_from_odds_api(text)')
+    expect(runProbe(false, false).stdout).toBe(
+      'false|ai.valid_predictions, ai.canonical_from_odds_api(text)',
+    )
   })
 
   it('gates every step that reads a prediction on it', () => {
