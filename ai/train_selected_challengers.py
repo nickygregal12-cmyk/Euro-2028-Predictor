@@ -23,16 +23,47 @@ def command_for(league: str, spec, version: str, python: str = sys.executable) -
     return [python, *spec.train_args(league, version)]
 
 
+def existing_leagues(version: str) -> set[str]:
+    """Leagues already materialised at `version`.
+
+    Used only by bounded/manual materialisation runs. The normal weekly version
+    contains a fresh UTC stamp, so it has no reason to open this read before
+    training. Keeping the check here rather than in a workflow shell loop makes
+    partial retries deterministic and testable.
+    """
+    from db import connect
+
+    with connect() as conn:
+        rows = conn.execute(
+            "select league from ai.models where version = %s",
+            (version,),
+        ).fetchall()
+    return {str(row["league"]) for row in rows}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--version", required=True,
                     help="Version stored on every league's challenger row.")
     ap.add_argument("--dry-run", action="store_true",
                     help="Pass train.py --dry-run so no model row/artifact is stored.")
+    ap.add_argument("--skip-existing", action="store_true",
+                    help="Skip leagues that already have an ai.models row at this version; "
+                         "intended for retrying a bounded Development materialisation.")
     args = ap.parse_args()
 
+    already = existing_leagues(args.version) if args.skip_existing else set()
     failed: list[str] = []
+    trained: list[str] = []
+    skipped: list[str] = []
+
     for league, spec in ordered_policy():
+        if league in already:
+            print(f"--- {league}: {args.version} already exists; skipping ---",
+                  flush=True)
+            skipped.append(league)
+            continue
+
         command = command_for(league, spec, args.version)
         if args.dry_run:
             command.append("--dry-run")
@@ -40,12 +71,18 @@ def main() -> int:
         completed = subprocess.run(command, check=False)
         if completed.returncode != 0:
             failed.append(league)
+        else:
+            trained.append(league)
 
     if failed:
         print(f"selected challenger training failed for: {' '.join(failed)}",
               file=sys.stderr)
         return 1
-    print("selected challenger training completed for all nine leagues")
+    print(
+        "selected challenger training complete: "
+        f"trained={','.join(trained) or 'none'}; "
+        f"already-present={','.join(skipped) or 'none'}"
+    )
     return 0
 
 
