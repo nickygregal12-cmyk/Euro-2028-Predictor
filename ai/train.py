@@ -26,7 +26,7 @@ import metrics
 from config import LEAGUES, MODEL_DIR, REPORT_DIR
 from db import insert_model_with_artifact, job, load_history
 
-from features import FEATURE_NAMES, FeatureBuilder
+from features import DEFAULT_GROUPS, FeatureBuilder, feature_names
 from model_zoo import MODEL_FAMILIES
 
 # Two and a half years. Dixon and Coles fitted a decay on half-seasons of one
@@ -97,7 +97,8 @@ def chronological_split(frame: pd.DataFrame, holdout_seasons: int = 2):
     return train, val, val_seasons
 
 
-def walk_forward(frame: pd.DataFrame, family: str, min_train_seasons: int = 5,
+def walk_forward(frame: pd.DataFrame, family: str, columns: list[str],
+                 min_train_seasons: int = 5,
                  half_life_days: float = DEFAULT_HALF_LIFE_DAYS):
     """Expanding-window validation: train on everything up to season N, test on
     season N, step forward, repeat.
@@ -125,12 +126,12 @@ def walk_forward(frame: pd.DataFrame, family: str, min_train_seasons: int = 5,
         weights = time_weights(train["match_date"], half_life_days)
         model = MODEL_FAMILIES[family]()
         if family == "poisson":
-            model.fit(train[FEATURE_NAMES], train["result"],
+            model.fit(train[columns], train["result"],
                       home_goals=train["home_goals"], away_goals=train["away_goals"],
                       sample_weight=weights)
         else:
-            model.fit(train[FEATURE_NAMES], train["result"], sample_weight=weights)
-        probs = model.predict_proba(test[FEATURE_NAMES])
+            model.fit(train[columns], train["result"], sample_weight=weights)
+        probs = model.predict_proba(test[columns])
         s = metrics.summarise(probs, test["result"].values)
         s["season"] = seasons[i]
         scores.append(s)
@@ -166,6 +167,9 @@ def main() -> int:
     ap.add_argument("--family", choices=sorted(MODEL_FAMILIES), default="poisson")
     ap.add_argument("--version", required=True)
     ap.add_argument("--holdout-seasons", type=int, default=2)
+    ap.add_argument("--feature-groups", nargs="*", default=list(DEFAULT_GROUPS),
+                    help="Feature families to train on. Only families proven "
+                         "by ablate.py should be added here.")
     ap.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS,
                     help="Dixon-Coles time weighting: a match this old counts "
                          "half as much as one played today. 0 disables it and "
@@ -179,6 +183,7 @@ def main() -> int:
 
     with job("train", args.league) as state:
         frame = build_dataset(args.league)
+        FEATURE_NAMES = feature_names(tuple(args.feature_groups))
         train, val, val_seasons = chronological_split(frame, args.holdout_seasons)
         X_train, y_train = train[FEATURE_NAMES], train["result"]
         X_val, y_val = val[FEATURE_NAMES], val["result"]
@@ -230,7 +235,7 @@ def main() -> int:
 
         wf = None
         if args.walk_forward:
-            wf = walk_forward(frame, args.family,
+            wf = walk_forward(frame, args.family, FEATURE_NAMES,
                               half_life_days=args.half_life_days)
             if wf:
                 print("\nwalk-forward (expanding window, one fold per season)")
