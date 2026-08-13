@@ -36,6 +36,25 @@ ELO_SEASON_REGRESSION = 0.25  # pull 25% back to the mean between seasons
 # stand-in for a real measurement, which is what `sot_known` distinguishes.
 NEUTRAL_SOT = 4.5
 
+# Every column this module reads out of `ai.raw_matches`, declared so the
+# loader can be checked against it rather than trusted.
+#
+# This exists because the first version of the shot features shipped without
+# it and was silently inert: `load_history` selected goals, reds, odds and
+# market probabilities and no shot columns at all, so `home_shots_ot` was
+# absent from every row, every window fell back to NEUTRAL_SOT, and the
+# feature columns were constant. Nothing failed. The models trained, the
+# metrics printed, and the only symptom was that a change which should have
+# moved log loss did not move it — which reads exactly like "shots do not
+# help" rather than "shots were never delivered".
+SOURCE_COLUMNS: frozenset[str] = frozenset({
+    "match_date", "season", "division",
+    "home_canonical", "away_canonical",
+    "home_goals", "away_goals", "result",
+    "red_card_distorted",
+    "home_shots_ot", "away_shots_ot",
+})
+
 
 def _optional_number(value) -> float | None:
     """A missing shot count must stay missing, not become zero.
@@ -280,7 +299,11 @@ class FeatureBuilder:
 
     def __init__(self, top_division: str) -> None:
         self.top_division = top_division
-        self.state: dict[str, TeamState] = defaultdict(TeamState)
+        # A plain dict, not a defaultdict: every club must enter through
+        # `_state_for`, which seeds its rating from the division it first
+        # appears in. A defaultdict would silently hand back an unseeded
+        # 1500 to any code path that forgot.
+        self.state: dict[str, TeamState] = {}
         self._pending: list[tuple] = []
         self._pending_date: date | None = None
 
@@ -305,6 +328,37 @@ class FeatureBuilder:
             h.elo += delta
             a.elo -= delta
         self._pending.clear()
+
+    def _state_for(self, name: str, division: str,
+                   season: str | None = None) -> TeamState:
+        """Fetch a club's state, seeding a first-seen club by its division.
+
+        `ELO_DIVISION_OFFSET` was defined with the comment "a promoted club is
+        not a mid-table top-flight club" and then never read — the constant
+        appeared exactly once in this file, at its own definition. So every
+        club entered the pool at 1500 regardless of where it entered, and a
+        League Two side arriving in the archive was rated identically to a
+        Premier League side arriving in it, which is a 430-point error by the
+        table's own numbers.
+
+        Once a club has played, its rating is earned rather than assumed: the
+        offset seeds and is never re-applied, so a promoted club carries the
+        rating it actually built rather than being pushed back down for
+        changing division. Ratings across divisions share one pool because
+        clubs move between them, and that is what makes the pool comparable.
+        """
+        if name not in self.state:
+            state = TeamState()
+            state.elo = ELO_START + ELO_DIVISION_OFFSET.get(division, 0.0)
+            # The seed is also the club's first season, so the between-seasons
+            # regression does not immediately undo it. Without this, a League
+            # Two club seeded at 1070 was pulled a quarter of the way back to
+            # the mean before its first match — 1177.5 — because `roll_season`
+            # fires whenever the stored season differs, and None differs from
+            # everything. The counters it would reset are already zero.
+            state.season = season
+            self.state[name] = state
+        return self.state[name]
 
     def _advance_to(self, when: date) -> None:
         if self._pending_date is not None and when > self._pending_date:
@@ -331,8 +385,8 @@ class FeatureBuilder:
             when = rec.match_date
             self._advance_to(when)
 
-            home = self.state[rec.home_canonical]
-            away = self.state[rec.away_canonical]
+            home = self._state_for(rec.home_canonical, rec.division, rec.season)
+            away = self._state_for(rec.away_canonical, rec.division, rec.season)
             home.roll_season(rec.season)
             away.roll_season(rec.season)
 
@@ -374,8 +428,11 @@ class FeatureBuilder:
         season_start: date, season_end: date,
     ) -> dict[str, float]:
         self._flush()
-        home = self.state[home_name]
-        away = self.state[away_name]
+        # A club with no history at all is seeded at this league's own level —
+        # a newly promoted side scored before it has played is a top-division
+        # club now, not a 1500 default.
+        home = self._state_for(home_name, self.top_division, season)
+        away = self._state_for(away_name, self.top_division, season)
         home.roll_season(season)
         away.roll_season(season)
         span = max((season_end - season_start).days, 1)

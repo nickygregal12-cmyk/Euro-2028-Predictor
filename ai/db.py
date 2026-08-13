@@ -82,6 +82,16 @@ def load_history(divisions: Iterable[str]) -> pd.DataFrame:
         """
         select id, division, season, match_date, home_canonical, away_canonical,
                home_goals, away_goals, result,
+               -- Match statistics. The feature builder declares what it reads
+               -- in features.SOURCE_COLUMNS and a test holds this projection
+               -- to it, because a column missing here does not fail: it
+               -- silently becomes a neutral value in every row.
+               home_shots, away_shots,
+               home_shots_ot, away_shots_ot,
+               home_corners, away_corners,
+               ht_home_goals, ht_away_goals,
+               home_yellows, away_yellows,
+               home_fouls, away_fouls, referee,
                home_reds, away_reds, red_card_distorted,
                mkt_home_prob, mkt_draw_prob, mkt_away_prob,
                odds_avg_h, odds_avg_d, odds_avg_a,
