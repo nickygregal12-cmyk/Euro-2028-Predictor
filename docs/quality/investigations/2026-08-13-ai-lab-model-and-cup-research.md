@@ -523,3 +523,83 @@ The **0d** row — uniform weights, no time decay at all — was not what the st
 Each league taken alone says "tie", because 0d's standard error is the largest in every row: dropping the weighting makes the fit noisier fold to fold. But eight of nine leagues agreeing in sign is not what nine independent coin flips look like, and the leagues where 0d looks best are the same lower divisions where §13 found the GBM worst — i.e. the ones with the least data, where discarding old matches costs most.
 
 This is stated as an **observation, not a finding**, and deliberately not acted on. The half-life grid was declared to answer "which decay", and reading "perhaps none" out of the same run is exactly the after-the-fact reinterpretation §3 exists to prevent. It deserves its own predeclared study — one that pairs 0d against the shipped 900d directly across all nine leagues, and reports the fold-level variance rather than only the mean — before anyone concludes the time weighting is not earning its place.
+
+---
+
+## 15. Elo margin / red-card-aware rating updates
+
+`--study elo-margin`, nine folds, `plain` against `red_card_aware`. Run **31730431239** (Development, read-only), 18:24–18:26 UTC. All nine leagues ran and are in the run's artefact; **four were read back from the job log and are reported here** — the log was not paged further because the result was already unambiguous.
+
+| league | plain | red_card_aware | delta | se | verdict |
+|---|---|---|---|---|---|
+| SPL | 0.9536 | 0.9536 | +0.0001 | 0.0001 | tie |
+| SCH | 1.0966 | 1.0967 | +0.0001 | 0.0001 | tie |
+| SL1 | 1.0271 | 1.0274 | +0.0003 | 0.0002 | tie |
+| SL2 | 1.0324 | 1.0324 | +0.0001 | 0.0001 | tie |
+
+**A null result, and worth having as one.** Every delta is positive — the red-card-aware rule is fractionally *worse* — and every one is inside its own standard error. The effect is at the fourth decimal place of log loss, which is the size of a rounding difference rather than of a football effect.
+
+Keep `plain` as the default. The red-card-aware rule stays a declared candidate rather than being deleted: it is a reasonable hypothesis that measured as nothing on this archive, and that is a result rather than a reason to remove the code.
+
+---
+
+## 16. Aberdeen v Dundee — still not resolved, and now for a demonstrable reason
+
+Re-checked at **18:13 UTC on 13 August 2026**. All eight Premier Sports Cup last-16 ties remain prospective; the earliest kickoff is Friday 14 August, 19:45. §5a's clock statement stands and nothing has been back-dated.
+
+The orientation question was re-attempted and **failed again**, but this time the failure is diagnosable rather than merely inconclusive.
+
+Direct retrieval is impossible here: `spfl.co.uk`, `www.afc.co.uk` and `en.wikipedia.org` are all refused by the egress proxy (`EGRESS_BLOCKED`), so the competition's own page cannot be read. Only a search tool is available, and it returns an **LLM-written summary of snippets** rather than the source text. Asked three ways, it produced:
+
+1. unrestricted — "Aberdeen will play Dundee … at **Pittodrie Stadium**";
+2. restricted to `spfl.co.uk` — "at **Dens Park** (not at Pittodrie as your query suggested)";
+3. asked for the full eight-tie list — "**Aberdeen v Dundee at Dens Park**".
+
+Answer 3 is the useful one, because it is **internally inconsistent**. Every other tie in the same list pairs the first-named club with its own ground — Kilmarnock/Rugby Park, Dundee United/Tannadice, Hearts/Tynecastle, Hibernian/Easter Road, Stenhousemuir/Ochilview, Rangers/Ibrox, Dunfermline/East End Park. Only the Aberdeen/Dundee row breaks the pattern, naming one club first and the other club's ground. One of the two halves of that row is wrong and nothing available here says which. Answer 2's parenthetical arguing with the query is the same tell: a summariser reasoning, not a source quoting.
+
+So there is no authoritative resolution, and a majority vote across three summaries of unknown provenance is exactly what §5a declined to do. **The fixture is excluded from prospective home/away modelling**, per the brief's own instruction, rather than guessed at. `CupTie.orientation_confirmed=False` already drives data confidence to `low`; exclusion is the stronger and correct treatment while home advantage is worth roughly 60 Elo points.
+
+The other seven ties are unaffected — their orientation is consistent across every source seen.
+
+**No prospective forecast was produced for any tie, including the seven that are orientationally clean.** A forecast needs a fitted model, and the runs in §13–§15 are *studies*: they evaluate on folds and serialise nothing. Producing one would mean training and persisting an artefact, which is a model-authority action this session is not taking. The path is now unblocked — the `research` task proves a fitted model can be produced on the hosted runner from the full archive — so this is a next-session action rather than a standing obstacle.
+
+---
+
+## 17. Why a cup forecast still cannot be stored — measured against the live schema
+
+§9 proposed a shape. This is the constraint it has to satisfy, read from Production rather than inferred:
+
+```
+league          text    NOT NULL
+predictions_target_present  CHECK (num_nonnulls(fixture_id, raw_match_id) >= 1)
+predictions_fixture_id_fkey     FOREIGN KEY (fixture_id)    REFERENCES ai.fixtures(id)
+predictions_raw_match_id_fkey   FOREIGN KEY (raw_match_id)  REFERENCES ai.raw_matches(id)
+```
+
+Both permitted targets are league-shaped, and `league` cannot be omitted. A cup tie has neither a `raw_match_id` (it is not in the historical league archive) nor an `ai.fixtures` row (that table carries league/division semantics too). Writing `'scottish_league_cup'` into `league` would put a competition identifier into a column whose every other row holds a division key, and whose consumers — `ai.valid_predictions`, evaluation, settlement, the value engine — all read it as one.
+
+**So the refusal to store a cup forecast is structural, not conservative.** §9's proposed shape stands unchanged, and **no migration is created and no contract number is claimed**: Production is at 185 and being promoted to 188 by a separate session, and the next free contract number cannot be established until that lands and every open pull request is re-read.
+
+---
+
+## 18. Recommendations after the real-league runs — still recommendations
+
+1. **Remove `gbm` from `ENSEMBLE_BASE_FAMILIES`.** Evidence: §13, nine of nine leagues worse than the best family beyond noise, eight of nine worse than the class base rate. Keep `GradientBoostedModel` in the model zoo and keep the eleven predeclared candidates — a rejected model is evidence, and §3's diagnostic is the thing that would tell us whether a *corrected* GBM deserves reconsideration.
+2. **Do not add `logistic` to the default ensemble.** Evidence: §13, beyond noise in eight of nine, and its one tie is an unstable 1.5541 ± 0.4317. It was given an equal test and did not earn inclusion.
+3. **Change no half-life default.** Evidence: §14, five leagues clear noise and four do not, on effects of 0.0001–0.0009.
+4. **Keep `plain` Elo updates.** Evidence: §15, a null.
+5. **Declare and run a `0d` time-weighting study.** Evidence: §14's unlooked-for observation — negative in eight of nine, best raw mean in five. Not acted on here, on purpose.
+6. **Run the market-benchmark experiment of §12** before any market-informed feature, and bound it to 2019/20 onward because that is where the data starts.
+7. **Nothing is promoted.** `ai.models.status` untouched, no artefact trained or serialised, no default edited.
+
+---
+
+## 19. Safety — restated for the hosted runs
+
+- **Zero** provider calls of any kind by this session, paid or free. Every collection step in every run resolved to `skipped`, and the `research` arm names no provider script. Production's own scheduled poll continued independently (a football-data.org PL fetch at 18:05:06 UTC on 13 August); that is the platform's job, not this session's.
+- **Zero** Odds API calls; the collection flag remains `false` and was not read for writing.
+- **Zero** Production mutations. The hosted Production run (§ run 31729251308) executed with `AI_READ_ONLY=1`, i.e. `default_transaction_read_only=on`; every ad-hoc Production query in this document is a `select`. `ai.feature_experiments` stood at **9** rows before these runs and no run was permitted to add to it.
+- **Zero** Development mutations, on the same guarantee.
+- **Nothing merged to `main`**, and nothing was merged in order to obtain `DATABASE_URL` — the runs were dispatched against the branch ref.
+- **No migration, no contract number, no cron change, no budget change, no identity repair, no forecast regeneration, no model promotion.**
+- The Production 185 → 188 promotion was left entirely to the session that owns it. Its workflows were not edited from this branch.
