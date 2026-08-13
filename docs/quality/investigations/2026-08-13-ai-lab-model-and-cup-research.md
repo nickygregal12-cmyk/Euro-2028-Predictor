@@ -1347,3 +1347,22 @@ every quarter-line fixture in the sample.
 The one authority that did change is `ENSEMBLE_BASE_FAMILIES`, in the
 repository only, under the explicit approval recorded in §33. It reaches no
 hosted environment until something trains against it.
+
+### 35a. The diagnostic ran; its tables are not read back here
+
+Run **31744135390** (Development, read-only, `6443794`), 21:06–21:09 UTC, all
+nine leagues, artefact `ai-lab-31744135390`. It produced the per-season table
+for every league and wrote nine reports.
+
+**No cause is identified in this document, because the tables were not read
+back.** That is a session limit, not a result. It is recorded this way
+deliberately: §31 and §32 exist because the previous session summarised nine
+leagues from five and twice wrote "every" about a set it had not seen, and the
+correct response to running out of room is to say which evidence exists and
+was not examined — not to reason about SCH from the five earlier measurements
+and present the reasoning as a diagnosis.
+
+So: **H1–H10 are open**, no hypothesis is supported or rejected, and **no
+bespoke SCH handling is justified**. The next session's first action on this
+question is to read `study-league-diagnostic-sch.json`,
+`-spl.json` and `-sl1.json` out of that artefact and fill in §35's table.
