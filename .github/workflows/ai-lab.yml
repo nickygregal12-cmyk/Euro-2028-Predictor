@@ -10,10 +10,10 @@ name: AI Lab jobs
 # closed unless SUPABASE_PROD_DB_URL names the expected Production project.
 
 on:
-  # Changing this workflow on main also gives an empty Production AI Lab one
-  # idempotent bootstrap opportunity. Each bootstrap stage checks hosted state
-  # first, so later workflow edits do not re-fetch history or retrain merely
-  # because this trigger fires again.
+  # Changing this workflow on main also gives Production an idempotent
+  # reconciliation/activation pass. Existing history, fixtures, odds and models
+  # are detected before any provider/feed work, so later workflow edits do not
+  # waste collection calls or retrain merely because this trigger fires again.
   push:
     branches:
       - main
@@ -141,9 +141,6 @@ jobs:
             exit 1
           fi
 
-          # Read state once without invoking a provider. The subsequent stages
-          # run only for missing Production data, making this trigger safe and
-          # preventing repeated API/feed work on future workflow edits.
           python - <<'PY' > /tmp/ai_bootstrap_state
           from db import connect
           with connect() as conn:
@@ -186,6 +183,27 @@ jobs:
           else
             echo "Models already present; skipping challenger bootstrap."
           fi
+
+      - name: Activate Production forecasts after bootstrap reconciliation
+        if: steps.task.outputs.name == 'bootstrap-if-empty'
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          current_models="$(python - <<'PY'
+          from db import connect
+          with connect() as conn:
+              row = conn.execute("select count(*) as n from ai.models where status='current'").fetchone()
+          print(int(row['n']))
+          PY
+          )"
+          if [ "${current_models}" -eq 0 ]; then
+            echo "No current Production models yet; bootstrap created challengers only."
+            exit 0
+          fi
+          echo "${current_models} current Production models found; generating forecasts and value selections."
+          ./run_leagues.sh predict.py
+          ./run_leagues.sh find_value.py
 
       - name: Import history and predict
         if: steps.task.outputs.name == 'morning'
