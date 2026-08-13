@@ -485,6 +485,27 @@ jobs:
           fi
           ./run_leagues.sh train.py --family poisson --version "auto-$stamp" --walk-forward
 
+      # A nine-league study prints roughly two hundred lines, of which about
+      # eighteen carry a number. The artefact holds the reports, but reading it
+      # needs a credential the reader of a log does not have, so the run's own
+      # findings were only ever recoverable by paging the log. This restates
+      # them compactly at the end. It reads files the run just wrote, touches
+      # no database and changes no result.
+      - name: Digest the study reports into the log
+        if: always() && github.event_name == 'workflow_dispatch'
+        working-directory: ai
+        run: |
+          python - <<'PY'
+          import glob, json, os
+          paths = sorted(glob.glob("reports/*.json"))
+          if not paths:
+              print("no study reports written by this task")
+          for path in paths:
+              with open(path) as handle:
+                  print(f"DIGEST {os.path.basename(path)} "
+                        f"{json.dumps(json.load(handle), separators=(',', ':'), default=str)}")
+          PY
+
       - name: Keep reports and convenience artefacts
         if: always()
         uses: actions/upload-artifact@v7
