@@ -377,11 +377,31 @@ FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
     ),
 }
 
-# What a model trains on unless told otherwise. Only `core` is in it: every
-# other family is a claim that has to earn its place through `ablate.py`,
-# because a null result measured once is not a reason to carry ten features
-# for ever. Groups a model was trained with are recorded on the model row.
-DEFAULT_GROUPS: tuple[str, ...] = ("core",)
+# What a model trains on unless told otherwise. A family is in this tuple
+# because `ablate.py` measured it beating the fold-to-fold noise, not because
+# it sounded useful. Paired expanding-window folds on hosted Development,
+# 13 August 2026, log-loss delta against core with its standard error:
+#
+#                      EPL                SPL                EL2
+#   shots_volume   -0.0040 ±0.0011   -0.0038 ±0.0019   -0.0036 ±0.0009
+#   corners        -0.0018 ±0.0008   -0.0074 ±0.0021   -0.0037 ±0.0007
+#   conversion     -0.0019 ±0.0005   -0.0003 ±0.0008   -0.0012 ±0.0005
+#   halftime       +0.0005 ±0.0004   +0.0007 ±0.0004   -0.0001 ±0.0003
+#   congestion     +0.0002 ±0.0003   -0.0003 ±0.0006   -0.0001 ±0.0002
+#
+# Shots and corners clear the bar in all three leagues; conversion clears it
+# in two and is flat in the third, and is kept because it is never harmful and
+# is the one family with a mechanism that says it should regress. Half-time
+# and congestion are excluded: measured, they are noise, and congestion has a
+# known reason to be — cup and European fixtures are not in `ai.raw_matches`,
+# so it cannot see the midweeks that matter most.
+#
+# These are small numbers, and they are meant to be. The reason to trust them
+# is the PAIRING: the standard error on the difference is 0.0005 to 0.002,
+# against roughly 0.010 on either mean alone. An earlier unpaired measurement
+# of the same shot features reported them as noise, which is what an error bar
+# ten times too wide will do to a real effect.
+DEFAULT_GROUPS: tuple[str, ...] = ("core", "shots_volume", "corners", "conversion")
 
 
 def feature_names(groups: "tuple[str, ...] | list[str] | None" = None) -> list[str]:
