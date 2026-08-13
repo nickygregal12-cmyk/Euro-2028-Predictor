@@ -55,6 +55,7 @@ on:
           - value
           - settle
           - odds-plan
+          - ablate
 
 permissions:
   contents: read
@@ -184,6 +185,16 @@ jobs:
             value) ./run_leagues.sh find_value.py ;;
             settle) ./run_leagues.sh settle_bets.py ;;
             odds-plan) python odds_api.py plan ;;
+            # One league at a time, and only a few: the point is a
+            # paired verdict per family, not a sweep. EPL is the
+            # deepest market, SPL the one closest to its closing
+            # line, EL2 the largest sample.
+            ablate)
+              status=0
+              for L in EPL SPL EL2; do
+                python ablate.py --league "$L" || status=1
+              done
+              exit "$status" ;;
             bootstrap|train|free-odds) ;;
           esac
       - name: Train challengers
