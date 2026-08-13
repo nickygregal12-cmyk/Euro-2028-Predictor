@@ -24,6 +24,8 @@ and the same for `www.football-data.co.uk:443`, so neither a Postgres connection
 
 **This is an environment limitation, not a finding about the models.** The correct reading of the brief's premise that these studies are "already ready to run" is: they are ready, and they need a session with `DATABASE_URL` set. Section 8 lists exactly what to run.
 
+> **Resolved later the same day — see §11.** The conclusion above is correct about the container and wrong about the repository. The studies do not need *this* session to reach the database; they need *a* process with `DATABASE_URL`, and `.github/workflows/ai-lab.yml` is one, on a GitHub-hosted runner with the secret already resolved. What was missing was not access but a **task**: the workflow offered `experiments` with `--record`, which writes, and offered only six of the eight studies the module implements. §11 adds the read-only `research` task and reports what the studies actually returned. Section 8's list stands as the specification of what to run; it is no longer a list of things that cannot be run here.
+
 What this session **could** do, and did:
 
 - read and drive the model code directly, including on the repository's own fold harness over synthetic seasons;
@@ -230,6 +232,19 @@ The 2026/27 group stage ran on **five matchdays in fifteen days**: 11/12, 14/15,
 
 ## 6. Providers — measured from retained responses, zero new calls
 
+> **Correction (§11 session, same day): this section's evidence is Development's, and it did not say so.** Re-measured by counting rows on each project separately:
+>
+> | | `predictor_internal.provider_raw_responses` | earliest | football-data `/v4/competitions` |
+> |---|---|---|---|
+> | **Development** `iouzoutneyjpugbbtdem` | 438 rows (434 SportMonks) | 5 Aug 2026 | present, 5 Aug, HTTP 200 |
+> | **Production** `vkfnsqdyhvtwyqkisxhk` | **28 rows** | **10 Aug 2026** | **absent** |
+>
+> So the 434-response corpus and the 12-competition catalogue below are **Development** evidence. That matters more than a citation tidy-up: entitlement is a property of a **credential**, the two environments hold their own, and the owner's "the API is paid" claim is about the account behind whichever key Production uses. Evidence gathered on Development cannot settle it.
+>
+> Production nonetheless agrees, on its own separately retained rows: `GET /v4/competitions/SPL/matches?dateFrom=2026-08-01&dateTo=2026-08-10` returned **403** on 10 August 2026 with `"The resource you are looking for is restricted and apparently not within your permissions. Please check your subscription."`, while `/v4/competitions/PL/matches?season=2026` returned **200** — most recently at **18:05:06 UTC on 13 August 2026**, from Production's own scheduled poll rather than from this session. Two credentials, two environments, same shape of answer.
+>
+> The 12-competition count is confirmed rather than repeated: parsing the retained body returns exactly `BL1, BSA, CL, DED, EC, ELC, FL1, PD, PL, PPL, SA, WC`.
+
 ### football-data.org: the entitlement question is already answered on disk
 
 A retained `GET /v4/competitions` response (5 August 2026, HTTP 200) enumerates **exactly the 12 competitions the token may see**:
@@ -248,6 +263,31 @@ Against the seven competitions the brief asks about: **Premier League and Champi
 ### SportMonks
 
 431 of 434 retained responses are `fixtureLeagues:501` — the Scottish Premiership — the most recent on 13 August 2026. There is **no retained evidence about any Scottish cup**, so cup coverage is *unknown* rather than absent. The existing audit's finding stands: free plan, 3,000-call limit, Scottish Premiership included, payload already carrying team identity, venue and image references. No live call was made.
+
+> **Upgraded from "unknown" to measured (§11 session, still zero new calls).** A retained `GET /v3/football/leagues` on **Production** (10 August 2026, HTTP 200, 1,596 bytes) carries SportMonks' own subscription block and its complete entitled-league list:
+>
+> ```
+> "subscription":[{"plans":[{"plan":"Football Free Plan","sport":"Football","category":"Standard"}, ...],
+>                  "add_ons":[],"widgets":[]}]
+> "pagination":{"count":4, ... ,"has_more":false}
+> ```
+>
+> Four leagues, and `has_more:false` makes that the whole list rather than a first page:
+>
+> | id | name | country |
+> |---|---|---|
+> | 271 | Superliga | Denmark |
+> | **501** | **Premiership** | **Scotland** |
+> | 513 | Premiership Play-Offs | Scotland |
+> | 1659 | Superliga Play-offs | Denmark |
+>
+> Two conclusions, one useful and one closing a door.
+>
+> **The Scottish Premiership entitlement is richer than assumed.** A retained 200 for `fixtures/between/2026-07-31/2026-08-09?filters=fixtureLeagues:501&include=participants;scores;round;venue;lineups;events;statistics;referees;formations` returned 240,614 bytes. Lineups, events, statistics, referees and formations are **not** an add-on here; they are already being served on the free plan, and `add_ons:[]` says there is nothing extra to reconcile against. That is the single richest free source in this project for one of its nine leagues.
+>
+> **SportMonks cannot supply any cup.** No Scottish League Cup, no Scottish Cup, no FA Cup, no EFL Cup. Combined with football-data.org's 12-competition catalogue, which contains no cup either, **both configured providers are now measured as unable to supply the domestic cups** — the second half of the answer §5 needed, and it costs nothing to know.
+>
+> One further retained response is worth keeping: a **422** for a 303-day range, `"You requested a date range of 303 days. The maximum range is 100 days."` That is a parameter refusal, not an entitlement refusal, and a future collector must window at ≤100 days rather than read it as a block.
 
 ### API-Football
 
@@ -322,3 +362,164 @@ Re-read `main`, re-read every open pull request, and establish the real next con
 - Nothing merged to `main`; nothing pushed to any branch but `claude/euro-2028-predictor-research-4g6387`.
 - No migration added, no contract claimed, no cron altered, no budget touched, no forecast regenerated, no identity repair run.
 - No default model authority changed.
+
+---
+
+## 11. The hosted read-only research path — how the egress blocker was actually solved
+
+§1 concluded the nine-league studies could not be run. That was true of this container and false of this repository, and the distinction is the whole of this section.
+
+The studies need a process holding `DATABASE_URL`. `.github/workflows/ai-lab.yml` is such a process: a GitHub-hosted runner, the secret already resolved and checked against the expected project ref, the Python environment already specified. The 46,215 rows never cross the agent boundary at all — they are read inside the runner, and what comes back is a JSON report of a few kilobytes. **The blocker was never access. It was that the workflow had no task that would do this**, and two smaller faults underneath:
+
+- it offered **six** studies while `ai/experiments.py` implements **eight** — `gbm-diagnostic` and `base-model`, the two this branch added, were undispatchable. `tests/scripts/aiLabWorkflowBoundary.test.ts` already required the workflow's choice list to equal the module's registry and was **failing on this branch for exactly that reason**. The guard was right; the workflow was the half that was wrong.
+- its only study task ran `experiments.py … --record`, which **writes** `ai.feature_experiments`. Correct for a recorded experiment, and not what a session under a Production freeze may do.
+
+### What was added
+
+A `research` task, and a `league` selector offering the nine plus `all`.
+
+It is **read-only by enforcement, not by convention**. `AI_READ_ONLY=1` makes `db.connect` open the session with `default_transaction_read_only=on`, so a write raises `read_only_sql_transaction` from PostgreSQL rather than depending on a caller having remembered to withhold a flag; and `experiments.py` refuses `--record` under it up front, so the contradictory request dies before a twenty-minute study runs rather than after it. `config.read_only` states the limit of the guarantee rather than overclaiming it: the GUC is settable by any role, so this stops the mistake that actually happens, not a caller who deliberately turns it off.
+
+It is **provider-free by construction**: no `fetch_history.py`, `sync_fixtures.py`, `fetch_fixtures_odds.py` or `odds_api.py` appears in the arm, and the test asserts their absence *by name*, so an edit that grew one would fail rather than quietly begin spending. The run's own step list is the confirmation — every collection step resolved to `skipped`.
+
+### Dispatching a branch definition without merging it
+
+The brief's constraint was to run branch code without merging to a frozen `main`. `workflow_dispatch` accepts a `ref`, and validates the *inputs* against the workflow file at that ref — so `task=research` and `league=all`, which exist nowhere on `main`, being accepted at all is itself the first evidence. Verified from the resulting run rather than assumed:
+
+| | |
+|---|---|
+| `head_branch` | `claude/euro-2028-predictor-research-4g6387` |
+| `head_sha` | `f9ba04cff3372b0e4f1238063c351ab11a9b0360` |
+| secrets | resolved normally (same-repository branch, not a fork) |
+
+**`main` was not merged to, and nothing was merged to obtain `DATABASE_URL`.**
+
+### Development holds the same archive, which is worth more than it sounds
+
+Measured on both projects: `ai.raw_matches` **46,215**, `ai.historical_market_prices` **272,084**, nine divisions — *identical*. The bulk studies therefore never needed Production at all. Two consequences: the heaviest work can avoid the environment under promotion entirely, and because the workflow's concurrency group is keyed on the target, a Development stream and a Production stream **run in parallel** rather than queueing behind one another.
+
+---
+
+## 12. The unused Over/Under and Asian-handicap archive — audited
+
+The brief asks for an exact audit before any use. `ai.historical_market_prices` is the table; nothing in the repository reads it.
+
+### Exact counts
+
+| market | bookmaker column | rows | matches | lines |
+|---|---|---|---|---|
+| OU | AVG | 45,406 | 22,703 | 2.5 only |
+| OU | B365 | 45,372 | 22,686 | 2.5 only |
+| OU | MAX | 45,406 | 22,703 | 2.5 only |
+| AH | AVG | 45,366 | 22,683 | −3.50 … +3.75 |
+| AH | B365 | 45,168 | 22,584 | −3.50 … +2.50 |
+| AH | MAX | 45,366 | 22,683 | −3.50 … +3.75 |
+
+**272,084 rows in total** — Over/Under 136,184 and Asian handicap 135,900. The brief's "approximately 136,000" is one of the two families; the archive is twice that.
+
+### Three structural facts that constrain every proposed use
+
+**1. `phase` is `'pre'` for all 272,084 rows. There is not one closing price.** The 1X2 columns on `ai.raw_matches` carry both (`odds_*` and `close_*`); these do not. So closing-line value on totals or handicaps is **not computable from this archive**, and any experiment framed as CLV on these markets is dead before it starts. The 1X2 CLV work is unaffected.
+
+**2. Coverage is a clean chronological cut at 2019/20, not scattered missingness.** By division the coverage looked like uniform ~48–50% everywhere, which is the shape of a *date* boundary rather than a league gap. By season it is exact:
+
+| seasons | matches | with OU |
+|---|---|---|
+| 2012/13 – 2018/19 | 23,492 | **0 (0.0%)** |
+| 2019/20 – 2026/27 | 22,723 | 22,703 (**99.9%**) |
+
+This matters more than the headline count. The usable sample is **seven complete seasons plus the start of 2026/27**, all recent and all contiguous — good for a benchmark, but it means a market-informed feature exists only from 2019/20. Under the existing `--min-train-seasons 5` walk-forward, that leaves very few evaluable folds, and a market-informed model must therefore be judged on a **deliberately short** window and said to be.
+
+**3. `MAX` and `AVG` are not bookmakers.** `AVG` is the market mean and `MAX` the best available price — `MAX`'s Asian-handicap maximum of 199.00 against B365's 3.40 is an aggregation artefact, not a quote. A calibration benchmark wants `AVG` (or a de-overrounded `AVG`); `MAX` answers a different question and would bias any implied probability low.
+
+### Proposed first experiment — benchmark only
+
+**Does the Poisson goal grid's implied P(Over 2.5) calibrate against the market's?** It is first because it needs no schema change, no new feature and no model change: `ai/markets.py` already derives `over_under(grid, 2.5)`, the archive is exactly the 2.5 line, and the outcome is `home_goals + away_goals > 2.5`, which `ai.raw_matches` holds. Compare, over 2019/20 onward, the model's Brier/log loss and reliability curve against de-overrounded `AVG` — the market is the benchmark, and beating it is not expected; the diagnostic value is in the **sign and shape of the disagreement**, which says whether the goal model is systematically over- or under-predicting totals in a way the 1X2 view cannot show.
+
+**Not run in this session** — it is a new study, and the session's execution budget went to the eight declared ones. It is specified here so it can be declared before it is seen, like the GBM candidates.
+
+The Asian-handicap family is deliberately second: its line varies per match, so it needs the line-selection semantics settled before it can be read as a strength estimate.
+
+---
+
+## 13. Base models over all nine leagues, on real football
+
+`--study base-model`, nine expanding-season chronological folds per league, paired against the best family in that league. Run **31729652899** (Development, read-only, `f9ba04c`), 18:13–18:20 UTC, 6m 47s for all nine.
+
+Mean log loss. `baseline` is the class base rate; `vs best` is the paired delta against the winning family in that league.
+
+| league | baseline | **poisson** | **elo** | logistic | **gbm** | best |
+|---|---|---|---|---|---|---|
+| EPL | 1.0671 | 0.9748 | **0.9747** | 0.9926 | 1.1387 | elo |
+| ECH | 1.0773 | **1.0484** | 1.0486 | 1.0643 | 1.1659 | poisson |
+| EL1 | 1.0744 | **1.0326** | 1.0357 | 1.0439 | 1.1651 | poisson |
+| EL2 | 1.0800 | **1.0594** | 1.0631 | 1.0782 | 1.2075 | poisson |
+| ENL | 1.0782 | 1.0397 | **1.0396** | 1.0475 | 1.1631 | elo |
+| SPL | 1.0681 | **0.9536** | 0.9569 | 0.9835 | 1.2641 | poisson |
+| SCH | 1.0881 | 1.0966 | **1.0562** | 1.5541 | 1.4423 | elo |
+| SL1 | 1.0724 | 1.0271 | **1.0209** | 1.0974 | 1.4326 | elo |
+| SL2 | 1.0716 | **1.0324** | 1.0388 | 1.0981 | 1.4459 | poisson |
+
+Paired deltas against the league's best, with standard errors:
+
+| league | logistic | gbm |
+|---|---|---|
+| EPL | +0.0179 ± 0.0046 **WORSE** | +0.1640 ± 0.0120 **WORSE** |
+| ECH | +0.0159 ± 0.0034 **WORSE** | +0.1175 ± 0.0161 **WORSE** |
+| EL1 | +0.0113 ± 0.0018 **WORSE** | +0.1325 ± 0.0093 **WORSE** |
+| EL2 | +0.0188 ± 0.0034 **WORSE** | +0.1481 ± 0.0109 **WORSE** |
+| ENL | +0.0079 ± 0.0021 **WORSE** | +0.1236 ± 0.0141 **WORSE** |
+| SPL | +0.0299 ± 0.0057 **WORSE** | +0.3106 ± 0.0340 **WORSE** |
+| SCH | +0.4979 ± 0.4317 tie | +0.3861 ± 0.0460 **WORSE** |
+| SL1 | +0.0765 ± 0.0273 **WORSE** | +0.4116 ± 0.0336 **WORSE** |
+| SL2 | +0.0658 ± 0.0170 **WORSE** | +0.4135 ± 0.0344 **WORSE** |
+
+### What this settles
+
+**GBM must come out of `ENSEMBLE_BASE_FAMILIES`.** It is worse than the league's best family in **all nine**, every one beyond noise, by +0.1175 to +0.4135. The stronger fact is the comparison the table makes available for free: in **eight of the nine** the GBM is also worse than the **base rate** — 1.1387 against 1.0671 in the EPL, 1.4459 against 1.0716 in SL2. A component that loses to "always predict the class frequencies" is not carrying information into a blend; it is carrying noise, with a weight. That is the mechanism behind the brief's observation that the equal blend lost to its own best component in all three leagues it had been measured on.
+
+This is the §2 diagnosis reproduced on real football rather than on synthetic seasons, and it is *worse* in the lower divisions — SL1, SL2 and SCH are the three biggest gaps, which is what a memorising learner does when given fewer rows.
+
+**Logistic does not earn ensemble membership either**, and the brief was right that it deserved a fair test rather than dismissal for being simple. It is much closer than the GBM — usually +0.008 to +0.03 — and it is genuinely competitive in the EPL (0.9926 against 0.9747). But it is beyond noise in eight of nine, and its one "tie" is not a good result: SCH returns 1.5541 with a standard error of **0.4317**, an order of magnitude larger than any other cell in the table. That is a fit that fell apart on at least one fold, not a fit that drew.
+
+**Poisson and Elo are a genuine pair**, and neither dominates. Elo wins EPL, ENL, SCH, SL1; Poisson wins ECH, EL1, EL2, SPL, SL2. In seven of nine the two are inside 0.007 of each other and the verdict between them is `tie`. Only EL2 separates them beyond noise (+0.0037 ± 0.0014 to Elo's disadvantage).
+
+**One league is a genuine outlier and should not be smoothed over.** In SCH the Poisson model is *worse than the base rate* (1.0966 against 1.0881) and the logistic model is catastrophic; only Elo beats the baseline. Whatever a global default does, a single global family would be actively wrong for the Scottish Championship.
+
+### Corroboration against the brief's earlier figures
+
+The brief's prior real-football numbers were EPL best-single 0.98722, SPL 0.95225, EL2 1.05991. This run returns 0.9747, 0.9536 and 1.0594 on the same leagues — the same ordering and within a few thousandths on two of the three, from an independent run at a different fold count. The earlier evidence reproduces.
+
+### What is **not** claimed
+
+No promotion. `ai.models.status` is untouched, no artefact was trained or serialised, and `ENSEMBLE_BASE_FAMILIES` is **not edited by this session** — §14 records the recommendation and the evidence for it, and changing a default model authority is a separate decision with its own approval. Nothing was written to `ai.feature_experiments`: the run was read-only, so these results live in this document and in the run's artefact, not in the ledger.
+
+---
+
+## 14. Half-life over all nine leagues
+
+`--study half-life`, nine folds, baseline the shipped **900 days**, candidates 0/180/365/540/730/900/1200. Run **31730086103** (Development, read-only, `3177a57`), 18:20–18:23 UTC.
+
+| league | 900d (shipped) | 1200d | paired delta | se | verdict | study's recommendation |
+|---|---|---|---|---|---|---|
+| EPL | 0.9748 | 0.9744 | −0.0004 | 0.0002 | **BETTER** | 1200d |
+| ECH | 1.0484 | 1.0482 | −0.0002 | 0.0001 | tie | keep 900d |
+| EL1 | 1.0326 | 1.0324 | −0.0002 | 0.0000 | **BETTER** | 1200d |
+| EL2 | 1.0594 | 1.0592 | −0.0002 | 0.0002 | tie | keep 900d |
+| ENL | 1.0397 | 1.0396 | −0.0001 | 0.0001 | tie | keep 900d |
+| SPL | 0.9536 | 0.9529 | −0.0006 | 0.0002 | **BETTER** | 1200d |
+| SCH | 1.0966 | 1.0960 | −0.0006 | 0.0005 | tie | keep 900d |
+| SL1 | 1.0271 | 1.0264 | −0.0007 | 0.0003 | **BETTER** | 1200d |
+| SL2 | 1.0324 | 1.0314 | −0.0009 | 0.0005 | **BETTER** | 1200d |
+
+**The brief's three prior results reproduce exactly.** It recorded EPL 1200d vs 900d at −0.00041 ± 0.00015, SPL at −0.00063 ± 0.00023, and EL2 within noise with 900 retained. This run returns −0.0004 ± 0.0002, −0.0006 ± 0.0002, and a tie retaining 900. That is the strongest available evidence that the hosted read-only path reproduces the earlier real-football measurements rather than merely producing plausible new ones.
+
+**No default change is recommended.** 1200d clears noise in five leagues and not in four, and every effect is between 0.0001 and 0.0009 log loss — real, consistently signed, and too small to justify moving a shipped default on its own. The four "keep 900d" verdicts are the study's own rule refusing to move on an effect it cannot separate.
+
+### An unlooked-for result: the decay may be doing almost nothing
+
+The **0d** row — uniform weights, no time decay at all — was not what the study was pointed at, and it is the most interesting column in the table. It is a `tie` in all nine leagues, but its paired delta against the 900d baseline is **negative in eight of nine** (EPL −0.0011, ECH −0.0007, EL2 −0.0001, ENL −0.0002, SPL −0.0014, SCH −0.0040, SL1 −0.0017, SL2 −0.0027; EL1 exactly 0.0000), and its raw mean is the **best in the whole table** for EPL, SPL, SCH, SL1 and SL2 — better than the 1200d the study recommends.
+
+Each league taken alone says "tie", because 0d's standard error is the largest in every row: dropping the weighting makes the fit noisier fold to fold. But eight of nine leagues agreeing in sign is not what nine independent coin flips look like, and the leagues where 0d looks best are the same lower divisions where §13 found the GBM worst — i.e. the ones with the least data, where discarding old matches costs most.
+
+This is stated as an **observation, not a finding**, and deliberately not acted on. The half-life grid was declared to answer "which decay", and reading "perhaps none" out of the same run is exactly the after-the-fact reinterpretation §3 exists to prevent. It deserves its own predeclared study — one that pairs 0d against the shipped 900d directly across all nine leagues, and reports the fold-level variance rather than only the mean — before anyone concludes the time weighting is not earning its place.
