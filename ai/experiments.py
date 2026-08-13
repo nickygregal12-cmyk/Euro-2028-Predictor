@@ -12,6 +12,8 @@ same machinery for the other decisions this lab has to take:
     regime-weighting   whether pre-change history should count for less
     ensemble           whether combining models beats the best single one
     calibration        whether applied calibration beats doing nothing
+    market-ou          how the Poisson goal distribution scores against the
+                       retained prematch Over/Under 2.5 book
 
 The rules are the same everywhere and they are what make the numbers worth
 reading:
@@ -55,7 +57,7 @@ from train import build_dataset, column_map_for
 
 STUDIES = ("half-life", "time-weighting", "elo-transition", "elo-margin",
            "regime-weighting", "ensemble", "calibration", "gbm-diagnostic",
-           "base-model", "league-diagnostic")
+           "base-model", "league-diagnostic", "market-ou")
 
 
 # ---------------------------------------------------------------------------
@@ -733,6 +735,386 @@ def study_base_model(args) -> dict:
                 f"different places, which the ensemble study measures next.")}
 
 
+# ---------------------------------------------------------------------------
+# The prematch Over/Under 2.5 benchmark
+#
+# DECLARED BEFORE THE FIRST RESULT WAS SEEN, and reproduced here so the design
+# cannot be edited to fit the output:
+#
+#   * The archive is PREMATCH. Every retained row is `phase = 'pre'`, so this
+#     is a benchmark against the price a book was offering before kick-off. It
+#     is NOT closing-line value and must never be reported as CLV: no closing
+#     price is stored for this market, so the quantity CLV measures does not
+#     exist in this data.
+#   * REAL BOOKMAKERS ONLY. `AVG` and `MAX` are aggregates across books — a
+#     mean and a best-of. An aggregate has no overround of its own to remove
+#     (MAX's is frequently below 100%, which would de-vig to probabilities
+#     that sum to less than one and flatter every comparison), and neither is
+#     a price anybody was ever offered as a pair.
+#   * DE-VIG PER BOOKMAKER, TWO-WAY, BEFORE ANY AVERAGING. p_over =
+#     (1/o_over) / (1/o_over + 1/o_under), computed inside one book's own pair
+#     of prices. Averaging raw odds across books first and de-vigging the mean
+#     is the standard way to manufacture a fake edge.
+#   * The model probability is P(home + away >= 3) read off the SAME Poisson
+#     scoreline grid the 1X2 forecast is read from, on the SAME expanding
+#     walk-forward folds every other study uses. No model is refitted for this
+#     market and no goal-total model is introduced.
+#   * The question is DIAGNOSIS, not profit. Disagreement is bucketed at
+#     <5pp, 5-10pp, 10-15pp and >15pp, and within each bucket both sides are
+#     scored, so "when we disagree strongly, who is right" is answerable.
+#     Nothing here sizes a stake or emits a selection.
+# ---------------------------------------------------------------------------
+
+# Aggregates, not books. Named here rather than inline so the exclusion is one
+# fact in one place and the test can assert it.
+AGGREGATE_PRICE_SOURCES = ("AVG", "MAX")
+
+MARKET_OU_HYPOTHESES = (
+    ("B1 goal level",
+     "The Poisson mean total is systematically above or below the realised "
+     "total, so P(Over 2.5) is biased in one direction league-wide.",
+     "mean_model_over - actual_over_rate"),
+    ("B2 early season",
+     "Bias is concentrated in the opening fifth of a season, where the rate "
+     "features are shortest.",
+     "early_season block"),
+    ("B3 promoted clubs",
+     "Bias is concentrated in fixtures involving a club new to the division, "
+     "where the division offset carries the rating rather than form.",
+     "newcomer block"),
+    ("B4 disagreement",
+     "Where the model and the book disagree by more than 10 percentage "
+     "points, the book is better calibrated.",
+     "bucket log loss and Brier"),
+    ("B5 dispersion",
+     "The model's P(Over 2.5) is more dispersed than the book's, which is "
+     "overconfidence rather than information.",
+     "sd of each side's probability"),
+)
+
+
+def _devig_two_way(odds_a, odds_b):
+    """Fair probability of side A, and the overround it was taken out of.
+
+    Two-way proportional de-vig, INSIDE one bookmaker's own pair of prices.
+    The pairing is the whole point: an overround belongs to a book, so the
+    only place it can be removed is between two prices that book offered at
+    the same moment on the same market. Removing it from a mean of several
+    books' prices, or from an aggregate like MAX, removes a number that was
+    never there.
+    """
+    inv_a = 1.0 / np.asarray(odds_a, dtype=float)
+    inv_b = 1.0 / np.asarray(odds_b, dtype=float)
+    overround = inv_a + inv_b
+    return inv_a / overround, overround
+
+
+def _binary_scores(prob, outcome) -> dict[str, float]:
+    """Log loss, Brier and 10-bin expected calibration error for one side.
+
+    A separate implementation from `metrics.summarise` on purpose: that one
+    takes a three-column H/D/A matrix, and quietly reshaping a two-outcome
+    market into it is how a benchmark ends up measuring something other than
+    what it says.
+    """
+    prob = np.clip(np.asarray(prob, dtype=float), 1e-9, 1 - 1e-9)
+    outcome = np.asarray(outcome, dtype=float)
+    log_loss = float(-np.mean(outcome * np.log(prob)
+                              + (1 - outcome) * np.log(1 - prob)))
+    brier = float(np.mean((prob - outcome) ** 2))
+
+    edges = np.linspace(0.0, 1.0, 11)
+    index = np.clip(np.digitize(prob, edges[1:-1]), 0, 9)
+    ece = 0.0
+    for b in range(10):
+        mask = index == b
+        if not mask.any():
+            continue
+        ece += (mask.sum() / len(prob)) * abs(prob[mask].mean()
+                                              - outcome[mask].mean())
+    return {"log_loss": log_loss, "brier": brier, "ece": float(ece),
+            "mean_prob": float(prob.mean()), "sd_prob": float(prob.std()),
+            "n": int(len(prob))}
+
+
+def _load_ou_prices(divisions: list[str]) -> pd.DataFrame:
+    """Every retained Over/Under 2.5 pair for these divisions, per bookmaker.
+
+    Returned unaggregated and un-de-vigged: the caller drops the aggregates
+    and does the arithmetic, because the de-vig is the part of this study most
+    worth being able to read in one place.
+    """
+    from db import query_df
+    return query_df(
+        """
+        select r.match_date, r.home_canonical, r.away_canonical,
+               p.bookmaker,
+               max(p.odds) filter (where p.selection = 'Over')  as odds_over,
+               max(p.odds) filter (where p.selection = 'Under') as odds_under
+          from ai.historical_market_prices p
+          join ai.raw_matches r on r.id = p.raw_match_id
+         where r.division = any(%s)
+           and p.market = 'OU'
+           and p.line = 2.5
+           and p.phase = 'pre'
+         group by 1, 2, 3, 4
+        """,
+        (list(divisions),),
+    )
+
+
+def study_market_ou(args) -> dict:
+    """Score the Poisson goal distribution against the prematch book.
+
+    It compares no configuration of ours against another, so it issues no
+    verdict and recommends no change. What it can establish is whether the
+    scoreline grid the 1X2 forecast is built from describes goals at all — a
+    question the 1X2 log loss cannot answer, because a grid with the wrong
+    total can still order home/draw/away correctly.
+    """
+    from config import LEAGUES
+    league = LEAGUES[args.league]
+    frame = build_dataset(args.league)
+    columns = feature_names(tuple(args.feature_groups))
+
+    prices = _load_ou_prices(list(league.divisions))
+    books_seen = (sorted(prices["bookmaker"].unique().tolist())
+                  if len(prices) else [])
+    real = prices[~prices["bookmaker"].isin(AGGREGATE_PRICE_SOURCES)] \
+        if len(prices) else prices
+    real = (real.dropna(subset=["odds_over", "odds_under"])
+            if len(real) else real)
+
+    # The de-vig, per book, on that book's own pair. Anything at or below
+    # evens on both sides of a two-way market is not a price pair; it is a
+    # storage error, and it would de-vig to a probability without complaining.
+    if len(real):
+        real = real[(real["odds_over"] > 1.0) & (real["odds_under"] > 1.0)].copy()
+        real["p_market_over"], real["overround"] = _devig_two_way(
+            real["odds_over"], real["odds_under"])
+
+    rows: list[dict] = []
+    for fold in expanding_season_folds(frame, args.min_train_seasons):
+        train = frame.iloc[fold.train_index]
+        test = frame.iloc[fold.test_index]
+        weights = time_weights(train["match_date"], args.half_life_days)
+        model = fit_family("poisson", train, columns, args.half_life_days,
+                           weights=weights)
+        grid = model.scoreline_grid(test[columns])
+
+        # P(total >= 3) off the same grid predict_proba reads. Built from the
+        # grid's own axes rather than a hard-coded size, so a change to
+        # MAX_GOALS cannot silently truncate the tail this market lives in.
+        size = grid.shape[1]
+        totals = np.add.outer(np.arange(size), np.arange(size))
+        over_mask = (totals >= 3).astype(float)
+        p_model_over = (grid * over_mask).sum(axis=(1, 2))
+        exp_home, exp_away = model.predict_goals(test[columns])
+
+        block = pd.DataFrame({
+            "season": str(fold.season),
+            "match_date": test["match_date"].values,
+            "home_canonical": test["home_canonical"].values,
+            "away_canonical": test["away_canonical"].values,
+            "total_goals": (test["home_goals"] + test["away_goals"]).values,
+            "p_model_over": p_model_over,
+            "exp_total": exp_home + exp_away,
+            "newcomer": ((test.get("home_is_newcomer", 0.0) >= 1.0)
+                         | (test.get("away_is_newcomer", 0.0) >= 1.0)).values,
+        })
+        rows.append(block)
+
+    if not rows:
+        return {"study": "market-ou", "league": args.league,
+                "error": "no scored folds", "books_seen": books_seen}
+
+    scored = pd.concat(rows, ignore_index=True)
+    scored["actual_over"] = (scored["total_goals"] >= 3).astype(float)
+    # Season stage, for B2. Ranked within the season by date so a league with
+    # a different fixture count still splits at its own opening fifth.
+    scored["stage"] = scored.groupby("season")["match_date"].rank(pct=True)
+
+    matched = scored
+    per_book: list[dict] = []
+    if len(real):
+        # One row per fixture per real book, then averaged across books IN
+        # PROBABILITY SPACE — never in odds space, and only after each book's
+        # own overround has gone.
+        joined = real.merge(
+            scored, on=["match_date", "home_canonical", "away_canonical"],
+            how="inner")
+        for book, block in joined.groupby("bookmaker"):
+            summary = _binary_scores(block["p_market_over"], block["actual_over"])
+            summary.update({"bookmaker": book,
+                            "mean_overround": float(block["overround"].mean())})
+            per_book.append(summary)
+        consensus = (joined.groupby(
+            ["match_date", "home_canonical", "away_canonical"], as_index=False)
+            ["p_market_over"].mean())
+        matched = scored.merge(
+            consensus, on=["match_date", "home_canonical", "away_canonical"],
+            how="inner")
+    else:
+        matched = scored.iloc[0:0].copy()
+        matched["p_market_over"] = []
+
+    n_scored, n_matched = int(len(scored)), int(len(matched))
+    out: dict = {
+        "study": "market-ou",
+        "league": args.league,
+        "design": {
+            "phase": "pre",
+            "is_clv": False,
+            "note": ("Prematch benchmark. No closing price is retained for "
+                     "this market, so closing-line value is not computable "
+                     "and is not claimed."),
+            "aggregates_excluded": list(AGGREGATE_PRICE_SOURCES),
+            "price_sources_present": books_seen,
+            "real_bookmakers_used": sorted(
+                {r["bookmaker"] for r in per_book}),
+        },
+        "hypotheses": [{"id": h, "statement": s, "column": c}
+                       for h, s, c in MARKET_OU_HYPOTHESES],
+        "coverage": {
+            "scored_fixtures": n_scored,
+            "matched_fixtures": n_matched,
+            "match_rate": (n_matched / n_scored) if n_scored else None,
+            "per_book": per_book,
+            "by_season": [
+                {"season": s,
+                 "scored": int((scored["season"] == s).sum()),
+                 "matched": int((matched["season"] == s).sum()) if n_matched else 0}
+                for s in sorted(scored["season"].unique())],
+        },
+        "per_book": per_book,
+    }
+
+    if not n_matched:
+        out["overall"] = {"matched": 0}
+        out["recommendation"] = (
+            "No usable real-bookmaker Over/Under 2.5 evidence for this league "
+            "over the scored folds. Nothing is concluded and nothing changes.")
+        print(f"\n=== {args.league}: Over/Under 2.5 benchmark ===")
+        print(f"price sources present: {books_seen or 'none'}")
+        print(f"scored fixtures {n_scored}, matched 0 — no comparison possible")
+        return out
+
+    model = _binary_scores(matched["p_model_over"], matched["actual_over"])
+    market = _binary_scores(matched["p_market_over"], matched["actual_over"])
+    actual_rate = float(matched["actual_over"].mean())
+
+    out["overall"] = {
+        "matched": n_matched,
+        "actual_over_rate": actual_rate,
+        "model": model,
+        "market": market,
+        "model_minus_market_log_loss": model["log_loss"] - market["log_loss"],
+        "model_minus_market_brier": model["brier"] - market["brier"],
+        "model_bias": model["mean_prob"] - actual_rate,
+        "market_bias": market["mean_prob"] - actual_rate,
+        "mean_expected_total": float(matched["exp_total"].mean()),
+        "mean_actual_total": float(matched["total_goals"].mean()),
+        "mean_abs_gap": float(
+            (matched["p_model_over"] - matched["p_market_over"]).abs().mean()),
+        "mean_signed_gap": float(
+            (matched["p_model_over"] - matched["p_market_over"]).mean()),
+    }
+
+    gap = (matched["p_model_over"] - matched["p_market_over"]).abs() * 100.0
+    buckets = [("<5pp", gap < 5), ("5-10pp", (gap >= 5) & (gap < 10)),
+               ("10-15pp", (gap >= 10) & (gap < 15)), (">15pp", gap >= 15)]
+    out["disagreement"] = []
+    for label, mask in buckets:
+        block = matched[mask.values]
+        if not len(block):
+            out["disagreement"].append({"bucket": label, "n": 0})
+            continue
+        m = _binary_scores(block["p_model_over"], block["actual_over"])
+        k = _binary_scores(block["p_market_over"], block["actual_over"])
+        out["disagreement"].append({
+            "bucket": label, "n": int(len(block)),
+            "share": float(len(block) / n_matched),
+            "actual_over_rate": float(block["actual_over"].mean()),
+            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
+            "model_brier": m["brier"], "market_brier": k["brier"],
+            "model_ece": m["ece"], "market_ece": k["ece"],
+            "model_mean_prob": m["mean_prob"], "market_mean_prob": k["mean_prob"],
+            "better_calibrated": ("market" if k["ece"] < m["ece"] else "model"),
+            "lower_log_loss": ("market" if k["log_loss"] < m["log_loss"]
+                               else "model"),
+        })
+
+    # B2 and B3: the same two numbers on the blocks where the declared
+    # mechanism says the bias should live, beside the block where it should
+    # not, so "concentrated" is a comparison rather than an assertion.
+    out["bias_blocks"] = []
+    for label, mask in (("early_season (first fifth)", matched["stage"] <= 0.2),
+                        ("rest_of_season", matched["stage"] > 0.2),
+                        ("newcomer_fixture", matched["newcomer"]),
+                        ("established_only", ~matched["newcomer"])):
+        block = matched[mask.values]
+        if not len(block):
+            out["bias_blocks"].append({"block": label, "n": 0})
+            continue
+        m = _binary_scores(block["p_model_over"], block["actual_over"])
+        k = _binary_scores(block["p_market_over"], block["actual_over"])
+        rate = float(block["actual_over"].mean())
+        out["bias_blocks"].append({
+            "block": label, "n": int(len(block)), "actual_over_rate": rate,
+            "model_bias": m["mean_prob"] - rate,
+            "market_bias": k["mean_prob"] - rate,
+            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
+            "mean_expected_total": float(block["exp_total"].mean()),
+            "mean_actual_total": float(block["total_goals"].mean()),
+        })
+
+    out["by_season"] = []
+    for season in sorted(matched["season"].unique()):
+        block = matched[matched["season"] == season]
+        m = _binary_scores(block["p_model_over"], block["actual_over"])
+        k = _binary_scores(block["p_market_over"], block["actual_over"])
+        out["by_season"].append({
+            "season": season, "n": int(len(block)),
+            "actual_over_rate": float(block["actual_over"].mean()),
+            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
+            "model_bias": m["mean_prob"] - float(block["actual_over"].mean()),
+            "market_bias": k["mean_prob"] - float(block["actual_over"].mean()),
+        })
+
+    out["recommendation"] = (
+        "Benchmark only. It measures whether the Poisson goal distribution "
+        "describes totals against a real prematch price; it fits nothing, "
+        "promotes nothing and emits no selection. A market-informed model is "
+        "a separate decision that this cannot authorise on its own.")
+
+    print(f"\n=== {args.league}: prematch Over/Under 2.5 benchmark ===")
+    print(f"price sources present {books_seen}, "
+          f"real books used {out['design']['real_bookmakers_used']}")
+    print(f"scored {n_scored}, matched {n_matched} "
+          f"({100.0 * n_matched / n_scored:.1f}%), "
+          f"actual over rate {actual_rate:.4f}")
+    print(f"{'side':<10}{'log loss':>10}{'brier':>9}{'ece':>8}"
+          f"{'mean p':>9}{'sd p':>8}")
+    for name, s in (("model", model), ("market", market)):
+        print(f"{name:<10}{s['log_loss']:>10.4f}{s['brier']:>9.4f}"
+              f"{s['ece']:>8.4f}{s['mean_prob']:>9.4f}{s['sd_prob']:>8.4f}")
+    print(f"model - market: log loss {model['log_loss'] - market['log_loss']:+.4f}, "
+          f"brier {model['brier'] - market['brier']:+.4f}")
+    print(f"expected total {out['overall']['mean_expected_total']:.3f} vs "
+          f"actual {out['overall']['mean_actual_total']:.3f}")
+    print(f"\n{'bucket':<10}{'n':>7}{'share':>8}{'over':>8}"
+          f"{'modelLL':>9}{'mktLL':>9}{'modelECE':>10}{'mktECE':>9}{'better':>9}")
+    for b in out["disagreement"]:
+        if not b["n"]:
+            print(f"{b['bucket']:<10}{0:>7}")
+            continue
+        print(f"{b['bucket']:<10}{b['n']:>7}{b['share']:>8.3f}"
+              f"{b['actual_over_rate']:>8.3f}{b['model_log_loss']:>9.4f}"
+              f"{b['market_log_loss']:>9.4f}{b['model_ece']:>10.4f}"
+              f"{b['market_ece']:>9.4f}{b['better_calibrated']:>9}")
+    return out
+
+
 STUDY_FUNCTIONS = {
     "half-life": study_half_life,
     "time-weighting": study_time_weighting,
@@ -744,6 +1126,7 @@ STUDY_FUNCTIONS = {
     "gbm-diagnostic": study_gbm_diagnostic,
     "base-model": study_base_model,
     "league-diagnostic": study_league_diagnostic,
+    "market-ou": study_market_ou,
 }
 
 
@@ -855,6 +1238,22 @@ def ledger_entry(study: str, result: dict) -> dict:
                 "beats_noise": False, "harmful": False,
                 "chosen": None,
                 "error": "diagnostic only: no configuration was compared"}
+    if study == "market-ou":
+        # The comparison is against a BOOK, not against another configuration
+        # of ours, so `mean_delta` is the model's log loss minus the market's:
+        # negative means our goal distribution scored better than the price.
+        # There is no paired standard error because the two probabilities come
+        # from different generating processes rather than from paired folds,
+        # and inventing one would make a benchmark look like an experiment.
+        overall = (result.get("overall") or {})
+        return {"baseline": "prematch book (de-vigged, per bookmaker)",
+                "candidate": "poisson P(Over 2.5)",
+                "folds": int(overall.get("matched") or 0),
+                "mean_delta": overall.get("model_minus_market_log_loss"),
+                "se_delta": None,
+                "beats_noise": False, "harmful": False,
+                "chosen": None,
+                "error": "benchmark only: no configuration was compared"}
     if study == "gbm-diagnostic":
         # The baseline is the SHIPPED configuration, so a ledger row here says
         # "this candidate beat what we run today" rather than "this candidate
