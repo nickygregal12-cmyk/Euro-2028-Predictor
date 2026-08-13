@@ -97,11 +97,34 @@ Production is where the live competitions are and where the paid odds budget
 is enabled, so it is a legitimate target. It is still the environment carrying
 real players, so prefer proving a change on Development first.
 
-Then promote one from `/admin/ai`, or:
+Then promote one. **A model becomes `current` only through a signed-in admin**,
+and that is deliberate — `predictor_internal.require_competition_admin()` reads
+`auth.jwt() -> 'app_metadata'` and passes only for `admin_role = 'super_admin'`
+or an `admin_capabilities` array containing `competitions`.
+
+So promotion needs a browser session, not a database connection:
+
+```
+npm run dev      # pointed at the target project, sign in as an admin
+                 # then /admin/ai, choose the challenger, give a reason
+```
+
+`admin_ai_promote_model` is granted to `authenticated`, so any signed-in admin
+session can call it — the dashboard is the convenient route, not the only one.
+
+**What does not work**, though this file used to recommend it:
 
 ```sql
+-- From psql or the Supabase SQL editor. Raises 42501:
+--   'Competition administration is not authorised'
+-- There is no JWT on a database connection, so auth.jwt() is null and the
+-- guard refuses. Measured on hosted Development, 13 August 2026.
 select public.admin_ai_promote_model('<model-uuid>', 'first live model');
 ```
+
+Do not reach around it by writing `ai.models.status` directly. The RPC is what
+verifies the artefact's SHA before a model may go live, and a row edited past
+it is a model nobody can prove the weights of.
 
 ## The rules this codebase enforces for you
 
