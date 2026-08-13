@@ -603,3 +603,45 @@ Both permitted targets are league-shaped, and `league` cannot be omitted. A cup 
 - **Nothing merged to `main`**, and nothing was merged in order to obtain `DATABASE_URL` — the runs were dispatched against the branch ref.
 - **No migration, no contract number, no cron change, no budget change, no identity repair, no forecast regeneration, no model promotion.**
 - The Production 185 → 188 promotion was left entirely to the session that owns it. Its workflows were not edited from this branch.
+---
+
+## 20. The GBM diagnostic on real football
+
+`--study gbm-diagnostic`, the eleven predeclared candidates of §3, nine folds, paired against `gbm_shipped`. Run **31729251308** (**Production**, read-only, `f9ba04c`), 18:09–18:45 UTC, ~36 minutes. All nine leagues ran; two are read back in full here, the rest are in the run's artefact.
+
+**SL1** and **SL2**, train and test together:
+
+| candidate | SL1 train | SL1 test | SL1 delta ± se | SL2 train | SL2 test | SL2 delta ± se |
+|---|---|---|---|---|---|---|
+| `gbm_shipped` | **0.3113** | **1.4326** | +0.0000 | **0.3272** | **1.4459** | +0.0000 |
+| `capacity_low` | 0.9908 | **1.0356** | **−0.3969 ± 0.0321** | 1.0183 | **1.0487** | **−0.3971 ± 0.0334** |
+| `capacity_mid` | 0.9469 | 1.0406 | −0.3919 ± 0.0313 | 0.9750 | 1.0603 | −0.3856 ± 0.0345 |
+| `capacity_high` | 0.7916 | 1.0942 | −0.3383 ± 0.0337 | 0.8112 | 1.0978 | −0.3480 ± 0.0331 |
+| `early_stopping` | 0.8539 | 1.0713 | −0.3612 ± 0.0333 | 0.8833 | 1.0833 | −0.3626 ± 0.0311 |
+| `iter_only` | 0.6536 | 1.1474 | −0.2852 ± 0.0247 | 0.6721 | 1.1615 | −0.2843 ± 0.0204 |
+| `depth_only` | 0.8860 | 1.0810 | −0.3515 ± 0.0323 | 0.9125 | 1.0964 | −0.3494 ± 0.0332 |
+| `native_missing` | 0.9451 | 1.0477 | −0.3848 ± 0.0315 | 0.9712 | 1.0600 | −0.3859 ± 0.0336 |
+| `core_only` | 0.9622 | 1.0410 | −0.3916 ± 0.0320 | 0.9911 | 1.0555 | −0.3904 ± 0.0311 |
+| `no_time_weight` | 0.9398 | 1.0364 | −0.3962 ± 0.0298 | 0.9681 | 1.0498 | −0.3961 ± 0.0339 |
+| `calibrated` | 0.9469 | 1.0471 | −0.3854 ± 0.0343 | 0.9750 | 1.0546 | −0.3913 ± 0.0327 |
+
+SCH agrees on every sign and ordering (`capacity_low` −0.3742 ± 0.0453, `iter_only` −0.2728 the weakest).
+
+**Every one of the ten alternatives beats the incumbent beyond noise, in every league.** No candidate was added, removed or re-tuned after seeing this; the grid is §3's, unchanged.
+
+### The synthetic diagnosis holds on real data, quantitatively
+
+- **The memorisation is real, not an artefact of synthetic seasons.** The shipped configuration trains to **0.3113** and tests at **1.4326** — a generalisation gap of **+1.1213** (SL2: +1.1187), against +1.2532 on synthetic. Poisson and Elo showed *negative* gaps on the same harness.
+- **The predicted improvement band was right.** §3 anticipated 0.35–0.46 with a standard error near 0.04; measured, 0.28–0.40 with standard errors of 0.020–0.045.
+- **`iter_only` is the weakest alternative, exactly as predicted** — −0.2852, the smallest gain in the table, and the only candidate still testing above 1.14. Cutting the iteration count alone fixes part of the problem and leaves the rest, which is why the shipped fault was never simply "400 is too many".
+- **`early_stopping` is among the strongest** (−0.3612), repairing the shipped belief in place: the comment claimed the folds would stop the boosting, and letting the estimator actually stop itself recovers most of the loss.
+- **`capacity_low` wins**, and the study says so in the language it was written with: *"This is a CANDIDATE, not a promotion."*
+- **`native_missing` is measurable at last** (−0.3848) — but it sits mid-table, below three pure-capacity candidates, so the docstring's native-missingness argument is now measured and does **not** account for the defect. §2b's caveat still applies: the flag also marks a club's first match, not only a competition that records no shots.
+
+### The result that decides §13's recommendation
+
+**Even the best corrected GBM is still not competitive with the simple models.** In SL1 `capacity_low` tests at **1.0356** while §13's best base model, Elo, reaches **1.0209**; in SL2 `capacity_low` reaches 1.0487 against Poisson's 1.0324. The corrected GBM also remains at or above the class base rate (SL1 1.0724, SL2 1.0716).
+
+So the two studies together answer the brief's question without ambiguity: **fixing the configuration recovers roughly 0.40 of log loss and still does not produce a model worth blending.** `gbm` should come out of `ENSEMBLE_BASE_FAMILIES`; `GradientBoostedModel` and the eleven candidates should stay, because this is exactly the evidence that makes a future reconsideration cheap rather than speculative.
+
+**Nothing was promoted, trained for deployment or serialised.** The run was read-only against Production.
