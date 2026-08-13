@@ -803,3 +803,33 @@ This changes the finding, and in a useful direction. §16 diagnosed one internal
 So the exclusion widens from one tie to the set: **no prospective home/away cup modelling from these sources**, for any of the eight. Home advantage is worth roughly `ELO_HOME_ADV` = 60 rating points, and a tie modelled the wrong way round is wrong by twice that in the difference. `CupTie.orientation_confirmed` exists for exactly this and drives data confidence to `low`; exclusion remains the stronger and correct treatment while no source can be read.
 
 What would settle it is one readable primary source — the SPFL fixture list, or a club's own fixture page — which needs either an egress allowance for those domains or a provider that carries the competition. §6 measured that **neither configured provider carries any domestic cup**, so the provider route is closed and the egress route is the one that is open in principle.
+
+---
+
+## 27. The ensemble, with the components it actually ships
+
+`--study ensemble`, six out-of-time folds, `--base-families` left at the shipped `ENSEMBLE_BASE_FAMILIES` = (`poisson`, `elo`, `gbm`). Run **31738869955** (Development, read-only, `327ed54`), 20:03–20:09 UTC. All nine leagues, read from the run's own digest.
+
+Mean log loss over the six evaluated folds. `blend` and `stack` are stated as their paired delta against the **best base model in that league**, which is the comparison the study was written to make.
+
+| league | OOF rows | poisson | elo | gbm | equal blend | stacker | best base | blend − best | stacker − best |
+|---|---|---|---|---|---|---|---|---|---|
+| EPL | 3,420 | 0.9873 | **0.9872** | 1.1350 | 0.9942 | 0.9901 | elo | +0.0069 ± 0.0014 | +0.0029 ± 0.0026 |
+| ECH | 4,968 | **1.0467** | 1.0468 | 1.1343 | 1.0501 | 1.0469 | poisson | +0.0034 ± 0.0017 | +0.0001 ± 0.0015 |
+| EL1 | 4,816 | **1.0273** | 1.0314 | 1.1603 | 1.0407 | 1.0306 | poisson | +0.0134 ± 0.0020 | +0.0033 ± 0.0022 |
+| EL2 | 4,856 | **1.0599** | 1.0628 | 1.1889 | 1.0738 | 1.0619 | poisson | +0.0139 ± 0.0027 | +0.0020 ± 0.0022 |
+| ENL | 4,746 | 1.0240 | **1.0228** | 1.1354 | 1.0342 | 1.0255 | elo | +0.0114 ± 0.0046 | +0.0026 ± 0.0025 |
+| SPL | 2,003 | 0.9532 | **0.9523** | 1.2204 | 0.9705 | 0.9584 | elo | +0.0183 ± 0.0063 | +0.0061 ± 0.0049 |
+| SCH | 1,532 | **1.0637** | 1.0645 | 1.4093 | 1.0859 | 1.0702 | poisson | +0.0222 ± 0.0108 | +0.0065 ± 0.0046 |
+| SL1 | 1,509 | **1.0206** | 1.0207 | 1.3749 | 1.0417 | 1.0273 | poisson | +0.0211 ± 0.0038 | +0.0067 ± 0.0081 |
+| SL2 | 1,507 | **1.0527** | 1.0595 | 1.4712 | 1.0800 | 1.0656 | poisson | +0.0273 ± 0.0082 | +0.0129 ± 0.0059 |
+
+**Every delta is positive and `beats_noise` is false in all eighteen rows.** Neither the equal blend nor the learned stacker beat the best single model in a single league. The brief's three earlier real-football results said the same on EPL, SPL and EL2; this reproduces them and extends the finding to the other six.
+
+Three things worth separating, because they are different failures:
+
+- **The equal blend is beyond noise in the wrong direction in seven of nine.** EL1 is +0.0134 against a standard error of 0.0020 — nearly seven standard errors *worse* than simply using the Poisson model. An equal-weight average containing a component that scores 1.16 against the others' 1.03 is dragged by construction, and this is the arithmetic of that.
+- **The stacker is much better behaved, and still never wins.** It is inside noise in eight of nine, which is what a learned meta-model *should* do with a bad component — down-weight it toward irrelevance. It cannot go further than that: the best it can do is recover the best base model, and the cost of the attempt shows as SL2's +0.0129 ± 0.0059.
+- **The stacker's near-tie is not evidence for a stacker.** A meta-model that costs six folds of fitting to arrive back where the best single model already was is not earning its complexity, and in ECH it lands at +0.0001 ± 0.0015 — the clearest possible statement that it has learned to pick Poisson.
+
+Fold counts are six here against §13's nine, and the two are not in conflict: the ensemble needs earlier folds to fit the meta-model out of time, so it has fewer scored folds by construction. The pooled per-model numbers in each report's `base_summary` reproduce §13's exactly — EPL poisson 0.97479, elo 0.97471, gbm 1.13870 — which is the check that the two studies are looking at the same fits.
