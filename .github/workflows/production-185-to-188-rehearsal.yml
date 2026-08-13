@@ -688,9 +688,9 @@ jobs:
               -- temporary table and rewritten as a CTE. Read off the INSTALLED
               -- definition, not the migration text.
               'snapshot_uses_temp_table', (
-                select pg_get_functiondef(p.oid) ~* 'create\\s+(temporary|temp)\\s+table'
+                select pg_get_functiondef(p.oid) ~* 'create\s+(temporary|temp)\s+table'
                   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-                 where n.nspname = 'public' and p.proname = 'record_ai_odds_snapshot'),
+                 where n.nspname = 'public' and p.proname = 'record_ai_odds_snapshot')
               -- And the general lint the rewrite exists to satisfy: no function
               -- in `public` or `predictor_internal` retains a temporary-table
               -- dependency. This is `114_predictor_cup_lint_safe_qualification`
