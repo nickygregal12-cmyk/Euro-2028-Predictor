@@ -50,6 +50,16 @@ const workflow = parse(source) as {
 const steps = workflow.jobs.run.steps
 const dispatch = workflow.on.workflow_dispatch?.inputs ?? {}
 
+const manualStep = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
+
+/** One `case` arm of the manual task, from its label to its terminating `;;`. */
+const branch = (label: string): string => {
+  const start = manualStep.indexOf(label)
+  expect(start, `the manual task has no ${label} arm`).toBeGreaterThan(-1)
+  const end = manualStep.indexOf(';;', start)
+  return manualStep.slice(start, end === -1 ? undefined : end)
+}
+
 describe('the AI Lab runs against Production by default', () => {
   it('resolves the target to production when nothing chooses one', () => {
     expect(workflow.jobs.run.env.AI_ENV).toBe("${{ inputs.target || 'production' }}")
@@ -253,16 +263,66 @@ describe('the studies are runnable and promote nothing', () => {
   })
 
   it('records each study rather than only printing it', () => {
-    const manual = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
-    expect(manual).toMatch(/experiments\.py --league .* --study .* --record/s)
+    // Scoped to the `experiments)` branch. Read against the whole step this
+    // passed on the mere presence of `--record` anywhere in it, which the
+    // read-only `research)` branch below must NOT satisfy.
+    expect(branch('experiments)')).toMatch(/experiments\.py --league .* --study .* --record/s)
   })
 
   it('trains and promotes nothing from a study', () => {
-    const manual = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
-    const experiments = manual.slice(
-      manual.indexOf('experiments)'),
-      manual.indexOf('bootstrap|train|free-odds'),
+    const experiments = manualStep.slice(
+      manualStep.indexOf('experiments)'),
+      manualStep.indexOf('bootstrap|train|free-odds'),
     )
     expect(experiments).not.toMatch(/train\.py|promote/)
+  })
+})
+
+/**
+ * The bulk-research path.
+ *
+ * The studies need the whole historical archive — tens of thousands of rows —
+ * and the environment that holds it is Production. So the one execution plane
+ * with the access is also the one where a stray write would matter most, and
+ * the properties below are what make running there acceptable at all.
+ */
+describe('research runs against a hosted database without being able to change it', () => {
+  const research = branch('research)')
+
+  it('opens the session read-only rather than trusting a withheld flag', () => {
+    expect(research).toMatch(/AI_READ_ONLY=1/)
+  })
+
+  it('writes nothing: no --record, and no other write-capable script', () => {
+    expect(research).not.toMatch(/--record/)
+    expect(research).not.toMatch(/train\.py|promote|settle_bets\.py|repair_identity\.py/)
+  })
+
+  it('calls no provider', () => {
+    // Every script in the package that can spend a request, by name. A
+    // research run that grew one of these would stop being free.
+    expect(research).not.toMatch(
+      /fetch_history\.py|sync_fixtures\.py|fetch_fixtures_odds\.py|odds_api\.py/,
+    )
+  })
+
+  it('covers all nine leagues or one named league', () => {
+    expect(research).toMatch(/run_leagues\.sh experiments\.py/)
+    expect(research).toMatch(/--league "\$\{\{ inputs\.league \}\}"/)
+    const leagues = ['EPL', 'ECH', 'EL1', 'EL2', 'ENL', 'SPL', 'SCH', 'SL1', 'SL2']
+    expect(dispatch.league?.options).toEqual(['all', ...leagues])
+    expect(dispatch.league?.default).toBe('all')
+    // The nine the selector offers must be the nine the loop actually runs.
+    const runner = readFileSync(resolve(process.cwd(), 'ai/run_leagues.sh'), 'utf8')
+    expect(runner).toContain(`LEAGUES=(${leagues.join(' ')})`)
+  })
+
+  it('is enforced in the package, not only in this file', () => {
+    // The workflow exporting AI_READ_ONLY means nothing unless the connection
+    // honours it. Asserted here because this is the file that promises it.
+    const db = readFileSync(resolve(process.cwd(), 'ai/db.py'), 'utf8')
+    expect(db).toMatch(/default_transaction_read_only=on/)
+    const experiments = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')
+    expect(experiments).toMatch(/args\.record and read_only\(\)/)
   })
 })

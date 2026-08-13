@@ -16,12 +16,16 @@ import pandas as pd
 import psycopg
 from psycopg.rows import dict_row
 
-from config import database_url
+from config import database_url, read_only
 
 
 @contextmanager
 def connect():
-    with psycopg.connect(database_url(), row_factory=dict_row) as conn:
+    # Under AI_READ_ONLY the session is opened read-only at the libpq level, so
+    # the refusal comes from PostgreSQL on the first write rather than from a
+    # convention about which flags the caller passed. See config.read_only.
+    options = {"options": "-c default_transaction_read_only=on"} if read_only() else {}
+    with psycopg.connect(database_url(), row_factory=dict_row, **options) as conn:
         yield conn
 
 

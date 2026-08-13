@@ -42,7 +42,7 @@ on:
           - production
           - development
       study:
-        description: Which experiments study to run (task=experiments only)
+        description: Which experiments study to run (task=experiments or research)
         required: false
         default: half-life
         type: choice
@@ -53,6 +53,24 @@ on:
           - ensemble
           - calibration
           - regime-weighting
+          - gbm-diagnostic
+          - base-model
+      league:
+        description: Which league the study covers (task=research only; `all` is the nine)
+        required: false
+        default: all
+        type: choice
+        options:
+          - all
+          - EPL
+          - ECH
+          - EL1
+          - EL2
+          - ENL
+          - SPL
+          - SCH
+          - SL1
+          - SL2
       task:
         description: Job to run
         required: true
@@ -77,6 +95,12 @@ on:
           # feature groups. Reads only; trains no deployable model and
           # promotes nothing. `study` chooses which question is asked.
           - experiments
+          # The same studies over a chosen league or all nine, with the
+          # database session opened READ-ONLY and no --record. It exists
+          # because the studies need the forty-six thousand historical rows
+          # that a workstation cannot egress, and running them here must not
+          # be able to leave a mark on the environment that holds them.
+          - research
 
 permissions:
   contents: read
@@ -371,6 +395,27 @@ jobs:
                   --study "${{ inputs.study }}" --record || status=1
               done
               exit "$status" ;;
+            # Bulk read-only research over a chosen league or all nine.
+            #
+            # Provider-free by construction: no fetch_history.py,
+            # sync_fixtures.py, fetch_fixtures_odds.py or odds_api.py appears
+            # in this branch, so it cannot spend a request of any kind.
+            #
+            # Read-only by enforcement rather than by convention. AI_READ_ONLY
+            # opens the session with default_transaction_read_only=on, so an
+            # insert raises read_only_sql_transaction from PostgreSQL; and
+            # experiments.py refuses --record outright under it, so the
+            # contradictory request fails before the study runs rather than
+            # twenty minutes later. It writes its JSON reports to the runner
+            # and they leave as artefacts.
+            research)
+              export AI_READ_ONLY=1
+              if [ "${{ inputs.league }}" = all ]; then
+                ./run_leagues.sh experiments.py --study "${{ inputs.study }}"
+              else
+                python experiments.py --league "${{ inputs.league }}" \
+                  --study "${{ inputs.study }}"
+              fi ;;
             bootstrap|train|free-odds) ;;
           esac
 

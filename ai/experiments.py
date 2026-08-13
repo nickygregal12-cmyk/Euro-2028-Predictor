@@ -44,7 +44,7 @@ import pandas as pd
 
 import metrics
 from ablate import compare
-from config import LEAGUES, REPORT_DIR
+from config import LEAGUES, REPORT_DIR, read_only
 from ensemble import (evaluate_out_of_time, expanding_season_folds, out_of_fold)
 from features import (DEFAULT_GROUPS, ELO_MARGIN_POLICIES, ELO_TRANSITIONS,
                       feature_names)
@@ -693,6 +693,15 @@ def main() -> int:
                     help="Write the result to ai.feature_experiments, including "
                          "a null result. Rejections are results.")
     args = ap.parse_args()
+
+    # Say so here rather than letting the study run for twenty minutes and then
+    # die on the insert. The read-only session would refuse the write either
+    # way; this refuses the contradictory REQUEST.
+    if args.record and read_only():
+        raise SystemExit(
+            "--record was asked for while AI_READ_ONLY is set. A research run "
+            "reads; it does not write ai.feature_experiments. Drop --record, or "
+            "unset AI_READ_ONLY if a recorded experiment is what you meant.")
 
     if args.base_families is None:
         from model_candidates import BASE_MODEL_FAMILIES
