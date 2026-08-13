@@ -195,6 +195,18 @@ describe('row-level security', () => {
       { schema: 'ai', name: 'historical_market_prices' },
       { schema: 'ai', name: 'odds_api_raw_responses' },
       { schema: 'ai', name: 'odds_api_dispatches' },
+      // Contract 188. The lab's decision log, including the decision NOT to
+      // bet. Internal for the same reason every other `ai` table is: no
+      // browser role reads this schema, and the one admin surface over it is
+      // a bounded SECURITY DEFINER RPC on the competition-admin gate.
+      { schema: 'ai', name: 'recommendations' },
+      // Contract 188. Every identity correction, append-only, and every
+      // forecast quarantined because it was built on a broken one. Internal
+      // for the same reason: they are the lab's own audit of itself, and the
+      // Bet Builder reads them only through `ai.valid_predictions` inside a
+      // definer RPC.
+      { schema: 'ai', name: 'provider_identity_repairs' },
+      { schema: 'ai', name: 'prediction_invalidations' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

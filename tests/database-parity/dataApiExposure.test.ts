@@ -25,11 +25,24 @@ const allStatements = allSql
   .map((line) => line.replace(/--.*$/, ''))
   .join('\n')
 
+/**
+ * Every view a migration creates, as `schema.name`.
+ *
+ * The schema is now CAPTURED rather than optionally skipped. The previous
+ * pattern was `(?:public\.)?([a-z_0-9]+)`, which on `create or replace view
+ * ai.valid_predictions` matched the schema and captured `ai` — so contract
+ * 188's view arrived in this list as a relation called "ai", and the revoke
+ * check then looked for `revoke all on ai`, which does not exist and never
+ * would. The guard would have reported a view unrevoked for as long as any
+ * non-public view existed, which is the shape of false alarm that gets a guard
+ * disabled rather than read.
+ */
 function createdViews(): string[] {
   const views = new Set<string>()
   for (const { sql } of sources) {
-    const pattern = /create (?:or replace )?(?:materialized )?view\s+(?:public\.)?([a-z_0-9]+)/gi
-    for (const match of sql.matchAll(pattern)) views.add(match[1])
+    const pattern =
+      /create (?:or replace )?(?:materialized )?view\s+(?:([a-z_0-9]+)\.)?([a-z_0-9]+)/gi
+    for (const match of sql.matchAll(pattern)) views.add(`${match[1] ?? 'public'}.${match[2]}`)
   }
   return [...views].sort()
 }
@@ -53,11 +66,25 @@ const views = createdViews()
 
 describe('views are not reachable by browser roles', () => {
   it('finds the views at all', () => {
-    expect(views).toEqual(['entry_totals'])
+    expect(views).toEqual(['ai.valid_predictions', 'public.entry_totals'])
   })
 
   it('revokes every view from anon and authenticated', () => {
-    const unrevoked = views.filter((view) => {
+    const unrevoked = views.filter((qualified) => {
+      const [schema, view] = qualified.split('.')
+      // A whole-schema revoke covers a view: `all tables in schema` includes
+      // views in PostgreSQL, and schema `ai` is revoked that way after every
+      // object it adds. Contract 188's `ai.valid_predictions` is reachable
+      // only through the two competition-admin definer RPCs above it.
+      if (schema !== 'public') {
+        const schemaRevoke = new RegExp(
+          `revoke\\s+all\\s+on\\s+all\\s+tables\\s+in\\s+schema\\s+${schema}\\s+from\\s+([^;]+);`,
+          'i',
+        )
+        const match = schemaRevoke.exec(allSql)
+        if (!match) return true
+        return !/\banon\b/.test(match[1]) || !/\bauthenticated\b/.test(match[1])
+      }
       const revoke = new RegExp(
         `revoke\\s+all\\s+on\\s+(?:table\\s+|view\\s+)?(?:public\\.)?${view}\\s+from\\s+([^;]+);`,
         'i',

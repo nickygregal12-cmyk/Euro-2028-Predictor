@@ -250,7 +250,8 @@ nothing to say.
 
 | 186 | `CUP-002`'s prerequisite. **It moves no phase** |
 | 187 | `CUP-002` itself. **It moves no phase**, and it closes the last thing preventing a season Championship from finishing its group stage. `CUP-003` and `CUP-004` remain |
+| 188 | The private AI Lab's multi-model forecasting evidence, its provider identity custody and its quarantine authority. **It moves no phase** |
 
-**This table accounts for every contract up to and including contract 187.** Saying so is
+**This table accounts for every contract up to and including contract 188.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

@@ -314,6 +314,19 @@ insert into expected_authenticated_functions (signature) values
   ('admin_ai_evidence_by_market()'),
   ('admin_ai_odds_api_status()');
 
+-- Contract 188. The decision log, the private Bet Builder's two reads and the
+-- extreme-probability audit that must run after every regeneration. All four
+-- are competition-admin definer functions over schema `ai`, which stays
+-- revoked from every browser role; the Bet Builder returns only
+-- `ai.recommendations` rows the value gate already decided BET, joined through
+-- `ai.valid_predictions`, so no browser path can reach a refused or
+-- quarantined forecast.
+insert into expected_authenticated_functions (signature) values
+  ('admin_ai_recommendation_log(text,integer)'),
+  ('admin_ai_bet_builder_books()'),
+  ('admin_ai_bet_builder_candidates(text,text[],timestamp with time zone,timestamp with time zone,integer)'),
+  ('admin_ai_prediction_audit(text,integer)');
+
 -- The Odds API budget preflight and custody writer are Edge jobs. The outbound
 -- dispatcher is owner/pg_cron-only and therefore belongs to neither execution
 -- allowlist. A browser session can neither spend credits nor fabricate evidence.

@@ -51,6 +51,14 @@ def load_unsettled(league_key: str):
            and r.bet_id is null
            and f.status = 'played'
            and f.home_goals is not null
+           -- A bet advised from a quarantined forecast is not betting
+           -- evidence. Settling it would put its CLV and its profit into the
+           -- lab's own record of how well it bets, which is the number the
+           -- publication gate reads — and the selection was chosen by a model
+           -- that had been told one of the clubs had never played a match.
+           -- The bet row is kept; it is simply never graded.
+           and not exists (select 1 from ai.prediction_invalidations i
+                            where i.prediction_id = b.prediction_id)
         """,
         (league_key,),
     )

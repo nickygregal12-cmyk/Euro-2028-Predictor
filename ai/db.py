@@ -137,7 +137,7 @@ def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
         select p.id as prediction_id, p.p_home, p.p_draw, p.p_away,
                p.predicted_result, p.predicted_score,
                f.home_goals as home_score, f.away_goals as away_score
-          from ai.predictions p
+          from ai.valid_predictions p
           join ai.fixtures f             on f.id = p.fixture_id
      left join ai.prediction_results r   on r.prediction_id = p.id
          where p.league = %s
@@ -338,7 +338,20 @@ def insert_predictions(rows: list[dict]) -> int:
         "kickoff_at", "home_canonical", "away_canonical", "p_home", "p_draw", "p_away",
         "exp_home_goals", "exp_away_goals", "predicted_result", "predicted_score",
         "scoreline_grid", "features", "market_probabilities",
+        # Contract 185's timing columns, which nothing was populating: every
+        # prediction landed on the 'scheduled' default, so the per-horizon
+        # performance report contract 185 shipped had exactly one horizon to
+        # report on and could never answer the question it exists for.
+        "horizon", "hours_to_kickoff", "data_snapshot_at", "features_version",
+        "uses_market",
+        # Contract 186's evidence columns.
+        "p_home_raw", "p_draw_raw", "p_away_raw",
+        "model_views", "agreement", "data_confidence", "uncertainty",
+        "explanation",
     ]
+    json_cols = {"scoreline_grid", "features", "market_probabilities",
+                 "model_views", "agreement", "data_confidence", "uncertainty",
+                 "explanation"}
     sql = (
         f"insert into ai.predictions ({','.join(cols)}) "
         f"values ({','.join(['%s'] * len(cols))}) "
@@ -351,14 +364,260 @@ def insert_predictions(rows: list[dict]) -> int:
                 values = []
                 for c in cols:
                     v = r.get(c)
-                    if c in ("scoreline_grid", "features",
-                             "market_probabilities") and v is not None:
+                    if c in json_cols and v is not None:
                         v = json.dumps(v)
                     values.append(v)
                 cur.execute(sql, tuple(values))
                 written += cur.rowcount
         conn.commit()
     return written
+
+
+def league_grading_evidence(league: str) -> dict[str, Any]:
+    """What this league's own track record says, for the data-confidence score.
+
+    A model that has been graded four hundred times in a league is better
+    evidenced than the same model in a league where nothing has been graded
+    yet, and that is a fact about DATA rather than about any fixture. Returns
+    zeros rather than raising on an empty lab: a league with no history is a
+    normal state on day one, and it should read as low confidence rather than
+    as a failure.
+    """
+    with connect() as conn:
+        row = conn.execute(
+            """
+            select count(*)                       as graded_predictions,
+                   avg(r.log_loss)                as mean_log_loss,
+                   avg(case when r.result_correct then 1 else 0 end) as accuracy
+              from ai.prediction_results r
+              join ai.valid_predictions p on p.id = r.prediction_id
+             where p.league = %s
+            """,
+            (league,),
+        ).fetchone()
+        # Binned reliability, which is what "calibration error" means. The
+        # previous query computed `mean(|max(p) - correct|)`, which is not a
+        # calibration measure at all: a PERFECTLY calibrated set of 70%
+        # forecasts is wrong 30% of the time, so that expression returns
+        # roughly 0.42 on flawless output. `data_confidence` then treated
+        # anything above 0.10 as poor calibration, so a well-calibrated league
+        # was penalised almost as hard as a broken one — the score was
+        # measuring average confidence, not reliability.
+        bins = conn.execute(
+            """
+            select width_bucket(greatest(p.p_home, p.p_draw, p.p_away),
+                                0.0, 1.0, 10)                as bucket,
+                   count(*)                                  as n,
+                   avg(greatest(p.p_home, p.p_draw, p.p_away)) as mean_predicted,
+                   avg(case when r.result_correct then 1 else 0 end) as observed
+              from ai.prediction_results r
+              join ai.valid_predictions p on p.id = r.prediction_id
+             where p.league = %s
+             group by 1
+            """,
+            (league,),
+        ).fetchall()
+    if not row or not row["graded_predictions"]:
+        return {"graded_predictions": 0, "mean_log_loss": None,
+                "accuracy": None, "calibration_error": None,
+                "calibration_bins": []}
+    total = float(sum(int(b["n"]) for b in bins)) or 1.0
+    # Expected calibration error: the sample-weighted mean gap between the
+    # probability claimed in a bin and the frequency observed in it.
+    ece = sum(
+        (int(b["n"]) / total) * abs(float(b["mean_predicted"]) - float(b["observed"]))
+        for b in bins
+    )
+    return {
+        "graded_predictions": int(row["graded_predictions"]),
+        "mean_log_loss": float(row["mean_log_loss"]) if row["mean_log_loss"] is not None else None,
+        "accuracy": float(row["accuracy"]) if row["accuracy"] is not None else None,
+        "calibration_error": round(float(ece), 5),
+        "calibration_bins": [
+            {"bucket": int(b["bucket"]), "n": int(b["n"]),
+             "mean_predicted": round(float(b["mean_predicted"]), 4),
+             "observed_frequency": round(float(b["observed"]), 4)}
+            for b in sorted(bins, key=lambda x: x["bucket"])
+        ],
+    }
+
+
+def load_market_snapshot(fixture_ids, as_of) -> pd.DataFrame:
+    """Average and best 1X2 prices per fixture, AS THEY STOOD at `as_of`.
+
+    This is the read that makes a market-informed model live-scorable, and the
+    `captured_at <= as_of` bound is the whole point of it. Training saw
+    pre-match prices; scoring must see prices that existed at the prediction's
+    own `data_snapshot_at` and nothing later. A closing price cannot enter
+    because `market_prices` holds capture times and this filters on them, and
+    `market_features.assert_no_closing_features` refuses the closing columns by
+    name in any case — two independent controls, because this is the one leak
+    that makes a model look brilliant and be unbettable.
+    """
+    if not len(fixture_ids):
+        return pd.DataFrame(columns=["fixture_id", "odds_avg_h", "odds_avg_d",
+                                     "odds_avg_a", "odds_max_h", "odds_max_d",
+                                     "odds_max_a", "captured_at", "book_count"])
+    return query_df(
+        """
+        with latest as (
+          select distinct on (mp.fixture_id, mp.bookmaker, mp.selection)
+                 mp.fixture_id, mp.bookmaker, mp.selection, mp.odds, mp.captured_at
+            from ai.market_prices mp
+           where mp.fixture_id = any(%s::uuid[])
+             and mp.market = '1X2'
+             and mp.captured_at <= %s
+           order by mp.fixture_id, mp.bookmaker, mp.selection, mp.captured_at desc
+        ), per_book as (
+          select fixture_id, bookmaker,
+                 max(odds) filter (where selection = 'H') as h,
+                 max(odds) filter (where selection = 'D') as d,
+                 max(odds) filter (where selection = 'A') as a,
+                 max(captured_at) as captured_at
+            from latest
+           where bookmaker not in ('AVG', 'MAX')
+           group by fixture_id, bookmaker
+          having count(*) filter (where selection in ('H','D','A')) = 3
+        )
+        select fixture_id::text as fixture_id,
+               avg(h) as odds_avg_h, avg(d) as odds_avg_d, avg(a) as odds_avg_a,
+               max(h) as odds_max_h, max(d) as odds_max_d, max(a) as odds_max_a,
+               max(captured_at) as captured_at,
+               count(*) as book_count
+          from per_book
+         group by fixture_id
+        """,
+        ([str(f) for f in fixture_ids], as_of),
+    )
+
+
+def insert_prediction_invalidations(rows: list[dict]) -> int:
+    """Quarantine forecasts. Never edits or deletes the forecast itself."""
+    if not rows:
+        return 0
+    cols = ["prediction_id", "reason_code", "evidence", "note"]
+    with connect() as conn:
+        with conn.cursor() as cur:
+            _write_batched(
+                cur,
+                f"insert into ai.prediction_invalidations ({','.join(cols)}) values ",
+                " on conflict (prediction_id, reason_code) do nothing",
+                len(cols),
+                [tuple(json.dumps(r.get(c) or {}, default=str) if c == "evidence"
+                       else r.get(c) for c in cols)
+                 for r in rows])
+        conn.commit()
+    return len(rows)
+
+
+def insert_recommendations(rows: list[dict]) -> int:
+    """Record every decision, including the ones that decided not to bet.
+
+    `ai.bets` records bets. A gate that answers "nothing qualifies today"
+    wrote nothing at all, which is indistinguishable from the job not having
+    run — and "no selections currently pass the threshold" is a legitimate and
+    important answer that has to leave evidence.
+    """
+    if not rows:
+        return 0
+    cols = ["prediction_id", "model_id", "league",
+            "market", "selection", "kickoff_at",
+            "hours_to_kickoff", "decision", "reason_codes", "bookmaker",
+            "odds_offered", "odds_captured_at", "odds_age_seconds",
+            "calibrated_prob", "fair_odds", "expected_value", "data_confidence",
+            "data_confidence_state", "agreement_score", "uncertainty_width",
+            "evidence"]
+    sql = (f"insert into ai.recommendations ({','.join(cols)}) "
+           f"values ({','.join(['%s'] * len(cols))})")
+    written = 0
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for r in rows:
+                values = []
+                for c in cols:
+                    v = r.get(c)
+                    if c == "evidence" and v is not None:
+                        v = json.dumps(v, default=str)
+                    values.append(v)
+                cur.execute(sql, tuple(values))
+                written += cur.rowcount
+        conn.commit()
+    return written
+
+
+def update_prediction_diagnosis(rows: list[dict]) -> int:
+    """Attach a post-match diagnosis to an already-graded prediction.
+
+    Writes to ai.prediction_results, never to ai.predictions: the prediction is
+    what the model said and is immutable; the diagnosis is an opinion formed
+    afterwards and belongs beside the grade.
+    """
+    if not rows:
+        return 0
+    written = 0
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    "update ai.prediction_results "
+                    "   set diagnosis=%s, diagnosis_evidence=%s, diagnosed_at=now() "
+                    " where prediction_id=%s",
+                    (r["diagnosis"], json.dumps(r.get("evidence", {}), default=str),
+                     r["prediction_id"]),
+                )
+                written += cur.rowcount
+        conn.commit()
+    return written
+
+
+def load_predictions_needing_diagnosis(league: str, limit: int = 500) -> pd.DataFrame:
+    """Graded predictions with no diagnosis, and the evidence to judge them by."""
+    return query_df(
+        """
+        select r.prediction_id, p.league, p.home_canonical, p.away_canonical,
+               p.kickoff_at, p.horizon, p.p_home, p.p_draw, p.p_away,
+               p.predicted_result, p.features, p.data_confidence, p.agreement,
+               p.uncertainty, p.model_views,
+               r.actual_result, r.actual_home_goals, r.actual_away_goals,
+               r.log_loss, r.rps, r.brier,
+               rm.home_shots, rm.away_shots, rm.home_shots_ot, rm.away_shots_ot,
+               rm.home_corners, rm.away_corners, rm.red_card_distorted,
+               rm.mkt_home_prob, rm.mkt_draw_prob, rm.mkt_away_prob
+          from ai.prediction_results r
+          join ai.valid_predictions p on p.id = r.prediction_id
+     left join ai.fixtures f     on f.id = p.fixture_id
+     left join ai.raw_matches rm on rm.id = coalesce(p.raw_match_id, f.raw_match_id)
+         where p.league = %s
+           and r.diagnosis is null
+         order by p.kickoff_at desc
+         limit %s
+        """,
+        (league, limit),
+    )
+
+
+def market_snapshot_inventory(league: str | None = None) -> pd.DataFrame:
+    """How much timestamped price history actually exists, per fixture.
+
+    Read before any market-timing model is fitted. `ai.market_snapshots` has
+    existed since contract 185 and may hold nothing at all; a movement model
+    trained on two snapshots per fixture is a model of a rounding error.
+    """
+    return query_df(
+        """
+        select ms.season_fixture_id, ms.raw_match_id, ms.bookmaker,
+               count(*)                      as snapshots,
+               min(ms.captured_at)           as first_seen,
+               max(ms.captured_at)           as last_seen,
+               bool_or(ms.is_closing)        as has_closing
+          from ai.market_snapshots ms
+     left join ai.valid_predictions p
+            on p.season_fixture_id = ms.season_fixture_id
+           and (%s is null or p.league = %s)
+         group by 1, 2, 3
+        """,
+        (league, league),
+    )
 
 
 def insert_prediction_results(rows: list[dict]) -> int:

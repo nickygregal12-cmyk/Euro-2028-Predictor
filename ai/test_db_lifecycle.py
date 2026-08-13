@@ -11,6 +11,7 @@ test applies every migration, then proves:
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import sys
 from datetime import date, datetime, timedelta, timezone
@@ -103,13 +104,18 @@ def _bootstrap() -> None:
             home_score smallint,
             away_score smallint)
         """)
-        migration = (
-            Path(__file__).parents[1]
-            / "supabase"
-            / "migrations"
-            / "20260812070000_ai_lab_operational_loop.sql"
-        )
-        conn.execute(migration.read_text())
+        # Every AI Lab migration, in timestamp order, rather than one named
+        # file. The named form is the same shape of defect the CI workflow's
+        # path filter already carried: it pinned
+        # `20260812060000_ai_lab_operational_loop.sql`, the file landed at
+        # 20260812070000 after a rebase, and the suite silently guarded
+        # nothing. A glob cannot go stale when the next contract lands.
+        migrations = sorted(
+            (Path(__file__).parents[1] / "supabase" / "migrations")
+            .glob("*_ai_lab_*.sql"))
+        assert migrations, "no AI Lab migrations found to apply"
+        for migration in migrations:
+            conn.execute(migration.read_text())
 
 
 def _model(league: str) -> str:
@@ -150,14 +156,33 @@ def _fixture(league: str, division: str, home: str, away: str,
 def _prediction(model_id: str, fixture_id: str, league: str,
                 kickoff: datetime, home: str, away: str,
                 season_fixture_id=None) -> str:
+    # Shaped like a prediction `predict.py` would actually write, because the
+    # value gate now reads the evidence columns and a fixture without them is
+    # correctly refused. The old row said 75% on a 2.30 shot, which is a
+    # thirty-point disagreement with the market — the exact shape
+    # PASS_MARKET_DISCREPANCY exists to stop, so the lifecycle it was built to
+    # prove could no longer happen.
     with db.connect() as conn:
         row = conn.execute(
             """insert into ai.predictions
                  (model_id,league,fixture_id,season_fixture_id,kickoff_at,
                   home_canonical,away_canonical,p_home,p_draw,p_away,
-                  predicted_result,features)
-               values (%s,%s,%s,%s,%s,%s,%s,.75,.15,.10,'H','{}') returning id""",
-            (model_id, league, fixture_id, season_fixture_id, kickoff, home, away),
+                  p_home_raw,p_draw_raw,p_away_raw,
+                  predicted_result,features,horizon,hours_to_kickoff,
+                  features_version,data_confidence,agreement,uncertainty,
+                  model_views)
+               values (%s,%s,%s,%s,%s,%s,%s,.50,.28,.22,.51,.27,.22,'H','{}',
+                       'scheduled',48,'f2',
+                       %s,%s,%s,%s) returning id""",
+            (model_id, league, fixture_id, season_fixture_id, kickoff, home, away,
+             json.dumps({"score": 0.78, "state": "high", "components": [],
+                         "missing_inputs": []}),
+             json.dumps({"measurable": True, "score": 0.82, "state": "strong",
+                         "same_pick": True, "max_pairwise_tv": 0.04}),
+             json.dumps({"interval": {"H": [0.46, 0.54], "D": [0.25, 0.31],
+                                      "A": [0.19, 0.25]}, "max_width": 0.08,
+                         "wide": False}),
+             json.dumps({"poisson": [0.50, 0.28, 0.22], "elo": [0.48, 0.29, 0.23]})),
         ).fetchone()
         conn.commit()
         return str(row["id"])
@@ -334,3 +359,776 @@ def test_complete_database_lifecycles(monkeypatch) -> None:
                 (b"replacement", epl_model),
             )
         conn.rollback()
+
+
+def test_contract_186_evidence_lifecycle(monkeypatch) -> None:
+    """The evidence tables, proved against a real PostgreSQL rather than read.
+
+    Five properties, each of which would otherwise be a comment:
+      * one prediction per (model, fixture, horizon), so a rerun is a no-op
+        and a 48-hour forecast and a post-team-sheet one can both exist;
+      * `ai.observations_as_of` cannot return a fact learned after the instant
+        asked about — the guarantee a backtest depends on;
+      * a recommendation is append-only and cannot be recorded after kickoff;
+      * a PASS must carry a reason;
+      * the diagnosis vocabulary is enforced by the database, so a category
+        added in Python without one here fails on insert rather than silently.
+    """
+    _bootstrap()
+    model = _model("EPL")
+    fixture, kickoff = _fixture("EPL", "E0", "Arsenal", "Chelsea")
+    prediction = _prediction(model, fixture, "EPL", kickoff, "Arsenal", "Chelsea")
+
+    with db.connect() as conn:
+        # 1. Horizon idempotency. The same horizon twice is refused; a
+        #    different horizon for the same fixture is a different forecast.
+        with pytest.raises(psycopg.errors.UniqueViolation):
+            conn.execute(
+                """insert into ai.predictions
+                     (model_id,league,fixture_id,kickoff_at,home_canonical,
+                      away_canonical,p_home,p_draw,p_away,predicted_result,
+                      features,horizon)
+                   values (%s,'EPL',%s,%s,'Arsenal','Chelsea',.5,.28,.22,'H',
+                           '{}','scheduled')""",
+                (model, fixture, kickoff),
+            )
+        conn.rollback()
+        conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  features,horizon)
+               values (%s,'EPL',%s,%s,'Arsenal','Chelsea',.55,.25,.20,'H',
+                       '{}','t24')""",
+            (model, fixture, kickoff),
+        )
+        conn.commit()
+        assert conn.execute(
+            "select count(*) as n from ai.predictions where fixture_id=%s",
+            (fixture,)).fetchone()["n"] == 2
+
+        # 2. observations_as_of: a fact recorded late is invisible early.
+        learned_late = datetime.now(timezone.utc)
+        conn.execute(
+            """insert into ai.observations
+                 (subject_type,subject_key,fact_type,applies_from,known_at,
+                  value,source)
+               values ('team','Arsenal','manager',%s,%s,
+                       '{"manager":"Someone New"}','test')""",
+            (learned_late - timedelta(days=1), learned_late),
+        )
+        conn.commit()
+        before = conn.execute(
+            "select count(*) as n from ai.observations_as_of(%s,'manager','team')",
+            (learned_late - timedelta(hours=1),)).fetchone()["n"]
+        after = conn.execute(
+            "select count(*) as n from ai.observations_as_of(%s,'manager','team')",
+            (learned_late + timedelta(hours=1),)).fetchone()["n"]
+        assert before == 0, "a backtest could see a fact recorded after it"
+        assert after == 1
+
+        # 3-4. The decision log.
+        conn.execute(
+            """insert into ai.recommendations
+                 (prediction_id,model_id,league,selection,kickoff_at,decision,
+                  reason_codes,calibrated_prob,expected_value)
+               values (%s,%s,'EPL','H',%s,'PASS','{PASS_STALE_PRICE}',.5,-.02)""",
+            (prediction, model, kickoff),
+        )
+        conn.commit()
+        with pytest.raises(psycopg.Error):
+            conn.execute("update ai.recommendations set decision='BET'")
+        conn.rollback()
+        with pytest.raises(psycopg.Error):
+            conn.execute(
+                """insert into ai.recommendations
+                     (prediction_id,model_id,league,selection,kickoff_at,
+                      decision,reason_codes)
+                   values (%s,%s,'EPL','H',%s,'PASS','{}')""",
+                (prediction, model, kickoff),
+            )
+        conn.rollback()
+        with pytest.raises(psycopg.Error):
+            conn.execute(
+                """insert into ai.recommendations
+                     (prediction_id,model_id,league,selection,kickoff_at,
+                      decision,reason_codes,decided_at)
+                   values (%s,%s,'EPL','H',%s,'BET','{}',%s)""",
+                (prediction, model, kickoff, kickoff + timedelta(hours=1)),
+            )
+        conn.rollback()
+
+        # 5. The diagnosis vocabulary, and the admin read that surfaces it.
+        conn.execute(
+            """insert into ai.prediction_results
+                 (prediction_id,actual_home_goals,actual_away_goals,actual_result,
+                  result_correct,exact_score_correct,log_loss,brier,rps)
+               values (%s,0,1,'A',false,false,1.6,.9,.4)""",
+            (prediction,),
+        )
+        conn.commit()
+        conn.execute(
+            "update ai.prediction_results set diagnosis='NORMAL_VARIANCE' "
+            " where prediction_id=%s", (prediction,))
+        conn.commit()
+        with pytest.raises(psycopg.Error):
+            conn.execute(
+                "update ai.prediction_results set diagnosis='PROBABLY_FINE' "
+                " where prediction_id=%s", (prediction,))
+        conn.rollback()
+
+        log = conn.execute(
+            "select public.admin_ai_recommendation_log('EPL',10) as body"
+        ).fetchone()["body"]
+        assert len(log["recommendations"]) == 1
+        assert log["recommendations"][0]["decision"] == "PASS"
+        assert log["reason_code_counts_90d"] == {"PASS_STALE_PRICE": 1}
+
+
+def test_the_provider_identity_chain_is_repaired_without_a_provider_call():
+    """The 13 August 2026 Production defect, reproduced and then repaired.
+
+    Reproduced faithfully: an event retained with the RAW provider spelling in
+    `home_team`/`away_team` and the decoder's uncorrected value in the
+    canonical columns, resolved to a fixture created under that wrong identity,
+    with prices and a bridged odds row hanging off it and a prediction written
+    against it. That is exactly the state fifty-two Production events were in.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        # Leicester's history, under the canonical name the history uses.
+        for i in range(12):
+            conn.execute(
+                """insert into ai.raw_matches
+                     (division,season,match_date,home_canonical,away_canonical,
+                      home_goals,away_goals,result)
+                   values ('E1','2526',%s,'Leicester','Blackburn',2,1,'H')""",
+                (kickoff.date() - timedelta(days=30 + i * 7),))
+        # And the wrong fixture, as the poisoned pipeline created it.
+        wrong = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E2','2627','EL1',%s,%s,'Notts County','Leicester City')
+               returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.odds_api_events
+                 (event_id,sport_key,commence_time,home_team,away_team,
+                  home_canonical,away_canonical,fixture_id,matched_by)
+               values ('evt-1','soccer_england_league1',%s,
+                       'Notts County','Leicester City',
+                       'Notts County','Leicester City',%s,'alias')""",
+            (kickoff, wrong))
+        for selection, odds in (("H", 1.4), ("D", 4.5), ("A", 7.0)):
+            conn.execute(
+                """insert into ai.market_prices
+                     (fixture_id,market,selection,bookmaker,odds,captured_at,source)
+                   values (%s,'1X2',%s,'B365',%s,now(),'the-odds-api')""",
+                (wrong, selection, odds))
+        conn.execute(
+            """insert into ai.fixture_odds
+                 (fixture_id,division,match_date,home_canonical,away_canonical,
+                  bookmaker,odds_h,odds_d,odds_a,captured_at,source)
+               values (%s,'E2',%s,'Notts County','Leicester City',
+                       'B365',1.4,4.5,7.0,now(),'the-odds-api')""",
+            (wrong, kickoff.date()))
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EL1','identity','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"identity").hexdigest(),)).fetchone()["id"]
+        prediction = conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  exp_home_goals,exp_away_goals,features,horizon,
+                  hours_to_kickoff,features_version)
+               values (%s,'EL1',%s,%s,'Notts County','Leicester City',
+                       .99659,.00327,.00014,'H',6.0,.05,%s,'scheduled',48,'f2')
+               returning id""",
+            (model, wrong, kickoff,
+             json.dumps({"home_matches_known": 10.0, "away_matches_known": 0.0,
+                         "away_is_newcomer": 1.0}))).fetchone()["id"]
+        conn.commit()
+
+        # The authority already knows the answer. Nothing had ever asked it.
+        assert conn.execute(
+            "select canonical from ai.canonical_from_odds_api('Leicester City')"
+        ).fetchone()["canonical"] == "Leicester"
+
+        report = conn.execute(
+            "select ai.repair_provider_identity() as r").fetchone()["r"]
+        conn.commit()
+
+    assert report["provider_requests_made"] == 0
+    assert report["events_corrected"] == 1
+    assert report["events_relinked"] == 1
+    assert report["market_prices_repointed"] == 3
+    assert report["fixture_odds_deleted"] == 1
+
+    with db.connect() as conn:
+        event = conn.execute(
+            "select * from ai.odds_api_events where event_id='evt-1'").fetchone()
+        assert event["away_canonical"] == "Leicester"
+        assert event["home_team"] == "Notts County", "the raw name is evidence"
+        assert str(event["fixture_id"]) != str(wrong), "a corrected identity relinks"
+
+        fixed = conn.execute(
+            "select * from ai.fixtures where id=%s", (event["fixture_id"],)
+        ).fetchone()
+        assert fixed["away_canonical"] == "Leicester"
+
+        # Evidence follows identity; the derived projection is rebuilt.
+        moved = conn.execute(
+            "select count(*) as n from ai.market_prices where fixture_id=%s",
+            (event["fixture_id"],)).fetchone()["n"]
+        assert moved == 3
+        assert conn.execute(
+            "select count(*) as n from ai.fixture_odds where fixture_id=%s",
+            (wrong,)).fetchone()["n"] == 0
+
+        # The stale fixture is voided rather than deleted, so the prediction
+        # that references it survives as a record and leaves every value path.
+        assert conn.execute(
+            "select status from ai.fixtures where id=%s", (wrong,)
+        ).fetchone()["status"] == "void"
+
+        # The ledger names what changed.
+        repair = conn.execute(
+            "select * from ai.provider_identity_repairs").fetchone()
+        assert repair["old_away_canonical"] == "Leicester City"
+        assert repair["new_away_canonical"] == "Leicester"
+        with pytest.raises(psycopg.Error):
+            conn.execute("update ai.provider_identity_repairs set raw_home='x'")
+        conn.rollback()
+
+        # Idempotent: a second run finds nothing left to do.
+        again = conn.execute(
+            "select ai.repair_provider_identity() as r").fetchone()["r"]
+        conn.commit()
+        assert again["events_corrected"] == 0
+
+        # And the forecast built on the broken identity is quarantined rather
+        # than edited or deleted.
+        dry = conn.execute(
+            "select ai.quarantine_identity_defective_predictions("
+            "  'INVALID_TEAM_IDENTITY', true) as r").fetchone()["r"]
+        assert dry["matched"] == 1
+        assert conn.execute(
+            "select count(*) as n from ai.prediction_invalidations"
+        ).fetchone()["n"] == 0, "a dry run must write nothing"
+
+        applied = conn.execute(
+            "select ai.quarantine_identity_defective_predictions("
+            "  'INVALID_TEAM_IDENTITY', false) as r").fetchone()["r"]
+        conn.commit()
+        assert applied["matched"] == 1
+
+        assert conn.execute(
+            "select count(*) as n from ai.predictions where id=%s",
+            (prediction,)).fetchone()["n"] == 1, "the record is never deleted"
+        assert conn.execute(
+            "select count(*) as n from ai.valid_predictions where id=%s",
+            (prediction,)).fetchone()["n"] == 0, "and never counted as evidence"
+
+        with pytest.raises(psycopg.Error):
+            conn.execute("delete from ai.prediction_invalidations")
+        conn.rollback()
+
+
+def test_an_invalidated_prediction_cannot_become_a_bet_builder_leg():
+    """The structural half of the quarantine.
+
+    Marking a prediction invalid has to remove it from every evidence path, not
+    only from the report that reads the flag. The bounded Bet Builder read
+    joins `ai.valid_predictions`, so a quarantined forecast disappears from it
+    even though its `ai.recommendations` row still exists.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','bb','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"bb").hexdigest(),)).fetchone()["id"]
+        prediction = conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  features,horizon,hours_to_kickoff,features_version)
+               values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','{}',
+                       'scheduled',48,'f2') returning id""",
+            (model, fixture, kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.recommendations
+                 (prediction_id,model_id,league,selection,kickoff_at,decision,
+                  reason_codes,bookmaker,odds_offered,odds_captured_at,
+                  calibrated_prob,expected_value,data_confidence)
+               values (%s,%s,'EPL','H',%s,'BET','{}','B365',2.1,now(),
+                       .55,.155,.72)""",
+            (prediction, model, kickoff))
+        conn.commit()
+
+        body = conn.execute(
+            "select public.admin_ai_bet_builder_candidates('B365') as b"
+        ).fetchone()["b"]
+        assert body["leg_count"] == 1
+        assert body["legs"][0]["selection"] == "H"
+        assert body["bookmaker"]["is_real_price"] is True
+        assert body["legs"][0]["price_age_limit_seconds"] == 43200
+
+        # A PASS is never a leg.
+        assert conn.execute(
+            "select count(*) as n from ai.recommendations "
+            " where decision='BET'").fetchone()["n"] == 1
+
+        conn.execute(
+            "insert into ai.prediction_invalidations (prediction_id,reason_code) "
+            "values (%s,'INVALID_TEAM_IDENTITY')", (prediction,))
+        conn.commit()
+
+        after = conn.execute(
+            "select public.admin_ai_bet_builder_candidates('B365') as b"
+        ).fetchone()["b"]
+        assert after["leg_count"] == 0, (
+            "a quarantined prediction must leave the Bet Builder, not merely "
+            "be flagged inside it")
+
+
+def test_a_pass_is_never_offered_as_a_bet_builder_leg():
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','pass','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"pass").hexdigest(),)).fetchone()["id"]
+        prediction = conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  features,horizon,hours_to_kickoff,features_version)
+               values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','{}',
+                       'scheduled',48,'f2') returning id""",
+            (model, fixture, kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.recommendations
+                 (prediction_id,model_id,league,selection,kickoff_at,decision,
+                  reason_codes,bookmaker,odds_offered,odds_captured_at,
+                  calibrated_prob,expected_value,data_confidence)
+               values (%s,%s,'EPL','H',%s,'PASS','{PASS_LOW_DATA}','B365',2.1,
+                       now(),.55,.155,.30)""",
+            (prediction, model, kickoff))
+        conn.commit()
+        body = conn.execute(
+            "select public.admin_ai_bet_builder_candidates('B365') as b"
+        ).fetchone()["b"]
+        assert body["leg_count"] == 0
+
+
+def test_the_sql_freshness_limits_match_the_python_policy():
+    """`ai.price_age_limit_seconds` mirrors `value_engine.FreshnessPolicy`.
+
+    Two implementations exist because two languages need one; this is what
+    stops them drifting. The Python side of the same table is asserted in
+    `test_identity_and_gates.py`.
+    """
+    _bootstrap()
+    import value_engine
+
+    with db.connect() as conn:
+        for hours, aggregate in ((1.0, False), (2.0, False), (2.001, False),
+                                 (8.0, False), (8.001, False), (48.0, False),
+                                 (1.0, True), (8.0, True), (48.0, True)):
+            sql = conn.execute(
+                "select ai.price_age_limit_seconds(%s::double precision,%s) as s",
+                (hours, aggregate)
+            ).fetchone()["s"]
+            python = value_engine.FreshnessPolicy().limit_for(hours, aggregate)
+            assert sql == python.total_seconds(), (hours, aggregate)
+
+
+def test_the_budget_allowance_is_measured_from_provider_headers():
+    """Contract 188's quota reconciliation, and its refusal to guess.
+
+    Installed at 500 monthly credits with a 450 soft cap while the provider's
+    own headers reported an allowance of 20,000. The reconciliation reads the
+    retained headers and makes no request.
+    """
+    _bootstrap()
+    with db.connect() as conn:
+        conn.execute(
+            """insert into ai.api_usage
+                 (provider,endpoint,http_status,estimated_cost,
+                  reported_used,reported_remaining)
+               values ('the-odds-api','odds',200,1,20,19980)""")
+        conn.commit()
+
+        report = conn.execute(
+            "select ai.reconcile_api_budget('the-odds-api', false) as r"
+        ).fetchone()["r"]
+        conn.commit()
+        assert report["observed_period_credits"] == 20000
+        assert report["disagrees"] is True
+        assert report["provider_requests_made"] == 0
+        assert conn.execute(
+            "select monthly_credits from ai.api_budget "
+            " where provider='the-odds-api'").fetchone()["monthly_credits"] == 500, (
+            "without --apply the configuration must not move")
+
+        applied = conn.execute(
+            "select ai.reconcile_api_budget('the-odds-api', true) as r"
+        ).fetchone()["r"]
+        conn.commit()
+        assert applied["provider_requests_made"] == 0
+        row = conn.execute(
+            "select monthly_credits, soft_cap, soft_cap_fraction, reserve_note "
+            "  from ai.api_budget where provider='the-odds-api'").fetchone()
+        assert row["monthly_credits"] == 20000
+        # A FRACTION, so a future plan change moves the cap with it rather than
+        # leaving a hard-coded 450 behind again.
+        assert row["soft_cap"] == 18000
+        assert float(row["soft_cap_fraction"]) == 0.900
+        assert "provider headers" in row["reserve_note"]
+
+        again = conn.execute(
+            "select ai.reconcile_api_budget('the-odds-api', false) as r"
+        ).fetchone()["r"]
+        assert again["disagrees"] is False
+
+
+def test_the_snapshot_consumer_ignores_a_stale_decoder_alias_table():
+    """The Edge Function's twelve-entry alias table is no longer authoritative.
+
+    `record_ai_odds_snapshot` re-derives identity from
+    `ai.canonical_from_odds_api` and reports how often the decoder disagreed,
+    so a decoder that has never heard of Leicester City cannot poison a row.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=3)
+    payload = [{
+        "event_id": "evt-decoder", "sport_key": "soccer_england_league1",
+        "commence_time": kickoff.isoformat(),
+        "home_team": "Notts County", "away_team": "Leicester City",
+        # What the Edge Function's own table produces: unchanged.
+        "home_canonical": "Notts County", "away_canonical": "Leicester City",
+        "market": "1X2", "selection": "H", "bookmaker": "B365",
+        "odds": 1.4, "captured_at": datetime.now(timezone.utc).isoformat(),
+    }]
+    with db.connect() as conn:
+        conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E2','2627','EL1',%s,%s,'Notts County','Leicester')""",
+            (kickoff.date(), kickoff))
+        conn.commit()
+        report = conn.execute(
+            "select public.record_ai_odds_snapshot("
+            "  'https://api.the-odds-api.com/v4/sports/soccer_england_league1/odds',200,'{}'::jsonb,'[]',"
+            "  %s::jsonb,1,1,19979,21,'test') as r",
+            (json.dumps(payload),)).fetchone()["r"]
+        conn.commit()
+
+        assert report["decoder_identity_corrected"] == 1
+        event = conn.execute(
+            "select * from ai.odds_api_events where event_id='evt-decoder'"
+        ).fetchone()
+        assert event["away_canonical"] == "Leicester"
+        assert event["fixture_id"] is not None
+        assert event["matched_by"] == "alias"
+        assert report["prices_written"] == 1
+
+
+def test_a_price_captured_after_the_snapshot_cannot_reach_a_market_model():
+    """The leakage test, executed rather than asserted from the query text.
+
+    A market-informed model must see the prices that existed when the forecast
+    was made and nothing later. The closing line is the benchmark this lab is
+    measured against; a model given it beats every benchmark and can never be
+    bet, because at the moment a bet is placed the number does not exist.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    snapshot = datetime.now(timezone.utc)
+    with db.connect() as conn:
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        # Before the snapshot: the prices a forecast made then could have seen.
+        for selection, odds in (("H", 2.10), ("D", 3.40), ("A", 3.60)):
+            conn.execute(
+                """insert into ai.market_prices
+                     (fixture_id,market,selection,bookmaker,odds,captured_at,source)
+                   values (%s,'1X2',%s,'B365',%s,%s,'the-odds-api')""",
+                (fixture, selection, odds, snapshot - timedelta(hours=6)))
+        # After it: the closing line, which must be invisible.
+        for selection, odds in (("H", 1.40), ("D", 5.00), ("A", 9.00)):
+            conn.execute(
+                """insert into ai.market_prices
+                     (fixture_id,market,selection,bookmaker,odds,captured_at,source)
+                   values (%s,'1X2',%s,'B365',%s,%s,'the-odds-api')""",
+                (fixture, selection, odds, snapshot + timedelta(hours=1)))
+        conn.commit()
+
+    at_snapshot = db.load_market_snapshot([fixture], snapshot)
+    assert len(at_snapshot) == 1
+    row = at_snapshot.iloc[0]
+    assert float(row["odds_avg_h"]) == 2.10, "the closing price leaked in"
+    assert float(row["odds_avg_a"]) == 3.60
+    assert int(row["book_count"]) == 1
+
+    # And the later view does see it, so the bound is doing the work rather
+    # than the row simply being absent.
+    later = db.load_market_snapshot([fixture], snapshot + timedelta(hours=2))
+    assert float(later.iloc[0]["odds_avg_h"]) == 1.40
+
+    # Aggregates are excluded from the model's own market block: AVG and MAX
+    # are derived from the very books being averaged, so including them would
+    # count the same evidence twice.
+    with db.connect() as conn:
+        for selection, odds in (("H", 2.50), ("D", 3.50), ("A", 3.50)):
+            conn.execute(
+                """insert into ai.market_prices
+                     (fixture_id,market,selection,bookmaker,odds,captured_at,source)
+                   values (%s,'1X2',%s,'MAX',%s,%s,'the-odds-api')""",
+                (fixture, selection, odds, snapshot - timedelta(hours=6)))
+        conn.commit()
+    assert int(db.load_market_snapshot([fixture], snapshot).iloc[0]["book_count"]) == 1
+
+
+def test_a_model_row_and_its_artefact_agree_after_a_round_trip():
+    """Contract 188's provenance columns, written and read back.
+
+    Both are written in ONE transaction, so a disagreement between them is
+    undetectable afterwards: the row says `uses_market = false`, the bytes hold
+    a market-informed model, and every later question is answered from the row.
+    """
+    _bootstrap()
+    import joblib
+    import pandas as pd
+
+    import train
+    from artifacts import ARTIFACT_SCHEMA, ModelBundle
+    from fitting import fit_family
+    from features import FeatureBuilder, feature_names
+    from market_features import MARKET_FEATURE_NAMES, build_market_block
+    from test_models import synthetic_history
+
+    history = synthetic_history(seasons=8, start_year=2016)
+    frame = FeatureBuilder("E0").build_training_frame(history)
+    frame = frame[frame["home_matches_known"] + frame["away_matches_known"] >= 6]
+    frame = frame.reset_index(drop=True)
+    rng = __import__("numpy").random.default_rng(9)
+    frame["odds_avg_h"] = rng.uniform(1.6, 4.0, len(frame))
+    frame["odds_avg_d"] = rng.uniform(3.0, 4.5, len(frame))
+    frame["odds_avg_a"] = rng.uniform(1.8, 6.0, len(frame))
+    frame = pd.concat([frame, build_market_block(frame)], axis=1)
+    columns = list(feature_names(("core",))) + list(MARKET_FEATURE_NAMES)
+
+    model = fit_family("market", frame, columns, 900.0)
+    bundle = ModelBundle(
+        model=model, features=columns, features_version="f2",
+        feature_groups=("core", "market"), family="market", league="EPL",
+        version="roundtrip", half_life_days=900.0,
+        elo_transition="division_mean", calibrator=None, components={},
+        trained_through=pd.to_datetime(frame["match_date"].max()).date(),
+        schema=ARTIFACT_SCHEMA, metadata={})
+
+    path = Path("/tmp/roundtrip.joblib")
+    joblib.dump(bundle.to_payload(), path)
+    record = {
+        "league": "EPL", "version": "roundtrip", "family": "market",
+        "training_matches": len(frame),
+        "eval_training_matches": len(frame) - 200,
+        "final_trained_through": bundle.trained_through,
+        "features_used": columns, "features_version": "f2",
+        "feature_groups": ["core", "market"], "half_life_days": 900.0,
+        "elo_transition": "division_mean", "calibration_method": "identity",
+        "component_families": None, "meta_model": None,
+        "uses_market": True, "status": "challenger",
+    }
+    train.assert_provenance_agrees(record, bundle)
+    model_id = db.insert_model_with_artifact(record, path)
+
+    with db.connect() as conn:
+        row = conn.execute("select * from ai.models where id=%s", (model_id,)).fetchone()
+    stored = ModelBundle.from_payload(db.load_model_artifact(model_id))
+
+    assert row["uses_market"] is True
+    assert bool(getattr(stored.model, "uses_market", False)) is True
+    assert row["family"] == stored.family == "market"
+    assert list(row["features_used"]) == list(stored.features)
+    assert row["features_version"] == stored.features_version
+    assert list(row["feature_groups"]) == list(stored.feature_groups)
+    assert float(row["half_life_days"]) == float(stored.half_life_days)
+    assert row["elo_transition"] == stored.elo_transition
+    assert row["final_trained_through"] == stored.trained_through
+    assert row["training_matches"] == len(frame)
+    # The two fits are two different numbers and now have two columns.
+    assert row["eval_training_matches"] < row["training_matches"]
+
+
+def test_a_bet_from_a_quarantined_forecast_never_becomes_betting_evidence():
+    """Section 4's other half: the paper record must not carry the bad bets.
+
+    Twenty-two of Production's forty-nine paper selections were advised from a
+    prediction whose club identity was broken. Settling them would put their
+    CLV and profit into the lab's own betting record — which is the number the
+    publication gate reads — for selections chosen by a model that had been
+    told one of the clubs had never played a match.
+    """
+    _bootstrap()
+    # Scheduled first, then played. `ai.predictions` refuses a row created
+    # after kickoff and `ai.fixtures` refuses a future fixture with a score, so
+    # the only way to build a settleable bet is in the order it really happens.
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    played = datetime.now(timezone.utc) - timedelta(days=1)
+    with db.connect() as conn:
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','settle','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"settle").hexdigest(),)).fetchone()["id"]
+
+        predictions, fixtures = [], []
+        for index in range(2):
+            fixture = conn.execute(
+                """insert into ai.fixtures
+                     (division,season,league_key,match_date,kickoff_at,
+                      home_canonical,away_canonical)
+                   values ('E0','2627','EPL',%s,%s,%s,%s) returning id""",
+                (kickoff.date(), kickoff, f"Arsenal {index}", f"Leeds {index}")
+            ).fetchone()["id"]
+            fixtures.append(fixture)
+            row = conn.execute(
+                """insert into ai.predictions
+                     (model_id,league,fixture_id,kickoff_at,home_canonical,
+                      away_canonical,p_home,p_draw,p_away,predicted_result,
+                      features,horizon,hours_to_kickoff,features_version)
+                   values (%s,'EPL',%s,%s,%s,%s,.55,.25,.20,'H','{}',
+                           'scheduled',48,'f2') returning id""",
+                (model, fixture, kickoff, f"Arsenal {index}", f"Leeds {index}")
+            ).fetchone()
+            predictions.append(row["id"])
+            conn.execute(
+                """insert into ai.bets
+                     (prediction_id,model_id,league,fixture_id,selection,
+                      kickoff_at,bookmaker,odds_taken,model_prob,edge,
+                      stake_fraction,stake_units,is_paper,status,market)
+                   values (%s,%s,'EPL',%s,'H',%s,'B365',2.1,.55,.155,.01,1,
+                           true,'advised','1X2')""",
+                (row["id"], model, fixture, kickoff))
+
+        # One of the two is quarantined, and then both matches are played.
+        conn.execute(
+            "insert into ai.prediction_invalidations (prediction_id, reason_code) "
+            "values (%s,'HISTORY_ALIAS_MISMATCH')", (predictions[0],))
+        for fixture in fixtures:
+            conn.execute(
+                """update ai.fixtures
+                      set status='played', home_goals=2, away_goals=1, result='H',
+                          kickoff_at=%s, match_date=%s
+                    where id=%s""",
+                (played, played.date(), fixture))
+        conn.commit()
+
+    candidates = settle_bets.load_unsettled("EPL")
+    assert len(candidates) == 1, (
+        "the quarantined forecast's bet is still settleable, so its CLV and "
+        "profit would enter the lab's betting record")
+
+    with db.connect() as conn:
+        # The bet row itself survives: the record of what the broken pipeline
+        # advised is evidence about the pipeline, and deleting it is how the
+        # same defect gets rediscovered.
+        assert conn.execute(
+            "select count(*) as n from ai.bets").fetchone()["n"] == 2
+
+
+def test_the_sql_alias_authority_answers_exactly_as_the_python_one():
+    """One identity authority, two implementations, held together by a test.
+
+    The whole defect this contract exists to close was two alias tables that
+    disagreed — `ai/aliases.py` knew Leicester City and the Edge Function's own
+    twelve-entry literal did not. Replacing that with a SQL authority and a
+    Python authority that can drift apart would be the same mistake with better
+    handwriting, so every name either one knows is asked of both.
+
+    The SQL side additionally falls back to the retained history, which the
+    Python side has no cheap equivalent for, so the comparison is one-way where
+    Python answers and exact-agreement where both do.
+    """
+    _bootstrap()
+    import aliases
+
+    names = sorted(aliases.ODDS_API_TO_CANONICAL)
+    with db.connect() as conn:
+        for name in names:
+            expected, how = aliases.canonical_from_odds_api(name)
+            row = conn.execute(
+                "select canonical, matched_by from ai.canonical_from_odds_api(%s)",
+                (name,)).fetchone()
+            assert row["canonical"] == expected, (
+                f"{name!r}: SQL says {row['canonical']!r}, Python says {expected!r}")
+            assert row["matched_by"] == how
+
+        # The clubs whose identity broke Production, end to end through SQL.
+        for provider, canonical in (
+                ("Leicester City", "Leicester"),
+                ("Norwich City", "Norwich"),
+                ("West Bromwich Albion", "West Brom"),
+                ("Blackburn Rovers", "Blackburn"),
+                ("Sheffield Wednesday", "Sheffield Weds"),
+                ("Queens Park Rangers", "QPR"),
+                ("Huddersfield Town", "Huddersfield"),
+                ("Wimbledon", "AFC Wimbledon"),
+                ("Bristol Rovers", "Bristol Rvs"),
+                ("Bristol City", "Bristol City"),
+                # Football-Data abbreviates this one too, and both the Python
+                # map and the SQL seed originally carried 'Raith Rovers' — so
+                # the parity assertion above passed while both disagreed with
+                # the 489 rows of history Production actually holds.
+                ("Raith Rovers", "Raith Rvs")):
+            assert conn.execute(
+                "select canonical from ai.canonical_from_odds_api(%s)",
+                (provider,)).fetchone()["canonical"] == canonical
+
+        # A name nothing recognises is refused rather than guessed at. There is
+        # no edit-distance fallback on either side, deliberately: 'Bristol
+        # City' and 'Bristol Rovers' are two characters apart and are different
+        # clubs in different divisions.
+        assert conn.execute(
+            "select canonical, matched_by from ai.canonical_from_odds_api(%s)",
+            ("Qwerty Rovers XI",)).fetchone()["matched_by"] == "unmatched"
+
+        # And the history is the last-resort tier: a club with matches under a
+        # name no alias mentions still resolves.
+        conn.execute(
+            """insert into ai.raw_matches
+                 (division,season,match_date,home_canonical,away_canonical,
+                  home_goals,away_goals,result)
+               values ('E3','2526','2026-01-01','Obscure Town','Barnet',1,0,'H')""")
+        conn.commit()
+        assert conn.execute(
+            "select canonical from ai.canonical_from_odds_api(%s)",
+            ("Obscure Town",)).fetchone()["canonical"] == "Obscure Town"
