@@ -153,19 +153,36 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ready="$(python - <<'PY'
+          # NAME THE MISSING OBJECT. This gate was written as one boolean and
+          # one fixed message, and on 13 August 2026 it refused a Production
+          # that genuinely held contract 188 — run 31740574108 — reporting
+          # "below contract 188 (ai.valid_predictions absent)" when the view was
+          # present. The real fault was the probe: `to_regproc` takes a bare
+          # function NAME, so `to_regproc('ai.canonical_from_odds_api(text)')`
+          # returns null for a function that exists, and the gate could never
+          # pass on any environment. `to_regprocedure` is the one that accepts a
+          # signature. A gate that reports a cause it did not measure is worse
+          # than one that reports nothing, because it sends the reader to the
+          # database instead of to the probe — so each object is now measured
+          # and named separately.
+          probe="$(python - <<'PY'
           import os, psycopg
           with psycopg.connect(os.environ["DATABASE_URL"]) as conn:
-              row = conn.execute(
-                  "select to_regclass('ai.valid_predictions') is not null "
-                  "   and to_regproc('ai.canonical_from_odds_api(text)') is not null"
+              view, fn = conn.execute(
+                  "select to_regclass('ai.valid_predictions') is not null,"
+                  "       to_regprocedure('ai.canonical_from_odds_api(text)') is not null"
               ).fetchone()
-          print('true' if row[0] else 'false')
+          missing = [n for n, ok in
+                     (("ai.valid_predictions", view),
+                      ("ai.canonical_from_odds_api(text)", fn)) if not ok]
+          print(("true" if not missing else "false") + "|" + ", ".join(missing))
           PY
           )"
+          ready="${probe%%|*}"
+          missing="${probe#*|}"
           echo "ready=${ready}" >> "$GITHUB_OUTPUT"
           if [ "${ready}" != true ]; then
-            echo "::notice::${AI_ENV} is below contract 188 (ai.valid_predictions absent). Prediction, evaluation and value selection are skipped until it is applied. Nothing was collected, trained or written."
+            echo "::notice::${AI_ENV} is below contract 188 — missing: ${missing}. Prediction, evaluation and value selection are skipped until it is applied. Nothing was collected, trained or written."
           fi
 
       - name: Resolve task
