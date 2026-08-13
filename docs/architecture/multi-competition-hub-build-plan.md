@@ -341,6 +341,6 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 | 187 | **Stage G** season Predictor Cup. `CUP-002`: the driver, the window gate and the knockout windows, all three. `CUP-003` (the bracket and Penalty Number read) and `CUP-004` (walkover and withdrawal) remain |
 | 188 | **No Hub stage moves.** A private, administrator-only AI Lab surface gains a Bet Builder; the platform's own stages are untouched |
 
-**This table accounts for every contract up to and including contract 188.** Saying so is
+**This table accounts for every contract up to and including contract 189.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.

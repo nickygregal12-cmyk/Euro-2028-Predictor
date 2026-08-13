@@ -1077,8 +1077,17 @@
  * bounded reads on the existing competition-admin gate. Global setup writes
  * none of those relations, no existing function is redefined, no grant moves,
  * and nothing an ordinary seeded player reads is touched.
+ *
+ * Raised to 189 after checking contract 189, which narrows eight existing
+ * competition-admin AI reads onto `ai.valid_predictions` and the new private
+ * `ai.valid_bets`, both inside the separately revoked `ai` schema. No new
+ * relation is browser-reachable, no signature moves, the `authenticated`
+ * EXECUTE grants are restated exactly as they stood, and the seeded
+ * administrator's `competitions` capability is what those reads have always
+ * required. The seed writes no `ai` relation at all, so the reads it proves
+ * reachable still answer with the same empty state.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 188
+export const SEED_REVIEWED_AT_CONTRACT = 189
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

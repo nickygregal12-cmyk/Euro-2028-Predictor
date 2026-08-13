@@ -297,7 +297,7 @@ same paragraph existed in seven places at once.
 | 187 | A season Championship can actually finish its group stage: it qualifies, seeds and brackets, over the matchdays it plays rather than over three |
 | 188 | The AI Lab keeps the evidence behind a forecast, refuses one built on a broken club identity, and can be asked for an accumulator at one real bookmaker |
 
-*Current to contract 188.*
+*Current to contract 189.*
 
 ## Innovation Lab UI pass — 11 August 2026
 
