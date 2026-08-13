@@ -49,7 +49,7 @@ from config import LEAGUES, MODEL_DIR, REPORT_DIR
 from db import insert_model_with_artifact, job, load_history
 from features import (DEFAULT_GROUPS, ELO_MARGIN_POLICY_DEFAULT,
                       ELO_TRANSITION_DEFAULT, FEATURES_VERSION,
-                      FeatureBuilder, feature_names)
+                      NEWCOMER_TRANSFER_DEFAULT, FeatureBuilder, feature_names)
 from fitting import DEFAULT_HALF_LIFE_DAYS, fit_family, time_weights
 from market_features import (MARKET_FEATURE_NAMES, assert_pure,
                              build_market_block)
@@ -63,7 +63,9 @@ __all__ = ["DEFAULT_HALF_LIFE_DAYS", "time_weights", "build_dataset",
 
 def build_dataset(league_key: str, elo_transition: str = ELO_TRANSITION_DEFAULT,
                   elo_margin_policy: str = ELO_MARGIN_POLICY_DEFAULT,
-                  schedule_context=None) -> pd.DataFrame:
+                  schedule_context=None,
+                  newcomer_transfer: str = NEWCOMER_TRANSFER_DEFAULT
+                  ) -> pd.DataFrame:
     league = LEAGUES[league_key]
     history = load_history(league.divisions)
     if history.empty:
@@ -72,7 +74,8 @@ def build_dataset(league_key: str, elo_transition: str = ELO_TRANSITION_DEFAULT,
     builder = FeatureBuilder(top_division=league.top_division,
                              elo_transition=elo_transition,
                              elo_margin_policy=elo_margin_policy,
-                             schedule_context=schedule_context)
+                             schedule_context=schedule_context,
+                             newcomer_transfer=newcomer_transfer)
     frame = builder.build_training_frame(history)
 
     # Attach the market benchmark and the pre-match price block by joining back

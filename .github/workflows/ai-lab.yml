@@ -58,6 +58,7 @@ on:
           - base-model
           - league-diagnostic
           - market-ou
+          - newcomer-transfer
       league:
         description: Which league the study covers (task=research only; `all` is the nine)
         required: false

@@ -1211,6 +1211,12 @@ class FeatureBuilder:
 
             # Division offset is applied to the *view* of a cross-division
             # opponent, never written back into the rating.
+            # Read before the row is built and before anything is observed,
+            # so the stratum a row is reported under is the same state the
+            # transfer acted on.
+            home_move = home.division_move_into(rec.division)
+            away_move = away.division_move_into(rec.division)
+
             feats = _row_from_state(home, away, when, progress,
                                     division=rec.division,
                                     newcomer_transfer=self.newcomer_transfer,
@@ -1230,6 +1236,18 @@ class FeatureBuilder:
                     "home_goals": rec.home_goals,
                     "away_goals": rec.away_goals,
                     "result": rec.result,
+                    # Strata for the newcomer study, captured at the instant
+                    # the row was built. METADATA, not features: they are
+                    # absent from every FEATURE_GROUPS entry, so no model can
+                    # slice them in, and `feature_names()` remains the single
+                    # answer to what a model sees. Recorded here rather than
+                    # recomputed later because "how many matches had this club
+                    # played in this division when this row was built" is not
+                    # recoverable from the finished frame.
+                    "home_division_move": home_move,
+                    "away_division_move": away_move,
+                    "home_played_in_division": home.season_played,
+                    "away_played_in_division": away.season_played,
                     **feats,
                 }
             )
