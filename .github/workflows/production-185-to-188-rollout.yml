@@ -284,7 +284,8 @@ jobs:
           # that reads a post-apply column is how the 151-to-157 rehearsal
           # failed on run 31445831137, and the fix was to stop asking early
           # rather than to relax the check.
-          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -f - > "${WORK_DIR}/before.json" <<'VERIFY_SQL'
             select json_build_object(
               'migration_count', (select count(*) from supabase_migrations.schema_migrations),
               'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
@@ -319,7 +320,7 @@ jobs:
                                         else (select count(*) from cron.job) end),
               'euro_state', (select state from public.euro_publication_state())
             )
-          " > "${WORK_DIR}/before.json"
+          VERIFY_SQL
           cat "${WORK_DIR}/before.json"
 
           BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
@@ -431,8 +432,13 @@ jobs:
           # apply had succeeded, while a row-level query on the same table in the
           # same session returned the truth immediately. A count is the shape that
           # looks most like proof and is the one that went stale.
-          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t -c "
-            select json_build_object(
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -v ON_ERROR_STOP=1 -A -t \
+            -f - > "${WORK_DIR}/after.json" <<'VERIFY_SQL'
+            -- Split across several jsonb_build_object calls and concatenated:
+            -- PostgreSQL refuses more than 100 arguments to one function, and
+            -- 75 keys is 150. Rehearsal run 31730622906 died here.
+            select (
+              jsonb_build_object(
               'migration_count', (select count(*) from supabase_migrations.schema_migrations),
               'latest_version', (select version from supabase_migrations.schema_migrations order by version desc limit 1),
               'latest_name', (select name from supabase_migrations.schema_migrations order by version desc limit 1),
@@ -589,6 +595,8 @@ jobs:
                 select pg_get_functiondef(p.oid) ~* 'create\\s+(temporary|temp)\\s+table'
                   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
                  where n.nspname = 'public' and p.proname = 'record_ai_odds_snapshot'),
+              ) ||
+              jsonb_build_object(
               'temp_table_lint_violations', (
                 select count(*) from pg_proc p
                   join pg_namespace n on n.oid = p.pronamespace
@@ -661,8 +669,9 @@ jobs:
               'ai_market_prices', (select count(*) from ai.market_prices),
               'ai_fixture_odds', (select count(*) from ai.fixture_odds),
               'ai_bets', (select count(*) from ai.bets)
-            )
-          " > "${WORK_DIR}/after.json"
+              )
+            )::text
+          VERIFY_SQL
           cat "${WORK_DIR}/after.json"
 
           AFTER_FILE="${WORK_DIR}/after.json" BEFORE_FILE="${WORK_DIR}/before.json" \
