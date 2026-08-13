@@ -941,3 +941,409 @@ Each of these ran over all nine leagues and wrote all nine reports; what is part
 ### Nothing was promoted
 
 `ai.models.status` untouched. No artefact trained or serialised. `ENSEMBLE_BASE_FAMILIES`, `DEFAULT_GROUPS`, the half-life, the Elo transition, the margin rule and the calibration default are all exactly as they were. Every recommendation in §18 and §28 is a recommendation.
+
+---
+
+# Second session, 13 August 2026, 20:50–22:10 UTC
+
+The first session ended with three studies read in part, one model-authority
+recommendation not acted on, and one post-hoc observation deliberately parked.
+This session closes all three, takes the authority decision, and turns the
+parked observation into a declared study that then contradicts it.
+
+Everything below is Development, read-only (`AI_READ_ONLY=1`), provider-free.
+
+## 31. `elo-margin`, all nine — closed as a null
+
+The first session read four of nine from run **31730431239** and said the
+artefact held the rest. It did. All nine, read from the same run's job log —
+nothing re-run, no number changed:
+
+| league | plain | red_card_aware | delta | se | verdict |
+|---|---|---|---|---|---|
+| EPL | 0.9748 | 0.9747 | −0.0001 | 0.0000 | tie |
+| ECH | 1.0484 | 1.0484 | −0.0000 | 0.0001 | tie |
+| EL1 | 1.0326 | 1.0327 | +0.0001 | 0.0000 | **WORSE** |
+| EL2 | 1.0594 | 1.0594 | −0.0000 | 0.0001 | tie |
+| ENL | 1.0397 | 1.0396 | −0.0001 | 0.0001 | tie |
+| SPL | 0.9536 | 0.9536 | +0.0001 | 0.0001 | tie |
+| SCH | 1.0966 | 1.0967 | +0.0001 | 0.0001 | tie |
+| SL1 | 1.0271 | 1.0274 | +0.0003 | 0.0002 | tie |
+| SL2 | 1.0324 | 1.0324 | +0.0001 | 0.0001 | tie |
+
+Eight ties and one league beyond its own error in the wrong direction. Nothing
+anywhere near a win. **NO ELO-MARGIN CHANGE**, and the question is closed
+rather than deferred.
+
+One correction to §15, which claimed "every delta positive": four of the nine
+are marginally negative. Every one of those four is at or inside 0.0001, so
+the conclusion is untouched — but the claim as written was not true of the
+five leagues §15 had not read, and it is corrected rather than left standing.
+
+## 32. `regime-weighting`, all nine — closed as rejected
+
+Same treatment, run **31738406992**, five read before and all nine now:
+
+| league | baseline | regime-weighted | delta | se | verdict |
+|---|---|---|---|---|---|
+| EPL | 0.9748 | 0.9750 | +0.0003 | 0.0003 | tie |
+| ECH | 1.0484 | 1.0486 | +0.0002 | 0.0001 | tie |
+| EL1 | 1.0326 | 1.0325 | −0.0001 | 0.0001 | tie |
+| EL2 | 1.0594 | 1.0594 | −0.0000 | 0.0001 | tie |
+| ENL | 1.0397 | 1.0397 | −0.0000 | 0.0002 | tie |
+| SPL | 0.9536 | 0.9537 | +0.0002 | 0.0002 | tie |
+| SCH | 1.0966 | 1.1001 | **+0.0035** | 0.0030 | tie |
+| SL1 | 1.0271 | 1.0277 | +0.0006 | 0.0003 | **WORSE** |
+| SL2 | 1.0324 | 1.0327 | +0.0003 | 0.0005 | tie |
+
+**Rejected.** No league benefits beyond noise and SL1 is harmed beyond it.
+
+§23's "every delta is ≥ 0" does not survive the other four either: EL1, EL2
+and ENL are marginally negative. Again the conclusion is unchanged — none is
+distinguishable from zero — and again the overstatement is corrected rather
+than quietly dropped. The pattern in both §31 and §32 is worth naming: a
+summary written from five of nine leagues twice said "every" about nine.
+
+SCH's +0.0035 is the largest single harm in the table and the second time SCH
+has produced the largest harm in a study. See §35.
+
+## 33. The GBM is out of the default ensemble — the code, not the recommendation
+
+§28 established the result and explicitly declined to act on it, on the
+grounds that changing `ENSEMBLE_BASE_FAMILIES` is a promotion decision needing
+its own approval. That approval was given for this session, so the change is
+made.
+
+`ENSEMBLE_BASE_FAMILIES` was `("poisson", "elo", "gbm")` and is now
+`("poisson", "elo")`.
+
+**It is no longer a hand-written tuple**, which is the more important half.
+It is derived from a new `ENSEMBLE_ADMISSION` register carrying a verdict and
+its evidence for every registered family, and `test_models.py` requires the
+register to name each of `MODEL_FAMILIES` exactly once. The defect being
+closed is not "the GBM was in the ensemble" but the thing that let it be
+there: a literal tuple makes "implemented" and "default" one edit apart, so a
+family could hold a seat it had never won and nothing would fail. A new family
+with no ruling now fails the suite instead of silently joining the default set.
+
+Three tests plus one workflow-boundary assertion enforce it, and the change
+was verified by mutation: flipping the `gbm` verdict to `earned` fails two of
+them.
+
+**Nothing is deleted.** `GradientBoostedModel`, the eleven predeclared
+candidates and the diagnostics stay registered and reachable through
+`--family gbm` and `--base-families`. A rejected family with its evidence
+attached is worth more than an absence that gets re-derived from scratch in a
+year. Two comments that asserted the GBM *was* in the default ensemble — one
+of them in `GradientBoostedModel`'s own docstring — are corrected.
+
+**Logistic did not take the vacated seat.** It won no league and was worse
+beyond noise in eight of nine. Replacing one losing component with another to
+keep three families would be arithmetic rather than evidence, and the register
+says so in the row rather than in a commit message.
+
+### Final ensemble recommendation, per league
+
+Blend figures from runs 31739455060 / 31739795274 / 31740065451, all six
+out-of-time folds, `poisson elo`:
+
+| league | best single | blend vs best single | verdict | recommended live family |
+|---|---|---|---|---|
+| EPL | elo | ≈ 0, inside noise | tie | **elo alone** |
+| ECH | poisson | −0.0014 ± 0.0006 | **BETTER** | **poisson + elo equal blend** |
+| EL1 | poisson | +0.00002 ± 0.0017 | tie | **poisson alone** |
+| EL2 | poisson | inside noise | tie | **poisson alone** |
+| ENL | elo | inside noise | tie | **elo alone** |
+| SPL | poisson | inside noise | tie | **poisson alone** |
+| SCH | elo | inside noise | tie | **elo alone** |
+| SL1 | elo | inside noise | tie | **elo alone** |
+| SL2 | poisson | inside noise | tie | **poisson alone** |
+
+ECH is the only league where an ensemble clears noise, and it clears it by
+about two standard errors — the weakest kind of win there is. **"Ensemble
+everywhere" is not recommended**, and the infrastructure existing is not a
+reason to use it. The stacker lost to the plain average in all nine: with two
+well-behaved components there is nothing for a meta-model to find and it pays
+fold-fitting variance to look.
+
+## 34. Time weighting — the new declared study, and it disagrees with its own hypothesis
+
+§14 noticed that the `0` row of the half-life grid was negative in eight of
+nine leagues and had the best raw mean in five, and refused to act on it
+because it was the best of seven rows chosen after seeing them. This is that
+observation asked properly: new study, candidates and mechanism declared
+before dispatch, in `experiments.py` as `time-weighting`.
+
+**The label was wrong and is fixed first.** `fitting.time_weights` returns
+`None` for any half-life ≤ 0, and a `None` weight vector is *uniform*
+weighting — every match counts the same. Read literally, a zero-day half-life
+means infinitely fast decay, i.e. only the newest match counts, which is the
+exact opposite of what it does. Anybody reading the half-life table would have
+taken that row backwards. The candidate is called `uniform` here.
+
+Candidates: `uniform`, `900d` (incumbent, and the baseline), `1200d`, `1800d`.
+Declared mechanism: the folds estimate the league-level mapping from features
+onto outcomes rather than team strength — Elo and form already carry strength
+— and that mapping is stable over decades, so decay should shrink the
+effective sample without removing bias. **Prediction: uniform wins, and wins
+most where the sample is smallest.**
+
+Run **31743641195** (Development, read-only, `7249990`), nine folds per league.
+
+| league | matches | uniform Δ (se) | 1200d Δ (se) | 1800d Δ (se) | winner |
+|---|---|---|---|---|---|
+| EPL | 5290 | −0.00113 (0.00065) | −0.00041 (0.00015) ✓ | −0.00076 (0.00031) ✓ | 1800d |
+| ECH | 7692 | −0.00068 (0.00051) | −0.00021 (0.00012) | −0.00041 (0.00024) | none |
+| EL1 | 7539 | +0.00001 (0.00025) | −0.00019 (0.00005) ✓ | −0.00027 (0.00011) ✓ | 1800d |
+| EL2 | 7603 | −0.00009 (0.00067) | −0.00017 (0.00017) | −0.00022 (0.00035) | none |
+| ENL | 7493 | −0.00018 (0.00026) | −0.00010 (0.00006) | −0.00020 (0.00013) | none |
+| SPL | 3136 | −0.00144 (0.00093) | −0.00063 (0.00023) ✓ | −0.00097 (0.00045) ✓ | 1800d |
+| SCH | 2427 | −0.00402 (0.00295) | −0.00060 (0.00047) | −0.00173 (0.00103) | none |
+| SL1 | 2404 | −0.00171 (0.00110) | −0.00070 (0.00025) ✓ | −0.00120 (0.00048) ✓ | 1800d |
+| SL2 | 2402 | −0.00271 (0.00188) | −0.00095 (0.00047) ✓ | −0.00159 (0.00088) | 1200d |
+
+(✓ = whole two-standard-error interval below zero.)
+
+### Does no-decay win credibly? No.
+
+**`uniform` clears noise in none of the nine.** Its point estimate is negative
+in eight of nine, which reproduces §14's observation exactly — so the
+observation was real and was not a fluke of one grid — but its standard error
+is the largest of every candidate in every league, so it never wins. The
+post-hoc reading does not survive being asked as a question, and that is the
+answer to the question the brief posed.
+
+### But the study found something better than what it was looking for
+
+**900 days is too short, and that does clear noise.** `1200d` and `1800d` have
+a negative point estimate in **nine of nine**, and one or both clear noise in
+**five of nine** — EPL, EL1, SPL, SL1, SL2. Unanimous direction plus five
+credible wins is a far stronger result than anything `uniform` produced, and it
+was not what the study was aimed at.
+
+### The declared mechanism's side-prediction is confirmed
+
+Uniform's effect against league size, largest first:
+
+| league | matches | uniform Δ |
+|---|---|---|
+| SCH | 2427 | −0.00402 |
+| SL2 | 2402 | −0.00271 |
+| SL1 | 2404 | −0.00171 |
+| SPL | 3136 | −0.00144 |
+| EPL | 5290 | −0.00113 |
+| ECH | 7692 | −0.00068 |
+| ENL | 7493 | −0.00018 |
+| EL2 | 7603 | −0.00009 |
+| EL1 | 7539 | +0.00001 |
+
+The four smallest leagues hold the four largest effects; the four largest hold
+the four smallest. The mechanism predicted that before the run. The standard
+error grows with the effect, which is why uniform never clears noise — the
+signature of a real effect in a sample too small to prove it, rather than of
+no effect.
+
+### Recommendation, and what is not being done
+
+**Recommended: move the default half-life from 900 days to 1800 days**, on
+nine-of-nine directional agreement and five credible wins, with 1200d as the
+conservative alternative (also nine of nine directionally, credible in four).
+
+**Not promoted here.** `DEFAULT_HALF_LIFE_DAYS` is untouched. This is a model
+authority governed by the same rule that governed the GBM: the measurement is
+the case for the change, the change itself is a separate decision. Every
+number above is Development and read-only.
+
+The honest caveat: these effects are small — the largest credible win is
+0.0012 log loss — and five of nine is not nine of nine. What makes it worth
+acting on is not the size but the unanimity of direction across nine
+independent leagues, which is much harder to get by chance than any single
+league's interval.
+
+## 35. SCH — hypotheses declared, diagnostic built, before any SCH-specific code
+
+SCH has now surfaced independently in six measurements: Poisson beaten by the
+class base rate (§13); the logistic fit unstable (§13); the largest regime
+weighting harm, +0.0035 (§32); the largest discipline harm, +0.0164 (§24);
+the worst calibration error of the nine, ECE ≈ 0.0546, with no calibrator
+repairing it (§29); and now the largest uniform-weighting effect and the
+largest standard error in §34.
+
+Six tests pointing at one league is either a property of that league's data or
+a property of our handling of it. Those need telling apart **before** anybody
+writes SCH-specific handling, because the failure mode here is obvious: tune
+SCH until it looks good and call the tuning an explanation.
+
+So the hypotheses are written down first, finite and each naming the column of
+the per-season table that would support it:
+
+| id | hypothesis | column |
+|---|---|---|
+| H1 | smaller effective sample than its comparators | `matches` |
+| H2 | promotion/relegation churn moves much of the population each summer | `clubs_changed` |
+| H3 | clubs arriving with no matched history — an alias defect, not football | `clubs_without_history` |
+| H4 | home/draw/away distribution far enough from the others that a shared prior is wrong | `home_rate`/`draw_rate`/`away_rate` |
+| H5 | goals per match moving between seasons, moving the Poisson means | `goals_per_match` |
+| H6 | match-statistic coverage collapsing in some seasons | `stat_coverage` |
+| H7 | bookmaker price coverage differing, biasing market comparisons | `odds_coverage` |
+| H8 | truncated or restructured seasons (the Covid years) | `matches` |
+| H9 | promoted clubs carrying a rating earned in another division | `clubs_promoted`/`clubs_relegated` |
+| H10 | calibration error concentrated in particular seasons rather than spread | `ece` |
+
+`experiments.py --study league-diagnostic` produces the per-season table
+against those columns. It **compares nothing and recommends nothing** — it is
+the step that has to happen before league-specific handling is allowed to be
+discussed. Run over `--league all` it produces the same table for every
+league, which is what makes SCH comparable with SPL, SL1 and the
+similarly-sized English divisions rather than merely described: a table of SCH
+alone could not say whether 1.0966 is a bad league or a bad model.
+
+Two design points. The per-season class base rate is that season's **own**
+outcome distribution, because "the model lost to the base rate" is the finding
+and computing the prior from the training window would soften it. And a season
+the folds never scored gets nulls rather than a number computed some other
+way, because a per-season log loss that quietly changed definition mid-table
+is worse than a gap in the table.
+
+**A bespoke SCH model is not justified by anything measured so far**, and this
+diagnostic cannot justify one either — at most it can say which hypothesis the
+data supports, which is a prerequisite for that argument rather than the
+argument.
+
+## 36. The domestic cups — blocked on the authority, and this is the third session it has blocked
+
+The brief was explicit: use official SPFL fixture data, not generic search
+snippets, because previous sessions got inconsistent home/away order from
+search routes. That instruction cannot be followed from this environment, and
+the reason is worth recording precisely because it is not a football problem.
+
+**All outbound HTTP to external football sources is blocked by the session's
+egress proxy.** Measured, not assumed:
+
+```
+spfl.co.uk                 CONNECT tunnel failed, response 403
+en.wikipedia.org           CONNECT tunnel failed, response 403
+```
+
+`WebFetch` returns `EGRESS_BLOCKED` for both. The only reachable route is the
+search index itself, which returns snippets — precisely the source the brief
+disqualified as an authority, and for exactly the right reason.
+
+So the eight last-16 ties are **not** confirmed here. What search returned,
+recorded as provisional evidence and explicitly NOT as an authority:
+
+| home | away | date | kick-off |
+|---|---|---|---|
+| Kilmarnock | Ayr United | Fri 14 Aug | 19:45 |
+| Aberdeen | Dundee | Sat 15 Aug | 15:00 |
+| Dunfermline Athletic | Ross County | Sat 15 Aug | 15:00 |
+| Dundee United | Celtic | Sat 15 Aug | 17:45 |
+| Heart of Midlothian | Inverness CT | Sun 16 Aug | 14:00 |
+| Hibernian | Partick Thistle | Sun 16 Aug | 14:00 |
+| Stenhousemuir | Motherwell | Sun 16 Aug | 14:00 |
+| Rangers | St Mirren | Sun 16 Aug | 16:00 |
+
+Retrieved 13 August 2026 ~21:05 UTC. This agrees with the separate check the
+brief mentions (Aberdeen at home to Dundee), which is corroboration and still
+not verification: two routes agreeing about a snippet is not the same as the
+competition organiser saying so.
+
+**All eight remain prospective.** Current time at retrieval was
+2026-08-13 21:01 UTC and the earliest kick-off is 2026-08-14 18:45 UTC, so
+nothing here would be back-dated.
+
+### No cup forecasts were produced, and that is a decision rather than an omission
+
+Home advantage is one of the largest single effects in any of these models.
+A forecast built on an unverified orientation is not a weaker forecast, it is
+a forecast that is confidently wrong for half the ties if the orientation is
+reversed — and orientation is the exact thing two previous sessions already
+failed to pin down (§16, §26). Publishing eight probability triples on top of
+a source the brief itself ruled out would convert a known unknown into a
+number somebody would later quote.
+
+The cross-tier model (shared Scottish Elo) and the artefact shape are
+unchanged and remain as specified in §5b and §28 of the first session. What
+they need is one authorised fixture read.
+
+**What a session with egress should do**, in order: fetch the SPFL fixture
+list; verify all eight orientations and kick-offs against it; record
+`retrieved_at` and the URL; then run the cup forecast to research JSON only.
+
+### July group-stage dates — not collected, same blocker
+
+The 2026/27 League Cup group stage was played in July 2026 and its dates are
+the input the congestion re-ablation needs. They come from the same
+unreachable source. **The congestion re-test was therefore not run**: running
+league-only congestion against league-only congestion would measure nothing,
+and that is the comparison this environment can actually perform.
+
+## 37. The Over/Under 2.5 benchmark — designed, declared, not run
+
+This is the largest single item this session did not complete, and it is
+recorded as not-run rather than partially run.
+
+The archive facts from §12 are unchanged and were not re-measured: 136,184
+Over/Under rows, 135,900 Asian handicap, 272,084 total; effectively 0%
+coverage before 2019/20 and ~99.9% after; every retained row `phase='pre'`.
+**It is a PREMATCH benchmark. It is not closing-line evidence and must never
+be called CLV.**
+
+Declared design, so that a later session runs the study rather than inventing
+it:
+
+* **Model probability.** Poisson family, P(total goals ≥ 3) from the scoreline
+  grid it already builds — not a separate totals model.
+* **Market probability.** Real named bookmakers only, and only where BOTH the
+  Over and the Under price exist for the same book and line. Convert each to
+  an implied probability and remove the overround across the **two** outcomes
+  of that book. Report per-book, and any cross-book figure explicitly as a
+  research consensus.
+* **Three things that must not happen**, each of which produces a plausible
+  number that means nothing: averaging raw odds and calling the result
+  de-vigged; using MAX as though one bookmaker offered both sides of it; and
+  treating AVG or MAX as an actionable price. They are aggregates.
+* **Metrics**, per league: matched count, Poisson log loss and Brier, market
+  log loss and Brier, calibration for each, and the mean model−market gap.
+* **Disagreement buckets** on |model − market|: <5pp, 5–10pp, 10–15pp, >15pp,
+  and in each the realised Over rate against both. The question is who is
+  right when the football model disagrees loudly, not whether the book can be
+  beaten.
+* **The point is diagnosis, not profit.** Systematic over- or under-prediction
+  of goals, league-specific bias, low/high-scoring bias, promoted-team bias
+  and early-season bias are all visible in a totals benchmark and all say
+  something about the Poisson goal distribution, which is a live model
+  question whether or not the market is beatable. No market feature is fed
+  into the pure football model by this study.
+
+**Asian handicap stays second**, and before any benchmark: document line
+representation, quarter and half lines, push, half-win and half-loss,
+home/away semantics and which bookmakers quote pairs. A settlement rule that
+is wrong on quarter lines produces a clean-looking number that is wrong for
+every quarter-line fixture in the sample.
+
+## 38. Safety
+
+* **Production mutations by this session: zero.** No Production run was
+  dispatched at all; the two runs are Development.
+* **Development mutations: zero.** Both runs used the `research` arm, which
+  exports `AI_READ_ONLY=1` (`default_transaction_read_only=on`) and passes no
+  `--record`. `ai.feature_experiments` was not written.
+* **Provider calls: zero.** No football-data.org, SportMonks, Odds API or any
+  other provider request. The `research` arm cannot make one — no
+  `fetch_history.py`, `sync_fixtures.py`, `fetch_fixtures_odds.py` or
+  `odds_api.py` appears in that branch, and the workflow-boundary suite
+  asserts it.
+* **The football-data.org entitlement call was not made.** The brief permits
+  exactly one catalogue request once the operational Production session is
+  finished; that session had not reported closeout, so the request was not
+  spent. §6's retained evidence still answers the question for the credential
+  as it stood.
+* **Model promotions: zero.** No artefact trained or serialised,
+  `ai.models.status` untouched.
+* **Migrations added: zero.** #770 remains migration-free and claims no
+  contract number.
+
+The one authority that did change is `ENSEMBLE_BASE_FAMILIES`, in the
+repository only, under the explicit approval recorded in §33. It reaches no
+hosted environment until something trains against it.
