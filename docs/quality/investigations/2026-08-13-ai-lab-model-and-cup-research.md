@@ -116,7 +116,41 @@ poisson               1.0020   +0.0062   0.0058       tie
 elo                   0.9958   +0.0000   0.0000       tie
 logistic              1.0368   +0.0410   0.0131     WORSE
 gbm                   1.5013   +0.5055   0.0784     WORSE
+
+=== SPL: GBM diagnostic, 5 folds, baseline gbm_shipped ===
+candidate             train      test     delta       se   verdict
+gbm_shipped          0.0531    1.4498   +0.0000   0.0000       tie
+capacity_low         0.9440    0.9970   -0.4528   0.0408    BETTER
+capacity_mid         0.8884    1.0108   -0.4389   0.0459    BETTER
+capacity_high        0.6733    1.0566   -0.3932   0.0511    BETTER
+early_stopping       0.7257    0.9969   -0.4529   0.0457    BETTER
+iter_only            0.3998    1.0952   -0.3546   0.0274    BETTER
+depth_only           0.7928    1.0415   -0.4083   0.0465    BETTER
+native_missing       0.8880    1.0102   -0.4396   0.0459    BETTER
+core_only            0.9113    0.9960   -0.4538   0.0390    BETTER
+no_time_weight       0.8806    0.9928   -0.4569   0.0418    BETTER
+calibrated           0.8884    1.0093   -0.4405   0.0397    BETTER
 ```
+
+Three things in that table are worth carrying into the real runs, all of them
+consequences of having declared the isolating candidates in advance:
+
+- **All ten alternatives beat the incumbent**, by 0.35 to 0.46 against a
+  standard error near 0.04. When every member of a bounded grid beats the
+  baseline by ten standard errors, the baseline is broken rather than untuned.
+- **`iter_only` is the WEAKEST improvement** (−0.3546) and still carries a
+  training loss of 0.3998. Cutting 400 iterations to 100 while keeping 15-leaf
+  trees and 40-sample leaves leaves the model still memorising, so the
+  iteration count is not the whole story and tree shape carries real weight.
+  A one-line "reduce max_iter" fix would have looked like a success and left
+  most of the defect in place.
+- **`early_stopping` is among the best** (0.9969). The shipped belief can
+  largely be repaired *in place*: keep the capacity and let the estimator stop
+  itself on its own validation split.
+
+The top four — `no_time_weight`, `core_only`, `early_stopping`, `capacity_low`
+— sit within noise of each other, so this harness does not choose between them
+and is not asked to. The real leagues will.
 
 ---
 
