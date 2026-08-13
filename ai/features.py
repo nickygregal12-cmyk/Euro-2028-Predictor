@@ -105,6 +105,30 @@ DIVISION_RANK = {
     "SC0": 1, "SC1": 2, "SC2": 3, "SC3": 4,
 }
 
+# Which pyramid a division belongs to. `DIVISION_RANK` alone cannot answer
+# "is this a promotion", because the two pyramids reuse the same numbers: E0
+# and SC0 are both rank 1, so ranking E0 against SC1 returns a confident -1
+# for a move between countries that is not a relegation and did not happen.
+# The comment above DIVISION_RANK already promised an English club is never
+# compared with a Scottish one; this is what makes that true rather than
+# merely intended.
+DIVISION_COUNTRY = {
+    "E0": "ENG", "E1": "ENG", "E2": "ENG", "E3": "ENG", "EC": "ENG",
+    "SC0": "SCO", "SC1": "SCO", "SC2": "SCO", "SC3": "SCO",
+}
+
+
+def _rank_move(from_division: str | None, to_division: str | None) -> int:
+    """+1 promoted, -1 relegated, 0 unchanged, unknown or across pyramids."""
+    here = DIVISION_RANK.get(to_division or "")
+    there = DIVISION_RANK.get(from_division or "")
+    if here is None or there is None or here == there:
+        return 0
+    if (DIVISION_COUNTRY.get(to_division or "")
+            != DIVISION_COUNTRY.get(from_division or "")):
+        return 0
+    return 1 if here < there else -1
+
 
 def division_prior(division: str | None) -> float:
     """The rating an average club in this division carries.
@@ -492,11 +516,23 @@ class TeamState:
         Ranks rather than rating offsets, so E1 -> E0 and SC1 -> SC0 read the
         same and an English club is never compared with a Scottish one.
         """
-        here = DIVISION_RANK.get(self.division or "")
-        there = DIVISION_RANK.get(self.previous_division or "")
-        if here is None or there is None or here == there:
-            return 0
-        return 1 if here < there else -1
+        return _rank_move(self.previous_division, self.division)
+
+    def division_move_into(self, division: str | None) -> int:
+        """The same verdict, for a match this club has NOT played yet.
+
+        `division_move` compares `division` with `previous_division`, and both
+        are set by `roll_season`, so it reads 0 until the club has played its
+        first match in the new division and `observe` has moved `division` on.
+        That is one match too late: the opening fixture of a promoted club's
+        season is the single row where a carried goal rate is most wrong, and
+        it is exactly the row `division_move` cannot see.
+
+        This compares the division of the match being built against the
+        division of the club's most recent match, which is known before a ball
+        is kicked and uses no information from the fixture's own result.
+        """
+        return _rank_move(self.division, division)
 
 
 FEATURE_GROUPS: dict[str, tuple[str, ...]] = {
@@ -777,13 +813,118 @@ ALL_FEATURE_NAMES: list[str] = feature_names(tuple(FEATURE_GROUPS))
 FEATURE_NAMES: list[str] = feature_names()
 
 
+# ---------------------------------------------------------------------------
+# Newcomer goal-state transfer
+#
+# PREDECLARED in docs/quality/investigations/
+# 2026-08-13-newcomer-goal-transfer-predeclaration.md, before any candidate was
+# implemented. The candidates and the adoption rule are fixed there.
+#
+# The defect: `roll_season` resets the season counters and deliberately does
+# NOT clear the form deques, which is correct within a division and wrong
+# across one. A club promoted from League One enters August carrying League
+# One goal rates. Contract 188 fixed the RATING half of exactly this by
+# shrinking Elo toward `division_prior`; nothing did the same to the goal
+# level, so the model is handed a club whose rating says "Championship
+# newcomer" and whose goal features say "League One promotion winner".
+#
+# `season_gd_pm` is deliberately NOT touched: `roll_season` zeroes the season
+# counters, so that feature is already measured inside the new division. Only
+# the deque-derived rates cross the boundary.
+# ---------------------------------------------------------------------------
+NEWCOMER_TRANSFER_POLICIES = ("current", "prior_shrink", "decaying_blend",
+                              "elo_informed")
+NEWCOMER_TRANSFER_DEFAULT = "current"
+
+# Candidate B: a fixed share of the target division's prior, all season.
+NEWCOMER_PRIOR_SHRINK_LAMBDA = 0.5
+# Candidate C: w(n) = k / (k + n), n = matches played in the new division.
+# k = 6 puts the weight at one half after six matches, which is inside the
+# "first 5 / first 10" window the study reports separately. The value is
+# declared here rather than searched: the predeclaration forbids a grid.
+NEWCOMER_BLEND_K = 6.0
+# Candidate D: goals per 100 Elo points of departure from the division's own
+# mean rating. A single declared constant, not a fitted one — fitting it would
+# put a second, unmeasured model inside a feature, which is the objection the
+# predeclaration records against this candidate.
+NEWCOMER_ELO_GOALS_PER_100 = 0.10
+
+# Goal rates that are carried by the form deques and therefore cross a
+# division change. Named once so the study, the test and the row builder
+# cannot disagree about what was adjusted.
+TRANSFERRED_GOAL_RATES = ("gf", "ga")
+
+
+def _transfer_weight(policy: str, played_in_division: int) -> float:
+    """How much of the target division's prior to use, in [0, 1]."""
+    if policy == "prior_shrink":
+        return NEWCOMER_PRIOR_SHRINK_LAMBDA
+    if policy == "decaying_blend":
+        return NEWCOMER_BLEND_K / (NEWCOMER_BLEND_K + float(played_in_division))
+    return 0.0
+
+
+def _transfer_goal_rates(state: "TeamState", division: str | None, policy: str,
+                         division_goal_prior, form_all: dict, form_venue: dict):
+    """Move a moved club's carried goal rates toward its new division's level.
+
+    Returns the two form dicts unchanged for the default policy, for a club
+    that has not changed division, and when no prior is available — so every
+    path that is not the studied one is untouched rather than approximately
+    untouched.
+    """
+    if policy == NEWCOMER_TRANSFER_DEFAULT or division_goal_prior is None:
+        return form_all, form_venue
+    if policy not in NEWCOMER_TRANSFER_POLICIES:
+        raise ValueError(f"unknown newcomer transfer policy: {policy!r}; "
+                         f"known: {list(NEWCOMER_TRANSFER_POLICIES)}")
+    if state.division_move_into(division) == 0:
+        return form_all, form_venue
+    prior = division_goal_prior(division)
+    if prior is None:
+        return form_all, form_venue
+
+    if policy == "elo_informed":
+        # The club's strength relative to its NEW division's mean rating,
+        # expressed as goals. It replaces the carried rate outright rather
+        # than blending, because the candidate's whole claim is that the
+        # rating knows the division and the carried rate does not.
+        edge = (state.elo - division_prior(division)) / 100.0
+        scored = max(prior + NEWCOMER_ELO_GOALS_PER_100 * edge, 0.05)
+        conceded = max(prior - NEWCOMER_ELO_GOALS_PER_100 * edge, 0.05)
+        target = {"gf": scored, "ga": conceded}
+        weight = 1.0
+    else:
+        target = {"gf": prior, "ga": prior}
+        weight = _transfer_weight(policy, state.season_played)
+
+    out = []
+    for form in (form_all, form_venue):
+        moved = dict(form)
+        for key in TRANSFERRED_GOAL_RATES:
+            if key in moved:
+                moved[key] = weight * target[key] + (1.0 - weight) * moved[key]
+        out.append(moved)
+    return out[0], out[1]
+
+
 def _row_from_state(
-    home: TeamState, away: TeamState, when: date, season_progress: float
+    home: TeamState, away: TeamState, when: date, season_progress: float,
+    division: str | None = None,
+    newcomer_transfer: str = NEWCOMER_TRANSFER_DEFAULT,
+    division_goal_prior=None,
 ) -> dict[str, float]:
     hf = home.form(5, "all")
     af = away.form(5, "all")
     hv = home.form(6, "home")
     av = away.form(6, "away")
+    # Goal-rate transfer across a division change. A no-op under the default
+    # policy and for any club that has not moved, so the row is byte-identical
+    # to the one this function built before the policy existed.
+    hf, hv = _transfer_goal_rates(home, division, newcomer_transfer,
+                                  division_goal_prior, hf, hv)
+    af, av = _transfer_goal_rates(away, division, newcomer_transfer,
+                                  division_goal_prior, af, av)
     hs = home.season_view()
     as_ = away.season_view()
     hc = home.congestion(when)
@@ -893,7 +1034,8 @@ class FeatureBuilder:
     def __init__(self, top_division: str,
                  elo_transition: str = ELO_TRANSITION_DEFAULT,
                  elo_margin_policy: str = ELO_MARGIN_POLICY_DEFAULT,
-                 schedule_context=None) -> None:
+                 schedule_context=None,
+                 newcomer_transfer: str = NEWCOMER_TRANSFER_DEFAULT) -> None:
         self.top_division = top_division
         if elo_transition not in ELO_TRANSITIONS:
             raise ValueError(f"unknown Elo transition: {elo_transition!r}; "
@@ -901,9 +1043,20 @@ class FeatureBuilder:
         if elo_margin_policy not in ELO_MARGIN_POLICIES:
             raise ValueError(f"unknown Elo margin policy: {elo_margin_policy!r}; "
                              f"known: {list(ELO_MARGIN_POLICIES)}")
+        if newcomer_transfer not in NEWCOMER_TRANSFER_POLICIES:
+            raise ValueError(
+                f"unknown newcomer transfer policy: {newcomer_transfer!r}; "
+                f"known: {list(NEWCOMER_TRANSFER_POLICIES)}")
         self.elo_transition = elo_transition
         self.elo_margin_policy = elo_margin_policy
         self.schedule_context = schedule_context
+        self.newcomer_transfer = newcomer_transfer
+        # Goals per team-match, per division, accumulated as the walk passes
+        # each match. Leak-free BY CONSTRUCTION rather than by a date filter:
+        # the builder walks in date order and a division's total is updated
+        # only after the row for that match has been emitted, so a prior can
+        # never contain the fixture it is used to predict, nor its season.
+        self._division_goals: dict[str, list[float]] = {}
         # A plain dict, not a defaultdict: every club must enter through
         # `_state_for`, which seeds its rating from the division it first
         # appears in. A defaultdict would silently hand back an unseeded
@@ -911,6 +1064,33 @@ class FeatureBuilder:
         self.state: dict[str, TeamState] = {}
         self._pending: list[tuple] = []
         self._pending_date: date | None = None
+
+    # -- division goal level -------------------------------------------------
+
+    # Below this many team-matches a division's mean is noise, and shrinking a
+    # club toward noise is worse than leaving its own history alone. The
+    # transfer is skipped entirely rather than applied weakly.
+    MIN_DIVISION_PRIOR_MATCHES = 200
+
+    def _observe_division_goals(self, division: str | None,
+                                home_goals, away_goals) -> None:
+        if division is None or home_goals is None or away_goals is None:
+            return
+        bucket = self._division_goals.setdefault(division, [0.0, 0.0])
+        bucket[0] += float(home_goals) + float(away_goals)
+        bucket[1] += 2.0            # two team-matches per fixture
+
+    def division_goal_prior(self, division: str | None) -> float | None:
+        """Mean goals scored per team per match in this division, so far.
+
+        `None` when the division has not been seen enough for the mean to mean
+        anything, which the caller treats as "leave the club's own rates
+        alone".
+        """
+        bucket = self._division_goals.get(division or "")
+        if bucket is None or bucket[1] < self.MIN_DIVISION_PRIOR_MATCHES:
+            return None
+        return bucket[0] / bucket[1]
 
     # -- internal ------------------------------------------------------------
 
@@ -1031,7 +1211,14 @@ class FeatureBuilder:
 
             # Division offset is applied to the *view* of a cross-division
             # opponent, never written back into the rating.
-            feats = _row_from_state(home, away, when, progress)
+            feats = _row_from_state(home, away, when, progress,
+                                    division=rec.division,
+                                    newcomer_transfer=self.newcomer_transfer,
+                                    division_goal_prior=self.division_goal_prior)
+            # AFTER the row is built, never before: a division's goal level
+            # must not contain the match it is being used to predict.
+            self._observe_division_goals(rec.division, rec.home_goals,
+                                         rec.away_goals)
 
             rows.append(
                 {
@@ -1086,4 +1273,10 @@ class FeatureBuilder:
         away.roll_season(season, self.elo_transition)
         span = max((season_end - season_start).days, 1)
         progress = min(max((when - season_start).days / span, 0.0), 1.0)
-        return _row_from_state(home, away, when, progress)
+        # The same policy the training rows went through. A fixture scored
+        # under a different transfer from the one the model was fitted on is
+        # the train/predict drift this class exists to prevent.
+        return _row_from_state(home, away, when, progress,
+                               division=self.top_division,
+                               newcomer_transfer=self.newcomer_transfer,
+                               division_goal_prior=self.division_goal_prior)
