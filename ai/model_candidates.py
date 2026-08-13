@@ -199,11 +199,15 @@ GBM_CANDIDATES: tuple[Candidate, ...] = (
 # The base-model comparison
 # ---------------------------------------------------------------------------
 #
-# `LogisticModel` is registered, is excluded from `ENSEMBLE_BASE_FAMILIES` on
-# the stated grounds that "the Poisson model already occupies the
-# smooth-linear corner of the space", and has never been measured against it
-# on these folds. That is an assumption wearing a reason. The two are not the
-# same model: the Poisson family predicts a SCORELINE GRID and derives H/D/A
+# `LogisticModel` is registered and excluded from `ENSEMBLE_BASE_FAMILIES`.
+# That exclusion USED to rest on the stated ground that "the Poisson model
+# already occupies the smooth-linear corner of the space", with the two never
+# measured against each other on these folds — an assumption wearing a reason.
+# It has since been measured, and the exclusion now rests on the measurement:
+# no league won, worse beyond noise in eight of nine (run 31729652899). The
+# argument below is preserved because it is why the question was worth asking,
+# and the answer only means anything against it. The two are not the same
+# model: the Poisson family predicts a SCORELINE GRID and derives H/D/A
 # from it, so its draw probability is a consequence of two goal rates, while
 # the logistic family estimates the three outcomes directly and can price a
 # draw that no pair of Poisson means would produce.

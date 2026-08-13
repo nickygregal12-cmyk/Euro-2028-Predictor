@@ -377,14 +377,18 @@ class GradientBoostedModel:
     zero. It is off by default: it changes what the model sees, so it is a
     candidate to be measured on paired folds, not a correction to apply.
 
-    It is registered, and it is deliberately NOT in any default TRAINING
-    configuration. Note that this is narrower than it sounds — `gbm` IS in
-    `ENSEMBLE_BASE_FAMILIES`, so the blend and the stacker do carry it by
-    default. See the note there.
+    It is registered, and it is in no default configuration of any kind: not
+    in training, and — since 13 August 2026 — not in `ENSEMBLE_BASE_FAMILIES`
+    either, so the blend and the stacker no longer carry it. See the register
+    there for the measurement that removed it.
 
     A boosted model will beat a Poisson regression on the training set every
     time and that is not evidence of anything; it enters an ensemble only by
     winning paired walk-forward folds, which is what `experiments.py` measures.
+    It was asked nine leagues of that question and won none of them. It is
+    kept — implemented, registered and reachable by `--family gbm` and by
+    `--base-families` — because a rejected family with its evidence attached
+    is worth more than an absence somebody re-derives from scratch in a year.
     """
 
     family = "gbm"
@@ -606,34 +610,103 @@ MODEL_FAMILIES = {
 MARKET_FAMILIES = frozenset({"market"})
 PURE_FOOTBALL_FAMILIES = frozenset(set(MODEL_FAMILIES) - MARKET_FAMILIES)
 
+
+@dataclass(frozen=True)
+class Admission:
+    """Whether a registered family sits in the default ensemble, and why.
+
+    `earned` is the decision; `evidence` is what it was taken on. A family
+    being implemented is not a reason, and neither is a family being absent —
+    both directions need a sentence here, because the failure this register
+    exists to prevent is a default component set that drifted to whatever
+    happened to be registered on the day.
+    """
+
+    earned: bool
+    evidence: str
+
+
+# Every registered family, with its ensemble verdict. `test_model_zoo.py`
+# requires this to name each of MODEL_FAMILIES exactly once, so implementing a
+# family without ruling on it fails the suite rather than silently changing
+# the model authority.
+#
+# Order is the order of the default tuple below, so it is also the order the
+# blend and the stacker see their components in.
+ENSEMBLE_ADMISSION: dict[str, Admission] = {
+    "poisson": Admission(
+        True,
+        "Best single family in five of the nine leagues (ECH, EL1, EL2, SPL, "
+        "SL2) over nine chronological folds, run 31729652899.",
+    ),
+    "elo": Admission(
+        True,
+        "Best single family in four of the nine leagues (EPL, ENL, SCH, SL1) "
+        "over the same folds, run 31729652899.",
+    ),
+    "gbm": Admission(
+        False,
+        "Won no league; worse than the best family in 9/9 and worse than a "
+        "class base rate in 8/9 (run 31729652899). Its ten repaired "
+        "configurations all beat the incumbent and none was competitive (run "
+        "31729251308). Removing it inverted the sign of the ensemble's "
+        "benefit in 7/9 (runs 31738869955 against 31739455060). Retained as "
+        "an implemented, measurable, rejected family.",
+    ),
+    "logistic": Admission(
+        False,
+        "Won no league; worse beyond noise in 8/9 with one unstable "
+        "non-result (run 31729652899). Available for research; not promoted "
+        "into the seat the GBM vacated, because keeping three components is "
+        "not a reason.",
+    ),
+    "baseline": Admission(
+        False,
+        "Carries no information about a fixture. It is the control the other "
+        "families are measured against, not a component.",
+    ),
+    "market": Admission(
+        False,
+        "Sees a price, so it cannot sit in the pure-football default without "
+        "making every default blend market-informed. Registered and not in "
+        "any live ensemble; see MARKET_FAMILIES.",
+    ),
+}
+
 # The families that make a useful ensemble: structurally different learners
-# over the same evidence. `baseline` is excluded because it carries no
-# information about a fixture, and `logistic` because the Poisson model
-# already occupies the smooth-linear corner of the space.
+# over the same evidence, EACH OF WHICH HAS EARNED THE SEAT ON PAIRED FOLDS.
 #
-# UNMEASURED, AND KNOWN TO BE COSTING SOMETHING. This tuple is the default for
-# `--base-families` in both `experiments.py` and `train.py`, so `gbm` is in
-# every default blend and every default stacker. `GradientBoostedModel`'s own
-# docstring says it "enters an ensemble only by winning paired walk-forward
-# folds"; it never won any. Measured over six chronological folds on hosted
-# Development, 13 August 2026, mean log loss:
+# This tuple is the default for `--base-families` in both `experiments.py` and
+# `train.py`, so whatever stands here is in every default blend and every
+# default stacker. It is therefore a model authority, and it is derived from
+# `ENSEMBLE_ADMISSION` above rather than written out by hand: the register
+# carries a verdict and its evidence for EVERY registered family, so
+# a family cannot arrive in the default set by being implemented, and cannot
+# leave it without its rejection being written down.
 #
-#              EPL      SPL      EL2
-#   poisson  0.98725  0.95319  1.05991
-#   elo      0.98722  0.95225  1.06277
-#   gbm      1.13503  1.22041  1.18890     <- worse than a base-rate baseline
-#   blend    0.99415  0.97054  1.07381     <- worse than either component
-#   stacker  0.99010  0.95838  1.06190
+# `gbm` was removed on 13 August 2026. It sat here for the whole of its life
+# on the stated ground that structural diversity is worth something, and
+# `GradientBoostedModel`'s own docstring said it "enters an ensemble only by
+# winning paired walk-forward folds" while it had never won any. Measured over
+# nine leagues of real football on hosted Development, it lost to the best
+# single family in nine of nine and to a class base rate in eight of nine; and
+# the result that settles it is the pair of ensemble runs, identical folds and
+# identical data, one component removed:
 #
-# The blend loses to its own best component in all three leagues, which is
-# what including a memorising learner in an equal-weight average does.
+#   (poisson, elo, gbm)  blend worse than its best component in 9/9, beyond
+#                        noise in 7  (run 31738869955)
+#   (poisson, elo)       blend delta negative in 7/9  (runs 31739455060,
+#                        31739795274, 31740065451)
 #
-# It is left in place deliberately. Removing a family from here changes the
-# default model authority, and that is a promotion decision with its own
-# evidence and approval; `model_candidates.py` carries the measurement that
-# such a decision would need, and `logistic` is a declared candidate for the
-# seat rather than an assumed replacement.
-ENSEMBLE_BASE_FAMILIES = ("poisson", "elo", "gbm")
+# So its PRESENCE was what made the ensemble lose, which is a stronger claim
+# than "it is a weak model". `logistic` did not take the vacated seat: it won
+# no league, was worse beyond noise in eight of nine, and replacing one losing
+# component with another to keep three families would be arithmetic rather
+# than evidence. Both remain registered and measurable — see the register.
+ENSEMBLE_BASE_FAMILIES = tuple(
+    family for family, verdict in ENSEMBLE_ADMISSION.items()
+    if verdict.earned
+)
 
 
 def uses_market(family: str) -> bool:

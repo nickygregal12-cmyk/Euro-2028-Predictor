@@ -38,7 +38,8 @@ from features import (DEFAULT_GROUPS, ELO_START, FEATURE_GROUPS,
                       FEATURES_VERSION, FeatureBuilder, TeamState,
                       division_prior, feature_names)
 from fitting import fit_family, time_weights
-from model_zoo import (MARKET_FAMILIES, MODEL_FAMILIES, PURE_FOOTBALL_FAMILIES,
+from model_zoo import (ENSEMBLE_ADMISSION, ENSEMBLE_BASE_FAMILIES,
+                       MARKET_FAMILIES, MODEL_FAMILIES, PURE_FOOTBALL_FAMILIES,
                        EloOrderedLogitModel, PoissonModel)
 
 RNG = np.random.default_rng(20280813)
@@ -167,6 +168,59 @@ def test_the_pure_football_model_may_not_see_any_price():
     assert MARKET_FAMILIES.isdisjoint(PURE_FOOTBALL_FAMILIES)
     for family in PURE_FOOTBALL_FAMILIES:
         assert not getattr(MODEL_FAMILIES[family], "uses_market", False)
+
+
+def test_the_default_ensemble_is_the_earned_families_not_the_implemented_ones():
+    """The default component set is a MEASUREMENT, not a census of the zoo.
+
+    This is the defect the register was added to prevent. `gbm` sat in the
+    default blend and the default stacker for its whole life without ever
+    winning a paired fold, on the strength of a comment about structural
+    diversity, while its own docstring said it entered an ensemble only by
+    winning them. Nothing failed, because nothing checked: the tuple was hand
+    written, so "registered" and "default" were one edit apart.
+    """
+    assert ENSEMBLE_BASE_FAMILIES == tuple(
+        family for family, verdict in ENSEMBLE_ADMISSION.items() if verdict.earned
+    )
+    # The measured position of 13 August 2026. Changing it means changing the
+    # register above it, which means writing down what beat what.
+    assert ENSEMBLE_BASE_FAMILIES == ("poisson", "elo")
+    for family in ENSEMBLE_BASE_FAMILIES:
+        assert ENSEMBLE_ADMISSION[family].earned
+        assert family in MODEL_FAMILIES
+
+
+def test_every_registered_family_is_ruled_on_exactly_once():
+    """Implementing a family must not be a way of joining the default set.
+
+    A new family with no register entry fails here rather than being silently
+    absent from the ensemble, and a register entry naming a family that no
+    longer exists fails here rather than being silently ignored.
+    """
+    assert set(ENSEMBLE_ADMISSION) == set(MODEL_FAMILIES)
+    for family, verdict in ENSEMBLE_ADMISSION.items():
+        assert verdict.evidence.strip(), f"{family} has a verdict and no evidence"
+
+
+def test_a_rejected_family_stays_implemented_and_reachable():
+    """Rejection is a verdict on a default, never a deletion of the model.
+
+    `gbm` and `logistic` lost the ensemble question and are kept: the evidence
+    that rejected them is only re-checkable while the models still run.
+    """
+    for family in ("gbm", "logistic"):
+        assert not ENSEMBLE_ADMISSION[family].earned
+        assert family in MODEL_FAMILIES
+        assert family in PURE_FOOTBALL_FAMILIES
+        assert MODEL_FAMILIES[family] is not None
+
+
+def test_the_default_ensemble_carries_no_market_family():
+    """A default blend that saw a price would make every default market-informed."""
+    assert MARKET_FAMILIES.isdisjoint(ENSEMBLE_BASE_FAMILIES)
+    for family in MARKET_FAMILIES:
+        assert not ENSEMBLE_ADMISSION[family].earned
 
 
 def test_market_features_are_devigged_and_flag_their_own_absence():

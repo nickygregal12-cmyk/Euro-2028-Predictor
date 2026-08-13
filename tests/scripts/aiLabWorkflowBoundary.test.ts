@@ -371,18 +371,23 @@ describe('research runs against a hosted database without being able to change i
     expect(dispatch.base_families?.default).toBe('default')
     expect(dispatch.base_families?.options).toContain('poisson elo')
     const zoo = readFileSync(resolve(process.cwd(), 'ai/model_zoo.py'), 'utf8')
-    const shipped = /ENSEMBLE_BASE_FAMILIES = \(([^)]*)\)/.exec(zoo)?.[1] ?? ''
-    const families = [...shipped.matchAll(/"([a-z]+)"/g)].map((m) => m[1])
+    // The shipped set is DERIVED from the admission register rather than
+    // hand-written, which is what stopped `gbm` sitting in every default
+    // blend on the strength of a comment. A literal tuple here would restore
+    // exactly that: registered and default one edit apart.
+    expect(zoo).toMatch(/ENSEMBLE_BASE_FAMILIES = tuple\(/)
+    expect(zoo).toMatch(/if verdict\.earned/)
+    expect(zoo).toMatch(/ENSEMBLE_ADMISSION: dict\[str, Admission\]/)
     // Every option must name families the zoo actually registers, or the
     // dispatch offers a run that dies in argparse twenty minutes in.
     const registered = [...zoo.matchAll(/^ {4}"([a-z_]+)": /gm)].map((m) => m[1])
+    expect(registered.length).toBeGreaterThan(0)
     for (const option of dispatch.base_families?.options ?? []) {
       if (option === 'default') continue
       for (const family of option.split(' ')) {
         expect(registered, `base_families offers unregistered ${family}`).toContain(family)
       }
     }
-    expect(families.length).toBeGreaterThan(0)
   })
 })
 
