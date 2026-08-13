@@ -43,7 +43,31 @@
 
 This is the operational migration inventory. Machine-readable hosted state is authoritative in [`../../config/development-hosted-contract.json`](../../config/development-hosted-contract.json) and [`../../config/production-hosted-contract.json`](../../config/production-hosted-contract.json); repository contract is authoritative in [`../../config/deployment-contract.json`](../../config/deployment-contract.json). Historical rollout reports are evidence only.
 
-## Current state — both hosted databases at 185 (12 August 2026)
+## Current state — Development at 188, Production at 185 (13 August 2026)
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Repository candidate | **188** | 188 canonical migrations through `20260813100000_ai_lab_multi_model_evidence.sql`. | LEVEL WITH DEVELOPMENT |
+| Development Supabase `iouzoutneyjpugbbtdem` | **188** | Fast-lane run [31721168774](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/31721168774) from exact `main` `806e474`, success at 16:32 UTC. Independently re-read at 17:14 UTC by a query that **names** `20260812080000_cup_group_stage_span`, `20260812090000_season_cup_qualification_driver` and `20260813100000_ai_lab_multi_model_evidence` rather than counting them. Paid collection disabled; zero API usage, predictions and odds events. | LEVEL; PAID COLLECTION OFF |
+| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **185** | Named latest row `20260812070000_ai_lab_operational_loop`; 185 rows. Contracts 186, 187 and 188 are pending. **Paid collection is deliberately DISABLED** since 2026-08-13T15:09Z, reason `KNOWN_IDENTITY_PIPELINE_CORRUPTION`. | THREE BEHIND; PAID COLLECTION OFF |
+
+**The Development record was stale by three contracts until this reconciliation**, and the way it went stale is the failure `DOC-001` exists for rather than a new one: the fast lane applied 186, 187 and 188 at 16:32 and no record-only follow-up landed on `main`, so `config/development-hosted-contract.json` still said 185 and the generated `NOW.md` faithfully repeated it. The record is now written from hosted evidence and `NOW.md` regenerated from it; neither was hand-edited.
+
+**Production's paid collection is off on purpose and must stay off through the whole promotion.** Production generated its first fifty-one live forecasts on 13 August 2026 and thirty-seven carried at least one club with no matched history, because the `provider-poll` Edge Function canonicalised names through its own twelve-entry alias table. Contract 188 is the fix, and re-enabling collection before it is applied and its identity repair verified would spend paid credits building more evidence on the same broken identity. The four `ai-odds-*` schedules are left in place and unmodified; the budget flag, not the schedule, is what holds them.
+
+### The approved Production boundary is exactly three migrations
+
+`production-185-to-188-rehearsal.yml` and `production-185-to-188-rollout.yml` are the one-shot guarded pair for it, derived from the proven 174 → 178 pair rather than from the destructive 157 → 158 boundary. All three migrations are **additive**, so `check-migration-additive.mjs` runs as a **GATE** in both files; a future reader finding it softened to a report should stop, because the boundary has changed. The pair preserves the runner tooling earlier rehearsals died without — pinned Node 22.22.2, pinned Supabase CLI 2.109.1, the PostgreSQL 17 client and the absolute `/usr/lib/postgresql/17/bin/pg_dump`, since a bare `pg_dump` resolves to Ubuntu's 16 client and refuses against a 17.x server.
+
+Both files assert the three migrations **by name** and refuse a fourth. A parallel AI Lab session has been asked not to merge one while this boundary is in progress; being asked is not a control, so the preflight fails rather than silently widening what Production receives.
+
+Two properties are verified from the **installed catalogue** rather than from migration text, because both were wrong once already: `public.record_ai_odds_snapshot` must create no temporary table — contract 188 was first written with one and rewritten as a CTE to satisfy the lint in `114_predictor_cup_lint_safe_qualification.sql` — and every alias must resolve to vocabulary `ai.raw_matches` actually uses. Parity between the Python and SQL authorities is **not** correctness: both previously agreed that `Raith Rovers` maps to `Raith Rovers` when the history says `Raith Rvs`. Every named canonical target is therefore resolved through `ai.canonical_from_odds_api` **and** required to exist in the retained history.
+
+Contract 187 is the one redefinition worth naming: it generalises the Championship qualification gate **in place**, so the tournament's unchanged behaviour is proven rather than assumed — every tournament Championship must still resolve a group-stage span of exactly 3, and contract 169's `cup_final_group_tables` must still carry its `between 1 and 3` bound.
+
+The rollout runs **no** identity repair. Contract 188 installs `ai.repair_provider_identity`, the quarantine authority and `ai.reconcile_api_budget`; the postflight proves all three ledgers are still empty, because a migration that repaired on arrival would make the repair unauditable. Calling them is a separate operator action after Production holds 188.
+
+## Historical — both hosted databases at 185 (12 August 2026)
 
 The owner authorised the Production 178 → 185 promotion directly. The checked-in 178 → 184 pair could no longer run from current `main` because contract 185 had merged first and its repository-head guard required exactly 184. The available connected Supabase route therefore carried the same controls in one all-or-nothing transaction: exact project and contract-178 preflight, the exact seven committed files, named ledger rows, protected application-row counts captured before and compared after, permission and cron assertions, and rollback on any mismatch.
 
@@ -53,9 +77,14 @@ Rollback-only hosted lifecycle probes passed SC3 and EPL independently. The SC3 
 
 | Environment | Contract | Evidence | Status |
 | --- | ---: | --- | --- |
-| Repository candidate | **188** | 188 canonical migrations through `20260813100000_ai_lab_multi_model_evidence.sql`, the AI Lab multi-model evidence contract. Contract 185 is the last one both projects hold, so 186, 187 and 188 are all pending. | THREE AHEAD OF BOTH |
-| Development Supabase `iouzoutneyjpugbbtdem` | **185** | Named latest row `20260812070000_ai_lab_operational_loop`; paid collection disabled; zero credits, usage, dispatches and raw responses. | LEVEL; PAID COLLECTION OFF |
-| Production Supabase | **185** | `vkfnsqdyhvtwyqkisxhk`; seven named rows 179–185, protected counts unchanged, `provider-poll` v14 ACTIVE, four AI odds schedules, Production budget 500/450 enabled with zero use at verification. | LEVEL; SCHEDULED PRODUCTION COLLECTION ON |
+The position **as recorded on 12 August 2026**, superseded by the current-state section above:
+
+| Environment | Contract | Evidence | Status |
+| --- | ---: | --- | --- |
+| Development Supabase `iouzoutneyjpugbbtdem` | **185** | Named latest row `20260812070000_ai_lab_operational_loop`; paid collection disabled; zero credits, usage, dispatches and raw responses. | LEVEL AT THE TIME; PAID COLLECTION OFF |
+| Production Supabase | **185** | `vkfnsqdyhvtwyqkisxhk`; seven named rows 179–185, protected counts unchanged, `provider-poll` v14 ACTIVE, four AI odds schedules, Production budget 500/450 enabled with zero use at verification. | LEVEL AT THE TIME; SCHEDULED PRODUCTION COLLECTION ON |
+
+**Production collection has since been disabled** — 2026-08-13T15:09Z, reason `KNOWN_IDENTITY_PIPELINE_CORRUPTION` — so the "SCHEDULED PRODUCTION COLLECTION ON" status above is history rather than current state. It is corrected here rather than rewritten in place, because the row is the record of what was true on 12 August.
 
 The 178 → 184 rehearsal/rollout files are retired in this reconciliation: they are one-shot controls for a boundary now passed and their own headers require removal after hosted reconciliation. No Netlify application publication is claimed.
 

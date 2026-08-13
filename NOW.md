@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **188** | latest `20260813100000_ai_lab_multi_model_evidence.sql` |
-| Development hosted | **185** | at `20260812070000_ai_lab_operational_loop.sql`, verified `2026-08-12T16:46:29.000Z` |
+| Development hosted | **188** | at `20260813100000_ai_lab_multi_model_evidence.sql`, verified `2026-08-13T17:14:40.936Z`, fast-lane run `31721168774` |
 | Production | **185** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 3 — `20260812080000_cup_group_stage_span.sql`, `20260812090000_season_cup_qualification_driver.sql`, `20260813100000_ai_lab_multi_model_evidence.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 189. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
