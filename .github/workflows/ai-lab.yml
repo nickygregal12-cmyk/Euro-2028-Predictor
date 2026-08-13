@@ -191,7 +191,14 @@ jobs:
         working-directory: ai
         shell: bash
         run: |
-          stamp="$(date -u +%Y%m%d)"
+          # Minutes, not just the date. `ai.models` is UNIQUE (league, version),
+          # so a date-only stamp means the second training run of any day
+          # cannot insert — measured on Development on 13 August 2026, where a
+          # re-run failed for all nine leagues with UniqueViolation on
+          # (SL2, auto-20260813). That makes the Monday job unrepeatable: a
+          # run that dies halfway cannot be retried, because the leagues that
+          # already succeeded now block it.
+          stamp="$(date -u +%Y%m%dT%H%MZ)"
           python fetch_history.py --all-divisions
           # Bootstrap is the first-run path: an empty lab needs its fixtures
           # and its prices as well as its history, because a challenger nobody
