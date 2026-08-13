@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import challenger_policy
 import train_selected_challengers
@@ -61,6 +62,30 @@ def test_single_family_command_does_not_invent_ensemble_arguments():
     ]
     assert "--base-families" not in command
     assert "--meta" not in command
+
+
+def test_retry_mode_skips_a_league_that_already_materialised(monkeypatch):
+    epl = challenger_policy.CHALLENGER_POLICY["EPL"]
+    ech = challenger_policy.CHALLENGER_POLICY["ECH"]
+    monkeypatch.setattr(train_selected_challengers, "ordered_policy",
+                        lambda: [("EPL", epl), ("ECH", ech)])
+    monkeypatch.setattr(train_selected_challengers, "existing_leagues",
+                        lambda version: {"EPL"})
+    calls = []
+
+    def fake_run(command, check=False):
+        calls.append(command)
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(train_selected_challengers.subprocess, "run", fake_run)
+    monkeypatch.setattr(
+        train_selected_challengers.sys, "argv",
+        ["train_selected_challengers.py", "--version", "bounded-v1", "--skip-existing"],
+    )
+
+    assert train_selected_challengers.main() == 0
+    assert len(calls) == 1
+    assert calls[0][calls[0].index("--league") + 1] == "ECH"
 
 
 def test_authority_documents_are_named_next_to_the_policy():
