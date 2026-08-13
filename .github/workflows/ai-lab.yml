@@ -55,6 +55,7 @@ on:
           - value
           - settle
           - odds-plan
+          - ablate
 
 permissions:
   contents: read
@@ -184,6 +185,16 @@ jobs:
             value) ./run_leagues.sh find_value.py ;;
             settle) ./run_leagues.sh settle_bets.py ;;
             odds-plan) python odds_api.py plan ;;
+            # One league at a time, and only a few: the point is a
+            # paired verdict per family, not a sweep. EPL is the
+            # deepest market, SPL the one closest to its closing
+            # line, EL2 the largest sample.
+            ablate)
+              status=0
+              for L in EPL SPL EL2; do
+                python ablate.py --league "$L" || status=1
+              done
+              exit "$status" ;;
             bootstrap|train|free-odds) ;;
           esac
       - name: Train challengers
@@ -191,7 +202,14 @@ jobs:
         working-directory: ai
         shell: bash
         run: |
-          stamp="$(date -u +%Y%m%d)"
+          # Minutes, not just the date. `ai.models` is UNIQUE (league, version),
+          # so a date-only stamp means the second training run of any day
+          # cannot insert — measured on Development on 13 August 2026, where a
+          # re-run failed for all nine leagues with UniqueViolation on
+          # (SL2, auto-20260813). That makes the Monday job unrepeatable: a
+          # run that dies halfway cannot be retried, because the leagues that
+          # already succeeded now block it.
+          stamp="$(date -u +%Y%m%dT%H%MZ)"
           python fetch_history.py --all-divisions
           # Bootstrap is the first-run path: an empty lab needs its fixtures
           # and its prices as well as its history, because a challenger nobody
@@ -202,7 +220,13 @@ jobs:
             python sync_fixtures.py
             python fetch_fixtures_odds.py
           fi
-          ./run_leagues.sh train.py --family poisson --version "auto-$stamp"
+          # --walk-forward, because a single two-season holdout has a standard
+          # error of roughly 0.02 on log loss and most feature changes are
+          # smaller than that. Without folds the weekly job cannot tell an
+          # improvement from a lucky split, and it is the only validation
+          # anybody looks at.
+          ./run_leagues.sh train.py --family poisson --version "auto-$stamp" \
+            --walk-forward
       - name: Keep reports and convenience artefacts
         if: always()
         uses: actions/upload-artifact@v7

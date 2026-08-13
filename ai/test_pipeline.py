@@ -18,7 +18,8 @@ import pandas as pd
 import metrics
 from config import (FIRST_SEASON, SEASONS, current_season, season_date_bounds,
                     seasons_from)
-from features import FEATURE_NAMES, FeatureBuilder
+from features import (FEATURE_NAMES, NEUTRAL_SOT, SOURCE_COLUMNS,
+                      FeatureBuilder)
 from model_zoo import MODEL_FAMILIES
 
 RNG = np.random.default_rng(20280611)
@@ -119,6 +120,118 @@ def check_no_self_or_sameday_leakage() -> None:
     print("  [pass] no self-leakage; same-day matches are blind to each other")
 
 
+def test_shot_features_are_leak_safe_and_honest_about_gaps() -> None:
+    """Shots on target must obey the same walls as everything else.
+
+    Two failure modes are being pinned. A match must not see its own shots —
+    the same wall the goal features already have. And a missing shot count
+    must read as `unmeasured`, never as `created nothing`: the National League
+    carries shots for 29.5% of its matches, so a zero-fill would tell the
+    model that two thirds of that division never troubled a keeper.
+    """
+    rows = [
+        {"match_date": date(2026, 8, 1), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Beta",
+         "home_goals": 1, "away_goals": 0, "result": "H",
+         "home_shots_ot": 9, "away_shots_ot": 2},
+        {"match_date": date(2026, 8, 8), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Gamma",
+         "home_goals": 0, "away_goals": 0, "result": "D",
+         "home_shots_ot": None, "away_shots_ot": None},
+        {"match_date": date(2026, 8, 15), "season": "2627", "division": "E0",
+         "home_canonical": "Alpha", "away_canonical": "Delta",
+         "home_goals": 2, "away_goals": 1, "result": "H",
+         "home_shots_ot": 7, "away_shots_ot": 3},
+    ]
+    out = FeatureBuilder("E0").build_training_frame(pd.DataFrame(rows))
+    first, second, third = out.iloc[0], out.iloc[1], out.iloc[2]
+
+    assert first["home_sot_known"] == 0.0, "a club's first match saw shot history"
+    assert first["home_form5_sot_f"] == NEUTRAL_SOT, (
+        "an unmeasured window must fall back to the neutral prior, not zero")
+
+    # After one measured match: 9 for, 2 against, and it is fully measured.
+    assert second["home_form5_sot_f"] == 9.0 and second["home_form5_sot_a"] == 2.0
+    assert second["home_sot_known"] == 1.0
+    assert second["home_sot_ratio"] > 0.8, "9-2 on target is not a balanced game"
+
+    # The second match had no shot data. Two matches played, one measured.
+    assert third["home_sot_known"] == 0.5, (
+        "a match with no shot data must lower `known`, not the shot average")
+    assert third["home_form5_sot_f"] == 9.0, (
+        "an unmeasured match dragged the average down — it was counted as zero")
+    print("  [pass] shots are leak-safe, and a gap reads as unmeasured not zero")
+
+
+def test_the_loader_supplies_every_column_the_builder_reads() -> None:
+    """The bug that made the shot features inert, caught structurally.
+
+    `load_history` selected goals, reds, odds and market probabilities and no
+    shot columns, so `home_shots_ot` was absent from every row and every
+    window fell back to the neutral prior. Nothing raised. The models trained
+    and the metrics printed; the only symptom was a change that should have
+    moved log loss not moving it, which is indistinguishable from the feature
+    being useless.
+
+    Reading the loader's own SQL is deliberate. A test that asked the database
+    would need one, and would then pass on any environment where the columns
+    happened to exist while the shipped query still omitted them.
+    """
+    import re
+    from pathlib import Path
+
+    source = Path(__file__).with_name("db.py").read_text()
+    match = re.search(r"def load_history.*?\"\"\"(.*?)\"\"\"", source, re.S)
+    assert match, "load_history no longer contains a single SQL literal"
+    projection = match.group(1).split(" from ")[0]
+
+    selected = set(re.findall(r"[a-z_][a-z0-9_]*", projection))
+    missing = sorted(c for c in SOURCE_COLUMNS if c not in selected)
+    assert not missing, (
+        f"features.py reads {missing} but load_history does not select them. "
+        "They would silently arrive as missing values in every row.")
+
+
+def test_a_club_is_seeded_at_the_level_it_first_appears() -> None:
+    """`ELO_DIVISION_OFFSET` was defined and never read.
+
+    The constant appeared exactly once in features.py — at its own definition
+    — so every club entered the pool at 1500 no matter which division it
+    entered from, and a League Two side was rated identically to a Premier
+    League side on arrival. By the table's own numbers that is a 430-point
+    error.
+    """
+    def first_row(division: str):
+        df = pd.DataFrame([{
+            "match_date": date(2026, 8, 1), "season": "2627", "division": division,
+            "home_canonical": "New Home", "away_canonical": "New Away",
+            "home_goals": 1, "away_goals": 1, "result": "D",
+        }])
+        return FeatureBuilder(division).build_training_frame(df).iloc[0]
+
+    top = first_row("E0")
+    bottom = first_row("E3")
+
+    assert top["elo_home"] == 1500.0, "a top-flight newcomer should start at the mean"
+    assert bottom["elo_home"] == 1500.0 - 430.0, (
+        "a League Two newcomer was seeded as if it were a Premier League club")
+    assert bottom["elo_home"] < top["elo_home"] - 400
+    print("  [pass] a first-seen club is seeded at its own division's level")
+
+
+def test_time_weights_halve_over_the_half_life() -> None:
+    """The decay must be the thing it claims to be, and switchable off."""
+    import train as trainer
+
+    dates = pd.Series([date(2024, 2, 26), date(2026, 8, 13)])   # ~900 days apart
+    w = trainer.time_weights(dates, 900.0)
+    assert abs(float(w[0] / w[1]) - 0.5) < 0.02, "a half-life did not halve the weight"
+    assert abs(float(np.mean(w)) - 1.0) < 1e-9, (
+        "weights are not mean-normalised, so alpha's meaning would drift")
+    assert trainer.time_weights(dates, 0) is None, "0 must restore equal weighting"
+    print("  [pass] time decay halves over its half-life and can be disabled")
+
+
 def check_features_are_finite(frame: pd.DataFrame) -> None:
     X = frame[FEATURE_NAMES]
     assert not X.isna().any().any(), f"NaN features: {X.columns[X.isna().any()].tolist()}"
@@ -159,6 +272,10 @@ def evaluate_models(frame: pd.DataFrame, shuffle_target: bool = False) -> dict:
 def main() -> None:
     print("1. leakage guards")
     check_no_self_or_sameday_leakage()
+    test_shot_features_are_leak_safe_and_honest_about_gaps()
+    test_the_loader_supplies_every_column_the_builder_reads()
+    test_a_club_is_seeded_at_the_level_it_first_appears()
+    test_time_weights_halve_over_the_half_life()
 
     print("\n2. building features from 10 synthetic seasons")
     seasons = [f"{y % 100:02d}{(y + 1) % 100:02d}" for y in range(2015, 2025)]

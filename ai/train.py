@@ -25,8 +25,34 @@ import pandas as pd
 import metrics
 from config import LEAGUES, MODEL_DIR, REPORT_DIR
 from db import insert_model_with_artifact, job, load_history
-from features import FEATURE_NAMES, FeatureBuilder
+
+from features import DEFAULT_GROUPS, FeatureBuilder, feature_names
 from model_zoo import MODEL_FAMILIES
+
+# Two and a half years. Dixon and Coles fitted a decay on half-seasons of one
+# league; this archive is fifteen seasons across nine divisions, where squads
+# turn over but a club's level is genuinely persistent. Too short throws away
+# the sample size the lower divisions need, too long is what we had before.
+# It is a parameter rather than a constant precisely so it can be argued with:
+# `--half-life-days 0` restores the old equal-weight behaviour exactly.
+DEFAULT_HALF_LIFE_DAYS = 900.0
+
+
+def time_weights(match_dates, half_life_days: float):
+    """Exponential recency weights, normalised to mean 1.
+
+    Normalising keeps the regulariser's meaning stable: `alpha` is defined
+    against the total weight, so an un-normalised decay would silently change
+    how hard the model is penalised as well as which matches it listens to,
+    and the two effects could not be told apart afterwards.
+    """
+    if not half_life_days or half_life_days <= 0:
+        return None
+    days = pd.to_datetime(pd.Series(list(match_dates)))
+    age = (days.max() - days).dt.days.to_numpy(dtype=float)
+    weights = np.power(0.5, age / float(half_life_days))
+    mean = weights.mean()
+    return weights / mean if mean > 0 else None
 
 
 def build_dataset(league_key: str) -> pd.DataFrame:
@@ -71,7 +97,9 @@ def chronological_split(frame: pd.DataFrame, holdout_seasons: int = 2):
     return train, val, val_seasons
 
 
-def walk_forward(frame: pd.DataFrame, family: str, min_train_seasons: int = 5):
+def walk_forward(frame: pd.DataFrame, family: str, columns: list[str],
+                 min_train_seasons: int = 5,
+                 half_life_days: float = DEFAULT_HALF_LIFE_DAYS):
     """Expanding-window validation: train on everything up to season N, test on
     season N, step forward, repeat.
 
@@ -92,13 +120,18 @@ def walk_forward(frame: pd.DataFrame, family: str, min_train_seasons: int = 5):
         test = frame[frame["season"] == seasons[i]]
         if len(test) < 100:
             continue
+        # The same weighting the shipped model gets. A fold validated under
+        # different settings from the one that goes live is measuring a model
+        # nobody will ever use.
+        weights = time_weights(train["match_date"], half_life_days)
         model = MODEL_FAMILIES[family]()
         if family == "poisson":
-            model.fit(train[FEATURE_NAMES], train["result"],
-                      home_goals=train["home_goals"], away_goals=train["away_goals"])
+            model.fit(train[columns], train["result"],
+                      home_goals=train["home_goals"], away_goals=train["away_goals"],
+                      sample_weight=weights)
         else:
-            model.fit(train[FEATURE_NAMES], train["result"])
-        probs = model.predict_proba(test[FEATURE_NAMES])
+            model.fit(train[columns], train["result"], sample_weight=weights)
+        probs = model.predict_proba(test[columns])
         s = metrics.summarise(probs, test["result"].values)
         s["season"] = seasons[i]
         scores.append(s)
@@ -134,6 +167,13 @@ def main() -> int:
     ap.add_argument("--family", choices=sorted(MODEL_FAMILIES), default="poisson")
     ap.add_argument("--version", required=True)
     ap.add_argument("--holdout-seasons", type=int, default=2)
+    ap.add_argument("--feature-groups", nargs="*", default=list(DEFAULT_GROUPS),
+                    help="Feature families to train on. Only families proven "
+                         "by ablate.py should be added here.")
+    ap.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS,
+                    help="Dixon-Coles time weighting: a match this old counts "
+                         "half as much as one played today. 0 disables it and "
+                         "weights every match in the archive equally.")
     ap.add_argument("--walk-forward", action="store_true",
                     help="Expanding-window validation across every season, with a "
                          "standard error. Use this to decide whether a feature helped.")
@@ -143,16 +183,20 @@ def main() -> int:
 
     with job("train", args.league) as state:
         frame = build_dataset(args.league)
+        FEATURE_NAMES = feature_names(tuple(args.feature_groups))
         train, val, val_seasons = chronological_split(frame, args.holdout_seasons)
         X_train, y_train = train[FEATURE_NAMES], train["result"]
         X_val, y_val = val[FEATURE_NAMES], val["result"]
 
+        weights = time_weights(train["match_date"], args.half_life_days)
+
         model = MODEL_FAMILIES[args.family]()
         if args.family == "poisson":
             model.fit(X_train, y_train,
-                      home_goals=train["home_goals"], away_goals=train["away_goals"])
+                      home_goals=train["home_goals"], away_goals=train["away_goals"],
+                      sample_weight=weights)
         else:
-            model.fit(X_train, y_train)
+            model.fit(X_train, y_train, sample_weight=weights)
 
         val_probs = model.predict_proba(X_val)
         result = metrics.summarise(val_probs, y_val.values)
@@ -191,7 +235,8 @@ def main() -> int:
 
         wf = None
         if args.walk_forward:
-            wf = walk_forward(frame, args.family)
+            wf = walk_forward(frame, args.family, FEATURE_NAMES,
+                              half_life_days=args.half_life_days)
             if wf:
                 print("\nwalk-forward (expanding window, one fold per season)")
                 print(f"{'season':>10}{'n':>7}{'acc':>8}{'log loss':>11}{'rps':>9}")
