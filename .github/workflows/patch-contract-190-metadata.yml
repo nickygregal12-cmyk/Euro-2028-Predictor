@@ -42,19 +42,36 @@ jobs:
 
           agents = Path('AGENTS.md')
           text = agents.read_text()
-          old = "The repository is at **contract 189** through `20260813215920_ai_quarantined_evidence_reads.sql`, which takes the quarantined forecasts out of every admin AI evidence read."
-          new = "The repository is at **contract 190** through `20260814005000_ai_actionable_bet_evidence.sql`, which makes real non-aggregate bookmaker identity part of the AI betting-evidence authority while leaving historical base rows immutable."
-          if text.count(old) != 1:
-              raise SystemExit(f'AGENTS current-contract anchor count={text.count(old)}')
-          agents.write_text(text.replace(old, new))
+          replacements = [
+              (
+                  "The repository is at **contract 189** through `20260813215920_ai_quarantined_evidence_reads.sql`, which takes the quarantined forecasts out of every admin AI evidence read.",
+                  "The repository is at **contract 190** through `20260814005000_ai_actionable_bet_evidence.sql`, which makes real non-aggregate bookmaker identity part of the AI betting-evidence authority while leaving historical base rows immutable."
+              ),
+              (
+                  "- the repository is at contract 189, and Development and Production both hold it;",
+                  "- historical 13 August snapshot: the repository and both hosted environments were at contract 189;"
+              ),
+          ]
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'AGENTS anchor count={text.count(old)} for {old!r}')
+              text = text.replace(old, new)
+          agents.write_text(text)
 
           status = Path('docs/quality/current-status.md')
           text = status.read_text()
           old = "The repository is at **contract 189** through `20260813215920_ai_quarantined_evidence_reads.sql`, which takes contract 188's quarantined forecasts out of every admin AI evidence read. **Both hosted environments hold it**:"
           new = "The repository is at **contract 190** through `20260814005000_ai_actionable_bet_evidence.sql`, which extends Contract 189's `ai.valid_bets` authority so only real non-aggregate bookmaker venues can contribute actionable betting evidence; historical `ai.bets` rows remain immutable. **Hosted Development and Production remain at contract 189 until the separate 190 rollout**:"
           if text.count(old) != 1:
-              raise SystemExit(f'current-status current-contract anchor count={text.count(old)}')
-          status.write_text(text.replace(old, new))
+              raise SystemExit(f'current-status primary anchor count={text.count(old)}')
+          text = text.replace(old, new)
+
+          old_row = "| Repository contract | **189** — 189 canonical migrations through `20260813215920_ai_quarantined_evidence_reads.sql`"
+          new_row = "| Repository contract | **190** — 190 canonical migrations through `20260814005000_ai_actionable_bet_evidence.sql`"
+          if text.count(old_row) != 1:
+              raise SystemExit(f'current-status table anchor count={text.count(old_row)}')
+          text = text.replace(old_row, new_row)
+          status.write_text(text)
 
           inventory = Path('docs/ops/ops-pending-migrations.md')
           text = inventory.read_text()
