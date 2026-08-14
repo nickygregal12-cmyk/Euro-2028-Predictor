@@ -142,6 +142,55 @@ export async function assertSharedCardWithoutMainMembership(
   return entry.id
 }
 
+/**
+ * Exercise the real card write as that fresh Championship-only user. This is a
+ * browser-environment integration assertion rather than a service-role insert:
+ * `save_season_prediction` must accept the authenticated account through the
+ * exact shared entry Contract 180 created, while no Match Predictor membership
+ * exists. pgTAP 229 separately pins the scorer's member -> entry -> prediction
+ * join; this proves a real app-capable account can create the row that join reads.
+ */
+export async function saveSharedPredictionAs(
+  user: PrivatePlayUser,
+  tournamentId: string,
+): Promise<string> {
+  const admin = createLocalAdmin()
+  const { data: fixture, error: fixtureError } = await admin
+    .from('season_fixtures')
+    .select('id')
+    .eq('tournament_id', tournamentId)
+    .eq('status', 'scheduled')
+    .gt('kickoff_at', new Date().toISOString())
+    .order('kickoff_at', { ascending: true })
+    .limit(1)
+    .single()
+  if (fixtureError) throw fixtureError
+
+  const client = localBrowserClient()
+  const { error: signInError } = await client.auth.signInWithPassword({
+    email: user.email,
+    password: user.password,
+  })
+  if (signInError) throw signInError
+
+  const { data, error } = await client.rpc('save_season_prediction', {
+    p_tournament_id: tournamentId,
+    p_season_fixture_id: fixture.id,
+    p_home: 2,
+    p_away: 1,
+    p_version: 0,
+  })
+  if (error) throw error
+
+  const stored = data && typeof data === 'object' && !Array.isArray(data)
+    ? (data as Record<string, unknown>)
+    : {}
+  if (typeof stored.version !== 'number') {
+    throw new Error('Shared-card prediction write returned no stored version.')
+  }
+  return fixture.id
+}
+
 export async function cleanupPrivatePlayUsers(users: readonly PrivatePlayUser[]): Promise<void> {
   for (const user of users) {
     const { error } = await createLocalAdmin().auth.admin.deleteUser(user.userId)
