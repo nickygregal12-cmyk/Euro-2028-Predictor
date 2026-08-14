@@ -459,6 +459,7 @@ def evaluate_out_of_time(oof: OutOfFold, meta: str = "logistic_stack",
         return {"error": f"need more than {min_fit_folds} folds; have {len(seasons)}"}
 
     per_fold: dict[str, list[float]] = {}
+    meta_candidates = tuple(dict.fromkeys(("equal_blend", meta)))
     for k in range(min_fit_folds, len(seasons)):
         fit_mask = np.isin(oof.fold_labels, seasons[:k])
         test_mask = oof.fold_labels == seasons[k]
@@ -475,7 +476,7 @@ def evaluate_out_of_time(oof: OutOfFold, meta: str = "logistic_stack",
         for family in oof.families:
             per_fold.setdefault(family, []).append(
                 metrics.summarise(base_test[family], actual_test)["log_loss"])
-        for name in ("equal_blend", meta):
+        for name in meta_candidates:
             model = META_MODELS[name](oof.families).fit(fit_slice)
             combined = model.combine(base_test)
             per_fold.setdefault(name, []).append(
@@ -496,7 +497,7 @@ def evaluate_out_of_time(oof: OutOfFold, meta: str = "logistic_stack",
     # WORST component" is not a reason to ship an ensemble.
     bases = {f: out[f]["mean_log_loss"] for f in oof.families}
     best_base = min(bases, key=bases.get)
-    for name in ("equal_blend", meta):
+    for name in meta_candidates:
         diffs = np.array(per_fold[name]) - np.array(per_fold[best_base])
         out[name]["vs_best_base"] = {
             "base": best_base,
