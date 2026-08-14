@@ -4,8 +4,11 @@ The weekly job used to call `run_leagues.sh train.py --family poisson`, which
 necessarily trained the same family and the same 900-day default everywhere.
 That ceased to describe the admitted model set once the 14-Aug-2026 guarded
 selection study finished. This runner is intentionally boring: it expands the
-immutable policy into nine explicit "train.py" invocations and returns non-zero
-if any one fails, while still giving every other league its attempt.
+immutable policy into nine explicit `train_verified.py` invocations and returns
+non-zero if any one fails, while still giving every other league its attempt.
+The verified entrypoint delegates the statistical work to `train.py` but refuses
+the challenger insert unless the freshly reloaded artefact reproduces its
+recorded fingerprints/reference oracle.
 
 No provider is called here. The workflow decides whether history needs refreshing
 before invoking this runner. Model lifecycle changes are handled elsewhere.
@@ -46,7 +49,8 @@ def main() -> int:
     ap.add_argument("--version", required=True,
                     help="Version stored on every league's challenger row.")
     ap.add_argument("--dry-run", action="store_true",
-                    help="Pass train.py --dry-run so no model row/artifact is stored.")
+                    help="Pass the verified training entrypoint --dry-run so no "
+                         "model row/artifact is stored.")
     ap.add_argument("--skip-existing", action="store_true",
                     help="Skip leagues that already have an ai.models row at this version; "
                          "intended for retrying a bounded Development materialisation.")

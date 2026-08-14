@@ -53,6 +53,7 @@ def test_every_policy_command_matches_the_authority_exactly_once():
             league, spec, "hardening-test", python="python")
         assert league not in commands
         commands[league] = command
+        assert command[1] == "train_verified.py"
 
         family = command[command.index("--family") + 1]
         half_life = int(command[command.index("--half-life-days") + 1])
@@ -76,7 +77,7 @@ def test_training_command_is_explicit_about_the_evidence_selected_window():
     command = train_selected_challengers.command_for(
         "EPL", spec, "hardening-test", python="python")
     assert command == [
-        "python", "train.py", "--league", "EPL", "--family", "ensemble",
+        "python", "train_verified.py", "--league", "EPL", "--family", "ensemble",
         "--half-life-days", "1800", "--version", "hardening-test",
         "--walk-forward", "--base-families", "poisson", "elo",
         "--meta", "equal_blend",
@@ -88,7 +89,7 @@ def test_single_family_command_does_not_invent_ensemble_arguments():
     command = train_selected_challengers.command_for(
         "SCH", spec, "hardening-test", python="python")
     assert command == [
-        "python", "train.py", "--league", "SCH", "--family", "poisson",
+        "python", "train_verified.py", "--league", "SCH", "--family", "poisson",
         "--half-life-days", "900", "--version", "hardening-test",
         "--walk-forward",
     ]
@@ -117,6 +118,7 @@ def test_retry_mode_skips_a_league_that_already_materialised(monkeypatch):
 
     assert train_selected_challengers.main() == 0
     assert len(calls) == 1
+    assert calls[0][0:2] == [calls[0][0], "train_verified.py"]
     assert calls[0][calls[0].index("--league") + 1] == "ECH"
 
 
@@ -124,12 +126,14 @@ def test_selected_runner_is_challenger_only_and_contains_no_promotion_path():
     root = Path(__file__).resolve().parent.parent
     runner = (root / "ai" / "train_selected_challengers.py").read_text().lower()
     training = (root / "ai" / "train.py").read_text().lower()
+    verified = (root / "ai" / "train_verified.py").read_text().lower()
 
     assert "promote" not in runner
     assert "status='current'" not in runner
     assert 'status="current"' not in runner
     assert "--status" not in runner
     assert '"status": "challenger"' in training
+    assert "admin_ai_promote_model" not in verified
 
 
 def test_authority_documents_are_named_next_to_the_policy():

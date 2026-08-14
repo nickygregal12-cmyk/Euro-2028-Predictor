@@ -235,6 +235,11 @@
   ],
   "authorityDirectories": [
     {
+      "prefix": ".agents/skills/",
+      "kind": "reference",
+      "why": "Discoverable project-specific Agent Skills. They route agents to existing authorities and may describe stable verification procedure, but they must not become a second moving contract or hosted-state authority."
+    },
+    {
       "prefix": "docs/adr/",
       "kind": "reference",
       "why": "Architecture and product decision records. An ADR names the contract that implemented it, which is a fact about the decision rather than a claim about current state. docs/adr/README.md is listed separately as live, because its index carries an implementation status per row and a per-file entry wins over this rule."
