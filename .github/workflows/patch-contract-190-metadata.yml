@@ -1,0 +1,88 @@
+name: Patch Contract 190 metadata
+
+on:
+  push:
+    branches:
+      - codex/ai-actionable-bet-evidence-190
+    paths:
+      - '.github/workflows/patch-contract-190-metadata.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Align Contract 190 live authorities') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: codex/ai-actionable-bet-evidence-190
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Patch only positional contract authorities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          config_path = Path('config/deployment-contract.json')
+          contract = json.loads(config_path.read_text())
+          if contract['contractVersion'] != 189 or contract['requiredMigrationCount'] != 189:
+              raise SystemExit(f'unexpected starting contract: {contract["contractVersion"]}/{contract["requiredMigrationCount"]}')
+          contract['contractVersion'] = 190
+          contract['requiredMigrationCount'] = 190
+          config_path.write_text(json.dumps(contract, indent=2) + '\n')
+
+          agents = Path('AGENTS.md')
+          text = agents.read_text()
+          old = "The repository is at **contract 189** through `20260813215920_ai_quarantined_evidence_reads.sql`, which takes the quarantined forecasts out of every admin AI evidence read."
+          new = "The repository is at **contract 190** through `20260814005000_ai_actionable_bet_evidence.sql`, which makes real non-aggregate bookmaker identity part of the AI betting-evidence authority while leaving historical base rows immutable."
+          if text.count(old) != 1:
+              raise SystemExit(f'AGENTS current-contract anchor count={text.count(old)}')
+          agents.write_text(text.replace(old, new))
+
+          status = Path('docs/quality/current-status.md')
+          text = status.read_text()
+          old = "The repository is at **contract 189** through `20260813215920_ai_quarantined_evidence_reads.sql`, which takes contract 188's quarantined forecasts out of every admin AI evidence read. **Both hosted environments hold it**:"
+          new = "The repository is at **contract 190** through `20260814005000_ai_actionable_bet_evidence.sql`, which extends Contract 189's `ai.valid_bets` authority so only real non-aggregate bookmaker venues can contribute actionable betting evidence; historical `ai.bets` rows remain immutable. **Hosted Development and Production remain at contract 189 until the separate 190 rollout**:"
+          if text.count(old) != 1:
+              raise SystemExit(f'current-status current-contract anchor count={text.count(old)}')
+          status.write_text(text.replace(old, new))
+
+          inventory = Path('docs/ops/ops-pending-migrations.md')
+          text = inventory.read_text()
+          marker = '> **Repository candidate — contract 190, actionable AI betting evidence (14 August 2026):**'
+          if marker not in text:
+              block = (
+                  marker + ' `20260814005000_ai_actionable_bet_evidence.sql` strengthens the existing Contract-189 `ai.valid_bets` authority: a bet contributes to CLV, ROI, exposure, Bet Builder evidence or publication evidence only when its prediction remains valid **and** `ai.bookmakers` identifies its recorded venue as a real non-aggregate price. The 49 historical MAX paper rows are not deleted, rewritten, settled or fake-voided; they remain base-table history and cease to count as actionable evidence. The same migration removes the old paper-mode waiver from `ai.reject_unbettable_price` and makes the bounded Bet Builder candidate RPC reject reference-only books. **Repository only by this record:** Development and Production remain hosted at **189** until the dedicated rollout.\n>\n'
+              )
+              inventory.write_text(text.replace('# Hosted migration inventory and rollout status\n\n', '# Hosted migration inventory and rollout status\n\n' + block, 1))
+          PY
+
+          git diff --check
+          git diff --name-only
+
+      - name: Validate contract freshness
+        shell: bash
+        run: |
+          npm ci
+          npx vitest run tests/scripts/documentationContractFreshness.test.ts
+          npm run generate:now
+          git diff --check
+
+      - name: Commit bounded metadata update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/deployment-contract.json AGENTS.md docs/quality/current-status.md docs/ops/ops-pending-migrations.md NOW.md
+          git commit -m 'Align Contract 190 live authorities'
+          git push origin HEAD:codex/ai-actionable-bet-evidence-190
