@@ -2,6 +2,8 @@ name: AI selected challenger materialisation
 
 # One policy-expansion authority: ai/train_selected_challengers.py. This workflow
 # supplies only environment + version; it does not duplicate league settings.
+# Development retry after the equal-blend comparison packaging fix remains
+# idempotent because the immutable selected version is reused with --skip-existing.
 # The branch-local push trigger performs the authorised Development-first proof.
 # It is removed after that proof; workflow_dispatch remains for the identical
 # provider-free Production run once this code is on main.
