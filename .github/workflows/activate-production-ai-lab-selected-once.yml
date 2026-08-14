@@ -1,0 +1,480 @@
+name: One-shot activate selected Production AI Lab
+
+# Final activation bridge for the owner-selected `selected-20260814-v1` models.
+# It is inert unless deliberately merged to main with the exact title prefix
+# below, and it fails closed unless the authenticated admin promotion authority
+# has already made all nine selected models current.
+#
+# Provider custody is deliberately single-shot. The operator marker and the
+# `dispatch_ai_odds_polls(true)` invocation commit in the same transaction under
+# an advisory lock. A retry sees the marker and refuses before spending again.
+
+on: push
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: activate-production-ai-lab-selected-20260814-v1
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+      SELECTED_VERSION: selected-20260814-v1
+      DATABASE_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+      GH_TOKEN: ${{ github.token }}
+      AI_WORKFLOW: ai-lab.yml
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Refuse anything except the deliberate exact-main activation merge
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo "Skip: ${GITHUB_REF} is not main."
+            exit 0
+          fi
+          message="$(jq -r '.head_commit.message // ""' "${GITHUB_EVENT_PATH}")"
+          case "${message}" in
+            'Ops: activate Production AI Lab selected models'*) ;;
+            *) echo 'Skip: main push is not the dedicated selected-model activation commit.'; exit 0 ;;
+          esac
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo 'ERROR: SUPABASE_PROD_DB_URL is unavailable.' >&2
+            exit 1
+          fi
+          case "${DATABASE_URL}" in
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production database secret does not name the expected project ref.' >&2; exit 1 ;;
+          esac
+          remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "ERROR: main moved to ${remote_sha}; refusing activation from ${GITHUB_SHA}." >&2
+            exit 1
+          }
+
+      - name: Install bounded database client
+        run: python -m pip install --disable-pip-version-check 'psycopg[binary]==3.2.10'
+
+      - name: Atomically prove promotion and dispatch exactly one paid refresh
+        id: refresh
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import psycopg
+          from psycopg.types.json import Jsonb
+
+          db = os.environ['DATABASE_URL']
+          version = os.environ['SELECTED_VERSION']
+          sha = os.environ['GITHUB_SHA']
+          marker_job = 'activate-selected-20260814-v1-provider-refresh'
+
+          with psycopg.connect(db) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("select pg_advisory_xact_lock(hashtextextended(%s, 0))", (marker_job,))
+                  cur.execute(
+                      """
+                      select count(*) filter (where status='current') as current_total,
+                             count(*) filter (where status='current' and version=%s) as selected_current,
+                             count(distinct league) filter (where status='current' and version=%s) as selected_leagues,
+                             count(*) filter (where status='challenger' and version=%s) as selected_challengers
+                        from ai.models
+                      """,
+                      (version, version, version),
+                  )
+                  current_total, selected_current, selected_leagues, selected_challengers = cur.fetchone()
+                  state = {
+                      'current_total': current_total,
+                      'selected_current': selected_current,
+                      'selected_leagues': selected_leagues,
+                      'selected_challengers': selected_challengers,
+                  }
+                  if state != {
+                      'current_total': 9,
+                      'selected_current': 9,
+                      'selected_leagues': 9,
+                      'selected_challengers': 0,
+                  }:
+                      raise SystemExit(f'REFUSE: authenticated promotion is incomplete: {state}')
+
+                  cur.execute(
+                      "select id,status,started_at from ai.job_runs where job=%s order by started_at desc limit 1",
+                      (marker_job,),
+                  )
+                  prior = cur.fetchone()
+                  if prior is not None:
+                      raise SystemExit(
+                          f'REFUSE: activation provider refresh marker already exists: '
+                          f'id={prior[0]} status={prior[1]} started_at={prior[2]}'
+                      )
+
+                  cur.execute("select count(*), max(called_at) from ai.api_usage")
+                  usage_count, latest_usage = cur.fetchone()
+                  cur.execute("select count(*) from ai.odds_api_dispatches")
+                  dispatch_count = cur.fetchone()[0]
+                  baseline = {
+                      'api_usage_count': usage_count,
+                      'latest_api_usage': latest_usage.isoformat() if latest_usage else None,
+                      'dispatch_count': dispatch_count,
+                  }
+
+                  cur.execute(
+                      """
+                      insert into ai.job_runs(job,status,message,detail)
+                      values (%s,'running','Owner activation: dispatching one forced real-bookmaker provider refresh',%s)
+                      returning id,started_at
+                      """,
+                      (marker_job, Jsonb({
+                          'model_version': version,
+                          'repository_head': sha,
+                          'provider': 'the-odds-api',
+                          'explicit_force': True,
+                          'expected_requests': 5,
+                          'estimated_credits': 10,
+                          'baseline': baseline,
+                      })),
+                  )
+                  marker_id, started_at = cur.fetchone()
+
+                  cur.execute("select public.dispatch_ai_odds_polls(true)")
+                  result = cur.fetchone()[0]
+                  if not isinstance(result, dict):
+                      result = json.loads(result)
+                  if result.get('dispatched') != 5 or result.get('estimated_credits') != 10:
+                      raise SystemExit(f'REFUSE: provider dispatcher did not return the expected 5/10 result: {result}')
+
+                  cur.execute(
+                      """
+                      select id::text, net_request_id, path
+                        from ai.odds_api_dispatches
+                       where dispatched_at >= %s
+                       order by dispatched_at, id
+                      """,
+                      (started_at,),
+                  )
+                  dispatches = cur.fetchall()
+                  if len(dispatches) != 5:
+                      raise SystemExit(f'REFUSE: expected exactly five activation dispatch rows, got {len(dispatches)}')
+                  paths = [row[2] for row in dispatches]
+                  if any('bookmakers=pinnacle,betfair_ex_uk,smarkets,matchbook' not in path for path in paths):
+                      raise SystemExit(f'REFUSE: an activation path did not use the real-bookmaker allowlist: {paths}')
+                  if any('MAX' in path or 'AVG' in path for path in paths):
+                      raise SystemExit('REFUSE: synthetic aggregate appeared in a provider dispatch path')
+
+                  detail = {
+                      'model_version': version,
+                      'repository_head': sha,
+                      'provider': 'the-odds-api',
+                      'explicit_force': True,
+                      'expected_requests': 5,
+                      'estimated_credits': 10,
+                      'baseline': baseline,
+                      'dispatcher_result': result,
+                      'dispatch_ids': [row[0] for row in dispatches],
+                      'net_request_ids': [row[1] for row in dispatches],
+                      'paths': paths,
+                  }
+                  cur.execute(
+                      "update ai.job_runs set rows_written=5, message=%s, detail=%s where id=%s",
+                      ('Owner activation: five real-bookmaker provider requests queued; awaiting verified responses', Jsonb(detail), marker_id),
+                  )
+              conn.commit()
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
+              print(f'marker_id={marker_id}', file=out)
+              print(f'started_at={started_at.isoformat()}', file=out)
+              print('dispatch_ids=' + ','.join(row[0] for row in dispatches), file=out)
+              print('request_ids=' + ','.join(str(row[1]) for row in dispatches), file=out)
+          print(f'Activation marker {marker_id}: queued exactly five real-bookmaker requests for {version}.')
+          PY
+
+      - name: Require all five provider responses and retained usage evidence
+        shell: bash
+        env:
+          MARKER_ID: ${{ steps.refresh.outputs.marker_id }}
+          STARTED_AT: ${{ steps.refresh.outputs.started_at }}
+          DISPATCH_IDS: ${{ steps.refresh.outputs.dispatch_ids }}
+          REQUEST_IDS: ${{ steps.refresh.outputs.request_ids }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import time
+          import psycopg
+          from psycopg.types.json import Jsonb
+
+          db = os.environ['DATABASE_URL']
+          marker_id = os.environ['MARKER_ID']
+          started_at = os.environ['STARTED_AT']
+          request_ids = [int(v) for v in os.environ['REQUEST_IDS'].split(',') if v]
+          expected_sports = {
+              'soccer_epl',
+              'soccer_efl_champ',
+              'soccer_england_league1',
+              'soccer_england_league2',
+              'soccer_spl',
+          }
+
+          deadline = time.time() + 600
+          last_responses = []
+          last_usage = []
+          while time.time() < deadline:
+              with psycopg.connect(db) as conn:
+                  with conn.cursor() as cur:
+                      cur.execute(
+                          "select id,status_code,timed_out,error_msg from net._http_response where id = any(%s::bigint[]) order by id",
+                          (request_ids,),
+                      )
+                      last_responses = cur.fetchall()
+                      cur.execute(
+                          """
+                          select distinct on (sport_key) sport_key,http_status,reported_cost,reported_remaining,called_at
+                            from ai.api_usage
+                           where provider='the-odds-api'
+                             and is_historical=false
+                             and called_at >= %s::timestamptz
+                             and sport_key = any(%s::text[])
+                           order by sport_key,called_at desc
+                          """,
+                          (started_at, sorted(expected_sports)),
+                      )
+                      last_usage = cur.fetchall()
+              if len(last_responses) == 5 and len(last_usage) == 5:
+                  break
+              time.sleep(5)
+
+          response_ok = (
+              len(last_responses) == 5
+              and all(200 <= row[1] < 300 and not row[2] and row[3] is None for row in last_responses)
+          )
+          usage_by_sport = {row[0]: row for row in last_usage}
+          usage_ok = (
+              set(usage_by_sport) == expected_sports
+              and all(row[1] == 200 for row in usage_by_sport.values())
+          )
+
+          with psycopg.connect(db) as conn:
+              with conn.cursor() as cur:
+                  detail_add = {
+                      'provider_http_responses': [
+                          {'request_id': row[0], 'status_code': row[1], 'timed_out': row[2], 'error': row[3]}
+                          for row in last_responses
+                      ],
+                      'usage_evidence': [
+                          {'sport_key': row[0], 'http_status': row[1], 'reported_cost': row[2],
+                           'reported_remaining': row[3], 'called_at': row[4].isoformat()}
+                          for row in last_usage
+                      ],
+                  }
+                  if response_ok and usage_ok:
+                      cur.execute(
+                          """
+                          update ai.job_runs
+                             set status='succeeded', finished_at=now(),
+                                 message='Owner activation: five real-bookmaker provider requests verified HTTP 200',
+                                 detail=coalesce(detail,'{}'::jsonb) || %s
+                           where id=%s::uuid
+                          """,
+                          (Jsonb(detail_add), marker_id),
+                      )
+                  else:
+                      cur.execute(
+                          """
+                          update ai.job_runs
+                             set status='failed', finished_at=now(),
+                                 message='Owner activation provider refresh did not produce five verified HTTP-200 usage rows',
+                                 detail=coalesce(detail,'{}'::jsonb) || %s
+                           where id=%s::uuid
+                          """,
+                          (Jsonb(detail_add), marker_id),
+                      )
+              conn.commit()
+
+          if not response_ok or not usage_ok:
+              raise SystemExit(
+                  f'Provider refresh verification failed: responses={last_responses}, usage={last_usage}'
+              )
+          print('Verified five The Odds API responses and five retained HTTP-200 usage rows.')
+          PY
+
+      - name: Re-prove exact main after the paid external action
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "ERROR: main moved to ${remote_sha} after provider refresh; refusing to run stale forecast code." >&2
+            exit 1
+          }
+
+      - name: Generate fresh Production forecasts then recommendations
+        id: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          find_exact_run() {
+            local after_epoch="$1"
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/${AI_WORKFLOW}/runs?branch=main&event=workflow_dispatch&per_page=100" \
+              --jq ".workflow_runs[] | select(.head_sha == \"${GITHUB_SHA}\") | select((.created_at | fromdateiso8601) >= ${after_epoch}) | .id" \
+              | head -1
+          }
+
+          wait_for_run() {
+            local run_id="$1" label="$2" i status conclusion
+            for i in $(seq 1 180); do
+              status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')"
+              if [ "${status}" = completed ]; then
+                conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
+                [ "${conclusion}" = success ] || {
+                  echo "ERROR: ${label} run ${run_id} completed with ${conclusion}." >&2
+                  exit 1
+                }
+                echo "${label} run ${run_id} succeeded." >&2
+                return 0
+              fi
+              sleep 10
+            done
+            echo "ERROR: ${label} run ${run_id} exceeded the bounded polling window." >&2
+            exit 1
+          }
+
+          dispatch_task() {
+            local task="$1" after run_id i
+            after="$(date -u +%s)"
+            gh workflow run "${AI_WORKFLOW}" --repo "${GITHUB_REPOSITORY}" --ref main \
+              -f target=production -f task="${task}"
+            run_id=''
+            for i in $(seq 1 30); do
+              run_id="$(find_exact_run "${after}" || true)"
+              [ -n "${run_id}" ] && break
+              sleep 2
+            done
+            [ -n "${run_id}" ] || { echo "ERROR: ${task} run was not discoverable." >&2; exit 1; }
+            wait_for_run "${run_id}" "AI Lab ${task}"
+            printf '%s\n' "${run_id}"
+          }
+
+          predict_id="$(dispatch_task predict)"
+          value_id="$(dispatch_task value)"
+          echo "predict_run_id=${predict_id}" >> "${GITHUB_OUTPUT}"
+          echo "value_run_id=${value_id}" >> "${GITHUB_OUTPUT}"
+
+      - name: Verify selected-model forecasts, real-book recommendations and zero synthetic actionability
+        shell: bash
+        env:
+          STARTED_AT: ${{ steps.refresh.outputs.started_at }}
+          PREDICT_RUN_ID: ${{ steps.ai.outputs.predict_run_id }}
+          VALUE_RUN_ID: ${{ steps.ai.outputs.value_run_id }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          import os
+          import psycopg
+
+          db = os.environ['DATABASE_URL']
+          version = os.environ['SELECTED_VERSION']
+          started_at = os.environ['STARTED_AT']
+          with psycopg.connect(db) as conn:
+              with conn.cursor() as cur:
+                  cur.execute(
+                      """
+                      select count(*) filter (where status='current') as current_total,
+                             count(*) filter (where status='current' and version=%s) as selected_current,
+                             count(*) filter (where status='challenger' and version=%s) as selected_challengers
+                        from ai.models
+                      """,
+                      (version, version),
+                  )
+                  current_total, selected_current, selected_challengers = cur.fetchone()
+                  if (current_total, selected_current, selected_challengers) != (9, 9, 0):
+                      raise SystemExit('Selected model lifecycle changed unexpectedly during activation.')
+
+                  cur.execute(
+                      """
+                      select count(*), count(distinct p.league), max(p.created_at)
+                        from ai.predictions p
+                        join ai.models m on m.id=p.model_id
+                       where m.version=%s and p.created_at >= %s::timestamptz
+                      """,
+                      (version, started_at),
+                  )
+                  fresh_predictions, prediction_leagues, latest_prediction = cur.fetchone()
+                  if fresh_predictions < 1:
+                      raise SystemExit('No fresh selected-model Production forecasts were written.')
+
+                  cur.execute(
+                      """
+                      select count(*), count(*) filter (where r.decision='BET'), max(r.decided_at)
+                        from ai.recommendations r
+                        join ai.models m on m.id=r.model_id
+                       where m.version=%s and r.decided_at >= %s::timestamptz
+                      """,
+                      (version, started_at),
+                  )
+                  fresh_recommendations, fresh_bets, latest_recommendation = cur.fetchone()
+                  if fresh_recommendations < 1:
+                      raise SystemExit('No fresh selected-model Production recommendations were written.')
+
+                  cur.execute(
+                      """
+                      select count(*)
+                        from ai.recommendations r
+                        join ai.models m on m.id=r.model_id
+                        left join ai.bookmakers b on b.code=r.bookmaker
+                       where m.version=%s
+                         and r.decided_at >= %s::timestamptz
+                         and r.decision='BET'
+                         and (r.bookmaker in ('MAX','AVG') or coalesce(b.is_real_price,false)=false or b.kind='aggregate')
+                      """,
+                      (version, started_at),
+                  )
+                  bad_actionable = cur.fetchone()[0]
+                  if bad_actionable != 0:
+                      raise SystemExit(f'Found {bad_actionable} fresh actionable recommendations on synthetic/unreal venues.')
+
+                  cur.execute(
+                      "select count(*) from ai.valid_bets vb join ai.bookmakers b on b.code=vb.bookmaker where b.kind='aggregate' or vb.bookmaker in ('MAX','AVG')"
+                  )
+                  synthetic_valid_bets = cur.fetchone()[0]
+                  if synthetic_valid_bets != 0:
+                      raise SystemExit(f'Contract-190 breach: {synthetic_valid_bets} synthetic aggregate bets are actionable.')
+
+          summary = {
+              'fresh_predictions': fresh_predictions,
+              'prediction_leagues': prediction_leagues,
+              'latest_prediction': latest_prediction.isoformat() if latest_prediction else None,
+              'fresh_recommendations': fresh_recommendations,
+              'fresh_bet_decisions': fresh_bets,
+              'latest_recommendation': latest_recommendation.isoformat() if latest_recommendation else None,
+              'synthetic_actionable_recommendations': bad_actionable,
+              'synthetic_valid_bets': synthetic_valid_bets,
+              'predict_run_id': os.environ['PREDICT_RUN_ID'],
+              'value_run_id': os.environ['VALUE_RUN_ID'],
+          }
+          print(json.dumps(summary, sort_keys=True))
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as out:
+              print('## Production AI Lab activation verified', file=out)
+              print('', file=out)
+              print(f"- Selected current models: `9 / 9` ({version})", file=out)
+              print(f"- Fresh forecasts: `{fresh_predictions}` across `{prediction_leagues}` leagues", file=out)
+              print(f"- Fresh recommendations: `{fresh_recommendations}` (`{fresh_bets}` BET decisions)", file=out)
+              print('- Fresh synthetic/unreal actionable recommendations: `0`', file=out)
+              print('- Synthetic aggregate rows in `ai.valid_bets`: `0`', file=out)
+              print(f"- Predict run: `{os.environ['PREDICT_RUN_ID']}`", file=out)
+              print(f"- Value run: `{os.environ['VALUE_RUN_ID']}`", file=out)
+          PY
