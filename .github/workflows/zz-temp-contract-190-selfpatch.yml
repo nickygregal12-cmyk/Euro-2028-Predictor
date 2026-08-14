@@ -1,0 +1,57 @@
+name: Temporary Contract 190 harness self-patch
+
+on:
+  push:
+    branches:
+      - agent/contract-190-pgtap-workdir
+    paths:
+      - .github/workflows/zz-temp-contract-190-selfpatch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/contract-190-pgtap-workdir
+          fetch-depth: 0
+      - name: Patch only the pgTAP workdir invocation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('.github/workflows/production-189-to-190-rehearsal.yml')
+          text = path.read_text()
+          old = '''          set +e
+          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
+          supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}" >"${PGTAP_LOG}" 2>&1
+          status=$?
+'''
+          new = '''          set +e
+          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
+          TEST_REL="supabase/tests/237_actionable_bet_evidence.sql"
+          mkdir -p "${WORK_DIR}/supabase/tests"
+          cp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
+          cmp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
+          (
+            cd "${WORK_DIR}"
+            supabase test db "${TEST_REL}" --db-url "${LOCAL_DB_URL}"
+          ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+'''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one pgTAP invocation block, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+          git diff -- .github/workflows/production-189-to-190-rehearsal.yml
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .github/workflows/production-189-to-190-rehearsal.yml
+          git commit -m 'Ops: bind Contract 190 pgTAP to disposable workdir'
+          git push origin HEAD:agent/contract-190-pgtap-workdir
