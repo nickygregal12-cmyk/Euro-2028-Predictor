@@ -86,7 +86,13 @@ async function createPrivateCompetition(
   await expect(page.getByRole('heading', { name: 'Leagues', exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Create private play' }).click()
-  await page.getByRole('button', { name: new RegExp(game) }).click()
+  // Retries can legitimately leave an earlier private container in the same
+  // disposable database. Its page-level game filter has a similar accessible
+  // name, so scope the choice to the create wizard rather than using `.first()`
+  // and accidentally clicking whichever duplicate happens to be earlier.
+  const createWizard = page.getByRole('region', { name: 'Create private play' })
+  await expect(createWizard).toBeVisible()
+  await createWizard.getByRole('button', { name: new RegExp(`^${game}\\b`) }).click()
   await chooseScottishSeason(page)
   await page.getByLabel('Competition name').fill(name)
   await page.getByRole('button', { name: 'Review', exact: true }).click()
