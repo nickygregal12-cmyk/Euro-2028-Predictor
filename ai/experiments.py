@@ -57,7 +57,8 @@ from train import build_dataset, column_map_for
 
 STUDIES = ("half-life", "time-weighting", "elo-transition", "elo-margin",
            "regime-weighting", "ensemble", "calibration", "gbm-diagnostic",
-           "base-model", "league-diagnostic", "market-ou")
+           "base-model", "league-diagnostic", "market-ou",
+           "newcomer-transfer", "coverage-guard")
 
 
 # ---------------------------------------------------------------------------
@@ -1115,7 +1116,265 @@ def study_market_ou(args) -> dict:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Newcomer goal-state transfer
+#
+# PREDECLARED in docs/quality/investigations/
+# 2026-08-13-newcomer-goal-transfer-predeclaration.md. The four candidates, the
+# strata, the metrics and the adoption rule are fixed there and are reproduced
+# in code here so the study cannot be quietly re-scoped after a result.
+#
+# This study writes its own fold loop rather than calling `fold_log_loss`,
+# and the reason is the whole point of the study: `fold_log_loss` returns one
+# number per season, and every question worth asking here is about a SUBSET of
+# a season — the promoted clubs, the relegated ones, their first five matches.
+# A per-season mean cannot be decomposed after the fact.
+# ---------------------------------------------------------------------------
+
+NEWCOMER_STRATA = (
+    ("overall", "every fixture in the fold"),
+    ("newcomer", "at least one club changed division this season"),
+    ("established", "neither club changed division — the no-op check"),
+    ("promoted", "at least one club came up"),
+    ("relegated", "at least one club came down"),
+    ("newcomer_first5", "a moved club inside its first 5 in the new division"),
+    ("newcomer_first10", "a moved club inside its first 10"),
+    ("newcomer_later", "a moved club after its first 10"),
+)
+
+
+def _newcomer_masks(test: pd.DataFrame) -> dict[str, np.ndarray]:
+    """The predeclared strata, as row masks over one test fold."""
+    home_move = test["home_division_move"].to_numpy()
+    away_move = test["away_division_move"].to_numpy()
+    moved = (home_move != 0) | (away_move != 0)
+
+    # How far into the new division the MOVED club is. Where both clubs moved,
+    # the earlier of the two: the stratum is meant to capture "somebody here
+    # has barely played in this division", and the least-established club is
+    # what makes that true.
+    played = np.where(
+        home_move != 0,
+        test["home_played_in_division"].to_numpy(), np.inf)
+    played = np.minimum(played, np.where(
+        away_move != 0,
+        test["away_played_in_division"].to_numpy(), np.inf))
+
+    return {
+        "overall": np.ones(len(test), dtype=bool),
+        "newcomer": moved,
+        "established": ~moved,
+        "promoted": (home_move > 0) | (away_move > 0),
+        "relegated": (home_move < 0) | (away_move < 0),
+        "newcomer_first5": moved & (played < 5),
+        "newcomer_first10": moved & (played < 10),
+        "newcomer_later": moved & (played >= 10),
+    }
+
+
+def _newcomer_fold_scores(frame, columns, family, half_life_days,
+                          min_train_seasons) -> dict[str, dict[str, float]]:
+    """Log loss per stratum per fold, for one transfer policy."""
+    out: dict[str, dict[str, float]] = {name: {} for name, _ in NEWCOMER_STRATA}
+    for fold in expanding_season_folds(frame, min_train_seasons):
+        train = frame.iloc[fold.train_index]
+        test = frame.iloc[fold.test_index]
+        weights = time_weights(train["match_date"], half_life_days)
+        model = fit_family(family, train, columns, half_life_days,
+                           weights=weights)
+        probs = model.predict_proba(test[columns])
+        actual = test["result"].values
+
+        for name, mask in _newcomer_masks(test).items():
+            # A stratum too thin to score is absent rather than zero. Scoring
+            # eleven fixtures and reporting the number beside a stratum of
+            # nine thousand invites exactly the wrong comparison.
+            if mask.sum() < 30:
+                continue
+            out[name][fold.season] = metrics.summarise(
+                probs[mask], actual[mask])["log_loss"]
+    return out
+
+
+def study_newcomer_transfer(args) -> dict:
+    """How should a club's expected-goal state transfer across a division change?
+
+    The control is the shipped behaviour, so a null result is a real outcome
+    and is reported as one.
+    """
+    from features import NEWCOMER_TRANSFER_DEFAULT, NEWCOMER_TRANSFER_POLICIES
+
+    columns = feature_names(tuple(args.feature_groups))
+    family = args.family
+
+    scores: dict[str, dict[str, dict[str, float]]] = {}
+    counts: dict[str, int] = {}
+    for policy in NEWCOMER_TRANSFER_POLICIES:
+        frame = build_dataset(args.league, newcomer_transfer=policy)
+        if policy == NEWCOMER_TRANSFER_DEFAULT:
+            probe = list(expanding_season_folds(frame, args.min_train_seasons))
+            if len(probe) < 3:
+                return {"error": f"{args.league} has {len(probe)} usable folds; "
+                                 f"a paired comparison needs at least 3"}
+            for name, mask in _newcomer_masks(frame).items():
+                counts[name] = int(mask.sum())
+        scores[policy] = _newcomer_fold_scores(
+            frame, columns, family, args.half_life_days, args.min_train_seasons)
+
+    control = scores[NEWCOMER_TRANSFER_DEFAULT]
+    print(f"\n=== {args.league}: newcomer goal transfer, family = {family} ===")
+    print(f"{'policy / stratum':<28}{'rows':>8}{'mean':>10}{'vs control':>12}"
+          f"{'se':>9}{'verdict':>10}")
+
+    rows = []
+    for policy in NEWCOMER_TRANSFER_POLICIES:
+        if policy == NEWCOMER_TRANSFER_DEFAULT:
+            continue
+        for name, _ in NEWCOMER_STRATA:
+            paired_control = control.get(name, {})
+            paired_policy = scores[policy].get(name, {})
+            shared = sorted(set(paired_control) & set(paired_policy))
+            if len(shared) < 3:
+                continue
+            # `compare` is the same paired-fold test every other study uses,
+            # and it is oriented control-first so a NEGATIVE delta is an
+            # improvement, exactly as elsewhere in this module.
+            result = compare({s: paired_control[s] for s in shared},
+                             {s: paired_policy[s] for s in shared})
+            mean = float(np.mean([paired_policy[s] for s in shared]))
+            rows.append({"policy": policy, "stratum": name,
+                         "rows": counts.get(name), "mean_log_loss": mean,
+                         **result})
+            label = ("BETTER" if result["beats_noise"]
+                     else "WORSE" if result["harmful"] else "tie")
+            print(f"{policy + '/' + name:<28}{counts.get(name, 0):>8}"
+                  f"{mean:>10.4f}{result['mean_delta']:>+12.4f}"
+                  f"{result['se_delta']:>9.4f}{label:>10}")
+
+    # The adoption rule, applied rather than described. Fixed in the
+    # predeclaration before any of these numbers existed.
+    verdicts = {}
+    for policy in NEWCOMER_TRANSFER_POLICIES:
+        if policy == NEWCOMER_TRANSFER_DEFAULT:
+            continue
+        newcomer = next((r for r in rows if r["policy"] == policy
+                         and r["stratum"] == "newcomer"), None)
+        established = next((r for r in rows if r["policy"] == policy
+                            and r["stratum"] == "established"), None)
+        if newcomer is None or established is None:
+            verdicts[policy] = "not measurable on these folds"
+            continue
+        helps = newcomer["beats_noise"]
+        harms = established["harmful"]
+        verdicts[policy] = ("adopt" if helps and not harms else
+                            "reject: degrades established fixtures" if harms else
+                            "no change: newcomer gain within noise")
+
+    return {"study": "newcomer-transfer", "league": args.league,
+            "family": family, "rows": rows, "counts": counts,
+            "verdicts": verdicts,
+            "predeclared": "docs/quality/investigations/"
+                           "2026-08-13-newcomer-goal-transfer-predeclaration.md",
+            "recommendation": (
+                "A candidate is adopted only if it improves the newcomer "
+                "stratum beyond noise AND is not worse beyond noise on "
+                "established fixtures. The established stratum is also the "
+                "implementation check: a policy touches only clubs that moved, "
+                "so a non-zero established delta is a defect, not football.")}
+
+
+# ---------------------------------------------------------------------------
+# The coverage-regime guard, and its falsification test
+#
+# The guard is only acceptable if it removes SCH 1718's catastrophic fold AND
+# is a no-op in the other eight leagues. This study reports BOTH, and reports
+# the per-fold deltas rather than only a mean, because a guard that fires in
+# one fold and nowhere else is invisible in an average over nine.
+# ---------------------------------------------------------------------------
+
+def study_coverage_guard(args) -> dict:
+    """Does dropping a barely-supported feature family help, and where?
+
+    The guard is applied per FOLD, because training support is a property of
+    the training window rather than of the league — which is also why this
+    cannot reuse `fold_log_loss`, whose column list is fixed for every fold.
+    """
+    from features import (COVERAGE_SUPPORT_FLOOR, groups_with_support,
+                          known_indicators)
+
+    frame = build_dataset(args.league)
+    groups = tuple(args.feature_groups)
+    folds = list(expanding_season_folds(frame, args.min_train_seasons))
+    if len(folds) < 3:
+        return {"error": f"{args.league} has {len(folds)} usable folds; "
+                         f"a paired comparison needs at least 3"}
+
+    control, guarded, fired = {}, {}, []
+    for fold in folds:
+        train, test = frame.iloc[fold.train_index], frame.iloc[fold.test_index]
+        kept, dropped = groups_with_support(train, groups, COVERAGE_SUPPORT_FLOOR)
+
+        support = {}
+        for group in groups:
+            present = [c for c in known_indicators(group) if c in train.columns]
+            if present:
+                support[group] = float(train[present].to_numpy().mean())
+
+        for label, use, coverage_guard in (
+            ("control", groups, False),
+            ("guarded", kept, True),
+        ):
+            columns = feature_names(use)
+            weights = time_weights(train["match_date"], args.half_life_days)
+            model = fit_family(args.family, train, columns, args.half_life_days,
+                               weights=weights, coverage_guard=coverage_guard)
+            score = metrics.summarise(model.predict_proba(test[columns]),
+                                      test["result"].values)["log_loss"]
+            (control if label == "control" else guarded)[fold.season] = score
+
+        if dropped:
+            fired.append({"season": fold.season, "dropped": list(dropped),
+                          "train_support": {g: round(support.get(g, -1.0), 4)
+                                            for g in dropped},
+                          # The test-side coverage is what makes the regime
+                          # BREAK visible rather than merely the sparsity.
+                          "test_support": {
+                              g: round(float(test[[c for c in known_indicators(g)
+                                                   if c in test.columns]]
+                                             .to_numpy().mean()), 4)
+                              for g in dropped},
+                          "control_log_loss": control[fold.season],
+                          "guarded_log_loss": guarded[fold.season]})
+
+    result = compare(control, guarded)
+    print(f"\n=== {args.league}: coverage-regime guard, "
+          f"floor = {COVERAGE_SUPPORT_FLOOR} ===")
+    print(f"{'folds':<18}{len(folds):>10}")
+    print(f"{'guard fired in':<18}{len(fired):>10}  "
+          f"{[f['season'] for f in fired]}")
+    print(f"{'control mean':<18}{np.mean(list(control.values())):>10.4f}")
+    print(f"{'guarded mean':<18}{np.mean(list(guarded.values())):>10.4f}")
+    print(_verdict_line("guard", float(np.mean(list(guarded.values()))), result))
+    for row in fired:
+        print(f"  {row['season']}: dropped {row['dropped']} "
+              f"train {row['train_support']} -> test {row['test_support']} | "
+              f"{row['control_log_loss']:.4f} -> {row['guarded_log_loss']:.4f}")
+
+    return {"study": "coverage-guard", "league": args.league,
+            "floor": COVERAGE_SUPPORT_FLOOR, "folds": len(folds),
+            "fired": fired, "control": control, "guarded": guarded, **result,
+            "predeclared": "docs/quality/investigations/"
+                           "2026-08-13-newcomer-goal-transfer-predeclaration.md",
+            "recommendation": (
+                "Adopt only if the guard removes the catastrophic fold in the "
+                "league that motivated it AND is within noise in the other "
+                "eight. A guard that improves one league and moves the rest is "
+                "not a general rule, whatever its mean says.")}
+
+
 STUDY_FUNCTIONS = {
+    "newcomer-transfer": study_newcomer_transfer,
+    "coverage-guard": study_coverage_guard,
     "half-life": study_half_life,
     "time-weighting": study_time_weighting,
     "elo-transition": study_elo_transition,
