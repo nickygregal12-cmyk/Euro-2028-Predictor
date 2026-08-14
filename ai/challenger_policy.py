@@ -11,8 +11,9 @@ number. `test_challenger_policy.py` pins both the nine-league coverage and the
 exact admitted set so "the research said X" and "Monday trains Y" cannot drift
 apart silently.
 
-Every command this module builds creates a CHALLENGER only. `train.py` owns that
-lifecycle invariant and promotion remains the separate admin/human gate.
+Every command this module builds creates a CHALLENGER only. `train_verified.py`
+runs the existing `train.py` implementation behind a fail-closed artefact
+reproducibility gate; promotion remains the separate admin/human gate.
 """
 from __future__ import annotations
 
@@ -39,7 +40,7 @@ class ChallengerSpec:
 
     def train_args(self, league: str, version: str) -> list[str]:
         args = [
-            "train.py",
+            "train_verified.py",
             "--league", league,
             "--family", self.family,
             "--half-life-days", str(self.half_life_days),
