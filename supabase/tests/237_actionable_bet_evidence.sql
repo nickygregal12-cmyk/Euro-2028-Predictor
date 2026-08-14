@@ -10,9 +10,30 @@ begin;
 
 select plan(14);
 
+-- pg_get_viewdef() is a decompiled reconstruction whose schema qualification
+-- depends on the caller's search_path. Prove relation identity from the stored
+-- rewrite dependencies instead; keep text inspection only for the predicates.
 select ok(
-  position('ai.valid_predictions' in pg_get_viewdef('ai.valid_bets'::regclass, true)) > 0
-  and position('ai.bookmakers' in pg_get_viewdef('ai.valid_bets'::regclass, true)) > 0
+  exists (
+    select 1
+      from pg_catalog.pg_rewrite r
+      join pg_catalog.pg_depend d
+        on d.classid = 'pg_catalog.pg_rewrite'::regclass
+       and d.objid = r.oid
+     where r.ev_class = 'ai.valid_bets'::regclass
+       and d.refclassid = 'pg_catalog.pg_class'::regclass
+       and d.refobjid = 'ai.valid_predictions'::regclass
+  )
+  and exists (
+    select 1
+      from pg_catalog.pg_rewrite r
+      join pg_catalog.pg_depend d
+        on d.classid = 'pg_catalog.pg_rewrite'::regclass
+       and d.objid = r.oid
+     where r.ev_class = 'ai.valid_bets'::regclass
+       and d.refclassid = 'pg_catalog.pg_class'::regclass
+       and d.refobjid = 'ai.bookmakers'::regclass
+  )
   and position('is_real_price' in pg_get_viewdef('ai.valid_bets'::regclass, true)) > 0
   and position('aggregate' in pg_get_viewdef('ai.valid_bets'::regclass, true)) > 0,
   'ai.valid_bets enforces valid prediction plus real non-aggregate venue identity'
