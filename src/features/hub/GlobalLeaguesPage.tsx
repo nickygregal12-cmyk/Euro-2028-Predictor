@@ -2,9 +2,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-system'
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import {
+  fetchMyPrivateCompetitions,
+  type PrivateCompetitionDiscovery,
+} from '../../services/supabase/privateCompetitionDiscovery'
 import { CreatePrivateJourney } from '../leagues/CreatePrivateJourney'
 import { JoinLeagueModal } from '../leagues/JoinLeagueModal'
 import { OrganiserPanel } from '../leagues/OrganiserPanel'
+import type { InviteJoinResult } from '../leagues/useInviteCode'
 import { PrivatePlayExplainer } from './PrivatePlayExplainer'
 import {
   fetchMyOrganisedCompetition,
@@ -15,6 +20,7 @@ import {
   createPrivateSeasonLms,
   launchPrivateSeasonCup,
 } from '../../services/supabase/privateCompetitions'
+import { fetchPrivateCupLaunchReadiness } from '../../services/supabase/privateCompetitionDiscovery'
 import { presentCreateJourney } from '../leagues/createJourneyModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
@@ -33,27 +39,12 @@ import s from '../shared.module.css'
 /**
  * `/leagues` — every private league and private competition the player is in.
  *
- * WHAT IT REPLACES. This route asked which football competition first. A
- * private league is where a player's friends are, and it was filed behind a
- * taxonomy the player does not think in; the 10 August authority retires that
- * shape outright.
- *
- * IT LISTS PARTICIPATION, NOT AVAILABILITY. Only containers the player actually
- * belongs to appear. Creating and joining are the two actions at the top,
- * because those are the ways the list grows.
- *
- * CREATE AND JOIN ARE BOTH HERE NOW, and both do what they say. Creating is
- * addressed by a `game_competition_id` — the league ranks one game inside one
- * competition — so the journey asks which game and which competition before
- * anything else, and offers only the combinations `create_game_league` will
- * accept. The two games it will not accept are listed with the reason rather
- * than rendered as forms that fail on submit, which is what `UI-F13`'s
- * blocked branches would have been.
- *
- * JOINING NEEDS NO SUCH WIZARD, because `join_league` resolves the game from
- * the invite code itself and refuses a caller who has not joined it. A code is
- * therefore enough on its own here, and the sheet the tournament already uses
- * is the same sheet — one code path, not two.
+ * Match Predictor private play is rebuilt through `get_my_game_leagues` because
+ * it really is a `leagues` row. Last Man Standing and Predictor Championship
+ * private play is rebuilt once, caller-addressed, through Contract 179's
+ * `get_my_private_competitions`. Keeping those reads separate is the fix for
+ * PPLAY-001: a successful bonus-game create/join can no longer disappear merely
+ * because this surface asked the ordinary-league table to rediscover it.
  */
 
 const GAME_KINDS: readonly PrivatePlayGameKind[] = [
@@ -64,7 +55,15 @@ const GAME_KINDS: readonly PrivatePlayGameKind[] = [
 
 type LoadState =
   | { status: 'loading' }
-  | { status: 'ready'; sources: PrivatePlaySource[]; unreadable: string[] }
+  | {
+      status: 'ready'
+      sources: PrivatePlaySource[]
+      privateCompetitions: readonly PrivateCompetitionDiscovery[]
+      unreadable: string[]
+      privateTruncated: boolean
+    }
+
+type JoinConfirmation = 'confirmed' | 'missing' | 'unverifiable' | null
 
 export function GlobalLeaguesPage() {
   const { status: membership, player, reload } = usePlayerCompetitions()
@@ -72,7 +71,7 @@ export function GlobalLeaguesPage() {
   const [filter, setFilter] = useState<PrivatePlayFilter>('all')
   const [creating, setCreating] = useState(false)
   const [joining, setJoining] = useState(false)
-  const [joined, setJoined] = useState(false)
+  const [joined, setJoined] = useState<InviteJoinResult | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
 
   const key = (player?.mine ?? []).map((entry) => entry.competition.seasonRowName).join('|')
@@ -83,24 +82,22 @@ export function GlobalLeaguesPage() {
     setLoad({ status: 'loading' })
 
     void (async () => {
-      // One request per JOINED GAME, not per published competition: the list is
-      // already bounded by what the player plays, which is what keeps this
-      // page the same cost on a twenty-competition platform.
+      // Ordinary private leagues only. Bonus-game private containers have their
+      // own caller-addressed read below and must never be projected through this
+      // storage model again.
       const requests: { source: Omit<PrivatePlaySource, 'leagues'>; id: string }[] = []
       for (const entry of player.mine) {
         for (const game of entry.games) {
           if (!isActiveMembership(game)) continue
-          if (!GAME_KINDS.includes(game.gameKey as PrivatePlayGameKind)) continue
+          if (game.gameKey !== 'main_predictor') continue
           requests.push({
             id: game.id,
             source: {
               competitionName: entry.competition.name,
               seasonLabel: entry.competition.seasonLabel,
-              gameKey: game.gameKey as PrivatePlayGameKind,
-              // Only the Match Predictor league has a workspace to open; see
-              // `privatePlayHref`, which owns that rule and the reason for it.
+              gameKey: 'main_predictor',
               href: privatePlayHref(
-                game.gameKey as PrivatePlayGameKind,
+                'main_predictor',
                 competitionSectionRoute(entry.competition, 'leagues'),
               ),
             },
@@ -108,24 +105,43 @@ export function GlobalLeaguesPage() {
         }
       }
 
-      const results = await Promise.allSettled(
-        requests.map(async (request) => ({
-          ...request.source,
-          leagues: await fetchMyGameLeagues(request.id),
-        })),
-      )
+      const [leagueResults, privateResults] = await Promise.all([
+        Promise.allSettled(
+          requests.map(async (request) => ({
+            ...request.source,
+            leagues: await fetchMyGameLeagues(request.id),
+          })),
+        ),
+        Promise.allSettled([fetchMyPrivateCompetitions(50, 0)]),
+      ])
       if (!active) return
 
       const sources: PrivatePlaySource[] = []
       const unreadable = new Set<string>()
-      results.forEach((result, index) => {
+      leagueResults.forEach((result, index) => {
         if (result.status === 'fulfilled') sources.push(result.value)
         // Named rather than dropped: a list that silently omits a league tells
         // a player it does not exist.
         else unreadable.add(requests[index]?.source.competitionName ?? 'A competition')
       })
 
-      setLoad({ status: 'ready', sources, unreadable: [...unreadable] })
+      let privateCompetitions: readonly PrivateCompetitionDiscovery[] = []
+      let privateTruncated = false
+      const privateResult = privateResults[0]
+      if (privateResult?.status === 'fulfilled') {
+        privateCompetitions = privateResult.value.competitions
+        privateTruncated = privateResult.value.hasMore
+      } else {
+        unreadable.add('Last Man Standing and Predictor Championship private play')
+      }
+
+      setLoad({
+        status: 'ready',
+        sources,
+        privateCompetitions,
+        unreadable: [...unreadable],
+        privateTruncated,
+      })
     })()
 
     return () => {
@@ -137,10 +153,23 @@ export function GlobalLeaguesPage() {
   const view = useMemo(
     () =>
       load.status === 'ready'
-        ? presentPrivatePlay(load.sources, load.unreadable, filter)
+        ? presentPrivatePlay(load.sources, load.unreadable, filter, load.privateCompetitions)
         : null,
     [load, filter],
   )
+
+  const joinConfirmation: JoinConfirmation = useMemo(() => {
+    if (!joined || load.status !== 'ready') return null
+    const joinedId = joined.kind === 'league' ? joined.leagueId : joined.competitionId
+    if (!joinedId) return 'unverifiable'
+    const all = presentPrivatePlay(
+      load.sources,
+      load.unreadable,
+      'all',
+      load.privateCompetitions,
+    )
+    return all.entries.some((entry) => entry.key === joinedId) ? 'confirmed' : 'missing'
+  }, [joined, load])
 
   if (membership === 'failed') {
     return (
@@ -169,150 +198,165 @@ export function GlobalLeaguesPage() {
   return (
     <Workspace
       asideLabel="About private play"
-      /**
-       * The explainer the navigation label deliberately does not carry, and
-       * the organiser's own entrants where there are any.
-       *
-       * BOTH ARE CONTEXT, NEVER A ROUTE. Create and Join stay at the top of
-       * the main column at every width; nothing on this page is reachable only
-       * from here. Below 1280px the panel stacks under the list, which is
-       * where the organiser panel already sat.
-       */
       aside={
         <>
           <PrivatePlayExplainer />
-          {/* Contract 165. Renders nothing at all for a player who organises
-              nothing, which is most of them. */}
           <OrganiserPanel
             list={() => fetchMyOrganisedCompetitions()}
             open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
+            readCupLaunch={(competitionId) => fetchPrivateCupLaunchReadiness(competitionId)}
+            launchCup={(competitionId) => launchPrivateSeasonCup(competitionId)}
+            onCompetitionChanged={() => setReloadKey((value) => value + 1)}
           />
         </>
       }
     >
-    <div className={s.page}>
-      <h1 className={s.title}>Leagues</h1>
-      <p className={styles.intro}>
-        Private leagues, Last Man Standing competitions and Championships you have joined — across
-        every football competition you play in.
-      </p>
+      <div className={s.page}>
+        <h1 className={s.title}>Leagues</h1>
+        <p className={styles.intro}>
+          Private leagues, Last Man Standing competitions and Championships you have joined — across
+          every football competition you play in.
+        </p>
 
-      {joined ? (
-        <Alert variant="success" title="You have joined the league">
-          It is in the list below. Its table updates as the matchweek scores.
-        </Alert>
-      ) : null}
+        {joinConfirmation === 'confirmed' ? (
+          <Alert variant="success" title="You have joined">
+            Confirmed in your private-play list below.
+          </Alert>
+        ) : null}
 
-      {creating ? (
-        <CreatePrivateJourney
-          journey={presentCreateJourney(player)}
-          createLeague={createGameLeague}
-          createLms={createPrivateSeasonLms}
-          createCup={createPrivateSeasonCup}
-          launchCup={launchPrivateSeasonCup}
-          onCancel={() => {
-            setCreating(false)
+        {joinConfirmation === 'missing' ? (
+          <Alert variant="warning" title="Joined, but not confirmed in this list yet">
+            The join succeeded, but the authoritative reread did not return that private play. Try
+            again before relying on this page as proof of membership.
+          </Alert>
+        ) : null}
+
+        {joinConfirmation === 'unverifiable' ? (
+          <Alert variant="warning" title="Joined, but the destination could not be verified">
+            The join succeeded without a container id, so this page cannot safely claim which row is
+            yours yet.
+          </Alert>
+        ) : null}
+
+        {creating ? (
+          <CreatePrivateJourney
+            journey={presentCreateJourney(player)}
+            createLeague={createGameLeague}
+            createLms={createPrivateSeasonLms}
+            createCup={createPrivateSeasonCup}
+            launchCup={launchPrivateSeasonCup}
+            onCancel={() => {
+              setCreating(false)
+              setReloadKey((value) => value + 1)
+            }}
+          />
+        ) : (
+          <div className={styles.actions}>
+            <Button variant="primary" onClick={() => setCreating(true)}>
+              Create private play
+            </Button>
+            <Button variant="secondary" onClick={() => setJoining(true)}>
+              Join with a code
+            </Button>
+          </div>
+        )}
+
+        <JoinLeagueModal
+          open={joining}
+          onClose={() => setJoining(false)}
+          onJoined={(result) => {
+            setJoining(false)
+            setJoined(result)
+            setFilter('all')
             setReloadKey((value) => value + 1)
           }}
         />
-      ) : (
-        <div className={styles.actions}>
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            Create private play
-          </Button>
-          <Button variant="secondary" onClick={() => setJoining(true)}>
-            Join with a code
-          </Button>
-        </div>
-      )}
 
-      <JoinLeagueModal
-        open={joining}
-        onClose={() => setJoining(false)}
-        onJoined={() => {
-          setJoining(false)
-          setJoined(true)
-          setReloadKey((value) => value + 1)
-        }}
-      />
+        {view.unreadable.length > 0 ? (
+          <Alert variant="warning" title="Some private play could not be read">
+            {view.unreadable.join(', ')} could not be checked just now, so anything you have there is
+            missing from this list.
+          </Alert>
+        ) : null}
 
-      {view.unreadable.length > 0 ? (
-        <Alert variant="warning" title="Some private play could not be read">
-          {view.unreadable.join(', ')} could not be checked just now, so anything you have there is
-          missing from this list.
-        </Alert>
-      ) : null}
+        {load.status === 'ready' && load.privateTruncated ? (
+          <Alert variant="warning" title="More private competitions exist">
+            This view shows the first 50 private Last Man Standing and Championship containers. It
+            will not pretend that first page is the whole list.
+          </Alert>
+        ) : null}
 
-      {view.counts.all > 1 ? (
-        <div className={styles.filters} role="group" aria-label="Filter by game">
-          {(['all', ...GAME_KINDS] as PrivatePlayFilter[]).map((option) => {
-            const count = view.counts[option]
-            // A filter with nothing behind it is not offered: an empty result a
-            // player asked for is indistinguishable from a broken page.
-            if (option !== 'all' && count === 0) return null
-            const label = option === 'all' ? 'All' : PRIVATE_PLAY_GAME_NAME[option]
-            const selected = option === filter
-            return (
-              <button
-                key={option}
-                type="button"
-                className={`${styles.filter} ${selected ? styles.filterOn : ''}`}
-                aria-pressed={selected}
-                onClick={() => setFilter(option)}
-              >
-                {label} <span className={styles.count}>{count}</span>
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
+        {view.counts.all > 1 ? (
+          <div className={styles.filters} role="group" aria-label="Filter by game">
+            {(['all', ...GAME_KINDS] as PrivatePlayFilter[]).map((option) => {
+              const count = view.counts[option]
+              if (option !== 'all' && count === 0) return null
+              const label = option === 'all' ? 'All' : PRIVATE_PLAY_GAME_NAME[option]
+              const selected = option === filter
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  className={`${styles.filter} ${selected ? styles.filterOn : ''}`}
+                  aria-pressed={selected}
+                  onClick={() => setFilter(option)}
+                >
+                  {label} <span className={styles.count}>{count}</span>
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
 
-      {view.empty ? (
-        <EmptyState
-          title="You have not joined any private play yet"
-          description="A private league ranks one game inside one competition. Open a game you play and create or join one there."
-          action={
-            <Link className={styles.link} to={weeklyRoutes.competitions}>
-              Find a competition
-            </Link>
-          }
-        />
-      ) : (
-        <ul className={styles.list}>
-          {view.entries.map((entry) => (
-            <li key={entry.key}>
-              <article className={styles.card}>
-                <h2 className={styles.name}>{entry.name}</h2>
-                <p className={styles.where}>
-                  {entry.competitionName} {entry.seasonLabel} · {entry.gameName}
-                </p>
-                <p className={styles.meta}>
-                  {entry.memberLine} · {entry.ownerLine}
-                </p>
-                <p className={styles.code}>
-                  Invite code <span className={styles.codeValue}>{entry.inviteCode}</span>
-                </p>
-                {entry.href ? (
-                  <Link className={styles.open} to={entry.href}>
-                    Open in {entry.competitionName}
-                  </Link>
-                ) : (
-                  // STATED, NOT OMITTED. Rendering nothing left a card with an
-                  // invite code, a member count and no explanation of why it is
-                  // the only one that does not open — which reads as a broken
-                  // card. The player keeps the code, so the container is still
-                  // usable for inviting; what it lacks is a page.
-                  <p className={styles.pending}>
-                    {entry.gameName} has no league page yet — share the code to add players.
+        {view.empty ? (
+          <EmptyState
+            title="You have not joined any private play yet"
+            description="Create one here, or join with the code a friend shared."
+            action={
+              <Link className={styles.link} to={weeklyRoutes.competitions}>
+                Find a competition
+              </Link>
+            }
+          />
+        ) : (
+          <ul className={styles.list}>
+            {view.entries.map((entry) => (
+              <li key={entry.key}>
+                <article className={styles.card}>
+                  <h2 className={styles.name}>{entry.name}</h2>
+                  <p className={styles.where}>
+                    {entry.competitionName}
+                    {entry.seasonLabel ? ` ${entry.seasonLabel}` : ''} · {entry.gameName}
                   </p>
-                )}
-              </article>
-            </li>
-          ))}
-        </ul>
-      )}
+                  <p className={styles.meta}>
+                    {entry.memberLine} · {entry.ownerLine}
+                    {entry.statusLine ? ` · ${entry.statusLine}` : ''}
+                  </p>
 
-    </div>
+                  {entry.inviteCode ? (
+                    <p className={styles.code}>
+                      Invite code <span className={styles.codeValue}>{entry.inviteCode}</span>
+                    </p>
+                  ) : entry.inviteAvailable ? (
+                    <p className={styles.code}>Invite code available from the organiser</p>
+                  ) : null}
+
+                  {entry.href ? (
+                    <Link className={styles.open} to={entry.href}>
+                      Open in {entry.competitionName}
+                    </Link>
+                  ) : (
+                    <p className={styles.pending}>
+                      This private competition is saved in your list. Its dedicated game workspace
+                      is still being built.
+                    </p>
+                  )}
+                </article>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </Workspace>
   )
 }
