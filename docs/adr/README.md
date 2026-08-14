@@ -97,3 +97,5 @@ same paragraph existed in seven places at once.
 | 188 | **No new decision.** [ADR 0029](0029-private-ai-lab-and-odds-custody.md)'s laboratory, given the model evidence, identity custody and quarantine it was missing |
 
 *Current to contract 189.*
+
+> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.

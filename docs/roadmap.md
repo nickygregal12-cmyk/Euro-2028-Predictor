@@ -297,3 +297,5 @@ same paragraph existed in seven places at once.
 | 188 | **Advances no platform item.** The private AI Lab's multi-model forecasting evidence, its provider identity custody and its quarantine authority. It closes the defect that made Production's first fifty-one forecasts unusable — a second, smaller alias table inside the Edge Function — and adds the private Bet Builder. It moves no scoring, lock, settlement, progression or reveal rule, and adds no player-facing surface |
 
 *Current to contract 189.*
+
+> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.

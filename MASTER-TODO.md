@@ -479,3 +479,5 @@ same paragraph existed in seven places at once.
 | 175–178 | The Innovation Lab backend foundations (ADR 0027): the what-if projection, Prediction DNA, offline draft reconciliation and the independent shadow scoring verifier. **Four `INNOV-*` rows close; twenty remain**, each with a named product, privacy or security blocker rather than an unexplained gap. *(Both hosted environments reached 178 on 12 August 2026, and all four gained a frontend consumer the same day — see `UI-F23`. Contract 178 still has no scheduled caller anywhere.)* |
 
 *Current to contract 189.*
+
+> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.
