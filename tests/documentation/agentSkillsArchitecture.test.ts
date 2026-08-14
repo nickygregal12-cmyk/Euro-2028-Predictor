@@ -10,6 +10,7 @@ const skills = [
   '.agents/skills/predictor-context/SKILL.md',
   '.agents/skills/predictor-ui-review/SKILL.md',
   '.agents/skills/predictor-ai-lab-verifier/SKILL.md',
+  '.agents/skills/predictor-graph-navigation/SKILL.md',
 ]
 
 describe('project-specific agent skills', () => {
@@ -26,10 +27,23 @@ describe('project-specific agent skills', () => {
     const context = read(skills[0])
     const ui = read(skills[1])
     const ai = read(skills[2])
+    const graph = read(skills[3])
 
     expect(context).toContain('Existing repository authorities always outrank this skill')
     expect(ui).toContain('critics, never authorities')
     expect(ai).toContain('promotion remains an explicit human/admin authority action')
+    expect(graph).toContain('A generated graph is a navigation/indexing aid, not repository truth')
+  })
+
+  it('keeps Graphify optional, local and disposable', () => {
+    const graph = read(skills[3])
+    const ops = read('docs/ops/graphify-navigation.md')
+    const gitignore = read('.gitignore')
+
+    expect(graph).toContain('Do not block a task on installation')
+    expect(ops).toContain('Do not add Graphify to application runtime dependencies')
+    expect(ops).toContain('do **not** enable Graphify strict/always-on hooks')
+    expect(gitignore).toMatch(/(?:^|\n)graphify-out\/\n/)
   })
 
   it('does not create a second moving contract/status authority', () => {
@@ -37,6 +51,7 @@ describe('project-specific agent skills', () => {
     expect(architecture).toContain('creates no product, scoring, lock, membership')
     expect(architecture).toContain('progressive disclosure')
     expect(architecture).toContain('PR #783')
+    expect(architecture).toContain('Graphify-Labs/graphify')
 
     for (const source of [architecture, ...skills.map(read)]) {
       expect(source).not.toMatch(/repository is at contract\s+\d+/i)
