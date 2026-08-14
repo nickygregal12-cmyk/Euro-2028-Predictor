@@ -107,97 +107,93 @@ jobs:
                       raise SystemExit(f'REFUSE: signed-in admin promotion is incomplete: {state}')
 
                   cur.execute(
-                      "select id,status,started_at,detail from ai.job_runs where job=%s order by started_at desc limit 1",
+                      "select id,status,started_at from ai.job_runs where job=%s order by started_at desc limit 1",
                       (marker_job,),
                   )
                   prior = cur.fetchone()
                   if prior is not None:
-                      detail = prior[3] if isinstance(prior[3], dict) else json.loads(prior[3] or '{}')
-                      if detail.get('repository_head') != sha:
-                          raise SystemExit(
-                              f'REFUSE: activation already belongs to repository head {detail.get("repository_head")}'
-                          )
-                      marker_id, _status, started_at, _detail = prior
-                      refresh_performed = bool(detail.get('provider_refresh_performed'))
-                      request_ids = [int(v) for v in detail.get('net_request_ids') or []]
-                      print(f'Resuming marker {marker_id}; no second provider refresh is dispatched.')
-                  else:
-                      cur.execute(
-                          """
-                          select distinct on (sport_key)
-                                 id::text,sport_key,http_status,called_at
-                            from ai.api_usage
-                           where provider='the-odds-api'
-                             and is_historical=false
-                             and called_at >= now() - interval '45 minutes'
-                             and sport_key=any(%s::text[])
-                           order by sport_key,called_at desc
-                          """,
-                          (sorted(expected_sports),),
+                      raise SystemExit(
+                          f'REFUSE: activation marker already exists: id={prior[0]} '
+                          f'status={prior[1]} started_at={prior[2]}'
                       )
-                      recent = cur.fetchall()
-                      fresh = (
-                          {row[1] for row in recent} == expected_sports
-                          and all(row[2] == 200 for row in recent)
-                      )
-                      refresh_performed = not fresh
-                      cur.execute(
-                          """
-                          insert into ai.job_runs(job,status,message,detail)
-                          values (%s,'running',%s,%s)
-                          returning id,started_at
-                          """,
-                          (
-                              marker_job,
-                              ('Owner activation: reusing fresh real-bookmaker evidence'
-                               if fresh else
-                               'Owner activation: dispatching one bounded real-bookmaker refresh'),
-                              Jsonb({
-                                  'model_version': version,
-                                  'repository_head': sha,
-                                  'provider': 'the-odds-api',
-                                  'provider_refresh_performed': refresh_performed,
-                                  'fresh_usage_ids': [row[0] for row in recent] if fresh else [],
-                                  'fresh_usage_called_at': [row[3].isoformat() for row in recent] if fresh else [],
-                              }),
-                          ),
-                      )
-                      marker_id, started_at = cur.fetchone()
-                      request_ids = []
 
-                      if refresh_performed:
-                          cur.execute("select public.dispatch_ai_odds_polls(true)")
-                          result = cur.fetchone()[0]
-                          if not isinstance(result, dict):
-                              result = json.loads(result)
-                          if result.get('dispatched') != 5 or result.get('estimated_credits') != 10:
-                              raise SystemExit(f'REFUSE: provider dispatcher returned {result}')
-                          cur.execute(
-                              """
-                              select net_request_id,path
-                                from ai.odds_api_dispatches
-                               where dispatched_at >= %s
-                               order by dispatched_at,id
-                              """,
-                              (started_at,),
-                          )
-                          dispatches = cur.fetchall()
-                          if len(dispatches) != 5:
-                              raise SystemExit(f'REFUSE: expected five dispatches, got {len(dispatches)}')
-                          paths = [row[1] for row in dispatches]
-                          if any('bookmakers=pinnacle,betfair_ex_uk,smarkets,matchbook' not in path for path in paths):
-                              raise SystemExit(f'REFUSE: path left real-bookmaker allowlist: {paths}')
-                          if any('MAX' in path or 'AVG' in path for path in paths):
-                              raise SystemExit('REFUSE: aggregate code appeared in provider path')
-                          request_ids = [int(row[0]) for row in dispatches]
-                          cur.execute(
-                              """
-                              update ai.job_runs
-                                 set detail=coalesce(detail,'{}'::jsonb) || %s
-                               where id=%s
-                              """,
-                              (Jsonb({'net_request_ids': request_ids, 'estimated_credits': 10}), marker_id),
-                          )
+                  cur.execute(
+                      """
+                      select distinct on (sport_key)
+                             id::text,sport_key,http_status,called_at
+                        from ai.api_usage
+                       where provider='the-odds-api'
+                         and is_historical=false
+                         and called_at >= now() - interval '45 minutes'
+                         and sport_key=any(%s::text[])
+                       order by sport_key,called_at desc
+                      """,
+                      (sorted(expected_sports),),
+                  )
+                  recent = cur.fetchall()
+                  fresh = (
+                      {row[1] for row in recent} == expected_sports
+                      and all(row[2] == 200 for row in recent)
+                  )
+                  refresh_performed = not fresh
+
+                  cur.execute(
+                      """
+                      insert into ai.job_runs(job,status,message,detail)
+                      values (%s,'running',%s,%s)
+                      returning id,started_at
+                      """,
+                      (
+                          marker_job,
+                          ('Owner activation: reusing fresh real-bookmaker evidence'
+                           if fresh else
+                           'Owner activation: dispatching one bounded real-bookmaker refresh'),
+                          Jsonb({
+                              'model_version': version,
+                              'repository_head': sha,
+                              'provider': 'the-odds-api',
+                              'provider_refresh_performed': refresh_performed,
+                              'fresh_usage_ids': [row[0] for row in recent] if fresh else [],
+                              'fresh_usage_called_at': [row[3].isoformat() for row in recent] if fresh else [],
+                          }),
+                      ),
+                  )
+                  marker_id, started_at = cur.fetchone()
+                  request_ids = []
+
+                  if refresh_performed:
+                      cur.execute("select public.dispatch_ai_odds_polls(true)")
+                      result = cur.fetchone()[0]
+                      if not isinstance(result, dict):
+                          result = json.loads(result)
+                      if result.get('dispatched') != 5 or result.get('estimated_credits') != 10:
+                          raise SystemExit(f'REFUSE: provider dispatcher returned {result}')
+                      cur.execute(
+                          """
+                          select net_request_id,path
+                            from ai.odds_api_dispatches
+                           where dispatched_at >= %s
+                           order by dispatched_at,id
+                          """,
+                          (started_at,),
+                      )
+                      dispatches = cur.fetchall()
+                      if len(dispatches) != 5:
+                          raise SystemExit(f'REFUSE: expected five dispatches, got {len(dispatches)}')
+                      paths = [row[1] for row in dispatches]
+                      if any('bookmakers=pinnacle,betfair_ex_uk,smarkets,matchbook' not in path for path in paths):
+                          raise SystemExit(f'REFUSE: path left real-bookmaker allowlist: {paths}')
+                      if any('MAX' in path or 'AVG' in path for path in paths):
+                          raise SystemExit('REFUSE: aggregate code appeared in provider path')
+                      request_ids = [int(row[0]) for row in dispatches]
+                      cur.execute(
+                          """
+                          update ai.job_runs
+                             set detail=coalesce(detail,'{}'::jsonb) || %s
+                           where id=%s
+                          """,
+                          (Jsonb({'net_request_ids': request_ids, 'estimated_credits': 10}), marker_id),
+                      )
               conn.commit()
 
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as out:
@@ -273,7 +269,7 @@ jobs:
             exit 1
           }
 
-      - name: Generate fresh v2 forecasts then value recommendations
+      - name: Generate fresh v2 forecasts then refresh all fixture prices and find value
         id: ai
         shell: bash
         run: |
@@ -322,7 +318,7 @@ jobs:
           }
 
           predict_id="$(dispatch_task predict)"
-          value_id="$(dispatch_task value)"
+          value_id="$(dispatch_task free-odds)"
           echo "predict_run_id=${predict_id}" >> "${GITHUB_OUTPUT}"
           echo "value_run_id=${value_id}" >> "${GITHUB_OUTPUT}"
 
@@ -403,6 +399,7 @@ jobs:
                   detail = Jsonb({
                       'predict_run_id': int(os.environ['PREDICT_RUN_ID']),
                       'value_run_id': int(os.environ['VALUE_RUN_ID']),
+                      'value_task': 'free-odds',
                       'fresh_valid_predictions': prediction_count,
                       'prediction_leagues': prediction_leagues,
                       'fresh_recommendations': recommendation_count,
@@ -439,6 +436,6 @@ jobs:
             echo "- Exact main: \`${GITHUB_SHA}\`"
             echo "- Provider refresh performed: \`${{ steps.evidence.outputs.refresh_performed }}\`"
             echo "- Predict run: \`${{ steps.ai.outputs.predict_run_id }}\`"
-            echo "- Value run: \`${{ steps.ai.outputs.value_run_id }}\`"
+            echo "- Price refresh + value run: \`${{ steps.ai.outputs.value_run_id }}\`"
             echo '- Recommendations are paper research only; aggregate MAX/AVG rows remain non-actionable.'
           } >> "${GITHUB_STEP_SUMMARY}"

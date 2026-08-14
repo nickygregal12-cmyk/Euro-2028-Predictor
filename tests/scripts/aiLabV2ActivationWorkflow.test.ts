@@ -15,7 +15,7 @@ describe('Production AI Lab v2 activation is fail-closed', () => {
     )
   })
 
-  it('requires all nine verified v2 challengers to have crossed the signed-in admin promotion gate', () => {
+  it('requires all nine verified v2 challengers to cross the signed-in admin promotion gate', () => {
     expect(source).toContain('SELECTED_VERSION: selected-20260814-v2')
     expect(source).toMatch(/'current_total': 9/)
     expect(source).toMatch(/'selected_current': 9/)
@@ -25,7 +25,7 @@ describe('Production AI Lab v2 activation is fail-closed', () => {
     expect(source).not.toContain('admin_ai_promote_model')
   })
 
-  it('reuses a complete fresh real-bookmaker snapshot and only pays for a bounded fallback', () => {
+  it('reuses complete fresh paid evidence or spends one bounded fallback exactly once', () => {
     expect(source).toContain("called_at >= now() - interval '45 minutes'")
     expect(source).toContain("provider_refresh_performed': refresh_performed")
     expect(source).toContain('public.dispatch_ai_odds_polls(true)')
@@ -33,6 +33,7 @@ describe('Production AI Lab v2 activation is fail-closed', () => {
     expect(source).toMatch(/result\.get\('estimated_credits'\) != 10/)
     expect(source).toContain('bookmakers=pinnacle,betfair_ex_uk,smarkets,matchbook')
     expect(source).toMatch(/'MAX' in path or 'AVG' in path/)
+    expect(source).toContain('activation marker already exists')
   })
 
   it('re-proves exact main after any external provider action before predictions run', () => {
@@ -41,12 +42,13 @@ describe('Production AI Lab v2 activation is fail-closed', () => {
     expect(source).toContain('refusing to run stale forecast code')
   })
 
-  it('runs prediction before value selection through the existing Production AI Lab workflow', () => {
+  it('runs prediction before the all-league free-price refresh and value pass', () => {
     const predict = source.indexOf('predict_id="$(dispatch_task predict)"')
-    const value = source.indexOf('value_id="$(dispatch_task value)"')
+    const value = source.indexOf('value_id="$(dispatch_task free-odds)"')
     expect(predict).toBeGreaterThan(-1)
     expect(value).toBeGreaterThan(predict)
     expect(source).toContain('-f target=production -f task="${task}"')
+    expect(source).toContain("'value_task': 'free-odds'")
   })
 
   it('accepts only fresh v2 forecasts and real actionable recommendation venues', () => {
