@@ -2,17 +2,10 @@ name: AI selected challenger materialisation
 
 # One policy-expansion authority: ai/train_selected_challengers.py. This workflow
 # supplies only environment + version; it does not duplicate league settings.
-# Development retry after the equal-blend comparison packaging fix remains
-# idempotent because the immutable selected version is reused with --skip-existing.
-# The branch-local push trigger performs the authorised Development-first proof.
-# It is removed after that proof; workflow_dispatch remains for the identical
-# provider-free Production run once this code is on main.
+# Development-first materialisation was completed and independently verified on
+# 14 August 2026. Further runs are explicit dispatches only. Production is
+# fail-closed unless the exact same code is running from main.
 on:
-  push:
-    branches:
-      - claude/euro-2028-ai-hardening-cxmah1
-    paths:
-      - '.github/workflows/ai-selected-challenger-materialize.yml'
   workflow_dispatch:
     inputs:
       target:
@@ -35,7 +28,6 @@ permissions:
 env:
   DEVELOPMENT_PROJECT_REF: iouzoutneyjpugbbtdem
   PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
-  SELECTED_VERSION: selected-20260814-v1
 
 jobs:
   materialize:
@@ -56,13 +48,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = push ]; then
-            target=development
-            version="${SELECTED_VERSION}"
-          else
-            target="${{ inputs.target }}"
-            version="${{ inputs.version }}"
-          fi
+          target="${{ inputs.target }}"
+          version="${{ inputs.version }}"
           case "$target" in
             development) url="${DEV_DB_URL}"; ref="${DEVELOPMENT_PROJECT_REF}" ;;
             production)
