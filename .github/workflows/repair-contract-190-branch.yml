@@ -1,0 +1,89 @@
+name: Repair Contract 190 branch
+
+on:
+  push:
+    branches:
+      - codex/ai-actionable-bet-evidence-190
+    paths:
+      - '.github/workflows/repair-contract-190-branch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: codex/ai-actionable-bet-evidence-190
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Rebase onto current main and replace duplicated authority copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git rebase origin/main
+
+          python - <<'PY'
+          from pathlib import Path
+
+          common = (
+              '> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through '
+              '`20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence '
+              'actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, '
+              'competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production '
+              'remain at 189 until the guarded Contract-190 rollout.'
+          )
+
+          replacements = {
+              'CLAUDE.md': '> **Contract 190 — 14 August 2026:** the AI Lab betting-evidence boundary now requires a registry-backed real, non-aggregate venue. This is backend safety hardening only; hosted Development and Production remain at 189 until rollout.',
+              'MASTER-TODO.md': '> **Contract 190:** closes the synthetic-price betting-evidence safety item for the AI Lab. It does not reclassify unrelated product work; hosted rollout is still pending.',
+              'docs/roadmap.md': '> **Contract 190:** adds the database actionability gate required before Production selected-model activation. The roadmap order outside that AI Lab prerequisite is unchanged.',
+              'docs/quality/feature-baseline.md': '> **Contract 190:** records a backend safeguard: valid AI betting evidence and new bet writes require a real non-aggregate bookmaker registry venue. No frontend feature baseline changes.',
+              'docs/adr/README.md': '> **Contract 190:** implements bookmaker-actionability hardening under the existing AI Lab decisions; no ADR changes status because of this contract.',
+              'docs/design/README.md': '> **Contract 190:** has no design delta. It hardens the private AI Lab betting-evidence backend while leaving the signed-in product design authority unchanged.',
+              'docs/design/ui-finalisation.md': '> **Contract 190:** introduces no UI work. It closes the backend synthetic-bookmaker evidence boundary required before the already-designed AI Lab can be activated safely.',
+              'docs/competition-structure.md': '> **Contract 190:** does not alter competition structure, scoring, entry, or ownership. Its scope is limited to private AI betting-evidence actionability.',
+              'docs/architecture/programme-plan.md': '> **Contract 190 programme effect:** the AI Lab Production-activation prerequisite for actionable bookmaker evidence is closed in repository code; hosted rollout remains the next programme gate.',
+              'docs/architecture/multi-competition-hub-build-plan.md': '> **Contract 190 stage effect:** the private AI Lab now has a database gate separating reference prices from actionable bookmaker evidence; no hub build-stage scope changes.',
+          }
+
+          for name, replacement in replacements.items():
+              path = Path(name)
+              text = path.read_text()
+              if common not in text:
+                  raise SystemExit(f'missing duplicated Contract 190 note in {name}')
+              text = text.replace(common, replacement, 1)
+              path.write_text(text)
+          PY
+
+      - name: Regenerate current-state surface and validate authority gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run generate:now
+          git diff --check
+          npm run check:documentation-authorities -- "$(git merge-base HEAD origin/main)" HEAD
+          npx vitest run \
+            tests/scripts/documentationDuplication.test.ts \
+            tests/scripts/documentationAuthorities.test.ts \
+            tests/scripts/documentationContractFreshness.test.ts
+
+      - name: Commit repaired branch and remove this temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/repair-contract-190-branch.yml
+          git add -A
+          git commit -m 'Rebase Contract 190 and fix authority duplication'
+          git push --force-with-lease origin HEAD:codex/ai-actionable-bet-evidence-190
