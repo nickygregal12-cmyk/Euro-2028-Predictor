@@ -64,7 +64,7 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
             join ai.bookmakers bk on bk.code = l.bookmaker
            where bk.is_real_price = true
              and bk.kind <> 'aggregate'
-             and (%s is null or l.bookmaker = %s)
+             and (%s::text is null or l.bookmaker = %s::text)
         ),
         reference as (
           select fixture_id,
@@ -185,8 +185,6 @@ def _assess_fixture(group: pd.DataFrame, gate: value_engine.ValueGate,
     else:
         j, rec = max(assessed, key=lambda pair: pair[1].expected_value or -np.inf)
 
-    # Best observed REAL price for the selected outcome, regardless of whether
-    # freshness/confidence ultimately allowed that venue to be acted on.
     best_real = max(
         (_float_or_none(v) for v in group[action_columns[j]].tolist()),
         default=None,
