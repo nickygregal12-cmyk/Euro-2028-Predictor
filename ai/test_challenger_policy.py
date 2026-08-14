@@ -130,7 +130,7 @@ def test_selected_runner_is_challenger_only_and_contains_no_promotion_path():
     assert "status='current'" not in runner
     assert 'status="current"' not in runner
     assert "--status" not in runner
-    assert "status=\"challenger\"" in training or "'challenger'" in training
+    assert '"status": "challenger"' in training
 
 
 def test_authority_documents_are_named_next_to_the_policy():
