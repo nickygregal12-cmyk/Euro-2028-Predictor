@@ -1,0 +1,90 @@
+name: One-shot materialise selected Production challengers
+
+# Connector bridge only. The selected-challenger workflow remains the authority
+# for model creation and provenance checks. This bridge exists because the
+# connected GitHub app cannot itself invoke workflow_dispatch.
+#
+# It is inert on every push except the dedicated main-branch activation commit.
+# Promotion remains separate and requires the signed-in admin lifecycle gate.
+
+on: push
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ai-selected-production-materialize-dispatch
+  cancel-in-progress: false
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 190
+    steps:
+      - name: Dispatch exact-main selected challenger materialisation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MATERIALIZE_WORKFLOW: ai-selected-challenger-materialize.yml
+          MATERIALIZE_VERSION: selected-20260814-v1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo "Skip: ${GITHUB_REF} is not main."
+            exit 0
+          fi
+
+          message="$(jq -r '.head_commit.message // ""' "${GITHUB_EVENT_PATH}")"
+          case "${message}" in
+            'Ops: materialize selected challengers in Production'*) ;;
+            *) echo 'Skip: main push is not the dedicated selected-challenger activation commit.'; exit 0 ;;
+          esac
+
+          remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "ERROR: main moved to ${remote_sha}; refusing to run from ${GITHUB_SHA}."
+            exit 1
+          }
+
+          after="$(date -u +%s)"
+          gh workflow run "${MATERIALIZE_WORKFLOW}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref main \
+            -f target=production \
+            -f version="${MATERIALIZE_VERSION}"
+
+          run_id=''
+          for i in $(seq 1 30); do
+            run_id="$(gh api --paginate "repos/${GITHUB_REPOSITORY}/actions/workflows/${MATERIALIZE_WORKFLOW}/runs?branch=main&event=workflow_dispatch&per_page=100" \
+              --jq ".workflow_runs[] | select(.head_sha == \"${GITHUB_SHA}\") | select((.created_at | fromdateiso8601) >= ${after}) | .id" \
+              | head -1 || true)"
+            [ -n "${run_id}" ] && break
+            sleep 2
+          done
+          [ -n "${run_id}" ] || { echo 'ERROR: exact-head materialisation run was not discoverable.'; exit 1; }
+          echo "Selected Production materialisation: ${run_id}."
+
+          for i in $(seq 1 1080); do
+            status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')"
+            if [ "${status}" = completed ]; then
+              conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
+              [ "${conclusion}" = success ] || {
+                echo "ERROR: materialisation run ${run_id} completed with ${conclusion}."
+                exit 1
+              }
+              {
+                echo '## Selected Production challenger materialisation completed'
+                echo
+                echo "- Exact main: \`${GITHUB_SHA}\`"
+                echo "- Version: \`${MATERIALIZE_VERSION}\`"
+                echo "- Run: \`${run_id}\`"
+              } >> "${GITHUB_STEP_SUMMARY}"
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "ERROR: materialisation run ${run_id} did not complete inside the bounded polling window."
+          exit 1
