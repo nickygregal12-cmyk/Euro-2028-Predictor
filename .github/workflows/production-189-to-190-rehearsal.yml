@@ -242,7 +242,14 @@ jobs:
         run: |
           set +e
           PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
-          supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}" >"${PGTAP_LOG}" 2>&1
+          TEST_REL="supabase/tests/237_actionable_bet_evidence.sql"
+          mkdir -p "${WORK_DIR}/supabase/tests"
+          cp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
+          cmp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
+          (
+            cd "${WORK_DIR}"
+            supabase test db "${TEST_REL}" --db-url "${LOCAL_DB_URL}"
+          ) >"${PGTAP_LOG}" 2>&1
           status=$?
           cat "${PGTAP_LOG}"
 
