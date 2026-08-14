@@ -1,15 +1,10 @@
 name: One-shot dispatch Contract 190 rehearsal
 
-# Connector bridge only: the guarded rehearsal remains workflow_dispatch-only.
-# This file dispatches it once when this file itself is merged to main with the
-# dedicated commit title, then can be removed after the rehearsal is launched.
+# Connector bridge only. The guarded rehearsal remains workflow_dispatch-only.
+# This workflow may start on a push, but the single shell step refuses every
+# event except the dedicated main-branch merge commit before dispatching it.
 
-on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/production-189-to-190-dispatch-once.yml
+on: push
 
 permissions:
   contents: read
@@ -17,7 +12,6 @@ permissions:
 
 jobs:
   dispatch:
-    if: startsWith(github.event.head_commit.message, 'Ops: dispatch Contract 190 rehearsal')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -27,6 +21,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          if [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo "Skip: ${GITHUB_REF} is not main."
+            exit 0
+          fi
+          message="$(jq -r '.head_commit.message // ""' "${GITHUB_EVENT_PATH}")"
+          case "${message}" in
+            'Ops: dispatch Contract 190 rehearsal'*) ;;
+            *) echo 'Skip: main push is not the dedicated Contract 190 dispatch commit.'; exit 0 ;;
+          esac
           gh workflow run production-189-to-190-rehearsal.yml \
             --repo "${GITHUB_REPOSITORY}" \
             --ref main \
