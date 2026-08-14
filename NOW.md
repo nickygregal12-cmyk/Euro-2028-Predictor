@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **190** | latest `20260814005000_ai_actionable_bet_evidence.sql` |
 | Development hosted | **189** | at `20260813215920_ai_quarantined_evidence_reads.sql`, verified `2026-08-13T22:57:00.000Z`, fast-lane run `31751114401` |
-| Production | **189** | promotion **not authorised** |
+| Production | **190** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or

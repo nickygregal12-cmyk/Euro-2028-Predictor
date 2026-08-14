@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AiLabPage } from '../../../src/features/admin/AiLabPage'
 import { mapAiLabSnapshot } from '../../../src/services/supabase/aiLabModel'
-import { fetchAiLabSnapshot } from '../../../src/services/supabase/aiLab'
+import { fetchAiLabSnapshot, promoteAiModel } from '../../../src/services/supabase/aiLab'
 
 vi.mock('../../../src/services/supabase/aiLab', () => ({
   fetchAiLabSnapshot: vi.fn(),
@@ -47,9 +47,27 @@ const snapshot = mapAiLabSnapshot({
   },
 })
 
+const challengerSnapshot = {
+  ...snapshot,
+  models: [{
+    id: 'challenger-epl',
+    league: 'EPL',
+    version: 'selected-20260814-v1',
+    family: 'ensemble',
+    status: 'challenger',
+    trainedAt: '2026-08-14T14:30:00Z',
+    trainingMatches: 12345,
+    validationAccuracy: 0.51,
+    validationLogLoss: 0.971,
+    baselineLogLoss: null,
+    marketLogLoss: null,
+  }],
+}
+
 describe('AI Lab page', () => {
   beforeEach(() => {
     vi.mocked(fetchAiLabSnapshot).mockReset().mockResolvedValue(snapshot)
+    vi.mocked(promoteAiModel).mockReset().mockResolvedValue(undefined)
   })
 
   it('renders a truthful pre-evidence dashboard rather than an invented success state', async () => {
@@ -61,6 +79,24 @@ describe('AI Lab page', () => {
     expect(screen.getByText('Awaiting graded predictions')).toBeTruthy()
     expect(screen.getByText('The laboratory remains private')).toBeTruthy()
     expect(fetchAiLabSnapshot).toHaveBeenCalledWith(null)
+  })
+
+  it('offers the audited promotion flow for a database challenger model', async () => {
+    render(<AiLabPage previewSnapshot={challengerSnapshot} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Promote' }))
+    expect(screen.getByText('Promote model')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Reason for promotion'), {
+      target: { value: 'Selected by the final guarded model study' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Make current' }))
+
+    await waitFor(() => expect(promoteAiModel).toHaveBeenCalledWith(
+      'challenger-epl',
+      'Selected by the final guarded model study',
+    ))
+    expect(await screen.findByText('EPL selected-20260814-v1 is now the current model.')).toBeTruthy()
   })
 
   it('filters every dashboard read by the selected league and exposes the evidence tabs', async () => {

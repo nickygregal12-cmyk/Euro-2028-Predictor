@@ -298,7 +298,7 @@ function Overview({
                       <td>{percent(model.validationAccuracy)}</td>
                       <td>{decimal(model.validationLogLoss)}</td>
                       <td><StatePill state={model.status} /></td>
-                      <td>{model.status === 'candidate' ? <button className={styles.textAction} type="button" onClick={() => onPromote(model)}>Promote</button> : null}</td>
+                      <td>{model.status === 'challenger' ? <button className={styles.textAction} type="button" onClick={() => onPromote(model)}>Promote</button> : null}</td>
                     </tr>
                   ))}
                 </tbody>
