@@ -39,14 +39,15 @@ describe('project-specific agent skills', () => {
 
   it('keeps Graphify optional and generated output disposable', () => {
     const graph = read(skills[3])
-    const guide = read('docs/ops/graphify-navigation.md')
+    const guide = plain(read('docs/ops/graphify-navigation.md'))
     const gitignore = read('.gitignore')
 
     expect(graph).toContain('If Graphify is unavailable, continue with normal repository search')
     expect(graph).toMatch(/should not[^.]*add a runtime dependency/i)
     expect(graph).toContain('do not make CI depend on it')
-    expect(guide).toContain('Graphify is not a source of truth')
-    expect(guide).toContain('Do not enable strict/always-on hooks repo-wide')
+    expect(guide).toContain('Graphify does not define product behaviour')
+    expect(guide).toContain('Do not promote graph output into the repository authority system')
+    expect(guide).toMatch(/Do not enable Graphify strict\/always-on hooks as a repository default/i)
     expect(gitignore).toMatch(/^graphify-out\/$/m)
   })
 
