@@ -6,6 +6,7 @@ import {
   mapOrganisedCompetitions,
 } from '../../../src/services/supabase/organisedCompetitionsModel'
 import type { PrivateCupLaunchReadiness } from '../../../src/services/supabase/privateCompetitionDiscoveryModel'
+import type { CupLaunchResult } from '../../../src/services/supabase/privateCompetitionsModel'
 
 const LIST = mapOrganisedCompetitions({
   competitions: [
@@ -43,21 +44,25 @@ const READY: PrivateCupLaunchReadiness = {
   blockedReason: null,
 }
 
+type ReadLaunch = (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
+type LaunchCup = (competitionId: string) => Promise<CupLaunchResult>
+type Changed = () => void
+
 function renderCup(options?: {
-  read?: ReturnType<typeof vi.fn>
-  launch?: ReturnType<typeof vi.fn>
-  changed?: ReturnType<typeof vi.fn>
+  read?: ReadLaunch
+  launch?: LaunchCup
+  changed?: Changed
 }) {
-  const read = options?.read ?? vi.fn(async () => READY)
+  const read = options?.read ?? vi.fn(async (_competitionId: string) => READY)
   const launch =
     options?.launch ??
-    vi.fn(async () => ({
-      outcome: 'launched' as const,
+    vi.fn(async (_competitionId: string): Promise<CupLaunchResult> => ({
+      outcome: 'launched',
       entrants: 8,
       leagueRounds: 6,
       fixtures: 28,
     }))
-  const changed = options?.changed ?? vi.fn()
+  const changed = options?.changed ?? vi.fn(() => undefined)
 
   render(
     <OrganiserPanel
@@ -84,17 +89,22 @@ describe('return-later private Championship launch', () => {
   })
 
   it('launches through the existing server command, rereads, and reports the changed competition', async () => {
-    const read = vi
-      .fn<(_: string) => Promise<PrivateCupLaunchReadiness | null>>()
+    const read = vi.fn(async (_competitionId: string): Promise<PrivateCupLaunchReadiness | null> => READY)
+    read
       .mockResolvedValueOnce(READY)
-      .mockResolvedValueOnce({ ...READY, launched: true, canLaunch: false, blockedReason: 'already_launched' })
-    const launch = vi.fn(async () => ({
-      outcome: 'launched' as const,
+      .mockResolvedValueOnce({
+        ...READY,
+        launched: true,
+        canLaunch: false,
+        blockedReason: 'already_launched',
+      })
+    const launch = vi.fn(async (_competitionId: string): Promise<CupLaunchResult> => ({
+      outcome: 'launched',
       entrants: 8,
       leagueRounds: 6,
       fixtures: 28,
     }))
-    const changed = vi.fn()
+    const changed = vi.fn(() => undefined)
     renderCup({ read, launch, changed })
 
     fireEvent.click(await screen.findByRole('button', { name: /Office Championship/ }))
@@ -107,7 +117,7 @@ describe('return-later private Championship launch', () => {
   })
 
   it('does not render a launch command when the server refuses readiness', async () => {
-    const read = vi.fn(async () => ({
+    const read = vi.fn(async (_competitionId: string): Promise<PrivateCupLaunchReadiness | null> => ({
       ...READY,
       entrants: 32,
       formatKind: 'groups',
