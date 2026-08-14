@@ -30,14 +30,12 @@ select ok(
 -- candidate RPC must refuse to turn one into an action venue.
 select ok(
   position(
-    'not v_book.is_real_price',
-    pg_get_functiondef(
+    'not v_book.is_real_price' in pg_get_functiondef(
       'public.admin_ai_bet_builder_candidates(text,text[],timestamp with time zone,timestamp with time zone,integer)'::regprocedure
     )
   ) > 0
   and position(
-    'v_book.kind = ''aggregate''',
-    pg_get_functiondef(
+    'v_book.kind = ''aggregate''' in pg_get_functiondef(
       'public.admin_ai_bet_builder_candidates(text,text[],timestamp with time zone,timestamp with time zone,integer)'::regprocedure
     )
   ) > 0,
