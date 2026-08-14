@@ -47,6 +47,7 @@ export type PrivatePlaySource = {
 }
 
 export type PrivatePlayFilter = 'all' | PrivatePlayGameKind
+export type PrivatePlayRereadConfirmation = 'confirmed' | 'missing' | 'unverifiable'
 
 export type PrivatePlayView = {
   entries: readonly PrivatePlayEntry[]
@@ -169,4 +170,22 @@ export function presentPrivatePlay(
     empty: all.length === 0,
     unreadable,
   }
+}
+
+/**
+ * PPLAY-004's trust rule after a create/join mutation.
+ *
+ * A returned id found in an authoritative reread is confirmed. A clean reread
+ * that does not contain it is a real mismatch worth surfacing. Any failed read,
+ * or a mutation that returned no id, is unverifiable — failure is never turned
+ * into a confident statement that the membership is absent.
+ */
+export function confirmPrivatePlayReread(
+  entries: readonly PrivatePlayEntry[],
+  joinedId: string | null,
+  unreadable: readonly string[],
+): PrivatePlayRereadConfirmation {
+  if (!joinedId) return 'unverifiable'
+  if (entries.some((entry) => entry.key === joinedId)) return 'confirmed'
+  return unreadable.length > 0 ? 'unverifiable' : 'missing'
 }
