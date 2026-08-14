@@ -232,4 +232,4 @@ same paragraph existed in seven places at once.
 
 *Current to contract 189.*
 
-> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.
+> **Contract 190:** has no design delta. It hardens the private AI Lab betting-evidence backend while leaving the signed-in product design authority unchanged.

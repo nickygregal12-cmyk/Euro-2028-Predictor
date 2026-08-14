@@ -256,4 +256,4 @@ nothing to say.
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
 
-> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.
+> **Contract 190 programme effect:** the AI Lab Production-activation prerequisite for actionable bookmaker evidence is closed in repository code; hosted rollout remains the next programme gate.

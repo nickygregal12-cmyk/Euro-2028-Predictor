@@ -324,4 +324,4 @@ Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovatio
 
 Twelve further rows did not ship, each for a stated reason, and the reasons are recorded in the register's own delivery record rather than restated here. **None of them is rendered as a disabled or decorative control**: where a feature needs a server authority that does not exist, no surface exists either.
 
-> **Contract 190 authority note — 14 August 2026:** the repository contract is 190 through `20260814005000_ai_actionable_bet_evidence.sql`. This contract only strengthens private AI betting-evidence actionability (`ai.valid_bets`, the insert guard and Bet Builder venue gate); it does not change the product, competition, scoring, UI or roadmap authority described in this document. Hosted Development and Production remain at 189 until the guarded Contract-190 rollout.
+> **Contract 190:** records a backend safeguard: valid AI betting evidence and new bet writes require a real non-aggregate bookmaker registry venue. No frontend feature baseline changes.
