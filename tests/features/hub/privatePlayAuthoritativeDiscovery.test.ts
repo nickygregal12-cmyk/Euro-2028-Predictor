@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { presentPrivatePlay } from '../../../src/features/hub/privatePlayModel'
+import {
+  confirmPrivatePlayReread,
+  presentPrivatePlay,
+} from '../../../src/features/hub/privatePlayModel'
 import type { PrivateCompetitionDiscovery } from '../../../src/services/supabase/privateCompetitionDiscoveryModel'
 
 const MEMBER_LMS: PrivateCompetitionDiscovery = {
@@ -96,9 +99,28 @@ describe('private-play authoritative bonus-container discovery', () => {
     })
   })
 
+  it('uses the stored season name once instead of appending its machine key', () => {
+    const view = presentPrivatePlay([], [], 'all', [OWNER_CUP])
+    expect(view.entries[0]).toMatchObject({
+      competitionName: 'Premier League 2026/27',
+      seasonLabel: '',
+    })
+  })
+
   it('filters bonus containers by their real game key after rediscovery', () => {
     const view = presentPrivatePlay([], [], 'predictor_cup', [MEMBER_LMS, OWNER_CUP])
     expect(view.entries).toHaveLength(1)
     expect(view.entries[0]?.key).toBe('cup-private-1')
+  })
+
+  it('confirms post-join copy only when the authoritative reread contains the returned id', () => {
+    const view = presentPrivatePlay([], [], 'all', [MEMBER_LMS])
+
+    expect(confirmPrivatePlayReread(view.entries, 'lms-private-1', [])).toBe('confirmed')
+    expect(confirmPrivatePlayReread(view.entries, 'different-id', [])).toBe('missing')
+    expect(confirmPrivatePlayReread(view.entries, 'different-id', ['private read failed'])).toBe(
+      'unverifiable',
+    )
+    expect(confirmPrivatePlayReread(view.entries, null, [])).toBe('unverifiable')
   })
 })
