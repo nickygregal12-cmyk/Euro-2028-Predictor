@@ -54,6 +54,8 @@ The existing artefact SHA-256 remains authoritative for the exact stored bytes. 
 
 The initial tests prove that data/order changes alter the data fingerprint, feature order changes alter the semantic fingerprint, a joblib round trip reproduces the reference gate, changed model behaviour is refused, and manifest tampering is refused.
 
+`ai/train_verified.py` now applies those primitives to the admitted challenger materialisation path without duplicating the mature training implementation. It captures the exact final-fit frame returned to `train.py`, embeds the data/semantic fingerprints and reference gate into the bundle, rewrites the artefact, reloads the exact augmented bytes, verifies all three signals, recalculates the byte SHA and only then delegates to the existing atomic model+artefact insert. `challenger_policy.py` routes the weekly/manual selected-challenger runner through this entrypoint. Raw `train.py` remains a lower-level implementation entrypoint and is intentionally not claimed here as a fully hardened direct/manual lifecycle path.
+
 ## Graph navigation phase one
 
 `docs/ops/graphify-navigation.md` and `predictor-graph-navigation` define a deliberately bounded Graphify adoption:
@@ -68,8 +70,8 @@ The initial tests prove that data/order changes alter the data fingerprint, feat
 ## Integration sequence
 
 1. Land the project-specific skills, AI-assisted development workflow, work-order template, optional graph-navigation layer and reproducibility primitives with tests.
-2. Close draft PR #783 as superseded by the current-main integration branch once this branch contains its two files unchanged in meaning.
-3. Wire the reproducibility primitives into the challenger training/write path so a freshly reloaded artefact must pass before database insertion.
+2. Close draft PR #783 as superseded by the current-main integration branch once this branch contains its two files unchanged in meaning. **Done on this branch.**
+3. Wire the reproducibility primitives into the admitted challenger materialisation path so freshly reloaded augmented bytes must pass before database insertion. **Done on this branch via `train_verified.py`; direct/manual `train.py` hardening remains a separate follow-up.**
 4. Surface the new fingerprints in the existing AI Lab evidence/admin read where useful; do this through the normal migration/contract process if schema persistence is required.
 5. Slim `AGENTS.md` and `CLAUDE.md` after moving-contract work is settled, retaining only universal operating rules and pointers to current authorities/skills. Historical contract narratives remain preserved in their authoritative/historical homes rather than auto-loaded on every task.
 6. Add independent review/judge execution selectively for high-risk migrations, AI Lab changes and cross-layer work; do not require expensive multi-agent orchestration for routine one-file edits.
