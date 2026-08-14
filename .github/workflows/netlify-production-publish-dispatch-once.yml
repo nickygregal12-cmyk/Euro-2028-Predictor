@@ -1,0 +1,119 @@
+name: One-shot publish Contract 190 sites on Netlify
+
+# Connector bridge only. It triggers Netlify's Git-backed build API for the two
+# existing Production sites so Netlify itself checks out exact main and owns
+# COMMIT_REF, DEPLOY_ID, CONTEXT and each site's scoped environment variables.
+# It never changes visitor access controls.
+
+on: push
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-production-contract-190-publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      EURO_SITE_ID: c69da01a-4650-43db-a1d2-b78b7f8e198a
+      HUB_SITE_ID: 88356cfb-6815-44ed-9ff6-83100425fac4
+    steps:
+      - name: Trigger and verify exact-main Netlify Production builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${GITHUB_REF}" != 'refs/heads/main' ]; then
+            echo "Skip: ${GITHUB_REF} is not main."
+            exit 0
+          fi
+
+          message="$(jq -r '.head_commit.message // ""' "${GITHUB_EVENT_PATH}")"
+          case "${message}" in
+            'Ops: publish Contract 190 sites'*) ;;
+            *) echo 'Skip: main push is not the dedicated Netlify Production publish commit.'; exit 0 ;;
+          esac
+
+          [ -n "${NETLIFY_AUTH_TOKEN:-}" ] || { echo 'ERROR: NETLIFY_AUTH_TOKEN is unavailable.'; exit 1; }
+
+          remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "ERROR: main moved to ${remote_sha}; refusing to publish ${GITHUB_SHA}."
+            exit 1
+          }
+
+          trigger_and_wait() {
+            local label="$1" site_id="$2" response build_id deploy_id i state commit_ref context
+
+            response="$(curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+              --header 'Content-Type: application/json' \
+              "https://api.netlify.com/api/v1/sites/${site_id}/builds?branch=main")"
+
+            build_id="$(jq -r '.id // empty' <<<"${response}")"
+            deploy_id="$(jq -r '.deploy_id // empty' <<<"${response}")"
+            [ -n "${build_id}" ] && [ -n "${deploy_id}" ] || {
+              echo "ERROR: ${label} build trigger did not return build/deploy ids."
+              exit 1
+            }
+            echo "${label}: build=${build_id} deploy=${deploy_id}."
+
+            for i in $(seq 1 150); do
+              response="$(curl --fail-with-body --silent --show-error \
+                --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+                "https://api.netlify.com/api/v1/deploys/${deploy_id}")"
+              state="$(jq -r '.state // empty' <<<"${response}")"
+              case "${state}" in
+                ready)
+                  commit_ref="$(jq -r '.commit_ref // empty' <<<"${response}")"
+                  context="$(jq -r '.context // empty' <<<"${response}")"
+                  [ "${commit_ref}" = "${GITHUB_SHA}" ] || {
+                    echo "ERROR: ${label} published ${commit_ref}, expected ${GITHUB_SHA}."
+                    exit 1
+                  }
+                  [ "${context}" = production ] || {
+                    echo "ERROR: ${label} deploy context is ${context}, expected production."
+                    exit 1
+                  }
+                  echo "${label}: ready at exact commit ${commit_ref}."
+                  printf '%s\t%s\t%s\n' "${label}" "${build_id}" "${deploy_id}" >> "${RUNNER_TEMP}/netlify-builds.tsv"
+                  return 0
+                  ;;
+                error|failed|canceled)
+                  echo "ERROR: ${label} deploy ${deploy_id} ended in state ${state}."
+                  exit 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "ERROR: ${label} deploy ${deploy_id} did not become ready inside the bounded polling window."
+            exit 1
+          }
+
+          trigger_and_wait Euro "${EURO_SITE_ID}"
+          trigger_and_wait Hub "${HUB_SITE_ID}"
+
+          # A newer main after the two builds means this release is already stale.
+          remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "ERROR: main moved to ${remote_sha} while Netlify builds were running."
+            exit 1
+          }
+
+          {
+            echo '## Netlify Production publish complete'
+            echo
+            echo "- Exact main: \`${GITHUB_SHA}\`"
+            while IFS=$'\t' read -r label build_id deploy_id; do
+              echo "- ${label}: build \`${build_id}\`, deploy \`${deploy_id}\`"
+            done < "${RUNNER_TEMP}/netlify-builds.tsv"
+          } >> "${GITHUB_STEP_SUMMARY}"
