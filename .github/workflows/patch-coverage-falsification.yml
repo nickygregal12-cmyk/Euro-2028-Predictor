@@ -1,0 +1,67 @@
+name: Patch coverage falsification call site
+
+on:
+  push:
+    branches:
+      - claude/euro-2028-ai-hardening-cxmah1
+    paths:
+      - '.github/workflows/patch-coverage-falsification.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Apply explicit coverage falsification arms') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: claude/euro-2028-ai-hardening-cxmah1
+          fetch-depth: 0
+
+      - name: Replace exactly the historical control/guard call site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('ai/experiments.py')
+          text = path.read_text()
+          old = '''        for label, use in (("control", groups), ("guarded", kept)):
+              columns = feature_names(use)
+              weights = time_weights(train["match_date"], args.half_life_days)
+              model = fit_family(args.family, train, columns, args.half_life_days,
+                                 weights=weights)
+          '''
+          new = '''        for label, use, coverage_guard in (
+              ("control", groups, False),
+              ("guarded", kept, True),
+          ):
+              columns = feature_names(use)
+              weights = time_weights(train["match_date"], args.half_life_days)
+              model = fit_family(args.family, train, columns, args.half_life_days,
+                                 weights=weights, coverage_guard=coverage_guard)
+          '''
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one exact call site, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+
+          git diff --exit-code -- . ':!ai/experiments.py'
+          git diff --check
+          grep -F 'weights=weights, coverage_guard=coverage_guard)' ai/experiments.py
+          grep -F '("control", groups, False)' ai/experiments.py
+          grep -F '("guarded", kept, True)' ai/experiments.py
+
+      - name: Commit only the bounded experiments.py diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai/experiments.py
+          test "$(git diff --cached --name-only)" = 'ai/experiments.py'
+          git commit -m 'Apply explicit coverage falsification arms'
+          git push origin HEAD:claude/euro-2028-ai-hardening-cxmah1
