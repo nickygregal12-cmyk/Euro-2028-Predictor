@@ -101,10 +101,12 @@ async function createPrivateCompetition(
   await page.getByRole('button', { name: 'Create and share', exact: true }).click()
   await created
 
-  await expect(page.getByRole('heading', { name: `${name} is ready` })).toBeVisible({
-    timeout: 15_000,
-  })
-  const codeButton = page.getByRole('button', {
+  // A retry can leave older organised competitions expanded in the aside, each
+  // with its own invite-code button. The created step is a named region, so use
+  // that semantic boundary instead of asking the whole page for "an invite code".
+  const createdRegion = page.getByRole('region', { name: `${name} is ready` })
+  await expect(createdRegion).toBeVisible({ timeout: 15_000 })
+  const codeButton = createdRegion.getByRole('button', {
     name: /Copy invite code [A-Z0-9]{6,16}/,
   })
   await expect(codeButton).toBeVisible()
