@@ -1,0 +1,66 @@
+name: Patch equal blend comparison duplication
+
+on:
+  push:
+    branches:
+      - claude/euro-2028-ai-hardening-cxmah1
+    paths:
+      - '.github/workflows/patch-ensemble-equal-blend.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, 'Deduplicate selected equal-blend comparison') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: claude/euro-2028-ai-hardening-cxmah1
+          fetch-depth: 0
+      - name: Apply the two-line candidate deduplication
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('ai/ensemble.py')
+          text = path.read_text()
+          anchor = '    per_fold: dict[str, list[float]] = {}\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('per_fold anchor changed')
+          text = text.replace(
+              anchor,
+              anchor + '    meta_candidates = tuple(dict.fromkeys(("equal_blend", meta)))\n',
+              1,
+          )
+          old = '        for name in ("equal_blend", meta):\n'
+          if text.count(old) != 1:
+              raise SystemExit(f'fold candidate loop count={text.count(old)}')
+          text = text.replace(old, '        for name in meta_candidates:\n', 1)
+          old2 = '    for name in ("equal_blend", meta):\n'
+          if text.count(old2) != 1:
+              raise SystemExit(f'comparison candidate loop count={text.count(old2)}')
+          text = text.replace(old2, '    for name in meta_candidates:\n', 1)
+          path.write_text(text)
+          PY
+          git diff --exit-code -- . ':!ai/ensemble.py'
+          git diff --check
+          test "$(git diff --name-only)" = 'ai/ensemble.py'
+          grep -F 'meta_candidates = tuple(dict.fromkeys(("equal_blend", meta)))' ai/ensemble.py
+      - name: Run focused regression
+        working-directory: ai
+        run: |
+          pip install -r requirements.txt pytest
+          pytest -q test_ensemble_equal_blend.py
+      - name: Commit only ensemble.py
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ai/ensemble.py
+          test "$(git diff --cached --name-only)" = 'ai/ensemble.py'
+          git commit -m 'Deduplicate selected equal-blend comparison'
+          git push origin HEAD:claude/euro-2028-ai-hardening-cxmah1
