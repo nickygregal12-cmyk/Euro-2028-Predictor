@@ -1,0 +1,115 @@
+name: AI work order
+description: Create a bounded implementation handoff for ChatGPT, Claude Code and Codex.
+title: "[Work] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for one coherent implementation slice. The issue is a work order, not a product authority. Link the repository authority that permits or constrains the work; do not use this form to silently create new scoring, lock, privacy, lifecycle or production decisions.
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: User / operator outcome
+      description: What problem is being solved and what should be better when this is complete?
+      placeholder: Describe the outcome, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behaviour and evidence
+      description: What does the repository do now? Link code, tests, PRs or verified hosted evidence where useful.
+      placeholder: State only what has been checked.
+    validations:
+      required: true
+
+  - type: textarea
+    id: authorities
+    attributes:
+      label: Governing authorities / dependencies
+      description: Link the ADR, accepted requirement, design authority, roadmap item, issue or other repository source that constrains this work.
+      placeholder: |
+        - docs/adr/...
+        - docs/design/...
+        - blocked by / depends on #...
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: In scope
+      description: The smallest coherent set of changes this work order authorises.
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: out_of_scope
+    attributes:
+      label: Explicitly out of scope
+      description: Name tempting adjacent work that must not be pulled into this branch.
+      placeholder: |
+        - no unrelated refactor
+        - no production mutation
+        - ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: ux_states
+    attributes:
+      label: UX states / edge cases
+      description: For user-facing work, define mobile/desktop, loading, empty, error, locked/unavailable and success behaviour as applicable. For backend-only work, state N/A and list important failure modes.
+      placeholder: Describe the states that must not be left implicit.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Write independently testable outcomes. A reviewer should be able to decide pass/fail without reading the planning chat.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Required verification
+      description: Name the checks, journeys, database evidence or hosted proof expected before completion. Use the repository's existing gates.
+      placeholder: |
+        - targeted tests: ...
+        - CI / Browser E2E / database parity as applicable
+        - hosted evidence only if the work order makes a hosted claim
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Implementation notes / known constraints
+      description: Optional hints for the implementer. Do not turn this into a second specification if the repository already owns the fact elsewhere.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: handoff
+    attributes:
+      label: Handoff readiness
+      options:
+        - label: I have checked current main and open PRs for overlapping work.
+          required: true
+        - label: The acceptance criteria do not depend on context that exists only in a chat.
+          required: true
+        - label: Any genuinely new product or architecture decision has been routed to the repository's existing authority before implementation.
+          required: true
