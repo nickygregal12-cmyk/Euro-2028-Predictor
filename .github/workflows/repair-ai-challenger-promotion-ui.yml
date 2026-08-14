@@ -1,0 +1,105 @@
+name: Temporary repair AI challenger promotion UI
+
+on:
+  push:
+    branches:
+      - agent/record-production-190-and-smoke
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: "${{ startsWith(github.event.head_commit.message, 'Ops: repair AI challenger promotion UI') }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/record-production-190-and-smoke
+          fetch-depth: 0
+
+      - name: Repair the challenger promotion affordance and add regression coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          page = Path('src/features/admin/AiLabPage.tsx')
+          text = page.read_text()
+          old = "model.status === 'candidate' ? <button className={styles.textAction} type=\"button\" onClick={() => onPromote(model)}>Promote</button> : null"
+          new = "model.status === 'challenger' ? <button className={styles.textAction} type=\"button\" onClick={() => onPromote(model)}>Promote</button> : null"
+          if text.count(old) != 1:
+              raise SystemExit('expected exactly one stale candidate promotion predicate')
+          page.write_text(text.replace(old, new))
+
+          test = Path('tests/features/admin/AiLabPage.test.tsx')
+          text = test.read_text()
+          old_import = "import { fetchAiLabSnapshot } from '../../../src/services/supabase/aiLab'"
+          new_import = "import { fetchAiLabSnapshot, promoteAiModel } from '../../../src/services/supabase/aiLab'"
+          if text.count(old_import) != 1:
+              raise SystemExit('expected exactly one AI Lab service import')
+          text = text.replace(old_import, new_import)
+
+          marker = "\ndescribe('AI Lab page', () => {\n"
+          challenger = r'''
+const challengerSnapshot = {
+  ...snapshot,
+  models: [{
+    id: 'challenger-epl',
+    league: 'EPL',
+    version: 'selected-20260814-v1',
+    family: 'ensemble',
+    status: 'challenger',
+    trainedAt: '2026-08-14T14:30:00Z',
+    trainingMatches: 12345,
+    validationAccuracy: 0.51,
+    validationLogLoss: 0.971,
+    baselineLogLoss: null,
+    marketLogLoss: null,
+  }],
+}
+'''
+          if text.count(marker) != 1:
+              raise SystemExit('expected exactly one AI Lab describe marker')
+          text = text.replace(marker, challenger + marker)
+
+          reset_old = "    vi.mocked(fetchAiLabSnapshot).mockReset().mockResolvedValue(snapshot)\n"
+          reset_new = reset_old + "    vi.mocked(promoteAiModel).mockReset().mockResolvedValue(undefined)\n"
+          if text.count(reset_old) != 1:
+              raise SystemExit('expected exactly one fetch mock reset')
+          text = text.replace(reset_old, reset_new)
+
+          end_marker = "\n  it('filters every dashboard read by the selected league and exposes the evidence tabs', async () => {"
+          regression = r'''
+  it('offers the audited promotion flow for a database challenger model', async () => {
+    render(<AiLabPage previewSnapshot={challengerSnapshot} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Promote' }))
+    expect(screen.getByText('Promote model')).toBeTruthy()
+
+    fireEvent.change(screen.getByLabelText('Reason for promotion'), {
+      target: { value: 'Selected by the final guarded model study' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Make current' }))
+
+    await waitFor(() => expect(promoteAiModel).toHaveBeenCalledWith(
+      'challenger-epl',
+      'Selected by the final guarded model study',
+    ))
+    expect(await screen.findByText('EPL selected-20260814-v1 is now the current model.')).toBeTruthy()
+  })
+'''
+          if text.count(end_marker) != 1:
+              raise SystemExit('expected exactly one insertion point before filter test')
+          text = text.replace(end_marker, regression + end_marker)
+          test.write_text(text)
+          PY
+
+          rm .github/workflows/repair-ai-challenger-promotion-ui.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/features/admin/AiLabPage.tsx tests/features/admin/AiLabPage.test.tsx .github/workflows/repair-ai-challenger-promotion-ui.yml
+          git commit -m 'Fix AI Lab challenger promotion affordance'
+          git push origin HEAD:agent/record-production-190-and-smoke
