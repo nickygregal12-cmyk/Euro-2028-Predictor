@@ -71,10 +71,9 @@ class FreshnessPolicy:
     price ninety minutes before kickoff has been superseded several times.
 
     Aggregates are held to a stricter standard again. `AVG` and `MAX` are
-    computed across books; neither is a price any bookmaker will accept, and
-    the database already refuses them on a real-money bet. Their freshness
-    matters more, not less, because they are being used as the market
-    REFERENCE — the thing the model is measured against.
+    computed across books; neither is a price any bookmaker will accept. They
+    remain useful REFERENCE prices — market consensus, dispersion and ceilings
+    — but they are never actionable candidates, including in paper mode.
     """
 
     max_age_far: timedelta = timedelta(hours=12)
@@ -82,7 +81,7 @@ class FreshnessPolicy:
     max_age_imminent: timedelta = timedelta(minutes=20)
     near_kickoff_hours: float = 8.0
     imminent_kickoff_hours: float = 2.0
-    aggregate_tightening: float = 0.5      # aggregates get half the allowance
+    aggregate_tightening: float = 0.5      # references get half the allowance
 
     def limit_for(self, hours_to_kickoff: float, is_aggregate: bool = False) -> timedelta:
         if hours_to_kickoff <= self.imminent_kickoff_hours:
@@ -116,10 +115,10 @@ class FreshnessVerdict:
 # reason that was not true, while the two things that ARE aggregates were
 # correctly listed beside it, which is what made the error hard to see.
 #
-# The classification is now LOADED from the registry, with the two aggregates
-# as the fallback for an offline caller. An exchange is bettable and is not an
-# aggregate; what it is instead is a venue whose price is gross of commission,
-# which is a different fact and is carried separately.
+# The classification is LOADED from the registry, with the two aggregates as
+# the fallback for an offline caller. Actionability is fail-closed: a code must
+# exist, must say `is_real_price = true`, and must not be `kind = aggregate`.
+# Paper mode changes whether money is at risk; it does not manufacture a venue.
 # ---------------------------------------------------------------------------
 
 FALLBACK_AGGREGATES = frozenset({"AVG", "MAX"})
@@ -172,7 +171,7 @@ def set_bookmaker_registry(registry: dict[str, dict] | None) -> None:
 
 
 def is_aggregate(code: str) -> bool:
-    """True only for a derived reference price, never for an exchange."""
+    """True only for a derived/non-real reference price, never for an exchange."""
     entry = bookmaker_registry().get(str(code).upper())
     if entry is None:
         return str(code).upper() in FALLBACK_AGGREGATES
@@ -180,9 +179,9 @@ def is_aggregate(code: str) -> bool:
 
 
 def is_actionable(code: str) -> bool:
-    """True when a price at this code is one somebody can actually take."""
+    """True only when the registry says this is a real, non-aggregate venue."""
     entry = bookmaker_registry().get(str(code).upper())
-    return bool(entry and entry["is_real_price"])
+    return bool(entry and entry["is_real_price"] and entry["kind"] != "aggregate")
 
 
 def exchange_commission(code: str) -> float | None:
@@ -332,14 +331,20 @@ class ValueGate:
         if not fresh.fresh:
             reasons.append("PASS_STALE_PRICE")
 
-        if not candidate.is_paper and not is_actionable(candidate.bookmaker):
+        registry_entry = bookmaker_registry().get(str(candidate.bookmaker).upper())
+        evidence["bookmaker_kind"] = (registry_entry or {}).get("kind")
+        evidence["bookmaker_actionable"] = is_actionable(candidate.bookmaker)
+        if not evidence["bookmaker_actionable"]:
             reasons.append("PASS_UNBETTABLE_BOOK")
             evidence["bookmaker_note"] = (
                 f"{candidate.bookmaker} is not a price any venue will accept "
-                "(ai.bookmakers.is_real_price is false, or the code is unknown)")
+                "(ai.bookmakers.is_real_price is false, it is an aggregate, "
+                "or the code is unknown)")
+
         commission = exchange_commission(candidate.bookmaker)
         evidence["exchange_commission"] = commission
-        if commission is None:
+        if (registry_entry is not None and registry_entry.get("kind") == "exchange"
+                and commission is None):
             # An exchange whose commission the registry does not state cannot
             # be used to show an exact expected return. Reported, not refused:
             # the price is real, and the number beside it is gross.
