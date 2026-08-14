@@ -27,23 +27,8 @@ jobs:
           from pathlib import Path
           path = Path('.github/workflows/production-189-to-190-rehearsal.yml')
           text = path.read_text()
-          old = '''          set +e
-          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
-          supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}" >"${PGTAP_LOG}" 2>&1
-          status=$?
-'''
-          new = '''          set +e
-          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
-          TEST_REL="supabase/tests/237_actionable_bet_evidence.sql"
-          mkdir -p "${WORK_DIR}/supabase/tests"
-          cp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
-          cmp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"
-          (
-            cd "${WORK_DIR}"
-            supabase test db "${TEST_REL}" --db-url "${LOCAL_DB_URL}"
-          ) >"${PGTAP_LOG}" 2>&1
-          status=$?
-'''
+          old = '          set +e\n          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"\n          supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}" >"${PGTAP_LOG}" 2>&1\n          status=$?\n'
+          new = '          set +e\n          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"\n          TEST_REL="supabase/tests/237_actionable_bet_evidence.sql"\n          mkdir -p "${WORK_DIR}/supabase/tests"\n          cp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"\n          cmp "${GITHUB_WORKSPACE}/${TEST_REL}" "${WORK_DIR}/${TEST_REL}"\n          (\n            cd "${WORK_DIR}"\n            supabase test db "${TEST_REL}" --db-url "${LOCAL_DB_URL}"\n          ) >"${PGTAP_LOG}" 2>&1\n          status=$?\n'
           if text.count(old) != 1:
               raise SystemExit(f'expected exactly one pgTAP invocation block, found {text.count(old)}')
           path.write_text(text.replace(old, new))
