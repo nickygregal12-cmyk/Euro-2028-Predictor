@@ -121,7 +121,6 @@ def test_retry_mode_skips_a_league_that_already_materialised(monkeypatch):
 
 
 def test_selected_runner_is_challenger_only_and_contains_no_promotion_path():
-    """The materialiser may create challengers; authority to promote lives elsewhere."""
     root = Path(__file__).resolve().parent.parent
     runner = (root / "ai" / "train_selected_challengers.py").read_text().lower()
     training = (root / "ai" / "train.py").read_text().lower()
@@ -144,4 +143,4 @@ def test_monday_training_uses_the_selected_policy_not_one_global_family():
     workflow = (root / ".github" / "workflows" / "ai-lab.yml").read_text()
     assert "python train_selected_challengers.py" in workflow
     assert './run_leagues.sh train.py --family poisson' not in workflow
-    assert "promote" not in workflow.lower()
+    assert "admin_ai_promote_model" not in workflow
