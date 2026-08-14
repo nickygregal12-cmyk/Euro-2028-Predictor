@@ -1,41 +1,40 @@
 import { useEffect, useState } from 'react'
-import { Alert, Skeleton } from '../../design-system'
+import { Alert, Button, Skeleton } from '../../design-system'
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { InvitePanel } from './InvitePanel'
 import type {
   OrganisedCompetition,
   OrganisedCompetitionSummary,
 } from '../../services/supabase/organisedCompetitionsModel'
+import type { CupLaunchResult } from '../../services/supabase/privateCompetitionsModel'
+import type { PrivateCupLaunchReadiness } from '../../services/supabase/privateCompetitionDiscovery'
 import styles from './OrganiserPanel.module.css'
 
 /**
- * What an organiser can see about a competition they made (contract 165).
+ * What an organiser can see about a competition they made.
  *
- * OWNING A COMPETITION IS NOT A REVEAL EXEMPTION, and this surface is where
- * that is easiest to get wrong. It shows THAT an entrant has picked and never
- * WHAT — the read carries no club at all, so there is nothing here to leak —
- * and an organiser who wants to know what somebody picked waits for the round
- * to lock like every other entrant.
- *
- * THERE IS NO ORGANISER COMMAND, AND ITS ABSENCE IS DESIGNED. No accepted
- * authority grants an organiser power over another entrant, and the power in
- * question is the power to eliminate somebody. The server returns
- * `organiserCommandsAvailable` empty; this renders a control for each command
- * the server names and therefore renders none, so a command arriving later
- * appears without a component being edited — and one that has NOT been accepted
- * cannot be added by adding a button.
- *
- * THE INVITE CODE IS THE USEFUL PART TODAY. An organiser's live question is
- * "who is in, and how do I get more people in", and the answer to the second is
- * the code.
- *
- * IT IS NOT AN ADMINISTRATION SURFACE. These reads answer about competitions
- * the CALLER owns; contract 168's are the administration ones, and they are
- * deliberately separate.
+ * Contract 165 still owns the entrant read and still grants no power over
+ * another entrant. Contract 179 adds one different lifecycle ability for a
+ * Predictor Championship organiser: return later and launch their own field.
+ * Launch readiness is read from the server and never reconstructed here.
  */
 
 export type OrganiserPanelProps = {
   list: () => Promise<readonly OrganisedCompetitionSummary[]>
   open: (competitionId: string) => Promise<OrganisedCompetition | null>
+  readCupLaunch?: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
+  launchCup?: (competitionId: string) => Promise<CupLaunchResult>
+  onCompetitionChanged?: () => void
+  /**
+   * Optional controlled selection. `/leagues` uses this because an authoritative
+   * post-mutation reread temporarily removes the whole workspace while it shows
+   * its loading state. Keeping the selected organiser id in the page means that
+   * when the panel remounts it reopens the same competition and can show the
+   * freshly reread success state instead of collapsing at the exact moment the
+   * mutation is confirmed.
+   */
+  selectedCompetitionId?: string | null
+  onSelectedCompetitionChange?: (competitionId: string | null) => void
 }
 
 type ListState =
@@ -43,9 +42,24 @@ type ListState =
   | { status: 'failed' }
   | { status: 'ready'; competitions: readonly OrganisedCompetitionSummary[] }
 
-export function OrganiserPanel({ list, open }: OrganiserPanelProps) {
+export function OrganiserPanel({
+  list,
+  open,
+  readCupLaunch,
+  launchCup,
+  onCompetitionChanged,
+  selectedCompetitionId,
+  onSelectedCompetitionChange,
+}: OrganiserPanelProps) {
   const [state, setState] = useState<ListState>({ status: 'loading' })
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [internalOpenId, setInternalOpenId] = useState<string | null>(null)
+  const controlled = selectedCompetitionId !== undefined
+  const openId = controlled ? selectedCompetitionId : internalOpenId
+
+  function setOpenId(next: string | null) {
+    if (!controlled) setInternalOpenId(next)
+    onSelectedCompetitionChange?.(next)
+  }
 
   useEffect(() => {
     let active = true
@@ -71,7 +85,6 @@ export function OrganiserPanel({ list, open }: OrganiserPanelProps) {
     )
   }
 
-  // Organising nothing is the common case and deserves no furniture.
   if (state.competitions.length === 0) return null
 
   return (
@@ -96,7 +109,13 @@ export function OrganiserPanel({ list, open }: OrganiserPanelProps) {
               </span>
             </button>
             {openId === competition.id ? (
-              <Detail competitionId={competition.id} open={open} />
+              <Detail
+                competitionId={competition.id}
+                open={open}
+                readCupLaunch={readCupLaunch}
+                launchCup={launchCup}
+                onCompetitionChanged={onCompetitionChanged}
+              />
             ) : null}
           </li>
         ))}
@@ -108,9 +127,15 @@ export function OrganiserPanel({ list, open }: OrganiserPanelProps) {
 function Detail({
   competitionId,
   open,
+  readCupLaunch,
+  launchCup,
+  onCompetitionChanged,
 }: {
   competitionId: string
   open: (competitionId: string) => Promise<OrganisedCompetition | null>
+  readCupLaunch?: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
+  launchCup?: (competitionId: string) => Promise<CupLaunchResult>
+  onCompetitionChanged?: () => void
 }) {
   const [state, setState] = useState<
     { status: 'loading' } | { status: 'failed' } | { status: 'ready'; view: OrganisedCompetition | null }
@@ -140,8 +165,6 @@ function Detail({
     )
   }
   if (!state.view) {
-    // Null means the server named no competition — which is what a caller who
-    // does not own it gets. Rendered as a refusal, never as an empty screen.
     return (
       <Alert variant="warning" title="You do not organise this competition">
         Only its organiser can see its entrants.
@@ -161,6 +184,15 @@ function Detail({
         />
       ) : null}
 
+      {view.competition.gameKey === 'predictor_cup' && readCupLaunch && launchCup ? (
+        <CupLaunchControl
+          competitionId={competitionId}
+          read={readCupLaunch}
+          launch={launchCup}
+          onChanged={onCompetitionChanged}
+        />
+      ) : null}
+
       <p className={styles.counts}>
         {view.counts.entrants} {view.counts.entrants === 1 ? 'entrant' : 'entrants'} ·{' '}
         {view.counts.remaining} still in · {view.counts.eliminated} out
@@ -175,8 +207,6 @@ function Detail({
           <li key={entrant.userId} className={styles.entrant}>
             <span className={styles.entrantName}>{entrant.displayName}</span>
             <span className={styles.entrantState}>
-              {/* THAT they have picked, never what. There is no club on this
-                  read and there must be none on this row. */}
               {entrant.stillIn ? 'Still in' : 'Eliminated'}
               {entrant.hasPickedCurrentRound === true ? ' · picked' : ''}
               {entrant.hasPickedCurrentRound === false ? ' · not picked yet' : ''}
@@ -195,8 +225,6 @@ function Detail({
           over the people in it.
         </p>
       ) : (
-        // A command the SERVER names. None exists today; this renders whatever
-        // it ever names rather than a button somebody added.
         <ul className={styles.commands}>
           {view.organiserCommandsAvailable.map((command) => (
             <li key={command}>{command}</li>
@@ -205,4 +233,127 @@ function Detail({
       )}
     </div>
   )
+}
+
+type LaunchState =
+  | { status: 'loading' }
+  | { status: 'failed' }
+  | { status: 'ready'; readiness: PrivateCupLaunchReadiness | null }
+
+function CupLaunchControl({
+  competitionId,
+  read,
+  launch,
+  onChanged,
+}: {
+  competitionId: string
+  read: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
+  launch: (competitionId: string) => Promise<CupLaunchResult>
+  onChanged?: () => void
+}) {
+  const [state, setState] = useState<LaunchState>({ status: 'loading' })
+  const [launching, setLaunching] = useState(false)
+  const [launchError, setLaunchError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    setState({ status: 'loading' })
+    read(competitionId)
+      .then((readiness) => {
+        if (active) setState({ status: 'ready', readiness })
+      })
+      .catch(() => {
+        if (active) setState({ status: 'failed' })
+      })
+    return () => {
+      active = false
+    }
+  }, [competitionId, read])
+
+  async function doLaunch() {
+    setLaunching(true)
+    setLaunchError(null)
+    try {
+      const result = await launch(competitionId)
+      if (result.outcome === 'launched' || result.outcome === 'already_launched') {
+        setState({ status: 'ready', readiness: await read(competitionId) })
+        onChanged?.()
+        return
+      }
+      if (result.outcome === 'no_viable_format') {
+        setLaunchError(result.reason ?? 'The field is not launchable yet.')
+      } else if (result.outcome === 'refused') {
+        setLaunchError(result.reason ?? 'The server refused to launch this Championship.')
+      } else {
+        setLaunchError(result.reason ?? 'The launch result was not recognised by this build.')
+      }
+    } catch (thrown) {
+      setLaunchError(userFacingError(thrown, 'The competition could not be launched.'))
+    } finally {
+      setLaunching(false)
+    }
+  }
+
+  if (state.status === 'loading') return <Skeleton lines={2} />
+  if (state.status === 'failed') {
+    return (
+      <Alert variant="warning" title="We could not check launch readiness">
+        The Championship has not been changed. Try opening it again.
+      </Alert>
+    )
+  }
+
+  const readiness = state.readiness
+  if (!readiness) return null
+
+  if (readiness.launched) {
+    return (
+      <Alert variant="success" title="Championship launched">
+        The field is fixed and registration is closed.
+      </Alert>
+    )
+  }
+
+  return (
+    <div className={styles.detail}>
+      <h3>Launch the Championship</h3>
+      <p className={styles.note}>
+        {readiness.entrants} {readiness.entrants === 1 ? 'entrant' : 'entrants'} currently in the
+        field. Launching fixes the draw and closes registration to new entrants. It cannot be undone.
+      </p>
+
+      {!readiness.canLaunch ? (
+        <p className={styles.note}>{launchBlocker(readiness)}</p>
+      ) : (
+        <Button variant="primary" loading={launching} onClick={() => void doLaunch()}>
+          Launch the Championship
+        </Button>
+      )}
+
+      {launchError ? (
+        <Alert variant="error" title="The Championship was not launched">
+          {launchError}
+        </Alert>
+      ) : null}
+    </div>
+  )
+}
+
+function launchBlocker(readiness: PrivateCupLaunchReadiness): string {
+  switch (readiness.blockedReason) {
+    case 'field_needs_administered_draw':
+      return 'This field is large enough to need an administrator-managed draw.'
+    case 'already_completed':
+      return 'This Championship has already finished.'
+    case 'already_launched':
+      return 'This Championship has already been launched.'
+    case 'not_the_organiser':
+      return 'Only the organiser can launch this Championship.'
+    case 'no_viable_format':
+      return 'The field or remaining calendar is not large enough for a viable format yet.'
+    default:
+      return readiness.remainingRounds > 0
+        ? 'The server says this Championship is not ready to launch yet.'
+        : 'There are no remaining matchweeks available for a Championship draw.'
+  }
 }

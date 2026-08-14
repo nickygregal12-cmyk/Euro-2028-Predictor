@@ -8,12 +8,12 @@
  * accident. An organiser who wants to know what somebody picked waits for the
  * round to lock like everybody else.
  *
- * THERE IS NO ORGANISER COMMAND, AND ITS ABSENCE IS THE DESIGN. The contract
- * adds none, because no accepted authority grants an organiser power over
- * another entrant — and the power in question is the power to eliminate
- * somebody. `organiserCommandsAvailable` is returned by the server as an empty
- * list and is carried here verbatim: when a command is ever accepted it will
- * arrive in that field rather than as a button somebody added to a component.
+ * THERE IS NO ORGANISER COMMAND OVER ANOTHER ENTRANT, AND ITS ABSENCE IS THE
+ * DESIGN. Contract 165 adds none, because no accepted authority grants an
+ * organiser power to change another entrant's competitive position. Contract
+ * 179 separately exposes whether a private Championship the caller owns can be
+ * launched; that is authority over the caller's own container, not over an
+ * entrant's pick.
  *
  * IT IS OWNER-SCOPED, NOT ADMINISTRATOR-SCOPED. These reads answer about
  * competitions the CALLER owns. They are not an administration surface and must
@@ -118,7 +118,13 @@ function countOf(value: unknown): number {
 
 function mapSummary(value: unknown): OrganisedCompetitionSummary | null {
   const row = objectOf(value)
-  const id = stringOrNull(row.id)
+  // Contract 165 intentionally uses two wire shapes: the addressed detail read
+  // nests `competition.id`, while the bounded list names the same identity
+  // `competition_id`. The previous decoder accepted only the detail spelling,
+  // so every REAL list row decoded to null and the organiser could never return
+  // to a competition after leaving its create flow. Accept exactly those two
+  // authority-owned spellings; do not invent a third identifier fallback.
+  const id = stringOrNull(row.id) ?? stringOrNull(row.competition_id)
   const name = stringOrNull(row.name)
   if (!id || !name) return null
   return {
