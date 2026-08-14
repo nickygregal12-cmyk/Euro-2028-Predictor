@@ -239,7 +239,31 @@ jobs:
 
       - name: Run only the Contract 190 behavioral pgTAP suite
         shell: bash
-        run: supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}"
+        run: |
+          set +e
+          PGTAP_LOG="${WORK_DIR}/237-actionable-bet-evidence.log"
+          supabase test db supabase/tests/237_actionable_bet_evidence.sql --db-url "${LOCAL_DB_URL}" >"${PGTAP_LOG}" 2>&1
+          status=$?
+          cat "${PGTAP_LOG}"
+
+          tests="$(grep -oE 'Tests=[0-9]+' "${PGTAP_LOG}" | tail -1 | cut -d= -f2 || true)"
+          result="$(grep -oE 'Result: (PASS|FAIL)' "${PGTAP_LOG}" | tail -1 | awk '{print $2}' || true)"
+          plan_started=false
+          if grep -Eq '(^|[[:space:]])1\.\.14([[:space:]]|$)|Tests=14' "${PGTAP_LOG}"; then plan_started=true; fi
+
+          if [ "${status}" -ne 0 ]; then
+            excerpt="$(tail -n 80 "${PGTAP_LOG}" | tr '\n' ' ' | sed 's/%/%25/g')"
+            echo "::error title=Contract 190 pgTAP failed::exit=${status}; tests=${tests:-0}; plan_started=${plan_started}; ${excerpt}"
+            exit "${status}"
+          fi
+
+          if [ "${tests:-0}" != 14 ] || [ "${result:-}" != PASS ]; then
+            excerpt="$(tail -n 80 "${PGTAP_LOG}" | tr '\n' ' ' | sed 's/%/%25/g')"
+            echo "::error title=Contract 190 pgTAP invalid success::exit=${status}; tests=${tests:-0}; result=${result:-missing}; plan_started=${plan_started}; ${excerpt}"
+            exit 1
+          fi
+
+          echo "Contract 190 pgTAP completed: 14/14 assertions PASS."
 
       - name: Verify installed Contract 190 behavior on Production snapshot
         shell: bash
