@@ -1320,11 +1320,14 @@ def study_coverage_guard(args) -> dict:
             if present:
                 support[group] = float(train[present].to_numpy().mean())
 
-        for label, use in (("control", groups), ("guarded", kept)):
+        for label, use, coverage_guard in (
+            ("control", groups, False),
+            ("guarded", kept, True),
+        ):
             columns = feature_names(use)
             weights = time_weights(train["match_date"], args.half_life_days)
             model = fit_family(args.family, train, columns, args.half_life_days,
-                               weights=weights)
+                               weights=weights, coverage_guard=coverage_guard)
             score = metrics.summarise(model.predict_proba(test[columns]),
                                       test["result"].values)["log_loss"]
             (control if label == "control" else guarded)[fold.season] = score
