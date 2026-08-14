@@ -32,18 +32,19 @@ describe('project-specific agent skills', () => {
     expect(context).toContain('Existing repository authorities always outrank this skill')
     expect(ui).toContain('critics, never authorities')
     expect(ai).toContain('promotion remains an explicit human/admin authority action')
-    expect(graph).toContain('A generated graph is a navigation/indexing aid, not repository truth')
+    expect(ai).toContain('ai/train_verified.py')
+    expect(graph).toContain('navigation/indexing aid, not repository truth')
   })
 
-  it('keeps Graphify optional, local and disposable', () => {
+  it('keeps Graphify optional and generated output disposable', () => {
     const graph = read(skills[3])
-    const ops = read('docs/ops/graphify-navigation.md')
+    const guide = read('docs/ops/graphify-navigation.md')
     const gitignore = read('.gitignore')
 
-    expect(graph).toContain('Do not block a task on installation')
-    expect(ops).toContain('Do not add Graphify to application runtime dependencies')
-    expect(ops).toContain('do **not** enable Graphify strict/always-on hooks')
-    expect(gitignore).toMatch(/(?:^|\n)graphify-out\/\n/)
+    expect(graph).toContain('Do not make Graphify a required application dependency')
+    expect(guide).toContain('Graphify is not a source of truth')
+    expect(guide).toContain('Do not enable strict/always-on hooks repo-wide')
+    expect(gitignore).toMatch(/^graphify-out\/$/m)
   })
 
   it('does not create a second moving contract/status authority', () => {
@@ -51,7 +52,7 @@ describe('project-specific agent skills', () => {
     expect(architecture).toContain('creates no product, scoring, lock, membership')
     expect(architecture).toContain('progressive disclosure')
     expect(architecture).toContain('PR #783')
-    expect(architecture).toContain('Graphify-Labs/graphify')
+    expect(architecture).toContain('train_verified.py')
 
     for (const source of [architecture, ...skills.map(read)]) {
       expect(source).not.toMatch(/repository is at contract\s+\d+/i)
