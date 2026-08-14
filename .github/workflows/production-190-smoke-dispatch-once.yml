@@ -2,7 +2,8 @@ name: One-shot smoke Contract 190 production sites
 
 # Connector bridge only. The real Production Smoke workflow remains the
 # authority: this file merely dispatches it for both ADR-0026 production sites
-# after the verified Production-190 hosted record lands on main.
+# after the verified Production-190 hosted record lands on main. Both site
+# results are required; one green bundle never stands in for the other.
 #
 # It is inert on every push except the single deliberately titled merge below.
 
