@@ -19,7 +19,7 @@ on:
       version:
         description: Immutable challenger version
         required: true
-        default: selected-20260814-v1
+        default: selected-20260814-v2
         type: string
 
 permissions:
@@ -93,7 +93,7 @@ jobs:
         working-directory: ai
         run: python train_selected_challengers.py --version "${MATERIALIZE_VERSION}" --skip-existing
 
-      - name: Verify nine artefacts and complete provenance
+      - name: Verify nine artefacts, provenance and reproducibility gates
         working-directory: ai
         shell: bash
         run: |
@@ -102,6 +102,7 @@ jobs:
           from artifacts import ModelBundle
           from challenger_policy import CHALLENGER_POLICY, ordered_policy
           from db import connect, load_model_artifact
+          from reproducibility import bundle_contract_fingerprint, verify_reference_gate
 
           version = os.environ['MATERIALIZE_VERSION']
           expected = dict(ordered_policy())
@@ -144,6 +145,23 @@ jobs:
                   raise SystemExit(f'{league} artefact has no effective coverage provenance')
               if not row['artifact_sha256']:
                   raise SystemExit(f'{league} has no artefact hash')
+
+              repro = bundle.metadata.get('reproducibility') or {}
+              if repro.get('schema') != 1:
+                  raise SystemExit(f'{league} has no verified reproducibility schema')
+              data_sha = str(repro.get('training_data_sha256') or '')
+              contract_sha = str(repro.get('bundle_contract_sha256') or '')
+              if len(data_sha) != 64 or len(contract_sha) != 64:
+                  raise SystemExit(f'{league} reproducibility fingerprints are incomplete')
+              if contract_sha != bundle_contract_fingerprint(bundle):
+                  raise SystemExit(f'{league} semantic bundle fingerprint disagrees')
+              gate = repro.get('reference_gate') or {}
+              verify_reference_gate(bundle, gate)
+              if gate.get('bundle_contract_sha256') != contract_sha:
+                  raise SystemExit(f'{league} reference gate targets a different bundle contract')
+              if int(repro.get('training_rows') or 0) != int(row['training_matches']):
+                  raise SystemExit(f'{league} reproducibility row count disagrees with model metadata')
+
               print('CHALLENGER', json.dumps({
                   'league': league, 'id': str(row['id']), 'family': row['family'],
                   'half_life_days': float(row['half_life_days']),
@@ -155,6 +173,9 @@ jobs:
                   'final_trained_through': str(row['final_trained_through']),
                   'features_version': row['features_version'],
                   'artifact_sha256': row['artifact_sha256'], 'status': row['status'],
+                  'training_data_sha256': data_sha,
+                  'bundle_contract_sha256': contract_sha,
+                  'reference_gate_manifest_sha256': gate.get('manifest_sha256'),
               }, default=str, separators=(',', ':')))
           if seen != set(CHALLENGER_POLICY):
               raise SystemExit(f'league set mismatch: {sorted(seen)}')
