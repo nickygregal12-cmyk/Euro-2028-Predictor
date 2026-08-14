@@ -1,14 +1,14 @@
-"""Create one evidence-selected challenger per league, and promote none of them.
+"""Create one evidence-selected challenger per league.
 
 The weekly job used to call `run_leagues.sh train.py --family poisson`, which
 necessarily trained the same family and the same 900-day default everywhere.
 That ceased to describe the admitted model set once the 14-Aug-2026 guarded
 selection study finished. This runner is intentionally boring: it expands the
-immutable policy into nine explicit `train.py` invocations and returns non-zero
+immutable policy into nine explicit "train.py" invocations and returns non-zero
 if any one fails, while still giving every other league its attempt.
 
 No provider is called here. The workflow decides whether history needs refreshing
-before invoking this runner. No promotion command exists here either.
+before invoking this runner. Model lifecycle changes are handled elsewhere.
 """
 from __future__ import annotations
 
