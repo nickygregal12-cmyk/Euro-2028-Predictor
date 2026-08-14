@@ -25,6 +25,16 @@ export type OrganiserPanelProps = {
   readCupLaunch?: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
   launchCup?: (competitionId: string) => Promise<CupLaunchResult>
   onCompetitionChanged?: () => void
+  /**
+   * Optional controlled selection. `/leagues` uses this because an authoritative
+   * post-mutation reread temporarily removes the whole workspace while it shows
+   * its loading state. Keeping the selected organiser id in the page means that
+   * when the panel remounts it reopens the same competition and can show the
+   * freshly reread success state instead of collapsing at the exact moment the
+   * mutation is confirmed.
+   */
+  selectedCompetitionId?: string | null
+  onSelectedCompetitionChange?: (competitionId: string | null) => void
 }
 
 type ListState =
@@ -38,9 +48,18 @@ export function OrganiserPanel({
   readCupLaunch,
   launchCup,
   onCompetitionChanged,
+  selectedCompetitionId,
+  onSelectedCompetitionChange,
 }: OrganiserPanelProps) {
   const [state, setState] = useState<ListState>({ status: 'loading' })
-  const [openId, setOpenId] = useState<string | null>(null)
+  const [internalOpenId, setInternalOpenId] = useState<string | null>(null)
+  const controlled = selectedCompetitionId !== undefined
+  const openId = controlled ? selectedCompetitionId : internalOpenId
+
+  function setOpenId(next: string | null) {
+    if (!controlled) setInternalOpenId(next)
+    onSelectedCompetitionChange?.(next)
+  }
 
   useEffect(() => {
     let active = true
