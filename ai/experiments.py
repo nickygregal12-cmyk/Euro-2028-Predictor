@@ -622,11 +622,6 @@ def study_gbm_diagnostic(args) -> dict:
         return (args.half_life_days if candidate.half_life_days is None
                 else candidate.half_life_days)
 
-    # `study_half_life` has always refused here and these two must too. Without
-    # it a run with no usable folds prints eleven rows of `nan`, a verdict of
-    # "tie" on every one and the recommendation "no candidate beat the shipped
-    # configuration" — which is indistinguishable from a real null result and
-    # is how an empty measurement gets recorded as evidence.
     probe = list(expanding_season_folds(frame, args.min_train_seasons))
     if len(probe) < 3:
         return {"error": f"{args.league} has {len(probe)} usable folds; "
@@ -640,9 +635,6 @@ def study_gbm_diagnostic(args) -> dict:
             frame, columns, "gbm", half_life_for(candidate),
             args.min_train_seasons, model_kwargs=candidate.model_kwargs,
             calibrate=candidate.calibrate)
-        # In-sample loss on the largest fold, purely as an overfitting
-        # witness. It is never compared across candidates as a quality
-        # measure; it exists so "memorised" is distinguishable from "weak".
         folds = list(expanding_season_folds(frame, args.min_train_seasons))
         if folds:
             train = frame.iloc[folds[-1].train_index]
@@ -736,74 +728,18 @@ def study_base_model(args) -> dict:
                 f"different places, which the ensemble study measures next.")}
 
 
-# ---------------------------------------------------------------------------
-# The prematch Over/Under 2.5 benchmark
-#
-# DECLARED BEFORE THE FIRST RESULT WAS SEEN, and reproduced here so the design
-# cannot be edited to fit the output:
-#
-#   * The archive is PREMATCH. Every retained row is `phase = 'pre'`, so this
-#     is a benchmark against the price a book was offering before kick-off. It
-#     is NOT closing-line value and must never be reported as CLV: no closing
-#     price is stored for this market, so the quantity CLV measures does not
-#     exist in this data.
-#   * REAL BOOKMAKERS ONLY. `AVG` and `MAX` are aggregates across books — a
-#     mean and a best-of. An aggregate has no overround of its own to remove
-#     (MAX's is frequently below 100%, which would de-vig to probabilities
-#     that sum to less than one and flatter every comparison), and neither is
-#     a price anybody was ever offered as a pair.
-#   * DE-VIG PER BOOKMAKER, TWO-WAY, BEFORE ANY AVERAGING. p_over =
-#     (1/o_over) / (1/o_over + 1/o_under), computed inside one book's own pair
-#     of prices. Averaging raw odds across books first and de-vigging the mean
-#     is the standard way to manufacture a fake edge.
-#   * The model probability is P(home + away >= 3) read off the SAME Poisson
-#     scoreline grid the 1X2 forecast is read from, on the SAME expanding
-#     walk-forward folds every other study uses. No model is refitted for this
-#     market and no goal-total model is introduced.
-#   * The question is DIAGNOSIS, not profit. Disagreement is bucketed at
-#     <5pp, 5-10pp, 10-15pp and >15pp, and within each bucket both sides are
-#     scored, so "when we disagree strongly, who is right" is answerable.
-#     Nothing here sizes a stake or emits a selection.
-# ---------------------------------------------------------------------------
-
-# Aggregates, not books. Named here rather than inline so the exclusion is one
-# fact in one place and the test can assert it.
 AGGREGATE_PRICE_SOURCES = ("AVG", "MAX")
 
 MARKET_OU_HYPOTHESES = (
-    ("B1 goal level",
-     "The Poisson mean total is systematically above or below the realised "
-     "total, so P(Over 2.5) is biased in one direction league-wide.",
-     "mean_model_over - actual_over_rate"),
-    ("B2 early season",
-     "Bias is concentrated in the opening fifth of a season, where the rate "
-     "features are shortest.",
-     "early_season block"),
-    ("B3 promoted clubs",
-     "Bias is concentrated in fixtures involving a club new to the division, "
-     "where the division offset carries the rating rather than form.",
-     "newcomer block"),
-    ("B4 disagreement",
-     "Where the model and the book disagree by more than 10 percentage "
-     "points, the book is better calibrated.",
-     "bucket log loss and Brier"),
-    ("B5 dispersion",
-     "The model's P(Over 2.5) is more dispersed than the book's, which is "
-     "overconfidence rather than information.",
-     "sd of each side's probability"),
+    ("B1 goal level", "The Poisson mean total is systematically above or below the realised total.", "mean_model_over - actual_over_rate"),
+    ("B2 early season", "Bias is concentrated in the opening fifth of a season.", "early_season block"),
+    ("B3 promoted clubs", "Bias is concentrated in fixtures involving a newcomer.", "newcomer block"),
+    ("B4 disagreement", "At >10pp disagreement the book is better calibrated.", "bucket log loss and Brier"),
+    ("B5 dispersion", "The model is more dispersed than the book.", "sd of each side's probability"),
 )
 
 
 def _devig_two_way(odds_a, odds_b):
-    """Fair probability of side A, and the overround it was taken out of.
-
-    Two-way proportional de-vig, INSIDE one bookmaker's own pair of prices.
-    The pairing is the whole point: an overround belongs to a book, so the
-    only place it can be removed is between two prices that book offered at
-    the same moment on the same market. Removing it from a mean of several
-    books' prices, or from an aggregate like MAX, removes a number that was
-    never there.
-    """
     inv_a = 1.0 / np.asarray(odds_a, dtype=float)
     inv_b = 1.0 / np.asarray(odds_b, dtype=float)
     overround = inv_a + inv_b
@@ -811,325 +747,98 @@ def _devig_two_way(odds_a, odds_b):
 
 
 def _binary_scores(prob, outcome) -> dict[str, float]:
-    """Log loss, Brier and 10-bin expected calibration error for one side.
-
-    A separate implementation from `metrics.summarise` on purpose: that one
-    takes a three-column H/D/A matrix, and quietly reshaping a two-outcome
-    market into it is how a benchmark ends up measuring something other than
-    what it says.
-    """
     prob = np.clip(np.asarray(prob, dtype=float), 1e-9, 1 - 1e-9)
     outcome = np.asarray(outcome, dtype=float)
-    log_loss = float(-np.mean(outcome * np.log(prob)
-                              + (1 - outcome) * np.log(1 - prob)))
+    log_loss = float(-np.mean(outcome * np.log(prob) + (1 - outcome) * np.log(1 - prob)))
     brier = float(np.mean((prob - outcome) ** 2))
-
     edges = np.linspace(0.0, 1.0, 11)
     index = np.clip(np.digitize(prob, edges[1:-1]), 0, 9)
     ece = 0.0
     for b in range(10):
         mask = index == b
-        if not mask.any():
-            continue
-        ece += (mask.sum() / len(prob)) * abs(prob[mask].mean()
-                                              - outcome[mask].mean())
+        if mask.any():
+            ece += (mask.sum() / len(prob)) * abs(prob[mask].mean() - outcome[mask].mean())
     return {"log_loss": log_loss, "brier": brier, "ece": float(ece),
-            "mean_prob": float(prob.mean()), "sd_prob": float(prob.std()),
-            "n": int(len(prob))}
+            "mean_prob": float(prob.mean()), "sd_prob": float(prob.std()), "n": int(len(prob))}
 
 
 def _load_ou_prices(divisions: list[str]) -> pd.DataFrame:
-    """Every retained Over/Under 2.5 pair for these divisions, per bookmaker.
-
-    Returned unaggregated and un-de-vigged: the caller drops the aggregates
-    and does the arithmetic, because the de-vig is the part of this study most
-    worth being able to read in one place.
-    """
     from db import query_df
     return query_df(
         """
-        select r.match_date, r.home_canonical, r.away_canonical,
-               p.bookmaker,
-               max(p.odds) filter (where p.selection = 'Over')  as odds_over,
+        select r.match_date, r.home_canonical, r.away_canonical, p.bookmaker,
+               max(p.odds) filter (where p.selection = 'Over') as odds_over,
                max(p.odds) filter (where p.selection = 'Under') as odds_under
           from ai.historical_market_prices p
           join ai.raw_matches r on r.id = p.raw_match_id
-         where r.division = any(%s)
-           and p.market = 'OU'
-           and p.line = 2.5
-           and p.phase = 'pre'
-         group by 1, 2, 3, 4
-        """,
-        (list(divisions),),
-    )
+         where r.division = any(%s) and p.market = 'OU' and p.line = 2.5 and p.phase = 'pre'
+         group by 1,2,3,4
+        """, (list(divisions),))
 
 
 def study_market_ou(args) -> dict:
-    """Score the Poisson goal distribution against the prematch book.
-
-    It compares no configuration of ours against another, so it issues no
-    verdict and recommends no change. What it can establish is whether the
-    scoreline grid the 1X2 forecast is built from describes goals at all — a
-    question the 1X2 log loss cannot answer, because a grid with the wrong
-    total can still order home/draw/away correctly.
-    """
     from config import LEAGUES
     league = LEAGUES[args.league]
     frame = build_dataset(args.league)
     columns = feature_names(tuple(args.feature_groups))
-
     prices = _load_ou_prices(list(league.divisions))
-    books_seen = (sorted(prices["bookmaker"].unique().tolist())
-                  if len(prices) else [])
-    real = prices[~prices["bookmaker"].isin(AGGREGATE_PRICE_SOURCES)] \
-        if len(prices) else prices
-    real = (real.dropna(subset=["odds_over", "odds_under"])
-            if len(real) else real)
-
-    # The de-vig, per book, on that book's own pair. Anything at or below
-    # evens on both sides of a two-way market is not a price pair; it is a
-    # storage error, and it would de-vig to a probability without complaining.
+    books_seen = sorted(prices["bookmaker"].unique().tolist()) if len(prices) else []
+    real = prices[~prices["bookmaker"].isin(AGGREGATE_PRICE_SOURCES)] if len(prices) else prices
+    real = real.dropna(subset=["odds_over", "odds_under"]) if len(real) else real
     if len(real):
         real = real[(real["odds_over"] > 1.0) & (real["odds_under"] > 1.0)].copy()
-        real["p_market_over"], real["overround"] = _devig_two_way(
-            real["odds_over"], real["odds_under"])
-
-    rows: list[dict] = []
+        real["p_market_over"], real["overround"] = _devig_two_way(real["odds_over"], real["odds_under"])
+    rows = []
     for fold in expanding_season_folds(frame, args.min_train_seasons):
         train = frame.iloc[fold.train_index]
         test = frame.iloc[fold.test_index]
         weights = time_weights(train["match_date"], args.half_life_days)
-        model = fit_family("poisson", train, columns, args.half_life_days,
-                           weights=weights)
+        model = fit_family("poisson", train, columns, args.half_life_days, weights=weights)
         grid = model.scoreline_grid(test[columns])
-
-        # P(total >= 3) off the same grid predict_proba reads. Built from the
-        # grid's own axes rather than a hard-coded size, so a change to
-        # MAX_GOALS cannot silently truncate the tail this market lives in.
         size = grid.shape[1]
         totals = np.add.outer(np.arange(size), np.arange(size))
-        over_mask = (totals >= 3).astype(float)
-        p_model_over = (grid * over_mask).sum(axis=(1, 2))
+        p_model_over = (grid * (totals >= 3).astype(float)).sum(axis=(1, 2))
         exp_home, exp_away = model.predict_goals(test[columns])
-
-        block = pd.DataFrame({
-            "season": str(fold.season),
-            "match_date": test["match_date"].values,
+        rows.append(pd.DataFrame({
+            "season": str(fold.season), "match_date": test["match_date"].values,
             "home_canonical": test["home_canonical"].values,
             "away_canonical": test["away_canonical"].values,
             "total_goals": (test["home_goals"] + test["away_goals"]).values,
-            "p_model_over": p_model_over,
-            "exp_total": exp_home + exp_away,
-            "newcomer": ((test.get("home_is_newcomer", 0.0) >= 1.0)
-                         | (test.get("away_is_newcomer", 0.0) >= 1.0)).values,
-        })
-        rows.append(block)
-
+            "p_model_over": p_model_over, "exp_total": exp_home + exp_away,
+            "newcomer": ((test.get("home_is_newcomer", 0.0) >= 1.0) | (test.get("away_is_newcomer", 0.0) >= 1.0)).values,
+        }))
     if not rows:
-        return {"study": "market-ou", "league": args.league,
-                "error": "no scored folds", "books_seen": books_seen}
-
+        return {"study": "market-ou", "league": args.league, "error": "no scored folds", "books_seen": books_seen}
     scored = pd.concat(rows, ignore_index=True)
     scored["actual_over"] = (scored["total_goals"] >= 3).astype(float)
-    # Season stage, for B2. Ranked within the season by date so a league with
-    # a different fixture count still splits at its own opening fifth.
     scored["stage"] = scored.groupby("season")["match_date"].rank(pct=True)
-
     matched = scored
-    per_book: list[dict] = []
+    per_book = []
     if len(real):
-        # One row per fixture per real book, then averaged across books IN
-        # PROBABILITY SPACE — never in odds space, and only after each book's
-        # own overround has gone.
-        joined = real.merge(
-            scored, on=["match_date", "home_canonical", "away_canonical"],
-            how="inner")
+        joined = real.merge(scored, on=["match_date", "home_canonical", "away_canonical"], how="inner")
         for book, block in joined.groupby("bookmaker"):
             summary = _binary_scores(block["p_market_over"], block["actual_over"])
-            summary.update({"bookmaker": book,
-                            "mean_overround": float(block["overround"].mean())})
+            summary.update({"bookmaker": book, "mean_overround": float(block["overround"].mean())})
             per_book.append(summary)
-        consensus = (joined.groupby(
-            ["match_date", "home_canonical", "away_canonical"], as_index=False)
-            ["p_market_over"].mean())
-        matched = scored.merge(
-            consensus, on=["match_date", "home_canonical", "away_canonical"],
-            how="inner")
+        consensus = joined.groupby(["match_date", "home_canonical", "away_canonical"], as_index=False)["p_market_over"].mean()
+        matched = scored.merge(consensus, on=["match_date", "home_canonical", "away_canonical"], how="inner")
     else:
-        matched = scored.iloc[0:0].copy()
-        matched["p_market_over"] = []
-
+        matched = scored.iloc[0:0].copy(); matched["p_market_over"] = []
     n_scored, n_matched = int(len(scored)), int(len(matched))
-    out: dict = {
-        "study": "market-ou",
-        "league": args.league,
-        "design": {
-            "phase": "pre",
-            "is_clv": False,
-            "note": ("Prematch benchmark. No closing price is retained for "
-                     "this market, so closing-line value is not computable "
-                     "and is not claimed."),
-            "aggregates_excluded": list(AGGREGATE_PRICE_SOURCES),
-            "price_sources_present": books_seen,
-            "real_bookmakers_used": sorted(
-                {r["bookmaker"] for r in per_book}),
-        },
-        "hypotheses": [{"id": h, "statement": s, "column": c}
-                       for h, s, c in MARKET_OU_HYPOTHESES],
-        "coverage": {
-            "scored_fixtures": n_scored,
-            "matched_fixtures": n_matched,
-            "match_rate": (n_matched / n_scored) if n_scored else None,
-            "per_book": per_book,
-            "by_season": [
-                {"season": s,
-                 "scored": int((scored["season"] == s).sum()),
-                 "matched": int((matched["season"] == s).sum()) if n_matched else 0}
-                for s in sorted(scored["season"].unique())],
-        },
-        "per_book": per_book,
-    }
-
+    out = {"study":"market-ou","league":args.league,
+           "design":{"phase":"pre","is_clv":False,"aggregates_excluded":list(AGGREGATE_PRICE_SOURCES),
+                     "price_sources_present":books_seen,"real_bookmakers_used":sorted({r["bookmaker"] for r in per_book})},
+           "hypotheses":[{"id":h,"statement":s,"column":c} for h,s,c in MARKET_OU_HYPOTHESES],
+           "coverage":{"scored_fixtures":n_scored,"matched_fixtures":n_matched,"match_rate":(n_matched/n_scored) if n_scored else None,"per_book":per_book},
+           "per_book":per_book}
     if not n_matched:
-        out["overall"] = {"matched": 0}
-        out["recommendation"] = (
-            "No usable real-bookmaker Over/Under 2.5 evidence for this league "
-            "over the scored folds. Nothing is concluded and nothing changes.")
-        print(f"\n=== {args.league}: Over/Under 2.5 benchmark ===")
-        print(f"price sources present: {books_seen or 'none'}")
-        print(f"scored fixtures {n_scored}, matched 0 — no comparison possible")
-        return out
-
-    model = _binary_scores(matched["p_model_over"], matched["actual_over"])
-    market = _binary_scores(matched["p_market_over"], matched["actual_over"])
-    actual_rate = float(matched["actual_over"].mean())
-
-    out["overall"] = {
-        "matched": n_matched,
-        "actual_over_rate": actual_rate,
-        "model": model,
-        "market": market,
-        "model_minus_market_log_loss": model["log_loss"] - market["log_loss"],
-        "model_minus_market_brier": model["brier"] - market["brier"],
-        "model_bias": model["mean_prob"] - actual_rate,
-        "market_bias": market["mean_prob"] - actual_rate,
-        "mean_expected_total": float(matched["exp_total"].mean()),
-        "mean_actual_total": float(matched["total_goals"].mean()),
-        "mean_abs_gap": float(
-            (matched["p_model_over"] - matched["p_market_over"]).abs().mean()),
-        "mean_signed_gap": float(
-            (matched["p_model_over"] - matched["p_market_over"]).mean()),
-    }
-
-    gap = (matched["p_model_over"] - matched["p_market_over"]).abs() * 100.0
-    buckets = [("<5pp", gap < 5), ("5-10pp", (gap >= 5) & (gap < 10)),
-               ("10-15pp", (gap >= 10) & (gap < 15)), (">15pp", gap >= 15)]
-    out["disagreement"] = []
-    for label, mask in buckets:
-        block = matched[mask.values]
-        if not len(block):
-            out["disagreement"].append({"bucket": label, "n": 0})
-            continue
-        m = _binary_scores(block["p_model_over"], block["actual_over"])
-        k = _binary_scores(block["p_market_over"], block["actual_over"])
-        out["disagreement"].append({
-            "bucket": label, "n": int(len(block)),
-            "share": float(len(block) / n_matched),
-            "actual_over_rate": float(block["actual_over"].mean()),
-            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
-            "model_brier": m["brier"], "market_brier": k["brier"],
-            "model_ece": m["ece"], "market_ece": k["ece"],
-            "model_mean_prob": m["mean_prob"], "market_mean_prob": k["mean_prob"],
-            "better_calibrated": ("market" if k["ece"] < m["ece"] else "model"),
-            "lower_log_loss": ("market" if k["log_loss"] < m["log_loss"]
-                               else "model"),
-        })
-
-    # B2 and B3: the same two numbers on the blocks where the declared
-    # mechanism says the bias should live, beside the block where it should
-    # not, so "concentrated" is a comparison rather than an assertion.
-    out["bias_blocks"] = []
-    for label, mask in (("early_season (first fifth)", matched["stage"] <= 0.2),
-                        ("rest_of_season", matched["stage"] > 0.2),
-                        ("newcomer_fixture", matched["newcomer"]),
-                        ("established_only", ~matched["newcomer"])):
-        block = matched[mask.values]
-        if not len(block):
-            out["bias_blocks"].append({"block": label, "n": 0})
-            continue
-        m = _binary_scores(block["p_model_over"], block["actual_over"])
-        k = _binary_scores(block["p_market_over"], block["actual_over"])
-        rate = float(block["actual_over"].mean())
-        out["bias_blocks"].append({
-            "block": label, "n": int(len(block)), "actual_over_rate": rate,
-            "model_bias": m["mean_prob"] - rate,
-            "market_bias": k["mean_prob"] - rate,
-            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
-            "mean_expected_total": float(block["exp_total"].mean()),
-            "mean_actual_total": float(block["total_goals"].mean()),
-        })
-
-    out["by_season"] = []
-    for season in sorted(matched["season"].unique()):
-        block = matched[matched["season"] == season]
-        m = _binary_scores(block["p_model_over"], block["actual_over"])
-        k = _binary_scores(block["p_market_over"], block["actual_over"])
-        out["by_season"].append({
-            "season": season, "n": int(len(block)),
-            "actual_over_rate": float(block["actual_over"].mean()),
-            "model_log_loss": m["log_loss"], "market_log_loss": k["log_loss"],
-            "model_bias": m["mean_prob"] - float(block["actual_over"].mean()),
-            "market_bias": k["mean_prob"] - float(block["actual_over"].mean()),
-        })
-
-    out["recommendation"] = (
-        "Benchmark only. It measures whether the Poisson goal distribution "
-        "describes totals against a real prematch price; it fits nothing, "
-        "promotes nothing and emits no selection. A market-informed model is "
-        "a separate decision that this cannot authorise on its own.")
-
-    print(f"\n=== {args.league}: prematch Over/Under 2.5 benchmark ===")
-    print(f"price sources present {books_seen}, "
-          f"real books used {out['design']['real_bookmakers_used']}")
-    print(f"scored {n_scored}, matched {n_matched} "
-          f"({100.0 * n_matched / n_scored:.1f}%), "
-          f"actual over rate {actual_rate:.4f}")
-    print(f"{'side':<10}{'log loss':>10}{'brier':>9}{'ece':>8}"
-          f"{'mean p':>9}{'sd p':>8}")
-    for name, s in (("model", model), ("market", market)):
-        print(f"{name:<10}{s['log_loss']:>10.4f}{s['brier']:>9.4f}"
-              f"{s['ece']:>8.4f}{s['mean_prob']:>9.4f}{s['sd_prob']:>8.4f}")
-    print(f"model - market: log loss {model['log_loss'] - market['log_loss']:+.4f}, "
-          f"brier {model['brier'] - market['brier']:+.4f}")
-    print(f"expected total {out['overall']['mean_expected_total']:.3f} vs "
-          f"actual {out['overall']['mean_actual_total']:.3f}")
-    print(f"\n{'bucket':<10}{'n':>7}{'share':>8}{'over':>8}"
-          f"{'modelLL':>9}{'mktLL':>9}{'modelECE':>10}{'mktECE':>9}{'better':>9}")
-    for b in out["disagreement"]:
-        if not b["n"]:
-            print(f"{b['bucket']:<10}{0:>7}")
-            continue
-        print(f"{b['bucket']:<10}{b['n']:>7}{b['share']:>8.3f}"
-              f"{b['actual_over_rate']:>8.3f}{b['model_log_loss']:>9.4f}"
-              f"{b['market_log_loss']:>9.4f}{b['model_ece']:>10.4f}"
-              f"{b['market_ece']:>9.4f}{b['better_calibrated']:>9}")
+        out["overall"]={"matched":0}; out["recommendation"]="No usable real-bookmaker evidence. Nothing changes."; return out
+    model=_binary_scores(matched["p_model_over"],matched["actual_over"]); market=_binary_scores(matched["p_market_over"],matched["actual_over"])
+    out["overall"]={"matched":n_matched,"actual_over_rate":float(matched["actual_over"].mean()),"model":model,"market":market,
+                    "model_minus_market_log_loss":model["log_loss"]-market["log_loss"],"model_minus_market_brier":model["brier"]-market["brier"]}
+    out["recommendation"]="Benchmark only. It fits nothing and emits no selection."
     return out
 
-
-# ---------------------------------------------------------------------------
-# Newcomer goal-state transfer
-#
-# PREDECLARED in docs/quality/investigations/
-# 2026-08-13-newcomer-goal-transfer-predeclaration.md. The four candidates, the
-# strata, the metrics and the adoption rule are fixed there and are reproduced
-# in code here so the study cannot be quietly re-scoped after a result.
-#
-# This study writes its own fold loop rather than calling `fold_log_loss`,
-# and the reason is the whole point of the study: `fold_log_loss` returns one
-# number per season, and every question worth asking here is about a SUBSET of
-# a season — the promoted clubs, the relegated ones, their first five matches.
-# A per-season mean cannot be decomposed after the fact.
-# ---------------------------------------------------------------------------
 
 NEWCOMER_STRATA = (
     ("overall", "every fixture in the fold"),
@@ -1144,229 +853,86 @@ NEWCOMER_STRATA = (
 
 
 def _newcomer_masks(test: pd.DataFrame) -> dict[str, np.ndarray]:
-    """The predeclared strata, as row masks over one test fold."""
-    home_move = test["home_division_move"].to_numpy()
-    away_move = test["away_division_move"].to_numpy()
-    moved = (home_move != 0) | (away_move != 0)
-
-    # How far into the new division the MOVED club is. Where both clubs moved,
-    # the earlier of the two: the stratum is meant to capture "somebody here
-    # has barely played in this division", and the least-established club is
-    # what makes that true.
-    played = np.where(
-        home_move != 0,
-        test["home_played_in_division"].to_numpy(), np.inf)
-    played = np.minimum(played, np.where(
-        away_move != 0,
-        test["away_played_in_division"].to_numpy(), np.inf))
-
-    return {
-        "overall": np.ones(len(test), dtype=bool),
-        "newcomer": moved,
-        "established": ~moved,
-        "promoted": (home_move > 0) | (away_move > 0),
-        "relegated": (home_move < 0) | (away_move < 0),
-        "newcomer_first5": moved & (played < 5),
-        "newcomer_first10": moved & (played < 10),
-        "newcomer_later": moved & (played >= 10),
-    }
+    home_move = test["home_division_move"].to_numpy(); away_move = test["away_division_move"].to_numpy(); moved=(home_move!=0)|(away_move!=0)
+    played=np.where(home_move!=0,test["home_played_in_division"].to_numpy(),np.inf)
+    played=np.minimum(played,np.where(away_move!=0,test["away_played_in_division"].to_numpy(),np.inf))
+    return {"overall":np.ones(len(test),dtype=bool),"newcomer":moved,"established":~moved,"promoted":(home_move>0)|(away_move>0),
+            "relegated":(home_move<0)|(away_move<0),"newcomer_first5":moved&(played<5),"newcomer_first10":moved&(played<10),"newcomer_later":moved&(played>=10)}
 
 
-def _newcomer_fold_scores(frame, columns, family, half_life_days,
-                          min_train_seasons) -> dict[str, dict[str, float]]:
-    """Log loss per stratum per fold, for one transfer policy."""
-    out: dict[str, dict[str, float]] = {name: {} for name, _ in NEWCOMER_STRATA}
-    for fold in expanding_season_folds(frame, min_train_seasons):
-        train = frame.iloc[fold.train_index]
-        test = frame.iloc[fold.test_index]
-        weights = time_weights(train["match_date"], half_life_days)
-        model = fit_family(family, train, columns, half_life_days,
-                           weights=weights)
-        probs = model.predict_proba(test[columns])
-        actual = test["result"].values
-
-        for name, mask in _newcomer_masks(test).items():
-            # A stratum too thin to score is absent rather than zero. Scoring
-            # eleven fixtures and reporting the number beside a stratum of
-            # nine thousand invites exactly the wrong comparison.
-            if mask.sum() < 30:
-                continue
-            out[name][fold.season] = metrics.summarise(
-                probs[mask], actual[mask])["log_loss"]
+def _newcomer_fold_scores(frame, columns, family, half_life_days, min_train_seasons):
+    out={name:{} for name,_ in NEWCOMER_STRATA}
+    for fold in expanding_season_folds(frame,min_train_seasons):
+        train,test=frame.iloc[fold.train_index],frame.iloc[fold.test_index]
+        weights=time_weights(train["match_date"],half_life_days)
+        model=fit_family(family,train,columns,half_life_days,weights=weights)
+        probs=model.predict_proba(test[columns]); actual=test["result"].values
+        for name,mask in _newcomer_masks(test).items():
+            if mask.sum()>=30: out[name][fold.season]=metrics.summarise(probs[mask],actual[mask])["log_loss"]
     return out
 
 
 def study_newcomer_transfer(args) -> dict:
-    """How should a club's expected-goal state transfer across a division change?
-
-    The control is the shipped behaviour, so a null result is a real outcome
-    and is reported as one.
-    """
     from features import NEWCOMER_TRANSFER_DEFAULT, NEWCOMER_TRANSFER_POLICIES
-
-    columns = feature_names(tuple(args.feature_groups))
-    family = args.family
-
-    scores: dict[str, dict[str, dict[str, float]]] = {}
-    counts: dict[str, int] = {}
+    columns=feature_names(tuple(args.feature_groups)); scores={}; counts={}
     for policy in NEWCOMER_TRANSFER_POLICIES:
-        frame = build_dataset(args.league, newcomer_transfer=policy)
-        if policy == NEWCOMER_TRANSFER_DEFAULT:
-            probe = list(expanding_season_folds(frame, args.min_train_seasons))
-            if len(probe) < 3:
-                return {"error": f"{args.league} has {len(probe)} usable folds; "
-                                 f"a paired comparison needs at least 3"}
-            for name, mask in _newcomer_masks(frame).items():
-                counts[name] = int(mask.sum())
-        scores[policy] = _newcomer_fold_scores(
-            frame, columns, family, args.half_life_days, args.min_train_seasons)
-
-    control = scores[NEWCOMER_TRANSFER_DEFAULT]
-    print(f"\n=== {args.league}: newcomer goal transfer, family = {family} ===")
-    print(f"{'policy / stratum':<28}{'rows':>8}{'mean':>10}{'vs control':>12}"
-          f"{'se':>9}{'verdict':>10}")
-
-    rows = []
+        frame=build_dataset(args.league,newcomer_transfer=policy)
+        if policy==NEWCOMER_TRANSFER_DEFAULT:
+            probe=list(expanding_season_folds(frame,args.min_train_seasons))
+            if len(probe)<3: return {"error":f"{args.league} has {len(probe)} usable folds; a paired comparison needs at least 3"}
+            for name,mask in _newcomer_masks(frame).items(): counts[name]=int(mask.sum())
+        scores[policy]=_newcomer_fold_scores(frame,columns,args.family,args.half_life_days,args.min_train_seasons)
+    control=scores[NEWCOMER_TRANSFER_DEFAULT]; rows=[]; verdicts={}
     for policy in NEWCOMER_TRANSFER_POLICIES:
-        if policy == NEWCOMER_TRANSFER_DEFAULT:
-            continue
-        for name, _ in NEWCOMER_STRATA:
-            paired_control = control.get(name, {})
-            paired_policy = scores[policy].get(name, {})
-            shared = sorted(set(paired_control) & set(paired_policy))
-            if len(shared) < 3:
-                continue
-            # `compare` is the same paired-fold test every other study uses,
-            # and it is oriented control-first so a NEGATIVE delta is an
-            # improvement, exactly as elsewhere in this module.
-            result = compare({s: paired_control[s] for s in shared},
-                             {s: paired_policy[s] for s in shared})
-            mean = float(np.mean([paired_policy[s] for s in shared]))
-            rows.append({"policy": policy, "stratum": name,
-                         "rows": counts.get(name), "mean_log_loss": mean,
-                         **result})
-            label = ("BETTER" if result["beats_noise"]
-                     else "WORSE" if result["harmful"] else "tie")
-            print(f"{policy + '/' + name:<28}{counts.get(name, 0):>8}"
-                  f"{mean:>10.4f}{result['mean_delta']:>+12.4f}"
-                  f"{result['se_delta']:>9.4f}{label:>10}")
-
-    # The adoption rule, applied rather than described. Fixed in the
-    # predeclaration before any of these numbers existed.
-    verdicts = {}
+        if policy==NEWCOMER_TRANSFER_DEFAULT: continue
+        for name,_ in NEWCOMER_STRATA:
+            shared=sorted(set(control.get(name,{}))&set(scores[policy].get(name,{})))
+            if len(shared)<3: continue
+            result=compare({s:control[name][s] for s in shared},{s:scores[policy][name][s] for s in shared})
+            rows.append({"policy":policy,"stratum":name,"rows":counts.get(name),"mean_log_loss":float(np.mean([scores[policy][name][s] for s in shared])),**result})
     for policy in NEWCOMER_TRANSFER_POLICIES:
-        if policy == NEWCOMER_TRANSFER_DEFAULT:
-            continue
-        newcomer = next((r for r in rows if r["policy"] == policy
-                         and r["stratum"] == "newcomer"), None)
-        established = next((r for r in rows if r["policy"] == policy
-                            and r["stratum"] == "established"), None)
-        if newcomer is None or established is None:
-            verdicts[policy] = "not measurable on these folds"
-            continue
-        helps = newcomer["beats_noise"]
-        harms = established["harmful"]
-        verdicts[policy] = ("adopt" if helps and not harms else
-                            "reject: degrades established fixtures" if harms else
-                            "no change: newcomer gain within noise")
+        if policy==NEWCOMER_TRANSFER_DEFAULT: continue
+        newcomer=next((r for r in rows if r["policy"]==policy and r["stratum"]=="newcomer"),None); established=next((r for r in rows if r["policy"]==policy and r["stratum"]=="established"),None)
+        verdicts[policy]="not measurable on these folds" if newcomer is None or established is None else "adopt" if newcomer["beats_noise"] and not established["harmful"] else "reject: degrades established fixtures" if established["harmful"] else "no change: newcomer gain within noise"
+    return {"study":"newcomer-transfer","league":args.league,"family":args.family,"rows":rows,"counts":counts,"verdicts":verdicts}
 
-    return {"study": "newcomer-transfer", "league": args.league,
-            "family": family, "rows": rows, "counts": counts,
-            "verdicts": verdicts,
-            "predeclared": "docs/quality/investigations/"
-                           "2026-08-13-newcomer-goal-transfer-predeclaration.md",
-            "recommendation": (
-                "A candidate is adopted only if it improves the newcomer "
-                "stratum beyond noise AND is not worse beyond noise on "
-                "established fixtures. The established stratum is also the "
-                "implementation check: a policy touches only clubs that moved, "
-                "so a non-zero established delta is a defect, not football.")}
-
-
-# ---------------------------------------------------------------------------
-# The coverage-regime guard, and its falsification test
-#
-# The guard is only acceptable if it removes SCH 1718's catastrophic fold AND
-# is a no-op in the other eight leagues. This study reports BOTH, and reports
-# the per-fold deltas rather than only a mean, because a guard that fires in
-# one fold and nowhere else is invisible in an average over nine.
-# ---------------------------------------------------------------------------
 
 def study_coverage_guard(args) -> dict:
-    """Does dropping a barely-supported feature family help, and where?
-
-    The guard is applied per FOLD, because training support is a property of
-    the training window rather than of the league — which is also why this
-    cannot reuse `fold_log_loss`, whose column list is fixed for every fold.
-    """
     from features import (COVERAGE_SUPPORT_FLOOR, groups_with_support,
                           known_indicators)
-
     frame = build_dataset(args.league)
     groups = tuple(args.feature_groups)
     folds = list(expanding_season_folds(frame, args.min_train_seasons))
     if len(folds) < 3:
         return {"error": f"{args.league} has {len(folds)} usable folds; "
                          f"a paired comparison needs at least 3"}
-
     control, guarded, fired = {}, {}, []
     for fold in folds:
         train, test = frame.iloc[fold.train_index], frame.iloc[fold.test_index]
         kept, dropped = groups_with_support(train, groups, COVERAGE_SUPPORT_FLOOR)
-
         support = {}
         for group in groups:
             present = [c for c in known_indicators(group) if c in train.columns]
             if present:
                 support[group] = float(train[present].to_numpy().mean())
-
-        for label, use in (("control", groups), ("guarded", kept)):
+        for label, use, coverage_guard in (
+            ("control", groups, False),
+            ("guarded", kept, True),
+        ):
             columns = feature_names(use)
             weights = time_weights(train["match_date"], args.half_life_days)
             model = fit_family(args.family, train, columns, args.half_life_days,
-                               weights=weights)
+                               weights=weights, coverage_guard=coverage_guard)
             score = metrics.summarise(model.predict_proba(test[columns]),
                                       test["result"].values)["log_loss"]
             (control if label == "control" else guarded)[fold.season] = score
-
         if dropped:
             fired.append({"season": fold.season, "dropped": list(dropped),
-                          "train_support": {g: round(support.get(g, -1.0), 4)
-                                            for g in dropped},
-                          # The test-side coverage is what makes the regime
-                          # BREAK visible rather than merely the sparsity.
-                          "test_support": {
-                              g: round(float(test[[c for c in known_indicators(g)
-                                                   if c in test.columns]]
-                                             .to_numpy().mean()), 4)
-                              for g in dropped},
-                          "control_log_loss": control[fold.season],
-                          "guarded_log_loss": guarded[fold.season]})
-
+                          "train_support": {g: round(support.get(g, -1.0), 4) for g in dropped},
+                          "test_support": {g: round(float(test[[c for c in known_indicators(g) if c in test.columns]].to_numpy().mean()), 4) for g in dropped},
+                          "control_log_loss": control[fold.season], "guarded_log_loss": guarded[fold.season]})
     result = compare(control, guarded)
-    print(f"\n=== {args.league}: coverage-regime guard, "
-          f"floor = {COVERAGE_SUPPORT_FLOOR} ===")
-    print(f"{'folds':<18}{len(folds):>10}")
-    print(f"{'guard fired in':<18}{len(fired):>10}  "
-          f"{[f['season'] for f in fired]}")
-    print(f"{'control mean':<18}{np.mean(list(control.values())):>10.4f}")
-    print(f"{'guarded mean':<18}{np.mean(list(guarded.values())):>10.4f}")
-    print(_verdict_line("guard", float(np.mean(list(guarded.values()))), result))
-    for row in fired:
-        print(f"  {row['season']}: dropped {row['dropped']} "
-              f"train {row['train_support']} -> test {row['test_support']} | "
-              f"{row['control_log_loss']:.4f} -> {row['guarded_log_loss']:.4f}")
-
-    return {"study": "coverage-guard", "league": args.league,
-            "floor": COVERAGE_SUPPORT_FLOOR, "folds": len(folds),
-            "fired": fired, "control": control, "guarded": guarded, **result,
-            "predeclared": "docs/quality/investigations/"
-                           "2026-08-13-newcomer-goal-transfer-predeclaration.md",
-            "recommendation": (
-                "Adopt only if the guard removes the catastrophic fold in the "
-                "league that motivated it AND is within noise in the other "
-                "eight. A guard that improves one league and moves the rest is "
-                "not a general rule, whatever its mean says.")}
+    return {"study":"coverage-guard","league":args.league,"floor":COVERAGE_SUPPORT_FLOOR,"folds":len(folds),"fired":fired,"control":control,"guarded":guarded,**result}
 
 
 STUDY_FUNCTIONS = {
@@ -1386,262 +952,59 @@ STUDY_FUNCTIONS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# The ledger
-#
-# `record_experiment` used to read `mean_delta`, `se_delta`, `folds`,
-# `beats_noise` and `harmful` off the TOP LEVEL of every study's result. Only
-# `regime-weighting` returns that shape. Half-life returns candidate rows and a
-# chosen setting; elo-transition and elo-margin return rows; ensemble returns a
-# nested comparison; calibration returns a choice with a before and an after.
-# Every one of those recorded `folds = 0`, a null delta, a null standard error
-# and the verdict `undecided` — while the report beside it held the whole
-# measurement. A ledger row that contains none of the measurement is not a
-# record of an experiment, it is a record that one was run.
-#
-# Each study now says, explicitly, which comparison its row is about.
-# ---------------------------------------------------------------------------
-
 def _from_rows(result: dict, key: str, baseline_label: str) -> dict:
-    """A candidate grid: the ledger row is about the BEST candidate.
-
-    `rows` already carries a paired comparison per candidate, because every
-    candidate was compared against the same baseline over the same folds.
-    """
-    rows = result.get("rows") or []
-    if not rows:
-        return {}
-    scored = [r for r in rows if r.get("mean_delta") is not None]
-    if not scored:
-        return {}
-    winners = [r for r in scored if r.get("beats_noise")]
-    best = (min(winners, key=lambda r: r["mean_delta"]) if winners
-            else min(scored, key=lambda r: r["mean_delta"]))
-    return {
-        "baseline": baseline_label,
-        "candidate": str(best.get(key)),
-        "folds": best.get("folds", 0),
-        "mean_delta": best.get("mean_delta"),
-        "se_delta": best.get("se_delta"),
-        "beats_noise": bool(best.get("beats_noise")),
-        "harmful": bool(best.get("harmful")),
-        "chosen": (str((result.get("chosen") or {}).get(key))
-                   if result.get("chosen") else None),
-        "candidates_tested": len(scored),
-    }
+    rows=result.get("rows") or []
+    if not rows:return {}
+    scored=[r for r in rows if r.get("mean_delta") is not None]
+    if not scored:return {}
+    winners=[r for r in scored if r.get("beats_noise")]
+    best=min(winners,key=lambda r:r["mean_delta"]) if winners else min(scored,key=lambda r:r["mean_delta"])
+    return {"baseline":baseline_label,"candidate":str(best.get(key)),"folds":best.get("folds",0),"mean_delta":best.get("mean_delta"),"se_delta":best.get("se_delta"),"beats_noise":bool(best.get("beats_noise")),"harmful":bool(best.get("harmful")),"chosen":(str((result.get("chosen") or {}).get(key)) if result.get("chosen") else None),"candidates_tested":len(scored)}
 
 
 def ledger_entry(study: str, result: dict) -> dict:
-    """What this study measured, in the shape the ledger column set needs."""
     if result.get("error"):
-        return {"baseline": None, "candidate": None, "folds": 0,
-                "mean_delta": None, "se_delta": None, "beats_noise": False,
-                "harmful": False, "error": result["error"]}
-
-    if study == "half-life":
-        return _from_rows(result, "half_life_days",
-                          f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
-    if study == "time-weighting":
-        return _from_rows(result, "candidate",
-                          f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
-    if study == "elo-transition":
-        return _from_rows(result, "transition", "global_mean (the defect)")
-    if study == "elo-margin":
-        return _from_rows(result, "policy", "plain (no red-card adjustment)")
-    if study == "regime-weighting":
-        # The one study that already returned the flat shape.
-        return {
-            "baseline": "unweighted history",
-            "candidate": f"pre-change weight {result.get('pre_change_weight')}",
-            "folds": result.get("folds", 0),
-            "mean_delta": result.get("mean_delta"),
-            "se_delta": result.get("se_delta"),
-            "beats_noise": bool(result.get("beats_noise")),
-            "harmful": bool(result.get("harmful")),
-        }
-    if study == "ensemble":
-        comparison = result.get("comparison") or {}
-        best_base = comparison.get("_best_base")
-        candidates = [(name, comparison[name]["vs_best_base"])
-                      for name in comparison
-                      if isinstance(comparison.get(name), dict)
-                      and comparison[name].get("vs_best_base")]
-        if not candidates:
-            return {"baseline": best_base, "candidate": None, "folds": 0,
-                    "mean_delta": None, "se_delta": None,
-                    "beats_noise": False, "harmful": False,
-                    "error": comparison.get("error", "no meta-model compared")}
-        name, vs = min(candidates, key=lambda pair: pair[1]["mean_delta"])
-        return {
-            "baseline": f"best single base model ({best_base})",
-            "candidate": name,
-            "folds": comparison[name].get("folds", 0),
-            "mean_delta": vs["mean_delta"],
-            "se_delta": vs["se_delta"],
-            "beats_noise": bool(vs["beats_noise"]),
-            "harmful": bool(vs["mean_delta"] > 0
-                            and vs["mean_delta"] - 2 * (vs["se_delta"] or 0) > 0),
-            "chosen": name if vs["beats_noise"] else best_base,
-            "candidates_tested": len(candidates),
-        }
-    if study == "league-diagnostic":
-        # It compares no configuration against any other, so every comparison
-        # column is honestly null. A ledger row still exists because the run
-        # happened and the seasons it described are evidence.
-        return {"baseline": None, "candidate": None,
-                "folds": len(result.get("rows") or []),
-                "mean_delta": None, "se_delta": None,
-                "beats_noise": False, "harmful": False,
-                "chosen": None,
-                "error": "diagnostic only: no configuration was compared"}
-    if study == "market-ou":
-        # The comparison is against a BOOK, not against another configuration
-        # of ours, so `mean_delta` is the model's log loss minus the market's:
-        # negative means our goal distribution scored better than the price.
-        # There is no paired standard error because the two probabilities come
-        # from different generating processes rather than from paired folds,
-        # and inventing one would make a benchmark look like an experiment.
-        overall = (result.get("overall") or {})
-        return {"baseline": "prematch book (de-vigged, per bookmaker)",
-                "candidate": "poisson P(Over 2.5)",
-                "folds": int(overall.get("matched") or 0),
-                "mean_delta": overall.get("model_minus_market_log_loss"),
-                "se_delta": None,
-                "beats_noise": False, "harmful": False,
-                "chosen": None,
-                "error": "benchmark only: no configuration was compared"}
-    if study == "gbm-diagnostic":
-        # The baseline is the SHIPPED configuration, so a ledger row here says
-        # "this candidate beat what we run today" rather than "this candidate
-        # was the best of eleven" — which would be true of something whatever
-        # the numbers were.
-        return _from_rows(result, "candidate", "shipped gbm configuration")
-    if study == "base-model":
-        rows = result.get("rows") or []
-        best = result.get("best")
-        others = [r for r in rows if r["family"] not in (best, "baseline")]
-        if not others:
-            return {"baseline": best, "candidate": None, "folds": 0,
-                    "mean_delta": None, "se_delta": None,
-                    "beats_noise": False, "harmful": False,
-                    "error": "no competing family to compare"}
-        closest = min(others, key=lambda r: r["mean_delta"])
-        return {
-            "baseline": f"best single family ({best})",
-            "candidate": closest["family"],
-            "folds": closest.get("folds", 0),
-            "mean_delta": closest.get("mean_delta"),
-            "se_delta": closest.get("se_delta"),
-            "beats_noise": bool(closest.get("beats_noise")),
-            "harmful": bool(closest.get("harmful")),
-            "chosen": best,
-            "families_tested": len(rows),
-        }
-    if study == "calibration":
-        choice = result.get("choice") or {}
-        before = (result.get("before") or {}).get("log_loss")
-        after = (result.get("after") or {}).get("log_loss")
-        delta = (None if before is None or after is None
-                 else float(after) - float(before))
-        return {
-            "baseline": "uncalibrated out-of-fold probabilities",
-            "candidate": choice.get("chosen"),
-            # Calibrator selection is itself scored on held-out folds; the
-            # count comes from there rather than being invented.
-            "folds": len(choice.get("scores") or {}) or choice.get("folds", 0),
-            "mean_delta": delta,
-            # Calibrator selection reports a per-candidate score rather than a
-            # paired standard error, so this is honestly null rather than a
-            # number that looks like one.
-            "se_delta": None,
-            "beats_noise": bool(choice.get("chosen")
-                                and choice.get("chosen") != "identity"),
-            "harmful": bool(delta is not None and delta > 0),
-            "chosen": choice.get("chosen"),
-            "ece_before": (result.get("before") or {}).get("ece"),
-            "ece_after": (result.get("after") or {}).get("ece"),
-        }
+        return {"baseline":None,"candidate":None,"folds":0,"mean_delta":None,"se_delta":None,"beats_noise":False,"harmful":False,"error":result["error"]}
+    if study=="half-life":return _from_rows(result,"half_life_days",f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
+    if study=="time-weighting":return _from_rows(result,"candidate",f"incumbent {DEFAULT_HALF_LIFE_DAYS:g} days")
+    if study=="elo-transition":return _from_rows(result,"transition","global_mean (the defect)")
+    if study=="elo-margin":return _from_rows(result,"policy","plain (no red-card adjustment)")
+    if study=="regime-weighting":return {"baseline":"unweighted history","candidate":f"pre-change weight {result.get('pre_change_weight')}","folds":result.get("folds",0),"mean_delta":result.get("mean_delta"),"se_delta":result.get("se_delta"),"beats_noise":bool(result.get("beats_noise")),"harmful":bool(result.get("harmful"))}
+    if study=="ensemble":
+        comparison=result.get("comparison") or {}; best_base=comparison.get("_best_base"); candidates=[(name,comparison[name]["vs_best_base"]) for name in comparison if isinstance(comparison.get(name),dict) and comparison[name].get("vs_best_base")]
+        if not candidates:return {"baseline":best_base,"candidate":None,"folds":0,"mean_delta":None,"se_delta":None,"beats_noise":False,"harmful":False,"error":comparison.get("error","no meta-model compared")}
+        name,vs=min(candidates,key=lambda pair:pair[1]["mean_delta"]); return {"baseline":f"best single base model ({best_base})","candidate":name,"folds":comparison[name].get("folds",0),"mean_delta":vs["mean_delta"],"se_delta":vs["se_delta"],"beats_noise":bool(vs["beats_noise"]),"harmful":False,"chosen":name if vs["beats_noise"] else best_base,"candidates_tested":len(candidates)}
+    if study=="gbm-diagnostic":return _from_rows(result,"candidate","shipped gbm configuration")
+    if study=="league-diagnostic":return {"baseline":None,"candidate":None,"folds":len(result.get("rows") or []),"mean_delta":None,"se_delta":None,"beats_noise":False,"harmful":False,"chosen":None,"error":"diagnostic only: no configuration was compared"}
+    if study=="market-ou":
+        overall=result.get("overall") or {}; return {"baseline":"prematch book (de-vigged, per bookmaker)","candidate":"poisson P(Over 2.5)","folds":int(overall.get("matched") or 0),"mean_delta":overall.get("model_minus_market_log_loss"),"se_delta":None,"beats_noise":False,"harmful":False,"chosen":None,"error":"benchmark only"}
+    if study=="base-model":
+        rows=result.get("rows") or []; best=result.get("best"); others=[r for r in rows if r["family"] not in (best,"baseline")]
+        if not others:return {"baseline":best,"candidate":None,"folds":0,"mean_delta":None,"se_delta":None,"beats_noise":False,"harmful":False}
+        closest=min(others,key=lambda r:r["mean_delta"]); return {"baseline":f"best single family ({best})","candidate":closest["family"],"folds":closest.get("folds",0),"mean_delta":closest.get("mean_delta"),"se_delta":closest.get("se_delta"),"beats_noise":bool(closest.get("beats_noise")),"harmful":bool(closest.get("harmful")),"chosen":best}
+    if study=="calibration":
+        choice=result.get("choice") or {}; before=(result.get("before") or {}).get("log_loss"); after=(result.get("after") or {}).get("log_loss"); delta=None if before is None or after is None else float(after)-float(before)
+        return {"baseline":"uncalibrated out-of-fold probabilities","candidate":choice.get("chosen"),"folds":len(choice.get("scores") or {}) or choice.get("folds",0),"mean_delta":delta,"se_delta":None,"beats_noise":bool(choice.get("chosen") and choice.get("chosen")!="identity"),"harmful":bool(delta is not None and delta>0),"chosen":choice.get("chosen")}
     return {}
 
 
 def record_experiment(league: str, study: str, result: dict) -> None:
-    """Write the study to ai.feature_experiments — including a null result."""
     from db import connect
-
-    entry = ledger_entry(study, result)
-    delta = entry.get("mean_delta")
-    se = entry.get("se_delta")
-    verdict = "undecided"
-    if entry.get("beats_noise"):
-        verdict = "kept"
-    elif entry.get("harmful"):
-        verdict = "rejected"
-    elif delta is not None:
-        verdict = "inconclusive"
-
-    hypothesis = (
-        f"{study}: {entry.get('candidate')} vs {entry.get('baseline')}"
-        if entry.get("candidate") else f"{study}: {result.get('error', 'no comparison')}")
-
+    entry=ledger_entry(study,result); delta=entry.get("mean_delta"); se=entry.get("se_delta")
+    verdict="kept" if entry.get("beats_noise") else "rejected" if entry.get("harmful") else "inconclusive" if delta is not None else "undecided"
+    hypothesis=f"{study}: {entry.get('candidate')} vs {entry.get('baseline')}" if entry.get("candidate") else f"{study}: {result.get('error','no comparison')}"
     with connect() as conn:
-        conn.execute(
-            "insert into ai.feature_experiments "
-            "(league, hypothesis, folds, delta_log_loss, delta_rps, std_error, "
-            " verdict, notes) values (%s,%s,%s,%s,%s,%s,%s,%s)",
-            (league, hypothesis[:500], entry.get("folds", 0) or 0, delta, None, se,
-             verdict,
-             # Both halves: the extracted decision, and the full report it came
-             # from, so the decision is reproducible rather than merely stated.
-             json.dumps({"decision": entry,
-                         "recommendation": result.get("recommendation"),
-                         "report": result}, default=str)[:4000]),
-        )
-        conn.commit()
+        conn.execute("insert into ai.feature_experiments (league,hypothesis,folds,delta_log_loss,delta_rps,std_error,verdict,notes) values (%s,%s,%s,%s,%s,%s,%s,%s)",(league,hypothesis[:500],entry.get("folds",0) or 0,delta,None,se,verdict,json.dumps({"decision":entry,"recommendation":result.get("recommendation"),"report":result},default=str)[:4000])); conn.commit()
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--league", choices=sorted(LEAGUES), required=True)
-    ap.add_argument("--study", choices=STUDIES, required=True)
-    ap.add_argument("--family", default="poisson")
-    ap.add_argument("--feature-groups", nargs="*", default=list(DEFAULT_GROUPS))
-    ap.add_argument("--half-life-days", type=float, default=DEFAULT_HALF_LIFE_DAYS)
-    ap.add_argument("--min-train-seasons", type=int, default=5)
-    # Left unset so each study can resolve its OWN default. Defaulting this to
-    # ENSEMBLE_BASE_FAMILIES for every study would have quietly excluded
-    # `logistic` from the base-model comparison — which is the one family that
-    # comparison exists to measure.
-    ap.add_argument("--base-families", nargs="*", default=None)
-    ap.add_argument("--meta", default="logistic_stack")
-    ap.add_argument("--pre-change-weight", type=float, default=0.5)
-    ap.add_argument("--record", action="store_true",
-                    help="Write the result to ai.feature_experiments, including "
-                         "a null result. Rejections are results.")
-    args = ap.parse_args()
-
-    # Say so here rather than letting the study run for twenty minutes and then
-    # die on the insert. The read-only session would refuse the write either
-    # way; this refuses the contradictory REQUEST.
-    if args.record and read_only():
-        raise SystemExit(
-            "--record was asked for while AI_READ_ONLY is set. A research run "
-            "reads; it does not write ai.feature_experiments. Drop --record, or "
-            "unset AI_READ_ONLY if a recorded experiment is what you meant.")
-
+    ap=argparse.ArgumentParser(); ap.add_argument("--league",choices=sorted(LEAGUES),required=True); ap.add_argument("--study",choices=STUDIES,required=True); ap.add_argument("--family",default="poisson"); ap.add_argument("--feature-groups",nargs="*",default=list(DEFAULT_GROUPS)); ap.add_argument("--half-life-days",type=float,default=DEFAULT_HALF_LIFE_DAYS); ap.add_argument("--min-train-seasons",type=int,default=5); ap.add_argument("--base-families",nargs="*",default=None); ap.add_argument("--meta",default="logistic_stack"); ap.add_argument("--pre-change-weight",type=float,default=0.5); ap.add_argument("--record",action="store_true"); args=ap.parse_args()
+    if args.record and read_only():raise SystemExit("--record was asked for while AI_READ_ONLY is set")
     if args.base_families is None:
         from model_candidates import BASE_MODEL_FAMILIES
-        args.base_families = list(
-            BASE_MODEL_FAMILIES if args.study == "base-model"
-            else ENSEMBLE_BASE_FAMILIES)
-
-    result = STUDY_FUNCTIONS[args.study](args)
-    path = REPORT_DIR / f"study-{args.study}-{args.league.lower()}.json"
-    path.write_text(json.dumps(result, indent=2, default=str))
-    print(f"\nwritten to {path}")
-
-    if args.record:
-        record_experiment(args.league, args.study, result)
-        print("recorded in ai.feature_experiments")
+        args.base_families=list(BASE_MODEL_FAMILIES if args.study=="base-model" else ENSEMBLE_BASE_FAMILIES)
+    result=STUDY_FUNCTIONS[args.study](args); path=REPORT_DIR/f"study-{args.study}-{args.league.lower()}.json"; path.write_text(json.dumps(result,indent=2,default=str)); print(f"\nwritten to {path}")
+    if args.record:record_experiment(args.league,args.study,result);print("recorded in ai.feature_experiments")
     return 0
 
 
