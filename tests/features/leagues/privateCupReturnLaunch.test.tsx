@@ -116,6 +116,36 @@ describe('return-later private Championship launch', () => {
     expect(changed).toHaveBeenCalledTimes(1)
   })
 
+  it('reopens a controlled organiser selection after a parent refresh remount', async () => {
+    const read = vi.fn(async (_competitionId: string): Promise<PrivateCupLaunchReadiness | null> => ({
+      ...READY,
+      launched: true,
+      canLaunch: false,
+      blockedReason: 'already_launched',
+    }))
+
+    // This is deliberately a fresh mount, not a rerender. `/leagues` temporarily
+    // swaps the whole Workspace for its loading skeleton during an authoritative
+    // reread, so the organiser panel is destroyed and later recreated. The page
+    // owns the selected id; a recreated controlled panel must reopen it and read
+    // the launched state again rather than collapsing at the success boundary.
+    render(
+      <OrganiserPanel
+        list={vi.fn(async () => LIST)}
+        open={vi.fn(async () => DETAIL)}
+        readCupLaunch={read}
+        launchCup={vi.fn(async (): Promise<CupLaunchResult> => ({ outcome: 'already_launched' }))}
+        selectedCompetitionId="cup-1"
+        onSelectedCompetitionChange={vi.fn()}
+      />,
+    )
+
+    const summary = await screen.findByRole('button', { name: /Office Championship/ })
+    expect(summary).toHaveAttribute('aria-expanded', 'true')
+    expect(await screen.findByText('The field is fixed and registration is closed.')).toBeInTheDocument()
+    expect(read).toHaveBeenCalledWith('cup-1')
+  })
+
   it('does not render a launch command when the server refuses readiness', async () => {
     const read = vi.fn(async (_competitionId: string): Promise<PrivateCupLaunchReadiness | null> => ({
       ...READY,
