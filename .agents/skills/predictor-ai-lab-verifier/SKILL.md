@@ -33,6 +33,8 @@ Treat the AI Lab as a gated evidence pipeline:
 
 The byte-level artefact SHA and the semantic/data fingerprints are complementary. Do not replace one with the other.
 
+The admitted weekly/manual selected-challenger path runs through `ai/train_verified.py`. That wrapper captures the exact final-fit frame used by `train.py`, embeds the reproducibility evidence into the bundle, reloads the augmented bytes, verifies the fingerprints/reference gate, recalculates the byte SHA and only then delegates to the existing atomic model+artefact insert. Treat raw `train.py` as the lower-level training implementation, not as evidence that this guarded materialisation path ran.
+
 ## Independent verification
 
 For material model changes, prefer a fresh-context verifier or a separate test phase from the implementation agent. The verifier should attempt to falsify the change, especially by checking:
@@ -44,7 +46,8 @@ For material model changes, prefer a fresh-context verifier or a separate test p
 - model row versus artefact provenance disagreement;
 - synthetic MAX/AVG/unknown bookmaker paths becoming actionable;
 - quarantined forecasts re-entering evidence;
-- a loaded artefact producing probabilities different from its recorded reference gate.
+- a loaded artefact producing probabilities different from its recorded reference gate;
+- a selected-challenger command bypassing `train_verified.py`.
 
 Agreement between implementation agents is not evidence. Executable gates are.
 
