@@ -77,6 +77,18 @@ describe('a genuinely focused weekly change narrows', () => {
     expect(decision.specs).not.toContain('bonus-games.spec.ts')
   })
 
+  it('runs the private-play lifecycle for both discovery and organiser changes', () => {
+    for (const path of [
+      'src/features/hub/GlobalLeaguesPage.tsx',
+      'src/features/hub/privatePlayModel.ts',
+      'src/features/leagues/OrganiserPanel.tsx',
+    ]) {
+      const decision = selectJourneys([path])
+      expect(decision.full).toBe(false)
+      expect(decision.specs).toContain('private-bonus-play-lifecycle.spec.ts')
+    }
+  })
+
   it('runs a changed active spec itself', () => {
     const decision = selectJourneys(['e2e/profile-h2h-surfaces.spec.ts'])
     expect(decision.full).toBe(false)
