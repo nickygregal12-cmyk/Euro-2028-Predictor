@@ -1,0 +1,163 @@
+name: AI Lab value catch-up
+
+# GitHub scheduled workflows may start late. The primary AI Lab workflow used
+# wall-clock hour checks and on 14 August 2026 a delayed Friday run reported
+# success while doing no value work. This recovery path decides from durable
+# ai.job_runs evidence instead: if all nine leagues already completed a recent
+# value pass it is a no-op; otherwise it performs the same provider-paid-call-
+# free reconciliation/value sequence. A delayed catch-up therefore keeps the
+# same meaning instead of silently changing into success-with-no-work.
+on:
+  schedule:
+    - cron: '45 15 * * 2'
+    - cron: '45 19 * * 5'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Same group as .github/workflows/ai-lab.yml for Production, so a delayed
+  # primary run and this recovery run cannot mutate the lab concurrently.
+  group: ai-lab-production
+  cancel-in-progress: false
+
+env:
+  PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+
+jobs:
+  recover-value-pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Resolve and verify Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_DB_URL}" ]; then
+            echo 'SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          fi
+          case "${PROD_DB_URL}" in
+            *"${PRODUCTION_PROJECT_REF}"*) ;;
+            *) echo "SUPABASE_PROD_DB_URL does not name Production ${PRODUCTION_PROJECT_REF}."; exit 1 ;;
+          esac
+          echo "::add-mask::${PROD_DB_URL}"
+          echo "DATABASE_URL=${PROD_DB_URL}" >> "$GITHUB_ENV"
+
+      - name: Install
+        working-directory: ai
+        run: pip install -r requirements.txt
+
+      - name: Prove the package writes to schema ai and nowhere else
+        working-directory: ai
+        run: python check_write_scope.py
+
+      - name: Decide from durable job evidence
+        id: need
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          completed="$(python - <<'PY'
+          from db import connect
+          with connect() as conn:
+              row = conn.execute("""
+                  select count(distinct league) as n
+                    from ai.job_runs
+                   where job = 'find_value'
+                     and status = 'succeeded'
+                     and started_at >= now() - interval '6 hours'
+              """).fetchone()
+          print(int(row['n']))
+          PY
+          )"
+          echo "Recent successful value leagues: ${completed}/9"
+          if [ "${completed}" -eq 9 ]; then
+            echo 'run=false' >> "$GITHUB_OUTPUT"
+          else
+            echo 'run=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Snapshot paid-provider usage
+        if: steps.need.outputs.run == 'true'
+        working-directory: ai
+        shell: bash
+        run: |
+          python - <<'PY' > /tmp/paid-usage-before
+          from db import connect
+          with connect() as conn:
+              row = conn.execute(
+                  "select count(*)::bigint as n, coalesce(max(called_at)::text, '') as latest from ai.api_usage"
+              ).fetchone()
+          print(f"{row['n']}|{row['latest']}")
+          PY
+
+      - name: Recover missed value pass without a paid provider call
+        if: steps.need.outputs.run == 'true'
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          python sync_fixtures.py
+          python reconcile_paid_fixture_evidence.py
+          python fetch_fixtures_odds.py
+          ./run_leagues.sh find_value.py
+
+      - name: Prove all nine leagues completed and paid usage did not move
+        if: steps.need.outputs.run == 'true'
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          completed="$(python - <<'PY'
+          from db import connect
+          with connect() as conn:
+              row = conn.execute("""
+                  select count(distinct league) as n
+                    from ai.job_runs
+                   where job = 'find_value'
+                     and status = 'succeeded'
+                     and started_at >= now() - interval '90 minutes'
+              """).fetchone()
+          print(int(row['n']))
+          PY
+          )"
+          [ "${completed}" -eq 9 ] || {
+            echo "Expected all nine value jobs in the recovery run, got ${completed}."
+            exit 1
+          }
+          python - <<'PY' > /tmp/paid-usage-after
+          from db import connect
+          with connect() as conn:
+              row = conn.execute(
+                  "select count(*)::bigint as n, coalesce(max(called_at)::text, '') as latest from ai.api_usage"
+              ).fetchone()
+          print(f"{row['n']}|{row['latest']}")
+          PY
+          diff -u /tmp/paid-usage-before /tmp/paid-usage-after
+
+      - name: Summary
+        if: success()
+        shell: bash
+        run: |
+          if [ "${{ steps.need.outputs.run }}" = true ]; then
+            message='Recovered a missing nine-league value pass; paid Odds API usage was unchanged.'
+          else
+            message='Primary value pass already completed for all nine leagues; recovery was a no-op.'
+          fi
+          {
+            echo '## AI Lab value catch-up'
+            echo
+            echo "- ${message}"
+            echo '- Decision is based on `ai.job_runs`, not the runner wall clock.'
+          } >> "$GITHUB_STEP_SUMMARY"
