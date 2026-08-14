@@ -1,29 +1,15 @@
 import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import type { GameLeague } from '../../services/supabase/gameLeagues'
+import type { PrivateCompetitionDiscovery } from '../../services/supabase/privateCompetitionDiscovery'
 
 /**
  * Every private league and private competition the player actually belongs to,
  * across every game and every football competition, in one list.
  *
- * WHAT IT REPLACES. `/leagues` used to be a competition chooser: pick a
- * competition, then see its private leagues. The 10 August 2026 authority
- * retires that — "do not force the player to remember which football
- * competition a private league belongs to before they can find it" — and the
- * old shape asked exactly that. Private play is where a player's friends are;
- * it is the last thing that should be filed behind a football taxonomy.
- *
- * THE CONTAINER NAMES ITS OWN CONTEXT INSTEAD. Each card carries competition,
- * season and game, because "The Saturday Crew" is meaningless on its own once a
- * player has two of them in different competitions — which is the same
- * scalability argument as the rail's, applied to content rather than
- * navigation.
- *
- * ONE GAME'S PRIVATE PLAY IS NOT ANOTHER'S. ADR 0011 keeps each game's
- * standings its own and `leagues.game_competition_id` says the same in storage,
- * so the game is a fact about each container rather than a filter this model
- * invents. A Match Predictor league and a Last Man Standing competition sharing
- * one list is a presentation decision; sharing one TABLE would not be, and
- * nothing here merges a standing.
+ * TWO STORAGE MODELS, ONE PRESENTATION. Match Predictor private play is an
+ * ordinary `league`; Last Man Standing and Predictor Championship private play
+ * are private `bonus_competitions`. They share a page because that is useful to
+ * the player, never because the browser pretends they share an authority.
  *
  * PURE.
  */
@@ -36,17 +22,21 @@ export type PrivatePlayGameKind = Extract<
 export type PrivatePlayEntry = {
   key: string
   name: string
-  inviteCode: string
+  /** Private bonus containers disclose the live code to the organiser only. */
+  inviteCode: string | null
+  inviteAvailable: boolean
   competitionName: string
   seasonLabel: string
   gameKey: PrivatePlayGameKind
   gameName: string
   memberLine: string
   ownerLine: string
-  /** Where this container's own surface is, when it has one. */
+  statusLine: string | null
+  /** Where this container's own surface is, when one is actually routed. */
   href: string | null
 }
 
+/** Ordinary Match Predictor private leagues for one public game competition. */
 export type PrivatePlaySource = {
   competitionName: string
   seasonLabel: string
@@ -63,7 +53,7 @@ export type PrivatePlayView = {
   /** Counts per filter, so a filter with nothing behind it is not offered. */
   counts: Readonly<Record<PrivatePlayFilter, number>>
   empty: boolean
-  /** Competitions whose private play could not be read, by name. */
+  /** Authorities whose private play could not be read, by a useful name. */
   unreadable: readonly string[]
 }
 
@@ -77,23 +67,29 @@ function memberLine(count: number): string {
   return count === 1 ? '1 member' : `${count} members`
 }
 
+function lifecycleLine(value: string | null): string | null {
+  switch (value) {
+    case 'setup':
+      return 'Waiting to start'
+    case 'registration_open':
+      return 'Open for entries'
+    case 'registration_closed':
+      return 'Registration closed'
+    case 'running':
+      return 'In progress'
+    case 'completed':
+      return 'Finished'
+    case 'unavailable':
+      return 'Unavailable'
+    default:
+      return null
+  }
+}
+
 /**
- * Where a container of this game opens, given its competition's Leagues address.
- *
- * ONLY THE MATCH PREDICTOR LEAGUE HAS A WORKSPACE. `UI-F12` is delivered for
- * that game and no other, and the competition's Leagues section IS the Match
- * Predictor league workspace. Handing the same address to a Last Man Standing
- * or Championship container sent the player to a list their container was not
- * in, which reads as the container having been lost rather than as a page that
- * does not exist yet.
- *
- * Null is the honest answer, and the caller states it rather than rendering
- * nothing: a card with an invite code, a member count and no explanation of why
- * it alone does not open reads as broken. The missing read and the missing page
- * are registered together as `MIG-UI-20`.
- *
- * It takes the competition href rather than building one, so this stays pure and
- * the route authority stays in `weeklyRoutes`.
+ * Where an ORDINARY private league opens, given its competition's Leagues
+ * address. Bonus-game containers remain null until `MIG-UI-20` gives their
+ * workspace a routed frontend destination.
  */
 export function privatePlayHref(
   gameKey: PrivatePlayGameKind,
@@ -106,31 +102,52 @@ export function presentPrivatePlay(
   sources: readonly PrivatePlaySource[],
   unreadable: readonly string[],
   filter: PrivatePlayFilter = 'all',
+  privateCompetitions: readonly PrivateCompetitionDiscovery[] = [],
 ): PrivatePlayView {
   const all: PrivatePlayEntry[] = []
 
+  // Ordinary Match Predictor leagues keep their existing authority and route.
   for (const source of sources) {
     for (const league of source.leagues) {
       all.push({
-        // The league id is unique across games and competitions, so it keys
-        // rows without help from the position in the list.
         key: league.id,
         name: league.name,
         inviteCode: league.inviteCode,
+        inviteAvailable: true,
         competitionName: source.competitionName,
         seasonLabel: source.seasonLabel,
         gameKey: source.gameKey,
         gameName: PRIVATE_PLAY_GAME_NAME[source.gameKey],
         memberLine: memberLine(league.memberCount),
         ownerLine: league.isOwner ? 'You own this' : `Owned by ${league.ownerName}`,
+        statusLine: null,
         href: source.href,
       })
     }
   }
 
-  // Largest first, then by name: a fifteen-person league is more likely the one
-  // being looked for than a two-person one, and the name breaks ties stably so
-  // the list does not reorder between visits.
+  // Bonus-game containers are caller-addressed by Contract 179. Do not project
+  // them into `GameLeague`: that would re-create the read mismatch PPLAY-001 is
+  // fixing and would also leak an organiser-only invite code to ordinary members.
+  for (const competition of privateCompetitions) {
+    all.push({
+      key: competition.competitionId,
+      name: competition.name,
+      inviteCode: competition.inviteCode,
+      inviteAvailable: competition.inviteAvailable,
+      competitionName: competition.seasonName,
+      seasonLabel: competition.seasonKey ?? '',
+      gameKey: competition.gameKey,
+      gameName: competition.gameName,
+      memberLine: memberLine(competition.members),
+      ownerLine: competition.isOwner ? 'You own this' : 'You joined this',
+      statusLine: lifecycleLine(competition.lifecycleState),
+      href: null,
+    })
+  }
+
+  // Largest first, then by name: a fifteen-person container is more likely the
+  // one being looked for than a two-person one, and the name breaks ties stably.
   all.sort((left, right) => {
     const size = right.memberLine.localeCompare(left.memberLine, undefined, { numeric: true })
     return size !== 0 ? size : left.name.localeCompare(right.name)
