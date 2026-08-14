@@ -100,21 +100,27 @@ def test_normal_training_enables_the_guard_without_a_special_cli_flag(monkeypatc
     assert model.coverage_provenance["dropped_groups"] == ["shots_volume"]
 
 
-def test_scheduled_monday_training_reaches_selected_policy_then_guarded_fit():
-    """Protect the authority chain: schedule -> selected policy -> train -> fit.
+def test_scheduled_monday_training_reaches_selected_policy_then_verified_guarded_fit():
+    """Protect schedule -> selected policy -> verification -> train -> guarded fit.
 
-    Mutation guard: restoring the old one-size-fits-all Poisson command removes
-    the selected-policy assertion and fails this test.
+    Mutation guard: restoring the old one-size-fits-all Poisson command, routing
+    the policy around `train_verified.py`, or disconnecting the wrapper from the
+    mature `train.py` implementation each breaks a separate assertion here.
     """
     root = Path(__file__).resolve().parent.parent
     workflow = (root / ".github" / "workflows" / "ai-lab.yml").read_text()
     runner = (root / "ai" / "train_selected_challengers.py").read_text()
+    policy = (root / "ai" / "challenger_policy.py").read_text()
+    verified = (root / "ai" / "train_verified.py").read_text()
     training = (root / "ai" / "train.py").read_text()
 
     assert "cron: '0 7 * * 1'" in workflow
     assert "python train_selected_challengers.py" in workflow
     assert './run_leagues.sh train.py --family poisson' not in workflow
-    assert '"train.py"' in runner
+    assert "ordered_policy" in runner
+    assert '"train_verified.py"' in policy
+    assert "prepare_verified_artifact" in verified
+    assert "return train.main()" in verified
     assert "fit_family(" in training
     assert "from fitting import DEFAULT_HALF_LIFE_DAYS, fit_family, time_weights" in training
 
