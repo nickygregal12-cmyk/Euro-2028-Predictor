@@ -71,10 +71,15 @@ export const JOURNEY_MAP = [
   { prefix: 'src/features/admin/', specs: ['weekly-admin-access.spec.ts'] },
   { prefix: 'src/features/home/', specs: ['weekly-navigation.spec.ts'] },
   {
-    // The Hub carries the matchday briefing, whose absence-of-invented-football
-    // property the innovation surfaces spec asserts.
+    // The Hub carries both the matchday briefing and the global leagues page.
+    // Private LMS/Championship rediscovery and return-later launch therefore
+    // belong in the focused Hub contract as well as the leagues organiser area.
     prefix: 'src/features/hub/',
-    specs: ['weekly-navigation.spec.ts', 'innovation-surfaces.spec.ts'],
+    specs: [
+      'weekly-navigation.spec.ts',
+      'innovation-surfaces.spec.ts',
+      'private-bonus-play-lifecycle.spec.ts',
+    ],
   },
   { prefix: 'src/features/share/', specs: ['innovation-surfaces.spec.ts'] },
   {
@@ -83,7 +88,7 @@ export const JOURNEY_MAP = [
   },
   {
     prefix: 'src/features/leagues/',
-    specs: ['private-league-pagination.spec.ts'],
+    specs: ['private-league-pagination.spec.ts', 'private-bonus-play-lifecycle.spec.ts'],
   },
   {
     // Mapped now that a season journey exists to map to. Until the browser
