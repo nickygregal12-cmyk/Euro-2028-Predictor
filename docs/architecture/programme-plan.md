@@ -255,3 +255,5 @@ nothing to say.
 **This table accounts for every contract up to and including contract 189.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
+
+> **Contract 190 programme effect:** the AI Lab Production-activation prerequisite for actionable bookmaker evidence is closed in repository code; hosted rollout remains the next programme gate.

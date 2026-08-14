@@ -231,3 +231,5 @@ same paragraph existed in seven places at once.
 | 188 | One private presentation change: an administrator-only AI Lab Bet Builder. No player-facing surface moves |
 
 *Current to contract 189.*
+
+> **Contract 190:** has no design delta. It hardens the private AI Lab betting-evidence backend while leaving the signed-in product design authority unchanged.

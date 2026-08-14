@@ -297,3 +297,5 @@ same paragraph existed in seven places at once.
 | 188 | **Advances no platform item.** The private AI Lab's multi-model forecasting evidence, its provider identity custody and its quarantine authority. It closes the defect that made Production's first fifty-one forecasts unusable — a second, smaller alias table inside the Edge Function — and adds the private Bet Builder. It moves no scoring, lock, settlement, progression or reveal rule, and adds no player-facing surface |
 
 *Current to contract 189.*
+
+> **Contract 190:** adds the database actionability gate required before Production selected-model activation. The roadmap order outside that AI Lab prerequisite is unchanged.

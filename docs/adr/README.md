@@ -97,3 +97,5 @@ same paragraph existed in seven places at once.
 | 188 | **No new decision.** [ADR 0029](0029-private-ai-lab-and-odds-custody.md)'s laboratory, given the model evidence, identity custody and quarantine it was missing |
 
 *Current to contract 189.*
+
+> **Contract 190:** implements bookmaker-actionability hardening under the existing AI Lab decisions; no ADR changes status because of this contract.

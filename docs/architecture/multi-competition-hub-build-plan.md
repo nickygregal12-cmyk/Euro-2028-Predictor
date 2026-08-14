@@ -344,3 +344,5 @@ in two documents creates competing authority.* The clauses survive; the copy is 
 **This table accounts for every contract up to and including contract 189.** Saying so is
 the point: a reader can tell at a glance whether the mapping has kept up, which a pile of
 blockquotes could never show without being read end to end.
+
+> **Contract 190 stage effect:** the private AI Lab now has a database gate separating reference prices from actionable bookmaker evidence; no hub build-stage scope changes.

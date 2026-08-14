@@ -174,3 +174,5 @@ same paragraph existed in seven places at once.
 | 188 | **No structure moved.** Everything is inside the separately revoked `ai` schema |
 
 *Current to contract 189.*
+
+> **Contract 190:** does not alter competition structure, scoring, entry, or ownership. Its scope is limited to private AI betting-evidence actionability.

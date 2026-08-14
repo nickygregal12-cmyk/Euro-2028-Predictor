@@ -492,3 +492,5 @@ complete.
 - One surface with an empty contextual column at the moment it was most useful:
   the Match Predictor's "Match insights" panel, which held only a post-lock
   read. See `UI-F06`.
+
+> **Contract 190:** introduces no UI work. It closes the backend synthetic-bookmaker evidence boundary required before the already-designed AI Lab can be activated safely.

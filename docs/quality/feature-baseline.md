@@ -323,3 +323,5 @@ Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovatio
 | `INNOV-013` Archaeology | **No new surface.** The historic-fixture experience was already carried by the Match Centre route, and `INNOV-011` supplied the one missing part. Recorded so a later session does not build a second one | Superseded |
 
 Twelve further rows did not ship, each for a stated reason, and the reasons are recorded in the register's own delivery record rather than restated here. **None of them is rendered as a disabled or decorative control**: where a feature needs a server authority that does not exist, no surface exists either.
+
+> **Contract 190:** records a backend safeguard: valid AI betting evidence and new bet writes require a real non-aggregate bookmaker registry venue. No frontend feature baseline changes.

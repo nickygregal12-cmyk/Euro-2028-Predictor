@@ -479,3 +479,5 @@ same paragraph existed in seven places at once.
 | 175–178 | The Innovation Lab backend foundations (ADR 0027): the what-if projection, Prediction DNA, offline draft reconciliation and the independent shadow scoring verifier. **Four `INNOV-*` rows close; twenty remain**, each with a named product, privacy or security blocker rather than an unexplained gap. *(Both hosted environments reached 178 on 12 August 2026, and all four gained a frontend consumer the same day — see `UI-F23`. Contract 178 still has no scheduled caller anywhere.)* |
 
 *Current to contract 189.*
+
+> **Contract 190:** closes the synthetic-price betting-evidence safety item for the AI Lab. It does not reclassify unrelated product work; hosted rollout is still pending.
