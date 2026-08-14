@@ -1,17 +1,16 @@
 name: AI hardening evidence
 
-# Temporary execution plane for the closing hardening study. It is deliberately
-# Development-only, read-only and provider-free. The workflow is removed once
-# its result is copied back into the dated investigation record.
+# Temporary execution plane for the final historical falsification rerun.
+# Development-only, read-only and provider-free. It is deleted once the
+# coverage-guard result is copied back into the dated investigation record.
 on:
   pull_request:
     branches:
       - main
     paths:
-      - 'ai/final_hardening.py'
+      - 'ai/experiments.py'
       - 'ai/fitting.py'
       - 'ai/features.py'
-      - 'docs/quality/investigations/2026-08-14-final-model-selection-predeclaration.md'
       - '.github/workflows/ai-hardening-evidence.yml'
   workflow_dispatch:
 
@@ -26,17 +25,13 @@ env:
   DEVELOPMENT_PROJECT_REF: iouzoutneyjpugbbtdem
 
 jobs:
-  final-guarded-comparison:
-    # Secrets are unavailable to fork PRs. This branch lives in the repository,
-    # but keep the boundary explicit so this workflow can never become a way for
-    # an external PR to receive the Development database credential.
+  coverage-falsification:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:
       DATABASE_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
       AI_READ_ONLY: '1'
-      AI_COVERAGE_GUARD: '1'
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -68,35 +63,38 @@ jobs:
         working-directory: ai
         run: python check_write_scope.py
 
-      - name: Run the predeclared all-nine guarded comparison
+      - name: Rerun only the predeclared coverage-guard falsification
         working-directory: ai
-        run: python final_hardening.py --all --output reports/final-guarded-model-selection.json
+        run: ./run_leagues.sh experiments.py --study coverage-guard
 
-      - name: Print compact selection digest
+      - name: Print the nine-league falsification digest
         if: always()
         working-directory: ai
         run: |
           python - <<'PY'
-          import json
-          from pathlib import Path
-          path = Path('reports/final-guarded-model-selection.json')
-          if not path.exists():
-              print('no final report produced')
-              raise SystemExit(0)
-          report = json.loads(path.read_text())
-          for league, row in report['leagues'].items():
-              pick = row['selection']
-              summary = row['summaries'][pick['configuration']]
-              print('FINAL', league, pick['configuration'],
-                    f"log_loss={summary['mean_log_loss']:.6f}",
-                    f"dropped={pick['coverage_dropped_in_any_selected_fold']}")
+          import glob, json, os
+          paths = sorted(glob.glob('reports/study-coverage-guard-*.json'))
+          if len(paths) != 9:
+              raise SystemExit(f'expected 9 coverage reports, found {len(paths)}')
+          for path in paths:
+              row = json.loads(open(path).read())
+              fired = row.get('fired') or []
+              print('COVERAGE', row['league'],
+                    f"delta={row.get('mean_delta', 0):+.12f}",
+                    f"se={row.get('se_delta', 0):.12f}",
+                    f"fired={[r['season'] for r in fired]}")
+              for fold in fired:
+                  print('FIRED', row['league'], fold['season'],
+                        fold['dropped'],
+                        f"{fold['control_log_loss']:.12f}",
+                        f"{fold['guarded_log_loss']:.12f}")
           PY
 
-      - name: Keep the evidence
+      - name: Keep the targeted evidence
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: final-guarded-model-selection-${{ github.run_id }}
-          path: ai/reports/final-guarded-model-selection.json
+          name: coverage-falsification-${{ github.run_id }}
+          path: ai/reports/study-coverage-guard-*.json
           retention-days: 30
           if-no-files-found: error
