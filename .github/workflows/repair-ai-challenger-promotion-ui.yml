@@ -42,24 +42,24 @@ jobs:
           text = text.replace(old_import, new_import)
 
           marker = "\ndescribe('AI Lab page', () => {\n"
-          challenger = r'''
-const challengerSnapshot = {
-  ...snapshot,
-  models: [{
-    id: 'challenger-epl',
-    league: 'EPL',
-    version: 'selected-20260814-v1',
-    family: 'ensemble',
-    status: 'challenger',
-    trainedAt: '2026-08-14T14:30:00Z',
-    trainingMatches: 12345,
-    validationAccuracy: 0.51,
-    validationLogLoss: 0.971,
-    baselineLogLoss: null,
-    marketLogLoss: null,
-  }],
-}
-'''
+          challenger = (
+              "\nconst challengerSnapshot = {\n"
+              "  ...snapshot,\n"
+              "  models: [{\n"
+              "    id: 'challenger-epl',\n"
+              "    league: 'EPL',\n"
+              "    version: 'selected-20260814-v1',\n"
+              "    family: 'ensemble',\n"
+              "    status: 'challenger',\n"
+              "    trainedAt: '2026-08-14T14:30:00Z',\n"
+              "    trainingMatches: 12345,\n"
+              "    validationAccuracy: 0.51,\n"
+              "    validationLogLoss: 0.971,\n"
+              "    baselineLogLoss: null,\n"
+              "    marketLogLoss: null,\n"
+              "  }],\n"
+              "}\n"
+          )
           if text.count(marker) != 1:
               raise SystemExit('expected exactly one AI Lab describe marker')
           text = text.replace(marker, challenger + marker)
@@ -71,25 +71,22 @@ const challengerSnapshot = {
           text = text.replace(reset_old, reset_new)
 
           end_marker = "\n  it('filters every dashboard read by the selected league and exposes the evidence tabs', async () => {"
-          regression = r'''
-  it('offers the audited promotion flow for a database challenger model', async () => {
-    render(<AiLabPage previewSnapshot={challengerSnapshot} />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Promote' }))
-    expect(screen.getByText('Promote model')).toBeTruthy()
-
-    fireEvent.change(screen.getByLabelText('Reason for promotion'), {
-      target: { value: 'Selected by the final guarded model study' },
-    })
-    fireEvent.click(screen.getByRole('button', { name: 'Make current' }))
-
-    await waitFor(() => expect(promoteAiModel).toHaveBeenCalledWith(
-      'challenger-epl',
-      'Selected by the final guarded model study',
-    ))
-    expect(await screen.findByText('EPL selected-20260814-v1 is now the current model.')).toBeTruthy()
-  })
-'''
+          regression = (
+              "\n  it('offers the audited promotion flow for a database challenger model', async () => {\n"
+              "    render(<AiLabPage previewSnapshot={challengerSnapshot} />)\n\n"
+              "    fireEvent.click(screen.getByRole('button', { name: 'Promote' }))\n"
+              "    expect(screen.getByText('Promote model')).toBeTruthy()\n\n"
+              "    fireEvent.change(screen.getByLabelText('Reason for promotion'), {\n"
+              "      target: { value: 'Selected by the final guarded model study' },\n"
+              "    })\n"
+              "    fireEvent.click(screen.getByRole('button', { name: 'Make current' }))\n\n"
+              "    await waitFor(() => expect(promoteAiModel).toHaveBeenCalledWith(\n"
+              "      'challenger-epl',\n"
+              "      'Selected by the final guarded model study',\n"
+              "    ))\n"
+              "    expect(await screen.findByText('EPL selected-20260814-v1 is now the current model.')).toBeTruthy()\n"
+              "  })\n"
+          )
           if text.count(end_marker) != 1:
               raise SystemExit('expected exactly one insertion point before filter test')
           text = text.replace(end_marker, regression + end_marker)
