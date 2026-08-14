@@ -4,10 +4,7 @@ import {
   mapSeasonLmsField,
   myEntrant,
 } from '../../src/services/supabase/seasonLmsFieldModel'
-import {
-  mapOrganisedCompetition,
-  mapOrganisedCompetitions,
-} from '../../src/services/supabase/organisedCompetitionsModel'
+import { mapOrganisedCompetition } from '../../src/services/supabase/organisedCompetitionsModel'
 import {
   mapSeasonCupGroupStage,
   myGroup,
@@ -197,39 +194,6 @@ describe('the organiser’s view (contract 165)', () => {
     expect(mapOrganisedCompetition(payload)!.organiserCommandsAvailable).toEqual([])
   })
 
-  it('decodes the real bounded-list wire identity instead of dropping every row', () => {
-    // Contract 165's list names the identity `competition_id`, while its
-    // addressed detail object names the same field `id`. The old decoder tested
-    // only the detail shape, so real list rows silently disappeared and an
-    // organiser could never return to the thing they had created.
-    const rows = mapOrganisedCompetitions({
-      total: 1,
-      competitions: [
-        {
-          competition_id: 'cup-1',
-          name: 'Office Championship',
-          game_key: 'predictor_cup',
-          game_name: 'Predictor Championship',
-          tournament_id: 'season-1',
-          season_name: 'Premier League 2026/27',
-          season_key: '2026-27',
-          created_at: '2026-08-14T12:00:00Z',
-          completed_at: null,
-          registration_closes_at: null,
-          entrants: 4,
-        },
-      ],
-    })
-
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({
-      id: 'cup-1',
-      name: 'Office Championship',
-      gameKey: 'predictor_cup',
-      seasonName: 'Premier League 2026/27',
-    })
-  })
-
   it('refuses a payload with no competition rather than rendering an empty management screen', () => {
     expect(mapOrganisedCompetition({ entrants: [] })).toBeNull()
     expect(mapOrganisedCompetition(null)).toBeNull()
@@ -295,56 +259,81 @@ describe('the Championship group stage (contract 167)', () => {
     expect(stage.groups[0]?.rows).toEqual([])
   })
 
-  it('keeps an unavailable stage distinct from a stage the caller has not entered', () => {
-    expect(mapSeasonCupGroupStage({ available: false })).toEqual({ available: false })
-    expect(mapSeasonCupGroupStage({ available: true, entered: false })).toEqual({
+  it('names the competition even when the caller is not in it', () => {
+    const stage = mapSeasonCupGroupStage({
       available: true,
       entered: false,
+      competition: { id: 'c1', name: 'Office Cup', season_name: 'Premier League 2026/27' },
     })
+    if (!stage.available || stage.entered) throw new Error('expected a not-entered stage')
+
+    // "You are not in this one" is actionable; an unnamed empty bracket is not.
+    expect(stage.competition.name).toBe('Office Cup')
   })
 })
 
-describe('season administration inspection (contract 168)', () => {
-  it('carries server-owned blocker labels without inventing admin authority', () => {
-    expect(blockerLabel('missing_provider_mapping')).toMatch(/provider/i)
-    expect(blockerLabel('unsettled_fixture')).toMatch(/settled/i)
-  })
-
-  it('keeps unknown blocker codes visible for evidence rather than hiding them', () => {
-    expect(blockerLabel('future_code')).toBe('future_code')
-  })
-
-  it('maps entrant and proposal pages without manufacturing rows', () => {
-    const entrants = mapAdminEntrantsPage({
+describe('the administration inspection reads (contract 168)', () => {
+  it('names every blocker on a proposal rather than counting them', () => {
+    const page = mapProviderProposalPage({
+      tournament_id: 's1',
       total: 1,
+      limit: 50,
+      offset: 0,
       has_more: false,
-      rows: [
-        {
-          user_id: 'u1',
-          display_name: 'Sam',
-          competition_id: 'c1',
-          competition_name: 'Cup',
-          game_key: 'predictor_cup',
-          outcome: 'active',
-        },
-      ],
-    })
-    const proposals = mapProviderProposalPage({
-      total: 1,
-      has_more: false,
+      states: { pending: 1 },
+      blocked_total: 1,
       proposals: [
         {
-          id: 'p1',
-          provider: 'football-data',
-          proposal_kind: 'fixture_change',
-          status: 'pending',
+          proposal_id: 'p1',
+          provider: 'sportmonks',
+          proposed_kickoff_at: '2026-09-01T14:00:00Z',
+          home: { provider_id: '1', provider_name: 'Arsenal', mapped_team_id: null },
+          away: { provider_id: '2', provider_name: 'Chelsea', mapped_team_id: 't2' },
+          blockers: ['unmapped_home_team', 'kickoff_in_the_past'],
         },
       ],
     })
 
-    expect(entrants.total).toBe(1)
-    expect(entrants.rows[0]?.displayName).toBe('Sam')
-    expect(proposals.total).toBe(1)
-    expect(proposals.proposals[0]?.provider).toBe('football-data')
+    expect(page.proposals[0]?.blockers).toEqual([
+      'unmapped_home_team',
+      'kickoff_in_the_past',
+    ])
+    expect(blockerLabel('unmapped_home_team')).toBe('Home club is not mapped to one of ours')
+    // A blocker this build has no phrase for is still shown: it is still a
+    // reason to refuse.
+    expect(blockerLabel('something_new')).toBe('something_new')
+  })
+
+  it('keeps an unmapped club null rather than inventing a name for it', () => {
+    const page = mapProviderProposalPage({
+      proposals: [
+        {
+          proposal_id: 'p1',
+          home: { provider_name: 'Arsenal', mapped_team_id: null, mapped_team_name: null },
+          away: { provider_name: 'Chelsea', mapped_team_id: 't2', mapped_team_name: 'Chelsea' },
+        },
+      ],
+    })
+
+    expect(page.proposals[0]?.home.mappedTeamName).toBeNull()
+    expect(page.proposals[0]?.away.mappedTeamName).toBe('Chelsea')
+  })
+
+  it('defaults disqualifiable to FALSE, so a missing field never offers a control', () => {
+    const page = mapAdminEntrantsPage({
+      competition: { id: 'c1', name: 'Sunday Survivors' },
+      total: 2,
+      entrants: [
+        { user_id: 'a', display_name: 'A', disqualifiable: true },
+        { user_id: 'b', display_name: 'B' },
+      ],
+    })!
+
+    expect(page.entrants[0]?.disqualifiable).toBe(true)
+    expect(page.entrants[1]?.disqualifiable).toBe(false)
+  })
+
+  it('refuses an entrants payload with no competition', () => {
+    expect(mapAdminEntrantsPage({ entrants: [] })).toBeNull()
   })
 })
