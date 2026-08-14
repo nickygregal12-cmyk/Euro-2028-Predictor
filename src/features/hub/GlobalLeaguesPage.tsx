@@ -75,6 +75,7 @@ export function GlobalLeaguesPage() {
   const [joining, setJoining] = useState(false)
   const [joined, setJoined] = useState<InviteJoinResult | null>(null)
   const [reloadKey, setReloadKey] = useState(0)
+  const [openOrganisedCompetitionId, setOpenOrganisedCompetitionId] = useState<string | null>(null)
 
   const key = (player?.mine ?? []).map((entry) => entry.competition.seasonRowName).join('|')
 
@@ -218,6 +219,8 @@ export function GlobalLeaguesPage() {
             open={fetchMyOrganisedCompetition}
             readCupLaunch={fetchPrivateCupLaunchReadiness}
             launchCup={launchPrivateSeasonCup}
+            selectedCompetitionId={openOrganisedCompetitionId}
+            onSelectedCompetitionChange={setOpenOrganisedCompetitionId}
             onCompetitionChanged={() => setReloadKey((value) => value + 1)}
           />
         </>
