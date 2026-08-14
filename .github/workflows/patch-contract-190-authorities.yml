@@ -55,20 +55,28 @@ jobs:
               path.write_text(text.rstrip() + '\n' + note)
           PY
           git diff --check
-      - name: Validate all documentation authorities
-        shell: bash
-        run: |
-          npm ci
-          npm run check:documentation-authorities -- "$(git merge-base HEAD origin/main)" HEAD
-          npx vitest run tests/scripts/documentationContractFreshness.test.ts
-          npm run generate:now
-          git diff --check
-      - name: Commit only authority docs and generated now
+
+      - name: Generate current-state copyback and create local authority commit
         shell: bash
         run: |
           set -euo pipefail
+          npm ci
+          npm run generate:now
+          git diff --check
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add CLAUDE.md MASTER-TODO.md docs/roadmap.md docs/quality/feature-baseline.md docs/adr/README.md docs/design/README.md docs/design/ui-finalisation.md docs/competition-structure.md docs/architecture/programme-plan.md docs/architecture/multi-competition-hub-build-plan.md NOW.md
           git commit -m 'Acknowledge Contract 190 across live authorities'
+
+      - name: Validate the committed authority surface against main
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run check:documentation-authorities -- "$(git merge-base HEAD origin/main)" HEAD
+          npx vitest run tests/scripts/documentationContractFreshness.test.ts
+
+      - name: Push only after both authority gates pass
+        shell: bash
+        run: |
+          set -euo pipefail
           git push origin HEAD:codex/ai-actionable-bet-evidence-190
