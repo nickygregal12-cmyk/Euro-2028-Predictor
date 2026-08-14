@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest'
 const root = resolve(import.meta.dirname, '../..')
 
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
+const plain = (source: string) => source.replace(/[*_`]/g, '')
 
 const skills = [
   '.agents/skills/predictor-context/SKILL.md',
@@ -30,7 +31,7 @@ describe('project-specific agent skills', () => {
     const graph = read(skills[3])
 
     expect(context).toContain('Existing repository authorities always outrank this skill')
-    expect(ui).toContain('critics, never authorities')
+    expect(plain(ui)).toContain('critics, never authorities')
     expect(ai).toContain('promotion remains an explicit human/admin authority action')
     expect(ai).toContain('ai/train_verified.py')
     expect(graph).toContain('navigation/indexing aid, not repository truth')
@@ -41,7 +42,9 @@ describe('project-specific agent skills', () => {
     const guide = read('docs/ops/graphify-navigation.md')
     const gitignore = read('.gitignore')
 
-    expect(graph).toContain('Do not make Graphify a required application dependency')
+    expect(graph).toContain('If Graphify is unavailable, continue with normal repository search')
+    expect(graph).toMatch(/should not[^.]*add a runtime dependency/i)
+    expect(graph).toContain('do not make CI depend on it')
     expect(guide).toContain('Graphify is not a source of truth')
     expect(guide).toContain('Do not enable strict/always-on hooks repo-wide')
     expect(gitignore).toMatch(/^graphify-out\/$/m)
