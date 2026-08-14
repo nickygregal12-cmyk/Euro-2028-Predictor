@@ -4,6 +4,7 @@ import { Alert, Button, EmptyState, Skeleton, Workspace } from '../../design-sys
 import { createGameLeague, fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
 import {
   fetchMyPrivateCompetitions,
+  fetchPrivateCupLaunchReadiness,
   type PrivateCompetitionDiscovery,
 } from '../../services/supabase/privateCompetitionDiscovery'
 import { CreatePrivateJourney } from '../leagues/CreatePrivateJourney'
@@ -20,7 +21,6 @@ import {
   createPrivateSeasonLms,
   launchPrivateSeasonCup,
 } from '../../services/supabase/privateCompetitions'
-import { fetchPrivateCupLaunchReadiness } from '../../services/supabase/privateCompetitionDiscovery'
 import { presentCreateJourney } from '../leagues/createJourneyModel'
 import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
@@ -52,6 +52,8 @@ const GAME_KINDS: readonly PrivatePlayGameKind[] = [
   'last_man_standing',
   'predictor_cup',
 ]
+
+const PRIVATE_READ_FAILURE = 'Last Man Standing and Predictor Championship private play'
 
 type LoadState =
   | { status: 'loading' }
@@ -132,7 +134,7 @@ export function GlobalLeaguesPage() {
         privateCompetitions = privateResult.value.competitions
         privateTruncated = privateResult.value.hasMore
       } else {
-        unreadable.add('Last Man Standing and Predictor Championship private play')
+        unreadable.add(PRIVATE_READ_FAILURE)
       }
 
       setLoad({
@@ -147,6 +149,9 @@ export function GlobalLeaguesPage() {
     return () => {
       active = false
     }
+    // `player` is represented by `key` plus the null boundary on purpose: a
+    // preference-shell rerender with the same joined competitions must not turn
+    // this into a polling loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key, player === null, reloadKey])
 
@@ -162,13 +167,20 @@ export function GlobalLeaguesPage() {
     if (!joined || load.status !== 'ready') return null
     const joinedId = joined.kind === 'league' ? joined.leagueId : joined.competitionId
     if (!joinedId) return 'unverifiable'
+
     const all = presentPrivatePlay(
       load.sources,
       load.unreadable,
       'all',
       load.privateCompetitions,
     )
-    return all.entries.some((entry) => entry.key === joinedId) ? 'confirmed' : 'missing'
+    if (all.entries.some((entry) => entry.key === joinedId)) return 'confirmed'
+
+    // A failed read can never prove absence. PPLAY-004 is specifically about
+    // refusing to turn a successful mutation into a confident cross-surface
+    // claim when the authority that should verify it was unavailable.
+    if (load.unreadable.length > 0) return 'unverifiable'
+    return 'missing'
   }, [joined, load])
 
   if (membership === 'failed') {
@@ -202,10 +214,10 @@ export function GlobalLeaguesPage() {
         <>
           <PrivatePlayExplainer />
           <OrganiserPanel
-            list={() => fetchMyOrganisedCompetitions()}
-            open={(competitionId) => fetchMyOrganisedCompetition(competitionId)}
-            readCupLaunch={(competitionId) => fetchPrivateCupLaunchReadiness(competitionId)}
-            launchCup={(competitionId) => launchPrivateSeasonCup(competitionId)}
+            list={fetchMyOrganisedCompetitions}
+            open={fetchMyOrganisedCompetition}
+            readCupLaunch={fetchPrivateCupLaunchReadiness}
+            launchCup={launchPrivateSeasonCup}
             onCompetitionChanged={() => setReloadKey((value) => value + 1)}
           />
         </>
@@ -233,8 +245,8 @@ export function GlobalLeaguesPage() {
 
         {joinConfirmation === 'unverifiable' ? (
           <Alert variant="warning" title="Joined, but the destination could not be verified">
-            The join succeeded without a container id, so this page cannot safely claim which row is
-            yours yet.
+            The join succeeded, but this page could not complete the authoritative reread needed to
+            identify its row safely.
           </Alert>
         ) : null}
 
