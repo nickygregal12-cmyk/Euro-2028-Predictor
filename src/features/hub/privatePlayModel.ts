@@ -1,6 +1,6 @@
 import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import type { GameLeague } from '../../services/supabase/gameLeagues'
-import type { PrivateCompetitionDiscovery } from '../../services/supabase/privateCompetitionDiscovery'
+import type { PrivateCompetitionDiscovery } from '../../services/supabase/privateCompetitionDiscoveryModel'
 
 /**
  * Every private league and private competition the player actually belongs to,
@@ -135,8 +135,11 @@ export function presentPrivatePlay(
       name: competition.name,
       inviteCode: competition.inviteCode,
       inviteAvailable: competition.inviteAvailable,
+      // Contract 179 returns the stored season row name, which already includes
+      // its season (for example "Premier League 2026/27"). Do not append the
+      // machine `season_key` and render the same season twice.
       competitionName: competition.seasonName,
-      seasonLabel: competition.seasonKey ?? '',
+      seasonLabel: '',
       gameKey: competition.gameKey,
       gameName: competition.gameName,
       memberLine: memberLine(competition.members),
