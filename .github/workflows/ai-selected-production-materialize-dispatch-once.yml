@@ -26,7 +26,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           MATERIALIZE_WORKFLOW: ai-selected-challenger-materialize.yml
-          MATERIALIZE_VERSION: selected-20260814-v1
+          MATERIALIZE_VERSION: selected-20260814-v2
         shell: bash
         run: |
           set -euo pipefail
@@ -38,8 +38,8 @@ jobs:
 
           message="$(jq -r '.head_commit.message // ""' "${GITHUB_EVENT_PATH}")"
           case "${message}" in
-            'Ops: materialize selected challengers in Production'*) ;;
-            *) echo 'Skip: main push is not the dedicated selected-challenger activation commit.'; exit 0 ;;
+            'Ops: materialize verified selected challengers in Production'*) ;;
+            *) echo 'Skip: main push is not the dedicated verified selected-challenger activation commit.'; exit 0 ;;
           esac
 
           remote_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
@@ -75,11 +75,12 @@ jobs:
                 exit 1
               }
               {
-                echo '## Selected Production challenger materialisation completed'
+                echo '## Verified selected Production challenger materialisation completed'
                 echo
                 echo "- Exact main: \`${GITHUB_SHA}\`"
                 echo "- Version: \`${MATERIALIZE_VERSION}\`"
                 echo "- Run: \`${run_id}\`"
+                echo '- Promotion remains a separate signed-in admin action.'
               } >> "${GITHUB_STEP_SUMMARY}"
               exit 0
             fi

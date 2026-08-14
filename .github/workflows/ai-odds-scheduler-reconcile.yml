@@ -1,0 +1,115 @@
+name: Reconcile AI odds scheduler
+
+# pg_cron jobs are hosted operational state rather than dump-carried schema
+# state. Reconcile the Production scheduler from exact repository SQL and prove
+# that doing so consumed no provider credit.
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ai-odds-scheduler-reconcile.yml'
+      - 'scripts/database-rollout/ai-odds-scheduler-reconcile.sql'
+  schedule:
+    - cron: '20 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-odds-scheduler-production
+  cancel-in-progress: false
+
+env:
+  PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Resolve Production and snapshot paid usage
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_DB_URL}" ]; then
+            echo 'SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          fi
+          case "${PROD_DB_URL}" in
+            *"${PRODUCTION_PROJECT_REF}"*) ;;
+            *) echo "SUPABASE_PROD_DB_URL does not name Production ${PRODUCTION_PROJECT_REF}."; exit 1 ;;
+          esac
+          echo "::add-mask::${PROD_DB_URL}"
+          echo "DATABASE_URL=${PROD_DB_URL}" >> "$GITHUB_ENV"
+          pip install 'psycopg[binary]>=3.2,<4'
+          python - <<'PY' > /tmp/ai-odds-usage-before
+          import os, psycopg
+          with psycopg.connect(os.environ['PROD_DB_URL']) as conn:
+              row = conn.execute(
+                  "select count(*)::bigint, coalesce(max(called_at)::text, '') from ai.api_usage"
+              ).fetchone()
+          print(f"{row[0]}|{row[1]}")
+          PY
+          echo "Provider ledger before reconciliation: $(cat /tmp/ai-odds-usage-before)"
+
+      - name: Reconcile hosted pg_cron state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import psycopg
+
+          sql = Path('scripts/database-rollout/ai-odds-scheduler-reconcile.sql').read_text()
+          with psycopg.connect(os.environ['DATABASE_URL'], autocommit=True) as conn:
+              conn.execute(sql, prepare=False)
+              rows = conn.execute("""
+                  select jobid, jobname, schedule, active
+                    from cron.job
+                   where jobname like 'ai-odds-%'
+                   order by jobid
+              """).fetchall()
+          if len(rows) != 1:
+              raise SystemExit(f'expected exactly one ai-odds cron job, got {rows!r}')
+          jobid, name, schedule, active = rows[0]
+          if name != 'ai-odds-window-heartbeat' or schedule != '*/5 * * * *' or not active:
+              raise SystemExit(f'unexpected reconciled scheduler row: {rows[0]!r}')
+          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}')
+          PY
+
+      - name: Prove reconciliation made zero provider calls
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' > /tmp/ai-odds-usage-after
+          import os, psycopg
+          with psycopg.connect(os.environ['DATABASE_URL']) as conn:
+              row = conn.execute(
+                  "select count(*)::bigint, coalesce(max(called_at)::text, '') from ai.api_usage"
+              ).fetchone()
+          print(f"{row[0]}|{row[1]}")
+          PY
+          echo "Provider ledger after reconciliation: $(cat /tmp/ai-odds-usage-after)"
+          diff -u /tmp/ai-odds-usage-before /tmp/ai-odds-usage-after
+
+      - name: Summary
+        if: success()
+        shell: bash
+        run: |
+          {
+            echo '## AI odds scheduler reconciled'
+            echo
+            echo '- Production holds one active `ai-odds-window-heartbeat` job.'
+            echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
+            echo '- Reconciliation itself made zero provider calls.'
+            echo '- The heartbeat retries every five minutes only inside the existing Tuesday 13:30–13:44 / Friday 17:30–17:44 Europe/London collection windows.'
+          } >> "$GITHUB_STEP_SUMMARY"
