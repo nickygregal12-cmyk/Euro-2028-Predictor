@@ -12,6 +12,8 @@ The project has accumulated enough history that loading every operating rule, co
 
 The project-specific skills live under `.agents/skills/` so hosts that understand the Agent Skills directory convention can discover them without flattening their content into one root prompt.
 
+The complementary ChatGPT → GitHub → Claude Code → PR → Codex operating workflow originally prepared in draft PR #783 is carried forward on the same current-main branch as this architecture, together with its bounded AI work-order issue template. That removes the need for two competing agent-workflow PRs.
+
 ## Phase-one skills
 
 ### `predictor-context`
@@ -49,8 +51,8 @@ The initial tests prove that data/order changes alter the data fingerprint, feat
 
 ## Integration sequence
 
-1. Land the project-specific skills and reproducibility primitives with tests.
-2. Reconcile the complementary AI-development workflow work in PR #783 rather than creating a second workflow authority.
+1. Land the project-specific skills, AI-assisted development workflow, work-order template and reproducibility primitives with tests.
+2. Close draft PR #783 as superseded by the current-main integration branch once this branch contains its two files unchanged in meaning.
 3. Wire the reproducibility primitives into the challenger training/write path so a freshly reloaded artefact must pass before database insertion.
 4. Surface the new fingerprints in the existing AI Lab evidence/admin read where useful; do this through the normal migration/contract process if schema persistence is required.
 5. Slim `AGENTS.md` and `CLAUDE.md` after moving-contract work is settled, retaining only universal operating rules and pointers to current authorities/skills. Historical contract narratives remain preserved in their authoritative/historical homes rather than auto-loaded on every task.
