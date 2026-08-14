@@ -1,0 +1,36 @@
+name: One-shot dispatch Contract 190 rehearsal
+
+# Connector bridge only: the guarded rehearsal remains workflow_dispatch-only.
+# This file dispatches it once when this file itself is merged to main with the
+# dedicated commit title, then can be removed after the rehearsal is launched.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/production-189-to-190-dispatch-once.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    if: startsWith(github.event.head_commit.message, 'Ops: dispatch Contract 190 rehearsal')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch the unchanged guarded Production-derived rehearsal
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run production-189-to-190-rehearsal.yml \
+            --repo "${GITHUB_REPOSITORY}" \
+            --ref main \
+            -f project_ref=vkfnsqdyhvtwyqkisxhk \
+            -f confirmation=REHEARSE-PRODUCTION-189-TO-190 \
+            -f backup_run_id=31785056556
+          echo 'Guarded Contract 190 rehearsal dispatched on refs/heads/main.'
