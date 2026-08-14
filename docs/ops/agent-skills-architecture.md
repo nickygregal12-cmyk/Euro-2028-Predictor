@@ -1,0 +1,70 @@
+# Agent skills architecture
+
+## Status
+
+This document describes a development-process layer only. It creates no product, scoring, lock, membership, privacy, settlement, progression, model-promotion or hosted authority.
+
+The repository's existing authority order remains unchanged. `NOW.md` is a generated index; `docs/quality/current-status.md`, ADRs, design authorities, accepted requirements, roadmap/MASTER-TODO, machine contract records, migrations and executable tests keep their existing roles.
+
+## Why this exists
+
+The project has accumulated enough history that loading every operating rule, contract narrative, audit and implementation note into every coding session now creates avoidable context pressure. The solution is not another master document. It is **progressive disclosure**: a small universal entrypoint plus task-specific skills that point agents to the existing authority they need.
+
+The project-specific skills live under `.agents/skills/` so hosts that understand the Agent Skills directory convention can discover them without flattening their content into one root prompt.
+
+## Phase-one skills
+
+### `predictor-context`
+
+Loads current state first, then the smallest authority subset needed for the task. It formalises one-fact/one-home behaviour, durable handoffs, exact evidence references and context compaction.
+
+### `predictor-ui-review`
+
+Reviews frontend work against the repository design authority. External UI knowledge bases may propose hierarchy, density, typography, chart/table, responsive and accessibility improvements, but they remain advisory and cannot change decided product behaviour.
+
+### `predictor-ai-lab-verifier`
+
+Defines an adversarial verification lens for the private AI Lab: ordered evidence, feature provenance, artefact identity, reload reproducibility, prediction identity, real-bookmaker evidence and human-controlled promotion.
+
+## External projects reviewed
+
+The following public repositories informed the architecture. Their code is **not vendored into this repository** by this phase.
+
+- `nextlevelbuilder/ui-ux-pro-max-skill` — useful as an advisory UI/UX search and critique layer. Repository design authorities continue to win every conflict.
+- `muratcankoylan/Agent-Skills-for-Context-Engineering` — useful patterns include progressive disclosure, filesystem context, compact durable handoffs, long-horizon task briefs, independent evaluation and harness boundaries.
+- `NeoLabHQ/context-engineering-kit` — useful selectively for fresh-context subagent review, judge/reflection patterns and complex task decomposition. Its full alternative specification hierarchy is deliberately not adopted because this repository already has ADRs, accepted requirements, roadmap, design and contract authorities. It is also kept external rather than vendored wholesale.
+- `FareedKhan-dev/kimi-k3-in-c` — the model itself is not relevant to the product runtime. The useful idea is its validation philosophy: exact artefact identity plus progressive reference gates that prove the loaded implementation still reproduces a known oracle.
+
+## AI Lab reproducibility phase one
+
+`ai/reproducibility.py` adds three primitives without changing the database contract:
+
+1. **training-data fingerprint** — SHA-256 over the exact ordered fit evidence, including natural-key/result context where present and the selected feature columns;
+2. **bundle-contract fingerprint** — SHA-256 over the semantic model contract: feature order/version/groups, family, league/version, calibration shape, training-through date and ensemble component configuration;
+3. **reference gate** — a small self-contained feature-vector oracle containing recorded raw and calibrated probabilities and its own manifest hash.
+
+The existing artefact SHA-256 remains authoritative for the exact stored bytes. These additions answer different questions and must not replace it.
+
+The initial tests prove that data/order changes alter the data fingerprint, feature order changes alter the semantic fingerprint, a joblib round trip reproduces the reference gate, changed model behaviour is refused, and manifest tampering is refused.
+
+## Integration sequence
+
+1. Land the project-specific skills and reproducibility primitives with tests.
+2. Reconcile the complementary AI-development workflow work in PR #783 rather than creating a second workflow authority.
+3. Wire the reproducibility primitives into the challenger training/write path so a freshly reloaded artefact must pass before database insertion.
+4. Surface the new fingerprints in the existing AI Lab evidence/admin read where useful; do this through the normal migration/contract process if schema persistence is required.
+5. Slim `AGENTS.md` and `CLAUDE.md` after moving-contract work is settled, retaining only universal operating rules and pointers to current authorities/skills. Historical contract narratives remain preserved in their authoritative/historical homes rather than auto-loaded on every task.
+6. Add independent review/judge execution selectively for high-risk migrations, AI Lab changes and cross-layer work; do not require expensive multi-agent orchestration for routine one-file edits.
+
+## Non-goals
+
+- no new product specification tree;
+- no replacement for ADRs, design authority, accepted requirements, roadmap or machine contracts;
+- no automatic Production writes or model promotion;
+- no general-purpose LLM added to the football prediction pipeline;
+- no external UI design system imported over the existing tokens/components;
+- no requirement that every task use multiple agents.
+
+## Definition of done for the wider migration
+
+The wider agent-architecture migration is complete when root auto-loaded instructions are compact, task-specific detail is discoverable just in time, long work has durable evidence-based handoffs, high-risk work has independent verification, and the AI Lab can prove that the artefact promoted is the same semantic/scoring artefact that passed its recorded gates.
