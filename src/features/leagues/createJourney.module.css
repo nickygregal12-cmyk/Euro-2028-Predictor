@@ -1,32 +1,16 @@
-/* The create-a-league journey. Four steps, one card, no modal: on a phone a
-   three-step wizard inside a sheet fights the keyboard, and on a desktop the
-   reading column already gives it the right measure. */
-
-/* A three-step form, capped at a form's measure.
-   `/leagues` gives its main column the width its list of private play needs,
-   and this wizard inherits it — which made a card of radio-like choices and a
-   single name field roughly a metre wide on a desktop. A form is read down
-   rather than across; the cap is what stops the label of a text input sitting
-   an inch from its own field. */
+/* The create-private-play journey. One inline wizard, no modal: on a phone a
+   multi-step form inside a sheet fights the keyboard, while the reading column
+   already gives it the right measure on desktop. */
 .journey {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-3);
+  gap: var(--sp-4);
+  width: 100%;
   max-width: 640px;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
-}
-
-/* The running choices. Quieter than the step line above it, because it is
-   context rather than progress. */
-.chosen {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-2);
-  font-weight: 500;
-  color: var(--tx);
 }
 
 .title {
@@ -37,16 +21,36 @@
   letter-spacing: var(--tracking-tight);
 }
 
-/* Position in the flow, for sighted orientation only. The heading and the
-   controls carry the same information in the accessibility tree, so repeating
-   it there would be noise. */
+/* A compact orientation label. It behaves like a progress marker without
+   turning the three-step journey into decorative chrome. */
 .steps {
-  margin: 0;
+  align-self: flex-start;
+  margin: calc(var(--sp-2) * -1) 0 0;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  background: var(--chip);
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--tx3);
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+}
+
+/* The running choices stay visible after step one. This is deliberately a
+   summary, not another control: Back remains the one way to change them. */
+.chosen {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: var(--bar-w) solid var(--acc);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .lead,
@@ -55,10 +59,13 @@
   margin: 0;
   color: var(--tx2);
   font-size: var(--fs-2);
+  line-height: 1.5;
   max-width: 60ch;
 }
 
 .note {
+  padding-left: var(--sp-3);
+  border-left: 1px solid var(--border-strong);
   font-size: var(--fs-1);
   color: var(--tx3);
 }
@@ -67,9 +74,12 @@
   list-style: none;
   margin: 0;
   padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: var(--sp-2);
+}
+
+.gameList > li {
+  min-width: 0;
 }
 
 .game,
@@ -77,7 +87,7 @@
 .host {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-1);
   width: 100%;
   min-height: var(--tap-min);
   margin: 0;
@@ -93,11 +103,15 @@
 .game,
 .host {
   cursor: pointer;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .game:hover,
 .host:hover {
   border-color: var(--border-strong);
+  background: var(--chip);
 }
 
 .game:focus-visible,
@@ -129,8 +143,10 @@
 .gameDescription,
 .hostSeason {
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx3);
   font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .group {
@@ -152,20 +168,24 @@
 .review {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
   margin: 0;
-  padding: var(--sp-3);
+  padding: 0 var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--bg);
 }
 
 .reviewRow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
+  padding: var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.reviewRow:last-child {
+  border-bottom: 0;
 }
 
 .reviewLabel {
@@ -175,28 +195,33 @@
 }
 
 .reviewValue {
+  min-width: 0;
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
   font-weight: 600;
+  text-align: right;
   overflow-wrap: anywhere;
 }
 
+/* Primary first, secondary second, both easy to hit on a phone. They become a
+   compact pair only once there is enough width for neither label to squeeze. */
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--sp-2);
+}
+
+.actions > * {
+  width: 100%;
 }
 
 /* ---------------------------------------------------------------------------
  * The Last Man Standing organiser's rules.
  *
  * Chips rather than a select, because each option is a sentence rather than a
- * word — "a draw eliminates you" against "a draw survives" — and a dropdown
- * hides the alternative behind an interaction. They wrap, so three long options
- * on a 360px phone become three rows rather than a horizontal scroll.
+ * word. They wrap before labels shrink or disappear.
  * ------------------------------------------------------------------------- */
-
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -212,10 +237,14 @@
   color: var(--tx2);
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.35;
   cursor: pointer;
+  overflow-wrap: anywhere;
+  transition: border-color var(--duration-micro) var(--ease-out);
 }
 
 .chip:hover {
+  border-color: var(--border-strong);
   color: var(--tx);
 }
 
@@ -228,4 +257,37 @@
   border-color: var(--acc);
   color: var(--tx);
   font-weight: 600;
+}
+
+@media (min-width: 600px) {
+  .journey {
+    padding: var(--sp-5);
+  }
+
+  /* The first decision has exactly three comparable choices. Desktop earns a
+     side-by-side comparison instead of a widened phone stack. */
+  .gameList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .game,
+  .gameRefused {
+    height: 100%;
+    padding: var(--sp-4);
+  }
+
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .reviewRow {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .reviewValue {
+    text-align: left;
+  }
 }

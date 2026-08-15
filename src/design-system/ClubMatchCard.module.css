@@ -2,51 +2,67 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-4);
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
+  transition: border-color var(--duration-micro) var(--ease-out);
+  container-type: inline-size;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
 }
 
 /* No joker border variant here on purpose: the domestic Joker belongs to the
    whole matchweek, so the matchweek header carries it — never one fixture. */
-
 .withChevron {
-  padding-right: 44px;
+  padding-right: calc(var(--tap-min) + var(--sp-3));
 }
 
 /* Eyebrow ------------------------------------------------------------------ */
 .eyebrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--sp-1) var(--sp-2);
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx3);
 }
 
 .eyebrowRight {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: var(--sp-1);
+  min-width: 0;
+  font-variant-numeric: var(--numeric);
 }
 
-/* Team row ----------------------------------------------------------------- */
+/* Team row -----------------------------------------------------------------
+ * The score stays central, but essential club names wrap rather than disappear.
+ * A two-line club name is preferable to an ellipsis that makes two similarly
+ * named clubs indistinguishable at browser zoom or large text. */
 .teamRow {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
+  min-width: 0;
 }
 
 .team {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
   min-width: 0;
 }
 
@@ -56,22 +72,24 @@
 
 .teamAway {
   justify-content: flex-end;
+  text-align: right;
 }
 
 .teamName {
+  min-width: 0;
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--fs-2);
+  line-height: 1.25;
   color: var(--tx);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: break-word;
 }
 
 .scores {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
 }
 
 .sep {
@@ -79,23 +97,28 @@
   color: var(--tx3);
 }
 
-/* Same step and tracking as MatchCard's scoreline — the two cards render the
-   same kind of number and must not diverge by a step. */
 .heroScore {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--fs-5);
   letter-spacing: var(--tracking-tight);
   color: var(--tx);
+  font-variant-numeric: var(--numeric);
 }
 
 /* Footer ------------------------------------------------------------------- */
 .footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: var(--sp-2);
   min-height: 30px;
+}
+
+.footerLeft,
+.footerRight {
+  min-width: 0;
 }
 
 .footerRight {
@@ -105,8 +128,10 @@
 
 .status {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-1);
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
   color: var(--tx2);
@@ -120,10 +145,17 @@
   color: var(--red);
 }
 
+/* Retry is a real action. It used to be a word-sized inline target beside an
+   error message; the visible label stays compact while the hit area meets the
+   product's touch-target contract. */
 .retry {
-  padding: 0 0 0 4px;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  padding-inline: var(--sp-2);
   background: none;
   border: none;
+  border-radius: var(--radius-input);
   color: var(--red);
   text-decoration: underline;
   cursor: pointer;
@@ -137,30 +169,39 @@
 
 .countdown {
   display: inline-flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
+  gap: var(--sp-1);
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-1);
   color: var(--tx2);
 }
 
 .predicted {
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
   color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 /* Points pill (scored) ----------------------------------------------------- */
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+  gap: var(--sp-1);
+  max-width: 100%;
+  padding: var(--sp-1) var(--sp-2);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--fs-1);
-  border: 1px solid transparent;
+  line-height: 1.3;
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .pillAccent {
@@ -189,20 +230,46 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* Full 44×44 target: 18px icon + 13px padding each side (design-system
-     §4/§5) — a sub-44 target beside the 44px score input is a fat-finger
-     collision. */
   min-width: var(--tap-min);
   min-height: var(--tap-min);
-  padding: 13px;
+  padding: var(--sp-3);
   background: none;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-input);
   color: var(--tx3);
   cursor: pointer;
+  transition:
+    color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.chevron:hover {
+  background: var(--chip);
+  color: var(--tx);
 }
 
 .chevron:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
+}
+
+@container (max-width: 26rem) {
+  /* Protect the score inputs before squeezing essential team labels. Because
+     cards can be narrow inside a wide desktop workspace, this follows the card
+     rather than the browser viewport. */
+  .teamRow {
+    gap: var(--sp-1);
+  }
+
+  .team {
+    gap: var(--sp-1);
+  }
+
+  .teamName {
+    font-size: var(--fs-1);
+  }
+
+  .scores {
+    gap: var(--sp-1);
+  }
 }
