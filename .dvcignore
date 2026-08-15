@@ -1,0 +1,8 @@
+.git/
+node_modules/
+dist/
+coverage/
+.venv/
+ai/.venv/
+ai/models/
+ai/reports/
