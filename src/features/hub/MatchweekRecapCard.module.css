@@ -36,14 +36,14 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .matchweek {
   flex: 0 0 auto;
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -68,7 +68,7 @@
   font-family: var(--font-display);
   font-size: var(--fs-5);
   line-height: 1;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
   font-variant-numeric: var(--numeric);
 }
@@ -87,7 +87,7 @@
   background: var(--gold-tint);
   color: var(--gold-strong);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
 }
@@ -126,7 +126,7 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   overflow-wrap: anywhere;
 }
@@ -138,7 +138,7 @@
 
 .leaguesLabel {
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -165,14 +165,14 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
 .movement {
   flex: 0 0 auto;
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
 }
 
