@@ -5,63 +5,62 @@ description: Load the smallest authoritative repository context needed for a Foo
 
 # Predictor context discipline
 
-Use this skill before broad repository work, long-running implementation, audits, or handoffs.
+Use this skill before broad repository work, long-running implementation, audits or handoffs.
 
-## Purpose
+The goal is **progressive disclosure**, not a second documentation system.
 
-The repository already has authoritative homes for current state, decisions, accepted work, design, operations, migrations and executable behaviour. Agent quality gets worse when those facts are copied into large prompts or repeated across `AGENTS.md`, `CLAUDE.md`, issue bodies and handoff notes.
+## Start small
 
-The goal is therefore **progressive disclosure**, not a second documentation system.
+1. Read `NOW.md` as the generated index of current moving facts. It decides nothing itself.
+2. Inspect current `main`, the working branch/ancestry and open pull requests for overlap.
+3. Use the task-routing table in root `AGENTS.md` and load only the authority for the task.
+4. Read source and executable tests for the code path being changed.
+5. Pull dated audits, investigations, reconciliations or old design/deployment narratives only when the task genuinely needs historical evidence.
 
-## Start with the index, then load by task
+`docs/quality/current-status.md` is **not universal startup context**. Load it when a hosted/deployment/current-implementation claim needs the detailed evidence it owns.
 
-1. Read `NOW.md` as a generated index, never as a decision authority.
-2. Read `docs/quality/current-status.md` for current implementation/hosted truth.
-3. Read only the governing authority needed for the task:
-   - product/rule decision: `docs/adr/README.md` and the named ADR;
-   - accepted-but-unbuilt work: `docs/quality/accepted-requirements.md`;
-   - delivery sequence: `docs/roadmap.md` and `MASTER-TODO.md` only where needed;
-   - UI/UX: `docs/design/README.md` and the relevant design authority;
-   - migration/hosted work: `docs/ops/ops-pending-migrations.md` plus machine contract records;
-   - AI Lab: `docs/adr/0029-private-ai-football-lab.md`, current status, and `ai/` tests/code.
-4. Inspect current `main`, open PRs and branch ancestry before editing.
-5. Pull historical audits only to answer a historical question or trace a decision. Do not load them by default.
+## Typical minimal context sets
+
+- vNext component/layout: `docs/product/ui.md` + `src/vnext/AGENTS.md` + the local component/read-model/test.
+- legacy production UI maintenance: `docs/design/README.md` + the one legacy design authority it routes to + local source/tests.
+- migration: machine contract records + `docs/ops/ops-pending-migrations.md` + relevant database tests; current-status only for a hosted claim/action.
+- provider enrichment: `docs/architecture/provider-enrichment-plan.md` + relevant provider source/tests.
+- AI Lab: `.agents/skills/predictor-ai-lab-verifier/SKILL.md` + `ai/README.md` + governing ADR/source/tests; current-status only where hosted state matters.
+- product/rule decision: `docs/adr/README.md` + named ADR; `docs/quality/accepted-requirements.md` only when accepted-but-unbuilt scope is relevant.
 
 ## One fact, one home
 
-Do not create a new file that restates a moving contract number, hosted environment state, roadmap, product rule or accepted-requirements inventory. Point to its existing authority instead.
+Do not create a new file that restates a moving contract number, hosted environment state, active blocker, roadmap, product rule or accepted-requirements inventory. Link to the canonical authority instead.
 
-A task brief may contain a **snapshot** needed to execute safely, but label it as a snapshot and include the source/ref that must be rechecked. Never turn the snapshot into a new authority.
+A task brief may include a snapshot needed to execute safely, but label it as a snapshot and name the source/ref that must be rechecked. Never promote the snapshot into a second authority.
 
-## Long task handoff
+## Context budget
 
-When a task spans sessions, persist a compact handoff with these fields:
-
-- objective and exact completion predicate;
-- branch/PR and exact head SHA;
-- authorities read;
-- files changed;
-- tests/evidence run and their result;
-- decisions made;
-- unresolved blockers;
-- next executable action;
-- actions explicitly not taken, especially Production/provider writes.
-
-Prefer file paths, PR numbers, workflow-run IDs and exact commands over narrative history.
-
-## Context budget rules
-
-- Load current state before history.
-- Load the relevant authority before an audit that paraphrases it.
-- Keep raw tool output out of durable prompts when a path/ref can retrieve it again.
-- Summarise completed investigation phases before moving into implementation.
-- For parallel agents, give each worker the task-specific authority subset rather than the whole repository narrative.
-- Re-read a moving authority after a long pause or immediately before a hosted/merge action.
+- Index before authority; authority before history.
+- Do not read a whole directory merely because the task touches one file inside it.
+- Prefer links/paths/IDs over pasting raw tool output into durable prompts.
+- Summarise a completed investigation phase before moving into implementation.
+- Give parallel workers the smallest task-specific authority subset rather than a repository-wide narrative.
+- Re-read moving authority immediately before a hosted, provider-cost or merge action.
 
 ## Evidence discipline
 
-A statement such as "implemented", "hosted", "green", "promoted" or "Production" must trace to current code, a machine record, a workflow result or fresh hosted evidence. Planning prose and previous chat summaries do not establish those states.
+Claims such as `implemented`, `hosted`, `green`, `promoted`, `Production` or `current model` must trace to current code, executable evidence, a machine record, workflow result or fresh hosted observation. Planning prose and previous chat summaries do not establish those states.
 
-## Boundaries
+## Long-task handoff
 
-This skill changes how agents load and preserve context. It changes no scoring, lock, membership, privacy, settlement, progression, deployment or model-promotion rule. Existing repository authorities always outrank this skill.
+Persist only:
+
+- objective and exact completion predicate;
+- branch/PR and exact head SHA;
+- authorities consulted;
+- files changed;
+- tests/evidence run and results;
+- decisions made;
+- unresolved blockers;
+- next executable action;
+- explicit non-actions, especially Production/provider writes.
+
+## Boundary
+
+This skill changes how agents load and preserve context. It changes no scoring, lock, membership, privacy, settlement, progression, deployment or model-promotion rule. Canonical repository authorities always outrank it.
