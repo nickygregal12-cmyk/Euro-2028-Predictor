@@ -1,41 +1,45 @@
 {
   "//": [
-    "CSS linting, whose ONE load-bearing rule is declaration-strict-value: no",
-    "colour may be written outside tokens.css.",
+    "CSS linting has two load-bearing contracts: feature colours come from the",
+    "design tokens, and the live weekly/shared UI only asks the font files for",
+    "weights they actually ship (400/500).",
     "",
-    "WHY IT EXISTS. tokens.css opens with 'Do not add colours outside this",
-    "file.' That rule has been stated since the design system was written and",
-    "enforced by nothing — JS and TSX are linted with oxlint and",
-    "--deny-warnings, while ~5,500 lines of design-system CSS plus feature CSS",
-    "had no automated guard at all. A raw hex added in a feature module is",
-    "invisible to review until somebody notices the theme is wrong in one place,",
-    "and it defeats light/dark switching entirely because a literal cannot vary",
-    "by theme.",
+    "WHY THE COLOUR RULE EXISTS. tokens.css opens with 'Do not add colours",
+    "outside this file.' That rule was stated for a long time and enforced by",
+    "nothing — JS and TSX are linted with oxlint and --deny-warnings, while the",
+    "design-system and feature CSS had no equivalent guard. A raw hex added in a",
+    "feature module is invisible to review until somebody notices one theme is",
+    "wrong, and a literal cannot vary by theme.",
+    "",
+    "WHY THE FONT-WEIGHT RULE EXISTS. The production UI loads Inter and Space",
+    "Grotesk at 400 and 500 only. Repeated UI reviews found 600/700 declarations",
+    "that browsers could only synthesize. The weekly product now expresses",
+    "hierarchy with the weights it owns plus size, spacing, contrast and",
+    "structure, so CSS lint protects that decision instead of relying on every",
+    "future author remembering it.",
     "",
     "WHY stylelint-config-standard IS NOT EXTENDED. It brings roughly forty",
-    "stylistic rules that would fail across 110 existing files on introduction,",
-    "and fixing them is a formatting change dressed up as a lint adoption. The",
-    "cost is that this configuration is small; the benefit is that its one rule",
-    "means something. Additional rules are worth adopting one at a time, each",
-    "with its own reason.",
+    "stylistic rules that would fail across existing files on introduction, and",
+    "fixing them is a formatting change dressed up as a lint adoption. These",
+    "rules are deliberately narrow and each protects a product/design authority.",
     "",
-    "WHICH PROPERTIES, AND WHY box-shadow IS ABSENT. '/color$/' covers color,",
-    "background-color, border-color, outline-color and the rest by suffix; fill",
-    "and stroke are the SVG equivalents. box-shadow was in the first version and",
-    "was removed after measuring: its value is composite — offsets, blur, spread,",
-    "THEN a colour — so a whole-value check can never match '^var(--' even when",
-    "the colour is a token. It flagged 'inset 3px 0 0 var(--acc)' and",
-    "'inset var(--bar-w) 0 0 0 var(--acc)', both perfectly tokenised. A rule that",
-    "fires on correct code teaches people to disable it. The cost is stated",
-    "rather than hidden: a genuine 'rgba(0, 0, 0, 0.18)' inside a box-shadow is",
-    "still unlinted and is left to review.",
+    "WHICH COLOUR PROPERTIES, AND WHY box-shadow IS ABSENT. '/color$/' covers",
+    "color, background-color, border-color, outline-color and the rest by",
+    "suffix; fill and stroke are the SVG equivalents. box-shadow is composite —",
+    "offsets, blur, spread, THEN a colour — so a whole-value strict-value check",
+    "cannot distinguish a tokenised shadow from a literal one without rejecting",
+    "correct declarations. That compromise is explicit rather than hidden.",
     "",
-    "WHY color-mix() IS IGNORED. Its ARGUMENTS carry the colour, and in every",
-    "current use they are tokens — 'color-mix(in srgb, var(--cyn) 60%,",
-    "var(--line))'. The rule compares whole values, so without the exception the",
-    "correct tokenised form is rejected. The looseness is real: 'color-mix(in",
-    "srgb, #fff 50%, red)' would pass. It is accepted because the alternative",
-    "rejects the idiom the design system uses in 32 files."
+    "WHY color-mix() IS IGNORED. Its arguments carry the colour, and current",
+    "uses pass design tokens. The rule compares whole values, so without the",
+    "exception it rejects the tokenised idiom the design system intentionally",
+    "uses.",
+    "",
+    "WHY THE WEIGHT GUARD IS SCOPED. app/design-system plus Hub, leagues,",
+    "profile and season are the live shared weekly product finalised in the",
+    "current programme. Euro tournament UI, admin, reference prototypes and the",
+    "not-yet-wired onboarding journey have separate product/rollout authority and",
+    "must not be restyled merely to make this weekly guard pass."
   ],
   "plugins": ["stylelint-declaration-strict-value"],
   "rules": {
@@ -65,14 +69,32 @@
       "rules": {
         "scale-unlimited/declaration-strict-value": null
       }
+    },
+    {
+      "files": [
+        "src/app/**/*.css",
+        "src/design-system/**/*.css",
+        "src/features/hub/**/*.css",
+        "src/features/leagues/**/*.css",
+        "src/features/profile/**/*.css",
+        "src/features/season/**/*.css"
+      ],
+      "rules": {
+        "declaration-property-value-disallowed-list": {
+          "font-weight": ["600", "700", "800", "900", "bold", "bolder"]
+        }
+      }
     }
   ],
   "//overrides": [
-    "tokens.css is where the literals live, so the rule cannot apply to it.",
-    "fonts.css carries @font-face url() references and no colour.",
-    "src/premium/** is a reference-only parallel prototype application with its",
-    "own provisional brand, pinned as unreachable from the production entry by",
-    "premiumPrototypeBoundary.test.ts. It is not governed by these tokens."
+    "tokens.css is where colour literals live, so the colour rule cannot apply",
+    "to it. fonts.css carries @font-face declarations. src/premium/** is a",
+    "reference-only parallel prototype application with its own provisional",
+    "brand, pinned as unreachable from production by its boundary test.",
+    "",
+    "The font-weight guard is intentionally narrower than the colour guard. It",
+    "protects the live weekly/shared product without silently changing separate",
+    "Euro, admin, prototype or onboarding scopes."
   ],
   "ignoreFiles": ["dist/**", "node_modules/**", "coverage/**"]
 }
