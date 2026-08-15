@@ -1,4 +1,17 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+// These tests exercise pure Bet Builder decision helpers only. The production
+// module also binds the hosted Supabase RPC client at import time, so provide a
+// fail-closed stub before importing it rather than making CI depend on browser
+// VITE_SUPABASE_* configuration that the helpers neither need nor use.
+vi.mock('../../src/services/supabase/client', () => ({
+  db: {
+    rpc: () => {
+      throw new Error('Unexpected Supabase RPC in pure Bet Builder helper test')
+    },
+  },
+}))
+
 import {
   currentBetDecisionSnapshot,
   filterCandidatePayloadToCurrentDecisions,
