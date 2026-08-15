@@ -9,6 +9,7 @@
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   transition: border-color var(--duration-micro) var(--ease-out);
+  container-type: inline-size;
 }
 
 .card:hover {
@@ -81,7 +82,7 @@
   font-size: var(--fs-2);
   line-height: 1.25;
   color: var(--tx);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .scores {
@@ -252,15 +253,20 @@
   outline-offset: 2px;
 }
 
-@media (max-width: 420px) {
-  /* Protect the score inputs before squeezing essential team labels. Identities
-     remain beside their names and the three-column match structure is kept. */
+@container (max-width: 26rem) {
+  /* Protect the score inputs before squeezing essential team labels. Because
+     cards can be narrow inside a wide desktop workspace, this follows the card
+     rather than the browser viewport. */
   .teamRow {
     gap: var(--sp-1);
   }
 
   .team {
     gap: var(--sp-1);
+  }
+
+  .teamName {
+    font-size: var(--fs-1);
   }
 
   .scores {
