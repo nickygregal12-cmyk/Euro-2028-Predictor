@@ -17,10 +17,11 @@
 --   * nearest paid-covered fixture <= 24h: refresh at most every 10 hours;
 --   * no paid-covered fixture inside 24h: do nothing.
 --
--- Automatic collection MUST be non-forced. public.dispatch_ai_odds_polls(false)
--- owns the collection-enabled/provider authority and enforces ai_odds_budget_check
--- before each league dispatch. Manual recovery can still explicitly force a poll
--- through the existing authority when an operator deliberately chooses to do so.
+-- Production's public.dispatch_ai_odds_polls(boolean) uses p_force only to
+-- bypass its legacy Tuesday/Friday wall-clock window. Its ai_odds_budget_check
+-- runs after that branch for both forced and non-forced calls, so fixture-aware
+-- cron must pass true while the database budget/collection guard remains in
+-- force. The cron command never embeds a provider key.
 
 do $reconcile$
 declare
@@ -42,7 +43,7 @@ declare
       from due
      where nearest_hours is not null
   )
-  select public.dispatch_ai_odds_polls(false, 'pg_cron:' || now()::text)
+  select public.dispatch_ai_odds_polls(true)
     from cadence c
    where not exists (
      select 1
