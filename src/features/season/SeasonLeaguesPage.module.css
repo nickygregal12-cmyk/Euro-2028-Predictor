@@ -5,9 +5,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  /* A grid/flex child defaults to min-width:auto, which lets a long league
-     name push the page wider than the viewport instead of ellipsising inside
-     it. Same fix as the competition shell. */
   min-width: 0;
 }
 
@@ -48,16 +45,12 @@
 
 .cardName {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--fs-3);
   color: var(--tx);
-  /* A 40-character name on a narrow phone ellipsises rather than widening the
-     card past the viewport. */
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .cardMeta {
@@ -109,13 +102,8 @@
   color: var(--tx2);
 }
 
-/* Two columns once there is room for both forms side by side. */
 @media (min-width: 640px) {
   .forms {
-    flex-direction: row;
-  }
-
-  .form {
-    flex: 1 1 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
