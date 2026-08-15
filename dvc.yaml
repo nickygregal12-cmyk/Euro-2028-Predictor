@@ -1,0 +1,19 @@
+stages:
+  ai-offline-guardrails:
+    wdir: ai
+    cmd: >-
+      python test_pipeline.py &&
+      python test_betting.py &&
+      python test_parsers.py &&
+      python test_oddsapi.py
+    deps:
+      - test_pipeline.py
+      - test_betting.py
+      - test_parsers.py
+      - test_oddsapi.py
+      - features.py
+      - model_zoo.py
+      - betting.py
+      - oddsapi.py
+      - requirements.txt
+    always_changed: true

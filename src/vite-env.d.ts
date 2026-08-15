@@ -36,6 +36,9 @@ interface ImportMetaEnv {
   // The other deployment's absolute origin, so each site can link to its
   // sibling. Unset omits the link.
   readonly VITE_SIBLING_SITE_ORIGIN?: string
+  // Optional public PostHog project configuration; blank keeps analytics off.
+  readonly VITE_POSTHOG_KEY?: string
+  readonly VITE_POSTHOG_HOST?: string
 }
 
 interface ImportMeta {

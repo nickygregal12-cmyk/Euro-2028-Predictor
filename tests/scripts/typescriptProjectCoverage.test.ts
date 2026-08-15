@@ -28,6 +28,7 @@ const repositoryRoot = process.cwd()
 /** Roots covered by the referenced projects, as declared in their `include`. */
 const COVERED_PREFIXES = [
   'src/',
+  '.storybook/',
   'tests/',
   'e2e/',
   'production-smoke/',

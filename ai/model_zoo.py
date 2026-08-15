@@ -476,7 +476,7 @@ class GradientBoostedModel:
         return np.full(n, np.nan), np.full(n, np.nan)
 
     def contributions(self, X: pd.DataFrame, top_n: int = 8) -> list[list[dict]]:
-        """Per-row feature contributions by occlusion, not by SHAP.
+        """Per-row feature contributions, preferring probability-space SHAP.
 
         Stated plainly because the difference matters: each feature is replaced
         in turn by its TRAINING median and the change in the model's own
@@ -498,6 +498,20 @@ class GradientBoostedModel:
         # under `native_missing` a NaN cell swapped to its median would then be
         # blanked again — attributing zero to every feature that was missing.
         frame = self._prepare(X[self.feature_names_])
+        try:
+            from shap_explain import shap_probability_contributions
+            shap_rows = shap_probability_contributions(
+                self.clf,
+                frame,
+                self.feature_names_,
+                OUTCOMES,
+                background=self.medians_.reshape(1, -1),
+                top_n=top_n,
+            )
+        except Exception:
+            shap_rows = None
+        if shap_rows is not None:
+            return shap_rows
         order = [self.classes_.index(o) for o in OUTCOMES]
         base = self.clf.predict_proba(frame)[:, order]
         out: list[list[dict]] = []
