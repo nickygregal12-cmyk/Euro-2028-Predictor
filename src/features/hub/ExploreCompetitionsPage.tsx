@@ -119,73 +119,70 @@ export function ExploreCompetitionsPage() {
     )
   }
 
-  // A searchable list of cards. It is the deliberate-discovery surface rather
-  // than a dashboard, so it reads as one column; stretched to the full shell
-  // the search field alone becomes 1440px of input for a two-word query.
   return (
     <Workspace width="reading">
-    <div className={s.page}>
-      <h1 className={s.title}>All competitions</h1>
-      <p className={styles.intro}>
-        Every competition on the platform. Opening one shows its fixtures and the games it runs;
-        joining a game happens inside it.
-      </p>
+      <div className={s.page}>
+        <h1 className={s.title}>All competitions</h1>
+        <p className={styles.intro}>
+          Every competition on the platform. Opening one shows its fixtures and the games it runs;
+          joining a game happens inside it.
+        </p>
 
-      <TextInput
-        label="Search competitions"
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="Premier League, Scottish…"
-      />
+        <TextInput
+          label="Search competitions"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Premier League, Scottish…"
+        />
 
-      {view.groups.map((group) => (
-        <section className={styles.group} key={group.key} aria-labelledby={`explore-${group.key}`}>
-          <div className={styles.groupHead}>
-            <h2 className={styles.groupTitle} id={`explore-${group.key}`}>
-              {group.title}
-            </h2>
-            <span className={styles.count}>{group.entries.length}</span>
-          </div>
-          {group.note ? <p className={styles.note}>{group.note}</p> : null}
-          <ul className={styles.list}>
-            {group.entries.map((entry) => (
-              <li key={entry.key} className={styles.row}>
-                <CompetitionRow entry={entry} />
-                {/* Outside the card, never inside it. The card is a link, and
-                    a button nested in a link is neither valid nor operable by
-                    keyboard in the way either control promises. */}
-                {preferences ? (
-                  <FollowControl
-                    entry={entry}
-                    following={isFollowing(preferences, entry.competition.tournamentId)}
-                    busy={busy === entry.competition.tournamentId}
-                    onToggle={toggleFollow}
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ))}
+        {view.groups.map((group) => (
+          <section className={styles.group} key={group.key} aria-labelledby={`explore-${group.key}`}>
+            <div className={styles.groupHead}>
+              <h2 className={styles.groupTitle} id={`explore-${group.key}`}>
+                {group.title}
+              </h2>
+              <span className={styles.count}>{group.entries.length}</span>
+            </div>
+            {group.note ? <p className={styles.note}>{group.note}</p> : null}
+            <ul className={styles.list}>
+              {group.entries.map((entry) => (
+                <li key={entry.key} className={styles.row}>
+                  <CompetitionRow entry={entry} />
+                  {/* Outside the card, never inside it. The card is a link, and
+                      a button nested in a link is neither valid nor operable by
+                      keyboard in the way either control promises. */}
+                  {preferences ? (
+                    <FollowControl
+                      entry={entry}
+                      following={isFollowing(preferences, entry.competition.tournamentId)}
+                      busy={busy === entry.competition.tournamentId}
+                      onToggle={toggleFollow}
+                    />
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
 
-      {view.noMatches ? (
-        <p className={styles.none}>No competition matches “{query}”.</p>
-      ) : null}
+        {view.noMatches ? (
+          <p className={styles.none}>No competition matches “{query}”.</p>
+        ) : null}
 
-      {followError ? (
-        <Alert variant="warning" title="That preference was not saved">
-          {followError}
-        </Alert>
-      ) : null}
+        {followError ? (
+          <Alert variant="warning" title="That preference was not saved">
+            {followError}
+          </Alert>
+        ) : null}
 
-      {/* Stated once, at the bottom, where it explains what the control means
-          rather than interrupting the list. */}
-      <p className={styles.followNote}>
-        Following a competition brings its football onto your Hub, your calendar and the
-        competition switcher. It joins no game and changes no membership — you join a game inside
-        the competition itself.
-      </p>
-    </div>
+        {/* Stated once, at the bottom, where it explains what the control means
+            rather than interrupting the list. */}
+        <p className={styles.followNote}>
+          Following a competition brings its football onto your Hub, your calendar and the
+          competition switcher. It joins no game and changes no membership — you join a game inside
+          the competition itself.
+        </p>
+      </div>
     </Workspace>
   )
 }
@@ -222,15 +219,19 @@ function FollowControl({
 }
 
 function CompetitionRow({ entry }: { entry: ExploreEntry }) {
+  const playing = entry.playing.length > 0
   return (
-    <Link className={styles.card} to={competitionPath(entry.competition)}>
+    <Link
+      className={`${styles.card} ${playing ? styles.cardPlaying : ''}`}
+      to={competitionPath(entry.competition)}
+    >
       <span className={styles.name}>{entry.competition.name}</span>
       <span className={styles.season}>{entry.competition.seasonLabel}</span>
       <span className={styles.summary}>{entry.competition.summary}</span>
       <span className={styles.state}>
         {/* Membership, never "followed": the two are different choices and only
             one of them has an authority behind it. */}
-        {entry.playing.length > 0
+        {playing
           ? `Playing ${entry.playing.length === 1 ? '1 game' : `${entry.playing.length} games`}`
           : `${entry.competition.games.length} games available`}
       </span>

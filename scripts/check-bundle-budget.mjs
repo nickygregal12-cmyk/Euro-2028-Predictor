@@ -251,10 +251,21 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // a single unsplit file, so 41 keeps roughly the kilobyte-and-a-half of headroom
 // the 12 August note argued for: a ceiling with less headroom than one
 // component costs is a stop rather than a ratchet.
+//
+// RAISED FROM 41 TO 44 ON 15 AUGUST 2026 FOR THE UI UX PRO MAX FINALISATION
+// BATCH, AFTER MEASURING THE FAILURE RATHER THAN GUESSING. Batch one still fits
+// under 41 KB; batch two deliberately improves the existing competition shell,
+// discovery, Prediction DNA, private-league comparison, Championship and LMS
+// surfaces and measures 42.1 KB gz in CI. CSS is intentionally one unsplit file,
+// so every one of those responsive/accessibility rules moves the same total.
+// The critical controls do not move: the largest JS chunk is still 76.5/77 KB
+// and all JavaScript is 364.1/366 KB. A 44 KB CSS ceiling leaves about 1.9 KB
+// over the measured value — enough for roughly one component, while still
+// refusing an unreviewed second pass of comparable size.
 const BUDGETS = {
   entryChunkKb: 77,
   totalJsKb: 366,
-  totalCssKb: 41,
+  totalCssKb: 44,
 }
 
 /**

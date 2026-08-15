@@ -1,13 +1,17 @@
 .intro {
   margin: 0;
+  max-width: 68ch;
   color: var(--tx2);
   font-size: var(--fs-2);
+  line-height: 1.5;
 }
 
 .group {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
+  container-type: inline-size;
 }
 
 .groupHead {
@@ -19,17 +23,20 @@
 
 .groupTitle {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .count {
+  flex: none;
   font-size: var(--fs-1);
-  color: var(--tx3);
+  color: var(--tx2);
   font-variant-numeric: var(--numeric);
 }
 
@@ -37,8 +44,16 @@
 .none,
 .followNote {
   margin: 0;
-  color: var(--tx3);
+  max-width: 68ch;
+  color: var(--tx2);
   font-size: var(--fs-1);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.followNote {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
 }
 
 .list {
@@ -46,46 +61,49 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
+  min-width: 0;
 }
 
-/* The catalogue is the one list that genuinely grows, so it uses the width it
-   is given rather than staying a single column on a desktop. */
-@media (min-width: 900px) {
+@container (min-width: 44rem) {
   .list {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-/* The card and its Follow control. The card takes the width and the control
-   sits at the end of the row, so the two never compete for the same tap and
-   the button is never nested inside the link. */
 .row {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
   gap: var(--sp-2);
   min-width: 0;
 }
 
 .row > .card {
-  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .card {
+  position: relative;
   display: grid;
-  gap: 2px;
+  grid-template-rows: auto auto 1fr auto;
+  gap: var(--sp-1);
   min-width: 0;
-  min-height: var(--tap-min);
-  padding: var(--sp-3) var(--sp-4);
+  min-height: 100%;
+  padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
   color: var(--tx);
   text-decoration: none;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .card:hover {
   border-color: var(--border-strong);
+  background: var(--chip);
 }
 
 .card:focus-visible {
@@ -93,35 +111,63 @@
   outline-offset: 2px;
 }
 
+.cardPlaying {
+  border-left: var(--bar-w) solid var(--acc);
+}
+
 .name {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 600;
+  line-height: 1.25;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .season {
+  min-width: 0;
   font-size: var(--fs-1);
-  color: var(--tx3);
+  color: var(--tx2);
   font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .summary {
+  min-width: 0;
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .state {
-  margin-top: var(--sp-1);
+  align-self: end;
+  margin-top: var(--sp-2);
   font-size: var(--fs-eyebrow);
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
+  line-height: 1.3;
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* Published, and not a link. It must not look like one: the competition is
-   real and this build cannot route to it. */
+.cardPlaying .state {
+  color: var(--tx);
+}
+
 .cardInert {
   border-style: dashed;
   color: var(--tx2);
   cursor: default;
+}
+
+@container (max-width: 30rem) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .row > :last-child:not(.card) {
+    width: 100%;
+  }
 }

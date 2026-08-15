@@ -6,19 +6,33 @@
 }
 
 .back {
+  display: inline-flex;
+  align-items: center;
   width: fit-content;
+  min-height: var(--tap-min);
+  padding-inline: var(--sp-1);
+  border-radius: var(--radius-input);
   color: var(--tx2);
   font-family: var(--font-body);
   font-size: var(--fs-2);
   text-decoration: none;
+  transition: color var(--duration-micro) var(--ease-out);
 }
 
 .back:hover {
   color: var(--tx);
 }
 
+.back:focus-visible,
+.link:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
 .nav {
+  min-width: 0;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   scrollbar-width: none;
 }
 
@@ -35,32 +49,49 @@
   white-space: nowrap;
 }
 
-/* There is no `.disabled` tab. A section with no page is not listed at all —
-   see the component for why a greyed, untappable label is worse than an absent
-   one. */
 .active,
 .link {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   min-height: var(--tap-min);
-  padding: var(--sp-1) var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.3;
 }
 
 .active {
+  border-color: var(--line);
   background: var(--chip);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .link {
   color: var(--tx2);
   text-decoration: none;
+  transition:
+    color var(--duration-micro) var(--ease-out),
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .link:hover {
+  border-color: var(--line);
   color: var(--tx);
   background: var(--chip);
+}
+
+@media (min-width: 720px) {
+  .nav {
+    overflow: visible;
+  }
+
+  .list {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
 }
