@@ -126,6 +126,21 @@ def tree_contributions(model, X: pd.DataFrame, top_n: int = 8) -> dict:
     for r in rows:
         r["net_favours_home"] = round(r["delta_home"] - r["delta_away"], 5)
     ordered = sorted(rows, key=lambda d: -abs(d["net_favours_home"]))
+    method = rows[0].get("method") if rows else None
+    if method in ("tree_shap_probability_vs_training_median",
+                  "permutation_shap_probability_vs_training_median"):
+        tree_exact = method == "tree_shap_probability_vs_training_median"
+        return {
+            "method": method,
+            "exact": tree_exact,
+            "caveat": (("TreeSHAP decomposes the fitted model probability relative "
+                        "to the training-median background row. ") if tree_exact else
+                       ("Permutation SHAP approximates the fitted model probability "
+                        "movement relative to the training-median background row. "))
+                      + "It explains model association, not football causation.",
+            "positive": [d for d in ordered if d["net_favours_home"] > 0][:top_n],
+            "negative": [d for d in ordered if d["net_favours_home"] < 0][:top_n],
+        }
     return {
         # Named honestly: this is not SHAP, the parts do not sum to the whole,
         # and correlated features share credit rather than splitting it.

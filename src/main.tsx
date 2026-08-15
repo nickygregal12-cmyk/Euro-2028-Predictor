@@ -7,13 +7,16 @@ import './styles/tokens.css'
 import './index.css'
 import App from './App.tsx'
 import { ApplicationErrorBoundary } from './app/ApplicationErrorBoundary'
+import { ClientToolingProvider } from './app/ClientToolingProvider'
 import {
   installGlobalErrorCapture,
   reportClientError,
 } from './services/observability/clientObservability'
+import { initProductAnalytics } from './services/analytics/productAnalytics'
 import { initDevAuth } from './services/supabase/devAutoLogin'
 
 installGlobalErrorCapture()
+void initProductAnalytics()
 
 // Dev auto-login runs before the first render (docs/auth-plan.md §1). In a
 // production build this is a no-op — UNLESS the autologin flag is still set, in
@@ -41,7 +44,9 @@ initDevAuth()
     }).render(
       <StrictMode>
         <ApplicationErrorBoundary>
-          <App />
+          <ClientToolingProvider>
+            <App />
+          </ClientToolingProvider>
         </ApplicationErrorBoundary>
       </StrictMode>,
     )

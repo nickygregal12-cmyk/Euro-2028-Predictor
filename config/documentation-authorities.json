@@ -1,5 +1,5 @@
 {
-  "$comment": "Which documents may name a contract number, and what naming one obliges them to. Every tracked markdown file must resolve to exactly one of three states: an authority (here or under authorityDirectories), evidence (evidenceDirectories), or explicitly out of scope with a reason. A fourth state — classified by nothing — is where staleness lived: measured on 11 August 2026, 101 of 238 files were in it and 51 of those named contract numbers, the oldest naming 35 while the repository was at 157. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
+  "$comment": "Which documents may name a contract number, and what naming one obliges them to. Every tracked markdown file must resolve to exactly one of three states: an authority (here or under authorityDirectories), evidence (evidenceDirectories), or explicitly out of scope with a reason. A fourth state \u2014 classified by nothing \u2014 is where staleness lived: measured on 11 August 2026, 101 of 238 files were in it and 51 of those named contract numbers, the oldest naming 35 while the repository was at 157. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
   "authorities": [
     {
       "path": "AGENTS.md",
@@ -107,7 +107,7 @@
       "path": "docs/design/hub-architecture-and-modernisation-plan.md",
       "kind": "reference",
       "sweep": false,
-      "why": "The owner-supplied target design, revision 1.5, added to the repository VERBATIM. It is not superseded — docs/design/README.md calls it the answer to what the product should look like when finished, and ui-finalisation.md opens by saying the target design in it stands. It is reference rather than live precisely because it must not be edited: it names contract 95 because that is what was true on 4 August 2026, and a rule requiring it to name the current contract would require rewriting a document whose value is that nobody has."
+      "why": "The owner-supplied target design, revision 1.5, added to the repository VERBATIM. It is not superseded \u2014 docs/design/README.md calls it the answer to what the product should look like when finished, and ui-finalisation.md opens by saying the target design in it stands. It is reference rather than live precisely because it must not be edited: it names contract 95 because that is what was true on 4 August 2026, and a rule requiring it to name the current contract would require rewriting a document whose value is that nobody has."
     },
     {
       "path": "docs/design/ui-modernisation-execution.md",
@@ -131,7 +131,7 @@
       "allow": [
         63
       ],
-      "why": "Programme phases, workstreams and failable product gates — content nothing else in the repository holds. It is live because § 7 states which gates remain open, which a contract can falsify. It carried a delivered-foundations list and a contract changelog until 11 August 2026; both restated current-status.md, and nine of its paragraphs were byte-identical to CLAUDE.md and to the child build plan. What survives is a table of what each contract meant for a PHASE, which is the only part a programme plan owns."
+      "why": "Programme phases, workstreams and failable product gates \u2014 content nothing else in the repository holds. It is live because \u00a7 7 states which gates remain open, which a contract can falsify. It carried a delivered-foundations list and a contract changelog until 11 August 2026; both restated current-status.md, and nine of its paragraphs were byte-identical to CLAUDE.md and to the child build plan. What survives is a table of what each contract meant for a PHASE, which is the only part a programme plan owns."
     },
     {
       "path": "docs/architecture/multi-competition-hub-build-plan.md",
@@ -140,7 +140,7 @@
       "allow": [
         63
       ],
-      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own § 18 already forbade in principle — maintaining the same decision in two documents creates competing authority — and is now a table of what each contract meant for a STAGE."
+      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own \u00a7 18 already forbade in principle \u2014 maintaining the same decision in two documents creates competing authority \u2014 and is now a table of what each contract meant for a STAGE."
     },
     {
       "path": "docs/quality/risk-register.md",
@@ -176,7 +176,7 @@
       "path": "README.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Describes what the project is and how to run it. It deliberately names no contract, hosted status or release claim — NOW.md carries those — so classifying it costs nothing and stops it drifting back into a status document."
+      "why": "Describes what the project is and how to run it. It deliberately names no contract, hosted status or release claim \u2014 NOW.md carries those \u2014 so classifying it costs nothing and stops it drifting back into a status document."
     },
     {
       "path": "SECURITY.md",
@@ -188,7 +188,7 @@
       "path": "docs/architecture-and-tournament-states.md",
       "kind": "reference",
       "sweep": false,
-      "why": "The competition-context and match-state contract. Where it names a contract it is naming what implemented a layer, not claiming a current hosted position — docs/quality/current-status.md owns that."
+      "why": "The competition-context and match-state contract. Where it names a contract it is naming what implemented a layer, not claiming a current hosted position \u2014 docs/quality/current-status.md owns that."
     },
     {
       "path": "docs/auth-plan.md",
@@ -224,7 +224,7 @@
       "path": "docs/quality/instruments/entry-flow-test-script.md",
       "kind": "reference",
       "sweep": false,
-      "why": "A reusable single-tester usability script, not a dated record — tests/scripts/markdownDocumentation.test.ts guards it against regressing to obsolete phase language, which is only worth doing to an instrument that will be run again. It sits beside the audit prompt for that reason. It names the contract its environment guidance was written against, which is a fact about that guidance."
+      "why": "A reusable single-tester usability script, not a dated record \u2014 tests/scripts/markdownDocumentation.test.ts guards it against regressing to obsolete phase language, which is only worth doing to an instrument that will be run again. It sits beside the audit prompt for that reason. It names the contract its environment guidance was written against, which is a fact about that guidance."
     },
     {
       "path": "docs/tournament-structure.md",
@@ -234,6 +234,11 @@
     }
   ],
   "authorityDirectories": [
+    {
+      "prefix": ".specify/",
+      "kind": "reference",
+      "why": "Spec Kit process metadata and engineering constitution. These files structure specification and delivery but must not become a second moving product, contract, hosted-state, or model-selection authority."
+    },
     {
       "prefix": ".agents/skills/",
       "kind": "reference",
