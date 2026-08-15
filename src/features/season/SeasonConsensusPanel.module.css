@@ -52,7 +52,7 @@
 
 .teams {
   font-family: var(--font-body);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
   min-width: 0;
 }
