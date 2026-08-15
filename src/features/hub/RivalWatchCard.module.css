@@ -1,16 +1,14 @@
 /* Rival Watch — one card, one league, however many pinned rivals.
- *
- * A list at every width. Two rivals is the realistic maximum and a grid for two
- * rows would be decoration; what desktop gets is the room for the gap sentence
- * and both ranks on one line instead of two.
- */
-
+ * The comparison is compact but numeric: the gap is the headline, the two
+ * labelled league ranks are context, and pinning remains an explicit control. */
 .card {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  margin-top: var(--sp-6);
   padding: var(--sp-4);
   border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
   border-radius: var(--radius-card);
   background: var(--card);
 }
@@ -31,10 +29,11 @@
 
 .where {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx3);
-  min-width: 0;
   overflow-wrap: anywhere;
 }
 
@@ -43,10 +42,13 @@
   margin: 0;
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.5;
   color: var(--tx2);
 }
 
 .note {
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
   font-size: var(--fs-1);
   color: var(--tx3);
 }
@@ -61,13 +63,19 @@
 }
 
 .rival {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-3);
+  min-width: 0;
   padding: var(--sp-3);
+  border: 1px solid transparent;
   border-radius: var(--radius-input);
   background: var(--chip);
+  transition: border-color var(--duration-micro) var(--ease-out);
+}
+
+.rival:hover {
+  border-color: var(--border-strong);
 }
 
 .rivalBody {
@@ -75,7 +83,6 @@
   flex-direction: column;
   gap: var(--sp-1);
   min-width: 0;
-  flex: 1;
 }
 
 .rivalName {
@@ -86,17 +93,25 @@
   overflow-wrap: anywhere;
 }
 
+/* The answer to "how close are we?" earns the strongest type in the card. */
 .rivalGap {
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-4);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: var(--tracking-tight);
   color: var(--tx);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .rivalMeta {
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .picker {
@@ -110,8 +125,8 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: var(--sp-1);
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--sp-1);
   max-height: 240px;
   overflow-y: auto;
 }
@@ -129,13 +144,41 @@
   text-align: left;
   cursor: pointer;
   overflow-wrap: anywhere;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .candidate:hover {
+  border-color: var(--border-strong);
   background: var(--chip);
 }
 
 .candidate:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
+}
+
+@media (min-width: 680px) {
+  .card {
+    padding: var(--sp-5);
+  }
+
+  .head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    gap: var(--sp-3);
+  }
+
+  .where {
+    max-width: 36ch;
+    text-align: right;
+  }
+
+  .rival {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    padding: var(--sp-4);
+  }
 }
