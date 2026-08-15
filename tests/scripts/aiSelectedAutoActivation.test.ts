@@ -51,10 +51,10 @@ describe('selected model auto-activation', () => {
   it('atomically leaves exactly one selected current model per league', () => {
     expect(activator).toContain('with conn.transaction():')
     expect(activator).toContain("status='current'")
-    expect(activator).toContain("'current_total': 9")
-    expect(activator).toContain("'selected_current': 9")
-    expect(activator).toContain("'selected_leagues': 9")
-    expect(activator).toContain("'selected_challengers': 0")
+    expect(activator).toMatch(/["']current_total["']:\s*9/)
+    expect(activator).toMatch(/["']selected_current["']:\s*9/)
+    expect(activator).toMatch(/["']selected_leagues["']:\s*9/)
+    expect(activator).toMatch(/["']selected_challengers["']:\s*0/)
   })
 
   it('regenerates forecasts and value evidence without calling the paid Odds API', () => {
