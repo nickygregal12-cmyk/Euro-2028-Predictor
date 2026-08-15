@@ -557,6 +557,35 @@ export type Database = {
           },
         ]
       }
+      bonus_cup_launches: {
+        Row: {
+          competition_id: string
+          format_kind: string
+          group_stage_last_sequence: number
+          launched_at: string
+        }
+        Insert: {
+          competition_id: string
+          format_kind: string
+          group_stage_last_sequence: number
+          launched_at?: string
+        }
+        Update: {
+          competition_id?: string
+          format_kind?: string
+          group_stage_last_sequence?: number
+          launched_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_cup_launches_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: true
+            referencedRelation: "bonus_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bonus_cup_members: {
         Row: {
           competition_id: string
@@ -3518,10 +3547,10 @@ export type Database = {
       admin_ai_bet_builder_candidates: {
         Args: {
           p_bookmaker: string
-          p_leagues?: string[] | null
-          p_from?: string | null
-          p_to?: string | null
+          p_from?: string
+          p_leagues?: string[]
           p_limit?: number
+          p_to?: string
         }
         Returns: Json
       }
@@ -3534,11 +3563,19 @@ export type Database = {
         Args: { p_league?: string }
         Returns: Json
       }
+      admin_ai_prediction_audit: {
+        Args: { p_hours?: number; p_league?: string }
+        Returns: Json
+      }
       admin_ai_promote_model: {
         Args: { p_model_id: string; p_reason: string }
         Returns: Json
       }
       admin_ai_recent_results: {
+        Args: { p_league?: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_ai_recommendation_log: {
         Args: { p_league?: string; p_limit?: number }
         Returns: Json
       }
@@ -3638,6 +3675,10 @@ export type Database = {
         Returns: Json
       }
       admin_finalise_predictor_cup_groups: {
+        Args: { p_competition_id: string }
+        Returns: Json
+      }
+      admin_finalise_season_cup_groups: {
         Args: { p_competition_id: string }
         Returns: Json
       }
@@ -4451,3 +4492,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
