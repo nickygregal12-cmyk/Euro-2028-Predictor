@@ -75,17 +75,23 @@ jobs:
           with psycopg.connect(os.environ['DATABASE_URL'], autocommit=True) as conn:
               conn.execute(sql, prepare=False)
               rows = conn.execute("""
-                  select jobid, jobname, schedule, active
+                  select jobid, jobname, schedule, active, command
                     from cron.job
                    where jobname like 'ai-odds-%'
                    order by jobid
               """).fetchall()
           if len(rows) != 1:
               raise SystemExit(f'expected exactly one ai-odds cron job, got {rows!r}')
-          jobid, name, schedule, active = rows[0]
+          jobid, name, schedule, active, command = rows[0]
           if name != 'ai-odds-window-heartbeat' or schedule != '*/5 * * * *' or not active:
               raise SystemExit(f'unexpected reconciled scheduler row: {rows[0]!r}')
-          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}')
+          if "dispatch_ai_odds_polls(false" not in command:
+              raise SystemExit('scheduled odds heartbeat must use non-forced dispatch so the budget gate remains authoritative')
+          if "dispatch_ai_odds_polls(true" in command:
+              raise SystemExit('scheduled odds heartbeat must never bypass the budget gate with force=true')
+          if "'pg_cron:'" not in command:
+              raise SystemExit('scheduled odds heartbeat must preserve pg_cron provenance in dispatch evidence')
+          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}, budget_guarded=true')
           PY
 
       - name: Prove reconciliation made zero provider calls
@@ -113,6 +119,7 @@ jobs:
             echo '- Production holds one active `ai-odds-window-heartbeat` job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
+            echo '- Scheduled dispatches use non-forced mode, so `ai_odds_budget_check` remains authoritative and the configured reserve cannot be bypassed by cron.'
             echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
-            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h); `ai_odds_budget_check` remains the spend authority.'
+            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h).'
           } >> "$GITHUB_STEP_SUMMARY"
