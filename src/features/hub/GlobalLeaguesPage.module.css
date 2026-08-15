@@ -42,7 +42,7 @@
   border-color: var(--acc);
   background: var(--chip);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .count {
@@ -91,7 +91,7 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-4);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
   overflow-wrap: anywhere;
 }
@@ -129,7 +129,7 @@
   font-variant-numeric: var(--numeric);
   letter-spacing: var(--tracking-open);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
@@ -152,7 +152,7 @@
   min-height: var(--tap-min);
   margin-top: auto;
   color: var(--acc);
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
@@ -167,7 +167,7 @@
 
 .link {
   color: var(--acc);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* Creation and join are the two ways this list grows. Mobile keeps each one
