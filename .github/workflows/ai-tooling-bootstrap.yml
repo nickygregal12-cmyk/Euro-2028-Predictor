@@ -6,6 +6,7 @@ on:
       - agent/integrate-ai-development-tooling
     paths:
       - '.github/workflows/ai-tooling-bootstrap.yml'
+      - '.storybook/main.ts'
 
 permissions:
   contents: read
