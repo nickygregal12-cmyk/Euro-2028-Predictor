@@ -26,6 +26,7 @@ import { readLastVisit, writeLastVisit } from './lastVisit'
 import type { InboxAction } from './playInboxModel'
 import s from '../shared.module.css'
 import h from './hub.module.css'
+import hp from './hubPolish.module.css'
 
 /**
  * `/` — the signed-in Hub, as a personalised dashboard.
@@ -73,12 +74,13 @@ function PrimaryAction({ action }: { action: InboxAction }) {
       {when ? <span className={h.primaryWhen}>Locks {when}</span> : null}
     </>
   )
+  const className = `${h.primary} ${hp.primaryFrame}`
   return action.href ? (
-    <Link className={h.primary} to={action.href}>
+    <Link className={className} to={action.href}>
       {body}
     </Link>
   ) : (
-    <div className={`${h.primary} ${h.primaryInert}`}>{body}</div>
+    <div className={`${className} ${h.primaryInert}`}>{body}</div>
   )
 }
 
@@ -90,16 +92,17 @@ function SecondaryAction({ action }: { action: InboxAction }) {
         {action.competitionName} · {action.gameName}
       </span>
       <span className={h.secondaryTitle}>{action.title}</span>
-      {when ? <span className={h.secondaryWhen}>Locks {when}</span> : null}
+      {when ? <span className={hp.secondaryWhen}>Locks {when}</span> : null}
     </>
   )
+  const className = `${h.secondary} ${hp.secondaryFrame}`
 
   return action.href ? (
-    <Link className={h.secondary} to={action.href}>
+    <Link className={className} to={action.href}>
       {body}
     </Link>
   ) : (
-    <div className={`${h.secondary} ${h.primaryInert}`}>{body}</div>
+    <div className={`${className} ${h.primaryInert}`}>{body}</div>
   )
 }
 
@@ -400,7 +403,7 @@ export function HubPage() {
             <h2 className={h.sectionTitle} id="hub-recap">
               Matchweek recap
             </h2>
-            <ul className={h.recapList}>
+            <ul className={hp.recapList}>
               {recap.recaps.map((entry) => (
                 <li key={entry.competitionKey}>
                   <MatchweekRecapCard recap={entry} />
