@@ -69,12 +69,14 @@ jobs:
         working-directory: ai
         run: |
           python - <<'PY'
-          from db import connect
-          with connect() as conn:
+          import os
+          import psycopg
+
+          with psycopg.connect(os.environ['DATABASE_URL']) as conn:
               view, fn = conn.execute(
                   "select to_regclass('ai.valid_predictions') is not null, "
                   "to_regprocedure('ai.canonical_from_odds_api(text)') is not null"
-              ).fetchone().values()
+              ).fetchone()
           if not view or not fn:
               raise SystemExit('Production is below the AI forecasting contract')
           PY
