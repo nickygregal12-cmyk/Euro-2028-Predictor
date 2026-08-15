@@ -8,6 +8,7 @@
   padding: var(--sp-4);
   border-top: 1px solid var(--line);
   background: var(--chip);
+  container-type: inline-size;
 }
 
 .fixture {
@@ -34,10 +35,10 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.25;
   color: var(--tx);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .versus {
@@ -58,8 +59,9 @@
   color: var(--tx2);
 }
 
-/* Prediction | result | points. Compact metric cards preserve the distinction
-   between official result and the player's own consequences. */
+/* Prediction | result | points. The panel owns its responsive context, so a
+   narrow card stays two-by-two even when it is nested inside a wide desktop
+   workspace or rendered inside the component gallery. */
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -90,12 +92,12 @@
   min-width: 0;
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--fs-3);
   line-height: 1.25;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 /* Outside the grid on purpose. A provisional score in a cell beside "Result"
@@ -118,7 +120,7 @@
 .provisionalTag {
   flex: 0 0 auto;
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
@@ -151,7 +153,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
@@ -174,9 +176,9 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
 }
 
 .formLetters {
@@ -198,7 +200,7 @@
   background: var(--chip);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx2);
 }
 
@@ -269,7 +271,7 @@
 
 .stakeTag {
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
@@ -288,7 +290,7 @@
   background: var(--card);
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
   text-decoration: none;
   transition:
@@ -307,11 +309,7 @@
   outline-offset: 2px;
 }
 
-@media (min-width: 680px) {
-  .panel {
-    padding: var(--sp-5);
-  }
-
+@container (min-width: 42.5rem) {
   .grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
