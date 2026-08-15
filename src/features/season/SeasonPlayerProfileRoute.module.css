@@ -1,3 +1,8 @@
+.playerSeason {
+  min-width: 0;
+  container-type: inline-size;
+}
+
 .identity {
   display: flex;
   flex-direction: column;
@@ -151,7 +156,7 @@
   margin-top: var(--sp-2);
 }
 
-@media (min-width: 760px) {
+@container (min-width: 760px) {
   .history {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
