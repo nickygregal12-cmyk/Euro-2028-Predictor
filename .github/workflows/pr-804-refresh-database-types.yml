@@ -57,6 +57,29 @@ jobs:
           SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
         run: npm run generate:types
 
+      # The generator normally runs after Development catches the repository up,
+      # so it labels the artifact with the repository migration count. Here the
+      # repository is intentionally one migration ahead (190 vs Development 189).
+      # The generated TypeScript describes Development, so record 189 rather than
+      # falsely claiming the not-yet-applied repository migration. The committed
+      # databaseTypes test explicitly allows this normal ADR-0024 trailing state.
+      - name: Record the hosted Development contract truthfully
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const path = 'src/services/supabase/database.types.meta.json'
+          const meta = JSON.parse(fs.readFileSync(path, 'utf8'))
+          if (meta.generatedFromContract !== meta.developmentHostedContract) {
+            console.log(
+              `Recording hosted Development contract ${meta.developmentHostedContract} ` +
+              `instead of repository count ${meta.generatedFromContract}.`,
+            )
+            meta.generatedFromContract = meta.developmentHostedContract
+            fs.writeFileSync(path, `${JSON.stringify(meta, null, 2)}\n`)
+          }
+          NODE
+
       - name: Commit generated artifact to this PR branch
         shell: bash
         run: |
