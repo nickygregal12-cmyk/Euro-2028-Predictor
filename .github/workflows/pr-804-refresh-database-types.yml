@@ -1,0 +1,72 @@
+name: PR 804 refresh database types
+
+# Temporary branch-only bootstrap. The normal regeneration workflow is
+# workflow_dispatch-only; this file exists solely because the connected GitHub
+# client cannot supply workflow_dispatch inputs. It is deleted again before the
+# PR is eligible to merge.
+on:
+  push:
+    branches:
+      - agent/ui-ux-pro-max-polish
+    paths:
+      - '.github/workflows/pr-804-refresh-database-types.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FORBIDDEN_PRODUCTION_REF: vkfnsqdyhvtwyqkisxhk
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/ui-ux-pro-max-polish
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prove the secret names Development and not Production
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || {
+            echo 'ERROR: repository secret SUPABASE_DEV_DB_URL is not set.'
+            exit 1
+          }
+          case "${SUPABASE_DEV_DB_URL}" in
+            *"${FORBIDDEN_PRODUCTION_REF}"*)
+              echo 'ERROR: the development secret resolves to the Production project.'
+              exit 1
+              ;;
+          esac
+
+      - name: Regenerate from hosted Development
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        run: npm run generate:types
+
+      - name: Commit generated artifact to this PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$(git status --porcelain=v1 -- src/services/supabase/database.types.ts src/services/supabase/database.types.meta.json)" ]; then
+            echo 'Database types already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/services/supabase/database.types.ts src/services/supabase/database.types.meta.json
+          git commit -m 'Regenerate database types from Development'
+          git push origin HEAD:agent/ui-ux-pro-max-polish
