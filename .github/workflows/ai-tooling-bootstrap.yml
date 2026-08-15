@@ -58,8 +58,6 @@ jobs:
                   raise SystemExit(f'{path}: expected one patch anchor, found {count}: {old[:80]!r}')
               target.write_text(text.replace(old, new, 1), encoding='utf-8')
 
-          # One shared QueryClient and an opt-in analytics bootstrap around the
-          # existing application; auth/error boundaries keep their authority.
           replace_once(
               'src/main.tsx',
               "import { ApplicationErrorBoundary } from './app/ApplicationErrorBoundary'\n",
@@ -87,20 +85,21 @@ jobs:
               "        </ApplicationErrorBoundary>",
           )
 
-          # SHAP is an optional upgrade to the existing GBM explanation only.
-          # Absence/unsupported probability output retains the exact old path.
+          # SHAP upgrades the retained GBM explanation without changing model
+          # probabilities. TreeSHAP is preferred; probability-space permutation
+          # SHAP is the supported multiclass fallback; absence keeps occlusion.
           replace_once(
               'ai/model_zoo.py',
               '"""Per-row feature contributions by occlusion, not by SHAP.\n',
-              '"""Per-row feature contributions, preferring probability-space TreeSHAP.\n',
+              '"""Per-row feature contributions, preferring probability-space SHAP.\n',
           )
           replace_once(
               'ai/model_zoo.py',
               '        frame = self._prepare(X[self.feature_names_])\n        order = [self.classes_.index(o) for o in OUTCOMES]\n',
               '        frame = self._prepare(X[self.feature_names_])\n'
               '        try:\n'
-              '            from shap_explain import tree_shap_probability_contributions\n'
-              '            shap_rows = tree_shap_probability_contributions(\n'
+              '            from shap_explain import shap_probability_contributions\n'
+              '            shap_rows = shap_probability_contributions(\n'
               '                self.clf,\n'
               '                frame,\n'
               '                self.feature_names_,\n'
@@ -119,13 +118,18 @@ jobs:
               'ai/explain.py',
               '    ordered = sorted(rows, key=lambda d: -abs(d["net_favours_home"]))\n    return {\n        # Named honestly: this is not SHAP, the parts do not sum to the whole,\n',
               '    ordered = sorted(rows, key=lambda d: -abs(d["net_favours_home"]))\n'
-              '    if rows and rows[0].get("method") == "tree_shap_probability_vs_training_median":\n'
+              '    method = rows[0].get("method") if rows else None\n'
+              '    if method in ("tree_shap_probability_vs_training_median",\n'
+              '                  "permutation_shap_probability_vs_training_median"):\n'
+              '        tree_exact = method == "tree_shap_probability_vs_training_median"\n'
               '        return {\n'
-              '            "method": "tree_shap_probability_vs_training_median",\n'
-              '            "exact": True,\n'
-              '            "caveat": ("TreeSHAP decomposes the fitted model probability relative "\n'
-              '                       "to the training-median background row. It explains model "\n'
-              '                       "association, not football causation."),\n'
+              '            "method": method,\n'
+              '            "exact": tree_exact,\n'
+              '            "caveat": (("TreeSHAP decomposes the fitted model probability relative "\n'
+              '                        "to the training-median background row. ") if tree_exact else\n'
+              '                       ("Permutation SHAP approximates the fitted model probability "\n'
+              '                        "movement relative to the training-median background row. "))\n'
+              '                      + "It explains model association, not football causation.",\n'
               '            "positive": [d for d in ordered if d["net_favours_home"] > 0][:top_n],\n'
               '            "negative": [d for d in ordered if d["net_favours_home"] < 0][:top_n],\n'
               '        }\n'
