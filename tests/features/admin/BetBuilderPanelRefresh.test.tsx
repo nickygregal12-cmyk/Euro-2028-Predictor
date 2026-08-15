@@ -50,7 +50,7 @@ describe('Bet Builder live refresh', () => {
   it('refreshes bookmaker counts as well as candidates and escapes a stale impossible default', async () => {
     render(<BetBuilderPanel />)
 
-    const select = await screen.findByLabelText('Bookmaker') as HTMLSelectElement
+    const select = await screen.findByRole('combobox', { name: /Bookmaker/i }) as HTMLSelectElement
     await waitFor(() => expect(select.value).toBe('B365'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Refresh selections' }))
