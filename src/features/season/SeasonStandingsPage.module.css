@@ -187,10 +187,6 @@
     padding-inline: var(--sp-3);
   }
 
-  .row {
-    min-height: 52px;
-  }
-
   .yourStanding {
     display: block;
     padding: var(--sp-4);
