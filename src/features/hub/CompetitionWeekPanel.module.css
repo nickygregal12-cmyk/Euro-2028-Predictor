@@ -1,28 +1,29 @@
 /* Overview's weekly action summary. Tokens only. */
-
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
-  min-width: 0;
 }
 
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
   font-size: var(--fs-2);
+  font-weight: 600;
   color: var(--tx);
 }
 
 .note {
   margin: 0;
+  max-width: 60ch;
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.5;
   color: var(--tx2);
 }
 
@@ -35,49 +36,97 @@
   list-style: none;
 }
 
-/* The primary action is the one thing to do first, so it is the one raised
-   surface here. Two competing emphases would be no emphasis. */
+/* The primary action is the one thing to do first. Accent means the player's
+   action/prediction in this design system; gold is reserved for Joker and must
+   never be borrowed merely to create visual weight. */
 .primary,
 .primaryInert {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 2px;
+  min-width: 0;
+  min-height: var(--tap-min);
   padding: var(--sp-3);
-  border: 1px solid var(--gold-strong);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
   border-radius: var(--radius-input);
-  background: var(--gold-tint);
+  background: var(--card);
   color: var(--tx);
   text-decoration: none;
-  min-height: var(--tap-min);
-  min-width: 0;
 }
 
 .secondary,
 .secondaryInert {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   gap: 2px;
+  min-width: 0;
+  min-height: var(--tap-min);
   padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
   background: var(--chip);
   color: var(--tx);
   text-decoration: none;
-  min-height: var(--tap-min);
-  min-width: 0;
+}
+
+.primary,
+.secondary {
+  cursor: pointer;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.primary:hover,
+.secondary:hover {
+  border-color: var(--border-strong);
+}
+
+.primary:hover {
+  border-left-color: var(--acc);
+  background: var(--chip);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.primaryInert,
+.secondaryInert {
+  color: var(--tx2);
 }
 
 .title {
+  min-width: 0;
   font-family: var(--font-body);
   font-weight: 600;
-  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .when {
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
   color: var(--tx2);
   font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .primary,
+  .primaryInert,
+  .secondary,
+  .secondaryInert {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--sp-4);
+  }
+
+  .when {
+    max-width: 24ch;
+    text-align: right;
+  }
 }
 
 .srOnly {
