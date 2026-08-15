@@ -85,7 +85,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-4);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -124,8 +124,8 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
-  letter-spacing: var(--tracking-open, 0.06em);
+  font-weight: 500;
+  letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
 }
@@ -173,7 +173,7 @@ a.action:focus-visible {
 .actionTitle {
   font-family: var(--font-body);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
