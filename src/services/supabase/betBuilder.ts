@@ -68,16 +68,6 @@ type DecisionSnapshot = {
   readonly currentBetCountsByBook: ReadonlyMap<string, number>
 }
 
-type RecommendationLogRpcResult = {
-  readonly data: unknown
-  readonly error: unknown
-}
-
-type RecommendationLogRpc = (
-  fn: 'admin_ai_recommendation_log',
-  args: { p_league: string; p_limit: number },
-) => PromiseLike<RecommendationLogRpcResult>
-
 export type BookmakerSummary = Bookmaker & {
   readonly legs: number
   readonly lastDecidedAt: string | null
@@ -215,22 +205,13 @@ export function mapCandidates(payload: unknown): BetBuilderCandidates {
   }
 }
 
-/**
- * Hosted Development and Production both expose this Contract-190 RPC, but the
- * generated Database type file still predates the function. Keep that known
- * generator lag behind one narrow, named adapter rather than spreading `any`
- * or raw REST calls through the UI. Once generated types catch up, this cast can
- * disappear without changing callers.
- */
-const recommendationLogRpc = db.rpc.bind(db) as unknown as RecommendationLogRpc
-
 async function fetchCurrentDecisionSnapshot(): Promise<DecisionSnapshot> {
   // Fetch per league rather than using one global 500-row page. The value loop
   // can refresh frequently near kickoff; a global page could otherwise be
   // consumed by newer rows from other leagues and hide an upcoming fixture's
   // latest decision. Each per-league response remains newest-first.
   const responses = await Promise.all(
-    AI_LAB_LEAGUES.map(({ key }) => recommendationLogRpc('admin_ai_recommendation_log', {
+    AI_LAB_LEAGUES.map(({ key }) => db.rpc('admin_ai_recommendation_log', {
       p_league: key,
       p_limit: 500,
     })),
