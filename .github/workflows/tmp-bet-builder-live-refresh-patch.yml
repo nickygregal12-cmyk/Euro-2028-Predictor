@@ -1,0 +1,61 @@
+name: Temporary Bet Builder live refresh patch
+
+on:
+  push:
+    branches:
+      - agent/bet-builder-live-refresh
+    paths:
+      - '.github/workflows/tmp-bet-builder-live-refresh-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: agent/bet-builder-live-refresh
+          fetch-depth: 0
+
+      - name: Patch live bookmaker refresh and add regression test
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/features/admin/BetBuilderPanel.tsx')
+          source = path.read_text()
+
+          marker = """type Loaded =\n  | { kind: 'idle' }\n  | { kind: 'loading' }\n  | { kind: 'failed'; message: string }\n  | { kind: 'ready'; candidates: BetBuilderCandidates }\n\nexport function BetBuilderPanel() {\n"""
+          replacement = """type Loaded =\n  | { kind: 'idle' }\n  | { kind: 'loading' }\n  | { kind: 'failed'; message: string }\n  | { kind: 'ready'; candidates: BetBuilderCandidates }\n\nexport function chooseBetBuilderBookmaker(\n  rows: readonly BookmakerSummary[],\n  requestedLegs: number,\n  current: string | null,\n): string | null {\n  const actionable = rows.filter((row) => row.isRealPrice)\n  const currentRow = actionable.find((row) => row.code === current)\n  if (currentRow && currentRow.legs >= requestedLegs) return currentRow.code\n\n  const enough = actionable.filter((row) => row.legs >= requestedLegs)\n  const pool = enough.length ? enough : actionable\n  return [...pool].sort((a, b) => b.legs - a.legs || a.code.localeCompare(b.code))[0]?.code ?? null\n}\n\nexport function BetBuilderPanel() {\n"""
+          if source.count(marker) != 1:
+              raise SystemExit('REFUSE: Loaded/BetBuilderPanel marker drifted')
+          source = source.replace(marker, replacement, 1)
+
+          old_effect = """  useEffect(() => {\n    let active = true\n    fetchBetBuilderBookmakers()\n      .then((rows) => {\n        if (!active) return\n        setBooks(rows)\n        const actionable = rows.filter((row) => row.isRealPrice)\n        const best = [...actionable].sort((a, b) => b.legs - a.legs)[0]\n        setBookmaker((current) => current ?? best?.code ?? null)\n      })\n      .catch((error: unknown) => {\n        if (active) setBooksError(userFacingError(error, 'Bookmakers could not be read.'))\n      })\n    return () => {\n      active = false\n    }\n  }, [])\n"""
+          new_effect = """  useEffect(() => {\n    let active = true\n    setBooksError(null)\n    fetchBetBuilderBookmakers()\n      .then((rows) => {\n        if (!active) return\n        setBooks(rows)\n        setBookmaker((current) => chooseBetBuilderBookmaker(rows, legs, current))\n      })\n      .catch((error: unknown) => {\n        if (active) setBooksError(userFacingError(error, 'Bookmakers could not be read.'))\n      })\n    return () => {\n      active = false\n    }\n  }, [reload, legs])\n"""
+          if source.count(old_effect) != 1:
+              raise SystemExit('REFUSE: bookmaker loading effect drifted')
+          source = source.replace(old_effect, new_effect, 1)
+          path.write_text(source)
+
+          test = Path('tests/features/admin/BetBuilderPanelRefresh.test.tsx')
+          test.write_text("""import { fireEvent, render, screen, waitFor } from '@testing-library/react'\nimport { beforeEach, describe, expect, it, vi } from 'vitest'\nimport { BetBuilderPanel, chooseBetBuilderBookmaker } from '../../../src/features/admin/BetBuilderPanel'\nimport { fetchBetBuilderBookmakers, fetchBetBuilderCandidates } from '../../../src/services/supabase/betBuilder'\n\nvi.mock('../../../src/services/supabase/betBuilder', () => ({\n  fetchBetBuilderBookmakers: vi.fn(),\n  fetchBetBuilderCandidates: vi.fn(),\n}))\n\nconst staleBooks = [\n  { code: 'B365', name: 'Bet365', kind: 'bookmaker' as const, isRealPrice: true, exchangeCommission: null, legs: 0, lastDecidedAt: null },\n  { code: 'BFE', name: 'Betfair Exchange', kind: 'exchange' as const, isRealPrice: true, exchangeCommission: 0.02, legs: 0, lastDecidedAt: null },\n]\n\nconst freshBooks = [\n  { ...staleBooks[0], legs: 2 },\n  { ...staleBooks[1], legs: 38 },\n  { code: 'MAX', name: 'MAX', kind: 'aggregate' as const, isRealPrice: false, exchangeCommission: null, legs: 999, lastDecidedAt: null },\n]\n\nfunction candidates(bookmaker: string) {\n  const book = freshBooks.find((row) => row.code === bookmaker) ?? staleBooks[0]\n  return {\n    bookmaker: {\n      code: book.code, name: book.name, kind: book.kind,\n      isRealPrice: book.isRealPrice, exchangeCommission: book.exchangeCommission,\n    },\n    legs: [], legCount: 0, truncatedAt: 200,\n    window: { from: '2026-08-15T00:00:00Z', to: '2026-08-22T00:00:00Z' },\n    generatedAt: '2026-08-15T03:00:00Z',\n  }\n}\n\ndescribe('Bet Builder live refresh', () => {\n  beforeEach(() => {\n    vi.mocked(fetchBetBuilderBookmakers).mockReset()\n      .mockResolvedValueOnce(staleBooks)\n      .mockResolvedValue(freshBooks)\n    vi.mocked(fetchBetBuilderCandidates).mockReset()\n      .mockImplementation(async (options) => candidates(options.bookmaker))\n  })\n\n  it('chooses the strongest real bookmaker that can satisfy the requested leg count', () => {\n    expect(chooseBetBuilderBookmaker(freshBooks, 3, 'B365')).toBe('BFE')\n    expect(chooseBetBuilderBookmaker(freshBooks, 3, 'BFE')).toBe('BFE')\n    expect(chooseBetBuilderBookmaker(freshBooks, 50, null)).toBe('BFE')\n  })\n\n  it('refreshes bookmaker counts as well as candidates and escapes a stale impossible default', async () => {\n    render(<BetBuilderPanel />)\n\n    const select = await screen.findByLabelText('Bookmaker') as HTMLSelectElement\n    await waitFor(() => expect(select.value).toBe('B365'))\n\n    fireEvent.click(screen.getByRole('button', { name: 'Refresh selections' }))\n\n    await waitFor(() => expect(fetchBetBuilderBookmakers).toHaveBeenCalledTimes(2))\n    await waitFor(() => expect(select.value).toBe('BFE'))\n    await waitFor(() => expect(fetchBetBuilderCandidates).toHaveBeenCalledWith(\n      expect.objectContaining({ bookmaker: 'BFE' }),\n    ))\n  })\n})\n""")
+          PY
+
+          git diff --check
+          git status --short
+
+      - name: Commit patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/features/admin/BetBuilderPanel.tsx tests/features/admin/BetBuilderPanelRefresh.test.tsx
+          git diff --cached --quiet && { echo 'No patch required.'; exit 0; }
+          git commit -m 'fix: refresh Bet Builder live bookmaker pool'
+          git push origin HEAD:agent/bet-builder-live-refresh
