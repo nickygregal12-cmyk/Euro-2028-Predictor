@@ -8,229 +8,47 @@ on:
       - '.github/workflows/ai-tooling-bootstrap.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  integrate:
+  storybook-diagnostic:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v7
         with:
           ref: agent/integrate-ai-development-tooling
-          fetch-depth: 0
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-          cache: pip
-          cache-dependency-path: |
-            ai/requirements.txt
-            ai/requirements-observability.txt
-
-      - name: Install frontend integrations and refresh lockfile
+      - name: Install proposed frontend dependencies
         run: |
           npm install @tanstack/react-query@latest posthog-js@latest recharts@latest
           npm install --save-dev storybook@latest @storybook/react-vite@latest
           node <<'NODE'
           const fs = require('fs')
-          const path = 'package.json'
-          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'))
-          pkg.scripts.storybook = 'storybook dev -p 6006'
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'))
           pkg.scripts['build:storybook'] = 'storybook build'
-          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n')
+          fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n')
           NODE
-
-      - name: Wire integrations into existing authorities
+      - name: Build Storybook and capture complete output
+        id: storybook
+        shell: bash
         run: |
-          python <<'PY'
-          import json
-          from pathlib import Path
-
-          def replace_once(path: str, old: str, new: str) -> None:
-              target = Path(path)
-              text = target.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one patch anchor, found {count}: {old[:80]!r}')
-              target.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          replace_once(
-              'src/main.tsx',
-              "import { ApplicationErrorBoundary } from './app/ApplicationErrorBoundary'\n",
-              "import { ApplicationErrorBoundary } from './app/ApplicationErrorBoundary'\n"
-              "import { ClientToolingProvider } from './app/ClientToolingProvider'\n",
-          )
-          replace_once(
-              'src/main.tsx',
-              "import { initDevAuth } from './services/supabase/devAutoLogin'\n",
-              "import { initProductAnalytics } from './services/analytics/productAnalytics'\n"
-              "import { initDevAuth } from './services/supabase/devAutoLogin'\n",
-          )
-          replace_once(
-              'src/main.tsx',
-              "installGlobalErrorCapture()\n\n",
-              "installGlobalErrorCapture()\nvoid initProductAnalytics()\n\n",
-          )
-          replace_once(
-              'src/main.tsx',
-              "        <ApplicationErrorBoundary>\n          <App />\n        </ApplicationErrorBoundary>",
-              "        <ApplicationErrorBoundary>\n"
-              "          <ClientToolingProvider>\n"
-              "            <App />\n"
-              "          </ClientToolingProvider>\n"
-              "        </ApplicationErrorBoundary>",
-          )
-
-          # SHAP upgrades the retained GBM explanation without changing model
-          # probabilities. TreeSHAP is preferred; probability-space permutation
-          # SHAP is the supported multiclass fallback; absence keeps occlusion.
-          replace_once(
-              'ai/model_zoo.py',
-              '"""Per-row feature contributions by occlusion, not by SHAP.\n',
-              '"""Per-row feature contributions, preferring probability-space SHAP.\n',
-          )
-          replace_once(
-              'ai/model_zoo.py',
-              '        frame = self._prepare(X[self.feature_names_])\n        order = [self.classes_.index(o) for o in OUTCOMES]\n',
-              '        frame = self._prepare(X[self.feature_names_])\n'
-              '        try:\n'
-              '            from shap_explain import shap_probability_contributions\n'
-              '            shap_rows = shap_probability_contributions(\n'
-              '                self.clf,\n'
-              '                frame,\n'
-              '                self.feature_names_,\n'
-              '                OUTCOMES,\n'
-              '                background=self.medians_.reshape(1, -1),\n'
-              '                top_n=top_n,\n'
-              '            )\n'
-              '        except Exception:\n'
-              '            shap_rows = None\n'
-              '        if shap_rows is not None:\n'
-              '            return shap_rows\n'
-              '        order = [self.classes_.index(o) for o in OUTCOMES]\n',
-          )
-
-          replace_once(
-              'ai/explain.py',
-              '    ordered = sorted(rows, key=lambda d: -abs(d["net_favours_home"]))\n    return {\n        # Named honestly: this is not SHAP, the parts do not sum to the whole,\n',
-              '    ordered = sorted(rows, key=lambda d: -abs(d["net_favours_home"]))\n'
-              '    method = rows[0].get("method") if rows else None\n'
-              '    if method in ("tree_shap_probability_vs_training_median",\n'
-              '                  "permutation_shap_probability_vs_training_median"):\n'
-              '        tree_exact = method == "tree_shap_probability_vs_training_median"\n'
-              '        return {\n'
-              '            "method": method,\n'
-              '            "exact": tree_exact,\n'
-              '            "caveat": (("TreeSHAP decomposes the fitted model probability relative "\n'
-              '                        "to the training-median background row. ") if tree_exact else\n'
-              '                       ("Permutation SHAP approximates the fitted model probability "\n'
-              '                        "movement relative to the training-median background row. "))\n'
-              '                      + "It explains model association, not football causation.",\n'
-              '            "positive": [d for d in ordered if d["net_favours_home"] > 0][:top_n],\n'
-              '            "negative": [d for d in ordered if d["net_favours_home"] < 0][:top_n],\n'
-              '        }\n'
-              '    return {\n'
-              '        # Named honestly: this is not SHAP, the parts do not sum to the whole,\n',
-          )
-
-          env = Path('.env.example')
-          env_text = env.read_text(encoding='utf-8')
-          if 'VITE_POSTHOG_KEY=' not in env_text:
-              env_text += (
-                  '\n# --- Product analytics (PostHog) — OFF by default ---\n'
-                  '# PUBLIC project key only. Leaving this blank means the PostHog chunk is not\n'
-                  '# loaded and no product analytics events are sent. Automatic capture is off.\n'
-                  'VITE_POSTHOG_KEY=\n'
-                  '# Public ingest host for the PostHog project. No private AI/provider data.\n'
-                  'VITE_POSTHOG_HOST=https://us.i.posthog.com\n'
-              )
-              env.write_text(env_text, encoding='utf-8')
-
-          vite_env = Path('src/vite-env.d.ts')
-          vite_text = vite_env.read_text(encoding='utf-8')
-          anchor = '  readonly VITE_SIBLING_SITE_ORIGIN?: string\n'
-          if 'VITE_POSTHOG_KEY' not in vite_text:
-              if vite_text.count(anchor) != 1:
-                  raise SystemExit('src/vite-env.d.ts: PostHog typing anchor moved')
-              vite_text = vite_text.replace(
-                  anchor,
-                  anchor
-                  + '  // Optional public PostHog project configuration; blank keeps analytics off.\n'
-                  + '  readonly VITE_POSTHOG_KEY?: string\n'
-                  + '  readonly VITE_POSTHOG_HOST?: string\n',
-                  1,
-              )
-              vite_env.write_text(vite_text, encoding='utf-8')
-
-          # Storybook is committed TypeScript, so it belongs to a compiler
-          # project and to the hard-coded coverage inventory just like src/.
-          replace_once(
-              'tsconfig.app.json',
-              '  "include": ["src"]\n',
-              '  "include": ["src", ".storybook"]\n',
-          )
-          replace_once(
-              'tests/scripts/typescriptProjectCoverage.test.ts',
-              "const COVERED_PREFIXES = [\n  'src/',\n",
-              "const COVERED_PREFIXES = [\n  'src/',\n  '.storybook/',\n",
-          )
-
-          # Spec Kit's constitution governs engineering process only. Register
-          # its directory as reference authority rather than leaving it outside
-          # the repository's one-document-one-governor rule.
-          authority_path = Path('config/documentation-authorities.json')
-          authority = json.loads(authority_path.read_text(encoding='utf-8'))
-          prefixes = {item['prefix'] for item in authority['authorityDirectories']}
-          if '.specify/' not in prefixes:
-              authority['authorityDirectories'].insert(0, {
-                  'prefix': '.specify/',
-                  'kind': 'reference',
-                  'why': (
-                      'Spec Kit process metadata and engineering constitution. '
-                      'These files structure specification and delivery but must '
-                      'not become a second moving product, contract, hosted-state, '
-                      'or model-selection authority.'
-                  ),
-              })
-              authority_path.write_text(json.dumps(authority, indent=2) + '\n', encoding='utf-8')
-          PY
-
-      - name: Install and verify optional AI extras
-        run: |
-          pip install -r ai/requirements.txt -r ai/requirements-observability.txt pytest
-          cd ai
-          python -m compileall -q observability.py shap_explain.py model_zoo.py explain.py
-          pytest -q test_observability.py
-          cd ..
-          dvc doctor
-          dvc repro ai-offline-guardrails
-
-      - name: Lint frontend integration
-        run: npm run lint
-
-      - name: Run frontend tests
-        run: npm test
-
-      - name: Typecheck all projects
-        run: npx tsc -b
-
-      - name: Build Storybook
-        run: npm run build:storybook
-
-      - name: Commit generated lockfile and verified wiring
-        run: |
-          rm .github/workflows/ai-tooling-bootstrap.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package.json package-lock.json src/main.tsx src/vite-env.d.ts .env.example \
-            ai/model_zoo.py ai/explain.py tsconfig.app.json \
-            tests/scripts/typescriptProjectCoverage.test.ts config/documentation-authorities.json \
-            .github/workflows/ai-tooling-bootstrap.yml
-          git diff --cached --stat
-          git commit -m 'Wire integrated AI and frontend tooling'
-          git push origin HEAD:agent/integrate-ai-development-tooling
+          set +e
+          npm run build:storybook 2>&1 | tee storybook-build.log
+          status=${PIPESTATUS[0]}
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload diagnostic log
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: storybook-build-log
+          path: storybook-build.log
+          if-no-files-found: error
+      - name: Report Storybook failure
+        if: steps.storybook.outputs.status != '0'
+        run: exit 1
