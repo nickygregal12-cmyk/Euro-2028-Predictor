@@ -28,7 +28,7 @@
   border-bottom: 1px solid var(--line);
   color: var(--tx3);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
@@ -108,7 +108,7 @@
 
 .pts {
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* Movement is a secondary signal beside the club name, not a column — a column
@@ -178,7 +178,7 @@
 .dividerLabel {
   color: var(--tx3);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
 }
