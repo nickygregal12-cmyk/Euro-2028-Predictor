@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router'
 import { usePlayerCompetitions } from '../../app/providers/PlayerCompetitionsProvider'
 import { competitionRoute, competitionRefFromPath, weeklyRoutes } from '../../app/weeklyRoutes'
+import { ChevronDownIcon } from '../../design-system/icons'
 import styles from './CompetitionSwitcher.module.css'
 
 /**
@@ -45,9 +46,7 @@ export function CompetitionSwitcher({ competitionName }: { competitionName: stri
     <details className={styles.switcher}>
       <summary className={styles.summary}>
         <span className={styles.current}>{competitionName}</span>
-        <span className={styles.chevron} aria-hidden="true">
-          ▾
-        </span>
+        <ChevronDownIcon className={styles.chevron} size={16} />
       </summary>
       <div className={styles.menu}>
         {others.length > 0 ? (

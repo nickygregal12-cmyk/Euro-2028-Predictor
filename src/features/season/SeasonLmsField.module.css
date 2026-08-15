@@ -1,35 +1,39 @@
-/* The Last Man Standing field.
- *
- * A list at every width. Each row carries a name, a state sentence and either
- * the pick or the concealment notice, which is two columns on a phone and two
- * columns with more room on a desktop — a grid would not add information.
- */
-
+/* The Last Man Standing field: first answer the size/state of the field, then
+ * let the player scan who is left and — only once the server reveals it — what
+ * each entrant picked. No client-side reveal inference is introduced here. */
 .section {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  min-width: 0;
   margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
 }
 
 .heading {
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--tx);
 }
 
 .note {
   margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.5;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .retry {
-  margin-top: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
   min-height: var(--tap-min);
+  margin-top: var(--sp-2);
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
@@ -37,6 +41,14 @@
   color: var(--tx);
   font: inherit;
   cursor: pointer;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.retry:hover {
+  border-color: var(--border-strong);
+  background: var(--card);
 }
 
 .retry:focus-visible {
@@ -46,8 +58,8 @@
 
 .stats {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   gap: var(--sp-2);
-  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
 }
 
 .list {
@@ -56,25 +68,26 @@
   padding: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  border-block: 1px solid var(--line);
 }
 
 .entrant {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.7fr);
+  align-items: center;
   gap: var(--sp-3);
-  padding: var(--sp-3) 0;
-  border-top: 1px solid var(--line);
+  min-width: 0;
+  padding: var(--sp-3);
+  border-bottom: 1px solid var(--line);
 }
 
-.entrant:first-child {
-  border-top: 0;
+.entrant:last-child {
+  border-bottom: 0;
 }
 
-/* The caller's own row, marked by weight and a rule rather than by colour
-   alone — it has to survive a monochrome screenshot. */
 .me {
-  padding-left: var(--sp-3);
+  background: var(--chip);
   box-shadow: inset var(--bar-w) 0 0 var(--acc);
 }
 
@@ -87,28 +100,38 @@
 
 .name {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
-  font-family: var(--font-body);
+  gap: var(--sp-1) var(--sp-2);
+  min-width: 0;
+  font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  line-height: 1.3;
+  font-weight: 500;
   color: var(--tx);
   overflow-wrap: anywhere;
 }
 
 .youTag {
-  padding: 1px 6px;
+  flex: none;
+  padding: 2px 6px;
   border-radius: var(--radius-pill);
-  background: var(--chip);
-  font-size: var(--fs-1);
+  background: color-mix(in srgb, var(--acc) 16%, transparent);
+  font-family: var(--font-display);
+  font-size: var(--fs-eyebrow);
   font-weight: 500;
-  color: var(--tx2);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--acc);
 }
 
 .state {
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.35;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .detail {
@@ -116,25 +139,49 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 2px;
+  min-width: 0;
   text-align: right;
   font-family: var(--font-body);
   font-size: var(--fs-1);
-  min-width: 0;
 }
 
 .pick {
+  min-width: 0;
+  font-family: var(--font-display);
   font-size: var(--fs-2);
+  line-height: 1.3;
+  font-weight: 500;
   color: var(--tx);
   overflow-wrap: anywhere;
 }
 
 .allowances {
+  font-variant-numeric: var(--numeric);
   color: var(--tx2);
 }
 
-/* Not a dash and not a blank: a dash reads as "nothing" and a blank reads as
-   "has not picked", and neither is what the server said. */
 .hidden {
-  color: var(--tx3);
+  max-width: 24ch;
+  line-height: 1.35;
+  color: var(--tx2);
   font-style: italic;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 520px) {
+  .entrant {
+    grid-template-columns: 1fr;
+    gap: var(--sp-2);
+  }
+
+  .detail {
+    align-items: flex-start;
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--line);
+    text-align: left;
+  }
+
+  .hidden {
+    max-width: none;
+  }
 }

@@ -9,6 +9,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+  min-width: 0;
 }
 
 .eyebrow,
@@ -18,7 +19,7 @@
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
 }
 
@@ -28,12 +29,14 @@
 .roundHeading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .heading {
   font-size: var(--fs-4);
+  letter-spacing: var(--tracking-tight);
 }
 
 .sectionHeading,
@@ -46,10 +49,12 @@
 .cardCopy,
 .matchFootnote {
   margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--fs-2);
   line-height: 1.5;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .instanceSection,
@@ -59,6 +64,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
 }
 
 .instanceList,
@@ -72,6 +78,7 @@
 .instanceCard,
 .matchCard,
 .round {
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
@@ -81,14 +88,18 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
+  min-height: var(--tap-min);
   padding: var(--sp-4);
   color: inherit;
   text-decoration: none;
-  transition: border-color var(--duration-micro) var(--ease-out), transform var(--duration-micro) var(--ease-out);
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .instanceCard:hover {
-  border-color: var(--acc);
+  border-color: var(--border-strong);
+  background: var(--chip);
 }
 
 .instanceCard:focus-visible {
@@ -100,22 +111,28 @@
 .matchStatus,
 .fixtureTags {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--sp-2);
+  gap: var(--sp-1) var(--sp-2);
+  min-width: 0;
 }
 
 .fixtureSummary {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
+  min-width: 0;
 }
 
 .fixtureOpponent,
 .playerName {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
+  line-height: 1.25;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .openLabel {
@@ -130,11 +147,12 @@
 }
 
 .myMatch {
-  box-shadow: inset 3px 0 0 var(--acc);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
 }
 
 .result {
   font-family: var(--font-display);
+  font-variant-numeric: var(--numeric);
   color: var(--tx);
 }
 
@@ -143,6 +161,7 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-3);
+  min-width: 0;
 }
 
 .playerSide {
@@ -158,18 +177,11 @@
   text-align: right;
 }
 
-.playerName {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .score,
 .fixtureScore {
   font-family: var(--font-display);
   font-variant-numeric: var(--numeric);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -181,15 +193,14 @@
   display: inline-flex;
   flex: none;
   align-items: center;
-  min-height: 22px;
-  padding: 2px 7px;
+  padding: 2px var(--sp-2);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--acc) 16%, transparent);
   color: var(--acc);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-open);
 }
 
 .tableHead,
@@ -198,20 +209,22 @@
   grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem 2.5rem 3rem;
   align-items: center;
   gap: var(--sp-2);
-  padding: 0 var(--sp-2);
+  min-width: 0;
+  padding-inline: var(--sp-2);
 }
 
 .tableHead {
-  min-height: 30px;
+  padding-block: var(--sp-1);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
 }
 
 .tableRow {
   min-height: var(--tap-min);
+  padding-block: var(--sp-2);
   border-bottom: 1px solid var(--line);
   font-family: var(--font-body);
   font-size: var(--fs-2);
@@ -233,22 +246,24 @@
 
 .tableRow strong {
   font-family: var(--font-display);
+  font-weight: 500;
   color: var(--tx);
 }
 
 .tableRowYou {
   background: var(--chip);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
 }
 
 .tableName {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
+  gap: var(--sp-1) var(--sp-2);
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .round {
@@ -268,6 +283,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
   padding: var(--sp-3) var(--sp-4);
   border-bottom: 1px solid var(--line);
 }
@@ -278,7 +294,7 @@
 
 .fixtureRowMine {
   background: var(--chip);
-  box-shadow: inset 3px 0 0 var(--acc);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
 }
 
 .fixtureTeams {
@@ -286,9 +302,17 @@
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.3;
   color: var(--tx);
+}
+
+.fixtureTeams > :first-child,
+.fixtureTeams > :last-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .fixtureTeams > :last-child {
@@ -298,6 +322,19 @@
 .fixtureScore {
   min-width: 2.5rem;
   text-align: center;
+}
+
+@media (max-width: 420px) {
+  .versus {
+    gap: var(--sp-2);
+  }
+
+  .tableHead,
+  .tableRow {
+    grid-template-columns: 2rem minmax(0, 1fr) 2rem 2rem 2.75rem;
+    gap: var(--sp-1);
+    padding-inline: var(--sp-1);
+  }
 }
 
 @media (min-width: 760px) {
@@ -317,14 +354,17 @@
   }
 }
 
-/* ─── The standing panel beside My Fixture ────────────────────────────────
-   Three rows and a link, never a second table: the Table page owns the group
-   in full, and this answers "am I in trouble" without making the player find
-   themselves in it. */
+@media (min-width: 1100px) {
+  .instanceList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .standingPanel {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -335,23 +375,25 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
 }
 
 .standingPhase {
   margin: 0;
   font-size: var(--fs-1);
-  color: var(--tx3);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .standingPosition {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-4);
-  font-weight: 600;
+  font-size: var(--fs-5);
+  line-height: 1;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
   font-variant-numeric: var(--numeric);
 }
@@ -369,6 +411,7 @@
   grid-template-columns: 2ch minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
   padding: var(--sp-2) 0;
   border-bottom: 1px solid var(--line);
 }
@@ -377,10 +420,10 @@
   border-bottom: 0;
 }
 
-/* The caller's row, marked by weight and a rule rather than by colour alone —
-   the accessible sentence on every row says who it is either way. */
 .standingRowYou {
-  font-weight: 700;
+  padding-left: var(--sp-2);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
+  font-weight: 500;
 }
 
 .standingRank,
@@ -391,34 +434,43 @@
 
 .standingPoints {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
 .standingName {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: var(--fs-2);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .standingNote {
   margin: 0;
-  color: var(--tx3);
+  color: var(--tx2);
   font-size: var(--fs-1);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .standingLink {
+  display: inline-flex;
+  align-items: center;
   align-self: flex-start;
+  min-height: var(--tap-min);
   color: var(--acc);
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
 .standingLink:hover {
   text-decoration: underline;
+}
+
+.standingLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
 }
 
 .srOnly {

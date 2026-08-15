@@ -1,56 +1,55 @@
-/* One league's table, opened inside its card. Tokens only; every size is a
-   scale step. The grid deliberately matches SeasonStandingsPage's, so a player
-   who has read the season table reads this one without relearning it. */
-
+/* One league's table, opened inside its card. The numeric tracks deliberately
+   mirror the season standings so a player does not relearn the table, while
+   private-league context gets a little more room for owners and comparison. */
 .table {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  /* A flex child defaults to min-width:auto, which would let a long player
-     name push the card wider than the viewport instead of ellipsising in it. */
   min-width: 0;
 }
 
 .caption {
   margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.45;
   color: var(--tx2);
 }
 
-/* The caller's own position, stated rather than left to be found in the table. */
 .yourStanding {
   margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
+  border-radius: var(--radius-input);
+  background: var(--chip);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  line-height: 1.3;
   font-variant-numeric: var(--numeric);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
-/* Column head and row share one grid so the cells line up without a <table>. */
 .columns,
 .row {
   display: grid;
-  /* Rank, player, matchweeks, points, and the compare control. The last column
-     is `auto` so a table rendered without a head-to-head reader — a finished
-     season has no matchweek to compare — collapses it to nothing rather than
-     leaving a gutter beside every row. */
   grid-template-columns: 2.25rem minmax(0, 1fr) 2.25rem 3rem auto;
   align-items: center;
   gap: var(--sp-2);
-  padding: 0 var(--sp-2);
+  min-width: 0;
+  padding-inline: var(--sp-2);
 }
 
 .columns {
+  padding-block: var(--sp-1);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  /* --tx2 rather than --tx3: this sits on a tinted card surface, where --tx3
-     has measured below AA before (see InvitePanel's codeLabel). */
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
-  min-height: 30px;
 }
 
 .columns abbr {
@@ -61,6 +60,7 @@
 .list {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -68,6 +68,7 @@
 
 .row {
   min-height: var(--tap-min);
+  padding-block: var(--sp-2);
   border-bottom: 1px solid var(--line);
   font-family: var(--font-body);
   font-size: var(--fs-2);
@@ -78,13 +79,11 @@
   border-bottom: 0;
 }
 
-/* The caller's own row. Tinted AND marked with text, never colour alone
-   (§11.8: status is not conveyed by colour alone). */
 .rowYou {
   background: var(--chip);
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
 }
 
-/* Pinned copy of the caller's row when it sits outside the loaded pages. */
 .pinnedList {
   border-top: 1px solid var(--line);
 }
@@ -102,12 +101,12 @@
 
 .name {
   min-width: 0;
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: var(--sp-1) var(--sp-2);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .tag,
@@ -118,7 +117,7 @@
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-open);
 }
 
 .tag {
@@ -143,18 +142,18 @@
 
 .points {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
-/* A member who has not entered the game takes both numeric columns, because
-   "Not entered" is one statement rather than two blank cells. */
 .notEntered {
   grid-column: 3 / span 2;
   text-align: right;
   font-family: var(--font-body);
   font-size: var(--fs-1);
+  line-height: 1.3;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .srOnly {
@@ -169,9 +168,6 @@
   border: 0;
 }
 
-/* The compare control. A quiet square at the end of a row: the table is the
-   subject and this is a detail of one line in it, so it must not compete with
-   the points column for attention. Full tap target regardless. */
 .compare {
   display: grid;
   place-items: center;
@@ -185,31 +181,51 @@
   font-family: var(--font-body);
   font-size: var(--fs-1);
   cursor: pointer;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out),
+    color var(--duration-micro) var(--ease-out);
 }
 
 .compare:hover {
+  border-color: var(--border-strong);
   background: var(--chip);
   color: var(--tx);
 }
 
-/* The gap to the nearest rival, under the caller's own standing. A block of its
-   own rather than a continuation of the sentence: two facts, read separately. */
+.compare:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
 .yourGap {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-1);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
   color: var(--tx2);
   font-weight: 400;
 }
 
-/* The compare control says the word where there is room for it. Below the
-   breakpoint the row is already four columns of numbers on a phone, and "vs"
-   is what fits; the accessible name is the full sentence either way. */
 .compareWide {
   display: none;
 }
 
 .compareNarrow {
   display: inline;
+}
+
+@media (max-width: 420px) {
+  .columns,
+  .row {
+    grid-template-columns: 2rem minmax(0, 1fr) 2rem 2.75rem auto;
+    gap: var(--sp-1);
+    padding-inline: var(--sp-1);
+  }
+
+  .yourStanding {
+    padding-inline: var(--sp-3);
+  }
 }
 
 @media (min-width: 560px) {
@@ -221,10 +237,17 @@
     display: none;
   }
 
-  /* The word needs room the glyph did not; the tap target keeps its minimum
-     height so the row does not change size between widths. */
   .compare {
     min-width: 0;
+    padding-inline: var(--sp-3);
+  }
+}
+
+@media (min-width: 900px) {
+  .columns,
+  .row {
+    grid-template-columns: 3rem minmax(0, 1fr) 4rem 5rem auto;
+    gap: var(--sp-3);
     padding-inline: var(--sp-3);
   }
 }

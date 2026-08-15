@@ -1,7 +1,6 @@
 /* Hub and competition-dashboard surfaces — design-system §11.
    Tokens only. Weights are 400/500 per §3; radii come from --radius-card per
-   §4. Both were drifting here: the first cut of this file shipped 800 weights,
-   an 18px radius and `var(--grn)`, which is not a token at all. */
+   §4. */
 
 .intro {
   display: grid;
@@ -15,15 +14,12 @@
 }
 
 /* --- Sections ------------------------------------------------------------ */
-
 .section {
   display: grid;
   gap: var(--sp-3);
   margin-top: var(--sp-6);
 }
 
-/* Discover sits below a rule and carries more space above it. The separation
-   is structural, so it does not rest on colour alone. */
 .sectionSecondary {
   margin-top: var(--sp-6);
   padding-top: var(--sp-5);
@@ -35,16 +31,19 @@
   align-items: baseline;
   justify-content: space-between;
   gap: var(--sp-3);
+  min-width: 0;
 }
 
 .sectionTitle {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx);
+  color: var(--tx3);
+  overflow-wrap: anywhere;
 }
 
 .sectionTitleSecondary {
@@ -52,19 +51,23 @@
 }
 
 .sectionCount {
+  flex: none;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   font-weight: 500;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
+  font-variant-numeric: var(--numeric);
   color: var(--tx3);
 }
 
 .sectionLead {
   margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .empty {
@@ -87,60 +90,67 @@
 }
 
 /* --- Competition card ---------------------------------------------------- */
-
 .competitionCard {
   display: grid;
   gap: var(--sp-3);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
 }
 
-/* Discover: the same card, recessed rather than raised. Sits on the page
-   surface with only its outline, so it reads as available rather than active —
-   and never as disabled, because nothing is dimmed. */
 .competitionCardSecondary {
   background: transparent;
 }
 
-.cardHeader {
+.cardHeader,
+.gameHeader {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--sp-3);
+  gap: var(--sp-2) var(--sp-3);
+  min-width: 0;
 }
 
 .cardTitle {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .name {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
   font-weight: 500;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .season {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .description {
   margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .status {
   flex: 0 0 auto;
-  padding: 4px 9px;
+  padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius-pill);
   background: var(--chip);
   color: var(--tx2);
@@ -148,14 +158,10 @@
   font-size: var(--fs-eyebrow);
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-open);
 }
 
-/* --- Game list ----------------------------------------------------------- */
-
-/* Rows separated by hairlines rather than nested filled cards. The previous
-   cut put a --chip surface inside a --card surface inside the page, which is
-   three stacked surfaces for two levels of meaning. */
+/* --- Compact game list --------------------------------------------------- */
 .gameList {
   display: grid;
   border-top: 1px solid var(--line);
@@ -164,6 +170,7 @@
 .gameRow {
   display: grid;
   gap: 2px;
+  min-width: 0;
   padding: var(--sp-3) 0;
   border-bottom: 1px solid var(--line);
 }
@@ -173,84 +180,91 @@
   border-bottom: none;
 }
 
-.gameHeader {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--sp-3);
-}
-
 .gameName {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
   font-weight: 500;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .gameDescription {
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-2);
   line-height: 1.45;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* Joined is the user's own state, so it is the one place accent belongs here
-   (§2: accent means the user's world). Carries a word, never colour alone. */
 .joined {
   flex: 0 0 auto;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--acc);
 }
 
 .gameMeta {
-  flex: 0 0 auto;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   font-weight: 500;
-  letter-spacing: 0.04em;
+  line-height: 1.35;
+  letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
+  overflow-wrap: anywhere;
 }
 
-/* --- Dashboard ----------------------------------------------------------- */
-
-/* The dashboard stacks game cards; it does not use the hairline row list above. */
+/* --- Competition Games dashboard ---------------------------------------- */
 .gameStack {
   display: grid;
   gap: var(--sp-3);
+  min-width: 0;
 }
 
 .gameCard {
   display: grid;
+  align-content: start;
   gap: var(--sp-3);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
   border-radius: var(--radius-card);
   background: var(--card);
 }
 
-/* A game the user has not joined is recessed rather than dimmed — same
-   affordance, lower priority. Nothing here reduces contrast. */
+/* Available-but-unjoined games remain fully readable, but lose the caller-state
+   accent and sit on the page surface. The visible Available/Coming soon words
+   still carry the state, so the distinction never relies on colour alone. */
 .gameCardAvailable {
+  border-left-color: var(--line);
   background: transparent;
 }
 
 .gameCardHeading {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
   font-weight: 500;
+  line-height: 1.25;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
+/* One action per row on touch widths. A primary action and Leave/Join should
+   never become two narrow half-buttons merely because the card has two controls. */
 .actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--sp-2);
+  min-width: 0;
 }
 
 .seasonRow {
@@ -258,31 +272,27 @@
   align-items: center;
   gap: var(--sp-2);
   flex-wrap: wrap;
-}
-
-@media (min-width: 760px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* What a game is asking of the player, on its own card. Two classes rather than
-   one plus a colour: §11.8 forbids conveying status by colour alone, and the
-   outstanding variant earns its weight from type rather than hue. */
-.gameState,
-.gameStateOutstanding {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--fs-1);
-  color: var(--tx2);
   min-width: 0;
 }
 
+.gameState,
 .gameStateOutstanding {
-  font-weight: 600;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  padding: var(--sp-2) 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  line-height: 1.4;
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+.gameStateOutstanding {
+  padding-left: var(--sp-2);
+  border-left: var(--bar-w) solid var(--acc);
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -292,28 +302,27 @@
   font-variant-numeric: var(--numeric);
   font-weight: 400;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* ─── The personalised Hub (UI-F03) ───────────────────────────────────────
-   Home is a dashboard, not a catalogue. The action owns the main column; the
-   football and the competition summaries sit in the contextual panel on a wide
-   screen and stack beneath on a phone. */
+@media (min-width: 760px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 
-.sectionTitle {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-eyebrow);
-  font-weight: 600;
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
+  /* Three game families use desktop width as a small dashboard rather than a
+     metre-wide vertical stack. The last card may span a row by itself and keeps
+     exactly the same content/reading order. */
+  .gameStack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-/* The one thing to do first. Bigger than everything else on the page on
-   purpose: the five-second test asks "what do I need to do" first. */
+/* ─── The personalised Hub (UI-F03) ─────────────────────────────────────── */
 .primary {
   display: grid;
   gap: var(--sp-1);
+  min-width: 0;
   padding: var(--sp-5);
   border: 1px solid var(--acc);
   border-radius: var(--radius-card);
@@ -331,7 +340,6 @@
   outline-offset: 2px;
 }
 
-/* A joined game whose surface does not exist yet: stated, not linked. */
 .primaryInert {
   border-color: var(--line);
   color: var(--tx2);
@@ -340,24 +348,30 @@
 
 .primaryWhere,
 .secondaryWhere {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
+  overflow-wrap: anywhere;
 }
 
 .primaryTitle {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-4);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
+  overflow-wrap: anywhere;
 }
 
 .primaryWhen {
+  min-width: 0;
   font-size: var(--fs-2);
   color: var(--tx2);
   font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .secondaryList {
@@ -369,10 +383,10 @@
   gap: var(--sp-2);
 }
 
-/* At most two, per ADR 0023's shape for this surface. */
 .secondary {
   display: grid;
   gap: 2px;
+  min-width: 0;
   min-height: var(--tap-min);
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--line);
@@ -386,10 +400,17 @@
   border-color: var(--border-strong);
 }
 
+.secondary:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
 .secondaryTitle {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .allClear {
@@ -406,6 +427,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -416,7 +438,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -426,18 +448,28 @@
   margin: 0;
   color: var(--tx3);
   font-size: var(--fs-1);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .panelLink {
+  display: inline-flex;
+  align-items: center;
   align-self: flex-start;
+  min-height: var(--tap-min);
   color: var(--acc);
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
 }
 
 .panelLink:hover {
   text-decoration: underline;
+}
+
+.panelLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
 }
 
 .fixtureList,
@@ -453,6 +485,7 @@
 .fixture {
   display: grid;
   gap: 2px;
+  min-width: 0;
   min-height: var(--tap-min);
   padding: var(--sp-2);
   border-radius: var(--radius-input);
@@ -470,36 +503,43 @@
 }
 
 .fixtureWhere {
+  min-width: 0;
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
+  overflow-wrap: anywhere;
 }
 
 .fixtureLine {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
 }
 
-/* Tabular, so a column of kickoff times and scores lines up. */
 .fixtureScore {
+  flex: none;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
 }
 
 .fixtureClubs {
+  min-width: 0;
   font-size: var(--fs-1);
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .competitionRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--sp-3);
+  gap: var(--sp-1) var(--sp-3);
+  min-width: 0;
   min-height: var(--tap-min);
   padding: var(--sp-2);
   border-radius: var(--radius-input);
@@ -517,19 +557,32 @@
 }
 
 .competitionName {
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .competitionMeta {
+  min-width: 0;
   font-size: var(--fs-1);
   color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .exploreLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
   color: var(--acc);
-  font-weight: 600;
+  font-weight: 500;
+}
+
+.exploreLink:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
 }
 
 .srOnly {
@@ -544,9 +597,6 @@
   border: 0;
 }
 
-/* INNOV-006 — the Matchday TV entry point. Deliberately the quietest control
-   in its section: it is a thing a host opens on matchday, never a destination
-   competing with what the player owes. */
 .tvLink {
   display: inline-flex;
   align-items: center;

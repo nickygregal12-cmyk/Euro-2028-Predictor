@@ -2,39 +2,27 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-
-  /* A CONTAINER, NOT A VIEWPORT. The two layouts below switch on the width
-     THIS PANEL actually has, not on the width of the window. It matters in the
-     product, not only in the gallery: the panel renders inside a league card,
-     which sits inside a workspace column, so a 1440px viewport does not mean
-     1440px of room — a matrix of ten fixtures in a 320px column would overflow
-     its own container while the media query said "desktop".
-
-     It is also what makes the phone layout PHOTOGRAPHABLE. The component
-     gallery pins each panel's WIDTH in CSS while a viewport media query reads
-     the window, so the runner rendered the matrix into the phone baseline and
-     the purpose-built list was under no baseline at all. That is exactly the
-     loss of coverage `pageshell-bottomnav` hit, found the same way — by
-     reading the image rather than accepting it. */
+  min-width: 0;
   container-type: inline-size;
 }
 
 .caption {
   margin: 0;
-  font-size: var(--fs-1);
-  color: var(--tx3);
+  font-size: var(--fs-2);
+  line-height: 1.45;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .note {
   margin: 0;
+  max-width: 68ch;
   font-size: var(--fs-1);
-  color: var(--tx3);
+  line-height: 1.5;
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
-
-/* ---------------------------------------------------------------------------
-   Phone: fixture by fixture. Deliberately NOT the matrix at a smaller size —
-   a ten-column grid on a 390px screen is unreadable however it is scaled.
-   --------------------------------------------------------------------------- */
 
 .fixtures {
   list-style: none;
@@ -49,6 +37,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+  min-width: 0;
   padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -57,30 +46,37 @@
 
 .fixtureHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--sp-2);
+  gap: var(--sp-1) var(--sp-3);
+  min-width: 0;
 }
 
 .fixtureTeams {
   min-width: 0;
+  flex: 1 1 12rem;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  line-height: 1.3;
+  font-weight: 500;
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .fixtureMeta {
+  flex: 0 0 auto;
   font-size: var(--fs-1);
   font-variant-numeric: var(--numeric);
-  color: var(--tx3);
+  color: var(--tx2);
   white-space: nowrap;
 }
 
 .fixtureScore {
+  flex: 0 0 auto;
   font-family: var(--font-display);
-  font-size: var(--fs-2);
-  font-weight: 700;
+  font-size: var(--fs-3);
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
   white-space: nowrap;
@@ -92,29 +88,37 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
+  border-top: 1px solid var(--line);
 }
 
-/* Name, prediction, outcome. Names wrap to an ellipsis rather than pushing the
-   two numeric columns off the edge — no horizontal page overflow at any width. */
 .pick {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 4.5ch auto;
-  align-items: baseline;
+  align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
+  min-height: var(--tap-min);
+  border-bottom: 1px solid var(--line);
+}
+
+.pick:last-child {
+  border-bottom: 0;
 }
 
 .pickSelf {
-  font-weight: 600;
+  box-shadow: inset var(--bar-w) 0 0 var(--acc);
+  background: var(--chip);
+  font-weight: 500;
 }
 
 .pickName {
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-block: var(--sp-1);
   font-size: var(--fs-1);
+  line-height: 1.3;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .pickSelf .pickName {
@@ -122,93 +126,150 @@
 }
 
 .pickLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap-min);
+  max-width: 100%;
   color: inherit;
   text-decoration: none;
-  border-bottom: 1px solid transparent;
+  overflow-wrap: anywhere;
 }
 
-.pickLink:hover,
+.pickLink:hover {
+  text-decoration: underline;
+}
+
 .pickLink:focus-visible {
-  border-bottom-color: currentColor;
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+  border-radius: var(--radius-input);
 }
 
 .pickValue {
   text-align: right;
   font-family: var(--font-display);
   font-size: var(--fs-1);
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
 }
 
 .outcome {
-  font-size: var(--fs-1);
-  color: var(--tx3);
+  justify-self: end;
+  padding: 2px var(--sp-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  font-size: var(--fs-eyebrow);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--tx2);
   white-space: nowrap;
 }
 
 .outcomeExact {
+  border-color: var(--acc);
   color: var(--acc);
 }
 
 .outcomeCorrect {
-  color: var(--tx2);
+  border-color: var(--line);
+  color: var(--tx);
 }
-
-/* ---------------------------------------------------------------------------
-   Desktop: the comparison matrix. It scrolls inside its own container — the
-   page body never scrolls sideways.
-   --------------------------------------------------------------------------- */
 
 .matrix {
   display: none;
+  min-width: 0;
 }
 
 .matrixScroll {
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
   -webkit-overflow-scrolling: touch;
 }
 
 .grid {
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   width: 100%;
+  min-width: max-content;
   font-size: var(--fs-1);
+  background: var(--card);
 }
 
 .grid th,
 .grid td {
-  padding: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
   border-bottom: 1px solid var(--line);
   text-align: center;
+  vertical-align: middle;
   white-space: nowrap;
 }
 
+.grid tbody tr:last-child th,
+.grid tbody tr:last-child td {
+  border-bottom: 0;
+}
+
 .grid th[scope='row'] {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-sticky);
+  min-width: 10rem;
+  max-width: 14rem;
+  background: var(--card);
   text-align: left;
-  max-width: 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
   font-weight: 500;
+  line-height: 1.3;
   color: var(--tx2);
+  overflow-wrap: anywhere;
+  box-shadow: 1px 0 0 var(--line);
+}
+
+.grid thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-sticky);
+  min-width: 10rem;
+  background: var(--card);
+  text-align: left;
+  box-shadow: 1px 0 0 var(--line);
+}
+
+.grid th:last-child,
+.grid td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: var(--z-sticky);
+  background: var(--card);
+  box-shadow: -1px 0 0 var(--line);
 }
 
 .gridHead {
   font-family: var(--font-display);
   font-size: var(--fs-1);
-  font-weight: 600;
-  color: var(--tx3);
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--tx2);
 }
 
 .gridScore {
   display: block;
+  margin-top: 2px;
   font-variant-numeric: var(--numeric);
-  color: var(--tx2);
+  color: var(--tx);
 }
 
 .gridSelf th[scope='row'],
 .gridSelf td {
   background: var(--chip);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .gridCell {
@@ -218,7 +279,8 @@
 
 .gridCellExact {
   color: var(--acc);
-  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  font-weight: 500;
 }
 
 .gridCellEmpty {
@@ -226,9 +288,10 @@
 }
 
 .gridPoints {
+  min-width: 4rem;
   font-family: var(--font-display);
   font-variant-numeric: var(--numeric);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 

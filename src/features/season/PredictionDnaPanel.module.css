@@ -1,9 +1,12 @@
-/* INNOV-002. Reads as a description, not a scoreboard: the figures are small
-   and always paired with what they were measured over. */
+/* INNOV-002. Prediction DNA is descriptive rather than competitive scoring,
+   but its evidence is still performance data: the signature gets one clear
+   hero treatment and the measured tendencies below remain compact, labelled
+   and denominator-led. Tokens only. */
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-2);
+  gap: var(--sp-3);
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -14,139 +17,176 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
 }
 
 .subheading {
   margin: var(--sp-2) 0 0;
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
   font-family: var(--font-display);
-  font-size: var(--fs-1);
-  font-weight: 600;
-  color: var(--tx2);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
 }
 
 .note,
 .footnote {
   margin: 0;
+  max-width: 68ch;
   font-size: var(--fs-1);
+  line-height: 1.5;
+  color: var(--tx2);
+  overflow-wrap: anywhere;
+}
+
+.footnote {
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
   color: var(--tx3);
 }
 
-/* What the figures below were measured over. Immediately under the group's
-   heading and above the grid, so a percentage is never read without it. */
 .groupDenominator {
-  margin: 0;
+  margin: calc(var(--sp-2) * -1) 0 0;
   font-size: var(--fs-1);
+  font-variant-numeric: var(--numeric);
   color: var(--tx3);
 }
 
-/* The word never appears without the measurement it came from. */
 .signature {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: grid;
+  gap: var(--sp-1);
+  min-width: 0;
   margin: 0;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--border-strong);
+  border-radius: var(--radius-input);
+  background: var(--surface-sunken);
 }
 
 .signatureWord {
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-4);
-  font-weight: 600;
+  font-size: var(--fs-5);
+  line-height: 1.05;
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .signatureNote {
   font-size: var(--fs-1);
-  color: var(--tx3);
+  line-height: 1.45;
+  font-variant-numeric: var(--numeric);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* Desktop uses the width for a wider comparison grid rather than a taller
-   phone card — but the breakpoint is the TRACK, not the viewport. This panel is
-   mounted in the 320px contextual column of the player's season as well as in
-   a full-width page, and a viewport media query cannot tell those apart: it
-   would lay three columns inside a 320px box on a 1440px screen and overflow
-   the page. `auto-fit` measures the container the grid is actually in. */
 .metrics {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8rem), 1fr));
   gap: var(--sp-2);
   margin: 0;
 }
 
 .metric {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  gap: 2px;
   min-width: 0;
-  padding: var(--sp-2);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
   background: var(--surface-sunken);
 }
 
+.metrics[data-sufficient='no'] .metric {
+  border-style: dashed;
+}
+
 .metricLabel {
+  min-width: 0;
   font-size: var(--fs-eyebrow);
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .metricValue {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
-  font-size: var(--fs-3);
-  font-weight: 600;
+  font-size: var(--fs-4);
+  line-height: 1.1;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 .metricDetail {
-  margin: 0;
+  margin: var(--sp-1) 0 0;
+  min-width: 0;
   font-size: var(--fs-1);
-  color: var(--tx3);
+  line-height: 1.4;
+  color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* A real table, with real headers: a comparison read aloud without them is a
-   run of numbers. */
 .comparison {
   width: 100%;
+  min-width: 0;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: var(--fs-1);
 }
 
 .comparison th,
 .comparison td {
-  padding: var(--sp-1) var(--sp-2);
+  min-width: 0;
+  padding: var(--sp-2);
   border-bottom: 1px solid var(--line);
   text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.comparison th:first-child {
+  width: 48%;
 }
 
 .comparison thead th {
   font-size: var(--fs-eyebrow);
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  color: var(--tx3);
+  color: var(--tx2);
 }
 
 .comparisonLabel {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
   font-weight: 500;
   color: var(--tx2);
 }
 
 .comparisonNote {
+  display: block;
+  margin-top: 2px;
   font-size: var(--fs-1);
   font-weight: 400;
+  line-height: 1.35;
   color: var(--tx3);
 }
 
 .comparisonValue {
   font-family: var(--font-display);
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
 }
@@ -163,7 +203,22 @@
   border: 0;
 }
 
-/* INNOV-007 — quiet and last. */
 .shareRow {
   margin: 0;
+}
+
+@media (min-width: 680px) {
+  .panel {
+    padding: var(--sp-5);
+  }
+
+  .signature {
+    grid-template-columns: minmax(0, auto) minmax(14rem, 1fr);
+    align-items: end;
+    column-gap: var(--sp-4);
+  }
+
+  .signatureNote {
+    padding-bottom: 2px;
+  }
 }
