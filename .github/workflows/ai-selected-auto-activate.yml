@@ -1,0 +1,228 @@
+name: AI selected winners auto-activate
+
+# Owner policy, 15-Aug-2026: once the evidence-selected nine-league model set
+# has completed the existing verified training/reproducibility gates, it becomes
+# the current forecasting set automatically. The browser is not a second model
+# selection authority.
+#
+# This workflow never calls the paid Odds API. After activation it immediately
+# regenerates forecasts, refreshes the free fixture-price layer and runs the
+# value gate so Bet Builder reflects the selected current models without waiting
+# for another scheduled pass.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ai-selected-auto-activate.yml'
+      - 'ai/activate_selected_models.py'
+      - 'ai/challenger_policy.py'
+  workflow_run:
+    workflows:
+      - 'AI Lab jobs'
+      - 'AI selected challenger materialisation'
+    types:
+      - completed
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Exact selected model version to activate; blank chooses the latest complete Production set
+        required: false
+        default: ''
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-selected-winner-production-activation
+  cancel-in-progress: false
+
+env:
+  PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+
+jobs:
+  activate:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      # This source guard deliberately runs before the hosted database secret is
+      # resolved. The lifecycle writer is allowed to update ai.models only.
+      - name: Prove the AI package write surface
+        working-directory: ai
+        run: python check_write_scope.py
+
+      - name: Resolve exact Production database
+        shell: bash
+        env:
+          PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PROD_DB_URL:-}" ]; then
+            echo 'SUPABASE_PROD_DB_URL is unavailable.' >&2
+            exit 1
+          fi
+          case "${PROD_DB_URL}" in
+            *"${PRODUCTION_PROJECT_REF}"*) ;;
+            *) echo 'Production database secret does not name the expected project.' >&2; exit 1 ;;
+          esac
+          echo "::add-mask::${PROD_DB_URL}"
+          echo "DATABASE_URL=${PROD_DB_URL}" >> "${GITHUB_ENV}"
+
+      - name: Install AI package
+        working-directory: ai
+        run: pip install -r requirements.txt
+
+      - name: Resolve a complete newly-selected version
+        id: selected
+        working-directory: ai
+        shell: bash
+        env:
+          MANUAL_VERSION: ${{ inputs.version || '' }}
+          SOURCE_EVENT: ${{ github.event_name }}
+          SOURCE_STARTED_AT: ${{ github.event.workflow_run.run_started_at || '' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from db import connect
+
+          manual = os.environ.get('MANUAL_VERSION', '').strip()
+          event = os.environ.get('SOURCE_EVENT', '')
+          since = os.environ.get('SOURCE_STARTED_AT', '').strip()
+
+          with connect() as conn:
+              if manual:
+                  row = conn.execute(
+                      """
+                      select version, count(*) as n, count(distinct league) as leagues
+                        from ai.models
+                       where version=%s
+                       group by version
+                      """,
+                      (manual,),
+                  ).fetchone()
+                  if not row or int(row['n']) != 9 or int(row['leagues']) != 9:
+                      raise SystemExit(f'REFUSE: {manual} is not a complete nine-league selected set')
+                  version = manual
+              elif event == 'workflow_run':
+                  row = conn.execute(
+                      """
+                      select version, max(trained_at) as latest
+                        from ai.models
+                       where trained_at >= %s::timestamptz - interval '15 minutes'
+                       group by version
+                      having count(*)=9 and count(distinct league)=9
+                       order by max(trained_at) desc
+                       limit 1
+                      """,
+                      (since,),
+                  ).fetchone()
+                  version = str(row['version']) if row else ''
+              else:
+                  row = conn.execute(
+                      """
+                      select version, max(trained_at) as latest
+                        from ai.models
+                       group by version
+                      having count(*)=9 and count(distinct league)=9
+                       order by max(trained_at) desc
+                       limit 1
+                      """
+                  ).fetchone()
+                  version = str(row['version']) if row else ''
+
+          output = os.environ['GITHUB_OUTPUT']
+          with open(output, 'a', encoding='utf-8') as handle:
+              print(f'version={version}', file=handle)
+              print(f'should_run={"true" if version else "false"}', file=handle)
+          if version:
+              print(f'Selected complete Production version: {version}')
+          else:
+              print('No complete model set was created by this source run; nothing to activate.')
+          PY
+
+      - name: Activate the verified selected winners
+        if: steps.selected.outputs.should_run == 'true'
+        working-directory: ai
+        run: >-
+          python activate_selected_models.py
+          --version "${{ steps.selected.outputs.version }}"
+          --reason "Owner policy: verified evidence-selected winner automatically becomes current; no manual promotion gate."
+
+      - name: Regenerate forecasts from the selected current set
+        if: steps.selected.outputs.should_run == 'true'
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          python sync_fixtures.py
+          python reconcile_paid_fixture_evidence.py
+          ./run_leagues.sh predict.py
+
+      - name: Refresh free prices and value recommendations
+        if: steps.selected.outputs.should_run == 'true'
+        working-directory: ai
+        shell: bash
+        run: |
+          set -euo pipefail
+          python fetch_fixtures_odds.py
+          ./run_leagues.sh find_value.py
+
+      - name: Prove current-model and Bet Builder source integrity
+        if: steps.selected.outputs.should_run == 'true'
+        working-directory: ai
+        env:
+          SELECTED_VERSION: ${{ steps.selected.outputs.version }}
+        run: |
+          python - <<'PY'
+          import os
+          from db import connect
+
+          version = os.environ['SELECTED_VERSION']
+          with connect() as conn:
+              state = conn.execute(
+                  """
+                  select count(*) filter (where status='current') as current_total,
+                         count(*) filter (where status='current' and version=%s) as selected_current,
+                         count(distinct league) filter (where status='current' and version=%s) as selected_leagues,
+                         count(*) filter (where status='challenger' and version=%s) as selected_challengers
+                    from ai.models
+                  """,
+                  (version, version, version),
+              ).fetchone()
+              invalid = conn.execute(
+                  """
+                  select count(*) as n
+                    from ai.valid_bets b
+                    left join ai.bookmakers bk on bk.code=b.bookmaker
+                   where bk.code is null or not bk.is_real_price or bk.kind='aggregate'
+                  """
+              ).fetchone()
+          actual = {
+              'current_total': int(state['current_total']),
+              'selected_current': int(state['selected_current']),
+              'selected_leagues': int(state['selected_leagues']),
+              'selected_challengers': int(state['selected_challengers']),
+          }
+          expected = {
+              'current_total': 9,
+              'selected_current': 9,
+              'selected_leagues': 9,
+              'selected_challengers': 0,
+          }
+          if actual != expected:
+              raise SystemExit(f'current model postcondition failed: {actual}')
+          if int(invalid['n']) != 0:
+              raise SystemExit('aggregate/non-real price leaked into ai.valid_bets')
+          print(f'Auto-activation verified: {version} is current across all nine leagues.')
+          PY
