@@ -12,7 +12,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -70,18 +70,14 @@
 .name {
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .opponent {
   font-size: var(--fs-1);
   color: var(--tx3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .formCell {
@@ -105,7 +101,7 @@
   border-radius: 4px;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--n-1);
 }
 
@@ -134,7 +130,7 @@
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--acc);
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .srOnly {
