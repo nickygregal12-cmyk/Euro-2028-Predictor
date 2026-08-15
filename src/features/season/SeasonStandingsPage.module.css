@@ -9,7 +9,7 @@
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--fs-4);
   letter-spacing: var(--tracking-tight);
   color: var(--tx);
@@ -38,7 +38,7 @@
   font-size: var(--fs-3);
   line-height: 1.4;
   font-variant-numeric: var(--numeric);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -151,7 +151,7 @@
 
 .points {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -174,7 +174,7 @@
   margin-top: var(--sp-1);
   font-family: var(--font-display);
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   color: var(--acc);
 }
