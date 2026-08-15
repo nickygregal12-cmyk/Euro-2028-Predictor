@@ -1,7 +1,9 @@
 .intro {
   margin: 0;
+  max-width: 65ch;
   color: var(--tx2);
   font-size: var(--fs-2);
+  line-height: 1.5;
 }
 
 .filters {
@@ -20,6 +22,13 @@
   font-family: var(--font-display);
   font-size: var(--fs-1);
   cursor: pointer;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.filter:hover {
+  border-color: var(--border-strong);
 }
 
 .filter:focus-visible {
@@ -37,8 +46,8 @@
 }
 
 .count {
-  font-variant-numeric: var(--numeric);
   color: var(--tx3);
+  font-variant-numeric: var(--numeric);
 }
 
 .list {
@@ -47,6 +56,10 @@
   padding: 0;
   display: grid;
   gap: var(--sp-3);
+}
+
+.list > li {
+  min-width: 0;
 }
 
 /* Two across once there is room. A private-play card is short, and one column
@@ -59,37 +72,55 @@
 
 .card {
   display: grid;
-  gap: var(--sp-1);
+  gap: var(--sp-2);
+  height: 100%;
+  min-width: 0;
   padding: var(--sp-4);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--card);
+  transition: border-color var(--duration-micro) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
 }
 
 .name {
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-4);
   font-weight: 600;
   letter-spacing: var(--tracking-tight);
+  overflow-wrap: anywhere;
 }
 
 /* The context that makes the name mean something once a player has two
    leagues in two competitions. */
 .where {
   margin: 0;
+  min-width: 0;
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .meta {
   margin: 0;
+  min-width: 0;
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx3);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
 }
 
 .code {
   margin: var(--sp-1) 0 0;
+  padding: var(--sp-2) 0;
+  border-block: 1px solid var(--line);
   font-size: var(--fs-1);
   color: var(--tx3);
 }
@@ -99,20 +130,27 @@
   letter-spacing: var(--tracking-open);
   color: var(--tx);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* The stated absence where a container has no page of its own. Deliberately
-   `--tx3` and not `--acc`: it occupies the slot the "Open in" link occupies on
-   a Match Predictor card, and giving it the accent colour would read as a link
-   that does not respond to a tap. */
+   muted, not accented: it occupies the slot the real open link uses. */
 .pending {
-  margin: var(--sp-2) 0 0;
+  margin: auto 0 0;
+  padding-top: var(--sp-2);
   font-size: var(--fs-1);
+  line-height: 1.45;
   color: var(--tx3);
 }
 
+/* A text link with a full touch target. The visible label remains quiet while
+   the interactive area is comfortably operable on phone. */
 .open {
-  margin-top: var(--sp-2);
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  min-height: var(--tap-min);
+  margin-top: auto;
   color: var(--acc);
   font-weight: 600;
   text-decoration: none;
@@ -122,15 +160,31 @@
   text-decoration: underline;
 }
 
+.open:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
 .link {
   color: var(--acc);
   font-weight: 600;
 }
 
-/* The two ways the list grows, at the top of the page rather than the bottom:
-   an empty Leagues page is exactly the one where they matter most. */
+/* Creation and join are the two ways this list grows. Mobile keeps each one
+   thumb-sized and full-width; desktop spends the width on a compact pair. */
 .actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--sp-2);
+}
+
+.actions > * {
+  width: 100%;
+}
+
+@media (min-width: 600px) {
+  .actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 520px;
+  }
 }
