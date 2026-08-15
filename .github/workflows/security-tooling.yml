@@ -1,0 +1,109 @@
+name: Security tooling
+
+on:
+  pull_request:
+    paths:
+      - '.github/**'
+      - '**/*.yml'
+      - '**/*.yaml'
+      - '**/*.json'
+      - '**/*.ts'
+      - '**/*.tsx'
+      - '**/*.js'
+      - '**/*.mjs'
+      - '**/*.py'
+      - '**/*.sql'
+      - '**/*.toml'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  betterleaks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install verified Betterleaks v1.7.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/betterleaks.tar.gz
+          curl --fail --location --silent --show-error \
+            'https://github.com/betterleaks/betterleaks/releases/download/v1.7.2/betterleaks_1.7.2_linux_x64.tar.gz' \
+            --output "$archive"
+          echo 'ea9ed6a4aa2845ac2e00c0eafbc841057631321d53c061d5a435cf33e6e9ddaf  /tmp/betterleaks.tar.gz' | sha256sum --check --strict
+          mkdir -p /tmp/betterleaks
+          tar -xzf "$archive" -C /tmp/betterleaks
+          install -m 0755 /tmp/betterleaks/betterleaks /usr/local/bin/betterleaks
+          betterleaks version
+      - name: Scan pull-request change for secrets
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git diff --binary "$BASE_SHA...$HEAD_SHA" | betterleaks stdin -v
+      - name: Scan current main tree for secrets
+        if: github.event_name != 'pull_request'
+        run: betterleaks dir . -v
+
+  actionlint:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Install verified actionlint v1.7.12
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/actionlint.tar.gz
+          curl --fail --location --silent --show-error \
+            'https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz' \
+            --output "$archive"
+          echo '8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8  /tmp/actionlint.tar.gz' | sha256sum --check --strict
+          mkdir -p /tmp/actionlint
+          tar -xzf "$archive" -C /tmp/actionlint
+          install -m 0755 /tmp/actionlint/actionlint /usr/local/bin/actionlint
+      - name: Lint GitHub Actions
+        run: actionlint -color
+
+  zizmor:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Audit GitHub Actions security
+        uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
+        with:
+          advanced-security: true

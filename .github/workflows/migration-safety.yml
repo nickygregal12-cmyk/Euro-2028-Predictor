@@ -1,0 +1,44 @@
+name: Migration safety
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/*.sql'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  squawk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout full history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Find changed migrations
+        id: changed
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          files="$(git diff --diff-filter=d --name-only "$BASE_SHA...$HEAD_SHA" -- 'supabase/migrations/*.sql' | paste -sd ' ' -)"
+          echo "files=$files" >> "$GITHUB_OUTPUT"
+          if [ -z "$files" ]; then
+            echo 'No added or modified migrations to lint.'
+          else
+            printf 'Squawk will lint: %s\n' "$files"
+          fi
+      - name: Squawk changed migrations
+        if: steps.changed.outputs.files != ''
+        uses: sbdchd/squawk-action@v2
+        with:
+          files: ${{ steps.changed.outputs.files }}
