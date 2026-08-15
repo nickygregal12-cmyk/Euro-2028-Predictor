@@ -4,12 +4,12 @@ This document records the intentionally layered adoption of the final engineerin
 
 ## Active in this rollout
 
-- **Betterleaks** — blocking secret scan of pull-request changes; current main tree scan on push/manual runs. Live secret validation is not enabled.
+- **Betterleaks** — blocking secret scan of pull-request additions; current main tree scan on push/manual runs. Live secret validation is not enabled.
 - **StepSecurity Harden-Runner** — audit-mode egress/process protection on every new workflow introduced here. Existing privileged workflows should move across after the audit destinations are reviewed rather than through a blind bulk edit.
 - **Squawk** — blocking lint of only added/modified Supabase migrations, preserving the historical migration baseline.
 - **GitHub Dependency Review** — blocks newly introduced high-severity vulnerable dependency changes.
-- **zizmor** — GitHub Actions security audit, initially report-only while the existing workflow estate is baselined.
-- **actionlint** — workflow static analysis, initially report-only for the same baseline reason.
+- **zizmor** — GitHub Actions security audit, report-only while the existing workflow estate is baselined; Advanced Security upload/annotations stay disabled until that baseline is intentionally promoted.
+- **actionlint** — blocking static analysis for workflow files added or changed by a pull request; full-repository lint remains report-only outside PRs so historical shellcheck noise does not normalize red CI.
 - **k6** — scheduled/manual load smoke against a local Vite production preview only. It must not call paid football or odds providers.
 - **Agent Skills reference validator** — validates `.agents/skills/*`, initially report-only because the reference CLI is installed from a pinned upstream commit rather than a stable package registry release.
 - **Renovate configuration** — committed and ready for the Renovate GitHub App. Dependabot remains active until a Renovate onboarding/update run proves the replacement is operational.
@@ -21,9 +21,11 @@ The same branch adds these after the repository/CI layer is established, using a
 
 - MSW for real HTTP-boundary tests;
 - fast-check for property testing of scoring invariants;
-- Zod at the private AI Lab RPC boundary;
+- Zod Mini at the private AI Lab RPC boundary so runtime validation remains tree-shakeable under the production bundle budget;
 - StrykerJS for targeted mutation testing of critical pure domain logic;
 - rollup-plugin-visualizer for opt-in bundle composition reports.
+
+The first Stryker run against `calculateScore.ts` exercised 150 mutants and produced an 87.33% mutation score (130 killed, 17 survived, 1 timed out, 2 without coverage), above the configured 60% break threshold. Because that representative run takes several minutes, mutation testing is scheduled/manual rather than part of the ordinary pull-request merge path.
 
 ## Promotion from report-only to blocking
 
