@@ -3,24 +3,22 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The CSS linter's configuration, against the rule it exists to enforce.
+ * The CSS linter's configuration, against the rules it exists to enforce.
  *
  * `tokens.css` opens with "Do not add colours outside this file." Stylelint is
  * what turns that sentence into something a pull request cannot ignore, and
  * this suite protects the parts of the configuration that would silently stop
  * enforcing it.
  *
- * Every exception in `.stylelintrc.json` is a hole. That is not a criticism —
- * two of them are necessary and one is a documented gap — but a hole nobody is
- * watching widens. The failure mode is specific and quiet: adding a property to
- * `ignoreValues`, or a file to `overrides`, makes the linter pass while the
- * design-system rule is no longer enforced anywhere that matters. Nothing else
- * in the repository would notice, because a linter reporting zero problems
- * looks identical whether it is checking everything or nothing.
+ * Every override that DISABLES the strict-value rule is a hole. That is not a
+ * criticism — two of them are necessary and one is a documented gap — but a
+ * hole nobody is watching widens. An override that ADDS another rule is not an
+ * exemption: the weekly font-weight guard deliberately uses a scoped override
+ * while leaving the colour rule active in those same files.
  *
- * So the exceptions are pinned by name, and the negative controls below prove
- * the rule still fires — a configuration test that only reads the config would
- * pass just as happily against a rule that had been turned off.
+ * So the true exceptions are pinned by name, and the negative controls below
+ * prove the colour rule still fires. The weekly font-weight scope is pinned as
+ * well, so neither contract can silently broaden, narrow or turn itself off.
  */
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
@@ -30,17 +28,26 @@ type StrictValueOptions = {
   ignoreFunctions: boolean
 }
 
+type StylelintOverride = {
+  files: string[]
+  rules: Record<string, unknown>
+}
+
 const config = JSON.parse(
   readFileSync(resolve(repositoryRoot, '.stylelintrc.json'), 'utf8'),
 ) as {
   plugins: string[]
   rules: Record<string, [string[], StrictValueOptions]>
-  overrides: { files: string[]; rules: Record<string, null> }[]
+  overrides: StylelintOverride[]
   ignoreFiles: string[]
 }
 
 const RULE = 'scale-unlimited/declaration-strict-value'
+const FONT_WEIGHT_RULE = 'declaration-property-value-disallowed-list'
 const [properties, options] = config.rules[RULE]
+
+const strictValueExemptions = () =>
+  config.overrides.filter((override) => override.rules[RULE] === null)
 
 describe('Stylelint configuration', () => {
   it('loads the strict-value plugin and configures its rule', () => {
@@ -98,7 +105,8 @@ describe('Stylelint configuration', () => {
   })
 
   it('exempts only the three files that cannot be governed by tokens', () => {
-    const exempt = config.overrides.flatMap((override) => override.files)
+    const exemptions = strictValueExemptions()
+    const exempt = exemptions.flatMap((override) => override.files)
 
     // tokens.css defines the literals; fonts.css carries url() and no colour;
     // src/premium/** is the reference-only prototype with a provisional brand,
@@ -110,23 +118,49 @@ describe('Stylelint configuration', () => {
       'src/styles/tokens.css',
     ])
 
-    // And each one genuinely turns the rule off rather than reconfiguring it,
-    // so a reader of the override knows what it costs.
-    for (const override of config.overrides) {
+    // And every override counted as an exemption genuinely turns the colour
+    // rule off. Scoped overrides that add a separate lint rule are deliberately
+    // excluded here because they do not weaken strict-value enforcement.
+    for (const override of exemptions) {
       expect(override.rules[RULE]).toBeNull()
     }
   })
 
   it('does not exempt the design system or any feature directory', () => {
     // The whole point. `src/design-system/**` and `src/features/**` are where
-    // the 5,500 lines of unlinted CSS were, and an override covering either
-    // would return the repository to the state this rule was added to fix.
-    const exempt = config.overrides.flatMap((override) => override.files)
+    // the 5,500 lines of unlinted CSS were, and a strict-value exemption
+    // covering either would return the repository to the state this rule was
+    // added to fix.
+    const exempt = strictValueExemptions().flatMap((override) => override.files)
 
     for (const glob of exempt) {
       expect(glob.startsWith('src/design-system'), `${glob} exempts the design system`).toBe(false)
       expect(glob.startsWith('src/features'), `${glob} exempts a feature directory`).toBe(false)
     }
+  })
+
+  it('guards exactly the live weekly/shared UI from unsupported font weights', () => {
+    const weightOverrides = config.overrides.filter(
+      (override) => override.rules[FONT_WEIGHT_RULE] !== undefined,
+    )
+
+    expect(weightOverrides).toHaveLength(1)
+    const [weightOverride] = weightOverrides
+
+    expect([...weightOverride.files].sort()).toEqual([
+      'src/app/**/*.css',
+      'src/design-system/**/*.css',
+      'src/features/hub/**/*.css',
+      'src/features/leagues/**/*.css',
+      'src/features/profile/**/*.css',
+      'src/features/season/**/*.css',
+    ])
+    expect(weightOverride.rules[FONT_WEIGHT_RULE]).toEqual({
+      'font-weight': ['600', '700', '800', '900', 'bold', 'bolder'],
+    })
+
+    // This scoped guard must not disable the colour contract in the same files.
+    expect(weightOverride.rules[RULE]).toBeUndefined()
   })
 
   it('is wired into a script CI actually runs', () => {

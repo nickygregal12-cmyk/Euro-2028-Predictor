@@ -4,8 +4,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  /* A grid/flex child defaults to min-width:auto, which lets a long club name
-     push the page wider than the viewport instead of ellipsising inside it. */
   min-width: 0;
 }
 
@@ -34,8 +32,6 @@
   min-width: 0;
 }
 
-/* Why the score column is blank. Boxed so it reads as a statement about the
-   list rather than as fixture detail. */
 .note {
   margin: 0;
   padding: var(--sp-3);
@@ -47,9 +43,6 @@
   color: var(--tx2);
 }
 
-/* The outgoing matchweek while the next one loads. Dimmed rather than removed,
-   so the list does not collapse and reflow the page under the player's thumb.
-   Opacity only — no transform, so nothing moves for a reduced-motion viewer. */
 .stepping {
   opacity: 0.55;
 }
@@ -65,12 +58,10 @@
 .dayHeading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--fs-2);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  /* --tx2 rather than --tx3: this sits on --card, where --tx3 has measured
-     below AA on tinted surfaces before. */
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
 }
 
@@ -86,9 +77,6 @@
   overflow: hidden;
 }
 
-/* The list item. It holds the row and, when the fixture is open, the Match
-   Centre panel below it — which is why the border moved here from the row: a
-   rule under the row would cut between a fixture and its own detail. */
 .matchItem {
   border-bottom: 1px solid var(--line);
 }
@@ -97,11 +85,6 @@
   border-bottom: 0;
 }
 
-/* Home | score-or-kickoff | away. Each club column now carries the same fixed
-   shirt footprint used by dense league-table rows, while the centre remains
-   fixed so every scoreline aligns however long the club names are.
-   Also the row's control when a Match Centre can open behind it, hence the
-   button reset: width, inherited font and a text-aligned box. */
 .match {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
@@ -118,8 +101,6 @@
   color: var(--tx);
 }
 
-/* Only where the row is a control. A pointer over a plain row promises
-   something that is not there. */
 button.match {
   cursor: pointer;
 }
@@ -155,17 +136,13 @@ button.match[aria-expanded='true'] {
 
 .clubName {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
-/* A confirmed result carries the weight; a kickoff time does not. The two
-   differ in weight and colour, not colour alone (§11.8). */
 .score {
   text-align: center;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
   white-space: nowrap;
@@ -191,10 +168,6 @@ button.match[aria-expanded='true'] {
   border: 0;
 }
 
-/* Row metadata: the matchweek label on a day that mixes them, and the
-   provisional marker. A second line under the fixture rather than a fourth
-   column — the row is already home / score / away on a phone, and a fourth
-   cell would squeeze the club names that carry the meaning. */
 .rowMeta {
   grid-column: 1 / -1;
   display: flex;
@@ -212,9 +185,6 @@ button.match[aria-expanded='true'] {
   color: var(--tx2);
 }
 
-/* Marked, not coloured: §11.8 forbids conveying status by colour alone, and a
-   provisional score that only differed by hue would read as a result to anyone
-   who cannot see the difference. */
 .provisional::before {
   content: '· ';
 }

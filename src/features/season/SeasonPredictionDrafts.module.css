@@ -15,7 +15,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -45,8 +45,6 @@
   background: var(--card);
 }
 
-/* The three states that need the player to do something carry the accent edge;
-   an ordinary draft does not, because a draft waiting to send is normal. */
 .row[data-state='conflict'],
 .row[data-state='failed'] {
   border-left: var(--bar-w) solid var(--amb);
@@ -59,11 +57,10 @@
 .fixture {
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
-/* A word, never only a colour: every state above is named in text as well. */
 .state {
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);

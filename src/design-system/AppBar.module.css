@@ -20,7 +20,7 @@
   font-size: var(--fs-eyebrow);
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx3);
 }
 
@@ -78,7 +78,7 @@
 .todo {
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

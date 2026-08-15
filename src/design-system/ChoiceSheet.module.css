@@ -1,6 +1,6 @@
 .trigger {
   display: inline-flex;
-  min-height: 40px;
+  min-height: var(--tap-min);
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-2);
@@ -71,7 +71,7 @@
   color: var(--tx);
   font-family: var(--font-display);
   font-size: var(--fs-4);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .options {
@@ -108,7 +108,7 @@
 .check {
   min-width: 20px;
   color: var(--acc);
-  font-weight: 700;
+  font-weight: 500;
   text-align: right;
 }
 
