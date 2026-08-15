@@ -1,0 +1,215 @@
+/* Matchweek recap — compact performance analytics, not a sentence of numbers.
+ * The card uses one raised surface and structural hairlines rather than nested
+ * cards/shadows, so the data is dense without becoming dashboard chrome. */
+.card {
+  display: grid;
+  gap: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  color: var(--tx);
+  text-decoration: none;
+  transition: border-color var(--duration-micro) var(--ease-out);
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--acc);
+  outline-offset: 2px;
+}
+
+.topline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-1) var(--sp-3);
+  min-width: 0;
+}
+
+.competition {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.matchweek {
+  flex: 0 0 auto;
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--sp-3);
+}
+
+.pointsBlock {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.points {
+  font-family: var(--font-display);
+  font-size: var(--fs-5);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: var(--tracking-tight);
+  font-variant-numeric: var(--numeric);
+}
+
+.pointsLabel {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+}
+
+/* Gold has one meaning in this product: Joker. The word remains visible, so
+ * the state never depends on colour alone. */
+.joker {
+  flex: 0 0 auto;
+  padding: var(--sp-1) var(--sp-2);
+  border-radius: var(--radius-pill);
+  background: var(--gold-tint);
+  color: var(--gold-strong);
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  border-block: 1px solid var(--line);
+}
+
+.metric {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--sp-2) var(--sp-3);
+}
+
+.metric:nth-child(odd) {
+  border-right: 1px solid var(--line);
+}
+
+.metric dt,
+.metric dd {
+  margin: 0;
+}
+
+.metric dt {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.metric dd {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
+}
+
+.leagues {
+  display: grid;
+  gap: var(--sp-2);
+}
+
+.leaguesLabel {
+  font-size: var(--fs-eyebrow);
+  font-weight: 600;
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--tx3);
+}
+
+.league {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+}
+
+.leagueMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--sp-1) var(--sp-3);
+  min-width: 0;
+}
+
+.leagueName {
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.movement {
+  flex: 0 0 auto;
+  font-size: var(--fs-1);
+  font-weight: 600;
+  font-variant-numeric: var(--numeric);
+}
+
+.movementUp {
+  color: var(--acc);
+}
+
+.movementDown {
+  color: var(--red);
+}
+
+.movementFlat {
+  color: var(--tx2);
+}
+
+.leagueMeta {
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 680px) {
+  .card {
+    padding: var(--sp-5);
+  }
+
+  .metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .metric {
+    padding-inline: var(--sp-4);
+    border-right: 1px solid var(--line);
+  }
+
+  .metric:last-child {
+    border-right: 0;
+  }
+}
