@@ -33,6 +33,22 @@ Evaluate each surface on:
 - **competition clarity** — Hub and Euro presentation may differ, while scoring/membership/lifecycle remain owned by their backend authorities;
 - **local time** — kick-off time follows the user's locale where the design authority requires it.
 
+## UI UX Pro Max advisory profile
+
+The repository deliberately does **not** vendor UI UX Pro Max as a runtime library or let it replace the local design authority. When its design-intelligence catalogue is available, use it as a structured critic for the existing product.
+
+For this football platform, prefer the parts of that catalogue that reinforce the accepted direction:
+
+- **performance / analytics dashboard thinking** — make points, rank, form, confidence, odds and match state scannable before adding decoration;
+- **vibrant block hierarchy selectively** — the primary action or live football state may carry more visual weight, but secondary information stays neutral and token-led;
+- **micro-interactions over spectacle** — short state feedback and hover/focus affordances are useful; perpetual motion and page-wide animation are not;
+- **responsive composition** — phone keeps the direct task flow, while tablet/desktop may align metadata, deadlines and football context into dedicated lanes rather than stretching the phone stack;
+- **resilient text** — essential club names, competition names, headings and state labels must reflow under narrow widths, zoom and text scaling instead of being silently clipped; compact truncation is acceptable only where an operable full-value path exists;
+- **pre-delivery accessibility checks** — visible keyboard focus, semantic controls, minimum contrast, reduced-motion support, stable touch targets and non-colour state meaning remain mandatory;
+- **real icons, not emoji furniture** — use the repository icon wrappers or semantic text rather than emoji as interface controls.
+
+Treat UI UX Pro Max's palette, font and named-style recommendations as **optional exploration only**. The existing Prediction Hub token system, typography, light/dark themes and component language remain authoritative unless the owner explicitly changes them.
+
 ## Advisory design search
 
 When a coding/design agent has access to a UI knowledge base such as UI UX Pro Max, use it to generate alternatives for layout, typography, responsive density, chart/table choice, accessibility and anti-pattern review. Then filter every suggestion through the repository authority above.
