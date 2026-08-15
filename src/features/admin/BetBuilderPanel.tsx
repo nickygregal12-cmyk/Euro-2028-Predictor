@@ -146,6 +146,20 @@ type Loaded =
   | { kind: 'failed'; message: string }
   | { kind: 'ready'; candidates: BetBuilderCandidates }
 
+export function chooseBetBuilderBookmaker(
+  rows: readonly BookmakerSummary[],
+  requestedLegs: number,
+  current: string | null,
+): string | null {
+  const actionable = rows.filter((row) => row.isRealPrice)
+  const currentRow = actionable.find((row) => row.code === current)
+  if (currentRow && currentRow.legs >= requestedLegs) return currentRow.code
+
+  const enough = actionable.filter((row) => row.legs >= requestedLegs)
+  const pool = enough.length ? enough : actionable
+  return [...pool].sort((a, b) => b.legs - a.legs || a.code.localeCompare(b.code))[0]?.code ?? null
+}
+
 export function BetBuilderPanel() {
   const [books, setBooks] = useState<readonly BookmakerSummary[] | null>(null)
   const [booksError, setBooksError] = useState<string | null>(null)
@@ -167,13 +181,12 @@ export function BetBuilderPanel() {
 
   useEffect(() => {
     let active = true
+    setBooksError(null)
     fetchBetBuilderBookmakers()
       .then((rows) => {
         if (!active) return
         setBooks(rows)
-        const actionable = rows.filter((row) => row.isRealPrice)
-        const best = [...actionable].sort((a, b) => b.legs - a.legs)[0]
-        setBookmaker((current) => current ?? best?.code ?? null)
+        setBookmaker((current) => chooseBetBuilderBookmaker(rows, legs, current))
       })
       .catch((error: unknown) => {
         if (active) setBooksError(userFacingError(error, 'Bookmakers could not be read.'))
@@ -181,7 +194,7 @@ export function BetBuilderPanel() {
     return () => {
       active = false
     }
-  }, [])
+  }, [reload, legs])
 
   useEffect(() => {
     if (!bookmaker) return
