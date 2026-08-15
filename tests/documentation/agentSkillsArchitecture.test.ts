@@ -32,7 +32,9 @@ describe('project-specific agent skills', () => {
 
     expect(context).toContain('Existing repository authorities always outrank this skill')
     expect(plain(ui)).toContain('critics, never authorities')
-    expect(ai).toContain('promotion remains an explicit human/admin authority action')
+    expect(ai).toContain('The normal selected-model activation is automatic')
+    expect(ai).toContain('Do not reintroduce a routine browser/admin click as a second model-selection authority')
+    expect(ai).toContain('an arbitrary/newest challenger being mistaken for the evidence-selected policy winner')
     expect(ai).toContain('ai/train_verified.py')
     expect(graph).toContain('navigation/indexing aid, not repository truth')
   })
