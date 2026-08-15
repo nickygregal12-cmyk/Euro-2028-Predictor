@@ -1,5 +1,29 @@
 import * as z from 'zod/mini'
 
+const AI_LAB_RAW_SNAPSHOT_KEYS = [
+  'dashboard',
+  'upcoming',
+  'recent',
+  'breakdown',
+  'betting',
+  'bettingGate',
+  'markets',
+  'odds',
+] as const
+
+export type AiLabRawSnapshot = Record<(typeof AI_LAB_RAW_SNAPSHOT_KEYS)[number], unknown>
+
+function isAiLabRawSnapshot(value: unknown): value is AiLabRawSnapshot {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+
+  const keys = Object.keys(value)
+  if (keys.length !== AI_LAB_RAW_SNAPSHOT_KEYS.length) return false
+
+  return AI_LAB_RAW_SNAPSHOT_KEYS.every((key) =>
+    Object.prototype.hasOwnProperty.call(value, key),
+  )
+}
+
 /**
  * Runtime guard for the private AI Lab RPC fan-out.
  *
@@ -9,21 +33,10 @@ import * as z from 'zod/mini'
  * all eight RPC responses must be present and no accidental ninth payload may
  * silently become part of the browser contract.
  *
- * Zod Mini keeps this browser-only boundary tree-shakeable so runtime
- * validation does not consume the application's compressed bundle budget.
+ * This custom Zod Mini schema keeps the exact-key contract while avoiding the
+ * heavier object-schema machinery in the browser bundle.
  */
-export const aiLabRawSnapshotSchema = z.strictObject({
-  dashboard: z.unknown(),
-  upcoming: z.unknown(),
-  recent: z.unknown(),
-  breakdown: z.unknown(),
-  betting: z.unknown(),
-  bettingGate: z.unknown(),
-  markets: z.unknown(),
-  odds: z.unknown(),
-})
-
-export type AiLabRawSnapshot = z.infer<typeof aiLabRawSnapshotSchema>
+export const aiLabRawSnapshotSchema = z.custom<AiLabRawSnapshot>(isAiLabRawSnapshot)
 
 export function parseAiLabRawSnapshot(value: unknown): AiLabRawSnapshot {
   return aiLabRawSnapshotSchema.parse(value)
