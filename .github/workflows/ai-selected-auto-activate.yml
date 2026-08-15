@@ -61,6 +61,16 @@ jobs:
         working-directory: ai
         run: python check_write_scope.py
 
+      - name: Prove exact current main
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ -z "${remote_sha}" ] || [ "${remote_sha}" != "${GITHUB_SHA}" ]; then
+            echo "REFUSE: activation checkout ${GITHUB_SHA} is not current main ${remote_sha:-unknown}." >&2
+            exit 1
+          fi
+
       - name: Resolve exact Production database
         shell: bash
         env:
@@ -150,6 +160,17 @@ jobs:
           else:
               print('No complete model set was created by this source run; nothing to activate.')
           PY
+
+      - name: Re-prove exact main before lifecycle write
+        if: steps.selected.outputs.should_run == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          remote_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
+          [ "${remote_sha}" = "${GITHUB_SHA}" ] || {
+            echo "REFUSE: main moved to ${remote_sha}; refusing stale model activation from ${GITHUB_SHA}." >&2
+            exit 1
+          }
 
       - name: Activate the verified selected winners
         if: steps.selected.outputs.should_run == 'true'
