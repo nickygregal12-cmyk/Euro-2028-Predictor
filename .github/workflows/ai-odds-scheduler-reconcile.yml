@@ -2,7 +2,9 @@ name: Reconcile AI odds scheduler
 
 # pg_cron jobs are hosted operational state rather than dump-carried schema
 # state. Reconcile the Production scheduler from exact repository SQL and prove
-# that doing so consumed no provider credit.
+# that reconciliation itself consumed no provider credit. The installed job is
+# fixture-aware: it tightens collection cadence as a paid-covered kickoff gets
+# closer while public.dispatch_ai_odds_polls() keeps the budget authority.
 on:
   push:
     branches: [main]
@@ -71,19 +73,36 @@ jobs:
 
           sql = Path('scripts/database-rollout/ai-odds-scheduler-reconcile.sql').read_text()
           with psycopg.connect(os.environ['DATABASE_URL'], autocommit=True) as conn:
+              authority = conn.execute("""
+                  select pg_get_functiondef(p.oid)
+                    from pg_proc p
+                    join pg_namespace n on n.oid = p.pronamespace
+                   where n.nspname = 'public'
+                     and p.proname = 'dispatch_ai_odds_polls'
+              """).fetchone()
+              if not authority:
+                  raise SystemExit('public.dispatch_ai_odds_polls is missing in Production')
+              function_def = authority[0]
+              if 'public.ai_odds_budget_check' not in function_def:
+                  raise SystemExit('dispatch authority no longer contains ai_odds_budget_check')
+              if "'budget_or_collection_disabled'" not in function_def:
+                  raise SystemExit('dispatch authority no longer fails closed when the budget gate denies collection')
+
               conn.execute(sql, prepare=False)
               rows = conn.execute("""
-                  select jobid, jobname, schedule, active
+                  select jobid, jobname, schedule, active, command
                     from cron.job
                    where jobname like 'ai-odds-%'
                    order by jobid
               """).fetchall()
           if len(rows) != 1:
               raise SystemExit(f'expected exactly one ai-odds cron job, got {rows!r}')
-          jobid, name, schedule, active = rows[0]
+          jobid, name, schedule, active, command = rows[0]
           if name != 'ai-odds-window-heartbeat' or schedule != '*/5 * * * *' or not active:
               raise SystemExit(f'unexpected reconciled scheduler row: {rows[0]!r}')
-          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}')
+          if 'dispatch_ai_odds_polls(true)' not in command:
+              raise SystemExit('fixture-aware heartbeat must bypass only the legacy Tuesday/Friday clock window')
+          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}, database_budget_guard=verified')
           PY
 
       - name: Prove reconciliation made zero provider calls
@@ -111,5 +130,7 @@ jobs:
             echo '- Production holds one active `ai-odds-window-heartbeat` job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
-            echo '- The heartbeat retries every five minutes only inside the existing Tuesday 13:30–13:44 / Friday 17:30–17:44 Europe/London collection windows.'
+            echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep `ai_odds_budget_check` and fail closed when collection is denied.'
+            echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
+            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h).'
           } >> "$GITHUB_STEP_SUMMARY"

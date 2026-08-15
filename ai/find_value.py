@@ -6,6 +6,13 @@ Writes ai.bets rows for the selections that survive the gate, all flagged
 is_paper=true until you deliberately say otherwise — and writes an
 ai.recommendations row for EVERY candidate, including the ones it refused.
 
+Recommendations are deliberately re-evaluated whenever fresher prices arrive,
+even after a paper bet has already been recorded for that prediction/market.
+The original ai.bets advice remains immutable: a later run may publish a fresh
+BET/PASS recommendation for Bet Builder, but it never creates a second advised
+bet for the same prediction/market merely because the best venue or outcome
+moved.
+
 The refusals are the point. "Edge exceeds 3%, therefore selection" fires on a
 four-day-old price, on a club with four matches of history, and on a fixture
 where three independent models are spread from 51% to 82%. None of those is a
@@ -49,6 +56,11 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
     `AVG` and `MAX` are still retained beside each row as REFERENCE prices:
     AVG supplies the de-vigged market probability and MAX is a diagnostic
     cross-book ceiling. Neither is written to `ai.bets.bookmaker`.
+
+    Existing paper/advised bets do NOT remove a prediction from this read. A
+    fresh price must be allowed to produce a fresh recommendation so Bet Builder
+    never has to rely on yesterday's BET decision. `has_existing_bet` travels
+    with the row and is used only to suppress a second ai.bets insert.
     """
     return query_df(
         """
@@ -84,6 +96,9 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
                p.kickoff_at, p.home_canonical, p.away_canonical,
                p.p_home, p.p_draw, p.p_away,
                p.data_confidence, p.agreement, p.uncertainty,
+               exists (select 1 from ai.bets x
+                        where x.prediction_id = p.id and x.market = '1X2')
+                 as has_existing_bet,
                a.bookmaker as action_book,
                a.odds_h as action_h, a.odds_d as action_d, a.odds_a as action_a,
                a.captured_at as action_captured_at,
@@ -97,8 +112,6 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
            and f.status = 'scheduled'
            and p.kickoff_at > now()
            and num_nonnulls(a.odds_h, a.odds_d, a.odds_a) > 0
-           and not exists (select 1 from ai.bets x
-                            where x.prediction_id = p.id and x.market = '1X2')
          order by p.kickoff_at, p.id, a.bookmaker
         """,
         (book, book, league_key),
@@ -116,6 +129,11 @@ def _float_or_none(value) -> float | None:
     if value is None or pd.isna(value):
         return None
     return float(value)
+
+
+def _should_record_new_bet(is_bet: bool, has_existing_bet: bool) -> bool:
+    """A fresh recommendation may change; the original advised bet may not."""
+    return bool(is_bet and not has_existing_bet)
 
 
 def _assess_fixture(group: pd.DataFrame, gate: value_engine.ValueGate,
@@ -246,6 +264,8 @@ def main() -> int:
             agree = _as_dict(row["agreement"])
             action_book = rec.candidate.bookmaker
             action_odds = float(rec.candidate.odds)
+            has_existing_bet = bool(row["has_existing_bet"])
+            rec.evidence["existing_bet_recorded"] = has_existing_bet
 
             rec_rows.append({
                 "prediction_id": row["prediction_id"],
@@ -271,7 +291,7 @@ def main() -> int:
                 "evidence": rec.evidence,
             })
 
-            if not rec.is_bet:
+            if not _should_record_new_bet(rec.is_bet, has_existing_bet):
                 continue
 
             p = float(rec.candidate.calibrated_prob)
@@ -304,8 +324,9 @@ def main() -> int:
             })
 
         fixture_count = len(assessed)
-        print(f"{len(bet_rows)} selections from {fixture_count} priced fixtures "
-              f"({len(bet_rows)/fixture_count:.0%})\n")
+        bet_decision_count = sum(1 for _, _, rec, _, _ in assessed if rec.is_bet)
+        print(f"{bet_decision_count} current BET decisions from {fixture_count} priced fixtures "
+              f"({bet_decision_count/fixture_count:.0%}); {len(bet_rows)} are new advice rows\n")
         for row, j, rec, _, _ in assessed:
             head = (f"  {pd.to_datetime(row['kickoff_at']):%a %d %b %H:%M}  "
                     f"{row['home_canonical']:>18} v {row['away_canonical']:<18} "
@@ -318,7 +339,7 @@ def main() -> int:
             else:
                 print(head + "   PASS " + ", ".join(rec.reason_codes))
 
-        if not bet_rows:
+        if not bet_decision_count:
             print("\nNo selections currently pass the threshold. That is an "
                   "answer, not a failure.")
         print("\ngate summary: " + ", ".join(f"{k}={v}" for k, v in sorted(counts.items())))
@@ -328,14 +349,16 @@ def main() -> int:
                                   if r["edge_vs_average"] is not None] or [np.nan])
             shop_part = np.mean([r["edge_line_shopping"] for r in bet_rows
                                  if r["edge_line_shopping"] is not None] or [np.nan])
-            print(f"\n  mean edge attributable to the MODEL:        {model_part:+.2%}")
-            print(f"  mean edge attributable to LINE SHOPPING:    {shop_part:+.2%}")
+            print(f"\n  mean edge attributable to the MODEL on new advice:     {model_part:+.2%}")
+            print(f"  mean edge attributable to LINE SHOPPING on new advice: {shop_part:+.2%}")
             if np.isfinite(shop_part) and np.isfinite(model_part) and shop_part > model_part:
-                print("  -> most of today's 'value' is price shopping, not the model.")
+                print("  -> most of today's new 'value' is price shopping, not the model.")
 
         if args.dry_run:
             print("\n--dry-run: nothing written")
-            state["detail"] = {"candidates": fixture_count, "bets": len(bet_rows),
+            state["detail"] = {"candidates": fixture_count,
+                               "bet_decisions": bet_decision_count,
+                               "new_bets": len(bet_rows),
                                "reason_codes": counts}
             return 0
 
@@ -357,10 +380,13 @@ def main() -> int:
                 conn.commit()
 
         state["rows"] = len(bet_rows)
-        state["detail"] = {"candidates": fixture_count, "bets": len(bet_rows),
-                           "recommendations": recorded, "reason_codes": counts}
-        print(f"\nrecorded {len(bet_rows)} {'real' if args.real_money else 'paper'} "
-              f"bets and {recorded} decisions")
+        state["detail"] = {"candidates": fixture_count,
+                           "bet_decisions": bet_decision_count,
+                           "new_bets": len(bet_rows),
+                           "recommendations": recorded,
+                           "reason_codes": counts}
+        print(f"\nrecorded {len(bet_rows)} new {'real' if args.real_money else 'paper'} "
+              f"bets and {recorded} fresh decisions")
     return 0
 
 

@@ -1,14 +1,24 @@
 name: AI Lab value catch-up
 
-# GitHub scheduled workflows may start late. The primary AI Lab workflow used
-# wall-clock hour checks and on 14 August 2026 a delayed Friday run reported
-# success while doing no value work. This recovery path decides from durable
-# ai.job_runs evidence instead: if all nine leagues already completed a recent
-# value pass it is a no-op; otherwise it performs the same provider-paid-call-
-# free reconciliation/value sequence. A delayed catch-up therefore keeps the
-# same meaning instead of silently changing into success-with-no-work.
+# Two recovery duties share this provider-free workflow:
+#
+# 1. GitHub scheduled workflows may start late. The explicit Tuesday/Friday
+#    recovery triggers still decide from durable ai.job_runs evidence rather
+#    than runner wall-clock time.
+# 2. The hosted pg_cron paid-odds heartbeat is fixture-aware. Every ten minutes
+#    this workflow checks whether a newer paid dispatch exists than the last
+#    complete nine-league value pass. If so it waits for the five provider
+#    responses, reconciles them, refreshes free fixture prices, and reruns value.
+#
+# This workflow NEVER dispatches the paid provider itself. Provider spend stays
+# inside public.dispatch_ai_odds_polls() and its database budget guard.
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ai-lab-value-catchup.yml'
   schedule:
+    - cron: '*/10 * * * *'
     - cron: '45 15 * * 2'
     - cron: '45 19 * * 5'
   workflow_dispatch:
@@ -17,8 +27,8 @@ permissions:
   contents: read
 
 concurrency:
-  # Same group as .github/workflows/ai-lab.yml for Production, so a delayed
-  # primary run and this recovery run cannot mutate the lab concurrently.
+  # Same group as .github/workflows/ai-lab.yml for Production, so scheduled,
+  # delayed and paid-dispatch recovery runs cannot mutate the lab concurrently.
   group: ai-lab-production
   cancel-in-progress: false
 
@@ -31,6 +41,7 @@ jobs:
     timeout-minutes: 90
     env:
       PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+      SOURCE_SCHEDULE: ${{ github.event.schedule || '' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
@@ -62,31 +73,94 @@ jobs:
         working-directory: ai
         run: python check_write_scope.py
 
-      - name: Decide from durable job evidence
+      - name: Decide from durable paid-dispatch and job evidence
         id: need
         working-directory: ai
         shell: bash
         run: |
           set -euo pipefail
-          completed="$(python - <<'PY'
+          python - <<'PY'
+          import os
           from db import connect
+
+          recovery_schedules = {'45 15 * * 2', '45 19 * * 5'}
+          source_schedule = os.environ.get('SOURCE_SCHEDULE', '').strip()
           with connect() as conn:
               row = conn.execute("""
-                  select count(distinct league) as n
-                    from ai.job_runs
-                   where job = 'find_value'
-                     and status = 'succeeded'
-                     and started_at >= now() - interval '6 hours'
+                  with latest_dispatch as (
+                    select max(dispatched_at) as at from ai.odds_api_dispatches
+                  )
+                  select d.at as latest_dispatch,
+                         coalesce(d.at >= now() - interval '24 hours', false) as dispatch_recent,
+                         (select count(distinct league)
+                            from ai.job_runs j
+                           where j.job = 'find_value'
+                             and j.status = 'succeeded'
+                             and d.at is not null
+                             and j.started_at >= d.at) as completed_since_dispatch,
+                         (select count(distinct league)
+                            from ai.job_runs j
+                           where j.job = 'find_value'
+                             and j.status = 'succeeded'
+                             and j.started_at >= now() - interval '6 hours') as recent_completed
+                    from latest_dispatch d
               """).fetchone()
-          print(int(row['n']))
+
+          latest = row['latest_dispatch']
+          completed_since = int(row['completed_since_dispatch'] or 0)
+          recent = int(row['recent_completed'] or 0)
+          explicit_recovery = source_schedule in recovery_schedules
+          paid_recovery = bool(latest and row['dispatch_recent'] and completed_since < 9)
+          need = (explicit_recovery and recent < 9) or paid_recovery
+          wait_for_paid = paid_recovery
+
+          print(f"Latest paid dispatch: {latest or 'none'}")
+          print(f"Value leagues since paid dispatch: {completed_since}/9")
+          print(f"Recent successful value leagues: {recent}/9")
+          print(f"Trigger schedule: {source_schedule or 'push/manual'}")
+          print(f"Need value pass: {need}; wait for paid responses: {wait_for_paid}")
+
+          output = os.environ['GITHUB_OUTPUT']
+          with open(output, 'a', encoding='utf-8') as handle:
+              print(f"run={'true' if need else 'false'}", file=handle)
+              print(f"wait_for_paid={'true' if wait_for_paid else 'false'}", file=handle)
+              print(f"dispatch_at={latest.isoformat() if latest else ''}", file=handle)
           PY
-          )"
-          echo "Recent successful value leagues: ${completed}/9"
-          if [ "${completed}" -eq 9 ]; then
-            echo 'run=false' >> "$GITHUB_OUTPUT"
-          else
-            echo 'run=true' >> "$GITHUB_OUTPUT"
-          fi
+
+      - name: Wait for the paid dispatch to finish ingesting
+        if: steps.need.outputs.run == 'true' && steps.need.outputs.wait_for_paid == 'true'
+        working-directory: ai
+        env:
+          DISPATCH_AT: ${{ steps.need.outputs.dispatch_at }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import time
+          from db import connect
+
+          dispatch_at = os.environ['DISPATCH_AT']
+          for attempt in range(24):
+              with connect() as conn:
+                  row = conn.execute("""
+                      select count(*) as responses,
+                             count(*) filter (where http_status = 200) as ok
+                        from ai.api_usage
+                       where provider = 'the-odds-api'
+                         and called_at >= %s::timestamptz
+                  """, (dispatch_at,)).fetchone()
+              responses = int(row['responses'])
+              ok = int(row['ok'])
+              print(f"Paid responses after {dispatch_at}: {responses}/5 observed, {ok} HTTP 200")
+              if responses >= 5:
+                  if ok < 5:
+                      raise SystemExit(f'paid dispatch completed with only {ok}/5 HTTP 200 responses')
+                  break
+              time.sleep(10)
+          else:
+              raise SystemExit('timed out waiting for all five paid-odds responses')
+          PY
 
       - name: Snapshot paid-provider usage
         if: steps.need.outputs.run == 'true'
@@ -102,7 +176,7 @@ jobs:
           print(f"{row['n']}|{row['latest']}")
           PY
 
-      - name: Recover missed value pass without a paid provider call
+      - name: Recover value pass without a paid provider call
         if: steps.need.outputs.run == 'true'
         working-directory: ai
         shell: bash
@@ -113,7 +187,7 @@ jobs:
           python fetch_fixtures_odds.py
           ./run_leagues.sh find_value.py
 
-      - name: Prove all nine leagues completed and paid usage did not move
+      - name: Prove all nine leagues completed and this workflow spent no paid credit
         if: steps.need.outputs.run == 'true'
         working-directory: ai
         shell: bash
@@ -151,13 +225,14 @@ jobs:
         shell: bash
         run: |
           if [ "${{ steps.need.outputs.run }}" = true ]; then
-            message='Recovered a missing nine-league value pass; paid Odds API usage was unchanged.'
+            message='Completed a nine-league value pass from durable recovery evidence; this workflow made no paid provider call.'
           else
-            message='Primary value pass already completed for all nine leagues; recovery was a no-op.'
+            message='No newer paid dispatch or missing explicit recovery pass was found; recovery was a no-op.'
           fi
           {
             echo '## AI Lab value catch-up'
             echo
             echo "- ${message}"
-            echo '- Decision is based on `ai.job_runs`, not the runner wall clock.'
+            echo '- Paid dispatches are detected from `ai.odds_api_dispatches`; completion is proven from `ai.api_usage` and `ai.job_runs`.'
+            echo '- Decision is based on durable evidence, not runner wall-clock time.'
           } >> "$GITHUB_STEP_SUMMARY"
