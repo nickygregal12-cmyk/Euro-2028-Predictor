@@ -17,7 +17,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-4);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
 }
 
@@ -33,7 +33,7 @@
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx2);
   font-variant-numeric: var(--numeric);
 }
@@ -48,7 +48,7 @@
   background: var(--chip);
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
   overflow-wrap: anywhere;
 }
@@ -136,7 +136,7 @@
 .hostName {
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 
@@ -161,7 +161,7 @@
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx3);
 }
 
@@ -199,7 +199,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   text-align: right;
   overflow-wrap: anywhere;
 }
@@ -256,7 +256,7 @@
 .chipOn {
   border-color: var(--acc);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 @media (min-width: 600px) {
