@@ -1,0 +1,84 @@
+name: AI morning value catch-up
+
+# The 05:30 UTC AI Lab morning run refreshes history, fixtures and forecasts.
+# This follow-up turns those fresh forecasts into auditable value decisions
+# using prices already retained in Production. It deliberately has no provider
+# collection step, so it cannot spend an Odds API request.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/ai-morning-value-catchup.yml'
+  schedule:
+    # The main AI Lab morning run starts at 05:30 UTC and normally finishes
+    # within ~25 minutes. Sharing its concurrency group makes this wait rather
+    # than race if that run is unusually slow.
+    - cron: '10 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-lab-production
+  cancel-in-progress: false
+
+env:
+  PRODUCTION_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+
+jobs:
+  value:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: ai/requirements.txt
+
+      - name: Prove the package writes to schema ai and nowhere else
+        working-directory: ai
+        run: python check_write_scope.py
+
+      - name: Resolve and verify Production
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="${PROD_DB_URL}"
+          if [ -z "${url}" ]; then
+            echo 'Repository secret SUPABASE_PROD_DB_URL is not set.'
+            exit 1
+          fi
+          case "${url}" in
+            *"${PRODUCTION_PROJECT_REF}"*) ;;
+            *) echo "SUPABASE_PROD_DB_URL does not name Production project ${PRODUCTION_PROJECT_REF}"; exit 1 ;;
+          esac
+          echo "::add-mask::${url}"
+          echo "DATABASE_URL=${url}" >> "$GITHUB_ENV"
+
+      - name: Install AI Lab dependencies
+        working-directory: ai
+        run: pip install -r requirements.txt
+
+      - name: Verify forecasting contract
+        working-directory: ai
+        run: |
+          python - <<'PY'
+          from db import connect
+          with connect() as conn:
+              view, fn = conn.execute(
+                  "select to_regclass('ai.valid_predictions') is not null, "
+                  "to_regprocedure('ai.canonical_from_odds_api(text)') is not null"
+              ).fetchone().values()
+          if not view or not fn:
+              raise SystemExit('Production is below the AI forecasting contract')
+          PY
+
+      - name: Find value from retained real-book prices
+        working-directory: ai
+        run: ./run_leagues.sh find_value.py
