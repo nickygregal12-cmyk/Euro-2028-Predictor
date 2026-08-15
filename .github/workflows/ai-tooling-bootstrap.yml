@@ -48,6 +48,7 @@ jobs:
       - name: Wire integrations into existing authorities
         run: |
           python <<'PY'
+          import json
           from pathlib import Path
 
           def replace_once(path: str, old: str, new: str) -> None:
@@ -165,6 +166,38 @@ jobs:
                   1,
               )
               vite_env.write_text(vite_text, encoding='utf-8')
+
+          # Storybook is committed TypeScript, so it belongs to a compiler
+          # project and to the hard-coded coverage inventory just like src/.
+          replace_once(
+              'tsconfig.app.json',
+              '  "include": ["src"]\n',
+              '  "include": ["src", ".storybook"]\n',
+          )
+          replace_once(
+              'tests/scripts/typescriptProjectCoverage.test.ts',
+              "const COVERED_PREFIXES = [\n  'src/',\n",
+              "const COVERED_PREFIXES = [\n  'src/',\n  '.storybook/',\n",
+          )
+
+          # Spec Kit's constitution governs engineering process only. Register
+          # its directory as reference authority rather than leaving it outside
+          # the repository's one-document-one-governor rule.
+          authority_path = Path('config/documentation-authorities.json')
+          authority = json.loads(authority_path.read_text(encoding='utf-8'))
+          prefixes = {item['prefix'] for item in authority['authorityDirectories']}
+          if '.specify/' not in prefixes:
+              authority['authorityDirectories'].insert(0, {
+                  'prefix': '.specify/',
+                  'kind': 'reference',
+                  'why': (
+                      'Spec Kit process metadata and engineering constitution. '
+                      'These files structure specification and delivery but must '
+                      'not become a second moving product, contract, hosted-state, '
+                      'or model-selection authority.'
+                  ),
+              })
+              authority_path.write_text(json.dumps(authority, indent=2) + '\n', encoding='utf-8')
           PY
 
       - name: Install and verify optional AI extras
@@ -177,12 +210,17 @@ jobs:
           dvc doctor
           dvc repro ai-offline-guardrails
 
-      - name: Verify frontend integrations
-        run: |
-          npm run lint
-          npm test
-          npx tsc -b
-          npm run build:storybook
+      - name: Lint frontend integration
+        run: npm run lint
+
+      - name: Run frontend tests
+        run: npm test
+
+      - name: Typecheck all projects
+        run: npx tsc -b
+
+      - name: Build Storybook
+        run: npm run build:storybook
 
       - name: Commit generated lockfile and verified wiring
         run: |
@@ -190,7 +228,9 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add package.json package-lock.json src/main.tsx src/vite-env.d.ts .env.example \
-            ai/model_zoo.py ai/explain.py .github/workflows/ai-tooling-bootstrap.yml
+            ai/model_zoo.py ai/explain.py tsconfig.app.json \
+            tests/scripts/typescriptProjectCoverage.test.ts config/documentation-authorities.json \
+            .github/workflows/ai-tooling-bootstrap.yml
           git diff --cached --stat
           git commit -m 'Wire integrated AI and frontend tooling'
           git push origin HEAD:agent/integrate-ai-development-tooling
