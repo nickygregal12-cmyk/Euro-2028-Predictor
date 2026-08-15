@@ -36,8 +36,8 @@ const materialize = parse(materializeSource) as {
   jobs: Record<string, { steps: { name?: string; run?: string }[] }>
 }
 
-describe('paid odds scheduling recovers from a missed cron minute', () => {
-  it('replaces the four brittle DST twins with one five-minute heartbeat', () => {
+describe('paid odds scheduling tracks fixture freshness instead of a weekday minute', () => {
+  it('keeps one five-minute heartbeat and removes the four brittle DST twins', () => {
     for (const legacy of [
       'ai-odds-tuesday-bst',
       'ai-odds-tuesday-gmt',
@@ -52,16 +52,19 @@ describe('paid odds scheduling recovers from a missed cron minute', () => {
     expect(schedulerSql).toMatch(/cron\.schedule/)
   })
 
-  it('keeps the London collection window but admits a bounded retry band', () => {
-    expect(schedulerSql).toMatch(/time zone 'Europe\/London'/)
-    expect(schedulerSql).toMatch(/extract\(isodow[^]*= 2/)
-    expect(schedulerSql).toMatch(/extract\(isodow[^]*= 5/)
-    expect(schedulerSql).toMatch(/between 30 and 44/)
+  it('dispatches only for paid-covered fixtures and tightens cadence toward kickoff', () => {
+    expect(schedulerSql).toMatch(/f\.league_key in \('EPL','ECH','EL1','EL2','SPL'\)/)
+    expect(schedulerSql).toContain("interval '24 hours'")
+    expect(schedulerSql).toContain("interval '10 hours'")
+    expect(schedulerSql).toContain("interval '50 minutes'")
+    expect(schedulerSql).toContain("interval '10 minutes'")
+    expect(schedulerSql).toContain('public.dispatch_ai_odds_polls(true)')
+    expect(schedulerSql).not.toMatch(/time zone 'Europe\/London'/)
   })
 
-  it('cannot dispatch twice inside one collection window', () => {
+  it('cannot dispatch again until the current freshness cadence is due', () => {
     expect(schedulerSql).toMatch(/not exists[\s\S]*ai\.odds_api_dispatches/)
-    expect(schedulerSql).toMatch(/interval '45 minutes'/)
+    expect(schedulerSql).toMatch(/d\.dispatched_at >= now\(\) - c\.max_gap/)
   })
 
   it('reconciles Production daily and proves its own run spent no paid credit', () => {
@@ -78,7 +81,7 @@ describe('paid odds scheduling recovers from a missed cron minute', () => {
   })
 })
 
-describe('a delayed GitHub schedule cannot silently lose the value pass', () => {
+describe('fresh paid odds cannot sit unprocessed while Bet Builder ages out', () => {
   const runs = Object.values(catchup.jobs)
     .flatMap((job) => job.steps)
     .map((step) => step.run ?? '')
@@ -88,14 +91,31 @@ describe('a delayed GitHub schedule cannot silently lose the value pass', () => 
     expect(catchup.concurrency?.group).toBe('ai-lab-production')
   })
 
-  it('decides from durable job evidence rather than runner wall-clock hour', () => {
+  it('checks every ten minutes while retaining the explicit delayed-run recovery anchors', () => {
+    const schedules = catchup.on.schedule?.map((x) => x.cron) ?? []
+    expect(schedules).toContain('*/10 * * * *')
+    expect(schedules).toContain('45 15 * * 2')
+    expect(schedules).toContain('45 19 * * 5')
+  })
+
+  it('decides from durable dispatch/job evidence rather than runner wall-clock hour', () => {
+    expect(runs).toMatch(/ai\.odds_api_dispatches/)
     expect(runs).toMatch(/ai\.job_runs/)
     expect(runs).toMatch(/job = 'find_value'/)
+    expect(runs).toMatch(/completed_since_dispatch/)
     expect(runs).toMatch(/count\(distinct league\)/)
     expect(runs).not.toMatch(/TZ=Europe\/London date/)
   })
 
-  it('recovers the same reconciliation and nine-league value path without paid collection', () => {
+  it('waits for all five successful paid responses before consuming a new dispatch', () => {
+    expect(runs).toMatch(/ai\.api_usage/)
+    expect(runs).toMatch(/provider = 'the-odds-api'/)
+    expect(runs).toMatch(/http_status = 200/)
+    expect(runs).toMatch(/responses >= 5/)
+    expect(runs).toMatch(/ok < 5/)
+  })
+
+  it('reconciles paid evidence and all nine value leagues without dispatching the provider', () => {
     expect(runs).toMatch(/sync_fixtures\.py/)
     expect(runs).toMatch(/reconcile_paid_fixture_evidence\.py/)
     expect(runs).toMatch(/fetch_fixtures_odds\.py/)
@@ -104,9 +124,10 @@ describe('a delayed GitHub schedule cannot silently lose the value pass', () => 
     expect(runs).not.toMatch(/dispatch_ai_odds_polls/)
   })
 
-  it('fails unless all nine leagues leave successful value-job evidence', () => {
+  it('fails unless all nine leagues leave successful value evidence and the workflow itself spends zero credit', () => {
     expect(runs).toMatch(/\[ "\$\{completed\}" -eq 9 \]/)
     expect(runs).toMatch(/interval '90 minutes'/)
+    expect(runs).toMatch(/diff -u \/tmp\/paid-usage-before \/tmp\/paid-usage-after/)
   })
 })
 
