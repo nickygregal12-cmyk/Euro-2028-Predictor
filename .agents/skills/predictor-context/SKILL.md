@@ -63,4 +63,4 @@ Persist only:
 
 ## Boundary
 
-This skill changes how agents load and preserve context. It changes no scoring, lock, membership, privacy, settlement, progression, deployment or model-promotion rule. Canonical repository authorities always outrank it.
+This skill changes how agents load and preserve context. It changes no scoring, lock, membership, privacy, settlement, progression, deployment or model-promotion rule. Existing repository authorities always outrank this skill.
