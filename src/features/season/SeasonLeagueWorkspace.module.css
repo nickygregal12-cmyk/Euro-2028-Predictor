@@ -17,7 +17,7 @@
 
 .tab {
   flex: 1 1 0;
-  min-height: 40px;
+  min-height: var(--tap-min);
   padding: var(--sp-2) var(--sp-3);
   border: 0;
   border-radius: var(--radius-pill);
@@ -25,7 +25,7 @@
   color: var(--tx2);
   font-family: var(--font-display);
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 
@@ -55,7 +55,7 @@
 
 .movementRank {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
 }
