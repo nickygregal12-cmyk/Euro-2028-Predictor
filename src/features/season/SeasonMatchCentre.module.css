@@ -1,27 +1,25 @@
 /* The expanded fixture inside the Matches list. Recessed rather than raised:
    it belongs to the row above it. Tokens only. */
-
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  padding: var(--sp-3);
+  min-width: 0;
+  padding: var(--sp-4);
   border-top: 1px solid var(--line);
   background: var(--chip);
-  min-width: 0;
 }
 
 .fixture {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: center;
   gap: var(--sp-3);
   min-width: 0;
 }
 
 .club {
   display: flex;
-  flex: 1 1 0;
   align-items: center;
   gap: var(--sp-2);
   min-width: 0;
@@ -34,17 +32,17 @@
 
 .clubName {
   min-width: 0;
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
+  font-family: var(--font-display);
+  font-size: var(--fs-3);
+  font-weight: 600;
+  line-height: 1.25;
   color: var(--tx);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .versus {
   flex: 0 0 auto;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-1);
   color: var(--tx3);
 }
@@ -56,13 +54,15 @@
   font-size: var(--fs-eyebrow);
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
+  font-variant-numeric: var(--numeric);
   color: var(--tx2);
 }
 
-/* Prediction | result | points, wrapping to two per line on a phone. */
+/* Prediction | result | points. Compact metric cards preserve the distinction
+   between official result and the player's own consequences. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-2);
   margin: 0;
 }
@@ -70,12 +70,12 @@
 .cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--sp-2);
+  gap: var(--sp-1);
+  min-width: 0;
+  padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
   background: var(--card);
-  min-width: 0;
 }
 
 .label {
@@ -87,22 +87,28 @@
 }
 
 .value {
+  min-width: 0;
   margin: 0;
   font-family: var(--font-display);
   font-weight: 600;
   font-size: var(--fs-3);
+  line-height: 1.25;
   font-variant-numeric: var(--numeric);
   color: var(--tx);
+  overflow-wrap: anywhere;
 }
 
 /* Outside the grid on purpose. A provisional score in a cell beside "Result"
    reads as a second result; here it reads as an aside about it, and it carries
-   its own word rather than only a colour (§11.8). */
+   its own word rather than only a colour. */
 .provisional {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: var(--sp-2);
   margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: var(--bar-w) solid var(--amb);
   font-family: var(--font-body);
   font-size: var(--fs-1);
   font-variant-numeric: var(--numeric);
@@ -110,7 +116,9 @@
 }
 
 .provisionalTag {
+  flex: 0 0 auto;
   font-size: var(--fs-eyebrow);
+  font-weight: 600;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
@@ -118,6 +126,7 @@
 
 .note {
   margin: 0;
+  max-width: 70ch;
   font-family: var(--font-body);
   font-size: var(--fs-1);
   line-height: 1.5;
@@ -134,52 +143,56 @@
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  padding-top: var(--sp-3);
+  padding-top: var(--sp-4);
   border-top: 1px solid var(--line);
 }
 
 .footballHeading {
   margin: 0;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
+  font-weight: 600;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
 }
 
 .formRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--sp-2);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--sp-1);
   min-width: 0;
+  padding-block: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.formRow:last-child {
+  border-bottom: 0;
 }
 
 .formClub {
-  flex: 1 1 8rem;
   min-width: 0;
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-2);
+  font-weight: 600;
   color: var(--tx);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .formLetters {
   display: flex;
   flex: 0 0 auto;
-  gap: 3px;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
 }
 
-/* The letter carries the meaning; the tint only reinforces it. §11.8 forbids
-   colour alone, and "W" is legible with every tint removed. */
+/* The letter carries the meaning; the tint only reinforces it. */
 .formLetter {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.25rem;
+  height: 1.25rem;
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   background: var(--chip);
@@ -199,11 +212,12 @@
 }
 
 .formRecord {
-  flex: 1 1 100%;
+  min-width: 0;
   font-family: var(--font-body);
   font-size: var(--fs-1);
   font-variant-numeric: var(--numeric);
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
 .formNone {
@@ -215,7 +229,7 @@
 .meetings {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--sp-1);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -226,10 +240,11 @@
   font-size: var(--fs-1);
   font-variant-numeric: var(--numeric);
   color: var(--tx2);
+  overflow-wrap: anywhere;
 }
 
-/* The Last Man Standing stake. Above the form because it is the strongest thing
-   this panel can say: form is context, survival is a reason to care. */
+/* The Last Man Standing stake. Above form because survival is stronger context
+   than recent form. */
 .stake,
 .stakeRiding {
   display: flex;
@@ -237,7 +252,7 @@
   align-items: baseline;
   gap: var(--sp-2);
   margin: 0;
-  padding: var(--sp-2);
+  padding: var(--sp-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-input);
   background: var(--card);
@@ -247,42 +262,72 @@
   color: var(--tx2);
 }
 
-/* The player's own club is in this match. A left rule and full-strength text,
-   not a colour swap: the difference has to survive being seen in greyscale. */
 .stakeRiding {
-  border-left: 3px solid var(--acc);
+  border-left: var(--bar-w) solid var(--acc);
   color: var(--tx);
 }
 
 .stakeTag {
   font-size: var(--fs-eyebrow);
+  font-weight: 600;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx2);
 }
 
-/* The way out of an opened fixture: to the card that predicts its matchweek.
-   A link, because it goes somewhere — styled as the panel's primary action. */
+/* The way out of an opened fixture: to the card that predicts its matchweek. */
 .predict {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: var(--tap-min);
-  padding: 0 var(--sp-3);
+  padding: 0 var(--sp-4);
   border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
   border-radius: var(--radius-input);
   background: var(--card);
-  font-family: var(--font-body);
+  font-family: var(--font-display);
   font-size: var(--fs-2);
+  font-weight: 600;
   color: var(--tx);
   text-decoration: none;
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
 }
 
 .predict:hover {
-  border-color: var(--acc);
+  border-color: var(--border-strong);
+  border-left-color: var(--acc);
+  background: var(--surface-raised);
 }
 
 .predict:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
+}
+
+@media (min-width: 680px) {
+  .panel {
+    padding: var(--sp-5);
+  }
+
+  .grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .formRow {
+    grid-template-columns: minmax(9rem, 0.8fr) minmax(0, 1.2fr);
+    align-items: center;
+    gap: var(--sp-3);
+  }
+
+  .formRecord,
+  .formNone {
+    grid-column: 2;
+  }
+
+  .formLetters + .formRecord {
+    margin-top: var(--sp-1);
+  }
 }
