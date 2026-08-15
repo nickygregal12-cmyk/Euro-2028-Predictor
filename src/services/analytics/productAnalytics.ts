@@ -19,26 +19,38 @@ function loadClient() {
   return clientPromise
 }
 
+function warnInDevelopment(message: string, error: unknown) {
+  if (import.meta.env.DEV) console.warn(message, error)
+}
+
 /**
  * Product analytics is explicitly opt-in at build/deploy time.
  *
  * With no VITE_POSTHOG_KEY the PostHog chunk is never requested and the app
  * behaves exactly as it did before this integration. Automatic capture is
- * disabled so events stay intentional and reviewable.
+ * disabled so events stay intentional and reviewable. A configured analytics
+ * failure must never stop prediction entry or authentication, so this path is
+ * fail-quiet in the same spirit as the existing optional observability layer.
  */
 export async function initProductAnalytics(): Promise<boolean> {
   const config = analyticsConfig()
   if (!config) return false
-  const { default: posthog } = await loadClient()
-  posthog.init(config.key, {
-    api_host: config.host,
-    autocapture: false,
-    capture_pageview: false,
-    capture_pageleave: false,
-    persistence: 'localStorage+cookie',
-  })
-  initialised = true
-  return true
+  try {
+    const { default: posthog } = await loadClient()
+    posthog.init(config.key, {
+      api_host: config.host,
+      autocapture: false,
+      capture_pageview: false,
+      capture_pageleave: false,
+      persistence: 'localStorage+cookie',
+    })
+    initialised = true
+    return true
+  } catch (error) {
+    initialised = false
+    warnInDevelopment('Product analytics failed to initialise; continuing without it.', error)
+    return false
+  }
 }
 
 /**
@@ -50,7 +62,12 @@ export async function captureProductEvent(
   properties: ProductEventProperties = {},
 ): Promise<boolean> {
   if (!initialised || !analyticsConfig()) return false
-  const { default: posthog } = await loadClient()
-  posthog.capture(event, properties)
-  return true
+  try {
+    const { default: posthog } = await loadClient()
+    posthog.capture(event, properties)
+    return true
+  } catch (error) {
+    warnInDevelopment(`Product analytics event ${event} was not sent.`, error)
+    return false
+  }
 }
