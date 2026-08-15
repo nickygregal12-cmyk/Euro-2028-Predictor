@@ -15,7 +15,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
@@ -48,7 +48,7 @@
 
 .lineStrong {
   font-size: var(--fs-1);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -64,7 +64,7 @@
 
 .worthKnowingTag {
   font-size: var(--fs-eyebrow);
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-open);
   text-transform: uppercase;
   color: var(--tx3);
