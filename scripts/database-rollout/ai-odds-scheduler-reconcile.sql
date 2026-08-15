@@ -1,33 +1,52 @@
 -- Hosted operational reconciliation for the AI paid-odds scheduler.
 --
 -- pg_cron jobs are managed extension state rather than schema state: Supabase
--- database dumps do not carry them, and the four Contract-185 DST-twin jobs
--- were measured active in Production while never appearing in
--- cron.job_run_details. Keep database contract 190 unchanged; this script owns
--- the hosted scheduler configuration and is safe to run repeatedly.
+-- database dumps do not carry them. Keep database contract 190 unchanged; this
+-- script owns the hosted scheduler configuration and is safe to run repeatedly.
 --
--- It never calls the provider itself. The installed heartbeat remains gated by
--- the existing public.dispatch_ai_odds_polls() London-time window and adds a
--- 15-minute retry band plus an append-only dispatch-ledger idempotency check.
+-- Bet Builder can only present a stored BET while its underlying real-bookmaker
+-- quote still satisfies ai.price_age_limit_seconds(): 12 hours when kickoff is
+-- more than eight hours away, one hour inside eight hours, and twenty minutes
+-- inside two hours. A Tuesday/Friday-only collection window therefore cannot
+-- keep Saturday matchday prices actionable.
+--
+-- The heartbeat below is fixture-aware and deliberately slightly stricter than
+-- those browser/value freshness limits:
+--   * nearest paid-covered fixture <= 2h: refresh at most every 10 minutes;
+--   * nearest paid-covered fixture <= 8h: refresh at most every 50 minutes;
+--   * nearest paid-covered fixture <= 24h: refresh at most every 10 hours;
+--   * no paid-covered fixture inside 24h: do nothing.
+--
+-- public.dispatch_ai_odds_polls(true) still owns the budget/collection-enabled
+-- guard and provider endpoint authority. The cron command never embeds a key.
 
 do $reconcile$
 declare
   desired_schedule constant text := '*/5 * * * *';
   desired_command constant text := $job$
-  select public.dispatch_ai_odds_polls()
-   where (
-     (extract(isodow from now() at time zone 'Europe/London') = 2
-      and extract(hour from now() at time zone 'Europe/London') = 13)
-     or
-     (extract(isodow from now() at time zone 'Europe/London') = 5
-      and extract(hour from now() at time zone 'Europe/London') = 17)
-   )
-     and extract(minute from now() at time zone 'Europe/London') between 30 and 44
-     and not exists (
-       select 1
-         from ai.odds_api_dispatches d
-        where d.dispatched_at >= now() - interval '45 minutes'
-     );
+  with due as (
+    select min(extract(epoch from (f.kickoff_at - now())) / 3600.0) as nearest_hours
+      from ai.fixtures f
+     where f.status = 'scheduled'
+       and f.kickoff_at > now()
+       and f.kickoff_at <= now() + interval '24 hours'
+       and f.league_key in ('EPL','ECH','EL1','EL2','SPL')
+  ), cadence as (
+    select case
+             when nearest_hours <= 2.0 then interval '10 minutes'
+             when nearest_hours <= 8.0 then interval '50 minutes'
+             else interval '10 hours'
+           end as max_gap
+      from due
+     where nearest_hours is not null
+  )
+  select public.dispatch_ai_odds_polls(true)
+    from cadence c
+   where not exists (
+     select 1
+       from ai.odds_api_dispatches d
+      where d.dispatched_at >= now() - c.max_gap
+   );
   $job$;
   existing record;
   heartbeat_count integer;
