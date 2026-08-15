@@ -122,7 +122,6 @@ jobs:
     continue-on-error: true
     permissions:
       contents: read
-      security-events: write
     steps:
       - name: Harden runner (audit egress)
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -132,7 +131,8 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: Audit GitHub Actions security
+      - name: Audit GitHub Actions security (baseline only)
         uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
         with:
-          advanced-security: true
+          advanced-security: false
+          annotations: false
