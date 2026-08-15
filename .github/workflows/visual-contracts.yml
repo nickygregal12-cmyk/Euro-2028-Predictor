@@ -42,15 +42,6 @@ name: Visual contracts
 # to `main` is a workflow that will eventually push to `main` by accident.
 
 on:
-  # Temporary branch-only runner bootstrap. The connected GitHub surface in this
-  # session cannot dispatch workflow inputs, so this one push reproduces
-  # update_baselines=true + commit_baselines=true on the exact PR branch. It is
-  # removed immediately after the runner commits the reviewed images.
-  push:
-    branches:
-      - agent/ui-ux-pro-max-polish-batch-2
-    paths:
-      - '.github/workflows/visual-contracts.yml'
   # Scoped to what can actually move a pixel. A documentation-only pull request
   # does not need four minutes of Chromium to prove the gallery is unchanged —
   # and a filter that skipped something real would show up as a baseline that
@@ -114,17 +105,17 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Render baselines
-        if: ${{ inputs.update_baselines || (github.event_name == 'push' && github.ref_name == 'agent/ui-ux-pro-max-polish-batch-2') }}
+        if: ${{ inputs.update_baselines }}
         run: npx playwright test --config=playwright.visual.config.ts --update-snapshots
 
       - name: Compare against committed baselines
-        if: ${{ !(inputs.update_baselines || (github.event_name == 'push' && github.ref_name == 'agent/ui-ux-pro-max-polish-batch-2')) }}
+        if: ${{ !inputs.update_baselines }}
         run: npx playwright test --config=playwright.visual.config.ts
 
       # Only the images. `test-results/` and the HTML report are run output, not
       # contract, and committing them would make every later run a diff.
       - name: Commit the rendered baselines to this branch
-        if: ${{ inputs.commit_baselines || (github.event_name == 'push' && github.ref_name == 'agent/ui-ux-pro-max-polish-batch-2') }}
+        if: ${{ inputs.commit_baselines }}
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
