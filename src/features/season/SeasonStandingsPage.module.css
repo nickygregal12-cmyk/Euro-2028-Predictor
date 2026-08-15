@@ -1,36 +1,42 @@
 /* Phone-first standings table. Tokens only; every size is a scale step. */
-
 .panel {
   display: flex;
   flex-direction: column;
   gap: var(--sp-3);
-  /* A grid/flex child defaults to min-width:auto, which lets a long player
-     name push the whole panel wider than the viewport instead of ellipsising
-     inside it. Same fix as the competition shell. */
   min-width: 0;
 }
 
 .heading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--fs-4);
+  letter-spacing: var(--tracking-tight);
   color: var(--tx);
 }
 
 .caption {
   margin: 0;
+  max-width: 65ch;
   font-family: var(--font-body);
   font-size: var(--fs-2);
+  line-height: 1.5;
   color: var(--tx2);
 }
 
-/* The caller's own position, stated rather than left to be found in the table.
-   --tx and a heavier weight because this is the one line most players came for. */
+/* The caller's position is the first number they came for. Keep the exact
+   sentence the accessibility/tests already rely on, but give it a deliberate
+   leaderboard-summary treatment rather than leaving it as ordinary body copy. */
 .yourStanding {
   margin: 0;
-  font-family: var(--font-body);
-  font-size: var(--fs-2);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--line);
+  border-left: var(--bar-w) solid var(--acc);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  font-family: var(--display-font);
+  font-size: var(--fs-3);
+  line-height: 1.4;
   font-variant-numeric: var(--numeric);
   font-weight: 600;
   color: var(--tx);
@@ -44,18 +50,18 @@
   grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem 3rem;
   align-items: center;
   gap: var(--sp-2);
+  min-width: 0;
   padding: 0 var(--sp-2);
 }
 
 .columns {
+  min-height: 30px;
+  border-bottom: 1px solid var(--line);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  /* --tx2 rather than --tx3: this sits on --card, where --tx3 has measured
-     below AA on tinted surfaces before (see InvitePanel's codeLabel). */
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
-  min-height: 30px;
 }
 
 .columns abbr {
@@ -73,6 +79,7 @@
 
 .row {
   min-height: var(--tap-min);
+  padding-block: var(--sp-2);
   border-bottom: 1px solid var(--line);
   font-family: var(--font-body);
   font-size: var(--fs-2);
@@ -83,16 +90,18 @@
   border-bottom: 0;
 }
 
-/* The caller's own row. Tinted and marked with text, never colour alone
-   (§11.8: status is not conveyed by colour alone). */
+/* The caller's own row. Text tag + structural accent, never colour alone. */
 .rowYou {
+  border-left: var(--bar-w) solid var(--acc);
   background: var(--chip);
 }
 
 /* Pinned copy of the player's row when it sits outside the loaded pages. The
    top rule replaces the gap so it reads as attached to the table above. */
 .pinnedList {
+  margin-top: var(--sp-2);
   border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 
 .rowPinned {
@@ -106,26 +115,28 @@
   text-align: center;
 }
 
+/* Player names are essential leaderboard information. They may take another
+   line under large text/zoom rather than silently becoming an ellipsis. */
 .name {
   min-width: 0;
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: var(--sp-2);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  gap: var(--sp-1) var(--sp-2);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
 }
 
 .youTag {
   flex: none;
-  padding: 2px 6px;
+  padding: var(--sp-1) var(--sp-2);
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--acc) 16%, transparent);
   color: var(--acc);
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-open);
 }
 
 .played,
@@ -156,15 +167,37 @@
   border: 0;
 }
 
-/* Rank context beside the position, on its own line so the sentence above stays
-   a sentence. Never a claim about movement — that needs history this surface
-   does not have. */
+/* Rank context beside the position, on its own line. Never a claim about
+   movement — that needs history this surface does not have. */
 .percentile {
   display: block;
-  margin-top: 2px;
+  margin-top: var(--sp-1);
   font-family: var(--font-display);
   font-size: var(--fs-1);
   font-weight: 600;
   letter-spacing: var(--tracking-open);
   color: var(--acc);
+}
+
+@media (min-width: 680px) {
+  .columns,
+  .row {
+    grid-template-columns: 3rem minmax(0, 1fr) 4.5rem 4rem;
+    gap: var(--sp-3);
+    padding-inline: var(--sp-3);
+  }
+
+  .row {
+    min-height: 52px;
+  }
+
+  .yourStanding {
+    display: block;
+    padding: var(--sp-4);
+    font-size: var(--fs-4);
+  }
+
+  .percentile {
+    font-size: var(--fs-2);
+  }
 }
