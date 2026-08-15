@@ -1,14 +1,6 @@
 name: Mutation testing
 
 on:
-  pull_request:
-    paths:
-      - 'src/domain/tournament/calculateScore.ts'
-      - 'tests/domain/calculateScore*.test.ts'
-      - 'stryker.config.mjs'
-      - 'package.json'
-      - 'package-lock.json'
-      - '.github/workflows/mutation-testing.yml'
   schedule:
     - cron: '43 3 * * 2'
   workflow_dispatch:
