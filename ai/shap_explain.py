@@ -1,13 +1,15 @@
 """Optional SHAP bridge for the GBM explanation path.
 
-The core AI Lab deliberately does not depend on SHAP.  When the observability
-extras are installed, this module asks TreeExplainer for a probability-space
-attribution relative to the fitted model's training-median row.  If the
-installed SHAP/sklearn combination cannot provide that exact contract, callers
-receive ``None`` and retain the existing deterministic occlusion fallback.
+The core AI Lab deliberately does not depend on SHAP. When the observability
+extras are installed, this module first asks TreeExplainer for probability-space
+attributions relative to the fitted model's training-median row. SHAP 0.52 does
+not provide that contract for every sklearn multiclass tree estimator, so the
+second path uses SHAP's permutation explainer directly over ``predict_proba``.
 
-That fail-closed behaviour matters: raw-margin SHAP values must not be labelled
-as percentage-point probability movements just to say SHAP is enabled.
+Both paths therefore describe movements in the actual H/D/A probability vector.
+If neither can satisfy that semantic contract, callers receive ``None`` and keep
+the existing deterministic occlusion fallback. Raw-margin SHAP values are never
+mislabelled as percentage-point probability movements.
 """
 from __future__ import annotations
 
@@ -35,7 +37,40 @@ def _normalise_multiclass(values, n_rows: int, n_features: int,
     return None
 
 
-def tree_shap_probability_contributions(
+def _tree_probability_values(shap, clf, frame: np.ndarray,
+                             background: np.ndarray) -> np.ndarray | None:
+    try:
+        explainer = shap.TreeExplainer(
+            clf,
+            data=background,
+            feature_perturbation="interventional",
+            model_output="probability",
+        )
+        return explainer.shap_values(frame, check_additivity=False)
+    except Exception:
+        return None
+
+
+def _permutation_probability_values(shap, clf, frame: np.ndarray,
+                                    background: np.ndarray) -> np.ndarray | None:
+    """Model-agnostic SHAP on predict_proba when TreeSHAP cannot expose it."""
+    try:
+        explainer = shap.Explainer(
+            clf.predict_proba,
+            background,
+            algorithm="permutation",
+        )
+        explanation = explainer(
+            frame,
+            max_evals=max(2 * frame.shape[1] + 1, 3),
+            silent=True,
+        )
+        return np.asarray(explanation.values, dtype=float)
+    except Exception:
+        return None
+
+
+def shap_probability_contributions(
         clf,
         frame: np.ndarray,
         feature_names: Sequence[str],
@@ -43,11 +78,12 @@ def tree_shap_probability_contributions(
         background: np.ndarray,
         top_n: int = 8,
 ) -> list[list[dict]] | None:
-    """Probability-space TreeSHAP contributions, relative to ``background``.
+    """Probability-space SHAP contributions relative to ``background``.
 
-    ``None`` means the optional dependency is absent or the installed estimator
-    cannot satisfy probability-space TreeSHAP.  The caller should fall back to
-    its existing explanation rather than weakening the semantic contract.
+    TreeSHAP is preferred because it uses the fitted tree structure. For
+    sklearn multiclass estimators where SHAP cannot emit probability-space tree
+    values, permutation SHAP over ``predict_proba`` is used instead. That path
+    is model-agnostic and approximate, but its units remain probabilities.
     """
     try:
         import shap  # type: ignore
@@ -65,27 +101,30 @@ def tree_shap_probability_contributions(
     if not classes or any(outcome not in classes for outcome in outcome_order):
         return None
 
-    try:
-        explainer = shap.TreeExplainer(
-            clf,
-            data=background,
-            feature_perturbation="interventional",
-            model_output="probability",
+    method = "tree_shap_probability_vs_training_median"
+    values = _tree_probability_values(shap, clf, frame, background)
+    shaped = None
+    if values is not None:
+        shaped = _normalise_multiclass(
+            values,
+            n_rows=frame.shape[0],
+            n_features=frame.shape[1],
+            n_classes=len(classes),
         )
-        values = explainer.shap_values(frame, check_additivity=False)
-    except Exception:
-        # Do not silently fall back to raw-margin SHAP values: explain.py treats
-        # delta_home/draw/away as movements in the probability vector.
-        return None
 
-    shaped = _normalise_multiclass(
-        values,
-        n_rows=frame.shape[0],
-        n_features=frame.shape[1],
-        n_classes=len(classes),
-    )
     if shaped is None:
-        return None
+        method = "permutation_shap_probability_vs_training_median"
+        values = _permutation_probability_values(shap, clf, frame, background)
+        if values is None:
+            return None
+        shaped = _normalise_multiclass(
+            values,
+            n_rows=frame.shape[0],
+            n_features=frame.shape[1],
+            n_classes=len(classes),
+        )
+        if shaped is None:
+            return None
 
     class_indices = [classes.index(outcome) for outcome in outcome_order]
     shaped = shaped[:, :, class_indices]
@@ -103,7 +142,7 @@ def tree_shap_probability_contributions(
                 "delta_home": float(effects[0]),
                 "delta_draw": float(effects[1]),
                 "delta_away": float(effects[2]),
-                "method": "tree_shap_probability_vs_training_median",
+                "method": method,
             })
         contributions.sort(
             key=lambda item: -max(
