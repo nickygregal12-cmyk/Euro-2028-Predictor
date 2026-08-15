@@ -51,7 +51,7 @@ jobs:
           tar -xzf "$archive" -C /tmp/betterleaks
           install -m 0755 /tmp/betterleaks/betterleaks /usr/local/bin/betterleaks
           betterleaks version
-      - name: Scan pull-request change for secrets
+      - name: Scan pull-request additions for secrets
         if: github.event_name == 'pull_request'
         shell: bash
         env:
@@ -59,7 +59,9 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          git diff --binary "$BASE_SHA...$HEAD_SHA" | betterleaks stdin -v
+          git diff --unified=0 "$BASE_SHA...$HEAD_SHA" \
+            | awk '/^\+\+\+ / { next } /^\+/ { sub(/^\+/, ""); print }' \
+            | betterleaks stdin -v
       - name: Scan current main tree for secrets
         if: github.event_name != 'pull_request'
         run: betterleaks dir . -v
