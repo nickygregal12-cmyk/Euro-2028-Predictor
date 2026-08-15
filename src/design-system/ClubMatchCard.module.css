@@ -151,7 +151,6 @@
   display: inline-flex;
   align-items: center;
   min-height: var(--tap-min);
-  margin-block: calc((var(--tap-min) - var(--fs-1)) / -2);
   padding-inline: var(--sp-2);
   background: none;
   border: none;
