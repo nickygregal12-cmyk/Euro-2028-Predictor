@@ -92,3 +92,22 @@ def test_find_value_default_uses_real_venue_search_and_keeps_max_as_reference():
     assert "bk.kind <> 'aggregate'" in source
     assert "bookmaker='MAX'" in source
     assert "action_book" in source
+
+
+def test_existing_advice_is_reassessed_but_never_recorded_as_a_second_bet():
+    source = inspect.getsource(find_value.load_candidates)
+    assert "has_existing_bet" in source
+    # The old query-level exclusion made fresh odds unable to update Bet Builder.
+    assert "not exists (select 1 from ai.bets" not in source
+
+    assert find_value._should_record_new_bet(True, False) is True
+    assert find_value._should_record_new_bet(True, True) is False
+    assert find_value._should_record_new_bet(False, False) is False
+    assert find_value._should_record_new_bet(False, True) is False
+
+
+def test_fresh_recommendation_records_whether_an_immutable_bet_already_exists():
+    source = inspect.getsource(find_value.main)
+    assert 'rec.evidence["existing_bet_recorded"] = has_existing_bet' in source
+    assert "bet_decisions" in source
+    assert "new_bets" in source
