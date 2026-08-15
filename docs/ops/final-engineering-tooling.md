@@ -21,7 +21,7 @@ The same branch adds these after the repository/CI layer is established, using a
 
 - MSW for real HTTP-boundary tests;
 - fast-check for property testing of scoring invariants;
-- Zod Mini at the private AI Lab RPC boundary so runtime validation remains tree-shakeable under the production bundle budget;
+- Zod Mini in the private AI Lab boundary contract tests, wrapping the same exact-key predicate used by the production guard so schema validation adds no production bundle weight;
 - StrykerJS for targeted mutation testing of critical pure domain logic;
 - rollup-plugin-visualizer for opt-in bundle composition reports.
 
