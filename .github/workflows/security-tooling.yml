@@ -66,7 +66,8 @@ jobs:
 
   actionlint:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    permissions:
+      contents: read
     steps:
       - name: Harden runner (audit egress)
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -75,6 +76,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
         with:
+          fetch-depth: 0
           persist-credentials: false
       - name: Install verified actionlint v1.7.12
         shell: bash
@@ -88,8 +90,31 @@ jobs:
           mkdir -p /tmp/actionlint
           tar -xzf "$archive" -C /tmp/actionlint
           install -m 0755 /tmp/actionlint/actionlint /usr/local/bin/actionlint
-      - name: Lint GitHub Actions
-        run: actionlint -color
+      - name: Lint changed GitHub Actions
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          mapfile -t workflows < <(
+            git diff --diff-filter=d --name-only "$BASE_SHA...$HEAD_SHA" -- \
+              '.github/workflows/*.yml' '.github/workflows/*.yaml'
+          )
+          if [ "${#workflows[@]}" -eq 0 ]; then
+            echo 'No added or modified workflow files to lint.'
+            exit 0
+          fi
+          printf 'actionlint will check:\n'
+          printf '  %s\n' "${workflows[@]}"
+          actionlint -color "${workflows[@]}"
+      - name: Report repository workflow baseline
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          set -o pipefail
+          actionlint -color || true
 
   zizmor:
     runs-on: ubuntu-latest
