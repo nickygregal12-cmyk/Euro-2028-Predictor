@@ -67,7 +67,7 @@ describe('paid odds scheduling tracks fixture freshness instead of a weekday min
     expect(schedulerSql).toMatch(/d\.dispatched_at >= now\(\) - c\.max_gap/)
   })
 
-  it('reconciles Production daily and proves its own run spent no paid credit', () => {
+  it('reconciles Production daily, verifies the budget authority and does not itself dispatch', () => {
     expect(schedulerWorkflow.on.schedule?.map((x) => x.cron)).toContain('20 4 * * *')
     expect(schedulerWorkflow.env.PRODUCTION_PROJECT_REF).toBe('vkfnsqdyhvtwyqkisxhk')
     const runs = Object.values(schedulerWorkflow.jobs)
@@ -76,7 +76,9 @@ describe('paid odds scheduling tracks fixture freshness instead of a weekday min
       .join('\n')
     expect(runs).toMatch(/ai\.api_usage/)
     expect(runs).toMatch(/diff -u \/tmp\/ai-odds-usage-before \/tmp\/ai-odds-usage-after/)
-    expect(runs).not.toMatch(/dispatch_ai_odds_polls\s*\(/)
+    expect(runs).toMatch(/pg_get_functiondef/)
+    expect(runs).toMatch(/public\.ai_odds_budget_check/)
+    expect(runs).not.toMatch(/select\s+public\.dispatch_ai_odds_polls\s*\(/)
     expect(runs).not.toMatch(/odds_api\.py\s+live/)
   })
 })
