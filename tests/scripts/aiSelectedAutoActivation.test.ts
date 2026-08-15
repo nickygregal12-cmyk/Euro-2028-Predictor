@@ -21,6 +21,15 @@ describe('selected model auto-activation', () => {
     expect(workflow).not.toContain('SUPABASE_DEV_DB_URL')
   })
 
+  it('refuses stale or non-main activation code before the lifecycle write', () => {
+    const remoteChecks = workflow.match(/git ls-remote origin refs\/heads\/main/g) ?? []
+    expect(remoteChecks.length).toBeGreaterThanOrEqual(2)
+    expect(workflow).toContain('is not current main')
+    expect(workflow).toContain('refusing stale model activation')
+    expect(workflow.indexOf('Re-prove exact main before lifecycle write'))
+      .toBeLessThan(workflow.indexOf('python activate_selected_models.py'))
+  })
+
   it('only activates a complete nine-league version', () => {
     expect(workflow).toContain('having count(*)=9 and count(distinct league)=9')
     expect(workflow).toContain('is not a complete nine-league selected set')
