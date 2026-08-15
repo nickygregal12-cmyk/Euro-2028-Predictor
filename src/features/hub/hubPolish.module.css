@@ -1,0 +1,68 @@
+/* Final-mile Hub hierarchy informed by the UI review rules. These classes layer
+ * on the existing authority-owned Hub styles rather than replacing its tokens or
+ * component language. */
+.primaryFrame {
+  border-color: var(--line);
+  border-left: var(--bar-w) solid var(--acc);
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.primaryFrame:hover {
+  border-color: var(--border-strong);
+  border-left-color: var(--acc);
+}
+
+.secondaryFrame {
+  transition:
+    border-color var(--duration-micro) var(--ease-out),
+    background-color var(--duration-micro) var(--ease-out);
+}
+
+.secondaryWhen {
+  min-width: 0;
+  font-size: var(--fs-1);
+  color: var(--tx2);
+  font-variant-numeric: var(--numeric);
+  overflow-wrap: anywhere;
+}
+
+.recapList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.recapList > li {
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  /* Deadline becomes a stable right-hand lane rather than a third line floating
+     under the action. DOM order stays unchanged, so reading order remains the
+     mobile-first order. */
+  .primaryFrame,
+  .secondaryFrame {
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--sp-4);
+  }
+
+  .primaryFrame > :nth-child(1),
+  .primaryFrame > :nth-child(2),
+  .secondaryFrame > :nth-child(1),
+  .secondaryFrame > :nth-child(2) {
+    grid-column: 1;
+  }
+
+  .primaryFrame > :nth-child(3),
+  .secondaryFrame > :nth-child(3) {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    max-width: 24ch;
+    text-align: right;
+  }
+}
