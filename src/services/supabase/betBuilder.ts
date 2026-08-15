@@ -2,14 +2,16 @@ import type { Bookmaker, Leg } from '../../domain/ai/betBuilder'
 import { db } from './client'
 
 /**
- * The Bet Builder's two bounded reads.
+ * Bet Builder reads only bounded competition-admin RPCs; the browser never
+ * queries schema `ai` directly.
  *
- * The browser never queries schema `ai`. Both RPCs are `security definer` on
- * `require_competition_admin`, and `admin_ai_bet_builder_candidates` returns
- * rows of `ai.recommendations` where `decision = 'BET'` joined through
- * `ai.valid_predictions` — so a PASS is absent rather than filtered, and a
- * quarantined forecast is absent rather than flagged. The presentation layer
- * cannot reach either.
+ * `admin_ai_bet_builder_candidates` is intentionally conservative but its SQL
+ * selects from historical rows where decision=BET. That means an older BET can
+ * still be returned after a newer price pass has changed the fixture to PASS.
+ * Recommendations are append-only audit evidence, so mutating the old row would
+ * be worse. We therefore intersect the candidate RPC with the existing bounded
+ * recommendation log: only the newest decision for a fixture/market may feed
+ * Bet Builder, and that newest decision must still be BET.
  */
 
 type RawBook = {
@@ -47,6 +49,24 @@ type RawLeg = {
   uses_market: boolean | null
 }
 
+type RawDecision = {
+  id: string
+  league: string
+  market: string
+  decision: string
+  decided_at: string
+  kickoff_at: string
+  bookmaker: string | null
+  home_canonical: string
+  away_canonical: string
+  prediction_quarantined: boolean
+}
+
+type DecisionSnapshot = {
+  readonly currentBetRecommendationIds: ReadonlySet<string>
+  readonly currentBetCountsByBook: ReadonlyMap<string, number>
+}
+
 export type BookmakerSummary = Bookmaker & {
   readonly legs: number
   readonly lastDecidedAt: string | null
@@ -73,7 +93,46 @@ function kind(value: string): Bookmaker['kind'] {
     : 'unknown'
 }
 
-export function mapBookmakers(payload: unknown): readonly BookmakerSummary[] {
+function decisionKey(row: RawDecision): string {
+  return [row.league, row.market, row.kickoff_at, row.home_canonical, row.away_canonical].join('\u001f')
+}
+
+/**
+ * `admin_ai_recommendation_log` returns newest rows first. Keep exactly the
+ * first row per fixture/market and admit its id only when it is a future,
+ * non-quarantined BET. A newer PASS therefore supersedes an older BET without
+ * deleting or rewriting either audit row.
+ */
+export function currentBetDecisionSnapshot(
+  payload: unknown,
+  nowMs: number = Date.now(),
+): DecisionSnapshot {
+  const body = (payload ?? {}) as { recommendations?: RawDecision[] }
+  const seen = new Set<string>()
+  const ids = new Set<string>()
+  const counts = new Map<string, number>()
+
+  for (const row of body.recommendations ?? []) {
+    const key = decisionKey(row)
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    const kickoffMs = Date.parse(row.kickoff_at)
+    if (!Number.isFinite(kickoffMs) || kickoffMs <= nowMs) continue
+    if (row.prediction_quarantined || row.decision !== 'BET' || !row.bookmaker) continue
+
+    ids.add(row.id)
+    const code = row.bookmaker.toUpperCase()
+    counts.set(code, (counts.get(code) ?? 0) + 1)
+  }
+
+  return { currentBetRecommendationIds: ids, currentBetCountsByBook: counts }
+}
+
+export function mapBookmakers(
+  payload: unknown,
+  currentCounts?: ReadonlyMap<string, number>,
+): readonly BookmakerSummary[] {
   const body = (payload ?? {}) as { bookmakers?: RawBook[] }
   return (body.bookmakers ?? []).map((row) => ({
     code: row.code,
@@ -81,9 +140,22 @@ export function mapBookmakers(payload: unknown): readonly BookmakerSummary[] {
     kind: kind(row.kind),
     isRealPrice: Boolean(row.is_real_price),
     exchangeCommission: num(row.exchange_commission),
-    legs: num(row.legs) ?? 0,
+    legs: currentCounts?.get(row.code.toUpperCase()) ?? num(row.legs) ?? 0,
     lastDecidedAt: row.last_decided_at,
   }))
+}
+
+export function filterCandidatePayloadToCurrentDecisions(
+  payload: unknown,
+  currentBetRecommendationIds: ReadonlySet<string>,
+): unknown {
+  const body = (payload ?? {}) as {
+    legs?: RawLeg[]
+    leg_count?: number
+    [key: string]: unknown
+  }
+  const legs = (body.legs ?? []).filter((row) => currentBetRecommendationIds.has(row.recommendation_id))
+  return { ...body, legs, leg_count: legs.length }
 }
 
 export function mapCandidates(payload: unknown): BetBuilderCandidates {
@@ -132,10 +204,22 @@ export function mapCandidates(payload: unknown): BetBuilderCandidates {
   }
 }
 
-export async function fetchBetBuilderBookmakers(): Promise<readonly BookmakerSummary[]> {
-  const { data, error } = await db.rpc('admin_ai_bet_builder_books')
+async function fetchCurrentDecisionSnapshot(): Promise<DecisionSnapshot> {
+  const { data, error } = await db.rpc('admin_ai_recommendation_log', {
+    p_league: null,
+    p_limit: 500,
+  })
   if (error) throw error
-  return mapBookmakers(data)
+  return currentBetDecisionSnapshot(data)
+}
+
+export async function fetchBetBuilderBookmakers(): Promise<readonly BookmakerSummary[]> {
+  const [{ data, error }, decisions] = await Promise.all([
+    db.rpc('admin_ai_bet_builder_books'),
+    fetchCurrentDecisionSnapshot(),
+  ])
+  if (error) throw error
+  return mapBookmakers(data, decisions.currentBetCountsByBook)
 }
 
 export async function fetchBetBuilderCandidates(options: {
@@ -144,13 +228,20 @@ export async function fetchBetBuilderCandidates(options: {
   from: Date
   to: Date
 }): Promise<BetBuilderCandidates> {
-  const { data, error } = await db.rpc('admin_ai_bet_builder_candidates', {
-    p_bookmaker: options.bookmaker,
-    p_leagues: options.leagues && options.leagues.length ? [...options.leagues] : null,
-    p_from: options.from.toISOString(),
-    p_to: options.to.toISOString(),
-    p_limit: 200,
-  })
+  const [{ data, error }, decisions] = await Promise.all([
+    db.rpc('admin_ai_bet_builder_candidates', {
+      p_bookmaker: options.bookmaker,
+      p_leagues: options.leagues && options.leagues.length ? [...options.leagues] : null,
+      p_from: options.from.toISOString(),
+      p_to: options.to.toISOString(),
+      p_limit: 200,
+    }),
+    fetchCurrentDecisionSnapshot(),
+  ])
   if (error) throw error
-  return mapCandidates(data)
+  const current = filterCandidatePayloadToCurrentDecisions(
+    data,
+    decisions.currentBetRecommendationIds,
+  )
+  return mapCandidates(current)
 }
