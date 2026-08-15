@@ -35,7 +35,7 @@ jobs:
           set -euo pipefail
           npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/euro28-preview.log 2>&1 &
           echo $! > /tmp/euro28-preview.pid
-          for attempt in {1..30}; do
+          for _ in {1..30}; do
             if curl --fail --silent http://127.0.0.1:4173/release.json > /dev/null; then
               exit 0
             fi
