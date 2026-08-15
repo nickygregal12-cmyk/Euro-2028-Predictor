@@ -263,7 +263,7 @@ export async function fetchBetBuilderCandidates(options: {
   const [{ data, error }, decisions] = await Promise.all([
     db.rpc('admin_ai_bet_builder_candidates', {
       p_bookmaker: options.bookmaker,
-      p_leagues: options.leagues && options.leagues.length ? [...options.leagues] : null,
+      p_leagues: options.leagues && options.leagues.length ? [...options.leagues] : undefined,
       p_from: options.from.toISOString(),
       p_to: options.to.toISOString(),
       p_limit: 200,
