@@ -1,273 +1,252 @@
 {
-  "$comment": "Which documents may name a contract number, and what naming one obliges them to. Every tracked markdown file must resolve to exactly one of three states: an authority (here or under authorityDirectories), evidence (evidenceDirectories), or explicitly out of scope with a reason. A fourth state \u2014 classified by nothing \u2014 is where staleness lived: measured on 11 August 2026, 101 of 238 files were in it and 51 of those named contract numbers, the oldest naming 35 while the repository was at 157. See scripts/check-documentation-authorities.mjs for the rules and docs/ops/documentation-authorities.md for why this exists.",
+  "$comment": "Classifies every tracked Markdown file as current authority, stable reference, historical evidence, or explicitly out of scope. Keep sweep=true only for documents that genuinely need revisiting on every migration. See scripts/check-documentation-authorities.mjs and docs/ops/documentation-authorities.md.",
   "authorities": [
     {
       "path": "AGENTS.md",
-      "kind": "live",
-      "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Agent operating rules state the repository and hosted contracts directly."
+      "kind": "reference",
+      "sweep": false,
+      "why": "Stable repository/task router. Moving contracts and hosted state belong in NOW.md, machine records and current-status.md."
     },
     {
       "path": "CLAUDE.md",
-      "kind": "live",
-      "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Session summary; states the current implementation boundary."
+      "kind": "reference",
+      "sweep": false,
+      "why": "Stable Claude-specific router. It links to task authorities instead of carrying a moving implementation history."
     },
     {
       "path": "ai/README.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Operational reference for the private AI Lab package. Its commands and safeguards are verified alongside the code and it does not state the repository or hosted contract position."
+      "why": "Operational reference for the private AI Lab package; it does not own repository or hosted contract position."
     },
     {
       "path": "MASTER-TODO.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Detailed inventory; its delivered/outstanding marks move with each contract."
+      "allow": [63],
+      "why": "Detailed active/parked inventory; delivered and outstanding dispositions can move with a migration."
     },
     {
       "path": "docs/roadmap.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Execution sequence; its next-step list is falsified by the contract that does the step."
+      "allow": [63],
+      "why": "Execution sequence; a migration can complete or reorder an executable step."
     },
     {
       "path": "docs/quality/current-status.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "The declared live implementation and hosted-status authority."
+      "allow": [63],
+      "why": "Detailed live implementation and hosted-status authority."
     },
     {
       "path": "docs/ops/ops-pending-migrations.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "The operational migration inventory."
+      "allow": [63],
+      "why": "Operational migration inventory and hosted-applied-state reference."
     },
     {
       "path": "docs/quality/feature-baseline.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Feature and safeguard classification; its backend overlay moves with the backend."
+      "allow": [63],
+      "why": "Current feature/safeguard classification; migrations can add features or move rule implementation."
     },
     {
       "path": "docs/adr/README.md",
       "kind": "live",
       "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "ADR index; each row carries an implementation status."
+      "allow": [63],
+      "why": "ADR index carries implementation status per decision."
     },
     {
       "path": "docs/design/README.md",
-      "kind": "live",
-      "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "Design index; carries the merged-delta table against the plan's snapshot."
+      "kind": "reference",
+      "sweep": false,
+      "allow": [63],
+      "why": "Legacy/current-production UI index. Moving repository state and migration history are deliberately excluded."
     },
     {
       "path": "docs/design/ui-finalisation.md",
-      "kind": "live",
-      "sweep": true,
-      "allow": [
-        63
-      ],
-      "why": "The current UI authority for the signed-in weekly product, and the largest live-staleness risk the coverage rule exposed: it names eleven contracts and was governed by nothing. Section 11 states a delivery state per surface and section 12 states which backend rows are closed, both of which a contract falsifies, so it is live rather than a direction. It is swept for the same reason: a contract with nothing to say to it records that it has nothing to say, which is a fact, where silence is indistinguishable from an oversight."
+      "kind": "reference",
+      "sweep": false,
+      "allow": [63],
+      "why": "Retained legacy production UI direction/delivery reference. It is no longer a migration sweep or vNext authority."
     },
     {
       "path": "docs/design-system.md",
       "kind": "live",
       "sweep": false,
-      "why": "Component-level authority for the surfaces that exist, which is a current-state claim. It names no contract today and so is held to nothing yet; classifying it live is what makes naming one later an obligation rather than a new blind spot. Not swept: a contract that adds a database function has nothing to say to a component specification, and marking it would train exactly the meaningless line the sweep exists to avoid."
+      "why": "Component-level authority for current production surfaces; it names no moving repository contract state."
     },
     {
       "path": "docs/design/hub-architecture-and-modernisation-plan.md",
       "kind": "reference",
       "sweep": false,
-      "why": "The owner-supplied target design, revision 1.5, added to the repository VERBATIM. It is not superseded \u2014 docs/design/README.md calls it the answer to what the product should look like when finished, and ui-finalisation.md opens by saying the target design in it stands. It is reference rather than live precisely because it must not be edited: it names contract 95 because that is what was true on 4 August 2026, and a rule requiring it to name the current contract would require rewriting a document whose value is that nobody has."
+      "why": "Retained legacy target-design reference at its authored snapshot; not current-state authority."
     },
     {
       "path": "docs/design/ui-modernisation-execution.md",
       "kind": "reference",
       "sweep": false,
-      "why": "The delivery sequence beneath the target design, and also not superseded: ui-finalisation.md states that its order stands except where the 10 August amendment says otherwise. Its twenty-three contract references are per-item delivery notes saying what built each step, which is a reference's shape and not a claim that the repository is at 141."
+      "why": "Retained legacy delivery reference whose contract mentions identify what built individual steps."
     },
     {
       "path": "docs/competition-structure.md",
       "kind": "live",
       "sweep": false,
-      "allow": [
-        63
-      ],
-      "why": "Implementation-relationship section names delivered backend."
+      "allow": [63],
+      "why": "Current implementation relationships between competitions, games and membership."
     },
     {
       "path": "docs/architecture/programme-plan.md",
       "kind": "live",
       "sweep": false,
-      "allow": [
-        63
-      ],
-      "why": "Programme phases, workstreams and failable product gates \u2014 content nothing else in the repository holds. It is live because \u00a7 7 states which gates remain open, which a contract can falsify. It carried a delivered-foundations list and a contract changelog until 11 August 2026; both restated current-status.md, and nine of its paragraphs were byte-identical to CLAUDE.md and to the child build plan. What survives is a table of what each contract meant for a PHASE, which is the only part a programme plan owns."
+      "allow": [63],
+      "why": "Programme phases and product gates that are not restated elsewhere; not every migration affects them."
     },
     {
       "path": "docs/architecture/multi-competition-hub-build-plan.md",
       "kind": "live",
       "sweep": false,
-      "allow": [
-        63
-      ],
-      "why": "The Stage A-L engineering sequence, and the child of the programme plan above. It is live because its stage exit evidence moves. Its contract changelog was the same verbatim copy the parent carried, which its own \u00a7 18 already forbade in principle \u2014 maintaining the same decision in two documents creates competing authority \u2014 and is now a table of what each contract meant for a STAGE."
+      "allow": [63],
+      "why": "Stage A-L engineering plan whose stage exit evidence can move, but not on every migration."
     },
     {
       "path": "docs/quality/risk-register.md",
       "kind": "dispositions",
       "sweep": false,
-      "allow": [
-        63
-      ],
-      "why": "Risk dispositions name the contract that resolved them. Its contract references are per-item dispositions naming what resolved an entry, not a claim about current state, so it is required only never to name a contract that does not exist yet."
+      "allow": [63],
+      "why": "Risk rows name the contract that resolved them rather than claiming current contract state."
     },
     {
       "path": "docs/quality/deferred-decisions.md",
       "kind": "dispositions",
       "sweep": false,
-      "allow": [
-        63
-      ],
-      "why": "Decision dispositions name the contract that implemented them. Its contract references are per-item dispositions naming what resolved an entry, not a claim about current state, so it is required only never to name a contract that does not exist yet."
+      "allow": [63],
+      "why": "Decision rows name implementation/disposition contracts rather than current repository state."
     },
     {
       "path": "docs/architecture/stage-c-trigger-bindings.md",
       "kind": "structural",
       "sweep": false,
-      "why": "An inventory of what the schema currently binds. It is held in step by tests/database-parity/stageCTriggerBindingCoverage.test.ts against a real database, which is a stronger check than counting contract numbers in prose."
+      "why": "Held in step by executable trigger-binding coverage against the database rather than prose freshness."
     },
     {
       "path": "docs/product/innovation-lab.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Governed candidate register for unaccepted product differentiators. It is deliberately outside current truth, the accepted-requirements register and the execution roadmap; INNOV-* entries become implementation scope only after explicit owner acceptance and promotion through the existing authorities."
+      "why": "Governed register of unaccepted innovation candidates; not current implementation truth."
+    },
+    {
+      "path": "src/vnext/AGENTS.md",
+      "kind": "reference",
+      "sweep": false,
+      "why": "Scoped frontend context for the parallel vNext lane. It contains stable presentation boundaries, not moving backend state."
     },
     {
       "path": "README.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Describes what the project is and how to run it. It deliberately names no contract, hosted status or release claim \u2014 NOW.md carries those \u2014 so classifying it costs nothing and stops it drifting back into a status document."
+      "why": "Project/run reference. Current moving state belongs in NOW.md."
     },
     {
       "path": "SECURITY.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Vulnerability reporting policy. It holds no contract-scoped fact and is classified so the coverage rule has no exception it did not decide."
+      "why": "Vulnerability reporting policy; no project moving state."
     },
     {
       "path": "docs/architecture-and-tournament-states.md",
       "kind": "reference",
       "sweep": false,
-      "why": "The competition-context and match-state contract. Where it names a contract it is naming what implemented a layer, not claiming a current hosted position \u2014 docs/quality/current-status.md owns that."
+      "why": "Competition-context and match-state reference; contract mentions identify implementation layers."
     },
     {
       "path": "docs/auth-plan.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Sections 1-4 map to shipped auth; section 5 records an accepted and unbuilt two-site model. Classified so the file is watched at all. Splitting the current half from the accepted half is a separate editorial pass, not a classification decision."
+      "why": "Authentication reference containing shipped and accepted future structure; not hosted-state authority."
     },
     {
       "path": "docs/ops-production-observability.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Production observability procedure. It cites the contract its baseline was taken at, which is a fact about the baseline."
+      "why": "Production observability procedure; any contract citation belongs to its baseline."
     },
     {
       "path": "docs/ops-sentry.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Sentry operational procedure; the same shape as the observability runbook beside it."
+      "why": "Sentry operational procedure."
     },
     {
       "path": "docs/predictor-cup-rules.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Its own banner calls it concept rules v0.1 and it reads as a retired draft, but section 5 is LIVE RULE AUTHORITY: src/domain/season/cupGroupTable.ts cites its table columns and eight tie-breakers by name, under ADR 0014 as amended by ADR 0020. It stays where it is for that reason. The heading now says which part the code depends on, so nobody retires a rule by trusting the version number."
+      "why": "Retained rule reference for the season cup table/tie-break authority under its governing ADRs."
     },
     {
       "path": "docs/scoring-rules.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Authoritative for the preserved Euro Original Predictor configuration only, and explicitly not a platform default. Its contract references name what changed that configuration."
+      "why": "Authoritative reference for the preserved Euro Original Predictor configuration only."
     },
     {
       "path": "docs/quality/instruments/entry-flow-test-script.md",
       "kind": "reference",
       "sweep": false,
-      "why": "A reusable single-tester usability script, not a dated record \u2014 tests/scripts/markdownDocumentation.test.ts guards it against regressing to obsolete phase language, which is only worth doing to an instrument that will be run again. It sits beside the audit prompt for that reason. It names the contract its environment guidance was written against, which is a fact about that guidance."
+      "why": "Reusable usability test instrument, not a dated result."
     },
     {
       "path": "docs/tournament-structure.md",
       "kind": "reference",
       "sweep": false,
-      "why": "Euro 2028 tournament facts and the third-place allocation table. It names no contract; it is verified against UEFA regulations rather than against the migration chain, and carries its own re-verification banner."
+      "why": "Euro 2028 tournament-fact reference verified against external regulations rather than the migration chain."
     }
   ],
   "authorityDirectories": [
     {
       "prefix": ".specify/",
       "kind": "reference",
-      "why": "Spec Kit process metadata and engineering constitution. These files structure specification and delivery but must not become a second moving product, contract, hosted-state, or model-selection authority."
+      "why": "Spec Kit process metadata and engineering constitution; never a second moving product/contract authority."
     },
     {
       "prefix": ".agents/skills/",
       "kind": "reference",
-      "why": "Discoverable project-specific Agent Skills. They route agents to existing authorities and may describe stable verification procedure, but they must not become a second moving contract or hosted-state authority."
+      "why": "Discoverable task-specific Agent Skills that route to existing authorities."
     },
     {
       "prefix": "docs/adr/",
       "kind": "reference",
-      "why": "Architecture and product decision records. An ADR names the contract that implemented it, which is a fact about the decision rather than a claim about current state. docs/adr/README.md is listed separately as live, because its index carries an implementation status per row and a per-file entry wins over this rule."
+      "why": "Decision records; docs/adr/README.md is listed separately because its index carries live implementation status."
     },
     {
       "prefix": "docs/architecture/",
       "kind": "reference",
-      "why": "Subsystem and programme references, each naming the contracts that built the thing it describes. Three are listed separately and override this rule: two programme plans as live because they carry progress overlays, and the trigger-binding inventory as structural."
+      "why": "Subsystem and programme references; exact live/structural entries override this directory default."
     },
     {
       "prefix": "docs/ops/",
       "kind": "reference",
-      "why": "Repeatable operational procedures. A procedure cites the contract it was introduced for. ops-pending-migrations.md is listed separately as live because it is the migration inventory; dated operator records live in docs/ops/records/ and resolve as evidence by the longer prefix."
+      "why": "Repeatable operational procedures; exact live entries and docs/ops/records evidence override this default."
     },
     {
       "prefix": "docs/quality/",
       "kind": "reference",
-      "why": "Quality governance, registers, baselines and reusable instruments. Four files are listed separately as live or dispositions. The dated audit, investigation, reconciliation and history subdirectories are evidence and win by the longer prefix."
+      "why": "Quality governance/references; exact live/disposition entries and dated evidence subdirectories override this default."
     },
     {
       "prefix": "docs/design/",
       "kind": "reference",
-      "why": "Design authorities and the planning history beneath them. README.md is listed separately as live. Promoting ui-finalisation.md to live, and freezing the two superseded plans, are editorial decisions rather than classification ones and are deliberately left open."
+      "why": "Legacy/current production design references. Moving state and vNext direction live elsewhere."
+    },
+    {
+      "prefix": "docs/product/",
+      "kind": "reference",
+      "why": "Stable product-direction/reference documents; implementation and hosted state remain in their own authorities."
     }
   ],
   "evidenceDirectories": [
@@ -285,19 +264,19 @@
   "outOfScope": [
     {
       "path": "NOW.md",
-      "why": "Generated by scripts/generate-now.mjs and held to an exact regeneration check by `npm run check:now`, which is strictly stronger than the freshness rule. Marking it swept would force a manual touch on a file whose whole point is that nobody types into it. This exclusion is the one already recorded in docs/ops/documentation-authorities.md, now stated where the checker can see it."
+      "why": "Generated by scripts/generate-now.mjs and held to an exact regeneration check by npm run check:now; manual sweep edits would defeat its purpose."
     },
     {
       "path": ".github/pull_request_template.md",
-      "why": "A form for the body of a pull request. It states no project fact and so cannot go stale about one."
+      "why": "PR body form; it states no project fact."
     },
     {
       "path": "scripts/benchmarks/README.md",
-      "why": "Describes how to run the scripts in the directory it sits in. It is documented by the code beside it and states no project-wide fact."
+      "why": "Local benchmark-script usage reference with no project-wide moving fact."
     },
     {
       "path": "scripts/seed-dev/README.md",
-      "why": "Describes how to run the seed scripts in the directory it sits in. Same reason as the benchmarks README beside it."
+      "why": "Local seed-script usage reference with no project-wide moving fact."
     }
   ]
 }
