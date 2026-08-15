@@ -23,7 +23,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -88,7 +88,7 @@
 .rivalName {
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
   overflow-wrap: anywhere;
 }
@@ -98,7 +98,7 @@
   font-family: var(--font-display);
   font-size: var(--fs-4);
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: var(--tracking-tight);
   color: var(--tx);
   font-variant-numeric: var(--numeric);

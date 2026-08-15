@@ -74,7 +74,7 @@
   border-color: var(--acc);
   background: color-mix(in srgb, var(--acc) 14%, transparent);
   color: var(--tx);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* The visually hidden input still owns the focus ring, so it has to be drawn
@@ -94,10 +94,10 @@
 .tableHeading {
   margin: 0;
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   font-size: var(--fs-2);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx2);
 }
 
@@ -107,7 +107,7 @@
   font-family: var(--font-body);
   font-size: var(--fs-2);
   font-variant-numeric: var(--numeric);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -127,7 +127,7 @@
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--tracking-open);
   /* --tx2 rather than --tx3: this sits on --card, where --tx3 has measured
      below AA on tinted surfaces before. */
   color: var(--tx2);
@@ -184,9 +184,7 @@
 
 .name {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .played,
@@ -201,7 +199,7 @@
 
 .points {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 500;
   color: var(--tx);
 }
 

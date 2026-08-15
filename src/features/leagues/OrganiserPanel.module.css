@@ -16,7 +16,7 @@
   margin: 0;
   font-family: var(--font-display);
   font-size: var(--fs-3);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--tx);
 }
 
@@ -59,7 +59,7 @@
 .name {
   font-family: var(--font-body);
   font-size: var(--fs-2);
-  font-weight: 600;
+  font-weight: 500;
   overflow-wrap: anywhere;
 }
 

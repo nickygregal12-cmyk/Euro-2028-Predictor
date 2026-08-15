@@ -37,7 +37,7 @@ export function SeasonPlayerSeason({ profile }: { profile: SeasonPlayerProfile }
   }
 
   return (
-    <>
+    <div className={styles.playerSeason}>
       <div className={styles.identity}>
         <h1 className={styles.name}>{player.displayName}</h1>
         {player.isSelf ? <span className={styles.you}>This is you</span> : null}
@@ -129,6 +129,6 @@ export function SeasonPlayerSeason({ profile }: { profile: SeasonPlayerProfile }
         Predictions appear once that matchweek has locked at its first kickoff. Your own are
         always visible to you.
       </p>
-    </>
+    </div>
   )
 }

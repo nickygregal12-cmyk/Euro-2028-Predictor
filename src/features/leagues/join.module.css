@@ -1,21 +1,22 @@
-/* Invite deep-link landing page (outside the app shell). Tokens only. */
+/* Invite deep-link landing page (outside the app shell). It deliberately keeps
+   the app shell out of the journey, but still uses the shared spacing/type
+   system and spends desktop width on a comfortable invitation measure. */
 
 .page {
   min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 16px;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-4) var(--sp-3);
   background: var(--bg);
 }
 
 .card {
-  width: 100%;
-  max-width: 420px;
+  width: min(100%, 680px);
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: 20px;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
@@ -23,10 +24,21 @@
 
 .eyebrow {
   margin: 0;
-  text-align: center;
   font-family: var(--font-display);
   font-size: var(--fs-eyebrow);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: var(--tracking-open);
   color: var(--tx3);
+}
+
+@media (min-width: 760px) {
+  .page {
+    padding: var(--sp-6);
+  }
+
+  .card {
+    gap: var(--sp-4);
+    padding: var(--sp-6);
+  }
 }

@@ -218,7 +218,7 @@ export function SeasonPlayerProfileRoute() {
         <Alert variant="warning" title="You cannot see this player&rsquo;s season">
           A player&rsquo;s season is visible to the people they share a private league with.
           Playing in the same competition is not enough.
-          <div style={{ marginTop: 10 }}>
+          <div className={styles.alertAction}>
             <Link to={leaguesHref}>Your leagues in this competition</Link>
           </div>
         </Alert>
