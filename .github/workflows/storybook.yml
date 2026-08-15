@@ -1,0 +1,29 @@
+name: Storybook
+
+on:
+  pull_request:
+    paths:
+      - '.storybook/**'
+      - 'src/design-system/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/storybook.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build Storybook
+        run: npm run build:storybook
