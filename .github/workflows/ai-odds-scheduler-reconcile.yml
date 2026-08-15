@@ -2,7 +2,9 @@ name: Reconcile AI odds scheduler
 
 # pg_cron jobs are hosted operational state rather than dump-carried schema
 # state. Reconcile the Production scheduler from exact repository SQL and prove
-# that doing so consumed no provider credit.
+# that reconciliation itself consumed no provider credit. The installed job is
+# fixture-aware: it tightens collection cadence as a paid-covered kickoff gets
+# closer while public.dispatch_ai_odds_polls() keeps the budget authority.
 on:
   push:
     branches: [main]
@@ -111,5 +113,6 @@ jobs:
             echo '- Production holds one active `ai-odds-window-heartbeat` job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
-            echo '- The heartbeat retries every five minutes only inside the existing Tuesday 13:30–13:44 / Friday 17:30–17:44 Europe/London collection windows.'
+            echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
+            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h); `ai_odds_budget_check` remains the spend authority.'
           } >> "$GITHUB_STEP_SUMMARY"
