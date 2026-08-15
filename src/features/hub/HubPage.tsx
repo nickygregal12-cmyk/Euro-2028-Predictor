@@ -21,7 +21,7 @@ import type { BriefingInput, BriefingStanding } from './briefingModel'
 import { useMatchweekRecap } from './useMatchweekRecap'
 import { useRivalWatch } from './useRivalWatch'
 import { RivalWatchCard } from './RivalWatchCard'
-import { ordinal } from '../league/ordinal'
+import { MatchweekRecapCard } from './MatchweekRecapCard'
 import { readLastVisit, writeLastVisit } from './lastVisit'
 import type { InboxAction } from './playInboxModel'
 import s from '../shared.module.css'
@@ -82,6 +82,27 @@ function PrimaryAction({ action }: { action: InboxAction }) {
   )
 }
 
+function SecondaryAction({ action }: { action: InboxAction }) {
+  const when = formatDeadline(action.locksAt)
+  const body = (
+    <>
+      <span className={h.secondaryWhere}>
+        {action.competitionName} · {action.gameName}
+      </span>
+      <span className={h.secondaryTitle}>{action.title}</span>
+      {when ? <span className={h.secondaryWhen}>Locks {when}</span> : null}
+    </>
+  )
+
+  return action.href ? (
+    <Link className={h.secondary} to={action.href}>
+      {body}
+    </Link>
+  ) : (
+    <div className={`${h.secondary} ${h.primaryInert}`}>{body}</div>
+  )
+}
+
 function FixtureRow({ row, href }: { row: CombinedFixtureRow; href: string | null }) {
   const body = (
     <>
@@ -104,9 +125,6 @@ function FixtureRow({ row, href }: { row: CombinedFixtureRow; href: string | nul
     </>
   )
   return href ? (
-    // INNOV-024: a fixture card opening into its Match Centre is one of the four
-    // transitions the direction names. Opt-in per link, never page-wide, and
-    // suppressed entirely under prefers-reduced-motion.
     <Link className={h.fixture} to={href} viewTransition>
       {body}
     </Link>
@@ -119,13 +137,6 @@ export function HubPage() {
   const { status: membership, player, preferences, reload } = usePlayerCompetitions()
   const { userId } = useAuth()
   const { inbox } = useGlobalPlayInbox(player)
-
-  // Read once on mount. The marker is NOT advanced here, and that is a fix
-  // rather than an omission: it used to advance on mount, so a Hub whose
-  // fixture reads then failed silently consumed a period the player never
-  // actually saw — the next visit measured "since" from a moment nothing was
-  // shown at. It now advances only once the football this section is built from
-  // has resolved, below.
   const [lastVisit] = useState(readLastVisit)
 
   const [sources, setSources] = useState<CombinedFixtureSource[] | null>(null)
@@ -152,9 +163,6 @@ export function HubPage() {
         result.status === 'fulfilled' ? [result.value] : [],
       )
       setSources(resolved)
-      // The visit counts as seen only now, and only if at least one competition
-      // answered. A total read failure leaves the marker where it was, so the
-      // next visit still shows what changed.
       if (resolved.length > 0) writeLastVisit(new Date())
     })()
     return () => {
@@ -168,12 +176,7 @@ export function HubPage() {
     () => (sources ? presentCombinedFixtures(sources, [], 'today', today) : null),
     [sources, today],
   )
-  // What the results did to the player (contracts 151 and 150). Bounded, and
-  // the bound is stated in the section below rather than applied silently.
   const recap = useMatchweekRecap(player, userId)
-  // Contract 157's pinned rival, compared inside a league table the player is
-  // already a member of. It adds no read of its own beyond that table, and
-  // renders nothing at all when there is no rival to watch.
   const rivalWatch = useRivalWatch(player, preferences, reload)
 
   const since = useMemo(() => {
@@ -249,12 +252,6 @@ export function HubPage() {
   const primary = outstanding[0] ?? null
   const secondary = outstanding.slice(1, 3)
 
-  /**
-   * INNOV-016. Assembled from what this page has already read — the action
-   * inbox, today's fixtures and whichever standing is available — and adding no
-   * request of its own. Where the two standings disagree in scope the LEAGUE one
-   * wins: it is the table a player checks, and it carries a named rival.
-   */
   const rival = rivalWatch.watch?.pinned[0] ?? null
   const firstRecap = recap.recaps[0] ?? null
   const briefingStanding: BriefingStanding | null =
@@ -262,12 +259,8 @@ export function HubPage() {
       ? {
           where: rivalWatch.leagueName,
           position: rival.yourRank,
-          // A league comparison carries no field size, and inventing one from
-          // the season's would name a different table.
           fieldSize: null,
           rivalName: rival.displayName,
-          // Only when they are actually ahead. "0 points behind" for somebody
-          // the player leads is a sentence that reads as bad news.
           pointsBehind: rival.pointsDifference < 0 ? Math.abs(rival.pointsDifference) : null,
         }
       : firstRecap && firstRecap.seasonRank !== null && firstRecap.fieldSize !== null
@@ -338,8 +331,6 @@ export function HubPage() {
             </li>
           ))}
         </ul>
-        {/* Discovery, and deliberately last and quiet: the authority requires
-            it not to compete with outstanding actions. */}
         <Link className={h.panelLink} to={weeklyRoutes.competitions}>
           All competitions
         </Link>
@@ -351,10 +342,6 @@ export function HubPage() {
     <div className={s.page}>
       <Workspace aside={aside} asideLabel="Football and competitions">
         <h1 className={s.title}>Home</h1>
-
-        {/* INNOV-016, above everything and replacing nothing: the sentence that
-            tells a player whether they need to read the rest. It renders
-            nothing at all on a quiet day. */}
         <BriefingPanel input={briefing} />
 
         <section className={h.section} aria-labelledby="hub-next">
@@ -374,21 +361,7 @@ export function HubPage() {
                 <ul className={h.secondaryList}>
                   {secondary.map((action) => (
                     <li key={action.key}>
-                      {action.href ? (
-                        <Link className={h.secondary} to={action.href}>
-                          <span className={h.secondaryWhere}>
-                            {action.competitionName} · {action.gameName}
-                          </span>
-                          <span className={h.secondaryTitle}>{action.title}</span>
-                        </Link>
-                      ) : (
-                        <div className={`${h.secondary} ${h.primaryInert}`}>
-                          <span className={h.secondaryWhere}>
-                            {action.competitionName} · {action.gameName}
-                          </span>
-                          <span className={h.secondaryTitle}>{action.title}</span>
-                        </div>
-                      )}
+                      <SecondaryAction action={action} />
                     </li>
                   ))}
                 </ul>
@@ -400,8 +373,6 @@ export function HubPage() {
           )}
         </section>
 
-        {/* Only for a returning player with something that actually finished.
-            A first visit has no "since" and renders nothing at all. */}
         {since?.available && since.results.length > 0 ? (
           <section className={h.section} aria-labelledby="hub-since">
             <h2 className={h.sectionTitle} id="hub-since">
@@ -422,11 +393,6 @@ export function HubPage() {
           </section>
         ) : null}
 
-        {/* What those results did to the player. Contract 151 supplies the
-            banked matchweek points, the season position and the exact/correct
-            counts; contract 150 supplies movement inside a private league.
-            Nothing is estimated, and a competition with nothing settled
-            contributes no card rather than an empty one. */}
         <RivalWatchCard state={rivalWatch} />
 
         {recap.status === 'ready' && recap.recaps.length > 0 ? (
@@ -434,42 +400,14 @@ export function HubPage() {
             <h2 className={h.sectionTitle} id="hub-recap">
               Matchweek recap
             </h2>
-            <ul className={h.fixtureList}>
+            <ul className={h.recapList}>
               {recap.recaps.map((entry) => (
                 <li key={entry.competitionKey}>
-                  <Link className={h.competitionRow} to={entry.href}>
-                    <span className={h.competitionName}>
-                      {entry.competitionName} · {entry.matchweekLabel}
-                    </span>
-                    <span className={h.competitionMeta}>
-                      {entry.points} pts
-                      {entry.jokerPlayed ? ' · Joker' : ''}
-                      {entry.exactScores !== null ? ` · ${entry.exactScores} exact` : ''}
-                      {entry.correctOutcomes !== null
-                        ? ` · ${entry.correctOutcomes} correct`
-                        : ''}
-                      {entry.seasonRank !== null && entry.fieldSize !== null
-                        ? ` · ${ordinal(entry.seasonRank)} of ${entry.fieldSize}`
-                        : ''}
-                    </span>
-                    {entry.leagues.map((league) => (
-                      <span className={h.competitionMeta} key={league.leagueId}>
-                        {league.leagueName}: {ordinal(league.rankBefore)} →{' '}
-                        {ordinal(league.rankAfter)}
-                        {league.movement > 0
-                          ? ` · ↑${league.movement}`
-                          : league.movement < 0
-                            ? ` · ↓${Math.abs(league.movement)}`
-                            : ' · no change'}
-                      </span>
-                    ))}
-                  </Link>
+                  <MatchweekRecapCard recap={entry} />
                 </li>
               ))}
             </ul>
             {recap.notCovered > 0 ? (
-              // The bound, stated. A cap nobody can see reads as "we covered
-              // everything".
               <p className={h.panelNote}>
                 {recap.notCovered} more{' '}
                 {recap.notCovered === 1 ? 'competition is' : 'competitions are'} not summarised
