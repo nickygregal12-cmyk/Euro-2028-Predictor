@@ -11,9 +11,11 @@ number. `test_challenger_policy.py` pins both the nine-league coverage and the
 exact admitted set so "the research said X" and "Monday trains Y" cannot drift
 apart silently.
 
-Every command this module builds creates a CHALLENGER only. `train_verified.py`
-runs the existing `train.py` implementation behind a fail-closed artefact
-reproducibility gate; promotion remains the separate admin/human gate.
+Every command this module builds creates a CHALLENGER first. `train_verified.py`
+runs the existing `train.py` implementation behind the fail-closed artefact and
+reproducibility gates. After the complete nine-league selected set passes those
+gates, `activate_selected_models.py` atomically makes that evidence-selected set
+current under ADR 0030. The browser/admin UI is not a second selection gate.
 """
 from __future__ import annotations
 
@@ -70,7 +72,7 @@ CHALLENGER_POLICY: dict[str, ChallengerSpec] = {
 
 
 def ordered_policy() -> list[tuple[str, ChallengerSpec]]:
-    """Return exactly one admitted challenger specification per known league."""
+    """Return exactly one evidence-selected specification per known league."""
     missing = [league for league in LEAGUES if league not in CHALLENGER_POLICY]
     extra = [league for league in CHALLENGER_POLICY if league not in LEAGUES]
     if missing or extra:
