@@ -6,17 +6,17 @@ const read = (path: string) =>
   readFileSync(resolve(process.cwd(), path), 'utf8')
 
 // Contracts 107–109 form one lifecycle: successor creation, past-window
-// refusal, then authoritative future-window scheduling. Keep those roles distinct.
+// refusal, then authoritative future-window scheduling. Keep those roles distinct
+// in the domain authorities without forcing root/design routers to carry the
+// historical contract narrative.
 describe('LMS restart documentation freshness', () => {
-  it('records Contract 108 as the guard and Contract 109 as the scheduler', () => {
+  it('records Contract 108 as the guard and Contract 109 as the scheduler in domain authorities', () => {
     for (const path of [
-      'CLAUDE.md',
       'MASTER-TODO.md',
       'docs/roadmap.md',
       'docs/competition-structure.md',
       'docs/architecture/programme-plan.md',
       'docs/architecture/multi-competition-hub-build-plan.md',
-      'docs/design/README.md',
       'docs/adr/README.md',
       'docs/adr/0013-last-man-standing-season-rules.md',
       'docs/adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
@@ -31,17 +31,22 @@ describe('LMS restart documentation freshness', () => {
     expect(read('MASTER-TODO.md')).toContain(
       '[x] Add the separate calendar authority/driver',
     )
-    expect(read('docs/design/README.md')).toContain('| 109 |')
     expect(read('docs/roadmap.md')).not.toContain(
       'Schedule the LMS restart successor',
-    )
-    expect(read('CLAUDE.md')).not.toContain(
-      'includes the LMS successor-window scheduler',
     )
     expect(
       read(
         'docs/adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
       ),
     ).toContain('- **Status:** Implemented')
+  })
+
+  it('keeps the LMS contract history out of default root and design routers', () => {
+    expect(read('CLAUDE.md')).not.toMatch(/[Cc]ontracts?[-\s][\d\s–—-]*109/)
+    expect(read('docs/design/README.md')).not.toContain('| 109 |')
+    expect(
+      read('docs/history/context-reset-2026-08-16/design-README.pre-reset.txt'),
+      'the removed design-router chronology should remain recoverable as historical evidence',
+    ).toContain('| 109 |')
   })
 })
