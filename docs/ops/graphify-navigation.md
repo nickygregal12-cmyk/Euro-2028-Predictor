@@ -20,9 +20,25 @@ Useful examples:
 
 ## Installation
 
-Keep Graphify outside the application dependency graph. A developer may install the CLI in an isolated Python tool environment, for example with `uv tool install graphifyy`, and use its normal `graphify` command locally.
+Keep Graphify outside the application dependency graph. A developer may install the CLI in an isolated Python tool environment and use its normal `graphify` command locally:
+
+```sh
+uv tool install "graphifyy[sql]"
+```
+
+Include the `[sql]` extra. Without it `tree_sitter_sql` is missing and every `supabase/migrations/**.sql` file is silently dropped from the graph — the extraction still succeeds, it just omits one of the surfaces this repository most needs to navigate.
 
 Do not add Graphify to application runtime dependencies, Netlify builds, Supabase functions or required CI. The repository must remain fully buildable/testable without it.
+
+Do **not** run `graphify claude install`. It writes a Graphify section into `CLAUDE.md` and registers a `PreToolUse` hook, which is exactly the always-on repository default this document declines below. The same applies to `graphify codex install` and the other `*/install` variants that append to `AGENTS.md`; this repository's Graphify guidance lives in `predictor-graph-navigation` instead.
+
+Build a graph with a local structural scan, which needs no API key:
+
+```sh
+graphify extract . --code-only --no-cluster
+```
+
+Clustering and community labels call an LLM backend; neither is needed for the navigation workflows below. Use `--force` to bypass the incremental manifest gate after a refactor that deletes code.
 
 ## Predictor operating rules
 
@@ -35,7 +51,7 @@ Do not add Graphify to application runtime dependencies, Netlify builds, Supabas
 
 ## Generated files
 
-Graphify's normal output lives under `graphify-out/` and includes `graph.json`, `GRAPH_REPORT.md` and visualization files. This directory is local disposable output and is gitignored.
+Graphify's normal output lives under `graphify-out/` and includes `graph.json`, the incremental `manifest.json` and a `cache/` directory; a clustered run also writes `GRAPH_REPORT.md` and visualization files. Expect it to reach tens of megabytes on this repository. This directory is local disposable output and is gitignored.
 
 Do not promote graph output into the repository authority system. If a graph query discovers a real architectural fact worth preserving, record that fact in the existing correct home and cite the source implementation/decision that proves it.
 
