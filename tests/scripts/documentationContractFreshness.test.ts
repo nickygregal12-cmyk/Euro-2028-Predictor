@@ -7,27 +7,22 @@ import { describe, expect, it } from 'vitest'
  * Documents that declare themselves live authorities, against the contract they
  * claim to state.
  *
- * Three files in this repository assert, in their own words, that they are the
- * current truth: `current-status.md` calls itself *"the only live implementation
- * and hosted-status authority"*, `ops-pending-migrations.md` calls itself
- * *"live source of truth for repository migration count"*, and `AGENTS.md` is
- * the standing brief every agent session reads first.
+ * Two files in this repository intentionally state moving contract truth:
+ * `current-status.md` calls itself *"the only live implementation and
+ * hosted-status authority"*, and `ops-pending-migrations.md` calls itself the
+ * *"live source of truth for repository migration count"*. Root `AGENTS.md`
+ * used to duplicate the same moving values because every agent reads it first;
+ * the context reset turns it into a stable router to generated `NOW.md` instead.
  *
- * Nothing related any of them to `config/deployment-contract.json`. On 30 July
- * 2026 all three were stale in the same way at the same time: the contract had
- * moved 63 → 64 and every one of them still said 63, while two also pinned a
- * `main` SHA that roughly twenty-five merges had passed. A document that claims
- * to be the live source of truth and is not is worse than no document, because
- * it is read *instead of* checking.
+ * On 30 July 2026 the old live documents were stale together: the contract had
+ * moved 63 → 64 while copied values still said 63, and two documents also
+ * pinned a `main` SHA that roughly twenty-five merges had passed. A document
+ * that claims to be live truth and is not is worse than no document, because it
+ * is read instead of checking.
  *
  * This is the freshness check for the part that can be checked mechanically.
- *
- * What it cannot check, stated so the coverage is not overread: whether the
- * prose is *correct*, whether hosted environments actually match, or whether a
- * document is stale in some way that is not a number. It checks that the
- * contract number these files state is the contract number the repository has,
- * and that they do not reintroduce a pinned `main` SHA — which is the specific
- * rot that produced today's drift.
+ * It also protects the new router boundary: root agent instructions must point
+ * at current-state authority rather than becoming another contract ledger.
  */
 
 const repositoryRoot = process.cwd()
@@ -48,11 +43,10 @@ const migrationCount = readdirSync(resolve(repositoryRoot, 'supabase/migrations'
   file.endsWith('.sql'),
 ).length
 
-/** Files that assert they are current truth, and must therefore be current. */
+/** Files that intentionally assert moving contract truth, and must be current. */
 const LIVE_AUTHORITIES = [
   'docs/quality/current-status.md',
   'docs/ops/ops-pending-migrations.md',
-  'AGENTS.md',
 ] as const
 
 function read(file: string): string {
@@ -104,6 +98,24 @@ describe('live-authority documents state the current contract', () => {
         `${file} names the tag contract 63 but never the current contract ${contract.contractVersion}`,
       ).toBe(true)
     }
+  })
+})
+
+const ROOT_ROUTER_CONTRACT =
+  /\b(?:repository|development|production|hosted)(?:\s+Supabase)?[^\n]{0,40}?\bcontracts?\b[\s:*]*(\d+)/gi
+
+describe('root agent instructions delegate moving contract state', () => {
+  const agents = read('AGENTS.md')
+
+  it('routes agents to generated current state', () => {
+    expect(agents).toContain('Read [`NOW.md`](NOW.md)')
+  })
+
+  it('does not become a second moving contract ledger', () => {
+    expect(
+      [...agents.matchAll(ROOT_ROUTER_CONTRACT)].map((match) => Number(match[1])),
+      'AGENTS.md must route moving repository/hosted contract state rather than copy it',
+    ).toEqual([])
   })
 })
 
