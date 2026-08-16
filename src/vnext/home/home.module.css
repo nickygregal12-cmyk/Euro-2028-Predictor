@@ -14,9 +14,13 @@
  *                       switches from its three-line phone shape to its table.
  *   expanded (>= 1120px) the masthead takes the navigation and the bottom bar
  *                       goes. Football gets the extra width, not the margins.
- *   wide     (>= 1560px) the competitive column finally earns its own column —
+ *   wide     (>= 1560px) the competitive module finally earns its own column —
  *                       the one width at which taking it does not narrow the
  *                       stage. Three columns, and deliberately never four.
+ *                       COMPETITION EMPHASIS COMPOSES IN TWO HERE, because it
+ *                       has no separate social zone to put in a third: the
+ *                       league race is already its dominant zone. Track count
+ *                       follows area count per emphasis, never the widest case.
  *
  * THE THRESHOLDS ARE MEASURED, NOT CHOSEN. They are Stage 3's, kept because
  * Stage 3 earned them: a dense zone must be sized against ITS OWN column, and
@@ -1357,6 +1361,19 @@
 
   [data-vnext-emphasis='decision'] .body {
     grid-template-areas: 'stage grounds social';
+  }
+
+  /* SPACE EXISTS ONLY WHEN CONTENT HAS EARNED IT.
+     Competition emphasis has no separate social zone — its dominant zone IS the
+     league race — so it places two areas, and it must declare two TRACKS to go
+     with them. Inheriting the three-track rule above left a 340px column that
+     nothing was ever placed into: grid keeps a declared track whether or not an
+     area reaches it, so the page simply stopped a fifth short of its own right
+     edge while the masthead, score bar and action banner still spanned the full
+     width. The competition emphasis does not need a rail just because the live
+     one does; it needs the width it actually uses. */
+  [data-vnext-emphasis='competition'] .body {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   }
 
   .socialZone {

@@ -106,7 +106,12 @@ function ctaLabel(action: PrimaryAction): string {
     case 'review':
       return 'See how you did'
     case 'watchLive':
-      return 'Follow the live matches'
+      // Not "Follow the live matches". Nothing in the model or the product
+      // implements follow, watch, subscribe or notify, and Home settled Match
+      // Centre as the single real live destination. This card is a workshop
+      // component rather than part of Home, but it is reviewed in the same
+      // Storybook, so it should not keep vocabulary the Gold Standard rejected.
+      return 'Open Match centre'
     case 'joinLeague':
       return 'Find a league'
   }

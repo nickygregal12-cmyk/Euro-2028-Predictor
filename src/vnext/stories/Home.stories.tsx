@@ -90,11 +90,25 @@ export const Decision430: StoryObj = home('decision', ['phone-430'])
 
 export const Decision1440: StoryObj = home('decision', ['laptop-1440'], 0.8)
 
+/** The widest band, where the competitive module takes its own column. */
+export const Decision1920: StoryObj = home('decision', ['desktop-1920'], 0.62)
+
 /* ---- COMPETITION — your competition is the event ------------------------ */
 
 export const Competition430: StoryObj = home('competition', ['phone-430'])
 
 export const Competition1440: StoryObj = home('competition', ['laptop-1440'], 0.8)
+
+/**
+ * The widest band on a quiet day.
+ *
+ * This emphasis has no separate social zone — the league race IS its dominant
+ * zone — so it composes in two columns where live and decision take three. The
+ * first build inherited the three-track rule anyway and left a 340px column
+ * nothing was ever placed into; this story is the review surface that would have
+ * shown it, and `e2e/vnext-home.spec.ts` now measures it at every wide width.
+ */
+export const Competition1920: StoryObj = home('competition', ['desktop-1920'], 0.62)
 
 /* ---- EDGE STATES -------------------------------------------------------- */
 
@@ -107,6 +121,9 @@ export const Competition1440: StoryObj = home('competition', ['laptop-1440'], 0.
 export const NewSeason430: StoryObj = home('newSeason', ['phone-430'])
 
 export const NewSeason1440: StoryObj = home('newSeason', ['laptop-1440'], 0.8)
+
+/** The emptiest state at the widest width — where dead space shows up first. */
+export const NewSeason1920: StoryObj = home('newSeason', ['desktop-1920'], 0.62)
 
 /* ---- CROSS-CUTTING REVIEWS ---------------------------------------------- */
 

@@ -49,15 +49,28 @@ const WIDTHS = [
   { story: 'live-matchday-1920', width: 1920, height: 1080, columns: 3 },
 ] as const
 
+/**
+ * Every emphasis at every band that composes differently — INCLUDING the widest.
+ *
+ * The first version of this matrix stopped at 1440 for everything except live,
+ * which meant the >=1560 composition was asserted for one emphasis out of three.
+ * That is where competition grew a column it never filled: the defect lived in
+ * the one band no test looked at. A composition that is only measured in the
+ * state its author happened to review is not measured.
+ */
 const EMPHASES = [
   { story: 'live-matchday-430', label: 'live at 430', width: 430 },
   { story: 'live-matchday-1440', label: 'live at 1440', width: 1440 },
+  { story: 'live-matchday-1920', label: 'live at 1920', width: 1920 },
   { story: 'decision-430', label: 'decision at 430', width: 430 },
   { story: 'decision-1440', label: 'decision at 1440', width: 1440 },
+  { story: 'decision-1920', label: 'decision at 1920', width: 1920 },
   { story: 'competition-430', label: 'competition at 430', width: 430 },
   { story: 'competition-1440', label: 'competition at 1440', width: 1440 },
+  { story: 'competition-1920', label: 'competition at 1920', width: 1920 },
   { story: 'new-season-430', label: 'new season at 430', width: 430 },
   { story: 'new-season-1440', label: 'new season at 1440', width: 1440 },
+  { story: 'new-season-1920', label: 'new season at 1920', width: 1920 },
 ] as const
 
 type Reading = {
@@ -71,6 +84,10 @@ type Reading = {
   sideBySide: string[]
   /** Distinct left edges among the body zones — the column count. */
   bodyColumns: number
+  /** Tracks the body grid DECLARES, which is not the same as tracks it fills. */
+  declaredColumns: number
+  /** Gap between the rightmost body zone and the body's own content edge. */
+  rightGap: number
   emphasis: string | null
   clipped: string[]
 }
@@ -133,6 +150,36 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       .size
 
     /**
+     * The body grid as DECLARED, and how far its content actually reaches.
+     *
+     * A grid keeps every track it declares whether or not an area is ever placed
+     * into one. Competition emphasis places two areas; if it inherits the wide
+     * three-track rule it silently grows a 340px column nothing fills, and the
+     * page stops a fifth short of its own right edge while the masthead, score
+     * bar and action banner still span the full width. Nothing overflows and
+     * nothing clips, so every other measurement in this file stays green — which
+     * is exactly why the declared count is measured against the filled count.
+     */
+    const bodyElement = zoneElements
+      .find((element) => element.getAttribute('data-vnext-zone') === 'stage')
+      ?.parentElement ?? null
+    const bodyStyle = bodyElement ? getComputedStyle(bodyElement) : null
+    const declaredColumns = bodyStyle
+      ? bodyStyle.gridTemplateColumns.split(/\s+/).filter(Boolean).length
+      : 0
+
+    // `padding-inline` lives on the body itself, so the content edge — the edge
+    // a zone is entitled to reach — is the border box minus that padding.
+    let rightGap = 0
+    if (bodyElement && bodyStyle && bodyZones.length > 0) {
+      const contentRight =
+        bodyElement.getBoundingClientRect().right -
+        Number.parseFloat(bodyStyle.paddingRight || '0')
+      const rightmost = Math.max(...bodyZones.map((entry) => entry.box.right))
+      rightGap = Math.round(contentRight - rightmost)
+    }
+
+    /**
      * A club, player or league name that has been cut off.
      *
      * `scrollWidth > clientWidth` inside a box that hides its overflow is the
@@ -171,6 +218,8 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       zones: boxes.map((entry) => entry.name),
       sideBySide,
       bodyColumns,
+      declaredColumns,
+      rightGap,
       emphasis:
         document
           .querySelector('[data-vnext-emphasis]')
@@ -178,6 +227,28 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       clipped,
     }
   })
+}
+
+/**
+ * SPACE EXISTS ONLY WHEN CONTENT HAS EARNED IT.
+ *
+ * Two independent ways of saying the same thing, because either one alone can be
+ * satisfied by accident: the grid must declare exactly as many tracks as it
+ * fills, and the rightmost zone must reach the body's own content edge. A track
+ * declared and never placed into fails the first; a zone that stops short for
+ * any other reason fails the second.
+ */
+function expectNoDeadTrack(reading: Reading, where: string) {
+  expect(
+    reading.declaredColumns,
+    `${where} declares ${reading.declaredColumns} grid tracks but fills ${reading.bodyColumns}`,
+  ).toBe(reading.bodyColumns)
+
+  // Sub-pixel track sizing makes an exact 0 brittle; a dead rail is 340px.
+  expect(
+    reading.rightGap,
+    `${where} leaves ${reading.rightGap}px of dead space at the right edge`,
+  ).toBeLessThanOrEqual(4)
 }
 
 async function open(page: import('@playwright/test').Page, story: string) {
@@ -220,6 +291,8 @@ test.describe('Home holds its frame', () => {
         `${where} should compose in ${width.columns} column(s)`,
       ).toBe(width.columns)
 
+      expectNoDeadTrack(reading, where)
+
       expect(reading.clipped, `${where} clips a name`).toEqual([])
     })
   }
@@ -257,6 +330,54 @@ test.describe('Home holds its frame', () => {
       'the social zone should earn its column at 1920',
     ).toContain('stage|social')
   })
+
+  /**
+   * THE WIDE BREAKPOINT ITSELF, ON THE EMPHASIS THAT COMPOSES DIFFERENTLY THERE.
+   *
+   * Competition places two areas where live and decision place three, so 1560 is
+   * the width at which it either declares the track count it uses or inherits
+   * one it does not. 1559 and 1560 are measured as a pair because a threshold is
+   * only proved by the step across it: the same page, one pixel apart, must
+   * differ in composition and agree about having no dead space.
+   *
+   * The widths come from overriding the frame's own `--frame-width` rather than
+   * from two more stories. Home answers its CONTAINER — that is the workshop's
+   * load-bearing rule — so driving the container is the same measurement the
+   * story would produce, without adding review surface nobody looks at.
+   */
+  test('competition fills its wide composition at and above 1560', async ({
+    page,
+  }) => {
+    for (const width of [1559, 1560, 1920]) {
+      await open(page, 'competition-1440')
+      await page.evaluate((frameWidth) => {
+        const frame = document.querySelector<HTMLElement>('figure > div')
+        if (!frame) throw new Error('no frame to resize')
+        frame.style.setProperty('--frame-width', `${frameWidth}px`)
+        frame.style.setProperty('--frame-scale', '1')
+      }, width)
+      await page.waitForTimeout(400)
+
+      const reading = await read(page)
+      const where = `competition at ${width}`
+
+      expect(reading.frameWidth, `${where} frame width`).toBe(width)
+      expect(reading.emphasis, `${where} emphasis`).toBe('competition')
+      expect(reading.horizontalOverflow, `${where} scrolls sideways`).toBe(0)
+      expect(reading.clipped, `${where} clips a name`).toEqual([])
+      expect(reading.navigationLabels, `${where} navigation`).toHaveLength(1)
+      expect(reading.smallTargets, `${where} has controls under 44px`).toEqual([])
+
+      // The zone this emphasis does not draw stays undrawn — the league race is
+      // already its dominant zone, and a second copy would be the same table
+      // twice. It must not leave a column behind it either.
+      expect(reading.zones, `${where} draws no separate social zone`).not.toContain(
+        'social',
+      )
+      expect(reading.bodyColumns, `${where} composes in two columns`).toBe(2)
+      expectNoDeadTrack(reading, where)
+    }
+  })
 })
 
 test.describe('the three emphases are one shell', () => {
@@ -271,6 +392,7 @@ test.describe('the three emphases are one shell', () => {
       expect(reading.navigationLabels, `${where} navigation`).toHaveLength(1)
       expect(reading.smallTargets, `${where} has controls under 44px`).toEqual([])
       expect(reading.clipped, `${where} clips a name`).toEqual([])
+      expectNoDeadTrack(reading, where)
 
       // The stable shell is present whatever is being emphasised. If any of
       // these ever went missing in one state, Home would have become three

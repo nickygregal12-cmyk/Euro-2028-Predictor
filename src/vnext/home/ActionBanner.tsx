@@ -8,11 +8,19 @@ export type ActionBannerProps = {
   now: string
 }
 
-/** The verb on the button, per action type. Never invented from the title. */
+/**
+ * The verb on the button, per action type. Never invented from the title.
+ *
+ * `watchLive` names the ACTION TYPE, not a capability. There is no watch,
+ * follow, subscribe or notify concept in the model or in the product, so the
+ * button says where the user can actually go: Match Centre, which is the same
+ * single live destination the featured match and the in-play rows settled on.
+ * A label is a promise, and "Watch live" promises a feature nothing implements.
+ */
 const CALL: Record<PrimaryAction['type'], string> = {
   predict: 'Predict now',
   review: 'Review picks',
-  watchLive: 'Watch live',
+  watchLive: 'Match centre',
   joinLeague: 'Find a league',
 }
 

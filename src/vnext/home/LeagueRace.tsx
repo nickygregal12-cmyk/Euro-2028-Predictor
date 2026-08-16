@@ -39,8 +39,16 @@ export type LeagueRaceProps = {
 export function LeagueRace({ league, variant = 'race' }: LeagueRaceProps) {
   const window = raceWindow(league)
   const user = window.find((standing) => standing.isUser) ?? null
+  // ADJACENT, NOT MERELY ABOVE. The window is sorted ascending, so `find`
+  // returns the HIGHEST-placed row rather than the nearest one. That is the same
+  // answer whenever the user sits in the middle of the window — and the wrong
+  // one whenever `raceWindow` clamps to the end of a longer table, where the
+  // window is [n-2, n-1, YOU] and the first match is two places up. Home would
+  // then name the wrong player and quote a gap the user is not actually facing.
+  // `findLast` takes the nearest row above; `find` is already nearest below,
+  // because the first ascending row past the user IS the adjacent one.
   const above = user
-    ? (window.find((standing) => standing.rank < user.rank) ?? null)
+    ? (window.findLast((standing) => standing.rank < user.rank) ?? null)
     : null
   const below = user
     ? (window.find((standing) => standing.rank > user.rank) ?? null)

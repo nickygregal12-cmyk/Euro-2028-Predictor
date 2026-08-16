@@ -3,6 +3,7 @@ import axe from 'axe-core'
 import type { ReactElement } from 'react'
 import { describe, expect, it } from 'vitest'
 import { VNextHome } from '../../src/vnext/home/VNextHome'
+import { LeagueRace } from '../../src/vnext/home/LeagueRace'
 import {
   pickDecisionMatch,
   pickFeaturedLiveMatch,
@@ -10,6 +11,7 @@ import {
   selectHomeEmphasis,
 } from '../../src/vnext/home/selectHomeEmphasis'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
+import { workshopPeople } from '../../src/vnext/fixtures/players/people'
 import {
   competitionHomeModel,
   decisionHomeModel,
@@ -17,7 +19,7 @@ import {
   newSeasonHomeModel,
   workshopHomeModel,
 } from '../../src/vnext/fixtures'
-import type { HomeModel } from '../../src/vnext/models/home'
+import type { HomeModel, PrivateLeague } from '../../src/vnext/models/home'
 
 /**
  * WHAT IS WORTH GUARDING NOW THAT HOME IS SELECTED.
@@ -327,6 +329,105 @@ describe('Home renders the social state the model supplied', () => {
     expect(
       screen.getAllByText(/not in a private league yet/i).length,
     ).toBeGreaterThan(0)
+  })
+})
+
+/* ------------------------------------------------------------------------ *
+ * The league race names the player actually next in line
+ * ------------------------------------------------------------------------ */
+
+describe('LeagueRace chases the adjacent rank', () => {
+  /**
+   * A table long enough for the window to clamp, with the user LAST.
+   *
+   * `raceWindow` slices the final three rows, so the user sits at the END of an
+   * ascending window rather than in the middle: [4th, 5th, YOU]. That is the
+   * shape where "the first row ranked above me" and "the row immediately above
+   * me" stop being the same answer, and where naming the wrong one both credits
+   * the wrong rival and overstates the gap the user is facing.
+   */
+  const bottomOfTheTable: PrivateLeague = {
+    id: 'league-clamped',
+    name: 'Clamped League',
+    participantCount: 6,
+    userRank: 6,
+    userPoints: 100,
+    userMovement: { direction: 'down', places: 1 },
+    gapToLeader: 40,
+    leaderName: 'Jamie Ferguson-Whyte',
+    standings: [
+      {
+        player: workshopPeople.jamie,
+        rank: 3,
+        points: 140,
+        movement: { direction: 'none', places: 0 },
+        isUser: false,
+      },
+      {
+        player: workshopPeople.martin,
+        rank: 4,
+        points: 130,
+        movement: { direction: 'none', places: 0 },
+        isUser: false,
+      },
+      {
+        player: workshopPeople.bea,
+        rank: 5,
+        points: 104,
+        movement: { direction: 'none', places: 0 },
+        isUser: false,
+      },
+      {
+        player: workshopPeople.user,
+        rank: 6,
+        points: 100,
+        movement: { direction: 'down', places: 1 },
+        isUser: true,
+      },
+    ],
+  }
+
+  it.each(['race', 'strip'] as const)(
+    'names the immediately preceding rank, not the top of the window (%s)',
+    (variant) => {
+      render(
+        <VNextRoot>
+          <LeagueRace league={bottomOfTheTable} variant={variant} />
+        </VNextRoot>,
+      )
+      const body = document.body.textContent ?? ''
+
+      // Bea is 5th on 104 — four points up, and the place actually available.
+      expect(body, 'chases the adjacent player').toMatch(/4 pts to catch Bea/)
+
+      // Martin is 4th on 130. Naming him would be a 30-point gap the user is
+      // not facing, and a place they cannot take without passing Bea first.
+      expect(body, 'does not skip a place').not.toMatch(/to catch Martin/)
+      expect(body, 'does not quote the two-places-up gap').not.toMatch(/30 pts/)
+    },
+  )
+
+  it('still names the immediately following rank below the user', () => {
+    // The user in the middle of a window: [above, YOU, below]. `below` was
+    // already correct and must stay correct — the fix is only about `above`.
+    const midTable: PrivateLeague = {
+      ...bottomOfTheTable,
+      userRank: 4,
+      userPoints: 130,
+      standings: bottomOfTheTable.standings.map((standing) => ({
+        ...standing,
+        isUser: standing.player.id === workshopPeople.martin.id,
+      })),
+    }
+    render(
+      <VNextRoot>
+        <LeagueRace league={midTable} variant="race" />
+      </VNextRoot>,
+    )
+    const body = document.body.textContent ?? ''
+
+    expect(body, 'chases the rank directly above').toMatch(/10 pts to catch Jamie/)
+    expect(body, 'names the rank directly below').toMatch(/Bea is 26 pts behind you/)
   })
 })
 
