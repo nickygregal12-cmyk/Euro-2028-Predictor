@@ -82,7 +82,22 @@ export function WorkshopCanvas({
           >
             <div className={styles.inner}>
               <VNextRoot motion={motion} fill>
-                <div className={styles.scroller}>{children}</div>
+                {/* The scroller IS the frame's scrollport, so it is the thing
+                    that knows how tall the frame is. Declaring
+                    `--vnext-frame-block` here — inside `[data-vnext]`, which
+                    defaults it to `none` — is how a sticky rail bounds itself
+                    to the device shell instead of to the browser window
+                    showing the workshop. */}
+                <div
+                  className={styles.scroller}
+                  style={
+                    {
+                      '--vnext-frame-block': `${viewport.height}px`,
+                    } as CSSProperties
+                  }
+                >
+                  {children}
+                </div>
               </VNextRoot>
             </div>
           </div>

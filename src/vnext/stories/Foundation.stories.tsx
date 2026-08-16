@@ -1,6 +1,13 @@
+import { useId, useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { motion } from 'framer-motion'
-import { useVNextMotion, vnextMotion } from '../foundations/motion'
+import {
+  useReducedMotionPreference,
+  useVNextMotion,
+  useVNextTransition,
+  vnextMotion,
+  vnextTransition,
+} from '../foundations/motion'
 import { VNextRoot } from '../foundations/VNextRoot'
 import surfaces from '../foundations/surfaces.module.css'
 import typography from '../foundations/typography.module.css'
@@ -105,9 +112,17 @@ export const Typography: Story = {
 }
 
 /**
- * Every motion primitive, side by side, with the reduced-motion path beside the
- * full one. The point is that the reduced column still SHOWS THE STATE — it is
- * quieter, not absent.
+ * ALL NINE motion primitives, side by side, with the reduced-motion path beside
+ * the full one. The point is that the reduced column still SHOWS THE STATE — it
+ * is quieter, not absent.
+ *
+ * The list is complete on purpose: a demonstration that covers five of nine
+ * looks exactly like a complete one, and the four it left out (navigation,
+ * stagger, disclosure and rail travel) were the four nobody had watched.
+ *
+ * Two of them need a trigger to be worth watching rather than a still frame, so
+ * the page carries one button that replays every entrance and one that toggles
+ * the disclosure. Everything else is one row.
  */
 export const Motion: Story = {
   parameters: { layout: 'fullscreen' },
@@ -129,16 +144,42 @@ export const Motion: Story = {
   ),
 }
 
+const NAV_SAMPLE = ['Home', 'Fixtures', 'Leagues'] as const
+
 function MotionSamples() {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const lift = useVNextMotion(vnextMotion.liftAndPress)
   const pulse = useVNextMotion(vnextMotion.livePulse)
   const rank = useVNextMotion(vnextMotion.rankMove)
   const points = useVNextMotion(vnextMotion.pointsEmphasis)
+  const list = useVNextMotion(vnextMotion.stagger)
+  const item = useVNextMotion(vnextMotion.railItem)
+  const panel = useVNextMotion(vnextMotion.disclose)
+  const indicator = useVNextMotion(vnextMotion.navIndicator)
+  const indicatorTravel = useVNextTransition(vnextTransition.navIndicator)
+
+  // `replay` remounts the entrance samples so a reviewer can watch them more
+  // than once; `expanded` drives the disclosure. Neither is product state.
+  const [replay, setReplay] = useState(0)
+  const [expanded, setExpanded] = useState(false)
+  const [active, setActive] = useState<string>(NAV_SAMPLE[0])
+  const reduced = useReducedMotionPreference()
+  const indicatorId = useId()
 
   return (
     <div className={styles.motionSamples}>
+      <div className={styles.sampleControls}>
+        <button
+          type="button"
+          className={styles.sampleButton}
+          onClick={() => setReplay((count) => count + 1)}
+        >
+          Replay entrances
+        </button>
+      </div>
+
       <motion.div
+        key={`rise-${replay}`}
         className={`${surfaces.surface} ${styles.sample}`}
         variants={rise}
         initial="hidden"
@@ -146,6 +187,26 @@ function MotionSamples() {
       >
         <span className={typography.caption}>riseIn — entrance</span>
       </motion.div>
+
+      {/* stagger and railItem are a parent/child pair: the parent deals the
+          children out, the child is what travels. Showing either alone shows
+          half of one primitive. */}
+      <motion.ul
+        key={`stagger-${replay}`}
+        className={`${surfaces.surface} ${styles.sample} ${styles.staggerList}`}
+        variants={list}
+        initial="hidden"
+        animate="visible"
+      >
+        {['1st', '2nd', '3rd'].map((label) => (
+          <motion.li key={label} className={styles.staggerItem} variants={item}>
+            <span className={typography.micro}>{label}</span>
+          </motion.li>
+        ))}
+      </motion.ul>
+      <p className={typography.micro}>
+        stagger — list order, and railItem — rail travel
+      </p>
 
       <motion.div
         className={`${surfaces.interactive} ${styles.sample}`}
@@ -156,6 +217,36 @@ function MotionSamples() {
       >
         <span className={typography.caption}>liftAndPress — hover and tap</span>
       </motion.div>
+
+      {/* The indicator is the one primitive whose full path is a LAYOUT
+          animation, so it needs two destinations to travel between. */}
+      <div className={`${surfaces.surface} ${styles.sample} ${styles.navSample}`}>
+        {NAV_SAMPLE.map((label) => (
+          <button
+            key={label}
+            type="button"
+            className={styles.navItem}
+            aria-pressed={label === active}
+            onClick={() => setActive(label)}
+          >
+            {label === active ? (
+              <motion.span
+                className={styles.navIndicator}
+                layoutId={reduced ? undefined : `${indicatorId}-indicator`}
+                transition={indicatorTravel}
+                variants={indicator}
+                initial="hidden"
+                animate="current"
+                aria-hidden="true"
+              />
+            ) : null}
+            <span className={`${typography.micro} ${styles.navLabel}`}>
+              {label}
+            </span>
+          </button>
+        ))}
+      </div>
+      <p className={typography.micro}>navIndicator — current destination</p>
 
       <div className={`${surfaces.surface} ${styles.sample}`}>
         <motion.span
@@ -184,6 +275,27 @@ function MotionSamples() {
           125
         </motion.span>
         <span className={typography.caption}>pointsEmphasis — points change</span>
+      </div>
+
+      <div className={`${surfaces.surface} ${styles.discloseSample}`}>
+        <button
+          type="button"
+          className={styles.sampleButton}
+          aria-expanded={expanded}
+          onClick={() => setExpanded((open) => !open)}
+        >
+          disclose — progressive disclosure
+        </button>
+        <motion.div
+          className={styles.disclosePanel}
+          variants={panel}
+          initial="collapsed"
+          animate={expanded ? 'expanded' : 'collapsed'}
+        >
+          <p className={typography.micro}>
+            The detail a surface holds back until it is asked for.
+          </p>
+        </motion.div>
       </div>
     </div>
   )

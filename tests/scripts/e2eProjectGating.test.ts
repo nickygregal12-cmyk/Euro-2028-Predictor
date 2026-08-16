@@ -13,6 +13,7 @@ const defaultConfig = read('playwright.config.ts')
 const authConfig = read('playwright.auth.config.ts')
 const visualConfig = read('playwright.visual.config.ts')
 const euroConfig = read('playwright.euro.config.ts')
+const vnextConfig = read('playwright.vnext.config.ts')
 
 const specFiles = readdirSync(resolve(root, 'e2e'))
   .filter((entry) => entry.endsWith('.spec.ts'))
@@ -32,15 +33,18 @@ function projectNames(config: string): string[] {
 const authMatch = specList(authConfig, 'testMatch')
 const visualMatch = specList(visualConfig, 'testMatch')
 const euroMatch = specList(euroConfig, 'testMatch')
+const vnextMatch = specList(vnextConfig, 'testMatch')
 const defaultIgnore = specList(defaultConfig, 'testIgnore')
 
 const defaultProjects = projectNames(defaultConfig)
 const authProjects = projectNames(authConfig)
 const euroProjects = projectNames(euroConfig)
+const vnextProjects = projectNames(vnextConfig)
 
 const authSpecs = specFiles.filter((spec) => authMatch.includes(spec))
 const visualSpecs = specFiles.filter((spec) => visualMatch.includes(spec))
 const euroSpecs = specFiles.filter((spec) => euroMatch.includes(spec))
+const vnextSpecs = specFiles.filter((spec) => vnextMatch.includes(spec))
 const defaultSpecs = specFiles.filter((spec) => !defaultIgnore.includes(spec))
 
 function projectGates(source: string): string[] {
@@ -115,12 +119,31 @@ describe('browser E2E project gating', () => {
     const active = specFiles.filter((spec) => !parkedEuroSpecs.includes(spec))
     const orphaned = active.filter(
       (spec) =>
-        !authSpecs.includes(spec) && !defaultSpecs.includes(spec) && !visualSpecs.includes(spec),
+        !authSpecs.includes(spec) &&
+        !defaultSpecs.includes(spec) &&
+        !visualSpecs.includes(spec) &&
+        !vnextSpecs.includes(spec),
     )
     expect(orphaned, `active specs collected by no Playwright config: ${orphaned.join(', ')}`).toEqual([])
 
-    const doubled = [...authSpecs, ...visualSpecs].filter((spec) => defaultSpecs.includes(spec))
+    const doubled = [...authSpecs, ...visualSpecs, ...vnextSpecs].filter((spec) =>
+      defaultSpecs.includes(spec),
+    )
     expect(doubled, `active specs collected by two configs: ${doubled.join(', ')}`).toEqual([])
+  })
+
+  it('gives the vNext workshop suite a Storybook server rather than the app', () => {
+    // The default config boots `npm run dev`, which contains no vNext code at
+    // all: vNext is deliberately unreachable from `src/main.tsx`. A spec that
+    // drifted into the weekly config would open the wrong product and pass by
+    // finding nothing.
+    expect(vnextMatch).toEqual(['vnext-workshop-layout.spec.ts'])
+    expect(vnextProjects).toEqual(['vnext-workshop-chromium'])
+    expect(vnextConfig).toContain('npm run storybook')
+    expect(
+      defaultIgnore,
+      'the weekly config must explicitly ignore the Storybook-served spec',
+    ).toContain('vnext-workshop-layout.spec.ts')
   })
 
   it('parks only the explicit Euro return set and collects none of it in the weekly configs', () => {
@@ -128,7 +151,11 @@ describe('browser E2E project gating', () => {
     expect(parkedEuroSpecs.filter((spec) => !specFiles.includes(spec))).toEqual([])
     expect(
       parkedEuroSpecs.filter(
-        (spec) => defaultSpecs.includes(spec) || authSpecs.includes(spec) || visualSpecs.includes(spec),
+        (spec) =>
+          defaultSpecs.includes(spec) ||
+          authSpecs.includes(spec) ||
+          visualSpecs.includes(spec) ||
+          vnextSpecs.includes(spec),
       ),
     ).toEqual([])
     expect(
@@ -139,7 +166,7 @@ describe('browser E2E project gating', () => {
   })
 
   it('keeps ignore and match lists free of names that no longer exist', () => {
-    const stale = [...authMatch, ...euroMatch, ...defaultIgnore].filter(
+    const stale = [...authMatch, ...euroMatch, ...vnextMatch, ...defaultIgnore].filter(
       (spec) => !specFiles.includes(spec),
     )
     expect(stale, 'config entries naming specs that are not on disk').toEqual([])
@@ -158,7 +185,9 @@ describe('browser E2E project gating', () => {
         ? { projects: euroProjects, config: 'playwright.euro.config.ts' }
         : authSpecs.includes(spec)
           ? { projects: authProjects, config: 'playwright.auth.config.ts' }
-          : { projects: defaultProjects, config: 'playwright.config.ts' }
+          : vnextSpecs.includes(spec)
+            ? { projects: vnextProjects, config: 'playwright.vnext.config.ts' }
+            : { projects: defaultProjects, config: 'playwright.config.ts' }
       const { projects: declared, config } = owner
 
       for (const gate of gates) {

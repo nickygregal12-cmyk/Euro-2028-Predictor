@@ -38,9 +38,17 @@ materially different Home concepts.
    compositions and they differ structurally — bottom bar to nav rail, personal
    state below to personal state beside, competition context earning its own
    column only when taking one does not squeeze the football.
-6. **Container queries, not viewport queries.** Every layout decision is made
-   against the container. This is what makes a 375px frame on a 1440px monitor
-   an honest review rather than a desktop layout wearing a phone's width.
+6. **Container queries, not viewport queries — and no viewport UNITS either.**
+   Every layout decision is made against the container. This is what makes a
+   375px frame on a 1440px monitor an honest review rather than a desktop layout
+   wearing a phone's width. The rule covers lengths as well as queries: `vh`,
+   `vw`, `vmin` and `vmax` all measure the browser showing the workshop rather
+   than the frame being reviewed, and two of them survived the first build
+   inside otherwise container-driven layouts. A frame that has a definite height
+   declares it as `--vnext-frame-block`; a frame that has not bounds nothing.
+   `tests/vnext/workshopFixtures.test.ts` holds the ban, and
+   `e2e/vnext-workshop-layout.spec.ts` measures the result in Chromium at all
+   five widths, because jsdom evaluates no container query.
 
 ## Token and motion hypotheses
 
@@ -53,9 +61,14 @@ materially different Home concepts.
   press, nav indicator, live pulse, rank movement, points emphasis, disclosure
   and rail travel. Anything that moves without a job is decoration.
 - Every primitive is a **pair** — full and reduced — resolved by
-  `useVNextMotion`. The reduced path is never "no feedback"; it is the same state
-  change without travel, scale or pulsing. CSS duration tokens collapse to 1ms in
-  parallel, so a hover transition cannot slip past the preference.
+  `useVNextMotion`, or by `useVNextTransition` where the movement is a layout
+  animation and therefore cannot live in a variant. Components consume the
+  resolved value and never reach for a raw one; a test holds that.
+- The reduced path is never "no feedback"; it is the same state change without
+  travel, scale or pulsing. **Collapsing a duration is not enough on its own** —
+  a 1ms `transform: scale(0.99)` still moves — so a reduced path removes the
+  transform and answers in colour instead. CSS duration tokens collapse in
+  parallel so a hover transition cannot slip past the preference either.
 - Dark only for now. A light theme is a real question, deliberately unanswered.
 
 ## What the mocked data can represent
@@ -65,6 +78,14 @@ of any table, and not a rule authority. `src/vnext/fixtures/` holds one designed
 matchday: five matches covering live, half-time, an unmet deadline, a prediction
 against a 76% crowd and a settled exact score, plus two private leagues, four
 rivals and an activity feed. Every instant is fixed; nothing reads the clock.
+
+A sixth fixture, `postponedMatch`, sits deliberately OUTSIDE the matchday so the
+scenario every story is judged against stays five matches. It exists because the
+model declares a `postponed` status, and a status the card treats as an ordinary
+upcoming fixture is a card offering a prediction on a game that is not happening.
+Presentation states the status and stops: whether a prediction survives a
+postponement, when a rearranged lock opens and what becomes of a joker are
+backend rules, and the workshop does not answer them.
 
 Social comparison is first-class in the model rather than a card: private-league
 windows around the user, gap-to-leader, rivals with signed differences and

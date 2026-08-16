@@ -142,6 +142,30 @@
   transform: scale(0.99);
 }
 
+/* REDUCED MOTION REMOVES THE MOVEMENT, NOT THE FEEDBACK.
+ *
+ * Collapsing `--vnext-duration-fast` to 1ms only makes the press instant; the
+ * button still travels, which is the thing the preference asks not to happen.
+ * So the scale goes and the press answers in colour instead. It is the accent's
+ * strong step, the same value hover uses — and hover is already excluded on
+ * touch by `any-hover`, so the two never collide on the surface where pressing
+ * is how anyone acts.
+ *
+ * Stated twice on purpose: once for the operating-system preference, once for
+ * the workshop's own switch, which exists so a reviewer can see this path
+ * without changing a system setting. */
+@media (prefers-reduced-motion: reduce) {
+  .cta:active {
+    transform: none;
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+[data-vnext-motion='reduced'] .cta:active {
+  transform: none;
+  background-color: var(--vnext-accent-strong);
+}
+
 @container vnext-primary (min-width: 560px) {
   .card {
     flex-direction: row;

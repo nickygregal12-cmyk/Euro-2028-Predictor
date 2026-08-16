@@ -14,6 +14,7 @@ import {
   MATCHDAY_NOW,
   deadlineMatch,
   featuredLiveMatch,
+  postponedMatch,
   settledMatch,
   workshopHomeModel,
 } from '../../src/vnext/fixtures'
@@ -131,6 +132,43 @@ describe('MatchCard', () => {
     expect(within(popular as HTMLElement).getByText('2–1')).toBeInTheDocument()
   })
 
+  it('says a postponed fixture is postponed, in the name as well as on the card', () => {
+    render(
+      <VNextRoot>
+        <MatchCard match={postponedMatch} now={MATCHDAY_NOW} showContext />
+      </VNextRoot>,
+    )
+
+    expect(screen.getByText('Postponed')).toBeInTheDocument()
+    // A card whose visible status is only a word in a corner is a card a screen
+    // reader announces as an ordinary fixture.
+    expect(
+      screen.getByRole('article', {
+        name: 'Balmorral Thistle versus Eastcraig Albion, postponed',
+      }),
+    ).toBeInTheDocument()
+    // The clubs and their context stay: the fixture is off, not deleted.
+    expect(screen.getByText('Balmorral Thistle')).toBeInTheDocument()
+    expect(screen.getByText(/Carrick Road Stadium/)).toBeInTheDocument()
+  })
+
+  it('offers no prediction action on a postponed fixture, even when asked to', () => {
+    const onAction = vi.fn()
+    render(
+      <VNextRoot>
+        <MatchCard match={postponedMatch} now={MATCHDAY_NOW} onAction={onAction} />
+      </VNextRoot>,
+    )
+
+    // `onAction` is supplied and deliberately refused. "Predict" and "Change
+    // prediction" both claim a fixture that is not going ahead.
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.queryByText(/Predict/)).toBeNull()
+    expect(screen.queryByText(/Change prediction/)).toBeNull()
+    // And no countdown, which would say the kick-off is still coming.
+    expect(screen.queryByText(/Locks in/)).toBeNull()
+  })
+
   it('has no serious accessibility failures in any match state', async () => {
     await scan(
       <VNextRoot>
@@ -143,6 +181,7 @@ describe('MatchCard', () => {
         />
         <MatchCard match={deadlineMatch} now={MATCHDAY_NOW} showContext onAction={() => {}} />
         <MatchCard match={settledMatch} now={MATCHDAY_NOW} showContext />
+        <MatchCard match={postponedMatch} now={MATCHDAY_NOW} showContext onAction={() => {}} />
       </VNextRoot>,
     )
   })

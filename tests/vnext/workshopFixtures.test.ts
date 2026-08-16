@@ -1,8 +1,9 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFileSync, readdirSync } from 'node:fs'
+import { join, relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   MATCHDAY_NOW,
+  postponedMatch,
   workshopHomeModel,
   workshopMatchday,
   workshopTeamList,
@@ -102,6 +103,21 @@ describe('workshop matchday fixture', () => {
         )
       }
     }
+  })
+
+  it('keeps the postponed fixture out of the matchday and off the clock', () => {
+    // It reuses two of the matchday's clubs, so including it would break the
+    // "one club, one match" rule the scenario depends on. It exists only so the
+    // `postponed` status has something to render.
+    expect(workshopMatchday.map((match) => match.id)).not.toContain(
+      postponedMatch.id,
+    )
+    expect(postponedMatch.status).toBe('postponed')
+    expect(postponedMatch.clock).toBeNull()
+    expect(postponedMatch.score).toBeNull()
+    // No deadline: the one it had belonged to a kick-off that is not happening,
+    // and inventing a replacement would be inventing a game rule.
+    expect(postponedMatch.lockAt).toBeNull()
   })
 
   it('states a contrast decision for every club colour pair', () => {
@@ -206,6 +222,128 @@ describe('AppFrame container-query structure', () => {
     for (const width of [720, 1100, 1500]) {
       expect(css).toContain(`@container vnext-frame (min-width: ${width}px)`)
     }
+  })
+
+  it('bounds the sticky personal rail against the frame, not the browser', () => {
+    // The bound has to come from `--vnext-frame-block`, which the frame's host
+    // declares, so a 375px shell on a 1440px monitor is not sized to 1440.
+    expect(css).toContain('max-block-size: calc(var(--vnext-frame-block)')
+  })
+})
+
+/**
+ * NO vNext LAYOUT MAY MEASURE THE BROWSER WINDOW.
+ *
+ * The whole workshop rests on one claim: a 375px frame inside a wide desktop
+ * browser reviews as a phone. A container query keeps that claim; a viewport
+ * UNIT breaks it silently, because `82vw` and `100vh` inside a device shell are
+ * the height and width of the window showing the workshop, and the number they
+ * produce is plausible enough that nothing looks wrong.
+ *
+ * The original guard only caught viewport MEDIA QUERIES, which is why both
+ * surviving units — `max-width: 82vw` on a rail card and
+ * `max-height: calc(100vh - …)` on the desktop personal rail — sat inside a
+ * frame that the same test declared honest.
+ *
+ * SCOPED TO `src/vnext/` ON PURPOSE. The legacy UI uses `clamp(…, 5vw, …)` and
+ * viewport-height panels legitimately in a dozen places — it renders in the
+ * browser window, so the browser window is the right thing for it to measure.
+ * A repository-wide ban would be a rule about the wrong lane, and the first
+ * legitimate use would get it deleted.
+ */
+describe('vNext responsive isolation', () => {
+  const vnextRoot = resolve(import.meta.dirname, '../../src/vnext')
+
+  function stylesheets(directory: string): string[] {
+    return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(directory, entry.name)
+      if (entry.isDirectory()) return stylesheets(path)
+      return entry.name.endsWith('.css') ? [path] : []
+    })
+  }
+
+  /** Comments explain why these units are banned and must not trip the ban. */
+  const withoutComments = (css: string) => css.replace(/\/\*[\s\S]*?\*\//g, ' ')
+
+  const files = stylesheets(vnextRoot)
+
+  /**
+   * Every viewport-relative length, including the dynamic/small/large variants.
+   * `svh` is no better than `vh` here: a device shell is not a viewport at all,
+   * so every one of them measures the wrong box.
+   */
+  const VIEWPORT_UNIT =
+    /(?<![\w-])\d*\.?\d+(?:vh|vw|vmin|vmax|vb|vi|dvh|dvw|svh|svw|lvh|lvw)(?![\w-])/g
+
+  it('reads the vNext stylesheets at all', () => {
+    // Without this a broken walk would pass the ban below having read nothing.
+    expect(files.length).toBeGreaterThan(10)
+  })
+
+  it('uses no viewport-relative unit in any vNext stylesheet', () => {
+    const offenders: string[] = []
+
+    for (const file of files) {
+      const source = withoutComments(readFileSync(file, 'utf8'))
+      source.split('\n').forEach((line, index) => {
+        for (const match of line.matchAll(VIEWPORT_UNIT)) {
+          offenders.push(
+            `${relative(vnextRoot, file)}:${index + 1} ${match[0]} — ${line.trim()}`,
+          )
+        }
+      })
+    }
+
+    expect(
+      offenders,
+      'vNext layout must measure its own container, never the host browser:\n' +
+        offenders.join('\n'),
+    ).toEqual([])
+  })
+
+  it('uses no viewport media query for layout in any vNext stylesheet', () => {
+    const offenders = files.filter((file) =>
+      /@media[^{]*\((min|max)-(width|height)/.test(
+        withoutComments(readFileSync(file, 'utf8')),
+      ),
+    )
+
+    expect(
+      offenders.map((file) => relative(vnextRoot, file)),
+      'a width media query reports the browser window, not the frame',
+    ).toEqual([])
+  })
+
+  it('catches a viewport unit when one is present', () => {
+    // The ban above passes trivially if the pattern matches nothing, so it is
+    // exercised against text that must fail and text that must not.
+    expect('max-width: 82vw;'.match(VIEWPORT_UNIT)).not.toBeNull()
+    expect('max-height: calc(100vh - 8px);'.match(VIEWPORT_UNIT)).not.toBeNull()
+    expect('inline-size: 82cqi;'.match(VIEWPORT_UNIT)).toBeNull()
+    // Not a unit: an identifier that merely ends in one.
+    expect('var(--review-in-4vh-mode)'.match(VIEWPORT_UNIT)).toBeNull()
+  })
+
+  it('declares the frame block token as unbounded by default', () => {
+    // `none` is what makes the absent case honest: a frame with no height of
+    // its own bounds nothing, rather than falling back to the window.
+    const tokens = readFileSync(
+      resolve(vnextRoot, 'foundations/tokens.css'),
+      'utf8',
+    )
+    expect(tokens).toMatch(/--vnext-frame-block:\s*none;/)
+  })
+
+  it('does not turn the vNext root into a scroll container', () => {
+    // `overflow-x: hidden` makes the root a scrollport, and every sticky
+    // descendant then sticks to a box that never scrolls — which is the same as
+    // not sticking at all. `clip` clips without scrolling.
+    const root = readFileSync(
+      resolve(vnextRoot, 'foundations/VNextRoot.module.css'),
+      'utf8',
+    )
+    expect(withoutComments(root)).toContain('overflow-x: clip')
+    expect(withoutComments(root)).not.toContain('overflow-x: hidden')
   })
 })
 

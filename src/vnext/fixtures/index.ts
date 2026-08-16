@@ -16,6 +16,7 @@ export {
   featuredLiveMatch,
   halfTimeLiveMatch,
   liveMatches,
+  postponedMatch,
   recentResults,
   settledMatch,
   upcomingMatches,

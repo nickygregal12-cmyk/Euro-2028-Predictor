@@ -39,10 +39,22 @@ export type MatchCardProps = {
  * to put a second action later. So the card is an `<article>` and the action is
  * one real `<button>` with a name that says which match it acts on.
  *
+ * AND SO IT DOES NOT PRESS. Press feedback is a promise that something happens
+ * on release. An `<article>` that answers a tap by scaling makes that promise
+ * and then breaks it, which reads as a broken control rather than as polish.
+ * The press belongs to the button; the card keeps only the hover depth, and
+ * only where there is an action to hover towards.
+ *
  * WHAT DECIDES THE EMPHASIS. Live state and an unmet deadline are the two
  * things allowed to make a card louder than its neighbours — both are states
  * the user can still do something about. Nothing is emphasised for being
  * interesting.
+ *
+ * POSTPONED IS NOT AN UPCOMING FIXTURE. It carries a kick-off time that is no
+ * longer going to happen, so the card says so plainly and offers no prediction
+ * action. Whether a prediction survives a postponement, when a rearranged lock
+ * opens and what happens to a joker are all game rules; presentation states the
+ * status and stops there.
  *
  * The scoreline is `aria-hidden` and restated in the heading, because "2 – 1"
  * read out of a grid is not a sentence.
@@ -59,15 +71,20 @@ export function MatchCard({
 
   const isLive = match.status === 'live' || match.status === 'halfTime'
   const isFinished = match.status === 'fullTime'
+  const isPostponed = match.status === 'postponed'
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
   const needsPrediction = match.prediction === null && match.status === 'upcoming'
+  const action = onAction ? actionLabel(match) : null
 
-  const heading = match.score
+  const baseHeading = match.score
     ? `${match.home.team.name} ${formatScoreline(
         match.score.home,
         match.score.away,
       )} ${match.away.team.name}`
     : `${match.home.team.name} versus ${match.away.team.name}`
+  // The status belongs in the name for the one state where the rest of the card
+  // would otherwise read as a fixture that is still going ahead.
+  const heading = isPostponed ? `${baseHeading}, postponed` : baseHeading
 
   return (
     <motion.article
@@ -77,14 +94,14 @@ export function MatchCard({
         variant === 'feature' ? styles.feature : '',
         isLive ? surfaces.live : '',
         needsPrediction ? styles.needsAction : '',
+        isPostponed ? styles.postponed : '',
       ]
         .filter(Boolean)
         .join(' ')}
       aria-labelledby={headingId}
       variants={lift}
       initial="rest"
-      whileHover="hover"
-      whileTap="tap"
+      whileHover={action ? 'hover' : undefined}
     >
       <h3 id={headingId} className={typography.srOnly}>
         {heading}
@@ -93,6 +110,13 @@ export function MatchCard({
       <header className={styles.header}>
         {isLive ? (
           <LiveIndicator status={match.status} clock={match.clock} />
+        ) : isPostponed ? (
+          // The kick-off is deliberately not shown beside it: a time that is no
+          // longer happening, printed next to the word that says so, still
+          // reads as a time to turn up for.
+          <span className={`${typography.label} ${styles.postponedFlag}`}>
+            Postponed
+          </span>
         ) : (
           <span className={`${typography.label} ${styles.kickoff}`}>
             {isFinished ? 'Full time' : formatKickoffLabel(match.kickoff, now)}
@@ -151,23 +175,29 @@ export function MatchCard({
         />
       ) : null}
 
-      {onAction ? (
-        <button
+      {onAction && action ? (
+        <motion.button
           type="button"
           className={`${styles.action} ${needsPrediction ? styles.actionUrgent : ''}`}
           onClick={() => onAction(match)}
+          // The press lives here, on the thing that actually does something.
+          // `tap` resolves to no scale at all under reduced motion, so the
+          // feedback becomes the button's own colour change rather than travel.
+          variants={lift}
+          initial="rest"
+          whileTap="tap"
           // "Predict" is a useless name in a rail of five cards, so the name
           // says which match it acts on. It is an aria-label rather than a
           // visually hidden span because name computation drops the whitespace
           // between the visible text and the span and produces "Predict—
           // Inverness…". The visible text is contained in the name, which is
           // what WCAG 2.5.3 asks for.
-          aria-label={`${actionLabel(match)} — ${match.home.team.name} versus ${
+          aria-label={`${action} — ${match.home.team.name} versus ${
             match.away.team.name
           }`}
         >
-          {actionLabel(match)}
-        </button>
+          {action}
+        </motion.button>
       ) : null}
     </motion.article>
   )
@@ -200,7 +230,14 @@ function TeamRow({ side, goals }: { side: MatchSide; goals: number | null }) {
   )
 }
 
-function actionLabel(match: Match): string {
+/**
+ * `null` where there is nothing truthful to offer, which suppresses the button
+ * entirely rather than leaving a disabled control nobody can act on or explain.
+ * A postponed fixture is the only such state today: "Predict" and "Change
+ * prediction" both claim the fixture is still going ahead.
+ */
+function actionLabel(match: Match): string | null {
+  if (match.status === 'postponed') return null
   if (match.status === 'live' || match.status === 'halfTime') return 'Follow live'
   if (match.status === 'fullTime') return 'See how everyone did'
   return match.prediction === null ? 'Predict' : 'Change prediction'

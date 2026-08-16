@@ -22,6 +22,17 @@
   border-color: var(--vnext-warn);
 }
 
+/* Postponed is quieter than every other state, because it is the one state
+ * asking for nothing. The card recedes; the word does the telling. */
+.postponed {
+  border-style: dashed;
+  border-color: var(--vnext-hairline-strong);
+}
+
+.postponedFlag {
+  color: var(--vnext-text-muted);
+}
+
 .header {
   display: flex;
   align-items: center;

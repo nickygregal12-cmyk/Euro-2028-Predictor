@@ -4,7 +4,10 @@ import { CalendarDays, Home, Trophy, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   useReducedMotionPreference,
-  vnextSpring,
+  useVNextMotion,
+  useVNextTransition,
+  vnextMotion,
+  vnextTransition,
 } from '../../foundations/motion'
 import styles from './VNextNav.module.css'
 
@@ -49,6 +52,11 @@ export const defaultNavItems: readonly VNextNavItem[] = [
  * dropped entirely and the marker simply appears where it belongs, which is why
  * the id is conditional rather than the animation being tuned down.
  *
+ * Both halves of that come from `foundations/motion` already resolved: the fade
+ * from `vnextMotion.navIndicator` and the travel from
+ * `vnextTransition.navIndicator`. This component never picks a full-motion
+ * value itself — that is the point of the foundation being a pair.
+ *
  * SEMANTICS. A real `<nav>` with a list of buttons, `aria-current="page"` on the
  * active one, and a visible label under every icon — an icon-only bar is a
  * memory test. Every target clears 44px.
@@ -61,6 +69,8 @@ export function VNextNav({
 }: VNextNavProps) {
   const instanceId = useId()
   const reduced = useReducedMotionPreference()
+  const indicator = useVNextMotion(vnextMotion.navIndicator)
+  const indicatorTravel = useVNextTransition(vnextTransition.navIndicator)
 
   return (
     <nav
@@ -91,7 +101,10 @@ export function VNextNav({
                   <motion.span
                     className={styles.indicator}
                     layoutId={reduced ? undefined : `${instanceId}-indicator`}
-                    transition={vnextSpring}
+                    transition={indicatorTravel}
+                    variants={indicator}
+                    initial="hidden"
+                    animate="current"
                     aria-hidden="true"
                   />
                 ) : null}

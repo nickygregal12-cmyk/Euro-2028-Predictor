@@ -143,6 +143,18 @@
   --vnext-personal-rail: 340px;
   --vnext-tap-target: 44px;
 
+  /* HOW TALL THE FRAME IS, WHEN THE FRAME KNOWS.
+     `none` is the honest default: a vNext frame dropped into an ordinary page
+     is as tall as its content, so nothing inside it may claim a fixed height.
+     A host that DOES own a definite block size — the workshop device shells,
+     and any future fixed-height embed — overrides this with a real length, and
+     the sticky rails bound themselves to it.
+     It is deliberately not `100vh`. Inside a 375×812 device shell `vh` is the
+     height of the browser showing the workshop, which is a different number
+     from the frame being reviewed, so every desktop rail measured that way is
+     measured against the wrong thing. */
+  --vnext-frame-block: none;
+
   /* ---- motion -----------------------------------------------------------
      The CSS half of the motion language, for hover/press transitions that
      should not cost a React re-render. The Framer Motion half lives in

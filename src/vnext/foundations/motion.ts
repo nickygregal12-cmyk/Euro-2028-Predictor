@@ -84,18 +84,25 @@ export const liftAndPress: MotionPreset = {
 }
 
 /**
- * The navigation indicator. The full path uses a shared `layoutId` so the
- * marker travels between items; the reduced path cross-fades in place, which is
- * why the two variants differ in opacity rather than position.
+ * The navigation indicator, appearing on the item that is now current.
+ *
+ * The marker's TRAVEL between items is a layout animation, which Framer drives
+ * from the `transition` prop rather than from a variant, so the primitive ships
+ * that half separately as `navIndicatorTravel` below. This half is the fade the
+ * marker gets on arrival, and it is what makes the reduced path still show
+ * which destination is current — the state is never dropped, only the movement.
  */
 export const navIndicator: MotionPreset = {
   full: {
-    rest: { opacity: 1, transition: vnextSpring },
-    reduced: { opacity: 1 },
+    hidden: { opacity: 0 },
+    current: {
+      opacity: 1,
+      transition: { duration: vnextDuration.fast, ease: vnextEase },
+    },
   },
   reduced: {
-    rest: { opacity: 1, transition: { duration: vnextDuration.fast } },
-    reduced: { opacity: 1 },
+    hidden: { opacity: 0 },
+    current: { opacity: 1, transition: { duration: vnextDuration.fast } },
   },
 }
 
@@ -195,6 +202,34 @@ export const vnextMotion = {
 } as const
 
 /**
+ * A transition that is not expressible as a variant.
+ *
+ * Layout animations (`layout`, `layoutId`) read the `transition` prop, not the
+ * animating variant, so a component that needs one would otherwise have to
+ * reach past the foundation and pick `vnextSpring` itself. Pairing it the same
+ * way every preset is paired keeps the rule intact: components consume RESOLVED
+ * motion, never a raw full-motion value.
+ */
+export type MotionTransitionPreset = {
+  readonly full: Transition
+  readonly reduced: Transition
+}
+
+/**
+ * The navigation marker travelling from the old destination to the new one.
+ * Reduced motion does not slow the journey down, it removes it: the marker is
+ * simply already there, and the fade in `navIndicator` carries the state.
+ */
+export const navIndicatorTravel: MotionTransitionPreset = {
+  full: vnextSpring,
+  reduced: instant,
+}
+
+export const vnextTransition = {
+  navIndicator: navIndicatorTravel,
+} as const
+
+/**
  * Workshop override for the reduced-motion preference.
  *
  * `null` means "ask the operating system", which is the production behaviour.
@@ -243,5 +278,13 @@ export function useReducedMotionPreference(): boolean {
  * silent one.
  */
 export function useVNextMotion(preset: MotionPreset): Variants {
+  return useReducedMotionPreference() ? preset.reduced : preset.full
+}
+
+/**
+ * The same resolution for a bare transition, so a layout animation is chosen by
+ * the foundation rather than by the component that happens to need one.
+ */
+export function useVNextTransition(preset: MotionTransitionPreset): Transition {
   return useReducedMotionPreference() ? preset.reduced : preset.full
 }

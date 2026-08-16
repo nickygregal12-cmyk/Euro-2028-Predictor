@@ -119,11 +119,26 @@
     display: none;
   }
 
+  /* THE FRAME OWNS ITS SIZE, SO THE FRAME BOUNDS ITS RAIL.
+   *
+   * A sticky column taller than the space it is pinned in is unreadable: the
+   * top stays put and the bottom never arrives. Bounding it and letting it
+   * scroll inside itself is the fix, and the bound has to be the FRAME's
+   * height. `100vh` was the height of the browser showing the workshop, so a
+   * 375×812 phone shell on a 1440×900 monitor sized its rail to 900 and a
+   * desktop shell reviewed at 40% sized its rail to whatever window happened
+   * to be open — neither is the frame being judged.
+   *
+   * `--vnext-frame-block` is `none` unless a host declares a real height. When
+   * it is `none` the `calc()` is invalid at computed-value time, so
+   * `max-block-size` falls back to its initial `none` and the rail simply flows
+   * with the page — which is the correct behaviour for a frame that has no
+   * height of its own to scroll within. */
   .personal {
     position: sticky;
     top: var(--vnext-space-6);
     align-self: start;
-    max-height: calc(100vh - var(--vnext-space-8));
+    max-block-size: calc(var(--vnext-frame-block) - var(--vnext-space-8));
     overflow-y: auto;
   }
 }

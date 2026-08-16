@@ -368,6 +368,67 @@ export const settledMatch: Match = {
   isFeatured: false,
 }
 
+/**
+ * A postponed fixture, and deliberately NOT part of the matchday above.
+ *
+ * The scenario is five matches for a reason — it is the set every story,
+ * screenshot and concept is judged against, and a sixth card in every rail
+ * would change what is being reviewed. This one exists so the `postponed`
+ * status in the presentation model has something to render: a card that says
+ * so, keeps the clubs and their context, and offers no prediction action.
+ *
+ * The clubs repeat two from the matchday, which is why it stays outside
+ * `workshopMatchday` — a club cannot appear twice in one matchday.
+ *
+ * Nothing here decides what a postponement DOES. Whether the prediction below
+ * survives, when a rearranged lock opens and what becomes of a joker are
+ * backend rules; the fixture only says the fixture is off.
+ */
+export const postponedMatch: Match = {
+  id: 'match-balmorral-eastcraig-postponed',
+  competitionId: WORKSHOP_COMPETITION_ID,
+  kickoff: '2027-08-21T14:00:00.000Z',
+  status: 'postponed',
+  clock: null,
+  home: {
+    team: workshopTeams.balmorral,
+    form: ['draw', 'win', 'loss', 'win', 'win'],
+    leaguePosition: 5,
+  },
+  away: {
+    team: workshopTeams.eastcraig,
+    form: ['loss', 'draw', 'win', 'loss', 'loss'],
+    leaguePosition: 10,
+  },
+  score: null,
+  venue: venues.carrickRoad,
+  headToHead: {
+    played: 4,
+    homeWins: 2,
+    draws: 1,
+    awayWins: 1,
+    lastMeeting: {
+      summary: 'Balmorral won on a wet Tuesday',
+      score: { home: 2, away: 0 },
+      playedOn: '2027-02-02T19:45:00.000Z',
+    },
+  },
+  broadcast: null,
+  prediction: {
+    score: { home: 2, away: 1 },
+    status: 'submitted',
+    isJoker: false,
+    outcome: null,
+    points: null,
+    pointsAreProvisional: false,
+  },
+  consensus: null,
+  // No deadline: the one that existed belonged to a kick-off that is not
+  // happening, and inventing a new one would be inventing a rule.
+  lockAt: null,
+  isFeatured: false,
+}
+
 export const liveMatches: readonly Match[] = [
   featuredLiveMatch,
   halfTimeLiveMatch,

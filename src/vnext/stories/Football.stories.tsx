@@ -9,6 +9,7 @@ import {
   deadlineMatch,
   featuredLiveMatch,
   halfTimeLiveMatch,
+  postponedMatch,
   settledMatch,
   workshopTeamList,
 } from '../fixtures'
@@ -64,6 +65,15 @@ export const Settled: Story = {
 /** The dense form the rails use: no context block, no action. */
 export const Compact: Story = {
   args: { match: deadlineMatch },
+}
+
+/**
+ * Postponed. The clubs and their context stay; the kick-off and the prediction
+ * action go, because both would claim a fixture that is not happening. `onAction`
+ * is passed deliberately — the card refuses it rather than the story hiding it.
+ */
+export const Postponed: Story = {
+  args: { match: postponedMatch, showContext: true, onAction: () => {} },
 }
 
 /**

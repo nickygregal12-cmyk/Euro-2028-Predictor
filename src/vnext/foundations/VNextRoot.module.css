@@ -14,7 +14,16 @@
     radial-gradient(120% 60% at 12% -10%, var(--vnext-accent-veil), transparent 60%),
     radial-gradient(90% 50% at 100% 0%, rgb(38 74 132 / 22%), transparent 65%);
   background-repeat: no-repeat;
-  overflow-x: hidden;
+  /* CLIP, NOT HIDDEN — the difference decides whether sticky works at all.
+   *
+   * `overflow-x: hidden` makes this element a SCROLL CONTAINER, and the y axis
+   * comes with it (`visible` computes to `auto` beside a non-visible x). Every
+   * sticky descendant then sticks to this box rather than to the page, and
+   * because the root grows with its content and never scrolls, the navigation
+   * rail and the personal rail simply never stick. `clip` does the one job
+   * wanted here — stop a wide child painting a horizontal scrollbar — without
+   * creating a scrollport. */
+  overflow-x: clip;
   -webkit-font-smoothing: antialiased;
 }
 

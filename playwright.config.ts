@@ -13,12 +13,14 @@ export default defineConfig({
   // parked-Euro set and that every non-parked spec still runs under exactly one
   // active config.
   //
-  // The first four entries belong to other active Playwright configs.
+  // The first five entries belong to other active Playwright configs.
   testIgnore: [
     'auth-recovery.spec.ts',
     'auth-capacity.spec.ts',
     'axe-unauthenticated.spec.ts',
     'visual-gallery.spec.ts',
+    // Storybook, not the application: vNext has no application route yet.
+    'vnext-workshop-layout.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',
