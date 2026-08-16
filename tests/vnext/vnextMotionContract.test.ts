@@ -178,7 +178,17 @@ describe('vNext reduced motion removes movement', () => {
  * where the decision is made.
  */
 describe('vNext components resolve their motion through the foundation', () => {
-  const componentsRoot = resolve(import.meta.dirname, '../../src/vnext/components')
+  const vnextRoot = resolve(import.meta.dirname, '../../src/vnext')
+
+  /**
+   * `components/` AND `concepts/`. The Stage 3 Home concepts animate as much as
+   * the shared components do — hero entrances, rail staggers, poster lifts,
+   * points emphasis — so a concept reaching for `vnextSpring` directly would be
+   * exactly the defect this guard was written for, in a tree the guard did not
+   * cover. Scoping it to one directory would have made the rule true of the
+   * smaller half of the animated code.
+   */
+  const roots = ['components', 'concepts'].map((tree) => resolve(vnextRoot, tree))
 
   function sources(directory: string): string[] {
     return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -188,13 +198,14 @@ describe('vNext components resolve their motion through the foundation', () => {
     })
   }
 
-  const files = sources(componentsRoot)
+  const files = roots.flatMap(sources)
+  const componentsRoot = vnextRoot
 
   /** Raw, unresolved motion values. A component naming one has bypassed the pair. */
   const RAW_MOTION = /\b(vnextSpring|vnextEase|vnextDuration)\b/
 
-  it('reads the vNext components at all', () => {
-    expect(files.length).toBeGreaterThan(8)
+  it('reads the vNext components and concepts at all', () => {
+    expect(files.length).toBeGreaterThan(20)
   })
 
   it('imports no raw full-motion value into a component', () => {

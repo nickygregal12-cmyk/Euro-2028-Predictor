@@ -1,4 +1,4 @@
-name: vNext workshop layout
+name: vNext workshop browser checks
 
 # THE ONE CHECK jsdom CANNOT DO FOR vNext.
 #
@@ -12,10 +12,15 @@ name: vNext workshop layout
 # unreachable from `src/main.tsx`, so the app build contains none of the code
 # under test here.
 #
-# No screenshots, so no baselines and no runner-specific images. The suite
-# asserts structure — regions, column counts, sticky behaviour, horizontal
-# overflow — which is what has to survive the concept stage redesigning the
-# surface on top of it.
+# No screenshots, so no baselines and no runner-specific images. The frame
+# suite asserts structure — regions, column counts, sticky behaviour,
+# horizontal overflow — which is what has to survive a redesign on top of it.
+#
+# The concept suite runs beside it and asserts LESS on purpose: the three Home
+# concepts exist to be compared and then mostly discarded, so it checks only
+# what is true of any acceptable concept — no sideways overflow, one real
+# navigation, 44px targets, and a desktop composition that is not the phone
+# stretched — and never their markup.
 
 on:
   # Scoped to what can move the frame. The workshop is not on any application
@@ -25,6 +30,7 @@ on:
       - 'src/vnext/**'
       - '.storybook/**'
       - 'e2e/vnext-workshop-layout.spec.ts'
+      - 'e2e/vnext-home-concepts.spec.ts'
       - 'playwright.vnext.config.ts'
       - 'package-lock.json'
       - '.github/workflows/vnext-workshop.yml'
@@ -52,14 +58,14 @@ jobs:
       - name: Install Chromium and system dependencies
         run: npx playwright install --with-deps chromium
 
-      - name: Measure the workshop frames
+      - name: Measure the workshop frames and the Home concepts
         run: npm run test:e2e:vnext
 
       - name: Upload failure evidence
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: vnext-workshop-layout
+          name: vnext-workshop-browser
           if-no-files-found: ignore
           retention-days: 14
           path: |

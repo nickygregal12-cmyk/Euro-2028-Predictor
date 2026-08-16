@@ -27,7 +27,7 @@ import { expect, test } from '@playwright/test'
  */
 
 const STORY =
-  '/iframe.html?id=vnext-workshop-responsive-canvas--all-widths&viewMode=story'
+  '/iframe.html?id=vnext-workshop-app-frame-probe--all-widths&viewMode=story'
 
 /** The workshop's own five widths, and the composition each one owes. */
 const FRAMES = [
@@ -149,8 +149,8 @@ test.describe('vNext workshop layout', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto(STORY, { waitUntil: 'load' })
     await page.waitForSelector('figure [data-vnext]')
-    // The sketch enters with a staggered rise; measuring mid-entrance reads
-    // transformed boxes rather than laid-out ones.
+    // The probe's cards enter with a staggered rise; measuring mid-entrance
+    // reads transformed boxes rather than laid-out ones.
     await page.waitForTimeout(1200)
   })
 

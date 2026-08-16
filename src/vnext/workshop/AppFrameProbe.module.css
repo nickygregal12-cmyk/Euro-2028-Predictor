@@ -1,0 +1,9 @@
+/* Rig chrome, not product. Two rules, so nothing here can be mistaken for a
+ * design decision about Home. */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+}
