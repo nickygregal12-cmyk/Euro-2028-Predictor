@@ -64,7 +64,11 @@ function describe(subject: string, movement: RankMovement): string {
     case 'down':
       return `${subject} moved down ${movement.places} ${plural(movement.places)}`
     case 'new':
-      return `${subject} is new to this table`
+      // Past tense on purpose. The subject is "You" for the signed-in player
+      // and a name for everybody else, so every sentence here has to be
+      // grammatical with both — "You is new to this table" is what a verb that
+      // agrees with only one of them produces.
+      return `${subject} joined this table`
     default:
       return `${subject} did not move`
   }

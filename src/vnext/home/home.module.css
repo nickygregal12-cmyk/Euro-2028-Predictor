@@ -1,0 +1,1374 @@
+/* vNEXT HOME — THE GOLD STANDARD SURFACE.
+ *
+ * Every query below is a CONTAINER query against `vnext-home`, and no length is
+ * viewport-relative. That is the workshop's load-bearing rule: a 430px frame on
+ * a 1920px monitor has to compose as a phone, or the review is a lie.
+ *
+ * THE FOUR COMPOSITIONS.
+ *
+ *   compact  (< 760px)  one column. Masthead, score bar, outstanding action,
+ *                       the dominant zone, then the other two in the order the
+ *                       emphasis calls for. Navigation is a bottom bar.
+ *   regular  (>= 760px) the secondary football moves BESIDE the dominant zone.
+ *                       The competitive module becomes a full-width band and
+ *                       switches from its three-line phone shape to its table.
+ *   expanded (>= 1120px) the masthead takes the navigation and the bottom bar
+ *                       goes. Football gets the extra width, not the margins.
+ *   wide     (>= 1560px) the competitive column finally earns its own column —
+ *                       the one width at which taking it does not narrow the
+ *                       stage. Three columns, and deliberately never four.
+ *
+ * THE THRESHOLDS ARE MEASURED, NOT CHOSEN. They are Stage 3's, kept because
+ * Stage 3 earned them: a dense zone must be sized against ITS OWN column, and
+ * the number that matters is the width at which the club NAMES fit, not the
+ * width at which the tracks fit.
+ *
+ * COLOUR DISCIPLINE. Team and competition colour arrive only as
+ * `--vnext-team-*`, `--vnext-fixture-*` and `--vnext-competition-*` custom
+ * properties, and they only ever paint fields, spines and washes. Every state —
+ * live, hit, missed, deadline, rank movement — uses a semantic token and is
+ * always paired with a word. A club playing in green never borrows the meaning
+ * of "correct".
+ */
+
+.shell {
+  container-type: inline-size;
+  container-name: vnext-home;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-height: 100%;
+  padding-block-end: var(--vnext-space-4);
+
+  /* THE ATMOSPHERE — Cinematic Football's contribution to the page itself.
+     Two soft competition-colour washes anchored to the top of the surface, on
+     the shell's own background rather than on an element, so there is no extra
+     node and no stacking context to reason about. It carries no information,
+     which is why it is this quiet and why it is the only decorative layer on
+     the page. `background-size` is a length rather than a percentage because a
+     percentage of a very tall page is a very tall wash. */
+  background-image:
+    radial-gradient(
+      88% 100% at 8% 0%,
+      color-mix(
+        in srgb,
+        var(--vnext-competition-primary, transparent) 60%,
+        transparent
+      )
+        0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      72% 100% at 96% 0%,
+      color-mix(
+        in srgb,
+        var(--vnext-competition-accent, transparent) 16%,
+        transparent
+      )
+        0%,
+      transparent 74%
+    );
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 460px, 100% 360px;
+  background-position: top left, top right;
+}
+
+/* ---- masthead ---------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: var(--vnext-layer-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4) var(--vnext-space-4) var(--vnext-space-3);
+  background-color: var(--vnext-canvas-deep);
+  border-block-end: 1px solid var(--vnext-hairline);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+.mastheadTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vnext-space-4);
+}
+
+.competition {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.matchweek {
+  color: var(--vnext-text);
+}
+
+.standing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  flex: none;
+}
+
+.standingValue {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+  margin: 0;
+}
+
+/* The desktop navigation band. Hidden entirely below `expanded`, which removes
+ * it from the accessibility tree as well as from the page, so there is never a
+ * duplicate landmark or a focus stop nobody can see. */
+.mastheadNav {
+  display: none;
+  border-block-start: 1px solid var(--vnext-hairline);
+  padding-block-start: var(--vnext-space-2);
+}
+
+/* ---- main -------------------------------------------------------------- */
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-width: 0;
+}
+
+/* ---- score bar --------------------------------------------------------- */
+
+.ticker {
+  padding-inline: var(--vnext-space-4);
+}
+
+.tickerScroller {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+  margin-inline: calc(var(--vnext-space-4) * -1);
+  padding-inline: var(--vnext-space-4);
+  padding-block-end: var(--vnext-space-1);
+}
+
+.tickerList {
+  display: flex;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tickerItem {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface);
+}
+
+.tickerLive {
+  border-color: var(--vnext-live);
+  background-color: var(--vnext-live-veil);
+}
+
+.tickerOff {
+  border-style: dashed;
+}
+
+.tickerState {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-secondary);
+  min-width: 3.4em;
+}
+
+.tickerLive .tickerState {
+  color: var(--vnext-live);
+}
+
+.tickerTeams {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tickerTeam {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text);
+  min-width: 0;
+}
+
+/* The three-letter code is the phone spelling. See `.tickerShort` for why it
+ * is not also the desktop one. */
+.tickerCode {
+  display: inline;
+}
+
+/* No width cap. The strip scrolls, so an item can be as wide as its two club
+ * names need; capping it only buys a few more fixtures per screen and pays for
+ * them with a truncated name, which is the trade this page keeps refusing. */
+.tickerShort {
+  display: none;
+}
+
+.tickerGoals {
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-display);
+}
+
+.tickerCall {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+  padding-inline-start: var(--vnext-space-3);
+  border-inline-start: 1px solid var(--vnext-hairline);
+}
+
+.tickerCallOpen {
+  color: var(--vnext-warn);
+}
+
+/* ---- the outstanding action -------------------------------------------- */
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  margin-inline: var(--vnext-space-4);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+/* Urgency changes the surface; the words change too, always. */
+.bannerUrgent {
+  border-color: var(--vnext-warn);
+  background-color: var(--vnext-warn-veil);
+}
+
+.bannerSoon {
+  border-color: var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-raised);
+}
+
+.bannerCalm {
+  border-color: var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+}
+
+.bannerTitle {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.bannerDetail {
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.bannerProgress {
+  color: var(--vnext-text-muted);
+}
+
+.bannerClock {
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-warn);
+}
+
+.bannerCalm .bannerClock,
+.bannerSoon .bannerClock {
+  color: var(--vnext-text-secondary);
+}
+
+.bannerButton {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-accent);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .bannerButton:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+/* ---- body grid ---------------------------------------------------------
+ * The one place the three emphases differ structurally. Live puts the
+ * competitive consequence directly under the football, because on a matchday
+ * the gap is a consequence OF the football; decision puts the rest of the
+ * matchweek first, because the supporting fixtures inform the decision above
+ * them; competition has no separate social zone at all, because its dominant
+ * zone is the league race. */
+
+.body {
+  display: grid;
+  grid-template-areas:
+    'stage'
+    'social'
+    'grounds';
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-4);
+  padding-inline: var(--vnext-space-4);
+}
+
+[data-vnext-emphasis='decision'] .body {
+  grid-template-areas:
+    'stage'
+    'grounds'
+    'social';
+}
+
+[data-vnext-emphasis='competition'] .body {
+  grid-template-areas:
+    'stage'
+    'grounds';
+}
+
+.stage {
+  grid-area: stage;
+  min-width: 0;
+}
+
+.groundsZone {
+  grid-area: grounds;
+  min-width: 0;
+}
+
+.socialZone {
+  grid-area: social;
+  min-width: 0;
+}
+
+.zoneTitle {
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the stage: featured live match ------------------------------------ */
+
+.feature {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-xl);
+  border: 1px solid var(--vnext-hairline-strong);
+  box-shadow: var(--vnext-shadow-lg);
+  background-color: var(--vnext-surface-sunken);
+}
+
+/* THE COLOUR FIELD. Both clubs, entering from their own side, over a dark
+ * base — and then a scrim, so text contrast is decided by the scrim rather than
+ * by whichever two clubs happen to be playing. The fallbacks matter: a fixture
+ * that never supplies a club colour must still render a legible card rather
+ * than a transparent one. */
+.featureField {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      100deg,
+      var(--vnext-fixture-home, var(--vnext-surface-interactive)) 0%,
+      transparent 52%
+    ),
+    linear-gradient(
+      260deg,
+      var(--vnext-fixture-away, var(--vnext-surface-interactive)) 0%,
+      transparent 52%
+    );
+  opacity: 0.55;
+}
+
+.featureField::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom,
+    var(--vnext-scrim) 0%,
+    var(--vnext-canvas-deep) 78%
+  );
+  opacity: 0.86;
+}
+
+.featureInner {
+  position: relative;
+  z-index: var(--vnext-layer-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-4);
+}
+
+.featureHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+}
+
+.featureState {
+  color: var(--vnext-text-secondary);
+}
+
+.featureMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+/* TOP-ALIGNED, NOT CENTRED. "Strathkelvin United" wraps to two lines where
+ * "Glenmore Athletic" does not, and centring each column against the other
+ * then puts the two crests at different heights — which reads as a rendering
+ * fault rather than as a long name. Aligning from the top keeps the crests and
+ * the club names on the same baselines; only the form runs differ, which is
+ * what actually differs. The score centres itself against the pair. */
+.scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--vnext-space-3);
+}
+
+.featureSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.start {
+  align-items: flex-start;
+  text-align: start;
+}
+
+.end {
+  align-items: flex-end;
+  text-align: end;
+}
+
+.featureTeamName {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+}
+
+.featureSideMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.featureScore {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  font-size: var(--vnext-size-display);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+}
+
+.featureScoreDash {
+  color: var(--vnext-text-muted);
+}
+
+.featureCall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  padding: var(--vnext-space-3);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface);
+}
+
+.featureCallHit {
+  border-color: var(--vnext-hit);
+  background-color: var(--vnext-hit-veil);
+}
+
+.featureCallCold {
+  border-color: var(--vnext-miss);
+  background-color: var(--vnext-miss-veil);
+}
+
+.featureCallOpen {
+  border-color: var(--vnext-warn);
+  background-color: var(--vnext-warn-veil);
+}
+
+.featureCallScore {
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.featureCallLine {
+  color: var(--vnext-text-secondary);
+  min-width: 0;
+}
+
+.featureCallPoints {
+  margin-inline-start: auto;
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.featureCallQualifier {
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-secondary);
+}
+
+.featureCrowd {
+  color: var(--vnext-text-secondary);
+  min-width: 0;
+}
+
+.featureActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+}
+
+/* ONE control, and it goes somewhere real. Stage 3's louder "Follow live"
+ * promised a feature that does not exist; see FeaturedMatch.tsx. */
+.featurePrimary {
+  min-height: var(--vnext-tap-target);
+  flex: 1 1 auto;
+  padding-inline: var(--vnext-space-5);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-accent);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .featurePrimary:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+/* ---- the stage: decision hero ------------------------------------------
+ * The one cinematic treatment on the page. A deeper field than the live stage
+ * gets, display-scale club names, and every band carrying information. */
+
+.decision {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-xl);
+  border: 1px solid var(--vnext-hairline-strong);
+  box-shadow: var(--vnext-shadow-lg);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.decisionField {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      145deg,
+      var(--vnext-fixture-home, var(--vnext-surface-interactive)) 0%,
+      transparent 58%
+    ),
+    linear-gradient(
+      215deg,
+      var(--vnext-fixture-away, var(--vnext-surface-interactive)) 0%,
+      transparent 58%
+    );
+  opacity: 0.72;
+}
+
+.decisionField::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom,
+    var(--vnext-scrim) 0%,
+    var(--vnext-canvas-deep) 70%
+  );
+  opacity: 0.82;
+}
+
+.decisionInner {
+  position: relative;
+  z-index: var(--vnext-layer-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-5) var(--vnext-space-4);
+}
+
+.decisionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+}
+
+.decisionWhen {
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text-secondary);
+  margin: 0;
+}
+
+.matchup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--vnext-space-3);
+}
+
+.matchupSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.matchupVersus {
+  align-self: center;
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text-muted);
+}
+
+.matchupName {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-lead);
+  line-height: var(--vnext-leading-snug);
+  letter-spacing: var(--vnext-tracking-tight);
+  color: var(--vnext-text);
+}
+
+.matchupMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.decisionDeadline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-warn);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-warn-veil);
+  color: var(--vnext-text-secondary);
+}
+
+.decisionClock {
+  font-size: var(--vnext-size-headline);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-warn);
+}
+
+.decisionContext {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decisionCrowd {
+  min-width: 0;
+}
+
+.decisionActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+}
+
+.decisionStatus {
+  flex: 1 1 10rem;
+  min-width: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.decisionPrimary {
+  min-height: var(--vnext-tap-target);
+  flex: 1 1 auto;
+  padding-inline: var(--vnext-space-5);
+  border: 1px solid var(--vnext-accent);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-lead);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .decisionPrimary:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+/* ---- the stage: competition focus --------------------------------------- */
+
+/* Named `competitionFocus`, not `competition`: the masthead already owns
+ * `.competition` for the competition/matchweek block, and the two collided on
+ * the first build — the masthead inherited this panel's surface and radius and
+ * grew a card nobody designed. */
+.competitionFocus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.competitionFigures {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vnext-space-3);
+}
+
+.competitionRaces {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-3);
+}
+
+.competitionEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px dashed var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.competitionEmptyLead {
+  color: var(--vnext-text);
+}
+
+.competitionActivity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activityItem {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--vnext-space-3);
+  padding-block-end: var(--vnext-space-2);
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+.activityMark {
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-caption);
+  line-height: var(--vnext-leading-normal);
+}
+
+.positive {
+  color: var(--vnext-rank-up);
+}
+
+.negative {
+  color: var(--vnext-rank-down);
+}
+
+.neutral {
+  color: var(--vnext-rank-flat);
+}
+
+.activityText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ---- around the grounds ------------------------------------------------- */
+
+.grounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.groundsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.groundsGroupTitle {
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--vnext-tracking-label);
+}
+
+.groundsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ground {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-3) var(--vnext-space-3) var(--vnext-space-3)
+    var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .ground:hover {
+    background-color: var(--vnext-surface-raised);
+  }
+}
+
+.groundOpen {
+  border-color: var(--vnext-warn);
+}
+
+/* The colour spine: the home club's colour as a 4px edge. Enough identity to
+ * tell two rows apart at a glance, nowhere near enough to become a state. */
+.groundSpine {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 4px;
+  background-color: var(--vnext-team-primary);
+}
+
+.groundState {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+}
+
+.groundKickoff {
+  color: var(--vnext-text-secondary);
+}
+
+.groundTeams {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.groundTeamRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--vnext-space-2);
+}
+
+/* A CLUB NAME IS NEVER CUT, AT ANY COLUMN WIDTH.
+ *
+ * This row is the densest thing on the page and it lives in whichever column
+ * the composition gives it — ~296px at 768, ~517px at 1440, ~555px at 1920.
+ * Stage 3 hit this three times and each time reached for a threshold; a
+ * threshold is a guess that a future composition invalidates, and the browser
+ * spec found "Inver Caledonian" clipped at exactly one width on the first run
+ * of this page.
+ *
+ * So the row does not truncate. The name wraps to a second line and only then
+ * ellipsises, and `overflow-wrap` means a single long word breaks rather than
+ * pushing the row wider than its column. A row that is occasionally two lines
+ * tall is worth more than a club called "Inver Caledonia…". */
+.groundTeamName {
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.groundGoals {
+  font-size: var(--vnext-size-lead);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+  min-width: 1.2em;
+  text-align: end;
+}
+
+.groundCall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+}
+
+.groundCallScore {
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.groundCallOpen {
+  color: var(--vnext-warn);
+}
+
+.groundCallPoints {
+  color: var(--vnext-hit);
+}
+
+.groundCountdown {
+  color: var(--vnext-warn);
+}
+
+.groundJoker {
+  margin-inline-start: var(--vnext-space-2);
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-joker);
+  color: var(--vnext-canvas-deep);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+}
+
+.groundAction {
+  justify-self: start;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-caption);
+  cursor: pointer;
+  transition: border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .groundAction:hover {
+    border-color: var(--vnext-accent);
+  }
+}
+
+.groundOpen .groundAction {
+  background-color: var(--vnext-accent);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+/* ---- the competitive module -------------------------------------------- */
+
+.social {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.socialConsequence {
+  color: var(--vnext-text-secondary);
+}
+
+.socialEmpty {
+  color: var(--vnext-text);
+}
+
+/* Two shapes, one displayed. `display: none` takes the other out of the
+ * accessibility tree too, so nothing is announced twice. */
+.socialCompact {
+  display: block;
+}
+
+.socialFull {
+  display: none;
+}
+
+/* ---- the league race, in both shapes ----------------------------------- */
+
+.raceStrip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.raceStripHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  margin: 0;
+  min-width: 0;
+}
+
+.raceStripName {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--vnext-text-secondary);
+}
+
+.raceStripRank {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex: none;
+}
+
+.raceStripRankValue {
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.raceStripLine {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.raceStripWho {
+  color: var(--vnext-text);
+}
+
+.race {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+  min-width: 0;
+}
+
+.raceName {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.raceList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* The movement cell is given its own width and the points figure its own
+ * alignment, because "– 137" with the two crowded together reads as a negative
+ * number rather than as "did not move, 137 points". */
+.raceRow {
+  display: grid;
+  grid-template-columns: 1.6em minmax(0, 1fr) 2.4em auto;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  padding: var(--vnext-space-1) var(--vnext-space-2);
+  border-radius: var(--vnext-radius-xs);
+}
+
+/* The user's own row, marked by a surface AND by the word "You" in the cell —
+ * never by colour alone. */
+.raceRowUser {
+  background-color: var(--vnext-accent-veil);
+  box-shadow: inset 0 0 0 1px var(--vnext-accent);
+}
+
+.raceRank {
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text-muted);
+}
+
+/* Names wrap, they do not truncate — the same rule as the grounds row, and it
+ * is here for the same reason: "Jamie Ferguson-Whyte" clipped in the 339px
+ * competitive column at 1920 on the first build. A two-line row is worth more
+ * than a rival called "Jamie Ferguson-Whyt…". */
+.racePlayer {
+  color: var(--vnext-text);
+  font-size: var(--vnext-size-caption);
+  overflow-wrap: anywhere;
+}
+
+.raceRowUser .racePlayer {
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+}
+
+.racePoints {
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+  min-inline-size: 2.6em;
+  text-align: end;
+}
+
+.raceGap {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.raceSize {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the mobile bottom bar ---------------------------------------------
+ * Sticky rather than fixed, so it belongs to the frame being reviewed rather
+ * than to the browser window showing the workshop. */
+
+.navBar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--vnext-layer-sticky);
+  margin-block-start: auto;
+  padding: var(--vnext-space-2) var(--vnext-space-4) var(--vnext-space-3);
+  background-image: linear-gradient(
+    to top,
+    var(--vnext-canvas-deep) 68%,
+    transparent
+  );
+}
+
+/* ---- regular: the football splits into two columns ---------------------- */
+
+@container vnext-home (min-width: 760px) {
+  .shell {
+    gap: var(--vnext-space-5);
+  }
+
+  .masthead,
+  .ticker,
+  .body {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .banner {
+    margin-inline: var(--vnext-space-5);
+  }
+
+  .main {
+    gap: var(--vnext-space-5);
+  }
+
+  /* THE COMPETITIVE MODULE GOES UNDER THE STAGE, NOT UNDER THE PAGE.
+     A full-width band below both columns was the first build, and it left a
+     void: the featured match is shorter than Around the Grounds, so the left
+     column simply stopped and the band started well below it. Stacking the two
+     in the same column fills that space with the thing the space is next to,
+     and Around the Grounds spans both rows. */
+  .body {
+    grid-template-areas:
+      'stage grounds'
+      'social grounds';
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    /* `auto 1fr`, not `auto auto`. Around the Grounds spans both rows, and grid
+       distributes a spanning item's height across every auto row it covers — so
+       two auto rows push the first one taller than the stage and reopen the
+       void this composition exists to close. The `1fr` row absorbs the excess
+       instead, which pins row one to the height of the stage itself. */
+    grid-template-rows: auto 1fr;
+    align-items: start;
+    gap: var(--vnext-space-5);
+  }
+
+  [data-vnext-emphasis='decision'] .body {
+    grid-template-areas:
+      'stage grounds'
+      'social grounds';
+  }
+
+  [data-vnext-emphasis='competition'] .body {
+    grid-template-areas: 'stage grounds';
+  }
+
+  /* The club names get the room the width bought, rather than the strip
+     carrying more fixtures at three letters each. */
+  .tickerCode {
+    display: none;
+  }
+
+  .tickerShort {
+    display: inline;
+  }
+
+  .featureInner {
+    padding: var(--vnext-space-5);
+  }
+
+  .featureScore {
+    font-size: var(--vnext-size-hero);
+  }
+
+  .featureTeamName {
+    font-size: var(--vnext-size-lead);
+  }
+
+  .decisionInner {
+    padding: var(--vnext-space-6) var(--vnext-space-5);
+  }
+
+  .matchupName {
+    font-size: var(--vnext-size-headline);
+  }
+
+  .matchupVersus {
+    font-size: var(--vnext-size-headline);
+  }
+
+  .decisionClock {
+    font-size: var(--vnext-size-display);
+  }
+
+  .competitionFigures {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .competitionRaces {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* The table replaces the three-line strip. */
+  .socialCompact {
+    display: none;
+  }
+
+  .socialFull {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: var(--vnext-space-3);
+  }
+}
+
+/* ---- expanded: the masthead takes the navigation ------------------------ */
+
+@container vnext-home (min-width: 1120px) {
+  .masthead,
+  .ticker,
+  .body {
+    padding-inline: var(--vnext-space-6);
+  }
+
+  .banner {
+    margin-inline: var(--vnext-space-6);
+  }
+
+  .body {
+    gap: var(--vnext-space-6);
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+
+  .navBar {
+    display: none;
+  }
+
+  .mastheadNav {
+    display: block;
+  }
+
+  .featureCallPoints {
+    font-size: var(--vnext-size-title);
+  }
+
+  .decisionInner {
+    padding: var(--vnext-space-7) var(--vnext-space-6);
+  }
+
+  .matchupName {
+    font-size: var(--vnext-size-display);
+  }
+}
+
+/* ---- wide: the competitive module earns a column ------------------------
+ * Three columns, and deliberately never a fourth. The extra width at 1920 goes
+ * to the football and to the league table beside it, not to another band of
+ * furniture invented because the space existed. */
+
+@container vnext-home (min-width: 1560px) {
+  .body {
+    grid-template-areas: 'stage grounds social';
+    grid-template-columns:
+      minmax(0, 1.5fr)
+      minmax(0, 1fr)
+      var(--vnext-personal-rail);
+    align-items: start;
+  }
+
+  [data-vnext-emphasis='decision'] .body {
+    grid-template-areas: 'stage grounds social';
+  }
+
+  .socialZone {
+    position: sticky;
+    top: var(--vnext-space-8);
+  }
+
+  .socialFull {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .featureMeta {
+    gap: var(--vnext-space-4);
+  }
+}

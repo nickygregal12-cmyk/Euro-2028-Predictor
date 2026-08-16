@@ -53,10 +53,6 @@ const Z_INDEX_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string]>
     'local stacking of hero copy and status above the hero decorative orb',
   ],
   [
-    'src/vnext/foundations/layout/AppFrame.module.css',
-    'the vNext bottom bar above the column it scrolls over, inside one frame — not an application layer, and the --z-* scale orders the legacy application',
-  ],
-  [
     'src/vnext/components/football/TeamCrest.module.css',
     'local 0/1 pair between the shirt collar drawn by ::after and the club code painted over it',
   ],

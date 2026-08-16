@@ -1,18 +1,21 @@
-import type { Match } from '../../models/football'
+import { useId } from 'react'
+import type { Match } from '../models/football'
 import {
   formatCountdown,
   formatKickoffLabel,
   formatOrdinal,
-} from '../../foundations/format'
-import typography from '../../foundations/typography.module.css'
-import { FormRun } from '../../components/football/FormRun'
-import { LiveIndicator } from '../../components/football/LiveIndicator'
-import { teamColourStyle } from '../shared/teamColour'
-import styles from './arena.module.css'
+} from '../foundations/format'
+import typography from '../foundations/typography.module.css'
+import { FormRun } from '../components/football/FormRun'
+import { LiveIndicator } from '../components/football/LiveIndicator'
+import { teamColourStyle } from '../foundations/teamColour'
+import styles from './home.module.css'
 
-export type ArenaGroundsProps = {
+export type AroundTheGroundsProps = {
   matches: readonly Match[]
   now: string
+  /** Heading for the zone. The competition emphasis calls it something else. */
+  title?: string
 }
 
 type GroundsGroup = {
@@ -22,23 +25,34 @@ type GroundsGroup = {
 }
 
 /**
- * Around the grounds.
+ * AROUND THE GROUNDS — the rest of the football.
  *
- * ROWS, NOT CARDS, AND THAT IS THE POINT. The stage above already spends a
- * whole zone on one match. If everything else were also a card the page would
- * be a grid of equal things again and the hierarchy the concept exists to test
- * would be gone. A row is dense enough that four fixtures — with form, the
- * user's call and the state of each — fit in the space one card would take.
+ * ROWS, NOT CARDS, AND THAT IS THE POINT. The dominant zone above already
+ * spends a whole area on one match. If everything else were also a card, the
+ * page would be a grid of equal things again and the hierarchy Home exists to
+ * express would be gone. A row is dense enough that four fixtures — with form,
+ * the user's call and the state of each — fit in the space one card would take.
  *
- * Grouped by what the user can still do about them: matches in play, matches
- * with a deadline ahead, matches already settled. Headings say so, so the
- * grouping is not carried by position alone.
+ * GROUPED BY WHAT THE USER CAN STILL DO ABOUT THEM: matches in play, matches
+ * with a deadline ahead, matches already settled, matches not happening. The
+ * headings say so, so the grouping is never carried by position alone.
+ *
+ * A ROW IS SIZED AGAINST ITS OWN COLUMN. Stage 3 measured this three times and
+ * got it wrong three times: a four-column row that fits at 1920 starves club
+ * names to "Ca…" and "E" at 1440, because this column is ~420px there and never
+ * the ~680px such a row needs. It stays stacked at every width. A list that
+ * fits is worth more than a table that does not.
  */
-export function ArenaGrounds({ matches, now }: ArenaGroundsProps) {
+export function AroundTheGrounds({
+  matches,
+  now,
+  title = 'Around the grounds',
+}: AroundTheGroundsProps) {
+  const headingId = useId()
   const groups: readonly GroundsGroup[] = [
     {
       key: 'live',
-      title: 'Also in play',
+      title: 'In play',
       matches: matches.filter(
         (match) => match.status === 'live' || match.status === 'halfTime',
       ),
@@ -60,10 +74,12 @@ export function ArenaGrounds({ matches, now }: ArenaGroundsProps) {
     },
   ].filter((group) => group.matches.length > 0)
 
+  if (groups.length === 0) return null
+
   return (
-    <div className={styles.groundsBody}>
-      <h2 className={`${typography.label} ${styles.groundsTitle}`}>
-        Around the grounds
+    <section className={styles.grounds} aria-labelledby={headingId}>
+      <h2 id={headingId} className={`${typography.label} ${styles.zoneTitle}`}>
+        {title}
       </h2>
       {groups.map((group) => (
         <div key={group.key} className={styles.groundsGroup}>
@@ -79,7 +95,7 @@ export function ArenaGrounds({ matches, now }: ArenaGroundsProps) {
           </ul>
         </div>
       ))}
-    </div>
+    </section>
   )
 }
 
@@ -96,9 +112,9 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
         match.score ? `, ${match.score.home}–${match.score.away}` : ''
       }`}
     >
-      {/* The colour spine: the home club's colour as a 4px edge. Enough
-          identity to tell two rows apart at a glance, nowhere near enough to
-          become a semantic colour. */}
+      {/* The colour spine: the home club's colour as a 4px edge. Enough identity
+          to tell two rows apart at a glance, nowhere near enough to be mistaken
+          for a state — semantic colour never arrives as a club colour. */}
       <span className={styles.groundSpine} aria-hidden="true" />
 
       <div className={styles.groundState}>
@@ -118,7 +134,9 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
       <div className={styles.groundTeams}>
         {[match.home, match.away].map((side, index) => (
           <div key={side.team.id} className={styles.groundTeamRow}>
-            <span className={`${typography.body} ${styles.groundTeamName} ${typography.truncate}`}>
+            <span
+              className={`${typography.body} ${styles.groundTeamName} ${typography.clamp2}`}
+            >
               {side.team.shortName}
             </span>
             {side.leaguePosition === null ? null : (
@@ -127,7 +145,10 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
               </span>
             )}
             <FormRun form={side.form} teamName={side.team.name} />
-            <span className={`${styles.groundGoals} ${typography.numeric}`} aria-hidden="true">
+            <span
+              className={`${styles.groundGoals} ${typography.numeric}`}
+              aria-hidden="true"
+            >
               {match.score ? (index === 0 ? match.score.home : match.score.away) : '–'}
             </span>
           </div>
@@ -169,6 +190,9 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
         )}
       </div>
 
+      {/* A postponed fixture offers nothing to do, so it gets no control. An
+          empty button labelled with a verb the product cannot honour is worse
+          than a row that simply says the match is off. */}
       {match.status === 'postponed' ? null : (
         <button
           type="button"
@@ -184,8 +208,18 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
   )
 }
 
+/**
+ * The verb on a row.
+ *
+ * Only two destinations exist in this product's vocabulary: the predictor and
+ * Match Centre. Stage 3's rows offered "Follow" and "Breakdown", neither of
+ * which names anything that has been specified — so an in-play or settled row
+ * goes to Match Centre, which is a page that is actually going to be built, and
+ * an open fixture goes to the prediction it is asking for.
+ */
 function actionLabel(match: Match): string {
-  if (match.status === 'live' || match.status === 'halfTime') return 'Follow'
-  if (match.status === 'fullTime') return 'Breakdown'
-  return match.prediction === null ? 'Predict' : 'Change'
+  if (match.status === 'upcoming') {
+    return match.prediction === null ? 'Predict' : 'Change'
+  }
+  return 'Match centre'
 }

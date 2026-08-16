@@ -189,19 +189,23 @@ describe('workshop home model', () => {
 })
 
 /**
+ * HOME'S CONTAINER-QUERY STRUCTURE.
+ *
  * `container-type` applies to an element's DESCENDANTS. A grid that declares
  * itself the container can never respond to its own width, so every composition
- * above `compact` silently never fires — which is exactly what happened on the
- * first build of this frame: 1440px rendered the phone layout and looked
- * plausible. jsdom cannot evaluate container queries, so the structure is
- * asserted from the stylesheet instead.
+ * above the smallest silently never fires — which is exactly what happened on
+ * the first build of the Stage 2 frame: 1440px rendered the phone layout and
+ * looked entirely plausible. jsdom evaluates no container query, so the
+ * structure is asserted from the stylesheet and the RESULT is measured in
+ * Chromium by `e2e/vnext-home.spec.ts`.
+ *
+ * The three thresholds are Stage 3's, and they were measured rather than
+ * chosen: each is the width at which the club NAMES in a zone fit, not the
+ * width at which the tracks fit.
  */
-describe('AppFrame container-query structure', () => {
+describe('Home container-query structure', () => {
   const css = readFileSync(
-    resolve(
-      import.meta.dirname,
-      '../../src/vnext/foundations/layout/AppFrame.module.css',
-    ),
+    resolve(import.meta.dirname, '../../src/vnext/home/home.module.css'),
     'utf8',
   )
 
@@ -211,23 +215,36 @@ describe('AppFrame container-query structure', () => {
     return match?.[1] ?? ''
   }
 
-  it('declares the container on a different element from the grid', () => {
-    expect(ruleBody('.container')).toContain('container-type: inline-size')
-    expect(ruleBody('.frame')).not.toContain('container-type')
-    expect(ruleBody('.frame')).toContain('grid-template-areas')
+  it('declares the container on the shell, which the zones then answer', () => {
+    expect(ruleBody('.shell')).toContain('container-type: inline-size')
+    expect(ruleBody('.shell')).toContain('container-name: vnext-home')
+    // The grid is a descendant of the container, never the container itself.
+    expect(ruleBody('.body')).not.toContain('container-type')
+    expect(ruleBody('.body')).toContain('grid-template-areas')
   })
 
   it('sizes every composition against the container, never the viewport', () => {
     expect(css).not.toMatch(/@media[^{]*\((min|max)-width/)
-    for (const width of [720, 1100, 1500]) {
-      expect(css).toContain(`@container vnext-frame (min-width: ${width}px)`)
+    for (const width of [760, 1120, 1560]) {
+      expect(css).toContain(`@container vnext-home (min-width: ${width}px)`)
     }
   })
 
-  it('bounds the sticky personal rail against the frame, not the browser', () => {
-    // The bound has to come from `--vnext-frame-block`, which the frame's host
-    // declares, so a 375px shell on a 1440px monitor is not sized to 1440.
-    expect(css).toContain('max-block-size: calc(var(--vnext-frame-block)')
+  it('reorders the body for each emphasis rather than restyling a new page', () => {
+    // The three emphases differ by grid area order inside ONE grid. A second
+    // `.body`-shaped rule under a different class would be a second page.
+    for (const emphasis of ['decision', 'competition']) {
+      expect(css).toContain(`[data-vnext-emphasis='${emphasis}'] .body`)
+    }
+  })
+
+  it('shows exactly one navigation and one league-race shape per width', () => {
+    // Both halves of each pair are always rendered and CSS hides one, so the
+    // hidden half must be `display: none` — which removes it from the
+    // accessibility tree as well as from the page.
+    expect(ruleBody('.mastheadNav')).toContain('display: none')
+    expect(ruleBody('.socialFull')).toContain('display: none')
+    expect(css).toContain('.navBar {\n    display: none;\n  }')
   })
 })
 
