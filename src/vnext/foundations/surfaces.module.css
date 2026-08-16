@@ -1,0 +1,80 @@
+/* vNext surfaces.
+ *
+ * Four jobs, four classes. `surface` is a plain panel, `raised` is a card that
+ * should feel lifted, `interactive` is something the user can act on, `sunken`
+ * is a well that other things sit inside.
+ *
+ * A hairline alone is not enough separation on a near-black canvas, so every
+ * surface pairs a hairline with a shadow. Interactive surfaces also transition
+ * on hover using the duration tokens, which collapse to 1ms under reduced
+ * motion — the state still changes, it just stops travelling.
+ */
+
+.surface {
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.raised {
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+.interactive {
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  box-shadow: var(--vnext-shadow-sm);
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    box-shadow var(--vnext-duration-base) var(--vnext-ease-standard);
+}
+
+/* Hover depth is a pointer affordance. `any-hover` keeps it away from touch,
+ * where a sticky hover state reads as a stuck selection. */
+@media (any-hover: hover) {
+  .interactive:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    border-color: var(--vnext-hairline-strong);
+    box-shadow: var(--vnext-shadow-lg);
+  }
+}
+
+.sunken {
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+/* State emphasis. Always applied alongside a visible word or icon — a glow is
+ * never the only thing saying a match is live. */
+.live {
+  border-color: var(--vnext-live);
+  box-shadow: var(--vnext-glow-live);
+}
+
+.accent {
+  border-color: var(--vnext-accent);
+  box-shadow: var(--vnext-glow-accent);
+}
+
+/* A horizontal rail: Netflix-style browsing, with real scroll snapping and
+ * without hiding the scrollbar from anyone who relies on it. */
+.rail {
+  display: flex;
+  gap: var(--vnext-space-4);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--vnext-gutter);
+  padding-block-end: var(--vnext-space-2);
+  scrollbar-width: thin;
+}
+
+.railItem {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+}

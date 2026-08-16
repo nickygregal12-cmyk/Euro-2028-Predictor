@@ -1,0 +1,158 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  min-width: 0;
+  container-type: inline-size;
+  container-name: vnext-match;
+}
+
+/* The feature treatment: more air, a bigger score, and the club colours allowed
+ * to bleed into the card. This is the "how cinematic should a fixture be?"
+ * question in its first, restrained form — the concept PRs push it further or
+ * pull it back. */
+.feature {
+  padding: var(--vnext-space-5);
+  gap: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-xl);
+}
+
+.needsAction {
+  border-color: var(--vnext-warn);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  min-height: 24px;
+}
+
+.kickoff {
+  color: var(--vnext-text-secondary);
+}
+
+.teams {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.teamRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vnext-space-3);
+}
+
+.teamNames {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.teamName {
+  color: var(--vnext-text);
+}
+
+.teamMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.goals {
+  font-size: var(--vnext-size-headline);
+  color: var(--vnext-text);
+  min-width: 1.2em;
+  text-align: right;
+}
+
+.feature .goals {
+  font-size: var(--vnext-size-display);
+  font-weight: var(--vnext-weight-display);
+}
+
+.feature .teamName {
+  font-size: var(--vnext-size-lead);
+}
+
+.context {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding-block-start: var(--vnext-space-3);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.contextRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+}
+
+.contextValue {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  min-width: 0;
+}
+
+.predictionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+}
+
+.countdown {
+  color: var(--vnext-warn);
+  font-size: var(--vnext-size-caption);
+}
+
+/* The action is a real button at a real tap size. Full width on a narrow card
+ * and content-width once the card is wide enough for that not to look like a
+ * form field — a container query, so it is right inside a rail too. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--vnext-tap-target);
+  width: 100%;
+  padding-inline: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive-hover);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .action:hover {
+    border-color: var(--vnext-accent);
+  }
+}
+
+.actionUrgent {
+  background-color: var(--vnext-accent);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+@container vnext-match (min-width: 420px) {
+  .action {
+    width: auto;
+    align-self: flex-start;
+  }
+}

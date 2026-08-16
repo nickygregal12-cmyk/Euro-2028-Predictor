@@ -46,6 +46,10 @@ test-results/
 # Coverage output (npm run test:coverage:domain)
 coverage/
 
+# Storybook build output (npm run build:storybook). A regenerated artefact, and
+# large enough that committing it once buries every real change in the diff.
+storybook-static/
+
 # Raw generative-model concept output (Higgsfield and similar). Research only —
 # never a production dependency (design-system §11.10). Retained evidence is
 # converted to WebP and committed under docs/visual/evidence/concepts/.

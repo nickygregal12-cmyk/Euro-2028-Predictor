@@ -1,0 +1,88 @@
+.chip {
+  display: inline-flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface-sunken);
+  font-size: var(--vnext-size-caption);
+  min-width: 0;
+}
+
+.label {
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--vnext-tracking-label);
+  font-size: var(--vnext-size-micro);
+}
+
+.score {
+  color: var(--vnext-text);
+  font-size: var(--vnext-size-body);
+}
+
+.points {
+  color: var(--vnext-text-secondary);
+}
+
+.provisionalNote {
+  color: var(--vnext-text-muted);
+}
+
+.joker {
+  padding: 1px 6px;
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-joker);
+  color: var(--vnext-joker);
+  font-size: var(--vnext-size-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--vnext-tracking-label);
+}
+
+/* Tones. Each one is paired with the word the component already writes, so the
+ * border is reinforcement rather than the only carrier of the state. */
+.exact {
+  border-color: var(--vnext-hit);
+  background-color: var(--vnext-hit-veil);
+}
+
+.exact .label,
+.result .label {
+  color: var(--vnext-hit);
+}
+
+.result {
+  border-color: var(--vnext-hairline-strong);
+}
+
+.missed {
+  border-color: var(--vnext-miss);
+  background-color: var(--vnext-miss-veil);
+}
+
+.missed .label {
+  color: var(--vnext-miss);
+}
+
+.provisional {
+  border-color: var(--vnext-live);
+}
+
+.provisional .label {
+  color: var(--vnext-live);
+}
+
+.pending {
+  border-color: var(--vnext-hairline);
+}
+
+.absent {
+  border-color: var(--vnext-warn);
+  background-color: var(--vnext-warn-veil);
+}
+
+.absent .label {
+  color: var(--vnext-warn);
+}

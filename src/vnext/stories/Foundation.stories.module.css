@@ -1,0 +1,58 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--vnext-space-3);
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding: var(--vnext-space-4);
+  min-height: 88px;
+}
+
+.chip {
+  display: block;
+  height: 22px;
+  border-radius: var(--vnext-radius-sm);
+}
+
+.narrow {
+  max-width: 260px;
+}
+
+.motionColumns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.motionColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-5);
+  min-height: 100%;
+}
+
+.motionSamples {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.sample {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  min-height: var(--vnext-tap-target);
+}
+
+.pulseDot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-live);
+  flex: none;
+}

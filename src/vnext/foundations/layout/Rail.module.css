@@ -1,0 +1,49 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+}
+
+/* The rail bleeds into the page gutter so a card can sit against the edge of a
+ * phone screen — the visual cue that says "there is more this way" — while the
+ * first card still lines up with the rest of the column. */
+.scroller {
+  margin-inline: calc(var(--vnext-gutter) * -1);
+  padding-inline: var(--vnext-gutter);
+}
+
+.list {
+  display: flex;
+  gap: var(--vnext-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+/* Cards in a rail share a width so the row reads as a set. It widens once
+ * there is room, rather than stretching one card to fill a desktop column. */
+.item > * {
+  width: 300px;
+  max-width: 82vw;
+}
+
+@container vnext-frame (min-width: 1100px) {
+  .item > * {
+    width: 340px;
+    max-width: none;
+  }
+}

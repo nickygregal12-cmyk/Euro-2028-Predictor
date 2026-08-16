@@ -1,0 +1,22 @@
+.navBoard {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-6);
+  padding: var(--vnext-space-5);
+  align-items: flex-start;
+}
+
+.navSample {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.barWidth {
+  width: 375px;
+  max-width: 100%;
+}
+
+.railWidth {
+  width: var(--vnext-nav-rail);
+}

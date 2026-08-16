@@ -1,0 +1,38 @@
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  min-width: 0;
+}
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.value {
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+  line-height: var(--vnext-leading-tight);
+}
+
+/* Tone touches the number, not the whole tile. A grid of four fully tinted
+ * tiles has no hierarchy left to give the one that matters. */
+.accent .value {
+  color: var(--vnext-accent);
+}
+
+.live .value {
+  color: var(--vnext-live);
+}
+
+.warn .value {
+  color: var(--vnext-warn);
+}
+
+.neutral .value {
+  color: var(--vnext-text);
+}

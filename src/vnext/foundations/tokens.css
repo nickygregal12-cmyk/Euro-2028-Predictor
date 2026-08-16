@@ -1,0 +1,196 @@
+/* vNext design tokens — experimental, scoped, and deliberately NOT the legacy
+ * design system.
+ *
+ * SCOPE. Every value below is declared on `[data-vnext]`, which only
+ * `VNextRoot` sets. Nothing here reaches `:root`, so the live product's tokens
+ * in `src/styles/tokens.css` are untouched and no legacy screen can pick up a
+ * vNext value by accident. This is the whole reason the two lanes can move at
+ * different speeds.
+ *
+ * SIZE. This is not a general design system. It is the smallest set that Home
+ * exploration actually needs: a surface ramp, a text ramp, the football and
+ * game states, spacing, radius, depth, a type scale and a few layout measures.
+ * Resist growing it speculatively — the concept PRs will show which values are
+ * real.
+ *
+ * DARK ONLY, FOR NOW. vNext starts dark because the product it is aiming at is
+ * a broadcast-feeling football game. A light theme is a real question and is
+ * listed as unresolved in docs/product/vnext-workshop.md rather than being
+ * half-answered here.
+ *
+ * FONT WEIGHTS. Only the weights the repository actually self-hosts are used:
+ * Inter 400/500 and Space Grotesk 400/500/700. Nothing here asks a browser to
+ * synthesize a weight, and no font dependency is added.
+ */
+
+[data-vnext] {
+  /* ---- canvas and surfaces ---------------------------------------------
+     Four steps, each with a job: the page itself, a card, a control the user
+     can act on, and a well that something sits inside. */
+  --vnext-canvas: #05070d;
+  --vnext-canvas-deep: #020307;
+  --vnext-surface: #0e131f;
+  --vnext-surface-raised: #141b2b;
+  --vnext-surface-interactive: #1a2333;
+  --vnext-surface-interactive-hover: #222d41;
+  --vnext-surface-sunken: #090c15;
+  --vnext-hairline: rgba(255, 255, 255, 0.09);
+  --vnext-hairline-strong: rgba(255, 255, 255, 0.16);
+  --vnext-scrim: rgba(2, 3, 7, 0.72);
+
+  /* ---- text -------------------------------------------------------------
+     Three steps only. A fourth always turns into "slightly greyer" rather than
+     a decision, and the muted step is already the contrast floor. */
+  --vnext-text: #f2f6ff;
+  --vnext-text-secondary: #b6c1d8;
+  --vnext-text-muted: #8593ac;
+  --vnext-text-on-accent: #04130c;
+  --vnext-text-on-live: #ffffff;
+
+  /* ---- game and football state -----------------------------------------
+     Each of these is always paired with a word or a shape in the UI. Colour
+     alone never carries a state. */
+  --vnext-accent: #37e0a0;
+  --vnext-accent-strong: #58f3ba;
+  --vnext-accent-veil: rgba(55, 224, 160, 0.14);
+  --vnext-live: #ff4d6d;
+  --vnext-live-veil: rgba(255, 77, 109, 0.16);
+  --vnext-hit: #3ddc84;
+  --vnext-hit-veil: rgba(61, 220, 132, 0.14);
+  --vnext-warn: #ffb020;
+  --vnext-warn-veil: rgba(255, 176, 32, 0.14);
+  --vnext-miss: #ff7a85;
+  --vnext-miss-veil: rgba(255, 122, 133, 0.12);
+  --vnext-rank-up: #3ddc84;
+  --vnext-rank-down: #ff7a85;
+  --vnext-rank-flat: #8593ac;
+  --vnext-joker: #e8c34a;
+  --vnext-focus: #8fc0ff;
+
+  /* ---- team identity ----------------------------------------------------
+     Defaults only. Real values arrive per team as inline custom properties, the
+     same idiom the legacy ClubIdentity uses, because a club colour comes from
+     football rather than from the theme. */
+  --vnext-team-primary: var(--vnext-surface-interactive);
+  --vnext-team-secondary: var(--vnext-surface-raised);
+  --vnext-team-accent: var(--vnext-accent);
+  --vnext-team-on-primary: var(--vnext-text);
+
+  /* ---- spacing ----------------------------------------------------------
+     A 4px base. Eight steps is enough for cards, rails and a page shell. */
+  --vnext-space-1: 4px;
+  --vnext-space-2: 8px;
+  --vnext-space-3: 12px;
+  --vnext-space-4: 16px;
+  --vnext-space-5: 24px;
+  --vnext-space-6: 32px;
+  --vnext-space-7: 48px;
+  --vnext-space-8: 64px;
+
+  /* ---- radius -----------------------------------------------------------
+     vNext is rounder than the legacy UI on purpose: large soft cards read as
+     broadcast graphics rather than as a form. */
+  --vnext-radius-xs: 6px;
+  --vnext-radius-sm: 10px;
+  --vnext-radius-md: 16px;
+  --vnext-radius-lg: 24px;
+  --vnext-radius-xl: 32px;
+  --vnext-radius-pill: 999px;
+
+  /* ---- depth ------------------------------------------------------------
+     Depth is how vNext separates layers on a near-black canvas, where a border
+     alone disappears. The glow variants are for live and accent states only. */
+  --vnext-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --vnext-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --vnext-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+  --vnext-glow-accent: 0 0 0 1px rgba(55, 224, 160, 0.35), 0 12px 40px rgba(55, 224, 160, 0.16);
+  --vnext-glow-live: 0 0 0 1px rgba(255, 77, 109, 0.4), 0 12px 40px rgba(255, 77, 109, 0.18);
+
+  /* ---- typography -------------------------------------------------------
+     Two families already in the repository. Space Grotesk carries display and
+     numbers (it has the 700 the landing page ships); Inter carries reading
+     text. Hierarchy comes from scale, casing, tracking and colour rather than
+     from weights nobody self-hosts. */
+  --vnext-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --vnext-font-text: 'Inter', system-ui, sans-serif;
+  --vnext-weight-regular: 400;
+  --vnext-weight-medium: 500;
+  --vnext-weight-display: 700;
+
+  --vnext-size-micro: 0.6875rem;
+  --vnext-size-caption: 0.75rem;
+  --vnext-size-small: 0.8125rem;
+  --vnext-size-body: 0.9375rem;
+  --vnext-size-lead: 1.0625rem;
+  --vnext-size-title: 1.375rem;
+  --vnext-size-headline: 1.75rem;
+  --vnext-size-display: 2.25rem;
+  --vnext-size-hero: 3rem;
+
+  --vnext-leading-tight: 1.05;
+  --vnext-leading-snug: 1.25;
+  --vnext-leading-normal: 1.5;
+  --vnext-tracking-label: 0.14em;
+  --vnext-tracking-tight: -0.02em;
+
+  /* ---- layout measures --------------------------------------------------
+     Read by the layout primitives, which respond to their CONTAINER rather
+     than the viewport so a 375px frame on a 1440px monitor is honest. */
+  --vnext-gutter: var(--vnext-space-4);
+  --vnext-shell-max: 1600px;
+  --vnext-nav-rail: 88px;
+  --vnext-context-rail: 280px;
+  --vnext-personal-rail: 340px;
+  --vnext-tap-target: 44px;
+
+  /* ---- motion -----------------------------------------------------------
+     The CSS half of the motion language, for hover/press transitions that
+     should not cost a React re-render. The Framer Motion half lives in
+     foundations/motion.ts and uses the same numbers. */
+  --vnext-duration-instant: 90ms;
+  --vnext-duration-fast: 160ms;
+  --vnext-duration-base: 260ms;
+  --vnext-duration-slow: 420ms;
+  --vnext-ease-standard: cubic-bezier(0.32, 0.72, 0, 1);
+  --vnext-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-weight: var(--vnext-weight-regular);
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-normal);
+}
+
+/* Workshop chrome.
+ *
+ * The frame labels and the board the device frames sit on are TOOLING, not
+ * product. They get their own three values, outside `[data-vnext]`, so nothing
+ * in a screenshot of the workshop can be mistaken for a vNext surface and no
+ * product token is bent to style a ruler. */
+[data-vnext-workshop] {
+  --vnext-workshop-board: #0b0d12;
+  --vnext-workshop-text: #9aa4b8;
+  --vnext-workshop-line: rgba(255, 255, 255, 0.12);
+  --vnext-workshop-label-size: 11px;
+}
+
+/* Reduced motion is answered here as well as in JavaScript, so a CSS-only
+ * transition cannot slip past the preference. Durations collapse rather than
+ * disappear: state still changes, it just stops travelling. */
+@media (prefers-reduced-motion: reduce) {
+  [data-vnext] {
+    --vnext-duration-instant: 1ms;
+    --vnext-duration-fast: 1ms;
+    --vnext-duration-base: 1ms;
+    --vnext-duration-slow: 1ms;
+  }
+}
+
+/* The workshop's own reduced-motion switch, so a reviewer can see the reduced
+ * path without changing an operating-system setting. */
+[data-vnext][data-vnext-motion='reduced'] {
+  --vnext-duration-instant: 1ms;
+  --vnext-duration-fast: 1ms;
+  --vnext-duration-base: 1ms;
+  --vnext-duration-slow: 1ms;
+}

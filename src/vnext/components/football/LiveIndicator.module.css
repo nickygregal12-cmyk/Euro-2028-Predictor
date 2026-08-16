@@ -1,0 +1,33 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  padding: 4px var(--vnext-space-2) 4px 6px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-live-veil);
+  border: 1px solid var(--vnext-live);
+  color: var(--vnext-live);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-live);
+  flex: none;
+}
+
+.word {
+  font-weight: var(--vnext-weight-medium);
+}
+
+/* The minute sits in the brightest text the chip has, because it is the part
+ * that is actually changing. */
+.clock {
+  color: var(--vnext-text);
+  letter-spacing: 0;
+}

@@ -1,0 +1,26 @@
+.identityGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.identityRow {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.identityMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.formGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+}

@@ -1,0 +1,145 @@
+/* vNext typography.
+ *
+ * The legacy weekly product expresses hierarchy inside a narrow band because
+ * that is what its guard requires. vNext is allowed a wider one — but not by
+ * adding a font. It uses the faces the repository already self-hosts (Inter
+ * 400/500, Space Grotesk 400/500/700) and gets its range from scale, casing,
+ * tracking, colour and the display/text family split instead.
+ *
+ * Numbers are the product. Every class that can carry a score, a rank or a
+ * points total sets `font-variant-numeric: tabular-nums` so a live score does
+ * not shuffle its own layout as it changes.
+ */
+
+.hero {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-hero);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.display {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-display);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.headline {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-headline);
+  line-height: var(--vnext-leading-snug);
+  letter-spacing: var(--vnext-tracking-tight);
+  margin: 0;
+}
+
+.title {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-title);
+  line-height: var(--vnext-leading-snug);
+  margin: 0;
+}
+
+.lead {
+  font-family: var(--vnext-font-text);
+  font-weight: var(--vnext-weight-regular);
+  font-size: var(--vnext-size-lead);
+  line-height: var(--vnext-leading-normal);
+  margin: 0;
+}
+
+.body {
+  font-family: var(--vnext-font-text);
+  font-weight: var(--vnext-weight-regular);
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-normal);
+  margin: 0;
+}
+
+.emphasis {
+  font-weight: var(--vnext-weight-medium);
+}
+
+/* The small structural label above a group. Casing and tracking carry it, not
+ * weight — which is exactly the trick that lets a 500 face feel like a 700. */
+.label {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-caption);
+  line-height: var(--vnext-leading-snug);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+  margin: 0;
+}
+
+.caption {
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-caption);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text-secondary);
+  margin: 0;
+}
+
+.micro {
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text-muted);
+  margin: 0;
+}
+
+/* Scores, points and ranks. */
+.numeric {
+  font-family: var(--vnext-font-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--vnext-tracking-tight);
+}
+
+.secondary {
+  color: var(--vnext-text-secondary);
+}
+
+.muted {
+  color: var(--vnext-text-muted);
+}
+
+/* Long club, player and league names are the normal case, not the edge case:
+ * "Sunday Morning Five-a-side Survivors" has to survive a 375px rail. Two lines
+ * then ellipsis, and `overflow-wrap` so a single long word cannot push a card
+ * wider than its container. */
+.clamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Screen-reader-only text. vNext needs its own copy rather than importing the
+ * legacy helper's stylesheet, which would drag legacy appearance in with it. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}

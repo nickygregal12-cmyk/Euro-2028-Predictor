@@ -1,0 +1,87 @@
+.consensus {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+}
+
+.bar {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  border-radius: var(--vnext-radius-pill);
+  overflow: hidden;
+}
+
+.segment {
+  display: block;
+  flex-basis: 0;
+  min-width: 2px;
+  border-radius: var(--vnext-radius-pill);
+}
+
+/* Home / draw / away are three neutral-to-accent steps rather than three hues.
+ * Team colours already carry identity in the card above this bar; adding a
+ * fourth and fifth colour here turns a summary into a rainbow. */
+.home {
+  background-color: var(--vnext-accent);
+}
+
+.draw {
+  background-color: var(--vnext-text-muted);
+}
+
+.away {
+  background-color: var(--vnext-surface-interactive-hover);
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline-strong);
+}
+
+.legend {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+}
+
+.popular {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.popularItem {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  padding: 3px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface-sunken);
+  font-size: var(--vnext-size-caption);
+}
+
+.popularShare {
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+}
+
+.userMatch {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.youTag {
+  color: var(--vnext-accent);
+  font-size: var(--vnext-size-micro);
+  text-transform: uppercase;
+  letter-spacing: var(--vnext-tracking-label);
+}

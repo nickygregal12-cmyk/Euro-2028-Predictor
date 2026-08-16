@@ -1,0 +1,32 @@
+/* The vNext canvas.
+ *
+ * The canvas is not a flat fill. Two very large, very soft radial washes sit
+ * behind everything — one accent, one cool — which is what stops a near-black
+ * page reading as an empty void and gives cards something to be lifted off.
+ * They are painted once here rather than repeated per surface. */
+
+.root {
+  position: relative;
+  min-height: 100%;
+  isolation: isolate;
+  background-color: var(--vnext-canvas);
+  background-image:
+    radial-gradient(120% 60% at 12% -10%, var(--vnext-accent-veil), transparent 60%),
+    radial-gradient(90% 50% at 100% 0%, rgb(38 74 132 / 22%), transparent 65%);
+  background-repeat: no-repeat;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+.fill {
+  height: 100%;
+}
+
+/* One focus treatment for the whole lane, stated once. It is deliberately loud:
+ * a keyboard user on a dark broadcast surface needs to be able to find the ring
+ * without hunting for it. */
+.root :focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+  border-radius: var(--vnext-radius-xs);
+}

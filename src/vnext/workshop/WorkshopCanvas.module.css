@@ -1,0 +1,49 @@
+.canvas {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  padding: 16px;
+  overflow: auto;
+  /* Workshop chrome, not product surface — see the `[data-vnext-workshop]`
+     block in foundations/tokens.css for why it has its own three values. */
+  background-color: var(--vnext-workshop-board);
+  color: var(--vnext-workshop-text);
+  font-family: system-ui, sans-serif;
+}
+
+.figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+}
+
+.caption {
+  font-size: var(--vnext-workshop-label-size);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.outer {
+  width: calc(var(--frame-width) * var(--frame-scale));
+  height: calc(var(--frame-height) * var(--frame-scale));
+  flex: none;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--vnext-workshop-line);
+}
+
+/* The frame keeps its real pixel dimensions and is only visually scaled, so
+ * container queries inside it see the width the label claims. */
+.inner {
+  width: var(--frame-width);
+  height: var(--frame-height);
+  transform: scale(var(--frame-scale));
+  transform-origin: top left;
+}
+
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+}
