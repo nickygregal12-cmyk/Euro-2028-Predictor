@@ -24,7 +24,7 @@ Do **not** preload the legacy design history for ordinary vNext work. vNext is a
 
 Read `docs/design/README.md`, then only the legacy design document it routes to for the surface. Broad cosmetic redesign of legacy production UI requires explicit authorisation; routine work should remain bounded to the requested bug, accessibility issue or functional change.
 
-## External references are critics, not authorities
+## External references are critics, never authorities
 
 FPL, Sky Bet, Netflix, UI UX Pro Max and other galleries/catalogues may inform hierarchy, browsing, density, responsive composition, motion, tables/charts and interaction patterns. They may not silently change a decided journey, game rule or backend authority, and they should not be copied wholesale.
 
