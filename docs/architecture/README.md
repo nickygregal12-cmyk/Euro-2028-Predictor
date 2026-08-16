@@ -1,31 +1,28 @@
-# Architecture planning documents
+# Architecture workstream index
 
-This directory separates **programme planning** from **engineering planning** and focused product/data workstreams.
+Do not read this whole directory for a routine task. Start with [`../../NOW.md`](../../NOW.md), then open only the architecture document that owns the workstream you are changing.
 
-| Document | Role |
+ADRs remain the decision authority. Current implementation/hosted facts live outside this directory and should be loaded only when the task needs them.
+
+## Route by task
+
+| Workstream | Start here |
 | --- | --- |
-| [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) | **The only user evidence the programme holds.** Owner observation of a live World Cup predictor, ~60 users, through a full tournament. Where it contradicts a planning assumption the evidence wins and the assumption is corrected |
-| [`programme-plan.md`](programme-plan.md) | Parent product programme: phases, parallel workstreams, discovery, design, instrumentation, go-to-market and failable product gates |
-| [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) | Child engineering workstream: Stage A–L implementation sequence and engineering exit evidence |
-| [`provider-enrichment-plan.md`](provider-enrichment-plan.md) | **P1 post-provider-foundation data/product workstream:** what football reference, team/player, kit, lineup, event and statistics data to measure, store/cache or derive; preserves the separate protected result/scoring authority |
-| [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md) | Retained Stage C split authority: C1 competition-season foundation has landed; C2 profile ownership/account erasure remains blocked by issue #272 |
-| [`stage-c1-contract-classification.md`](stage-c1-contract-classification.md) | Executable classification of all 49 Stage C/C2-before-state assertions: 40 C1, zero authorised C2 after-state and nine shared-before-state |
-| [`stage-c1-schema-overlay.md`](stage-c1-schema-overlay.md) | **C1 implementation authority:** relation, function, RLS, migration-order and evidence dispositions that separate the combined design from blocked C2 work |
-| [`stage-c-competition-season-schema.md`](stage-c-competition-season-schema.md) | Approved combined Stage C design record, retained as reasoning and overlaid for implementation by the C1/C2 governance and C1 schema overlay |
-| [`stage-c-schema-coverage.md`](stage-c-schema-coverage.md) | Exhaustive original object/function inventory; current C1/C2 implementation disposition is in the schema overlay |
-| [`stage-c-tournament-id-compatibility.md`](stage-c-tournament-id-compatibility.md) | Exact pre-migration inventory of the retained physical `public.*.tournament_id` compatibility surface |
-| [`stage-c-trigger-bindings.md`](stage-c-trigger-bindings.md) | Current effective inventory of every non-internal trigger binding on a `public` table, kept in lockstep with the executable parser/coverage guard |
-| [`stage-c-euro-preservation-oracle.md`](stage-c-euro-preservation-oracle.md) | `CS-012` structural seed oracle plus the required same-database UUID/count/score/access preservation rehearsal |
+| Football-provider enrichment, team/player data, kits, lineups, events or match statistics | [`provider-enrichment-plan.md`](provider-enrichment-plan.md) |
+| Provider capability evidence | [`provider-enrichment-capability-audit.md`](provider-enrichment-capability-audit.md) only when the question actually needs the recorded capability audit |
+| Competition-season / retained Stage C schema work | [`stage-c1-c2-governance.md`](stage-c1-c2-governance.md), then [`stage-c1-schema-overlay.md`](stage-c1-schema-overlay.md) or the exact inventory named by that authority |
+| Weekly Hub information architecture | [`hub-information-architecture.md`](hub-information-architecture.md) |
+| Acquisition / public-site architecture | [`acquisition-target-architecture.md`](acquisition-target-architecture.md) |
+| Euro publication lifecycle | [`euro-publication-lifecycle.md`](euro-publication-lifecycle.md) |
+| Programme-level sequencing or stage exit reasoning | [`programme-plan.md`](programme-plan.md) and, only where engineering-stage detail is required, [`multi-competition-hub-build-plan.md`](multi-competition-hub-build-plan.md) |
+| Historical World Cup evidence | [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) only when product/programme reasoning needs that evidence |
 
-Neither planning document overrides an ADR. Decisions are governed by the current index at [`../adr/README.md`](../adr/README.md), including later amendments to the original Stage A set. Current implementation and hosted facts live in [`../quality/current-status.md`](../quality/current-status.md), and the repository's execution order lives in [`../roadmap.md`](../roadmap.md).
+## Boundaries
 
-A cold reader should use the documents in this order:
+- Product/rule decisions: [`../adr/README.md`](../adr/README.md).
+- Current moving state or hosted claims: [`../../NOW.md`](../../NOW.md) first, then [`../quality/current-status.md`](../quality/current-status.md) only when detail is required.
+- Execution order: [`../roadmap.md`](../roadmap.md).
+- Accepted-but-unbuilt scope: [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md).
+- New frontend/vNext product direction: [`../product/ui.md`](../product/ui.md), not the architecture programme history.
 
-0. [`phase-0-world-cup-evidence.md`](phase-0-world-cup-evidence.md) first, because it is observation rather than reasoning. Several planning statements downstream of it are corrections *made because of it*, and they read as arbitrary without it;
-1. programme plan for why, when and how the wider product work is gated;
-2. engineering workstream for implementation sequence;
-3. [`provider-enrichment-plan.md`](provider-enrichment-plan.md) when working on football-data enrichment, Match Centre data or provider-backed team/player information;
-4. ADRs for binding decisions;
-5. the Stage C governance amendment, assertion classification and C1 schema overlay when touching that retained boundary;
-6. the original combined Stage C design/coverage and their detailed inventories for historical/schema reasoning;
-7. current status for what is actually true now.
+Planning documents never override an ADR, current code or executable tests. Historical design/schema reasoning remains useful evidence, but it should not become default context for an unrelated task.

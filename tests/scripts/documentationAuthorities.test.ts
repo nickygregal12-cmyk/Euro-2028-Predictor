@@ -79,15 +79,15 @@ describe('freshness', () => {
   })
 
   it('accepts a live document naming the current contract', () => {
-    expect(checkFreshness(authority('AGENTS.md', 'live'), currentContract())).toEqual(
-      [],
-    )
+    expect(
+      checkFreshness(authority('docs/quality/current-status.md', 'live'), currentContract()),
+    ).toEqual([])
   })
 
   it('refuses a live document whose newest contract has been overtaken', () => {
-    const problems = checkFreshness(authority('AGENTS.md', 'live'), 999)
+    const problems = checkFreshness(authority('docs/quality/current-status.md', 'live'), 999)
     expect(problems).toHaveLength(1)
-    expect(problems[0]).toContain('AGENTS.md')
+    expect(problems[0]).toContain('docs/quality/current-status.md')
     expect(problems[0]).toContain('999')
   })
 
@@ -125,7 +125,7 @@ describe('freshness', () => {
 describe('the sweep gate', () => {
   const sweepManifest = {
     authorities: [
-      { path: 'AGENTS.md', kind: 'live', sweep: true },
+      { path: 'docs/quality/current-status.md', kind: 'live', sweep: true },
       { path: 'docs/roadmap.md', kind: 'live', sweep: true },
       { path: 'docs/quality/risk-register.md', kind: 'dispositions', sweep: false },
     ],
@@ -139,11 +139,11 @@ describe('the sweep gate', () => {
     const problems = checkSweep(
       sweepManifest,
       ['supabase/migrations/20260805060000_x.sql'],
-      ['supabase/migrations/20260805060000_x.sql', 'AGENTS.md'],
+      ['supabase/migrations/20260805060000_x.sql', 'docs/quality/current-status.md'],
     )
     expect(problems).toHaveLength(1)
     expect(problems[0]).toContain('docs/roadmap.md')
-    expect(problems[0]).not.toContain('- AGENTS.md')
+    expect(problems[0]).not.toContain('- docs/quality/current-status.md')
   })
 
   it('accepts a migration that sweeps every one of them', () => {
@@ -151,7 +151,11 @@ describe('the sweep gate', () => {
       checkSweep(
         sweepManifest,
         ['supabase/migrations/20260805060000_x.sql'],
-        ['supabase/migrations/20260805060000_x.sql', 'AGENTS.md', 'docs/roadmap.md'],
+        [
+          'supabase/migrations/20260805060000_x.sql',
+          'docs/quality/current-status.md',
+          'docs/roadmap.md',
+        ],
       ),
     ).toEqual([])
   })

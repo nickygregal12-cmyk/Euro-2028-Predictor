@@ -11,6 +11,7 @@ const proof = readFileSync(
   'utf8',
 )
 const agents = readFileSync(resolve(process.cwd(), 'AGENTS.md'), 'utf8')
+const now = readFileSync(resolve(process.cwd(), 'NOW.md'), 'utf8')
 const currentStatus = readFileSync(
   resolve(process.cwd(), 'docs/quality/current-status.md'),
   'utf8',
@@ -99,23 +100,24 @@ describe('contract 104 competition-instance caller boundary', () => {
     expect(proof).not.toContain('select id into v_user from public.profiles order by id limit 1')
   })
 
-  it('keeps the live authorities aligned with the advancing deployment contract', () => {
-    expect(agents).toContain(
+  it('keeps moving contract state in the current-state authorities, not agent routers', () => {
+    expect(agents).toContain('Read [`NOW.md`](NOW.md)')
+    expect(agents).not.toContain(
       `The repository is at **contract ${deploymentContract.contractVersion}**`,
+    )
+    expect(agents).not.toContain(
+      `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
+    )
+    expect(now).toMatch(
+      new RegExp(`\\| Repository \\| \\*\\*${deploymentContract.contractVersion}\\*\\* \\|`),
+    )
+    expect(now).toMatch(
+      new RegExp(
+        `\\| Development hosted \\| \\*\\*${developmentContract.requiredMigrationCount}\\*\\* \\|`,
+      ),
     )
     expect(currentStatus).toContain(
       `**${deploymentContract.contractVersion}** — ${deploymentContract.requiredMigrationCount} canonical migrations`,
-    )
-    // Derived for the same reason the repository contract above is, one axis
-    // over. These two lines held the literal `103`, which was correct on the
-    // day it was written and would have gone red on the next development
-    // rollout — the identical shape to the `contract 104` literal that failed
-    // the first contract to advance past it. `config/development-hosted-
-    // contract.json` is the machine record the rollout automation already
-    // updates, so reading it keeps the assertion true across rollouts instead
-    // of pinning the guard to one moment in the environment's history.
-    expect(agents).toContain(
-      `Development Supabase is hosted at **${developmentContract.requiredMigrationCount}**`,
     )
     expect(currentStatus).toMatch(
       new RegExp(
