@@ -39,12 +39,20 @@ This means a database migration no longer has to touch root agent routers or an 
 
 ## Agent-readable safeguards
 
-- Important facts have one authoritative home; supporting files link rather than restate moving values.
-- Planning work is not described as implemented without implementation evidence.
-- Open PRs and branches are proposed work, not repository truth.
-- No material statement should disappear during cleanup: preserve it in history, supersede it explicitly, reject it with a reason, or keep it in its canonical authority.
-- Accepted-but-unimplemented work belongs in `docs/quality/accepted-requirements.md` with a stable identifier and acceptance evidence.
-- Documentation cleanup may reduce duplicated authority; it may not silently reduce product scope.
+These stable safeguard IDs are part of the repository governance contract. The reset may shorten the surrounding explanation, but it must not silently discard the requirements or their identifiers.
+
+| ID | Requirement | Enforcement |
+| --- | --- | --- |
+| `DOC-AI-001` | Every important fact has **one authoritative home**. Supporting files may link to it; they must not restate a moving fact. | `tests/scripts/documentationDuplication.test.ts` enforces the verbatim half; restating a fact in different words remains convention. |
+| `DOC-AI-002` | Every active authority declares its authority class, status, scope, exclusions, last verification date, supersession position and implementation evidence where that control block applies. | Convention. |
+| `DOC-AI-003` | **No planning statement may be described as implemented without merged code, a migration, an executable test or verified hosted evidence**, named. | Convention; `tests/scripts/adrStatusFreshness.test.ts` enforces the ADR-status half. |
+| `DOC-AI-004` | **No open pull request or branch is repository truth.** Proposed work is labelled proposed, and concurrent ownership is checked before editing a file. | Convention. |
+| `DOC-AI-005` | **No material statement disappears during cleanup.** It is retained, moved with a traceable link, superseded explicitly, rejected with a recorded reason, or deferred with a stable identifier. | Convention; reconciliations should state the disposition of material statements they move. |
+| `DOC-AI-006` | Dated audits, investigations, reconciliations, automation reports and historical roadmaps **remain historical evidence** and are not rewritten to resemble current truth. | `evidenceDirectories` in the manifest; the manifest tests keep evidence separate from live authorities. |
+| `DOC-AI-007` | Contract numbers, hosted-state values and moving commit facts belong **only** in the live-status and machine-readable authorities. | `scripts/check-documentation-authorities.mjs` freshness/classification rules and generated `NOW.md`. |
+| `DOC-AI-008` | Accepted but unimplemented decisions appear in a planning authority with **a stable identifier and acceptance evidence**. | [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md) is the register. |
+| `DOC-AI-009` | Documentation cleanup reduces **duplicated authority**, never product scope or a deferred requirement. | Convention; `DOC-AI-005` is the preservation rule. |
+| `DOC-AI-010` | An external audit or reference document supplied for a reconciliation **is not committed** as a second repository authority. Its supported facts are integrated into their existing authorities. | Convention. |
 
 ## Adding a document
 
