@@ -145,6 +145,9 @@ describe('the map cannot rot', () => {
       // source area maps to it — listed here for the same reason the visual
       // gallery is, rather than being given a weekly journey it has not got.
       'vnext-workshop-layout.spec.ts',
+      // Same reasoning: the three Home concepts are Storybook-only compositions
+      // with no application route to reach them from.
+      'vnext-home-concepts.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(

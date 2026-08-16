@@ -15,10 +15,12 @@ is what the workshop is currently *testing*, so the next stage can argue with it
 entirely on deterministic fixtures: no Supabase, no provider calls, no routing,
 no application state. Nothing in it is wired into the running product.
 
-**There is no approved Home screen in it.** `WorkshopHomeSketch` exists to prove
-the foundations, the model and the components hold together at each width. It is
-a rig, not a design, and the next stage exists to replace it with three
-materially different Home concepts.
+**There is still no approved Home screen in it.** Stage 2's `WorkshopHomeSketch`
+has been deleted — it was explicitly disposable, and Stage 3's three concepts
+replaced its purpose. What remains in `workshop/` is `AppFrameProbe`, a plain
+rig that populates `AppFrame`'s four regions so the browser-level frame contract
+still has something to measure. It is hidden from the Storybook review sidebar
+so a rig cannot be reviewed as a fourth design.
 
 ## Visual principles being tested
 
@@ -117,10 +119,25 @@ These are for the concept stage to decide, not for this note to settle:
 - Whether score changes should be announced to assistive technology while a match
   is live, and how.
 
-## What the next PR must decide
+## The three concepts, and what is still open
 
-Build three materially different Home concepts on this workshop — for example
-Matchday Arena, Game Command Centre and Cinematic Football — each answering the
-questions above differently, each reviewable at 375/430/768/1440/1920 and each
-with its reduced-motion path. Then choose one. Until that choice is made, no
-composition in `src/vnext/workshop/` should be treated as Home.
+Stage 3 built them: **Matchday Arena**, **Game Command Centre** and **Cinematic
+Football**, in `src/vnext/concepts/`, reviewed through the `vNext/Home Concepts`
+Storybook group at all five widths with a reduced-motion story each. Their
+rationale is in [`vnext-home-concepts.md`](vnext-home-concepts.md); the
+screenshots do the rest of the talking.
+
+All three consume the one Home model and the one matchday. No model extension
+was needed to build them, which is the most useful thing the exercise proved
+about the model.
+
+Each concept answers the questions above differently and on purpose, so those
+questions are **not** settled by this note — they are settled by whichever
+concept, or combination of concepts, the owner selects. Until that choice is
+made, no composition in `src/vnext/` should be treated as Home.
+
+What the concepts DID settle, by measurement rather than by argument: a dense
+zone must be sized against its own column and never against the page. The same
+mistake was made three times across the three concepts — a four-column row that
+fitted at one width starved club names to a single letter at another — and each
+time the fix was a container query on the zone rather than on the shell.

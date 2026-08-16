@@ -19,7 +19,8 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
 | `models/` | the typed presentation model (`football.ts`, `home.ts`) |
 | `fixtures/` | one deterministic fictional matchday and the Home model built on it |
-| `workshop/` | the responsive canvas and the throwaway sketch composition |
+| `concepts/` | `arena/`, `command/`, `cinematic/` — the three Home concepts |
+| `workshop/` | the responsive canvas and a plain rig for the `AppFrame` contract |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
 
 Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNext value can reach a legacy screen. Layout responds to its **container**, never the viewport, so a 375px frame inside a wide monitor is an honest review.
@@ -44,6 +45,8 @@ Do not load database, provider, AI Lab or deployment history for ordinary compon
 - Fixtures are deterministic. Nothing under `fixtures/` or `foundations/format.ts` may read the clock; components take `now` as an input.
 - Mocked values are presentation inputs, never game rules. Provisional points are labelled provisional, and optional fields stay optional honestly.
 - Every motion primitive ships its reduced-motion pair in the same change. Resolve motion through `useVNextMotion`, never by reading variants directly.
+- A dense zone sizes itself against its OWN container, never against the shell. The same column is 690px wide at one composition and 440px at another, so a shell-width rule is right in one place and starving club names in the other.
+- Concept-specific composition is expected and duplication between concepts is acceptable during exploration. Do not build one configurable layout that serves all three.
 
 ## Context budget
 

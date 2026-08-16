@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { WorkshopCanvas } from '../workshop/WorkshopCanvas'
-import { WorkshopHomeSketch } from '../workshop/WorkshopHomeSketch'
+import { AppFrameProbe } from '../workshop/AppFrameProbe'
 import { VNextNav, defaultNavItems } from '../components/navigation/VNextNav'
 import { VNextRoot } from '../foundations/VNextRoot'
 import typography from '../foundations/typography.module.css'
@@ -8,17 +8,24 @@ import { workshopHomeModel } from '../fixtures'
 import styles from './Workshop.stories.module.css'
 
 /**
- * The workshop itself.
+ * The workshop's own surfaces — the canvas and the shared navigation.
  *
- * NOTHING HERE IS THE HOME SCREEN. The sketch is a rig for judging whether the
- * foundations, the model and the components hold together at each width. The
- * next stage builds three materially different Home concepts against exactly
- * this canvas, and one of those — not this — becomes Home.
+ * THE HOME REVIEW SURFACE IS `vNext/Home Concepts`, NOT THIS. Stage 2's
+ * `WorkshopHomeSketch` used to live here and has been deleted: it was
+ * explicitly disposable, and the three concepts replaced its purpose. What is
+ * left is a probe for `AppFrame`'s four compositions, which
+ * `e2e/vnext-workshop-layout.spec.ts` measures in a real browser because jsdom
+ * evaluates no container query.
+ *
+ * The probe stories are tagged `!dev`, which keeps them out of the review
+ * sidebar while leaving them addressable by the spec. A rig in the same list as
+ * three designs is a rig that gets reviewed as a fourth design.
  */
 const meta = {
-  title: 'vNext/Workshop/Responsive canvas',
+  title: 'vNext/Workshop/App frame probe',
   component: WorkshopCanvas,
   parameters: { layout: 'fullscreen' },
+  tags: ['!dev'],
   args: {
     motion: 'system' as const,
   },
@@ -43,25 +50,12 @@ const meta = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-const sketch = <WorkshopHomeSketch model={workshopHomeModel} />
-
-/** The smallest screen the product has to work on, at full size. */
-export const Phone: Story = {
-  args: { viewports: ['phone-375'], children: sketch },
-}
-
-/** Mobile and desktop side by side — the comparison the brief asks for. */
-export const MobileAndDesktop: Story = {
-  args: {
-    viewports: ['phone-430', 'laptop-1440'],
-    scale: 0.7,
-    children: sketch,
-  },
-}
+const probe = <AppFrameProbe model={workshopHomeModel} />
 
 /**
- * Every target width at once. The frames are visually scaled only; container
- * queries still see the real widths, so each composition is the true one.
+ * Every frame width at once. This is the story
+ * `e2e/vnext-workshop-layout.spec.ts` opens, so its id
+ * (`vnext-workshop-app-frame-probe--all-widths`) is part of that contract.
  */
 export const AllWidths: Story = {
   args: {
@@ -73,23 +67,14 @@ export const AllWidths: Story = {
       'desktop-1920',
     ],
     scale: 0.36,
-    children: sketch,
-  },
-}
-
-/** The reduced-motion path, at the two widths that matter most. */
-export const ReducedMotion: Story = {
-  args: {
-    viewports: ['phone-430', 'laptop-1440'],
-    scale: 0.7,
-    motion: 'reduced',
-    children: sketch,
+    children: probe,
   },
 }
 
 /** Navigation in both of its shapes, with the open-prediction badge. */
 export const Navigation: StoryObj = {
   parameters: { layout: 'fullscreen' },
+  tags: ['!dev'],
   render: () => (
     <VNextRoot>
       <div className={styles.navBoard}>

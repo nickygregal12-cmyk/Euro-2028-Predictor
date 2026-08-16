@@ -137,13 +137,18 @@ describe('browser E2E project gating', () => {
     // all: vNext is deliberately unreachable from `src/main.tsx`. A spec that
     // drifted into the weekly config would open the wrong product and pass by
     // finding nothing.
-    expect(vnextMatch).toEqual(['vnext-workshop-layout.spec.ts'])
+    expect(vnextMatch).toEqual([
+      'vnext-workshop-layout.spec.ts',
+      'vnext-home-concepts.spec.ts',
+    ])
     expect(vnextProjects).toEqual(['vnext-workshop-chromium'])
     expect(vnextConfig).toContain('npm run storybook')
-    expect(
-      defaultIgnore,
-      'the weekly config must explicitly ignore the Storybook-served spec',
-    ).toContain('vnext-workshop-layout.spec.ts')
+    for (const spec of vnextMatch) {
+      expect(
+        defaultIgnore,
+        'the weekly config must explicitly ignore every Storybook-served spec',
+      ).toContain(spec)
+    }
   })
 
   it('parks only the explicit Euro return set and collects none of it in the weekly configs', () => {

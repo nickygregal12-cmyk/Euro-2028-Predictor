@@ -143,6 +143,14 @@
   --vnext-personal-rail: 340px;
   --vnext-tap-target: 44px;
 
+  /* ---- local stacking ---------------------------------------------------
+     Not an application layer scale. These order siblings INSIDE one vNext
+     frame — a sticky masthead over the column it scrolls under, a scrim over
+     the colour field it darkens — and they are named rather than written as
+     literals so a concept cannot quietly invent a fourth level. */
+  --vnext-layer-raised: 1;
+  --vnext-layer-sticky: 2;
+
   /* HOW TALL THE FRAME IS, WHEN THE FRAME KNOWS.
      `none` is the honest default: a vNext frame dropped into an ordinary page
      is as tall as its content, so nothing inside it may claim a fixed height.

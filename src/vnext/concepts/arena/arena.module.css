@@ -1,0 +1,1029 @@
+/* CONCEPT A — MATCHDAY ARENA
+ *
+ * Every query here is a CONTAINER query against `vnext-arena`, and no length is
+ * viewport-relative. That is the workshop's load-bearing rule: a 430px frame on
+ * a 1920px monitor has to compose as a phone, or the review is a lie.
+ *
+ * THE COMPOSITIONS, WHICH ARE THE CONCEPT:
+ *
+ *   compact  (< 760px)  masthead → score bar → call to action → STAGE →
+ *                       grounds → terrace → bottom bar. One column, football
+ *                       first, social last but present.
+ *   regular  (>= 760px) the masthead splits, and the grounds move BESIDE the
+ *                       stage rather than under it. The terrace becomes a
+ *                       full-width band.
+ *   expanded (>= 1120px) masthead navigation replaces the bottom bar. The stage
+ *                       takes the larger share of a two-column football zone.
+ *   wide     (>= 1560px) the terrace finally earns a column of its own — the
+ *                       one width at which taking it does not narrow the stage.
+ */
+
+.shell {
+  container-type: inline-size;
+  container-name: vnext-arena;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-height: 100%;
+  padding-block-end: var(--vnext-space-4);
+}
+
+/* ---- masthead --------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: var(--vnext-layer-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4) var(--vnext-space-4) var(--vnext-space-3);
+  background-color: var(--vnext-canvas-deep);
+  border-block-end: 1px solid var(--vnext-hairline);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+.mastheadTop {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vnext-space-4);
+}
+
+.competition {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.matchweek {
+  color: var(--vnext-text);
+}
+
+.standing {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  text-align: right;
+  flex: none;
+}
+
+.standingValue {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+  margin: 0;
+}
+
+/* ---- score bar -------------------------------------------------------- */
+
+.ticker {
+  padding-inline: var(--vnext-space-4);
+}
+
+.tickerScroller {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+  margin-inline: calc(var(--vnext-space-4) * -1);
+  padding-inline: var(--vnext-space-4);
+  padding-block-end: var(--vnext-space-1);
+}
+
+.tickerList {
+  display: flex;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tickerItem {
+  scroll-snap-align: start;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface);
+}
+
+.tickerLive {
+  border-color: var(--vnext-live);
+  background-color: var(--vnext-live-veil);
+}
+
+.tickerState {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-secondary);
+  min-width: 3.4em;
+}
+
+.tickerLive .tickerState {
+  color: var(--vnext-live);
+}
+
+.tickerTeams {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.tickerTeam {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text);
+}
+
+.tickerGoals {
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-display);
+}
+
+.tickerCall {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+  padding-inline-start: var(--vnext-space-3);
+  border-inline-start: 1px solid var(--vnext-hairline);
+}
+
+.tickerCallOpen {
+  color: var(--vnext-warn);
+}
+
+/* ---- the outstanding action ------------------------------------------- */
+
+.callToAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  margin-inline: var(--vnext-space-4);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-warn);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-warn-veil);
+}
+
+.ctaFlag {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.ctaDetail {
+  flex: 1 1 12rem;
+  min-width: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.ctaClock {
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-warn);
+}
+
+.ctaButton {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-accent);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .ctaButton:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+/* ---- body grid -------------------------------------------------------- */
+
+.body {
+  display: grid;
+  grid-template-areas:
+    'stage'
+    'grounds'
+    'terrace';
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-4);
+  padding-inline: var(--vnext-space-4);
+}
+
+.stage {
+  grid-area: stage;
+  min-width: 0;
+}
+
+/* A GROUND ROW IS STACKED AT EVERY WIDTH, AND THAT IS A DECISION.
+ *
+ * The horizontal four-column version was tried twice and measured wrong both
+ * times. This column is ~420px at 1440 and ~580px at 1920 — never the ~680px a
+ * row carrying a state, two club names, two form runs, a prediction and an
+ * action actually needs — so the club names truncated to "Ca…", "In…", "E".
+ * The stage beside it is where this concept spends horizontal space; the
+ * grounds column is a list, and a list that fits is worth more than a table
+ * that does not. */
+.grounds {
+  grid-area: grounds;
+  min-width: 0;
+}
+
+.terrace {
+  grid-area: terrace;
+  min-width: 0;
+}
+
+/* ---- the stage -------------------------------------------------------- */
+
+.feature {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-xl);
+  border: 1px solid var(--vnext-hairline-strong);
+  box-shadow: var(--vnext-shadow-lg);
+  background-color: var(--vnext-surface-sunken);
+}
+
+/* THE COLOUR FIELD. Both clubs, entering from their own side, over a dark
+ * base — and then a scrim, so the text contrast is decided by the scrim rather
+ * than by whichever two clubs happen to be playing. The fallbacks matter: a
+ * fixture that never supplies a club colour must still render a legible card
+ * rather than a transparent one. */
+/* No z-index of its own: `.feature` isolates, the field is the first child and
+ * `.featureInner` raises itself above it. Ordering by DOM position is enough,
+ * and the local stacking tokens are reserved for the cases where it is not. */
+.featureField {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      100deg,
+      var(--vnext-fixture-home, var(--vnext-surface-interactive)) 0%,
+      transparent 52%
+    ),
+    linear-gradient(
+      260deg,
+      var(--vnext-fixture-away, var(--vnext-surface-interactive)) 0%,
+      transparent 52%
+    );
+  opacity: 0.55;
+}
+
+.featureField::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    to bottom,
+    var(--vnext-scrim) 0%,
+    var(--vnext-canvas-deep) 78%
+  );
+  opacity: 0.86;
+}
+
+.featureInner {
+  position: relative;
+  z-index: var(--vnext-layer-raised);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-4);
+}
+
+.featureHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+}
+
+.featureKickoff {
+  color: var(--vnext-text-secondary);
+}
+
+.featureMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--vnext-space-3);
+}
+
+.featureSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.start {
+  align-items: flex-start;
+  text-align: start;
+}
+
+.end {
+  align-items: flex-end;
+  text-align: end;
+}
+
+.featureTeamName {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+}
+
+.featureSideMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.featureScore {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  font-size: var(--vnext-size-display);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+}
+
+.featureScoreDash {
+  color: var(--vnext-text-muted);
+}
+
+.featureKickoffBig {
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.featureCall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  padding: var(--vnext-space-3);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hit);
+  background-color: var(--vnext-hit-veil);
+}
+
+.featureCallOpen {
+  border-color: var(--vnext-warn);
+  background-color: var(--vnext-warn-veil);
+}
+
+.featureCallScore {
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.featureCallLine {
+  color: var(--vnext-text-secondary);
+  min-width: 0;
+}
+
+.featureCallPoints {
+  margin-inline-start: auto;
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.featureCallQualifier {
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-secondary);
+}
+
+.featureCrowd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+}
+
+.featureCrowdLine {
+  color: var(--vnext-text-secondary);
+  min-width: 0;
+}
+
+.featureActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+}
+
+.featurePrimary,
+.featureSecondary {
+  min-height: var(--vnext-tap-target);
+  flex: 1 1 auto;
+  padding-inline: var(--vnext-space-5);
+  border-radius: var(--vnext-radius-md);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.featurePrimary {
+  border: 1px solid var(--vnext-live);
+  background-color: var(--vnext-live);
+  color: var(--vnext-text-on-live);
+}
+
+.featureSecondary {
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+}
+
+@media (any-hover: hover) {
+  .featureSecondary:hover {
+    border-color: var(--vnext-text-secondary);
+  }
+}
+
+/* ---- around the grounds ----------------------------------------------- */
+
+.groundsBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.groundsTitle {
+  color: var(--vnext-text-secondary);
+}
+
+.groundsGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.groundsGroupTitle {
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--vnext-tracking-label);
+}
+
+.groundsList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ground {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-3) var(--vnext-space-3) var(--vnext-space-3)
+    var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .ground:hover {
+    background-color: var(--vnext-surface-raised);
+  }
+}
+
+.groundOpen {
+  border-color: var(--vnext-warn);
+}
+
+.groundSpine {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 4px;
+  background-color: var(--vnext-team-primary);
+}
+
+.groundState {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
+}
+
+.groundKickoff {
+  color: var(--vnext-text-secondary);
+}
+
+.groundTeams {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.groundTeamRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: var(--vnext-space-2);
+}
+
+.groundTeamName {
+  color: var(--vnext-text);
+}
+
+.groundGoals {
+  font-size: var(--vnext-size-lead);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+  min-width: 1.2em;
+  text-align: end;
+}
+
+.groundCall {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+}
+
+.groundCallScore {
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.groundCallOpen {
+  color: var(--vnext-warn);
+}
+
+.groundCallPoints {
+  color: var(--vnext-hit);
+}
+
+.groundCountdown {
+  color: var(--vnext-warn);
+}
+
+.groundJoker {
+  margin-inline-start: var(--vnext-space-2);
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-joker);
+  color: var(--vnext-canvas-deep);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+}
+
+.groundAction {
+  justify-self: start;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-caption);
+  cursor: pointer;
+  transition: border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .groundAction:hover {
+    border-color: var(--vnext-accent);
+  }
+}
+
+.groundOpen .groundAction {
+  background-color: var(--vnext-accent);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+/* ---- the terrace ------------------------------------------------------ */
+
+.terraceBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.terraceTitle {
+  color: var(--vnext-text-secondary);
+}
+
+.terraceLeagues {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.terraceLeague {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vnext-space-1) var(--vnext-space-3);
+  padding-block-end: var(--vnext-space-2);
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+.terraceLeagueName {
+  color: var(--vnext-text);
+}
+
+.terraceLeagueState {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+}
+
+.terraceRank {
+  font-size: var(--vnext-size-lead);
+  color: var(--vnext-text);
+}
+
+.terraceRankOf {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.terraceGap {
+  grid-column: 1 / -1;
+  color: var(--vnext-text-secondary);
+}
+
+.terraceScroller {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+  margin-inline: calc(var(--vnext-space-4) * -1);
+  padding-inline: var(--vnext-space-4);
+  padding-block-end: var(--vnext-space-1);
+}
+
+.terraceRivals {
+  display: flex;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rivalChip {
+  scroll-snap-align: start;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  inline-size: 240px;
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-raised);
+}
+
+.rivalAhead {
+  border-inline-start: 3px solid var(--vnext-miss);
+}
+
+.rivalBehind {
+  border-inline-start: 3px solid var(--vnext-hit);
+}
+
+.rivalInitials {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+}
+
+.rivalDetail {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rivalName {
+  color: var(--vnext-text);
+}
+
+.rivalLine {
+  color: var(--vnext-text-secondary);
+}
+
+.rivalNumbers {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.rivalDelta {
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.rivalAhead .rivalDelta {
+  color: var(--vnext-miss);
+}
+
+.rivalBehind .rivalDelta {
+  color: var(--vnext-hit);
+}
+
+/* ---- navigation -------------------------------------------------------- */
+
+.nav {
+  min-width: 0;
+}
+
+.navList {
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navItem {
+  display: flex;
+  min-width: 0;
+}
+
+.navLink {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-height: var(--vnext-tap-target);
+  min-width: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 0;
+  background-color: transparent;
+  color: var(--vnext-text-muted);
+  cursor: pointer;
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .navLink:hover {
+    color: var(--vnext-text);
+  }
+}
+
+.navActive {
+  color: var(--vnext-text);
+}
+
+.navIcon {
+  position: relative;
+  display: inline-flex;
+}
+
+.navBadge {
+  position: absolute;
+  inset-block-start: -6px;
+  inset-inline-end: -8px;
+  min-width: 16px;
+  padding-inline: 4px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+  line-height: 16px;
+  text-align: center;
+}
+
+.navLabel {
+  color: inherit;
+}
+
+/* The mobile bottom bar. Sticky rather than fixed, so it belongs to the frame
+ * being reviewed rather than to the browser window showing the workshop. */
+.navBar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--vnext-layer-sticky);
+  margin-block-start: auto;
+  padding: var(--vnext-space-2) var(--vnext-space-2) var(--vnext-space-3);
+  background-image: linear-gradient(
+    to top,
+    var(--vnext-canvas-deep) 68%,
+    transparent
+  );
+}
+
+.navBar .navList {
+  justify-content: space-between;
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+  padding: var(--vnext-space-1);
+}
+
+.navBar .navLink {
+  flex-direction: column;
+  gap: 2px;
+  padding-inline: var(--vnext-space-2);
+}
+
+.navBar .navActive {
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-interactive);
+}
+
+/* The desktop band. Hidden entirely below `expanded`, which removes it from the
+ * accessibility tree as well as from the page, so there is never a duplicate
+ * navigation landmark or a focus stop nobody can see. */
+.navMasthead {
+  display: none;
+  border-block-start: 1px solid var(--vnext-hairline);
+  padding-block-start: var(--vnext-space-2);
+}
+
+.navMasthead .navActive::after {
+  content: '';
+  position: absolute;
+  inset-inline: var(--vnext-space-3);
+  inset-block-end: -1px;
+  height: 2px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent);
+}
+
+/* ---- regular: grounds beside the stage --------------------------------- */
+
+@container vnext-arena (min-width: 760px) {
+  .shell {
+    gap: var(--vnext-space-5);
+  }
+
+  .masthead,
+  .ticker,
+  .callToAction,
+  .body {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .callToAction {
+    margin-inline: var(--vnext-space-5);
+    padding-inline: var(--vnext-space-4);
+  }
+
+  .body {
+    grid-template-areas:
+      'stage grounds'
+      'terrace terrace';
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: var(--vnext-space-5);
+  }
+
+  .featureInner {
+    padding: var(--vnext-space-5);
+  }
+
+  .featureScore {
+    font-size: var(--vnext-size-hero);
+  }
+
+  .featureTeamName {
+    font-size: var(--vnext-size-lead);
+  }
+
+  .terraceBody {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    align-items: start;
+    gap: var(--vnext-space-4) var(--vnext-space-5);
+  }
+
+  .terraceTitle {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ---- expanded: the masthead takes the navigation ------------------------ */
+
+@container vnext-arena (min-width: 1120px) {
+  .masthead,
+  .ticker,
+  .callToAction,
+  .body {
+    padding-inline: var(--vnext-space-6);
+  }
+
+  .callToAction {
+    margin-inline: var(--vnext-space-6);
+  }
+
+  .body {
+    gap: var(--vnext-space-6);
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  }
+
+  .navBar {
+    display: none;
+  }
+
+  .navMasthead {
+    display: block;
+  }
+
+  .featureScore {
+    font-size: var(--vnext-size-hero);
+  }
+
+  .featureCallPoints {
+    font-size: var(--vnext-size-title);
+  }
+}
+
+/* ---- wide: the terrace earns a column ---------------------------------- */
+
+@container vnext-arena (min-width: 1560px) {
+  .body {
+    grid-template-areas: 'stage grounds terrace';
+    grid-template-columns:
+      minmax(0, 1.5fr)
+      minmax(0, 1fr)
+      var(--vnext-personal-rail);
+    align-items: start;
+  }
+
+  .terrace {
+    position: sticky;
+    top: var(--vnext-space-8);
+  }
+
+  .terraceBody {
+    display: flex;
+  }
+
+  .terraceScroller {
+    overflow-x: visible;
+  }
+
+  .terraceRivals {
+    flex-direction: column;
+  }
+
+  .rivalChip {
+    inline-size: auto;
+  }
+
+  /* The extra width goes to the football, not to the margins: the stage gains
+     the venue/head-to-head line the narrower compositions drop. */
+  .featureMeta {
+    gap: var(--vnext-space-4);
+  }
+}
