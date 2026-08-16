@@ -44,9 +44,11 @@ Do **not** preload the whole documentation tree. Historical audits, reconciliati
 
 Use **one fact, one home**. Link to moving state instead of copying it into prompts, routers or subsystem docs.
 
-When implementation, schema, routes, hosted configuration or operating state changes, close the documentation impact in the authority that owns that fact. Never rewrite dated evidence to make it look current.
-
 `NOW.md` is generated. Run `npm run generate:now` only when its machine inputs or accepted-requirement inputs change; otherwise leave it alone.
+
+## Documentation-impact closeout
+
+When implementation, schema, routes, hosted configuration or operating state changes, finish with either the canonical authority updated or an explicit **No documentation impact** with the reason. Do not rewrite dated audits, investigations or rollout evidence to make them look current.
 
 ## Long-task handoff
 
