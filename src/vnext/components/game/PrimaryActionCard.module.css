@@ -1,0 +1,181 @@
+/* The loudest surface vNext has, and the only one allowed to be. It stacks on a
+ * phone and puts the call to action beside the copy once there is room — a
+ * container query, so it behaves the same in a workshop frame as in a column. */
+
+.card {
+  container-type: inline-size;
+  container-name: vnext-primary;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-5);
+  position: relative;
+  overflow: hidden;
+}
+
+/* A wash of the urgency colour behind the card rather than a solid fill: the
+ * copy stays on a dark ground and keeps its contrast. */
+.card::before {
+  content: '';
+  position: absolute;
+  inset: -40% -10% auto;
+  height: 180%;
+  background-image: radial-gradient(
+    60% 50% at 20% 0%,
+    var(--vnext-accent-veil),
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.urgent {
+  border-color: var(--vnext-warn);
+}
+
+.urgent::before {
+  background-image: radial-gradient(
+    60% 50% at 20% 0%,
+    var(--vnext-warn-veil),
+    transparent 70%
+  );
+}
+
+.soon {
+  border-color: var(--vnext-hairline-strong);
+}
+
+.calm {
+  border-color: var(--vnext-hairline);
+}
+
+.body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.title {
+  color: var(--vnext-text);
+}
+
+.progressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin-block-start: var(--vnext-space-2);
+}
+
+/* A native <progress> styled in both engines. The track is the sunken surface,
+ * the fill is the accent — the same pair used everywhere else for "done". */
+.progress {
+  appearance: none;
+  inline-size: 100%;
+  block-size: 8px;
+  border: 0;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-sunken);
+  overflow: hidden;
+}
+
+.progress::-webkit-progress-bar {
+  background-color: var(--vnext-surface-sunken);
+  border-radius: var(--vnext-radius-pill);
+}
+
+.progress::-webkit-progress-value {
+  background-color: var(--vnext-accent);
+  border-radius: var(--vnext-radius-pill);
+  transition: inline-size var(--vnext-duration-base) var(--vnext-ease-standard);
+}
+
+.progress::-moz-progress-bar {
+  background-color: var(--vnext-accent);
+  border-radius: var(--vnext-radius-pill);
+}
+
+.actions {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: stretch;
+}
+
+.deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  color: var(--vnext-warn);
+  font-size: var(--vnext-size-caption);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-5);
+  border: 0;
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-lead);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  box-shadow: var(--vnext-glow-accent);
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    transform var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .cta:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+.cta:active {
+  transform: scale(0.99);
+}
+
+/* REDUCED MOTION REMOVES THE MOVEMENT, NOT THE FEEDBACK.
+ *
+ * Collapsing `--vnext-duration-fast` to 1ms only makes the press instant; the
+ * button still travels, which is the thing the preference asks not to happen.
+ * So the scale goes and the press answers in colour instead. It is the accent's
+ * strong step, the same value hover uses — and hover is already excluded on
+ * touch by `any-hover`, so the two never collide on the surface where pressing
+ * is how anyone acts.
+ *
+ * Stated twice on purpose: once for the operating-system preference, once for
+ * the workshop's own switch, which exists so a reviewer can see this path
+ * without changing a system setting. */
+@media (prefers-reduced-motion: reduce) {
+  .cta:active {
+    transform: none;
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+[data-vnext-motion='reduced'] .cta:active {
+  transform: none;
+  background-color: var(--vnext-accent-strong);
+}
+
+@container vnext-primary (min-width: 560px) {
+  .card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vnext-space-6);
+  }
+
+  .actions {
+    align-items: flex-end;
+    flex: none;
+  }
+}

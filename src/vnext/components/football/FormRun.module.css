@@ -1,0 +1,37 @@
+.run {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--vnext-radius-xs);
+  font-size: var(--vnext-size-micro);
+  line-height: 1;
+  border: 1px solid transparent;
+}
+
+/* Tinted fill plus coloured text rather than a solid block: five saturated
+ * squares in a fixture card shout louder than the score does. */
+.win {
+  background-color: var(--vnext-hit-veil);
+  border-color: var(--vnext-hit);
+  color: var(--vnext-hit);
+}
+
+.draw {
+  background-color: var(--vnext-surface-interactive);
+  border-color: var(--vnext-hairline-strong);
+  color: var(--vnext-text-secondary);
+}
+
+.loss {
+  background-color: var(--vnext-miss-veil);
+  border-color: var(--vnext-miss);
+  color: var(--vnext-miss);
+}

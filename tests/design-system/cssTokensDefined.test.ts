@@ -39,6 +39,11 @@ const SET_INLINE: Record<string, string> = {
   '--club': 'src/premium/PremiumApp.tsx',
   '--mode-accent': 'src/premium/PremiumApp.tsx',
   '--progress': 'src/premium/PremiumApp.tsx',
+  // The vNext workshop's device frames: a width, a height and a display scale
+  // set per frame from `workshopViewports`, so they cannot live in a stylesheet.
+  '--frame-width': 'src/vnext/workshop/WorkshopCanvas.tsx',
+  '--frame-height': 'src/vnext/workshop/WorkshopCanvas.tsx',
+  '--frame-scale': 'src/vnext/workshop/WorkshopCanvas.tsx',
 }
 
 /**

@@ -1,0 +1,65 @@
+.rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+}
+
+/* The rail bleeds into the page gutter so a card can sit against the edge of a
+ * phone screen — the visual cue that says "there is more this way" — while the
+ * first card still lines up with the rest of the column. */
+.scroller {
+  margin-inline: calc(var(--vnext-gutter) * -1);
+  padding-inline: var(--vnext-gutter);
+}
+
+.list {
+  display: flex;
+  gap: var(--vnext-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  min-width: 0;
+}
+
+/* Cards in a rail share a width so the row reads as a set. It widens once
+ * there is room, rather than stretching one card to fill a desktop column. */
+.item > * {
+  inline-size: 300px;
+}
+
+/* THE CAP IS THE FRAME'S WIDTH, NOT THE BROWSER'S.
+ *
+ * A card must never fill its shell edge to edge, or the next one stops peeking
+ * and the row stops reading as scrollable. `82vw` measured the window showing
+ * the workshop, so a 375px shell on a desktop monitor capped its cards at
+ * ~1180px — no cap at all — and every narrow review was wrong.
+ *
+ * `cqi` is the inline size of the nearest container, which the query itself
+ * guarantees is the vNext frame: a rail rendered outside a frame matches no
+ * `vnext-frame` query, so the unit can never quietly fall back to the
+ * viewport. */
+@container vnext-frame (min-width: 1px) {
+  .item > * {
+    max-inline-size: 82cqi;
+  }
+}
+
+@container vnext-frame (min-width: 1100px) {
+  .item > * {
+    inline-size: 340px;
+    max-inline-size: none;
+  }
+}

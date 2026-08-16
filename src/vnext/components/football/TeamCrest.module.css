@@ -1,0 +1,104 @@
+/* The shirt.
+ *
+ * A rounded square with a shoulder line rather than a literal jersey outline:
+ * at 28px a real jersey silhouette is mud, and the point of the mark is to be
+ * recognisable at a glance in a dense fixture list. The kit pattern is drawn
+ * with gradients so no asset, sprite or SVG generator is needed.
+ */
+
+.crest {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-team-primary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 22%),
+    var(--vnext-shadow-sm);
+  color: var(--vnext-text-on-live);
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  letter-spacing: 0.02em;
+  line-height: 1;
+  user-select: none;
+}
+
+/* The collar: a narrow band of the secondary colour across the top, which is
+ * what makes two clubs sharing a primary colour still tell apart. */
+.crest::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 22%;
+  background-color: var(--vnext-team-secondary);
+  opacity: 0.9;
+}
+
+.onDark {
+  color: var(--vnext-canvas-deep);
+}
+
+/* A patterned shirt puts the code over two different colours — halves is the
+ * worst case — so the code carries its own separation rather than relying on
+ * the fill underneath it happening to be dark enough. */
+.code {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 55%);
+}
+
+.onDark .code {
+  text-shadow: 0 1px 3px rgb(255 255 255 / 45%);
+}
+
+.sm {
+  width: 28px;
+  height: 28px;
+  font-size: var(--vnext-size-micro);
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+  font-size: var(--vnext-size-caption);
+}
+
+.lg {
+  width: 56px;
+  height: 56px;
+  font-size: var(--vnext-size-small);
+  border-radius: var(--vnext-radius-md);
+}
+
+/* Kit patterns. Each is a gradient over the primary fill, so they cost nothing
+ * and stay crisp at any size. */
+.stripes {
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 22%,
+    var(--vnext-team-secondary) 22% 34%
+  );
+}
+
+.hoops {
+  background-image: repeating-linear-gradient(
+    180deg,
+    transparent 0 26%,
+    var(--vnext-team-secondary) 26% 40%
+  );
+}
+
+.halves {
+  background-image: linear-gradient(
+    90deg,
+    transparent 0 50%,
+    var(--vnext-team-secondary) 50% 100%
+  );
+}
+
+.solid {
+  background-image: none;
+}

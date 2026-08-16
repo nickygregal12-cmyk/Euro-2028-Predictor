@@ -1,0 +1,32 @@
+.movement {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--vnext-size-caption);
+  line-height: 1;
+}
+
+.glyph {
+  display: inline-block;
+  font-size: var(--vnext-size-micro);
+}
+
+.places {
+  font-size: var(--vnext-size-caption);
+}
+
+.up {
+  color: var(--vnext-rank-up);
+}
+
+.down {
+  color: var(--vnext-rank-down);
+}
+
+.none {
+  color: var(--vnext-rank-flat);
+}
+
+.new {
+  color: var(--vnext-accent);
+}
