@@ -1,0 +1,536 @@
+/* EVERYTHING BELOW THE CHROME, STYLED ONCE.
+ *
+ * The three Stage 7.5 concepts differ in their navigation and in nothing else,
+ * so every destination body shares this sheet. It is deliberately restrained:
+ * these are stand-ins for surfaces that are either already accepted (Home, the
+ * Match Predictor) or belong to a later stage (Matches, Leagues, Last Man
+ * Standing, the Predictor Championship), and a lab that decorated them would be
+ * designing those pages by accident.
+ *
+ * EVERY LENGTH IS A TOKEN AND EVERY QUERY IS A CONTAINER QUERY. The bodies size
+ * themselves against `ia-content`, which each concept declares around its own
+ * content region — so the same body composes differently under a concept that
+ * spends a column on a rail and one that does not, which is the honest
+ * comparison.
+ */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.panelHeading {
+  margin: 0;
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-title);
+  font-weight: var(--vnext-weight-display);
+  line-height: var(--vnext-leading-snug);
+  letter-spacing: var(--vnext-tracking-tight);
+  color: var(--vnext-text);
+
+  /* A competition name is never shortened, here or anywhere. */
+  overflow-wrap: anywhere;
+}
+
+.subHeading {
+  margin: var(--vnext-space-2) 0 0;
+  font-size: var(--vnext-size-caption);
+  font-weight: var(--vnext-weight-medium);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.surfaceNote {
+  margin: 0;
+  padding: var(--vnext-space-3);
+  background: var(--vnext-surface-sunken);
+  border-inline-start: 2px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-xs);
+  font-size: var(--vnext-size-small);
+  line-height: var(--vnext-leading-normal);
+  color: var(--vnext-text-secondary);
+}
+
+.empty,
+.reachNote,
+.notOffered,
+.tempo,
+.scopeMeta {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  line-height: var(--vnext-leading-normal);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.notOffered {
+  color: var(--vnext-text-muted);
+}
+
+.reachNote {
+  color: var(--vnext-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   competition mark
+   ------------------------------------------------------------------------- */
+
+.mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  block-size: 24px;
+  border-radius: var(--vnext-radius-xs);
+  background: var(--mark-primary, var(--vnext-surface-interactive));
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline-strong);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-display);
+  line-height: 1;
+  color: var(--mark-accent, var(--vnext-text));
+}
+
+.markMd {
+  inline-size: 34px;
+  block-size: 34px;
+  font-size: var(--vnext-size-caption);
+}
+
+/* -------------------------------------------------------------------------
+   people
+   ------------------------------------------------------------------------- */
+
+/* A NAME THAT OPENS IS A BUTTON; A NAME THAT DOES NOT IS TEXT.
+ *
+ * There is no third treatment, and there deliberately is no disabled variant:
+ * the global leaderboard has no identifier to link with, so a control there
+ * could only ever refuse. See PlayerName in Surfaces.tsx. */
+.playerLink {
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-1) 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--vnext-accent);
+  text-align: start;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.playerLink:hover {
+  color: var(--vnext-accent-strong);
+}
+
+.playerText {
+  display: inline-block;
+  padding: var(--vnext-space-1) 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.youTag {
+  margin-inline-start: var(--vnext-space-2);
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-accent-veil);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-accent);
+}
+
+.standings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.standingRow {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  padding: var(--vnext-space-2);
+  border-radius: var(--vnext-radius-xs);
+}
+
+.standingRow[data-you='true'] {
+  background: var(--vnext-accent-veil);
+}
+
+.position {
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-muted);
+  text-align: end;
+}
+
+.standingName {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+}
+
+.rankLabel {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.points {
+  font-size: var(--vnext-size-lead);
+  font-weight: var(--vnext-weight-medium);
+  color: var(--vnext-text);
+}
+
+.capabilityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--vnext-size-small);
+  line-height: var(--vnext-leading-normal);
+  color: var(--vnext-text-secondary);
+}
+
+.capabilityState {
+  display: inline-block;
+  margin-inline-end: var(--vnext-space-2);
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.capabilityState[data-state='real'] {
+  background: var(--vnext-hit-veil);
+  color: var(--vnext-hit);
+}
+
+.capabilityState[data-state='partial'] {
+  background: var(--vnext-warn-veil);
+  color: var(--vnext-warn);
+}
+
+.capabilityState[data-state='absent'] {
+  background: var(--vnext-miss-veil);
+  color: var(--vnext-miss);
+}
+
+/* -------------------------------------------------------------------------
+   game status
+   ------------------------------------------------------------------------- */
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: baseline;
+  font-size: var(--vnext-size-small);
+  line-height: var(--vnext-leading-normal);
+}
+
+.statusStrong {
+  font-weight: var(--vnext-weight-medium);
+  color: var(--vnext-text);
+}
+
+.statusMuted {
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-muted);
+}
+
+.statusDot {
+  inline-size: 3px;
+  block-size: 3px;
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-text-muted);
+  align-self: center;
+}
+
+.lifeAlive {
+  font-weight: var(--vnext-weight-medium);
+  color: var(--vnext-hit);
+}
+
+.lifeEliminated {
+  font-weight: var(--vnext-weight-medium);
+  color: var(--vnext-miss);
+}
+
+.jokerTag {
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-warn-veil);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-joker);
+}
+
+.gameStatusLead {
+  margin: 0;
+}
+
+/* -------------------------------------------------------------------------
+   attention
+   ------------------------------------------------------------------------- */
+
+.attentionList,
+.gameList,
+.fixtureList,
+.catalogue {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.attentionItem {
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline);
+}
+
+/* THE ONLY LOUD THING ON THE PAGE, AND ONLY WHEN THE APPLICATION SAYS SO.
+ * Urgency is a value the model supplies, never a deadline this lane compared
+ * against a clock. */
+.attentionItem[data-urgency='urgent'] {
+  background: var(--vnext-warn-veil);
+  box-shadow: inset 0 0 0 1px var(--vnext-warn);
+}
+
+.attentionItem[data-urgency='live'] {
+  background: var(--vnext-live-veil);
+  box-shadow: inset 0 0 0 1px var(--vnext-live);
+}
+
+.attentionItem[data-urgency='done'] {
+  background: var(--vnext-surface-sunken);
+}
+
+/* A ONE-DECISION GAME READS DIFFERENTLY FROM A MANY-DECISION ONE. Last Man
+ * Standing gets a heavier leading edge, because "pick one club or you are out"
+ * is not the same kind of task as "eight of ten scorelines". */
+.attentionItem[data-shape='one-decision'] {
+  border-inline-start: 3px solid var(--vnext-joker);
+}
+
+.attentionButton,
+.gameButton,
+.catalogueButton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-3);
+  border: 0;
+  border-radius: inherit;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.attentionTop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.attentionContext,
+.attentionGame {
+  overflow-wrap: anywhere;
+}
+
+.attentionGame {
+  color: var(--vnext-text-secondary);
+}
+
+.attentionHeadline {
+  font-size: var(--vnext-size-lead);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.attentionDetail {
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------------
+   games and football
+   ------------------------------------------------------------------------- */
+
+.gameItem {
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline);
+}
+
+.gameName {
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.fixtureLine {
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-xs);
+  background: var(--vnext-surface-sunken);
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------------
+   discovery
+   ------------------------------------------------------------------------- */
+
+.searchLabel {
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text-muted);
+}
+
+.search {
+  min-block-size: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-sunken);
+  font: inherit;
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.catalogueItem {
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-raised);
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline);
+}
+
+.catalogueButton {
+  flex-direction: row;
+  gap: var(--vnext-space-3);
+  align-items: center;
+}
+
+/* A competition in the catalogue that this fixture holds no state for cannot be
+ * opened, and says so by being unavailable rather than by pretending. The lab
+ * is not a platform. */
+.catalogueButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.catalogueName {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.catalogueMeta {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.catalogueRelationship {
+  flex: none;
+  padding: 2px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.catalogueRelationship[data-relationship='playing'] {
+  background: var(--vnext-accent-veil);
+  color: var(--vnext-accent);
+}
+
+.catalogueRelationship[data-relationship='following'] {
+  background: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+}
+
+/* -------------------------------------------------------------------------
+   controls
+   ------------------------------------------------------------------------- */
+
+.back,
+.inlineAction {
+  align-self: flex-start;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.back:hover,
+.inlineAction:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+/* -------------------------------------------------------------------------
+   the one composition change the bodies make for themselves
+   ------------------------------------------------------------------------- */
+
+/* At a genuinely wide content region the panels go two across. This is the
+ * bodies' own container — `ia-content`, declared by each concept around its
+ * content region — so a concept that spends 280px on a permanent rail reaches
+ * this threshold later than one that does not, which is exactly the trade-off
+ * under review. */
+@container ia-content (min-width: 1000px) {
+  .body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+
+  .panel:first-child {
+    grid-column: 1 / -1;
+  }
+}

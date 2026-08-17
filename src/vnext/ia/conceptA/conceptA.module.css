@@ -1,0 +1,550 @@
+/* CONCEPT A — THE COMPETITION DECK.
+ *
+ * The whole argument of this sheet is that the competition is the largest
+ * permanent thing on the screen and the four destinations beneath it belong to
+ * it. Everything else follows from that.
+ *
+ * TWO NAVIGATIONS, EXACTLY ONE REAL. A bottom bar below 1120px and a rail at
+ * and above it, both always in the DOM, `display: none` on whichever is not
+ * current — so the other is out of the accessibility tree as well as off the
+ * page and there is no focus stop nobody can see. That is the accepted shell's
+ * own mechanism, kept because it was right and not because it was there.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY. `.shell` declares `ia-shell`, and the
+ * content column declares `ia-content` for the shared bodies to size against.
+ * A 375px frame inside a 1920px monitor has to compose as a phone.
+ */
+
+.shell {
+  container-type: inline-size;
+  container-name: ia-shell;
+
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100%;
+
+  /* THE COMPETITION ATMOSPHERE, and the same restraint the accepted shell
+     shows: two soft washes on the background rather than an element, carrying
+     no information at all. */
+  background:
+    radial-gradient(
+      120% 60% at 12% 0%,
+      color-mix(in srgb, var(--vnext-competition-primary, transparent) 26%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      90% 50% at 92% 0%,
+      color-mix(in srgb, var(--vnext-competition-accent, transparent) 12%, transparent),
+      transparent
+    ),
+    var(--vnext-canvas);
+}
+
+/* A REAL CONTROL, SO IT CLEARS A REAL TARGET. It is off screen until focused,
+ * which is exactly why it is easy to leave at whatever height its text happens
+ * to be — the browser suite measures it with everything else. */
+.skipLink {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--vnext-tap-target);
+  inset-block-start: var(--vnext-space-2);
+  inset-inline-start: var(--vnext-space-2);
+  z-index: var(--vnext-layer-sticky);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-raised);
+  color: var(--vnext-text);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+/* THE TWO-COLUMN FRAME, AND WHY IT IS NOT `.shell`.
+ *
+ * A container query is answered by an ANCESTOR container. `.shell` declares
+ * `ia-shell`, so a rule targeting `.shell` inside `@container ia-shell (…)` can
+ * never match — it was inert at every width on the first build of this file,
+ * the rail rendered as a full-width block above the content, and the result
+ * looked entirely plausible. The grid therefore lives on a child. */
+.frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-inline-size: 0;
+  padding-block-end: calc(var(--vnext-tap-target) + var(--vnext-space-6));
+}
+
+/* -------------------------------------------------------------------------
+   the masthead and the context bar
+   ------------------------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vnext-layer-sticky);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  background: color-mix(in srgb, var(--vnext-canvas) 88%, transparent);
+  backdrop-filter: blur(14px);
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+.contextBar {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+}
+
+/* THE SWITCHER IS THE PRODUCT'S LARGEST PERMANENT CONTROL. That is the
+ * concept's claim in one declaration: it takes the whole width it can and the
+ * destinations beneath it are small. */
+.switcher {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  min-inline-size: 0;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background: var(--vnext-surface-raised);
+  text-align: start;
+}
+
+.switcherButton {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.switcherButton:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.switcherText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+}
+
+/* A COMPETITION NAME IS NEVER TRUNCATED. "Union of European Football
+ * Associations Champions League" wraps and the control grows; nothing here
+ * clamps a line or hides overflow, so the defect cannot reopen. */
+.switcherName {
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.switcherMeta {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.switcherCaret {
+  flex: none;
+  color: var(--vnext-text-muted);
+}
+
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--vnext-tap-target);
+  block-size: var(--vnext-tap-target);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-headline);
+  font-weight: var(--vnext-weight-display);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.headingContext {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.main {
+  container-type: inline-size;
+  container-name: ia-content;
+
+  min-inline-size: 0;
+  padding: 0 var(--vnext-space-4);
+}
+
+/* -------------------------------------------------------------------------
+   the bottom bar — under 1120px
+   ------------------------------------------------------------------------- */
+
+.bottomBar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--vnext-layer-sticky);
+  padding: var(--vnext-space-2) var(--vnext-space-3)
+    calc(var(--vnext-space-2) + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--vnext-canvas-deep) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.bottomNav {
+  min-inline-size: 0;
+}
+
+.bottomList {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bottomItem {
+  min-inline-size: 0;
+}
+
+.bottomLink {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-1);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--vnext-text-muted);
+  cursor: pointer;
+}
+
+.bottomLink[aria-current='page'] {
+  color: var(--vnext-accent);
+}
+
+.bottomLabel {
+  font-size: var(--vnext-size-micro);
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------------
+   the rail — 1120px and up
+   ------------------------------------------------------------------------- */
+
+.rail {
+  display: none;
+}
+
+.railNav {
+  position: sticky;
+  inset-block-start: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  /* Bounded only where the host declares a definite frame height — in an
+     ordinary page `--vnext-frame-block` is `none`, the `calc()` is invalid at
+     computed-value time and no bound applies. The predictor's sticky rail uses
+     the same idiom, and vNext bans viewport units outright: a device shell is
+     not a viewport, so `vh` would measure the browser showing the workshop. */
+  max-block-size: calc(var(--vnext-frame-block) - var(--vnext-space-2));
+  padding: var(--vnext-space-4) var(--vnext-space-3);
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--vnext-hairline);
+}
+
+.railList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.railGroupTitle {
+  margin: var(--vnext-space-2) 0 0;
+  padding-inline: var(--vnext-space-2);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.railLink {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.railLink:hover {
+  background: var(--vnext-surface-interactive);
+}
+
+.railLink[aria-current] {
+  background: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+}
+
+.railLinkName {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.railGlobe {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 24px;
+  color: var(--vnext-text-muted);
+}
+
+.railOverflow {
+  display: block;
+  padding: var(--vnext-space-2);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+/* URGENCY IS A DOT AND NOTHING MORE. It is an honest hint that something is
+ * waiting in a competition the player is not currently in — and the concept's
+ * own recorded weakness is that a dot cannot say what. */
+.urgencyDot {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-warn);
+}
+
+/* -------------------------------------------------------------------------
+   the sheet
+   ------------------------------------------------------------------------- */
+
+.sheetScrim {
+  position: fixed;
+  inset: 0;
+  /* One above the sticky band, so the sheet covers the masthead that opened
+     it. The token scale stops at `sticky` because nothing in vNext had an
+     overlay until now; a Stage 7.5 concept is not the place to extend the
+     accepted token sheet, so the offset is stated here and reported. */
+  z-index: calc(var(--vnext-layer-sticky) + 1);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--vnext-scrim);
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  inline-size: min(100%, 520px);
+  max-block-size: 82%;
+  padding: var(--vnext-space-4);
+  overflow-y: auto;
+  border-start-start-radius: var(--vnext-radius-lg);
+  border-start-end-radius: var(--vnext-radius-lg);
+  background: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline-strong);
+}
+
+.sheetHead {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-title);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+}
+
+.sheetClose,
+.sheetExplore {
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.sheetSearch {
+  min-block-size: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-sunken);
+  font: inherit;
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.sheetGroup {
+  margin: var(--vnext-space-2) 0 0;
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.sheetList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sheetRow {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.sheetRow:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.sheetRow[aria-current] {
+  box-shadow: inset 0 0 0 1px var(--vnext-accent);
+}
+
+.sheetRowText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.sheetRowMeta {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.sheetEmpty {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}
+
+/* -------------------------------------------------------------------------
+   the band change
+   ------------------------------------------------------------------------- */
+
+@container ia-shell (min-width: 760px) {
+  .main {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .masthead {
+    padding-inline: var(--vnext-space-5);
+  }
+}
+
+/* THE SWAP. At 1120 the rail becomes real, the bottom bar goes, and the sheet
+ * is no longer the only way to change competition — the rail's own shortcut
+ * list makes the switch free, which is the point of paying for the column. */
+@container ia-shell (min-width: 1120px) {
+  .frame {
+    grid-template-columns: 264px minmax(0, 1fr);
+  }
+
+  .rail {
+    display: block;
+  }
+
+  .bottomBar {
+    display: none;
+  }
+
+  .column {
+    padding-block-end: var(--vnext-space-6);
+  }
+
+  .contextBar {
+    display: none;
+  }
+
+  .main,
+  .masthead {
+    padding-inline: var(--vnext-space-6);
+  }
+
+  .sheetScrim {
+    align-items: center;
+  }
+
+  .sheet {
+    border-radius: var(--vnext-radius-lg);
+  }
+}

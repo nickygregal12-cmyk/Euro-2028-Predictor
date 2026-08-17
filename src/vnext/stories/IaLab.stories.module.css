@@ -1,0 +1,57 @@
+/* The Stage 7.5 review board.
+ *
+ * It is deliberately plain furniture — a caption above each concept naming it
+ * and stating the world — because anything decorative here would be design
+ * applied to the review rather than to the thing reviewed.
+ *
+ * THE CONCEPTS STACK RATHER THAN SIT SIDE BY SIDE INSIDE ONE FRAME. Each
+ * concept is a full application shell with its own container queries; placing
+ * three of them across a 430px frame would give each one 143px and every
+ * measurement would be a lie. Stacking keeps each shell at the frame's real
+ * width, which is the only honest comparison.
+ */
+
+.compare {
+  display: flex;
+  flex-direction: column;
+}
+
+.framed {
+  display: flex;
+  flex-direction: column;
+  border-block-end: 2px dashed var(--vnext-hairline-strong);
+}
+
+.caption {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: baseline;
+  margin: 0;
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  background: var(--vnext-canvas-deep);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.conceptTag {
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-secondary);
+}
+
+.conceptName {
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-caption);
+  font-weight: var(--vnext-weight-display);
+  color: var(--vnext-text);
+}
+
+.premise {
+  flex: 1 1 220px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}

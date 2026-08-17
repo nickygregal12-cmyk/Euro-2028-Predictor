@@ -27,7 +27,16 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['vnext-home.spec.ts', 'vnext-shell.spec.ts', 'vnext-predictor.spec.ts'],
+  testMatch: [
+    'vnext-home.spec.ts',
+    'vnext-shell.spec.ts',
+    'vnext-predictor.spec.ts',
+    // Stage 7.5, the three information-architecture concepts. Registered on
+    // the same terms as the other three: Storybook is the review surface, and
+    // the lab has no application route at all — it runs on deterministic
+    // fixtures, so there is nothing for a dev harness to show.
+    'vnext-ia.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,

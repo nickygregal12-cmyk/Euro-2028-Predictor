@@ -143,6 +143,10 @@ describe('browser E2E project gating', () => {
       // Stage 7's Match Predictor, on the same terms: Storybook is its review
       // surface, and the weekly config must ignore it for the same reason.
       'vnext-predictor.spec.ts',
+      // Stage 7.5's three information-architecture concepts. Same terms again,
+      // and the lab adds no dev route at all: it runs on deterministic fixtures,
+      // so Storybook is not merely its review surface but its only one.
+      'vnext-ia.spec.ts',
     ])
     expect(vnextProjects).toEqual(['vnext-workshop-chromium'])
     expect(vnextConfig).toContain('npm run storybook')
