@@ -71,6 +71,14 @@ const EMPHASES = [
   { story: 'new-season-430', label: 'new season at 430', width: 430 },
   { story: 'new-season-1440', label: 'new season at 1440', width: 1440 },
   { story: 'new-season-1920', label: 'new season at 1920', width: 1920 },
+  // Stage 6's reduced state, where every figure the real application cannot
+  // supply is null at once. It is measured at the same three widths as the other
+  // edge state, because the place a missing figure breaks a layout is a column
+  // that collapsed — and a collapsed column is only visible next to a row that
+  // did not collapse.
+  { story: 'reduced-430', label: 'reduced at 430', width: 430 },
+  { story: 'reduced-1440', label: 'reduced at 1440', width: 1440 },
+  { story: 'reduced-1920', label: 'reduced at 1920', width: 1920 },
 ] as const
 
 type Reading = {
@@ -409,6 +417,10 @@ test.describe('the three emphases are one shell', () => {
       ['decision-430', 'decision'],
       ['competition-430', 'competition'],
       ['new-season-430', 'competition'],
+      // Nothing live and a calm deadline, so the competition state is what the
+      // space is worth — the same answer the selector gives the new-season
+      // scenario, reached from an entirely different set of nulls.
+      ['reduced-430', 'competition'],
     ] as const) {
       await open(page, story)
       expect((await read(page)).emphasis, story).toBe(expected)

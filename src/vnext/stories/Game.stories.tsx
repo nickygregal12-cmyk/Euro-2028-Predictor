@@ -131,11 +131,20 @@ export const Stats: StoryObj = {
           value={formatNumber(performance.totalPoints)}
           meta={`${performance.pointsToday} banked today`}
         />
+        {/* The gallery follows Home's own reading of a nullable standing rather
+            than asserting the fixture's values, so a tile is shown here exactly
+            as Home would draw it for an unranked player. */}
         <StatTile
           label="Overall rank"
-          value={formatOrdinal(performance.rank)}
-          meta={`of ${formatNumber(performance.rankOutOf)}`}
-          trailing={<RankMovementIndicator movement={performance.rankMovement} />}
+          value={performance.rank === null ? 'Unranked' : formatOrdinal(performance.rank)}
+          meta={
+            performance.rankOutOf === null ? undefined : `of ${formatNumber(performance.rankOutOf)}`
+          }
+          trailing={
+            performance.rankMovement === null ? undefined : (
+              <RankMovementIndicator movement={performance.rankMovement} />
+            )
+          }
         />
         <StatTile
           label="On the pitch"

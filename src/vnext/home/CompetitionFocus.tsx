@@ -50,11 +50,25 @@ export function CompetitionFocus({ model }: CompetitionFocusProps) {
           meta={`${formatNumber(accuracy.predicted)} predictions made`}
           tone="accent"
         />
+        {/* AN UNRANKED SEASON IS A STATE, NOT A GAP IN THE GRID. A player with
+            no banked standing yet has no rank, and the tile says so in words
+            rather than printing an ordinal nothing supplied. Movement and the
+            field size disappear with it: both describe a rank there isn't. */}
         <StatTile
           label="Overall rank"
-          value={formatOrdinal(performance.rank)}
-          meta={`of ${formatNumber(performance.rankOutOf)} players`}
-          trailing={<RankMovementIndicator movement={performance.rankMovement} />}
+          value={performance.rank === null ? 'Unranked' : formatOrdinal(performance.rank)}
+          meta={
+            performance.rank === null
+              ? 'Ranked once a matchweek settles'
+              : performance.rankOutOf === null
+                ? undefined
+                : `of ${formatNumber(performance.rankOutOf)} players`
+          }
+          trailing={
+            performance.rankMovement === null ? undefined : (
+              <RankMovementIndicator movement={performance.rankMovement} />
+            )
+          }
         />
         <StatTile
           label="Exact scores"
@@ -66,10 +80,15 @@ export function CompetitionFocus({ model }: CompetitionFocusProps) {
         <StatTile
           label="This matchweek"
           value={formatNumber(performance.matchweekPoints)}
+          /* "Nothing in play" is a CLAIM, so it is only made where the figure
+             is known. Null means nobody told us what is on the pitch, and the
+             qualifier is omitted rather than asserting a quiet afternoon. */
           meta={
-            performance.provisionalPoints > 0
-              ? `${formatNumber(performance.provisionalPoints)} more on the pitch`
-              : 'Nothing in play'
+            performance.provisionalPoints === null
+              ? undefined
+              : performance.provisionalPoints > 0
+                ? `${formatNumber(performance.provisionalPoints)} more on the pitch`
+                : 'Nothing in play'
           }
         />
       </div>

@@ -41,6 +41,28 @@ const productionGraph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
   stopAt: ['/src/dev/'],
 })
 
+/**
+ * THE ONE PLACE vNEXT IS ALLOWED TO KNOW THE APPLICATION EXISTS.
+ *
+ * Stage 6 connected Home to real reads, which means something under `src/vnext/`
+ * now imports `src/features/` and `src/services/` on purpose. The blanket ban
+ * this suite used to hold could not express that, so it becomes DIRECTIONAL
+ * rather than being deleted — which is the more useful rule anyway.
+ *
+ * `integration/` is the adapter. It may reach the application, because reaching
+ * the application is its entire job. Nothing else may: the components, the
+ * models, the shell, the fixtures, the foundations and the stories stay a
+ * presentation lane over `HomeModel`, and the direction of every import stays
+ *
+ *   components → models          integration → application services
+ *
+ * and never `components → services`. That is what keeps `VNextHome({ model })`
+ * renderable in Storybook, in jsdom and in a test with no database, and it is
+ * what the second half of this suite now measures.
+ */
+const INTEGRATION = '/src/vnext/integration/'
+const presentationFiles = vnextFiles.filter((file) => !file.includes(INTEGRATION))
+
 describe('the vNext workshop', () => {
   it('finds the tree and the graph, so the boundary is not vacuous', () => {
     // A renamed directory or a broken walk would otherwise empty this suite and
@@ -60,17 +82,20 @@ describe('the vNext workshop', () => {
     ).toEqual([])
   })
 
-  it('does not import a production feature from the other direction either', () => {
-    // vNext is allowed to use React, Framer Motion and lucide — the
+  it('keeps a presentation lane that never reaches the application', () => {
+    // vNext presentation is allowed to use React, Framer Motion and lucide — the
     // dependencies the repository already has. It is not allowed to reach into
     // `src/features/`, `src/services/` or the legacy design system: the whole
-    // premise is that it is a presentation lane on deterministic fixtures, and
-    // an import from any of those is either a Supabase dependency arriving by
-    // the back door or a visual inheritance the lane exists to avoid.
+    // premise is a presentation lane over a typed model, and an import from any
+    // of those is either a Supabase dependency arriving by the back door or a
+    // visual inheritance the lane exists to avoid.
+    //
+    // `integration/` is excluded because it is the adapter, and the case below
+    // holds the direction that makes that safe.
     const forbidden = ['/src/features/', '/src/services/', '/src/design-system/']
     const offenders: string[] = []
 
-    for (const file of vnextFiles) {
+    for (const file of presentationFiles) {
       for (const reached of reachableFrom(file)) {
         if (forbidden.some((tree) => reached.includes(tree))) {
           offenders.push(`${fromRoot(file)} -> ${fromRoot(reached)}`)
@@ -78,6 +103,68 @@ describe('the vNext workshop', () => {
       }
     }
 
-    expect([...new Set(offenders)], 'vNext reached into the production app').toEqual([])
+    expect(
+      [...new Set(offenders)],
+      'a vNext presentation module reached into the production app — move the ' +
+        'read into src/vnext/integration/ and pass the result in as model data',
+    ).toEqual([])
+  })
+
+  it('finds the presentation lane and the adapter, so neither case is vacuous', () => {
+    // A renamed `integration/` would silently turn the case above back into the
+    // blanket rule and the case below into a no-op, and both would pass.
+    expect(presentationFiles.length).toBeGreaterThan(25)
+    expect(vnextFiles.length).toBeGreaterThan(presentationFiles.length)
+  })
+
+  it('keeps Supabase out of every vNext visual component', () => {
+    // The narrower, louder version of the rule above, and the one §7 of the
+    // Stage 6 brief states in terms: no `supabase.from(...)`, no client import,
+    // no generated database types anywhere in the visual tree. It is checked by
+    // reach rather than by grep because the defect is never a direct import — it
+    // is a component importing a helper that imports the client.
+    const visual = presentationFiles.filter(
+      (file) =>
+        file.includes('/src/vnext/home/') ||
+        file.includes('/src/vnext/app/') ||
+        file.includes('/src/vnext/components/'),
+    )
+    const banned = [
+      '/src/services/supabase/',
+      '/services/supabase/client',
+      'database.types',
+    ]
+    const offenders: string[] = []
+
+    for (const file of visual) {
+      for (const reached of reachableFrom(file)) {
+        if (banned.some((fragment) => reached.includes(fragment))) {
+          offenders.push(`${fromRoot(file)} -> ${fromRoot(reached)}`)
+        }
+      }
+    }
+
+    expect(visual.length).toBeGreaterThan(15)
+    expect(
+      [...new Set(offenders)],
+      'a vNext visual component can reach Supabase — Home components take a ' +
+        'HomeModel and nothing else',
+    ).toEqual([])
+  })
+
+  it('keeps the approved Home renderable without the adapter', () => {
+    // THE PROPERTY THAT MATTERS MOST, and the one a reader of this suite should
+    // take away: `VNextHome` must not know that an adapter exists. If it did,
+    // every deterministic story and every visual test would drag the season
+    // services — and their Supabase client — into a jsdom run, and the Gold
+    // Standard surface would have quietly become network-dependent.
+    const home = reachableFrom(resolve(repositoryRoot, 'src/vnext/home/VNextHome.tsx'))
+    const leaked = [...home].filter((file) => file.includes(INTEGRATION))
+
+    expect(
+      leaked.map(fromRoot),
+      'VNextHome reached the integration layer — the dependency runs the other ' +
+        'way: the adapter imports Home, never the reverse',
+    ).toEqual([])
   })
 })

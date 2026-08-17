@@ -1,0 +1,148 @@
+/*
+ * HOME'S CONNECTED STATES, IN THE APPROVED LANGUAGE.
+ *
+ * These are not a new design and they introduce no token. Every value below is
+ * one the Gold Standard Home already uses — the same surfaces, the same radii,
+ * the same spacing steps, the same type ramp — because a loading Home and a
+ * loaded Home have to be recognisably the same page. A bespoke skeleton system
+ * would be a second visual language arriving through the back door.
+ *
+ * REDUCED MOTION IS DESIGNED HERE, NOT ADDED LATER. The shimmer is the only
+ * motion these states have, and its reduced pair is a still surface rather than a
+ * faster shimmer: a 1ms animation on a gradient still moves. The block keeps its
+ * shape and stops pulsing, which is the rule the rest of vNext follows.
+ */
+
+/* ---- skeleton ---------------------------------------------------------- */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+}
+
+/*
+ * A block that approximates the geometry of the thing it stands in for, which is
+ * the whole job. A spinner in the middle of the page says "wait"; a block the
+ * size of the score bar says "the score bar is coming", and nothing reflows when
+ * it does.
+ */
+.block {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-md);
+  background: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+}
+
+.block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: vnext-home-shimmer 1400ms ease-in-out infinite;
+}
+
+@keyframes vnext-home-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block::after {
+    animation: none;
+    /* Still, and slightly lighter than the block, so the placeholder is
+       obviously a placeholder without moving to say so. */
+    transform: none;
+    background: rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* The ticker strip: one row of fixture chips across the top. */
+.ticker {
+  block-size: 64px;
+  border-radius: var(--vnext-radius-sm);
+}
+
+/* The dominant zone, whichever emphasis wins. Tall, because all three are. */
+.stage {
+  block-size: 260px;
+}
+
+@container vnext-page (min-width: 760px) {
+  .stage {
+    block-size: 320px;
+  }
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.row {
+  block-size: 72px;
+  border-radius: var(--vnext-radius-sm);
+}
+
+/* ---- notice: error, signed out, no competition ------------------------- */
+
+.notice {
+  margin-inline: var(--vnext-page-inset);
+  padding: var(--vnext-space-6) var(--vnext-space-5);
+  border-radius: var(--vnext-radius-lg);
+  background: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  box-shadow: var(--vnext-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  max-inline-size: 56ch;
+}
+
+.noticeTitle {
+  margin: 0;
+}
+
+.noticeBody {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+/*
+ * The retry control. 44px minimum on both axes, which is the target size the
+ * rest of vNext holds itself to, and a real <button> so it is reachable by
+ * keyboard and announced as a button without help.
+ */
+.retry {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding-inline: var(--vnext-space-5);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--vnext-duration-fast) ease;
+}
+
+.retry:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-accent);
+  outline-offset: 2px;
+}

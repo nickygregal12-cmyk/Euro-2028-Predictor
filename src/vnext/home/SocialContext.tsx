@@ -91,21 +91,27 @@ export function SocialContext({ model }: SocialContextProps) {
  * Provisional points are always labelled provisional — the backend awards
  * points, and a line that read "6 pts today" while two matches were still being
  * played would have told the user something that is not yet true.
+ *
+ * IT WAS ALREADY WRITTEN TO SAY NOTHING RATHER THAN SAY ZERO, which is why the
+ * nullable figures real integration brought needed no new branch: a clause
+ * appears when there is something to report, and an unknown figure reports
+ * nothing for the same reason a zero one does. The line simply gets shorter, and
+ * an empty line removes itself.
  */
 function consequenceLine(model: HomeModel): string | null {
   const { provisionalPoints, pointsToday, rankMovement } = model.recentPerformance
   const parts: string[] = []
 
-  if (provisionalPoints > 0) {
+  if (provisionalPoints !== null && provisionalPoints > 0) {
     parts.push(`${formatNumber(provisionalPoints)} pts on the pitch`)
   }
-  if (pointsToday > 0) {
+  if (pointsToday !== null && pointsToday > 0) {
     parts.push(`${formatNumber(pointsToday)} banked today`)
   }
-  if (rankMovement.direction === 'up' && rankMovement.places > 0) {
+  if (rankMovement !== null && rankMovement.direction === 'up' && rankMovement.places > 0) {
     parts.push(`up ${formatNumber(rankMovement.places)} places overall`)
   }
-  if (rankMovement.direction === 'down' && rankMovement.places > 0) {
+  if (rankMovement !== null && rankMovement.direction === 'down' && rankMovement.places > 0) {
     parts.push(`down ${formatNumber(rankMovement.places)} places overall`)
   }
 

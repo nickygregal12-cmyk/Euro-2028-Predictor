@@ -43,6 +43,20 @@ export function HomeMasthead({ model }: HomeMastheadProps) {
   )
 }
 
+/**
+ * The user's standing, beside the matchweek.
+ *
+ * AN UNRANKED PLAYER STILL GETS A STANDING BLOCK, and that is the decision real
+ * data forced. Dropping the whole block for a new player would reflow the
+ * masthead — the one part of the page that is meant to be identical whatever is
+ * happening — so the label stays, the ordinal becomes the word "Unranked", and
+ * the two lines beneath it drop away independently. The block keeps its shape
+ * and loses its claims, which is the same answer the rest of Home gives to
+ * missing data.
+ *
+ * The points total is never conditional: it is banked, it exists from the first
+ * settled matchweek, and zero points is a true thing to print.
+ */
 function HomeStanding({ model }: { model: HomeModel }) {
   const performance = model.recentPerformance
   const provisional = performance.provisionalPoints
@@ -51,16 +65,22 @@ function HomeStanding({ model }: { model: HomeModel }) {
     <div className={styles.standing}>
       <p className={typography.label}>Your rank</p>
       <p className={`${styles.standingValue} ${typography.numeric}`}>
-        {formatOrdinal(performance.rank)}
-        <RankMovementIndicator movement={performance.rankMovement} />
+        {performance.rank === null ? 'Unranked' : formatOrdinal(performance.rank)}
+        {performance.rankMovement === null ? null : (
+          <RankMovementIndicator movement={performance.rankMovement} />
+        )}
       </p>
       <p className={typography.micro}>
         {formatNumber(performance.totalPoints)} pts
-        {provisional > 0 ? ` · ${formatNumber(provisional)} on the pitch` : ''}
+        {provisional !== null && provisional > 0
+          ? ` · ${formatNumber(provisional)} on the pitch`
+          : ''}
       </p>
-      <p className={typography.micro}>
-        of {formatNumber(performance.rankOutOf)} players
-      </p>
+      {performance.rankOutOf === null ? null : (
+        <p className={typography.micro}>
+          of {formatNumber(performance.rankOutOf)} players
+        </p>
+      )}
     </div>
   )
 }

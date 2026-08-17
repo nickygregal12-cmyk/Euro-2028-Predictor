@@ -59,6 +59,7 @@ const DEV_ROUTE_TITLES: { path: string; title: string }[] = import.meta.env.DEV
       { path: '/dev/season-lms', title: 'Season LMS preview' },
       { path: '/dev/season-cup', title: 'Season Championship preview' },
       { path: '/dev/ai-lab', title: 'AI Lab preview' },
+      { path: '/dev/vnext-home', title: 'vNext Home real-data preview' },
     ]
   : []
 

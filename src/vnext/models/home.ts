@@ -41,10 +41,20 @@ export type CompetitionContext = {
   readonly stageLabel: string
   readonly matchweekLabel: string
   readonly matchweekNumber: number | null
+  /**
+   * Null when nothing supplies a competition palette.
+   *
+   * NULLABLE BECAUSE REAL INTEGRATION PROVED IT. The workshop fixtures gave
+   * every competition two colours, so the field looked mandatory. No
+   * application source holds one: club colours come from
+   * `predictor_internal.club_identity_reference`, and there is no equivalent for
+   * a competition. `VNextShell` already accepted `null` here and falls back to
+   * its own atmosphere, so the honest answer costs the design nothing.
+   */
   readonly colours: {
     readonly primary: string
     readonly accent: string
-  }
+  } | null
 }
 
 export type PrimaryActionType = 'predict' | 'review' | 'watchLive' | 'joinLeague'
@@ -77,16 +87,39 @@ export type PredictionAccuracy = {
   readonly missed: number
 }
 
+/**
+ * How the user's season is going.
+ *
+ * FIVE FIELDS BECAME NULLABLE WHEN REAL DATA ARRIVED, and each null is a
+ * different missing capability rather than a shared "no data" flag — a surface
+ * that omits a rank for a new player and one that omits it because no read
+ * supplies movement are omitting different things, and collapsing them would
+ * make the page unable to say which.
+ *
+ * `null` here always means NOT KNOWN. It never means zero: "0 points on the
+ * pitch" and "we cannot tell you what is on the pitch" are different sentences,
+ * and printing the first when the second is true is the exact class of confident
+ * falsehood this model exists to prevent.
+ */
 export type RecentPerformance = {
   readonly totalPoints: number
   readonly matchweekPoints: number
-  /** Points banked today; separate from the matchweek so "today" can be shown. */
-  readonly pointsToday: number
-  /** Points currently on the pitch — provisional, never awarded. */
-  readonly provisionalPoints: number
-  readonly rank: number
-  readonly rankOutOf: number
-  readonly rankMovement: RankMovement
+  /**
+   * Points banked today; separate from the matchweek so "today" can be shown.
+   * Null where no read attributes banked points to a day.
+   */
+  readonly pointsToday: number | null
+  /**
+   * Points currently on the pitch — provisional, never awarded. Null where no
+   * authority states an on-the-pitch figure, which is not the same as zero.
+   */
+  readonly provisionalPoints: number | null
+  /** Null before the user has a banked standing — a new player has no rank. */
+  readonly rank: number | null
+  /** Null whenever `rank` is: a rank out of nothing is not a field size. */
+  readonly rankOutOf: number | null
+  /** Null where no read states how the user's own rank moved. */
+  readonly rankMovement: RankMovement | null
   readonly accuracy: PredictionAccuracy
   /** Oldest first. Enough points for a sparkline, no more. */
   readonly matchweekHistory: readonly {
@@ -99,7 +132,15 @@ export type PrivateLeagueStanding = {
   readonly player: PlayerRef
   readonly rank: number
   readonly points: number
-  readonly movement: RankMovement
+  /**
+   * Null where nothing states how this member moved.
+   *
+   * NOT `{ direction: 'none' }`, which is a claim: it says the member held a
+   * position and kept it. Movement is only known over a SETTLED matchweek, so an
+   * unsettled one, an unread movement table and a member who was not in the
+   * previous table all legitimately have nothing to say.
+   */
+  readonly movement: RankMovement | null
   readonly isUser: boolean
 }
 
@@ -109,7 +150,8 @@ export type PrivateLeague = {
   readonly participantCount: number
   readonly userRank: number
   readonly userPoints: number
-  readonly userMovement: RankMovement
+  /** Null where nothing states how the user moved in this league. */
+  readonly userMovement: RankMovement | null
   /** Points behind the leader; 0 when the user leads. */
   readonly gapToLeader: number
   readonly leaderName: string
@@ -128,7 +170,8 @@ export type Rival = {
   readonly relation: RivalRelation
   readonly rank: number
   readonly points: number
-  readonly movement: RankMovement
+  /** Null where nothing states how this rival moved. */
+  readonly movement: RankMovement | null
   /** Signed: positive means this rival is ahead of the user. */
   readonly pointsDifference: number
   readonly sharedLeagueName: string

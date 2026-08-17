@@ -5,7 +5,11 @@ import typography from '../../foundations/typography.module.css'
 import styles from './RankMovementIndicator.module.css'
 
 export type RankMovementIndicatorProps = {
-  movement: RankMovement
+  /**
+   * Null where nothing states how the subject moved. Different from
+   * `{ direction: 'none' }`, which says they moved nowhere.
+   */
+  movement: RankMovement | null
   /** What moved, for the accessible sentence: "You", "Jamie", "Work League". */
   subject?: string
 }
@@ -27,12 +31,24 @@ const GLYPH: Record<RankMovement['direction'], string> = {
  *
  * The nudge on entry is the smallest motion in the language and the first thing
  * reduced motion switches off — it is delight, not information.
+ *
+ * UNKNOWN MOVEMENT HOLDS ITS SPACE AND SAYS NOTHING. Real data made `movement`
+ * nullable, and this component is called from four table rows and two headers
+ * where it occupies a grid column. Returning nothing would collapse that column
+ * and reflow the row, so a null renders an empty mark of the same size: the
+ * ladder keeps its alignment and nobody is told they held their position. There
+ * is no glyph and no sentence, because "–" is a claim and silence is not.
  */
 export function RankMovementIndicator({
   movement,
   subject = 'You',
 }: RankMovementIndicatorProps) {
   const variants = useVNextMotion(vnextMotion.rankMove)
+
+  if (movement === null) {
+    return <span className={`${styles.movement} ${styles.unknown}`} aria-hidden="true" />
+  }
+
   const { direction, places } = movement
   const animateKey = direction === 'up' ? 'up' : direction === 'down' ? 'down' : 'flat'
 
