@@ -1,0 +1,130 @@
+name: Graphify navigation graph
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'ai/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/graphify-navigation.yml'
+      - '.agents/skills/predictor-graph-navigation/**'
+      - 'docs/ops/graphify-navigation.md'
+      - '.gitignore'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'ai/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.github/workflows/graphify-navigation.yml'
+      - '.agents/skills/predictor-graph-navigation/**'
+      - 'docs/ops/graphify-navigation.md'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: graphify-navigation-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GRAPHIFY_VERSION: '0.9.46'
+
+jobs:
+  build-navigation-graph:
+    name: Build Graphify navigation graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned Graphify with SQL support
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "graphifyy[sql]==${GRAPHIFY_VERSION}"
+          graphify --version
+
+      - name: Build structural code graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf graphify-out
+          graphify extract . --code-only --no-cluster
+          test -s graphify-out/graph.json
+
+      - name: Export interactive HTML when available
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          graphify export html
+
+      - name: Upload shareable navigation outputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: graphify-navigation-${{ github.sha }}
+          path: |
+            graphify-out/graph.json
+            graphify-out/graph.html
+            graphify-out/GRAPH_REPORT.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish portable graph outputs on main
+        if: >-
+          success() && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git add -f graphify-out/graph.json
+          for optional_output in graphify-out/graph.html graphify-out/GRAPH_REPORT.md; do
+            if [ -f "${optional_output}" ]; then
+              git add -f "${optional_output}"
+            fi
+          done
+
+          if git diff --cached --quiet; then
+            echo 'Graphify navigation output is already current.'
+            exit 0
+          fi
+
+          git commit -m 'chore: refresh Graphify navigation graph'
+          git push origin HEAD:main
