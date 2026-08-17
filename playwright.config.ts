@@ -13,7 +13,9 @@ export default defineConfig({
   // parked-Euro set and that every non-parked spec still runs under exactly one
   // active config.
   //
-  // The first five entries belong to other active Playwright configs.
+  // The leading entries belong to other active Playwright configs — the auth,
+  // visual and vNext-workshop suites. Counting them in prose was wrong the
+  // moment a fourth vNext spec landed, so the comment no longer tries to.
   testIgnore: [
     'auth-recovery.spec.ts',
     'auth-capacity.spec.ts',
@@ -23,6 +25,7 @@ export default defineConfig({
     'vnext-home.spec.ts',
     'vnext-shell.spec.ts',
     'vnext-predictor.spec.ts',
+    'vnext-ia.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',

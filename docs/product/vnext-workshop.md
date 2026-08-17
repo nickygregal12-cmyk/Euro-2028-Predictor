@@ -271,3 +271,37 @@ two lines tall is worth more than a club called "Inver Caledonia…".
 The browser spec now measures this directly — any text clipped by its own box,
 in any zone, at any width, in any emphasis — rather than trusting a stylesheet
 to be read correctly. It found the 768px clip on the first run.
+
+## Stage 7.5 — the method changes
+
+**Everything above settled the design of SURFACES. Stage 7.5 asks a question no
+surface can answer: what is the mental model of the product?**
+
+Up to Stage 7 the programme designed Home, then the Match Predictor, and the
+obvious next move was Matches, then Leagues, then Last Man Standing, then the
+Championship — in the order the current navigation happens to list them. That
+move produces the old product structure, beautifully redesigned, and Last Man
+Standing is the evidence that the risk is real: a complete domain that had been
+treated as one more page in a queue because nothing had forced an inventory.
+
+The lab, its three concepts, the capability audits, the interaction-feedback
+prototype and the open questions are in
+[`vnext-ia-lab.md`](vnext-ia-lab.md). Every user-facing route now has an explicit
+fate in [`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md).
+
+**Three things it establishes that are independent of which concept wins:**
+
+- **Football context, game and people are three dimensions, not one selector.**
+  They are modelled apart in `src/vnext/models/ia.ts`, so a surface that wants to
+  draw a competition, a game and a private league in one list has to reach into
+  three types to do it.
+- **A player's name is a control only where an address exists.** The global
+  season leaderboard read returns a display name and **no identifier**, so a
+  clickable row there is not a permission a frontend could widen — it is a route
+  that does not exist. All three concepts render it as text rather than as a
+  control that would refuse.
+- **A game a competition does not run is ABSENT, not disabled.** "This league has
+  no Last Man Standing", "you have not joined the one it runs" and "registration
+  has closed" are three different sentences, and a disabled tab says none of them.
+
+**No concept has been chosen. Nothing above was changed to accommodate one.**

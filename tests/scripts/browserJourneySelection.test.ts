@@ -147,6 +147,7 @@ describe('the map cannot rot', () => {
       'vnext-home.spec.ts',
       'vnext-shell.spec.ts',
       'vnext-predictor.spec.ts',
+      'vnext-ia.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(

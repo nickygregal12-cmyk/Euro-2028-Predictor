@@ -46,6 +46,16 @@ export {
 } from './predictor/scenarios'
 export type { PredictorScenarioName } from './predictor/scenarios'
 export { rehearsePredictor } from './predictor/rehearse'
+/**
+ * Stage 7.5's information-architecture worlds.
+ *
+ * ONLY THE REGISTRY IS RE-EXPORTED. The competition catalogue and the cast are
+ * inputs to the scenarios rather than things a story or a test has any business
+ * reaching for — every concept renders a WORLD, never a competition list — so
+ * putting them on this surface would publish four names with no callers.
+ */
+export { iaScenarioNames, iaScenarios } from './ia/scenarios'
+export type { IaScenarioName } from './ia/scenarios'
 export {
   COMPETITION_NOW,
   DECISION_NOW,

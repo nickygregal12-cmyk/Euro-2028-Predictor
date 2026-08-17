@@ -29,8 +29,12 @@ on:
     paths:
       - 'src/vnext/**'
       - '.storybook/**'
-      - 'e2e/vnext-home.spec.ts'
-      - 'e2e/vnext-shell.spec.ts'
+      # A GLOB RATHER THAN A LIST, because the list was already one spec short:
+      # `e2e/vnext-predictor.spec.ts` landed in Stage 7 and was never added
+      # here, so a change to it alone did not run the workshop that owns it.
+      # Stage 7.5 adds a fourth, and a list that has to be edited for every new
+      # spec is a list that will be one short again.
+      - 'e2e/vnext-*.spec.ts'
       - 'playwright.vnext.config.ts'
       - 'package-lock.json'
       - '.github/workflows/vnext-workshop.yml'

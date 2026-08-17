@@ -1,0 +1,384 @@
+/* CONCEPT B — THE ATTENTION INBOX.
+ *
+ * The sheet's whole job is to keep the queue the biggest thing on the screen
+ * and the competition filter the smallest thing that still works. Where Concept
+ * A spends its largest permanent control on the competition, this spends it on
+ * nothing at all: the heading and the queue are the page.
+ *
+ * THE FILTER EXISTS TWICE AND IS DISPLAYED ONCE. A horizontal scroller on a
+ * phone, a permanent column at 1120px. Both are always in the DOM with
+ * `display: none` on whichever is not current, so a keyboard user never reaches
+ * a duplicate control — the same mechanism the accepted shell uses for its two
+ * navigations.
+ */
+
+.shell {
+  container-type: inline-size;
+  container-name: ia-shell;
+
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100%;
+  background: var(--vnext-canvas);
+}
+
+/* A REAL CONTROL, SO IT CLEARS A REAL TARGET. It is off screen until focused,
+ * which is exactly why it is easy to leave at whatever height its text happens
+ * to be — the browser suite measures it with everything else. */
+.skipLink {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: var(--vnext-tap-target);
+  inset-block-start: var(--vnext-space-2);
+  inset-inline-start: var(--vnext-space-2);
+  z-index: var(--vnext-layer-sticky);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-raised);
+  color: var(--vnext-text);
+  transform: translateY(-200%);
+}
+
+.skipLink:focus-visible {
+  transform: translateY(0);
+}
+
+.masthead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--vnext-layer-sticky);
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4) var(--vnext-space-4) var(--vnext-space-3);
+  background: color-mix(in srgb, var(--vnext-canvas) 90%, transparent);
+  backdrop-filter: blur(14px);
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+.topRow {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.heading {
+  margin: 0;
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-display);
+  font-weight: var(--vnext-weight-display);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.subheading {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.scopeNote {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  line-height: var(--vnext-leading-normal);
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--vnext-tap-target);
+  block-size: var(--vnext-tap-target);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+/* -------------------------------------------------------------------------
+   the filter
+   ------------------------------------------------------------------------- */
+
+/* THE ONE PLACE COMPETITIONS APPEAR IN THE PERMANENT CHROME, and the only
+ * thing here that grows with the catalogue. It scrolls horizontally rather than
+ * wrapping, because a chip row that wraps to four lines at twenty competitions
+ * has become a logo wall by another route. */
+.filterScroller {
+  margin-inline: calc(var(--vnext-space-4) * -1);
+  padding-inline: var(--vnext-space-4);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.filterList {
+  display: flex;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.filterList.column {
+  display: none;
+}
+
+.chip {
+  display: inline-flex;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--vnext-accent);
+  background: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+}
+
+.chip[data-urgent='true'] {
+  border-color: var(--vnext-warn);
+}
+
+.chipName {
+  overflow-wrap: anywhere;
+}
+
+.chipCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;
+  padding: 0 var(--vnext-space-1);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text);
+}
+
+.chipExplore {
+  border-style: dashed;
+  color: var(--vnext-text-muted);
+}
+
+/* -------------------------------------------------------------------------
+   layout
+   ------------------------------------------------------------------------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+}
+
+.filterColumn {
+  display: none;
+}
+
+/* The column's copy of the three anchors. Hidden below 1120, where the bottom
+   bar is the real one. */
+.columnNav {
+  display: none;
+  margin-block-end: var(--vnext-space-4);
+}
+
+.columnAnchors {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.columnAnchor {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text-secondary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.columnAnchor:hover {
+  background: var(--vnext-surface-interactive);
+}
+
+.columnAnchor[aria-current='page'] {
+  background: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+}
+
+.filterColumnTitle {
+  margin: 0 0 var(--vnext-space-2);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.main {
+  container-type: inline-size;
+  container-name: ia-content;
+
+  min-inline-size: 0;
+  padding: var(--vnext-space-4);
+  padding-block-end: calc(var(--vnext-tap-target) + var(--vnext-space-7));
+}
+
+/* -------------------------------------------------------------------------
+   the bottom bar
+   ------------------------------------------------------------------------- */
+
+.bottomBar {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: var(--vnext-layer-sticky);
+  padding: var(--vnext-space-2) var(--vnext-space-3)
+    calc(var(--vnext-space-2) + env(safe-area-inset-bottom, 0px));
+  background: color-mix(in srgb, var(--vnext-canvas-deep) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.bottomNav {
+  min-inline-size: 0;
+}
+
+.bottomList {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bottomItem {
+  min-inline-size: 0;
+}
+
+.bottomLink {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-1);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--vnext-text-muted);
+  cursor: pointer;
+}
+
+.bottomLink[aria-current='page'] {
+  color: var(--vnext-accent);
+}
+
+.bottomLabel {
+  font-size: var(--vnext-size-micro);
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------------------
+   bands
+   ------------------------------------------------------------------------- */
+
+@container ia-shell (min-width: 760px) {
+  .masthead,
+  .main {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .filterScroller {
+    margin-inline: calc(var(--vnext-space-5) * -1);
+    padding-inline: var(--vnext-space-5);
+  }
+}
+
+/* THE INVERSION AT 1120. The horizontal scroller is retired and the same
+ * competitions become a permanent column, so the desktop pays a column for a
+ * filter that the phone pays a scroll gesture for. The queue keeps the rest. */
+@container ia-shell (min-width: 1120px) {
+  .columns {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
+  .filterColumn {
+    display: block;
+    padding: var(--vnext-space-4) var(--vnext-space-3);
+    border-inline-end: 1px solid var(--vnext-hairline);
+  }
+
+  .filterList.column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--vnext-space-1);
+  }
+
+  .filterList.column .chip {
+    inline-size: 100%;
+    border-radius: var(--vnext-radius-sm);
+    white-space: normal;
+    text-align: start;
+  }
+
+  .filterList.column .chipName {
+    flex: 1 1 auto;
+  }
+
+  .filterScroller {
+    display: none;
+  }
+
+  /* The phone's bottom bar goes and the column's own anchors become real.
+     Exactly one of the two is ever displayed, so the three destinations are
+     never twice in the accessibility tree. */
+  .bottomBar {
+    display: none;
+  }
+
+  .columnNav {
+    display: block;
+  }
+
+  .main {
+    padding-block-end: var(--vnext-space-6);
+    padding-inline: var(--vnext-space-6);
+  }
+}

@@ -10,6 +10,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 
 1. [`../../docs/product/ui.md`](../../docs/product/ui.md) — vNext product/presentation direction.
 2. [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) — current workshop hypotheses and the questions left open.
+2b. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — **Stage 7.5's three information-architecture concepts, the capability audits and the open questions. No concept has been chosen; do not build on one as though it had.**
 3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
 4. The exact domain/service contract for the data the component actually needs.
 
@@ -25,6 +26,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
 | `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
 | `integration/` | **the only application-facing code** — one adapter per connected page |
+| `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts over one shared model, plus the interaction-feedback prototype. Nothing here is accepted |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
 
@@ -77,6 +79,22 @@ composition, its own container thresholds, its own zones, and its single `<h1>`.
 `vNext/Shell` stories are neutral placeholders that prove the shell hosts a page
 that is not Home. **They are not designs and not authorities.** Where they and
 `vNext/Home` disagree about type, colour, density or motion, Home is right.
+
+- **THE SHELL'S FOUR DESTINATIONS ARE UNDER REVIEW, AND THE SHELL IS UNCHANGED.**
+  Stage 7.5 is a lab about whether `Home · Fixtures · Leagues · Season` is the
+  right permanent navigation at all. It answers that question **in `ia/`**, where
+  each concept builds its own chrome, and it changes **not one line under
+  `app/`** — because destabilising accepted, production-isolated infrastructure
+  to explore an alternative is how a workshop takes a shipped page down with it.
+  When a concept is chosen, the winning chrome is migrated INTO the shell in that
+  change and not before. Until then the shell's navigation is INFRASTRUCTURE that
+  Home and the Match Predictor depend on, not settled product authority.
+- **THE IA LAB DOES NOT USE `VNextShell`, AND THAT IS THE REASON.** Each concept
+  renders its own single `<main>`, its own single `<h1>` and its own skip link,
+  which is what lets three genuinely different navigations exist side by side in
+  one Storybook story. Everything BELOW the chrome is shared
+  (`ia/shared/Surfaces.tsx`), so the reviewed variable is the architecture and
+  not three people's league tables.
 
 Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNext value can reach a legacy screen. Layout responds to its **container**, never the viewport, so a 375px frame inside a wide monitor is an honest review.
 
