@@ -4,7 +4,7 @@
 
 Optional developer/agent navigation tooling. Graphify does not define product behaviour, database contracts, model authority, hosted state or release status.
 
-The default project workflow is now **online-first**: GitHub Actions builds a structural Graphify graph from the repository and publishes the portable graph output for agents that work directly against GitHub. Local use remains supported but is not required.
+The default project workflow is now **online-first**: GitHub Actions builds a structural Graphify graph from the repository and publishes a replace-in-place snapshot to the dedicated `graphify-navigation` branch. Pull requests also receive a downloadable graph artifact. Local use remains supported but is not required.
 
 ## Why use it here
 
@@ -31,29 +31,46 @@ It runs on relevant pull requests, on relevant pushes to `main`, and on manual `
 3. verifies that `graphify-out/graph.json` was produced;
 4. attempts the deterministic HTML export as a best-effort convenience;
 5. uploads the shareable outputs as a GitHub Actions artifact for online inspection;
-6. on `main`, commits changed portable graph outputs back to the repository.
+6. after successful runs on `main`, force-refreshes the dedicated `graphify-navigation` snapshot branch with only the portable outputs.
 
 The structural build needs no model API key. `[sql]` is required so `supabase/migrations/**.sql` is included rather than silently omitted.
 
 The workflow is deliberately non-blocking. A Graphify failure must not make product CI, release readiness or database evidence fail; the graph is an optional navigation index.
 
-### What is versioned
+### Why a separate branch
 
-Only portable navigation artefacts may be committed:
+Graphify output can reach many megabytes on this repository. Committing a regenerated graph into `main` after every source change would permanently grow normal Git history even though only the latest graph matters.
 
-- `graphify-out/graph.json` — the primary agent-readable graph;
-- `graphify-out/graph.html` — interactive visualization when export succeeds;
-- `graphify-out/GRAPH_REPORT.md` — only when a future/manual richer Graphify run creates it.
+The `graphify-navigation` branch is therefore a **replace-in-place snapshot branch**. Each successful `main` build force-replaces that branch with one fresh snapshot, so the portable graph stays online without bloating application history.
 
-Everything else under `graphify-out/` remains ignored: manifests, caches, interpreter paths, detection sidecars and other runner-local state are disposable implementation details.
+Normal branches continue to ignore `graphify-out/` entirely.
+
+### Published snapshot contents
+
+The `graphify-navigation` branch can contain:
+
+- `graph.json` — the primary agent-readable graph;
+- `graph.html` — interactive visualization when export succeeds;
+- `GRAPH_REPORT.md` — only when a future/manual richer Graphify run creates it;
+- `README.md` — identifies the exact source repository commit used for the snapshot.
 
 The automated workflow currently uses `--code-only --no-cluster`, so `graph.json` is the guaranteed output. It does not add semantic extraction over the documentation corpus and does not require an LLM backend.
+
+Caches, manifests, interpreter paths, detection sidecars and other Graphify internals are never published to the snapshot branch.
 
 ## Manual online refresh
 
 When the graph needs refreshing without a source push, run the **Graphify navigation graph** workflow from GitHub Actions using `workflow_dispatch` on `main`. That keeps the workflow browser/cloud based; no local checkout is required.
 
-Pull requests also receive a Graphify Actions artifact for the PR commit. Use that graph for branch-specific navigation before merge. The committed `main` graph is refreshed after relevant changes land on `main`.
+Pull requests receive a Graphify Actions artifact for the PR commit. Use that graph for branch-specific navigation before merge. After relevant changes land on `main`, the workflow refreshes the `graphify-navigation` branch to the new source SHA.
+
+## Using the graph online
+
+For merged code, browse or fetch files from the repository's `graphify-navigation` branch. Its `README.md` records the source SHA the graph represents.
+
+For pull-request work, prefer the artifact from that PR's **Graphify navigation graph** workflow because the persistent snapshot branch follows `main`, not the unmerged PR.
+
+If an online coding environment can execute Graphify, it may download/fetch the snapshot and use normal commands such as `graphify query`, `graphify path` and `graphify explain`. If it cannot execute the CLI, `graph.json` is still a portable architecture index whose nodes and edges point back to source files.
 
 ## Optional local use
 
@@ -74,10 +91,10 @@ Do **not** run `graphify claude install`, `graphify codex install` or another ho
 2. Prefer the structural code graph for routine architecture work. The repository's docs contain both current authorities and intentionally dated evidence; do not flatten those distinctions into one semantic index by default.
 3. Treat Graphify's `EXTRACTED` edges as navigation evidence and `INFERRED` edges as hypotheses. Verify important paths in source.
 4. Use `query`, `path` and `explain` to reduce the set of files an agent needs to load when a Graphify-capable environment is available.
-5. Check graph freshness before impact analysis. For a PR, prefer that PR's Actions artifact; for merged work, prefer the current committed `graphify-out/graph.json`.
+5. Check graph freshness before impact analysis. For a PR, prefer that PR's Actions artifact; for merged work, compare the `graphify-navigation/README.md` source SHA with `main`.
 6. Never make a Production, database, model-promotion or security claim from the generated graph alone.
 
-If the current online environment cannot execute the Graphify CLI, the committed `graph.json` is still useful as a portable architecture index. If Graphify is unavailable entirely, continue with normal repository search; do not block the task.
+If Graphify or a current graph is unavailable, continue with normal repository search. Do not block a task on installation or graph generation.
 
 ## Sensitive data
 
