@@ -2,6 +2,17 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const edgeSource = readFileSync('supabase/functions/provider-poll/index.ts', 'utf8')
+/**
+ * The authorisation rule moved out of `index.ts` so it could be executed by a
+ * test rather than only read as text — `tests/ingestion/providerPollAuthorization.test.ts`.
+ * The assertions below follow it, and the negative ones now span BOTH files:
+ * with the rule in two places, checking only `index.ts` would let a future
+ * change move a forbidden header read into the sibling and evade the guard.
+ */
+const authorizationSource = readFileSync(
+  'supabase/functions/provider-poll/authorization.ts',
+  'utf8',
+)
 const migrationSource = readFileSync(
   'supabase/migrations/20260804253000_provider_ingestion_custody.sql',
   'utf8',
@@ -18,7 +29,12 @@ describe('provider poll contract', () => {
     const providerFetch = edgeSource.indexOf('providerResponse = await fetch(fetchTarget')
     expect(authorization).toBeGreaterThan(-1)
     expect(providerFetch).toBeGreaterThan(authorization)
-    expect(edgeSource).toContain("request.headers.get('apikey')")
+    // The rule itself lives in the sibling module, and `index.ts` must still be
+    // the thing that applies it — an extracted rule nothing imports is worse than
+    // an inline one, because it reads as covered.
+    expect(edgeSource).toContain("import { authorized } from './authorization.ts'")
+    expect(authorizationSource).toContain("request.headers.get('apikey')")
+    expect(authorizationSource).toContain('export function authorized(')
     // Underscore, and deliberately NOT the function slug: Supabase rejects a
     // hyphen in a secret key name, so a constant that reuses the slug resolves
     // to nothing and the function answers 500 rather than 401. Pinned here
@@ -27,7 +43,11 @@ describe('provider poll contract', () => {
     expect(edgeSource).not.toContain("const CALLER_KEY_NAME = 'provider-poll'")
     expect(edgeSource).toContain("Deno.env.get('SUPABASE_SECRET_KEYS')")
     expect(edgeSource).toContain("Deno.env.get('AI_ODDS_POLL')")
+    // Neither file may authenticate off the bearer header: `verify_jwt = false`
+    // below means anything arriving there is unverified, and the named secret key
+    // is the whole of the rule.
     expect(edgeSource).not.toContain("request.headers.get('authorization')")
+    expect(authorizationSource).not.toContain("request.headers.get('authorization')")
     expect(supabaseConfig).toContain('[functions.provider-poll]')
     expect(supabaseConfig).toContain('verify_jwt = false')
   })

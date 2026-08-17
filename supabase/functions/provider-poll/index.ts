@@ -1,3 +1,4 @@
+import { authorized } from './authorization.ts'
 import {
   decodeProviderPayload,
   ProviderDecodeError,
@@ -141,24 +142,6 @@ function projectSecretKey(): string {
   const localLegacyKey = localLegacyServiceKey()
   if (localLegacyKey) return localLegacyKey
   throw new Error(`Missing named Supabase secret key: ${CALLER_KEY_NAME}`)
-}
-
-function constantTimeEqual(left: string, right: string): boolean {
-  const encoder = new TextEncoder()
-  const leftBytes = encoder.encode(left)
-  const rightBytes = encoder.encode(right)
-  const length = Math.max(leftBytes.length, rightBytes.length)
-  let mismatch = leftBytes.length ^ rightBytes.length
-
-  for (let index = 0; index < length; index += 1) {
-    mismatch |= (leftBytes[index] ?? 0) ^ (rightBytes[index] ?? 0)
-  }
-  return mismatch === 0
-}
-
-function authorized(request: Request, secretKey: string): boolean {
-  const supplied = request.headers.get('apikey')
-  return supplied !== null && constantTimeEqual(supplied, secretKey)
 }
 
 function parseRequest(value: unknown): PollRequest {
