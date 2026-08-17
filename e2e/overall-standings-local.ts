@@ -146,6 +146,7 @@ export async function prepareOverallStandingsFixture(
     if (scoreError) throw scoreError
 
     const current = createdUsers[USER_COUNT - 1]
+    if (!current) throw new Error('Overall-standings seed created no users.')
     return {
       email: current.email,
       password: PASSWORD,

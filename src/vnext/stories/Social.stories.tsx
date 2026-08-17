@@ -11,6 +11,11 @@ import {
 import { vnextStory } from './vnextDecorator'
 import styles from './Social.stories.module.css'
 
+const [workshopLeague, workshopSecondLeague] = workshopHomeModel.privateLeagues
+if (workshopLeague === undefined || workshopSecondLeague === undefined) {
+  throw new Error('workshopHomeModel.privateLeagues must have at least two entries')
+}
+
 /**
  * The social half of the game: where the user sits, who is next to them, and
  * whether the crowd agrees. These are first-class surfaces in vNext rather than
@@ -21,7 +26,7 @@ const meta = {
   component: LeagueLadder,
   decorators: [vnextStory()],
   args: {
-    league: workshopHomeModel.privateLeagues[0],
+    league: workshopLeague,
     onOpen: () => {},
   },
 } satisfies Meta<typeof LeagueLadder>
@@ -34,7 +39,7 @@ export const ChasingTheLeader: Story = {}
 
 /** Leading, with a deliberately long league name to squeeze the header. */
 export const LeadingWithLongName: Story = {
-  args: { league: workshopHomeModel.privateLeagues[1] },
+  args: { league: workshopSecondLeague },
 }
 
 export const Rivals: StoryObj = {

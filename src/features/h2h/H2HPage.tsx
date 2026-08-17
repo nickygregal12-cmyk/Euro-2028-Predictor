@@ -140,10 +140,10 @@ export function H2HPage() {
             }]
           : []
       }),
-      progression: Object.entries(preds.bracketProgression).map(([teamId, stage]) => ({
-        teamId,
-        stage: STAGE_UP[stage],
-      })),
+      progression: Object.entries(preds.bracketProgression).flatMap(([teamId, stage]) => {
+        const upgraded = STAGE_UP[stage]
+        return upgraded === undefined ? [] : [{ teamId, stage: upgraded }]
+      }),
     }
 
     return {

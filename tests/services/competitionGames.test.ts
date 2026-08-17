@@ -215,7 +215,7 @@ describe('decodeSeasonGames', () => {
       seasonPayload({ games: [gamePayload({ allow_rejoin: undefined })] }),
     )
 
-    expect(decoded.games[0].allowRejoin).toBe(false)
+    expect(decoded.games[0]?.allowRejoin).toBe(false)
   })
 
   it('fails loudly on a game with no id, because it could not be joined or left', () => {

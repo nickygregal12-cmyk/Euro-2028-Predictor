@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The domain layer laws, which until now existed only as prose.
@@ -70,7 +71,7 @@ const sources = domainSources()
 
 /** Every module specifier a file imports from, value or type. */
 function importsOf(file: SourceFile): string[] {
-  return [...file.source.matchAll(/from\s+'([^']+)'/g)].map((match) => match[1])
+  return [...file.source.matchAll(/from\s+'([^']+)'/g)].map((match) => at(match, 1))
 }
 
 /**

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 import { siteConfiguration } from '../../src/app/site/siteConfiguration'
 import { euroLandingPresentation } from '../../src/features/landing/euroLandingModel'
+import { at } from '../support/indexed'
 
 /**
  * Production is password protected, so the release smoke has to authenticate.
@@ -279,7 +280,7 @@ describe('the smoke copies agree with the site authority', () => {
     // it. An origin the workflow can select but the script does not know is a
     // run that dies on "refusing to smoke-test non-production origin" — a
     // caller error by its wording, a configuration defect in fact.
-    const selectable = [...workflow.matchAll(/'(https:\/\/[^']+)'/g)].map((match) => match[1])
+    const selectable = [...workflow.matchAll(/'(https:\/\/[^']+)'/g)].map((match) => at(match, 1))
     expect(selectable.length, 'the workflow selects no origin at all').toBeGreaterThan(0)
     for (const origin of selectable) {
       expect(smoke, `the workflow can dispatch ${origin} and the smoke would refuse it`).toContain(

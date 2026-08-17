@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Stage C deliberately retains the physical `p_tournament_id` RPC contract
@@ -88,7 +89,7 @@ function bulletIdentifiers(section: string): string[] {
   const names = new Set<string>()
   const pattern = /^-\s+`([a-z_][a-z0-9_]*)`\s*$/gm
 
-  for (const match of section.matchAll(pattern)) names.add(match[1])
+  for (const match of section.matchAll(pattern)) names.add(at(match, 1))
   return [...names].sort()
 }
 

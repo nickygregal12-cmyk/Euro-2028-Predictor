@@ -60,10 +60,18 @@ export function calculateLeagueRank(entries: LeagueEntry[]): RankedLeagueEntry[]
 
   const ranked: RankedLeagueEntry[] = []
   for (let i = 0; i < sorted.length; i++) {
-    const sameAsPrev =
-      i > 0 && compareEntries(sorted[i - 1], sorted[i]) === 0
-    const rank = sameAsPrev ? ranked[i - 1].rank : i + 1
-    ranked.push({ ...sorted[i], rank, tied: false })
+    // `current` is always defined here (i < sorted.length); `previous` and
+    // `previousRanked` are always defined together whenever i > 0, since
+    // `ranked` grows in lockstep with `sorted` one push per iteration. Real
+    // checks rather than assertions, so a violated invariant fails safe to a
+    // fresh rank instead of throwing mid-computation.
+    const current = sorted[i]
+    if (current === undefined) throw new Error(`calculateLeagueRank: index ${i} out of range`)
+    const previous = i > 0 ? sorted[i - 1] : undefined
+    const previousRanked = i > 0 ? ranked[i - 1] : undefined
+    const sameAsPrev = previous !== undefined && compareEntries(previous, current) === 0
+    const rank = sameAsPrev && previousRanked !== undefined ? previousRanked.rank : i + 1
+    ranked.push({ ...current, rank, tied: false })
   }
 
   // Flag every entry that shares its rank with another.

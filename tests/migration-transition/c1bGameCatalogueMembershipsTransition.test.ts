@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Contract 65 → 66 must be rehearsed with the existing Euro stores populated.
@@ -32,7 +33,7 @@ function unwrapOuterTransaction(source: string): string {
   if (!match) {
     throw new Error('C1b migration must retain one canonical outer BEGIN/COMMIT wrapper')
   }
-  return match[1]
+  return at(match, 1)
 }
 
 const c1b = unwrapOuterTransaction(canonicalMigration)

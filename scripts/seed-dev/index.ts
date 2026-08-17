@@ -47,14 +47,20 @@ function printDryRun(): void {
     console.log(`  ${rank}. ${total}   ${e.displayName}`)
   }
 
-  // Show one entry's Points breakdown to prove the pipeline end-to-end.
+  // Show one entry's Points breakdown to prove the pipeline end-to-end. Absent
+  // only if the fixture scored nobody, in which case there is no breakdown to
+  // print and the dry run says so rather than reporting an empty one.
   const sample = scored[0]
-  console.log(`\nSample breakdown — ${sample.displayName} (total ${sample.total}):`)
-  for (const ev of sample.events.slice(0, 8)) {
-    const pts = ev.joker ? `2× +${ev.points}` : `+${ev.points}`
-    console.log(`  ${pts.padStart(7, ' ')}  ${ev.explanation}`)
+  if (sample === undefined) {
+    console.log('\nNo scored entries, so there is no sample breakdown to show.')
+  } else {
+    console.log(`\nSample breakdown — ${sample.displayName} (total ${sample.total}):`)
+    for (const ev of sample.events.slice(0, 8)) {
+      const pts = ev.joker ? `2× +${ev.points}` : `+${ev.points}`
+      console.log(`  ${pts.padStart(7, ' ')}  ${ev.explanation}`)
+    }
+    if (sample.events.length > 8) console.log(`  … ${sample.events.length - 8} more`)
   }
-  if (sample.events.length > 8) console.log(`  … ${sample.events.length - 8} more`)
 
   console.log(
     '\nCommitting also creates "The Seed Test League" (code SEEDLG) owned by the ' +
@@ -282,8 +288,8 @@ async function seedTestLeague(
   tournamentId: string,
   users: { userId: string; displayName: string }[],
 ): Promise<void> {
-  if (users.length < 2) return
   const owner = users[0]
+  if (owner === undefined || users.length < 2) return
   const members = users.slice(0, 8) // owner + up to 7 others
   const INVITE_CODE = 'SEEDLG'
 

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Stage C changes the scope behind many validators, but the function definition
@@ -65,7 +66,7 @@ function stripNonCode(source: string): string {
           index += 2
           continue
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -76,7 +77,7 @@ function stripNonCode(source: string): string {
       index += 1
       while (index < source.length) {
         if (source[index] === '\\' && index + 1 < source.length) {
-          output += ` ${blankCharacter(source[index + 1])}`
+          output += ` ${blankCharacter(at(source, index + 1))}`
           index += 2
           continue
         }
@@ -90,7 +91,7 @@ function stripNonCode(source: string): string {
           index += 1
           break
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -104,7 +105,7 @@ function stripNonCode(source: string): string {
         output += ' '.repeat(dollarTag.length)
         index += dollarTag.length
         while (index < source.length && !source.startsWith(dollarTag, index)) {
-          output += blankCharacter(source[index])
+          output += blankCharacter(at(source, index))
           index += 1
         }
         if (source.startsWith(dollarTag, index)) {
@@ -136,10 +137,10 @@ function triggerEvents(source: string): TriggerEvent[] {
     )
 
     if (create) {
-      const table = publicTable(create[2], create[3])
+      const table = publicTable(create[2], at(create, 3))
       if (table) {
-        const trigger = create[1].toLowerCase()
-        const functionName = `${create[4]?.toLowerCase() ?? 'public'}.${create[5].toLowerCase()}`
+        const trigger = at(create, 1).toLowerCase()
+        const functionName = `${create[4]?.toLowerCase() ?? 'public'}.${at(create, 5).toLowerCase()}`
         events.push({
           action: 'set',
           binding: { functionName, table, trigger },
@@ -153,11 +154,11 @@ function triggerEvents(source: string): TriggerEvent[] {
       /\bdrop\s+trigger\s+(?:if\s+exists\s+)?([a-z_][a-z0-9_]*)\s+on\s+(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\b/i,
     )
     if (drop) {
-      const table = publicTable(drop[2], drop[3])
+      const table = publicTable(drop[2], at(drop, 3))
       if (table) {
         events.push({
           action: 'remove',
-          bindingKey: `${table}.${drop[1].toLowerCase()}`,
+          bindingKey: `${table}.${at(drop, 1).toLowerCase()}`,
         })
       }
     }
@@ -205,14 +206,14 @@ function manifestTriggerAuthorityFunctions(): string[] {
 
   const functions = new Set<string>()
   const pattern = /^-\s+`([a-z_][a-z0-9_]*)`\s*$/gm
-  for (const match of section!.matchAll(pattern)) functions.add(match[1])
+  for (const match of section!.matchAll(pattern)) functions.add(at(match, 1))
   return [...functions].sort()
 }
 
 const effectiveBindings = effectiveTriggerBindings()
 const reviewedBindings = reviewedTriggerBindings()
 const effectiveFunctionNames = effectiveBindings.map((binding) =>
-  binding.split(' -> ')[1].split('.').at(-1)!,
+  at(binding.split(' -> '), 1).split('.').at(-1)!,
 )
 const manifestFunctions = manifestTriggerAuthorityFunctions()
 

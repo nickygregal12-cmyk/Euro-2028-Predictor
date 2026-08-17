@@ -106,10 +106,13 @@ const CREATE_TRIGGER_TABLE = /\bon\s+((?:[A-Za-z_][\w$]*\.)?[A-Za-z_][\w$]*)/i
  * repository, sometimes on either side of a single pairing.
  *
  * @param {string} identifier
+ * @returns {string}
  */
 function bareName(identifier) {
   const parts = identifier.toLowerCase().split('.')
-  return parts[parts.length - 1]
+  // `split` always yields at least one element, so the last is a string; the
+  // fallback keeps the declared return type honest without inventing a name.
+  return parts[parts.length - 1] ?? identifier.toLowerCase()
 }
 
 /**
@@ -129,13 +132,23 @@ export function triggerRecreations(scannable) {
     const start = drop.index ?? 0
     const end = start + drop[0].length
 
+    // The trigger name and table this drop names. Both groups are mandatory in
+    // DROP_TRIGGER, so an absent one means the pattern stopped matching what it
+    // claims to — treated as "not a recognised drop" rather than compared
+    // against `undefined`, which would silently pair two unrelated statements.
+    const droppedTrigger = drop[1]
+    const droppedTable = drop[2]
+    if (droppedTrigger === undefined || droppedTable === undefined) continue
+
     // "Immediately": the very next statement, with only whitespace between.
     // Anything else — another statement, a partial rewrite — means the trigger
     // was genuinely absent for part of the migration, so the drop stands.
     const rest = scannable.slice(end)
     const head = CREATE_TRIGGER_HEAD.exec(rest)
     if (head === null) continue
-    if (bareName(head[1]) !== bareName(drop[1])) continue
+    const createdTrigger = head[1]
+    if (createdTrigger === undefined) continue
+    if (bareName(createdTrigger) !== bareName(droppedTrigger)) continue
 
     // The trigger name alone is not identity: PostgreSQL scopes a trigger to
     // its table, so the same name may legitimately exist on two tables and
@@ -144,12 +157,14 @@ export function triggerRecreations(scannable) {
     const statement = terminator === -1 ? rest : rest.slice(0, terminator)
     const table = CREATE_TRIGGER_TABLE.exec(statement.slice(head[0].length))
     if (table === null) continue
-    if (bareName(table[1]) !== bareName(drop[2])) continue
+    const createdTable = table[1]
+    if (createdTable === undefined) continue
+    if (bareName(createdTable) !== bareName(droppedTable)) continue
 
     found.push({
       start,
       end,
-      label: `drop trigger ${bareName(drop[1])} on ${bareName(drop[2])} (re-created immediately)`,
+      label: `drop trigger ${bareName(droppedTrigger)} on ${bareName(droppedTable)} (re-created immediately)`,
     })
   }
 

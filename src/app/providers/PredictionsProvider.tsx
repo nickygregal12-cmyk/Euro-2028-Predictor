@@ -219,14 +219,11 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       const matchId = key.slice(2)
       const p = payload as MatchSavePayload
       if (p.kind === 'delete') {
-        const hasVersion = Object.prototype.hasOwnProperty.call(
-          matchVersionsRef.current,
-          matchId,
-        )
+        const version = matchVersionsRef.current[matchId]
         await deleteMatchPrediction(
           id,
           matchId,
-          hasVersion ? matchVersionsRef.current[matchId] : null,
+          version ?? null,
         )
         delete matchVersionsRef.current[matchId]
         return

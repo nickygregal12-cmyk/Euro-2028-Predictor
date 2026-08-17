@@ -20,12 +20,14 @@ export type PlayerChipProps = {
  */
 export function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean)
-  if (parts.length === 0) return '?'
+  const [firstPart] = parts
+  if (firstPart === undefined) return '?'
   if (parts.length === 1) {
-    return Array.from(parts[0]).slice(0, 2).join('').toUpperCase()
+    return Array.from(firstPart).slice(0, 2).join('').toUpperCase()
   }
-  const first = Array.from(parts[0])[0] ?? ''
-  const last = Array.from(parts[parts.length - 1])[0] ?? ''
+  const lastPart = parts[parts.length - 1] ?? firstPart
+  const first = Array.from(firstPart)[0] ?? ''
+  const last = Array.from(lastPart)[0] ?? ''
   return (first + last).toUpperCase()
 }
 

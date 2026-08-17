@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { SignUpForm } from '../../../src/features/auth/SignUpForm'
 import { UpdatePasswordForm } from '../../../src/features/auth/UpdatePasswordForm'
 import { BREACHED_PASSWORD_MESSAGE } from '../../../src/features/auth/authValidation'
+import { at } from '../../support/indexed'
 
 /**
  * AUTH-002 at the two forms that choose a password.
@@ -66,7 +67,7 @@ describe('SignUpForm breach-corpus gate', () => {
     fillSignUp()
 
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1))
-    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+    expect(at(onSubmit.mock.calls, 0)[0]).toMatchObject({
       displayName: VALID.displayName,
       email: VALID.email,
       password: VALID.password,

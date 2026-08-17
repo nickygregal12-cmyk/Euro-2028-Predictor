@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The acquisition risk register, against the repository it describes.
@@ -40,8 +41,8 @@ const register = readFileSync(resolve(repositoryRoot, registerPath), 'utf8')
 /** Every `ACQ-Rnn` row, with the status cell isolated. */
 function riskRows(): { id: string; status: string }[] {
   return [...register.matchAll(/^\| (ACQ-R\d+) \|(.*)$/gm)].map((match) => {
-    const cells = match[2].split('|').map((cell) => cell.trim())
-    return { id: match[1], status: cells[cells.length - 2] ?? '' }
+    const cells = at(match, 2).split('|').map((cell) => cell.trim())
+    return { id: at(match, 1), status: cells[cells.length - 2] ?? '' }
   })
 }
 
@@ -69,7 +70,7 @@ describe('the register stays connected to the repository', () => {
   it('resolves every relative link it cites', () => {
     // A broken citation is a claim to evidence that no longer exists — the
     // register would still read as substantiated.
-    const links = [...register.matchAll(/\]\((?!https?:|#)([^)]+)\)/g)].map((match) => match[1])
+    const links = [...register.matchAll(/\]\((?!https?:|#)([^)]+)\)/g)].map((match) => at(match, 1))
     expect(links.length).toBeGreaterThan(0)
 
     const broken = links.filter(
@@ -90,7 +91,7 @@ describe('the register stays connected to the repository', () => {
     ]
     expect(cited.length).toBeGreaterThan(3)
 
-    const missing = cited.filter((path) => !existsFrom('.', path))
+    const missing = cited.filter((path) => path !== undefined && !existsFrom('.', path))
     expect(missing, `register cites files that do not exist: ${missing.join(', ')}`).toEqual([])
   })
 

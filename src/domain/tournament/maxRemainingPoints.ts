@@ -88,10 +88,15 @@ const TOTAL_GOALS_CEILING = Math.max(
 )
 
 // Points for stages strictly above `fromIdx` up to and including `toIdx`.
+// Both callers pass a `toIdx` already proven `>= 0` by `indexOf` against
+// `KNOCKOUT_STAGE_ORDER` itself, so every `i` in range is a genuinely valid
+// index — but not something the index signature can see.
 function sumStages(fromIdx: number, toIdx: number): number {
   let sum = 0
   for (let i = fromIdx + 1; i <= toIdx; i++) {
-    sum += KNOCKOUT_STAGE_POINTS[KNOCKOUT_STAGE_ORDER[i]]
+    const stage = KNOCKOUT_STAGE_ORDER[i]
+    if (stage === undefined) throw new Error(`maxRemainingPoints: stage index ${i} out of range`)
+    sum += KNOCKOUT_STAGE_POINTS[stage]
   }
   return sum
 }

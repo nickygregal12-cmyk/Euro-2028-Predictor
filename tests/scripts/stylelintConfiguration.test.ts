@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The CSS linter's configuration, against the rules it exists to enforce.
@@ -44,7 +45,7 @@ const config = JSON.parse(
 
 const RULE = 'scale-unlimited/declaration-strict-value'
 const FONT_WEIGHT_RULE = 'declaration-property-value-disallowed-list'
-const [properties, options] = config.rules[RULE]
+const [properties, options] = at(config.rules, RULE)
 
 const strictValueExemptions = () =>
   config.overrides.filter((override) => override.rules[RULE] === null)
@@ -145,7 +146,7 @@ describe('Stylelint configuration', () => {
     )
 
     expect(weightOverrides).toHaveLength(1)
-    const [weightOverride] = weightOverrides
+    const weightOverride = at(weightOverrides, 0, 'font-weight override')
 
     expect([...weightOverride.files].sort()).toEqual([
       'src/app/**/*.css',
@@ -155,7 +156,7 @@ describe('Stylelint configuration', () => {
       'src/features/profile/**/*.css',
       'src/features/season/**/*.css',
     ])
-    expect(weightOverride.rules[FONT_WEIGHT_RULE]).toEqual({
+    expect(at(weightOverride.rules, FONT_WEIGHT_RULE)).toEqual({
       'font-weight': ['600', '700', '800', '900', 'bold', 'bolder'],
     })
 

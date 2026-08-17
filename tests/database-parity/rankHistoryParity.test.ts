@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { MATCHDAY_POINTS } from '../../src/domain/tournament/rankHistory'
+import { at } from '../support/indexed'
 
 /**
  * Static TypeScript/PostgreSQL parity for the rank-history matchday mapping.
@@ -50,10 +51,10 @@ function sqlMatchdayRowsByMigration(): { file: string; rows: MatchdayRow[] }[] {
         /\(\s*'([A-Z0-9]+)'(?:::text)?\s*,\s*(\d+)(?:::smallint)?\s*,\s*'([a-z0-9]+)'(?:::text)?\s*,\s*(null|\d+)(?:::smallint)?\s*\)/g,
       ),
     ].map((match) => ({
-      key: match[1],
-      ord: Number(match[2]),
-      round: match[3],
-      matchday: match[4] === 'null' ? null : Number(match[4]),
+      key: at(match, 1),
+      ord: Number(at(match, 2)),
+      round: at(match, 3),
+      matchday: at(match, 4) === 'null' ? null : Number(at(match, 4)),
     }))
 
     if (rows.length > 0) copies.push({ file, rows })

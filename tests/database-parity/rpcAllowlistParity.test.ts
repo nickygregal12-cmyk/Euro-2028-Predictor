@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Parity between the two independently-maintained allow-lists of the same RPCs.
@@ -67,8 +68,8 @@ function pgTapExpectations(table: string): Set<string> {
     'g',
   )
   for (const statement of source.matchAll(pattern)) {
-    for (const literal of statement[1].matchAll(/'([^']+)'/g)) {
-      found.add(normalise(literal[1]))
+    for (const literal of at(statement, 1).matchAll(/'([^']+)'/g)) {
+      found.add(normalise(at(literal, 1)))
     }
   }
   return found

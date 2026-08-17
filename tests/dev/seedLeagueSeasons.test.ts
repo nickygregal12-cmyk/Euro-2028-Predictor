@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 import {
   roundRobin,
@@ -85,8 +86,8 @@ describe.each([
     const played = new Array<number>(clubs).fill(0)
     for (const round of schedule) {
       for (const [home, away] of round) {
-        played[home] += 1
-        played[away] += 1
+        played[home] = at(played, home) + 1
+        played[away] = at(played, away) + 1
       }
     }
     for (const [club, count] of played.entries()) {
@@ -100,7 +101,7 @@ describe.each([
     // with a wildly lopsided season.
     const home = new Array<number>(clubs).fill(0)
     for (const round of schedule) {
-      for (const [homeClub] of round) home[homeClub] += 1
+      for (const [homeClub] of round) home[homeClub] = at(home, homeClub) + 1
     }
     const total = meetings * (clubs - 1)
     for (const [club, count] of home.entries()) {
@@ -172,7 +173,7 @@ describe('the configured seasons', () => {
     expect(totals['Premier League 2026/27']).toEqual({ played: 38, postSplit: 0 })
     expect(totals['Scottish Premiership 2026/27']).toEqual({ played: 33, postSplit: 5 })
     for (const season of SEASONS) {
-      const entry = totals[season.seasonRow]
+      const entry = at(totals, season.seasonRow)
       expect(
         entry.played + entry.postSplit,
         `${season.seasonRow} is not a 38 matchweek season`,

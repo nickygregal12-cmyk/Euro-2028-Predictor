@@ -56,8 +56,8 @@ export function adjacentMatchRefs(
   if (index === -1) return { previous: null, next: null }
 
   return {
-    previous: index > 0 ? ordered[index - 1].matchRef : null,
-    next: index < ordered.length - 1 ? ordered[index + 1].matchRef : null,
+    previous: index > 0 ? (ordered[index - 1]?.matchRef ?? null) : null,
+    next: index < ordered.length - 1 ? (ordered[index + 1]?.matchRef ?? null) : null,
   }
 }
 

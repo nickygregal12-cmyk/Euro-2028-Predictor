@@ -61,8 +61,10 @@ async function prepareFixture(): Promise<Fixture> {
   )
   const userIds: string[] = []
   for (let index = 0; index < emails.length; index += 1) {
+    const email = emails[index]
+    if (email === undefined) throw new Error('Prediction trends fixture lost an email.')
     const created = await admin.auth.admin.createUser({
-      email: emails[index],
+      email,
       password: PASSWORD,
       email_confirm: true,
       user_metadata: { display_name: `Trend Player ${index + 1}` },
@@ -99,12 +101,17 @@ async function prepareFixture(): Promise<Fixture> {
     const entryId = entryByUser.get(userId)
     if (!entryId) throw new Error('Prediction trends fixture lost an entry.')
     const selectedScorelines = scorelines[userIndex % scorelines.length]
-    return matches.map((match, matchIndex) => ({
-      entry_id: entryId,
-      match_id: match.id,
-      home_score: selectedScorelines[matchIndex][0],
-      away_score: selectedScorelines[matchIndex][1],
-    }))
+    if (!selectedScorelines) throw new Error('Prediction trends fixture lost a scoreline set.')
+    return matches.map((match, matchIndex) => {
+      const scoreline = selectedScorelines[matchIndex]
+      if (!scoreline) throw new Error('Prediction trends fixture lost a scoreline.')
+      return {
+        entry_id: entryId,
+        match_id: match.id,
+        home_score: scoreline[0],
+        away_score: scoreline[1],
+      }
+    })
   })
   const predictionWrite = await admin.from('match_predictions').insert(predictionRows)
   if (predictionWrite.error) throw predictionWrite.error
@@ -112,9 +119,12 @@ async function prepareFixture(): Promise<Fixture> {
   const progressionRows = userIds.flatMap((userId, index) => {
     const entryId = entryByUser.get(userId)
     if (!entryId) throw new Error('Prediction trends fixture lost a progression entry.')
+    const champion = teams[index % 3 === 2 ? 2 : 0]
+    const finalist = teams[1]
+    if (!champion || !finalist) throw new Error('Prediction trends fixture lost a team.')
     return [
-      { entry_id: entryId, team_id: teams[index % 3 === 2 ? 2 : 0].id, stage: 'champion' },
-      { entry_id: entryId, team_id: teams[1].id, stage: 'final' },
+      { entry_id: entryId, team_id: champion.id, stage: 'champion' },
+      { entry_id: entryId, team_id: finalist.id, stage: 'final' },
     ]
   })
   const progressionWrite = await admin.from('predicted_progression').insert(progressionRows)

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 type Classification = 'C1' | 'C2' | 'shared-before-state'
 type InventoryRow = {
@@ -87,9 +88,9 @@ function inventoryRows(): InventoryRow[] {
 
   for (const match of section!.matchAll(rowPattern)) {
     rows.push({
-      source: match[1],
-      classification: match[2] as Classification,
-      assertion: match[3],
+      source: at(match, 1),
+      classification: at(match, 2) as Classification,
+      assertion: at(match, 3),
     })
   }
 
@@ -97,7 +98,7 @@ function inventoryRows(): InventoryRow[] {
 }
 
 function typescriptAssertions(source: string): string[] {
-  return [...source.matchAll(/\bit\(\s*(['"])(.*?)\1\s*,/g)].map((match) => match[2])
+  return [...source.matchAll(/\bit\(\s*(['"])(.*?)\1\s*,/g)].map((match) => at(match, 2))
 }
 
 function sqlAssertions(source: string): string[] {
@@ -105,8 +106,8 @@ function sqlAssertions(source: string): string[] {
   const callPattern = /select\s+(?:throws_ok|lives_ok|is)\s*\(([\s\S]*?)^\s*\);\s*$/gim
 
   for (const call of source.matchAll(callPattern)) {
-    const literals = [...call[1].matchAll(/'((?:''|[^'])*)'/g)].map((match) =>
-      match[1].replaceAll("''", "'"),
+    const literals = [...at(call, 1).matchAll(/'((?:''|[^'])*)'/g)].map((match) =>
+      at(match, 1).replaceAll("''", "'"),
     )
     const assertion = literals.at(-1)
     expect(assertion, 'pgTAP assertion description').toBeTruthy()

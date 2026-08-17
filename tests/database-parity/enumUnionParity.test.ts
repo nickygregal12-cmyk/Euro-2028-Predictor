@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * TypeScript string-literal unions against the database allow-lists they mirror.
@@ -55,8 +56,9 @@ function allowedValues(column: string): string[] {
   if (found.length === 0) {
     throw new Error(`No check constraint allow-list found for "${column}".`)
   }
-  const effective = found.at(-1)!
-  return [...effective[1].matchAll(/'([^']*)'/g)].map((match) => match[1]).sort()
+  const effective = found.at(-1)
+  if (!effective) throw new Error(`No check constraint allow-list found for "${column}".`)
+  return [...at(effective, 1).matchAll(/'([^']*)'/g)].map((match) => at(match, 1)).sort()
 }
 
 /** The members of an exported string-literal union, from the service layer. */
@@ -64,7 +66,7 @@ function unionMembers(file: string, name: string): string[] {
   const source = readFileSync(resolve(repositoryRoot, file), 'utf8')
   const declaration = new RegExp(`export type ${name}\\s*=\\s*([^\\n]+)`).exec(source)
   if (!declaration) return []
-  return [...declaration[1].matchAll(/'([^']*)'/g)].map((match) => match[1]).sort()
+  return [...at(declaration, 1).matchAll(/'([^']*)'/g)].map((match) => at(match, 1)).sort()
 }
 
 const TOURNAMENT_DATA = 'src/services/supabase/tournamentData.ts'

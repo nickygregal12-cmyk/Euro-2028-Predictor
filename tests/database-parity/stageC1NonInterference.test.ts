@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Stage C1 may generalise competition-season scope, locks and timezone authority,
@@ -57,10 +58,10 @@ function authUserReferences(): AuthReference[] {
           // `predictor_internal.season_fixture_result_revisions`, and a
           // `public.`-only prefix made the parser read the SCHEMA as the table
           // name and pin the column as `predictor_internal.actor_id`.
-          lines[cursor].match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
-          lines[cursor].match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
+          at(lines, cursor).match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
+          at(lines, cursor).match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
         if (match) {
-          table = match[1].toLowerCase()
+          table = at(match, 1).toLowerCase()
           break
         }
       }
@@ -68,7 +69,7 @@ function authUserReferences(): AuthReference[] {
       const column =
         (line.match(/^\s*(?:add column\s+)?([a-z_]+)\s+uuid/i) ??
           line.match(/foreign key \(([a-z_]+)\)/i))?.[1]?.toLowerCase() ?? 'unknown'
-      const declared = line.match(/on delete (cascade|restrict|set null)/i)?.[1].toLowerCase()
+      const declared = line.match(/on delete (cascade|restrict|set null)/i)?.[1]?.toLowerCase()
 
       found.push({
         table,
@@ -165,8 +166,8 @@ function policyEvents(source: string): PolicyEvent[] {
       /\bdrop\s+policy\s+(?:if\s+exists\s+)?(?:"([^"]+)"|([a-z_][a-z0-9_]*))\s+on\s+(?:public\.)?([a-z_][a-z0-9_]*)/i,
     )
     if (drop) {
-      const name = (drop[1] ?? drop[2]).toLowerCase()
-      const table = drop[3].toLowerCase()
+      const name = (at(drop, 1) ?? drop[2]).toLowerCase()
+      const table = at(drop, 3).toLowerCase()
       events.push({ action: 'drop', key: `${table}.${name}` })
       continue
     }
@@ -176,8 +177,8 @@ function policyEvents(source: string): PolicyEvent[] {
     )
     if (!create) continue
 
-    const name = (create[1] ?? create[2]).toLowerCase()
-    const table = create[3].toLowerCase()
+    const name = (at(create, 1) ?? create[2]).toLowerCase()
+    const table = at(create, 3).toLowerCase()
     const command = statement.match(/\bfor\s+(all|select|insert|update|delete)\b/i)?.[1] ?? 'all'
     const policy: PolicyDefinition = {
       name,
@@ -251,7 +252,7 @@ function migrationCode(): string {
 function effectiveFunctionNames(): string[] {
   const names = new Set<string>()
   const pattern = /create (?:or replace )?function\s+(?:[a-z_0-9]+\.)?([a-z_0-9]+)\s*\(/gi
-  for (const match of migrationCode().matchAll(pattern)) names.add(match[1].toLowerCase())
+  for (const match of migrationCode().matchAll(pattern)) names.add(at(match, 1).toLowerCase())
   return [...names].sort()
 }
 

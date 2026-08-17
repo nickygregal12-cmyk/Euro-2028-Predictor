@@ -161,7 +161,8 @@ export function resolveFixtureReassignment(
   if (containing.length === 0) return { kind: 'refused', reason: 'no_destination_round' }
   if (containing.length > 1) return { kind: 'refused', reason: 'ambiguous_destination_round' }
 
-  const destination = containing[0]
+  const [destination] = containing
+  if (destination === undefined) return { kind: 'refused', reason: 'no_destination_round' }
   const audit: FixtureReassignmentAudit = {
     fixtureId: input.fixture.id,
     fromRoundId: input.fixture.roundId,

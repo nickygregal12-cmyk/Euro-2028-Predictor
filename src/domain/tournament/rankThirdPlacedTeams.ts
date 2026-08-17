@@ -47,7 +47,12 @@ export type RankThirdPlacedResult = {
 // ranks higher than b (each component is "bigger is better").
 function compareScores(a: number[], b: number[]): number {
   for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return a[i] - b[i]
+    const av = a[i]
+    const bv = b[i]
+    if (av === undefined || bv === undefined) {
+      throw new Error('compareScores: score vectors must be equal length')
+    }
+    if (av !== bv) return av - bv
   }
   return 0
 }
@@ -79,7 +84,10 @@ export function rankThirdPlacedTeams(
   const rawBlocks: ThirdPlacedTeam[][] = []
   for (const t of sorted) {
     const last = rawBlocks[rawBlocks.length - 1]
-    if (last && compareScores(rankingScore(last[0]), rankingScore(t)) === 0) {
+    // Every block ever pushed below has at least one team, so `last[0]` is
+    // genuinely defined whenever `last` is — checked rather than asserted.
+    const lastFirst = last?.[0]
+    if (last && lastFirst !== undefined && compareScores(rankingScore(lastFirst), rankingScore(t)) === 0) {
       last.push(t)
     } else {
       rawBlocks.push([t])
@@ -127,6 +135,7 @@ function qualifiersOrNull(ranking: RankedThird[]): RankedThird[] | null {
   if (ranking.length < 4) return null
   const fourth = ranking[3]
   const fifth = ranking[4]
+  if (fourth === undefined) return null
   const straddles =
     fifth !== undefined &&
     fourth.tiedUnresolved &&

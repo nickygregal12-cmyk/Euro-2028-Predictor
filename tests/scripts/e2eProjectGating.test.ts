@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { PARKED_EURO_SPECS } from '../../scripts/select-browser-journeys.mjs'
+import { at } from '../support/indexed'
 
 const root = resolve(import.meta.dirname, '../..')
 
@@ -22,12 +23,12 @@ const parkedEuroSpecs = [...(PARKED_EURO_SPECS as string[])].sort()
 
 function specList(config: string, key: 'testMatch' | 'testIgnore'): string[] {
   const body = new RegExp(`${key}:\\s*\\[([^\\]]*)\\]`).exec(config)?.[1] ?? ''
-  return [...body.matchAll(/'([^']+)'/g)].map((match) => match[1])
+  return [...body.matchAll(/'([^']+)'/g)].map((match) => at(match, 1))
 }
 
 function projectNames(config: string): string[] {
   const body = config.slice(config.indexOf('projects: ['))
-  return [...body.matchAll(/name:\s*'([^']+)'/g)].map((match) => match[1])
+  return [...body.matchAll(/name:\s*'([^']+)'/g)].map((match) => at(match, 1))
 }
 
 const authMatch = specList(authConfig, 'testMatch')
@@ -48,7 +49,7 @@ const vnextSpecs = specFiles.filter((spec) => vnextMatch.includes(spec))
 const defaultSpecs = specFiles.filter((spec) => !defaultIgnore.includes(spec))
 
 function projectGates(source: string): string[] {
-  return [...source.matchAll(/project\.name\s*!==\s*'([^']+)'/g)].map((match) => match[1])
+  return [...source.matchAll(/project\.name\s*!==\s*'([^']+)'/g)].map((match) => at(match, 1))
 }
 
 const gatesBySpec = new Map(

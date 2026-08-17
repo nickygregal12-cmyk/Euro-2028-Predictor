@@ -146,6 +146,7 @@ export async function preparePrivateLeagueFixture(suffix: string): Promise<Priva
     if (profileError) throw profileError
 
     const owner = createdUsers[0]
+    if (!owner) throw new Error('Private-league seed created no users.')
     const { data: entries, error: entryError } = await admin
       .from('entries')
       .insert(

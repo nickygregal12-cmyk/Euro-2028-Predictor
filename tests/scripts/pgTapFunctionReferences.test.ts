@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Every `predictor_internal` function a pgTAP file calls must exist.
@@ -56,10 +57,10 @@ for (const file of sqlFiles(migrationsDirectory)) {
   for (const match of source.matchAll(
     /create\s+(?:or\s+replace\s+)?function\s+predictor_internal\.([a-z_][a-z0-9_]*)\s*\(/gi,
   )) {
-    defined.add(match[1].toLowerCase())
+    defined.add(at(match, 1).toLowerCase())
   }
   for (const match of source.matchAll(/rename\s+to\s+([a-z_][a-z0-9_]*)\s*;/gi)) {
-    defined.add(match[1].toLowerCase())
+    defined.add(at(match, 1).toLowerCase())
   }
 }
 
@@ -79,7 +80,7 @@ for (const file of sqlFiles(migrationsDirectory)) {
   for (const match of read(migrationsDirectory, file).matchAll(
     /create\s+table\s+(?:if\s+not\s+exists\s+)?predictor_internal\.([a-z_][a-z0-9_]*)/gi,
   )) {
-    internalTables.add(match[1].toLowerCase())
+    internalTables.add(at(match, 1).toLowerCase())
   }
 }
 
@@ -94,8 +95,8 @@ for (const file of sqlFiles(migrationsDirectory)) {
 function referencedBy(source: string): Set<string> {
   const names = new Set<string>()
   for (const match of source.matchAll(/predictor_internal\.([a-z_][a-z0-9_]*)\s*\(/gi)) {
-    if (internalTables.has(match[1].toLowerCase())) continue
-    names.add(match[1].toLowerCase())
+    if (internalTables.has(at(match, 1).toLowerCase())) continue
+    names.add(at(match, 1).toLowerCase())
   }
   // Scoped to `function_privs_are` rather than any adjacent string pair.
   // `has_schema_privilege('anon', 'predictor_internal', 'usage')` puts a
@@ -104,7 +105,7 @@ function referencedBy(source: string): Set<string> {
   for (const match of source.matchAll(
     /function_privs_are\(\s*'predictor_internal'\s*,\s*'([a-z_][a-z0-9_]*)'/gi,
   )) {
-    names.add(match[1].toLowerCase())
+    names.add(at(match, 1).toLowerCase())
   }
   return names
 }

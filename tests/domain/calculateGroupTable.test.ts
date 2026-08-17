@@ -59,8 +59,8 @@ describe('calculateGroupTable', () => {
       // t3 beats t4 by less, same points as t1
       { homeTeamId: 't3', awayTeamId: 't4', homeScore: 1, awayScore: 0 },
     ])
-    expect(table[0].teamId).toBe('t1') // better GD, same points
-    expect(table[1].teamId).toBe('t3')
+    expect(table[0]?.teamId).toBe('t1') // better GD, same points
+    expect(table[1]?.teamId).toBe('t3')
   })
 
   it('includes teams with no matches played as zeroed rows', () => {

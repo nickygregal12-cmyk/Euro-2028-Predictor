@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The `VITE_*` surface must stay consistent across the three places that describe
@@ -46,7 +47,7 @@ function readByApplication(): Set<string> {
       for (const match of readFileSync(entryPath, 'utf8').matchAll(
         /import\.meta\.env\.(VITE_[A-Z0-9_]+)/g,
       )) {
-        names.add(match[1])
+        names.add(at(match, 1))
       }
     }
   }
@@ -62,7 +63,7 @@ function declaredInTypes(): Set<string> {
     source.indexOf('interface ImportMeta '),
   )
   return new Set(
-    [...body.matchAll(/readonly (VITE_[A-Z0-9_]+)\??:/g)].map((m) => m[1]),
+    [...body.matchAll(/readonly (VITE_[A-Z0-9_]+)\??:/g)].map((m) => at(m, 1)),
   )
 }
 
@@ -70,7 +71,7 @@ function declaredInTypes(): Set<string> {
 function documentedInTemplate(): Set<string> {
   return new Set(
     [...readRepositoryFile('.env.example').matchAll(/^(VITE_[A-Z0-9_]+)=/gm)].map(
-      (m) => m[1],
+      (m) => at(m, 1),
     ),
   )
 }
@@ -139,7 +140,7 @@ describe('VITE_* environment variable contract', () => {
     )) {
       const [, name, value] = match
       expect(
-        value.trim(),
+        (value ?? '').trim(),
         `${name} must stay a placeholder in .env.example`,
       ).not.toMatch(/^(eyJ|sb_|sbp_|https:\/\/[a-z0-9]+@)/)
     }
@@ -184,7 +185,7 @@ describe('VITE_* environment variable contract', () => {
       // is an exposure decision that must not arrive as a build-config edit.
       for (const match of netlify.matchAll(/\[context\.([a-z-]+)\.environment\]([\s\S]*?)(?=\n\[|$)/g)) {
         const [, context, body] = match
-        if (!/VITE_UI_/.test(body)) continue
+        if (body === undefined || !/VITE_UI_/.test(body)) continue
         expect(
           context,
           `${context} sets a VITE_UI_* route flag; only deploy-preview may`,

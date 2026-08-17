@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { resolveGroupTies } from '../../src/domain/tournament/resolveGroupTies'
 import type { MatchScore } from '../../src/domain/tournament/calculateGroupTable'
+import { at } from '../support/indexed'
 
 const teamIds = ['t1', 't2', 't3', 't4']
 
@@ -77,7 +78,7 @@ describe('resolveGroupTies', () => {
 
     // One unresolved block containing all four teams.
     expect(result.unresolvedGroups).toHaveLength(1)
-    expect([...result.unresolvedGroups[0]].sort()).toEqual([
+    expect([...at(result.unresolvedGroups, 0)].sort()).toEqual([
       't1',
       't2',
       't3',

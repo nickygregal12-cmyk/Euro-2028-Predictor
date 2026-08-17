@@ -39,10 +39,12 @@ const NEVER_PUBLISHABLE_PREFIXES = [
 function decodeJwtPayload(token) {
   const segments = token.split('.')
   if (segments.length !== 3) return null
+  const claims = segments[1]
+  if (claims === undefined) return null
 
   try {
     const payload = JSON.parse(
-      Buffer.from(segments[1], 'base64url').toString('utf8'),
+      Buffer.from(claims, 'base64url').toString('utf8'),
     )
     return typeof payload === 'object' && payload !== null ? payload : null
   } catch {

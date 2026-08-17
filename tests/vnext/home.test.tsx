@@ -20,6 +20,7 @@ import {
   workshopHomeModel,
 } from '../../src/vnext/fixtures'
 import type { HomeModel, PrivateLeague } from '../../src/vnext/models/home'
+import { at } from '../support/indexed'
 
 /**
  * WHAT IS WORTH GUARDING NOW THAT HOME IS SELECTED.
@@ -112,7 +113,7 @@ describe('selectHomeEmphasis', () => {
     const future: HomeModel = {
       ...decisionHomeModel,
       liveMatches: [
-        { ...workshopHomeModel.liveMatches[0], kickoff: '2099-01-01T00:00:00.000Z' },
+        { ...at(workshopHomeModel.liveMatches, 0), kickoff: '2099-01-01T00:00:00.000Z' },
       ],
     }
     expect(selectHomeEmphasis(future)).toBe('live')
@@ -175,7 +176,7 @@ describe.each(SCENARIOS)('Home — $name', (scenario) => {
 
     const headings = screen.getAllByRole('heading', { level: 1 })
     expect(headings, 'exactly one page heading').toHaveLength(1)
-    expect(headings[0].textContent).toBe(scenario.model.competition.matchweekLabel)
+    expect(headings[0]?.textContent).toBe(scenario.model.competition.matchweekLabel)
 
     // Both navigation shapes are rendered and CSS hides one, so jsdom — which
     // applies no stylesheet — legitimately sees both. Which one is real at a
@@ -207,7 +208,7 @@ describe.each(SCENARIOS)('Home — $name', (scenario) => {
         ...scenario.model.upcomingMatches,
         {
           ...(scenario.model.upcomingMatches[0] ??
-            workshopHomeModel.upcomingMatches[0]),
+            at(workshopHomeModel.upcomingMatches, 0)),
           id: 'postponed-under-test',
           status: 'postponed',
           clock: null,
@@ -443,7 +444,7 @@ describe('Home consumes the presentation model', () => {
     for (const [name, model] of Object.entries(homeScenarios)) {
       const { unmount } = renderHome(model)
       expect(
-        screen.getAllByRole('heading', { level: 1 })[0].textContent,
+        at(screen.getAllByRole('heading', { level: 1 }), 0).textContent,
         `${name} did not render a matchweek heading`,
       ).toBe(model.competition.matchweekLabel)
       unmount()

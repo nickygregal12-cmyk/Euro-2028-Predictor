@@ -99,8 +99,8 @@ describe('createSeasonLmsRpcGateway — load', () => {
 
     const page = await gateway().load()
 
-    expect(page.fixtures[0].away.used).toBe(true)
-    expect(page.fixtures[0].home.used).toBe(false)
+    expect(page.fixtures[0]?.away.used).toBe(true)
+    expect(page.fixtures[0]?.home.used).toBe(false)
   })
 
   it('reports a settled score once both sides have one', async () => {
@@ -122,7 +122,7 @@ describe('createSeasonLmsRpcGateway — load', () => {
 
     const page = await gateway().load()
 
-    expect(page.fixtures[0].score).toEqual({ home: 2, away: 1 })
+    expect(page.fixtures[0]?.score).toEqual({ home: 2, away: 1 })
   })
 
   it('returns no round, no pick and no fixtures when nothing is open to the player', async () => {

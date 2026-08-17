@@ -256,23 +256,35 @@ function classify(code: string, registry: readonly Bookmaker[]): Bookmaker {
   }
 }
 
+// `indices` holds exactly `k` entries throughout, and every read below is at an
+// offset already proven `< k` by the loop that produced it — genuinely never
+// out of range, but not something the index signature can see. A guard that
+// throws documents the invariant instead of silently asserting past it.
+function at<T>(arr: readonly T[], i: number): T {
+  const value = arr[i]
+  if (value === undefined) throw new Error(`combinations: index ${i} out of range`)
+  return value
+}
+
 /** Every k-subset, in the same order Python's `itertools.combinations` yields. */
 function* combinations<T>(items: readonly T[], k: number): Generator<T[]> {
   if (k > items.length || k < 1) return
   const indices = Array.from({ length: k }, (_, i) => i)
   for (;;) {
-    yield indices.map((i) => items[i])
+    yield indices.map((i) => at(items, i))
     let i = k - 1
     while (i >= 0 && indices[i] === i + items.length - k) i -= 1
     if (i < 0) return
-    indices[i] += 1
-    for (let j = i + 1; j < k; j += 1) indices[j] = indices[j - 1] + 1
+    indices[i] = at(indices, i) + 1
+    for (let j = i + 1; j < k; j += 1) indices[j] = at(indices, j - 1) + 1
   }
 }
 
 function compareIds(a: readonly string[], b: readonly string[]): number {
   for (let i = 0; i < Math.min(a.length, b.length); i += 1) {
-    if (a[i] !== b[i]) return a[i] < b[i] ? -1 : 1
+    const av = at(a, i)
+    const bv = at(b, i)
+    if (av !== bv) return av < bv ? -1 : 1
   }
   return a.length - b.length
 }
@@ -453,7 +465,7 @@ function combineWithin(
       maxUncertaintyWidth: widths.length ? Math.max(...widths) : null,
       correlationTreatment: CORRELATION_NOTE,
       warnings,
-      oldestPriceCapturedAt: captures.length ? captures[0] : null,
+      oldestPriceCapturedAt: captures[0] ?? null,
     })
   }
   return out

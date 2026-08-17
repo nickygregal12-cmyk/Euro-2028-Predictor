@@ -431,7 +431,8 @@ function report(
 
 function argument(name: string, fallback: string): string {
   const index = process.argv.indexOf(`--${name}`)
-  return index >= 0 && process.argv[index + 1] ? process.argv[index + 1] : fallback
+  const value = index >= 0 ? process.argv[index + 1] : undefined
+  return value ? value : fallback
 }
 
 async function main() {

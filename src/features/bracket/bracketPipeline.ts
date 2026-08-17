@@ -250,8 +250,10 @@ export function buildBracketPipeline(
   // placeholder. Feeder relationships come from KNOCKOUT_BRACKET.
   const forwardTies = (round: RoundKey): BracketTie[] =>
     KNOCKOUT_BRACKET.filter((m) => m.round === round).map((m) => {
-      const home = picks[m.homeFrom] !== undefined ? teamSide(picks[m.homeFrom]) : placeholder(m.homeFrom)
-      const away = picks[m.awayFrom] !== undefined ? teamSide(picks[m.awayFrom]) : placeholder(m.awayFrom)
+      const homePick = picks[m.homeFrom]
+      const awayPick = picks[m.awayFrom]
+      const home = homePick !== undefined ? teamSide(homePick) : placeholder(m.homeFrom)
+      const away = awayPick !== undefined ? teamSide(awayPick) : placeholder(m.awayFrom)
       return tieFor(m.ref, round, home, away, `Winner ${m.homeFrom}`, `Winner ${m.awayFrom}`)
     })
 

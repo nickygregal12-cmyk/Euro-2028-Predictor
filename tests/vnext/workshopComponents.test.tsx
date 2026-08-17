@@ -9,6 +9,7 @@ import { LeagueLadder } from '../../src/vnext/components/social/LeagueLadder'
 import { RivalStrip } from '../../src/vnext/components/social/RivalStrip'
 import { VNextNav } from '../../src/vnext/components/navigation/VNextNav'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
+import { at } from '../support/indexed'
 import {
   MATCHDAY_NOW,
   deadlineMatch,
@@ -214,7 +215,7 @@ describe('social components', () => {
   it('marks the user’s row and states the gap to the leader', () => {
     render(
       <VNextRoot>
-        <LeagueLadder league={workshopHomeModel.privateLeagues[0]} />
+        <LeagueLadder league={at(workshopHomeModel.privateLeagues, 0)} />
       </VNextRoot>,
     )
 
@@ -228,7 +229,7 @@ describe('social components', () => {
   it('describes rank movement as a sentence rather than an arrow alone', () => {
     render(
       <VNextRoot>
-        <LeagueLadder league={workshopHomeModel.privateLeagues[0]} />
+        <LeagueLadder league={at(workshopHomeModel.privateLeagues, 0)} />
       </VNextRoot>,
     )
 
@@ -252,7 +253,7 @@ describe('social components', () => {
     await scan(
       <VNextRoot>
         <LeagueLadder
-          league={workshopHomeModel.privateLeagues[0]}
+          league={at(workshopHomeModel.privateLeagues, 0)}
           onOpen={() => {}}
         />
         <RivalStrip rivals={workshopHomeModel.rivals} />

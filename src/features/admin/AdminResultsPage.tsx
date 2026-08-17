@@ -196,7 +196,8 @@ export function AdminResultsPage() {
       const firstAwaiting = matches.find(
         (match) => resultByMatchId.get(match.id)?.state === 'scheduled',
       )
-      setSelectedMatchId((firstAwaiting ?? matches[0]).id)
+      const fallback = firstAwaiting ?? matches[0]
+      if (fallback) setSelectedMatchId(fallback.id)
     }
   }, [matches, resultByMatchId, selectedMatchId])
 
