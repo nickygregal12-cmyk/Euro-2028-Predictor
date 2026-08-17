@@ -125,6 +125,28 @@ export const NewSeason1440: StoryObj = home('newSeason', ['laptop-1440'], 0.8)
 /** The emptiest state at the widest width — where dead space shows up first. */
 export const NewSeason1920: StoryObj = home('newSeason', ['desktop-1920'], 0.62)
 
+/**
+ * EVERY FIGURE THE REAL APPLICATION CANNOT STATE, ALL AT ONCE.
+ *
+ * Added in Stage 6, when Home met real reads and five figures turned out to be
+ * genuinely unavailable rather than merely mocked: the season rank and its field
+ * size, rank movement, points banked today and points on the pitch. The four
+ * scenarios above were left exactly as they were — they are the accepted visual
+ * authority and a later stage does not get to edit an approved screenshot — so
+ * the reduced state is its own scenario instead.
+ *
+ * WHAT TO LOOK FOR. Not "does it render". The question is whether an unranked
+ * masthead still reads as the same page: the standing block keeps its shape and
+ * loses its claims, the rank tile says a word instead of an ordinal, the ladder
+ * rows keep their column alignment with no movement arrow in them, and no
+ * qualifier under a number asserts a quiet afternoon nobody reported.
+ */
+export const Reduced430: StoryObj = home('reduced', ['phone-430'])
+
+export const Reduced1440: StoryObj = home('reduced', ['laptop-1440'], 0.8)
+
+export const Reduced1920: StoryObj = home('reduced', ['desktop-1920'], 0.62)
+
 /* ---- CROSS-CUTTING REVIEWS ---------------------------------------------- */
 
 /** The two review widths side by side, which is how hierarchy is judged. */

@@ -15,6 +15,16 @@
   font-size: var(--vnext-size-caption);
 }
 
+/*
+ * Movement nobody stated. It draws nothing and reserves one glyph's width, so a
+ * ladder row whose movement is unknown keeps the same column widths as the row
+ * above it. An empty inline-flex is zero wide, which would pull the points
+ * column left and make two adjacent rows disagree about their own grid.
+ */
+.unknown {
+  min-inline-size: var(--vnext-size-micro);
+}
+
 .up {
   color: var(--vnext-rank-up);
 }

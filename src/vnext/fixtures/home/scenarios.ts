@@ -548,12 +548,80 @@ export const newSeasonHomeModel: HomeModel = {
   ],
 }
 
+/* ------------------------------------------------------------------------ *
+ * 5. REDUCED — every figure the real application cannot currently state.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * WHAT HOME LOOKS LIKE WHEN THE TRUTH IS THIN, and it is a fifth scenario
+ * rather than an edit to the four above for a reason worth stating.
+ *
+ * The four scenarios are the accepted visual authority. Stage 4 passed on those
+ * exact compositions, so real integration is not allowed to reach back and
+ * change one of them — a screenshot that moves because a later stage learned
+ * something is a baseline that proves nothing. This is added beside them.
+ *
+ * IT EXISTS BECAUSE THE NULLS ARE NOW REACHABLE. `rank`, `rankOutOf`,
+ * `rankMovement`, `pointsToday` and `provisionalPoints` all became nullable when
+ * Home met real reads, and a nullable field with no scenario behind it is a
+ * state nobody has ever looked at. Every one of them is null here, at once,
+ * which is the honest worst case: a player whose first matchweek has not
+ * settled, in a season whose competition has no palette, with no private
+ * league, no rival, no activity and no live football.
+ *
+ * It is a TRUTH fixture, not a design proposal. The reduced page must still read
+ * as the same product — same masthead, same surfaces, same type — and this is
+ * what the browser matrix measures that against.
+ */
+export const reducedHomeModel: HomeModel = {
+  generatedAt: COMPETITION_NOW,
+  user: workshopPeople.aisha,
+  competition: {
+    ...workshopHomeModel.competition,
+    stageLabel: 'Matchweek 5',
+    matchweekLabel: 'Matchweek 5',
+    matchweekNumber: 5,
+    // No application source holds a competition palette. The shell falls back
+    // to its own atmosphere, which is what this proves.
+    colours: null,
+  },
+  primaryAction: {
+    type: 'predict',
+    title: 'Predict matchweek 5',
+    description: 'Two fixtures to go before Saturday.',
+    deadline: '2027-08-28T14:00:00.000Z',
+    progress: { completed: 0, total: 2 },
+    routePlaceholder: 'fixtures/matchweek-5',
+    urgency: 'calm',
+  },
+  liveMatches: [],
+  upcomingMatches: bareUpcoming,
+  recentResults: [],
+  recentPerformance: {
+    totalPoints: 0,
+    matchweekPoints: 0,
+    // Not zero. Nobody said what was banked today, or what is on the pitch, and
+    // the difference between "nothing" and "not known" is the whole point.
+    pointsToday: null,
+    provisionalPoints: null,
+    rank: null,
+    rankOutOf: null,
+    rankMovement: null,
+    accuracy: { predicted: 0, exact: 0, resultOnly: 0, missed: 0 },
+    matchweekHistory: [],
+  },
+  privateLeagues: [],
+  rivals: [],
+  activity: [],
+}
+
 /** Every Home scenario, for the stories and the consistency suite. */
 export const homeScenarios = {
   live: workshopHomeModel,
   decision: decisionHomeModel,
   competition: competitionHomeModel,
   newSeason: newSeasonHomeModel,
+  reduced: reducedHomeModel,
 } as const
 
 export type HomeScenarioName = keyof typeof homeScenarios

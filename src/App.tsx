@@ -175,6 +175,13 @@ const SeasonCupPreview = import.meta.env.DEV
 const AiLabPreview = import.meta.env.DEV
   ? lazy(() => import('./dev/AiLabPreview').then((m) => ({ default: m.AiLabPreview })))
   : null
+// vNext Stage 6's integration evidence. `import.meta.env.DEV` is statically
+// false in a production build, so this import is eliminated and no vNext chunk
+// is emitted — the production isolation the vNext lane has held since Stage 3 is
+// unchanged by connecting Home to real reads.
+const VNextHomePreview = import.meta.env.DEV
+  ? lazy(() => import('./dev/VNextHomePreview').then((m) => ({ default: m.VNextHomePreview })))
+  : null
 
 function SessionlessChrome() {
   return (
@@ -223,6 +230,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && AiLabPreview ? (
                   <Route path="/dev/ai-lab" element={<AiLabPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextHomePreview ? (
+                  <Route path="/dev/vnext-home" element={<VNextHomePreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

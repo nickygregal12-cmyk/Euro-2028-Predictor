@@ -173,8 +173,39 @@ Home settled the questions about Home. These are still open:
 - Whether the page header's `trailing` slot is the right shape. One page uses it
   today, for something no other page will want. It stayed a slot rather than
   becoming props precisely so the second and third users can disagree with Home
-  cheaply, and the second user is the one that will settle it.
-- Everything about real data. Home runs on fixtures and calls nothing.
+  cheaply, and the second user is the one that will settle it. **Real data did not
+  settle it either** — Home's standing block composes into the slot unchanged,
+  including in its unranked form, so the slot is neither vindicated nor strained.
+  The second real page is still the evidence that matters.
+- Whether `Match.score` needs a provisional marker. A fixture a provider calls
+  `final` before the platform settles it currently shows the provider's scoreline
+  as its full-time score, because `Match` has one score field. The POINTS beside
+  it are labelled correctly — contract 175 states the basis — but the score is
+  not. No Home zone draws the distinction today, so nothing was changed for it.
+
+## What real data settled, and what it did not
+
+Home is now connected, through one adapter, at `src/vnext/integration/home/`.
+The contract is in [`../../src/vnext/AGENTS.md`](../../src/vnext/AGENTS.md) and is
+not repeated here.
+
+**The design survived contact.** No zone, threshold, type step, motion or colour
+decision changed. What changed is that six model fields became nullable, because
+real reads proved the mock had made them look mandatory: the competition palette,
+the season rank and its field size, rank movement in three places, points banked
+today and points on the pitch. Every one of those nulls is a missing capability
+rather than a loading state, and each renders as less information rather than a
+zero.
+
+**The mocked richness is not all there.** Venue, head to head, broadcast, crests,
+a live minute, league position, a prediction's exact/result/missed verdict, a
+friends consensus and an activity feed have no application source on this path.
+Club colours, club form and community consensus DO — from the domain identity
+registry and contracts 141 and 130 — which was the pleasant surprise.
+
+**Storybook is unchanged as the visual authority.** A fifth scenario, `reduced`,
+was added beside the four approved ones rather than editing any of them, so the
+nullable states have a deterministic screenshot of their own.
 
 ### Settled by Home, and no longer open
 

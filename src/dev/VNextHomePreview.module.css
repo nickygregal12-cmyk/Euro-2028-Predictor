@@ -1,0 +1,79 @@
+/*
+ * Harness chrome only. Nothing here styles vNext — everything inside
+ * `VNextRoot` is the approved Home's own, and a value declared here could not
+ * reach it anyway, because vNext tokens live on `[data-vnext]` and this sits
+ * outside it.
+ *
+ * It draws on the LEGACY design tokens on purpose. This form is application
+ * chrome around the review, not part of the thing being reviewed, and dressing
+ * it in vNext values would blur the boundary between the harness and the surface
+ * it exists to show.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+  min-height: 100vh;
+  background: var(--surface-page);
+  color: var(--text-1);
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.heading {
+  margin: 0;
+  font-size: var(--fs-4);
+  font-weight: 600;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--fs-2);
+  color: var(--text-3);
+  max-width: 80ch;
+}
+
+.form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  font-size: var(--fs-1);
+  color: var(--text-3);
+}
+
+.field input {
+  min-height: 36px;
+  min-width: 22ch;
+  padding: 0 var(--sp-3);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-sunken);
+  color: var(--text-1);
+  font: inherit;
+  font-size: var(--fs-2);
+}
+
+.form button {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border-radius: var(--radius-input);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text-1);
+  font: inherit;
+  cursor: pointer;
+}

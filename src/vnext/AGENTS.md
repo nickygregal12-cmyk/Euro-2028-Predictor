@@ -2,7 +2,7 @@
 
 These instructions apply to work under `src/vnext/`.
 
-It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, with no Supabase, provider, routing or application-state dependency. It is not wired into the running product.
+It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **one integration adapter** under `integration/` that connects Home to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapter is the only place that does, and vNext is still not wired into the running product — the connected Home is reachable only from the dev-only `/dev/vnext-home` harness.
 
 **`home/` is the Gold Standard surface.** It is the approved vNext Home and the quality bar every later vNext page inherits from. Treat it as the reference for composition, density, motion, team colour and accessibility — and do not propagate it to another page without that page's own brief.
 
@@ -23,6 +23,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `models/` | the typed presentation model (`football.ts`, `home.ts`) |
 | `fixtures/` | one deterministic fictional matchday and the Home model built on it |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
+| `integration/` | **the only application-facing code** — `home/` holds the Home adapter |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
 
@@ -74,6 +75,42 @@ Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNe
 `AppFrame`, `Rail` and the `AppFrameProbe` rig were removed in Stage 4. Four out of four real compositions wrote their own shell rather than bending to the frame, and a layout primitive nothing chooses is dead architecture. `app/VNextShell` is not that primitive returning: it was extracted from a shipped page rather than designed ahead of one, it takes a page as children rather than a composition as slots, and Home was migrated onto it without moving a pixel.
 
 Do not load database, provider, AI Lab or deployment history for ordinary component/layout work unless the surface genuinely crosses one of those boundaries.
+
+## The integration contract
+
+`integration/home/` is the ONE place vNext knows the application exists. Its
+shape is the split, and the split is the point:
+
+| File | Job |
+| --- | --- |
+| `homeSource.ts` | what the application hands over — existing read models, nothing reshaped |
+| `useVNextHomeSource.ts` | acquisition only, through existing services; no mapping |
+| `buildHomeModel.ts` | **pure** `HomeSource → HomeModel`; no network, storage, clock or React |
+| `VNextHomeScreen.tsx` | loading/signed-out/no-competition/failed, then `VNextHome` |
+
+- **`VNextHome({ model })` stays usable without any of it.** Storybook, the
+  deterministic visual matrix and every render test hand Home a model directly.
+  The approved surface did not become network-dependent; it gained a caller.
+- **The direction is `components → models` and `integration → services`,** never
+  `components → services`. `tests/vnext/vnextProductionBoundary.test.ts` holds
+  all of it: the presentation lane cannot reach `src/features/`,
+  `src/services/` or the legacy design system, no visual component can reach
+  Supabase or the generated database types, and `VNextHome` cannot reach
+  `integration/`.
+- **The adapter consumes truth; it never computes it.** Live is
+  `live.kind === 'in_play'` (contract 135), editability is
+  `presentCard(...).editable`, rank is contracts 151 and 128, and whether a point
+  value is awarded or provisional is contract 175's per-fixture `basis`. The
+  mapper does no arithmetic beyond subtracting two numbers already on the same
+  screen — a gap, a points difference, an accuracy split over one denominator.
+- **Unavailable is `null`, and `null` is never zero.** `pointsToday`,
+  `provisionalPoints`, season `rankMovement`, `venue`, `headToHead`, `broadcast`,
+  `clock`, `leaguePosition`, `crestUrl`, prediction `outcome` and friends
+  consensus are all absent from current reads. `fixtures/home/scenarios.ts`'s
+  `reduced` scenario is the deterministic visual authority for that state; the
+  four approved scenarios were not edited to make room for it.
+- **Storybook stays deterministic.** Real-data review happens at `/dev/vnext-home`,
+  behind `import.meta.env.DEV`. A story must never change because somebody scored.
 
 ## vNext rules
 
