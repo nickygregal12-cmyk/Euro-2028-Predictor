@@ -65,9 +65,47 @@ export class AutoLoginWrongProjectError extends Error {
   }
 }
 
-/** True only when `url` is present and points at the shared dev project ref. */
+/**
+ * The one hostname the shared development project is served from. Stated as a
+ * whole host rather than assembled at each call site, so there is a single thing
+ * to compare against and a single thing to change.
+ */
+export const DEV_SUPABASE_HOST = `${DEV_PROJECT_REF}.supabase.co`
+
+/**
+ * True only when `url` is the shared dev project's own HTTPS origin.
+ *
+ * THIS WAS A SUBSTRING TEST AND THAT IS NOT A HOST CHECK. It read
+ * `url.includes(DEV_PROJECT_REF)`, so the project ref merely had to appear
+ * SOMEWHERE in the string. Every one of these satisfied it and none of them is
+ * the development project:
+ *
+ *   https://iouzoutneyjpugbbtdem.evil.example      ref as a subdomain label
+ *   https://evil.example/iouzoutneyjpugbbtdem      ref in the path
+ *   https://evil.example/?ref=iouzoutneyjpugbbtdem ref in the query
+ *   http://iouzoutneyjpugbbtdem.supabase.co        right host, no TLS
+ *
+ * `evaluateAutoLoginPolicy` sends `VITE_DEV_USER_EMAIL` and
+ * `VITE_DEV_USER_PASSWORD` to whatever backend passes this guard, so a guard
+ * that accepts an attacker-chosen host hands it the development credentials.
+ * The docstring above claimed "a production-looking or otherwise unknown URL
+ * always fails closed"; the code did not prove it.
+ *
+ * `isLocalSupabaseUrl` directly below has always parsed the URL and pinned
+ * protocol, hostname and port. This is the same rule for the remote project:
+ * exact host, HTTPS only, and no port, because Supabase serves the project on
+ * the default one and a custom port means something else is listening.
+ */
 export function isDevProjectUrl(url: string | undefined): boolean {
-  return typeof url === 'string' && url.includes(DEV_PROJECT_REF)
+  if (!url) return false
+  try {
+    const parsed = new URL(url)
+    return (
+      parsed.protocol === 'https:' && parsed.hostname === DEV_SUPABASE_HOST && parsed.port === ''
+    )
+  } catch {
+    return false
+  }
 }
 
 /**

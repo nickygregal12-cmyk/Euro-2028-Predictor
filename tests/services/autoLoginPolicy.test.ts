@@ -141,12 +141,67 @@ describe('evaluateAutoLoginPolicy', () => {
 })
 
 describe('isDevProjectUrl', () => {
-  it('is true only when the URL contains the dev project ref', () => {
+  it('is true only for the dev project’s own HTTPS origin', () => {
     expect(isDevProjectUrl(DEV_URL)).toBe(true)
     expect(isDevProjectUrl(`https://${DEV_PROJECT_REF}.supabase.co`)).toBe(true)
+    // A trailing slash is the same origin, and `new URL` normalises the case of
+    // the host, so neither is a way in or a false rejection.
+    expect(isDevProjectUrl(`https://${DEV_PROJECT_REF}.supabase.co/`)).toBe(true)
+    expect(isDevProjectUrl(`https://${DEV_PROJECT_REF.toUpperCase()}.supabase.co`)).toBe(true)
     expect(isDevProjectUrl('https://prodprojectref123.supabase.co')).toBe(false)
     expect(isDevProjectUrl('')).toBe(false)
     expect(isDevProjectUrl(undefined)).toBe(false)
+  })
+
+  /*
+   * THE GUARD USED TO BE `url.includes(DEV_PROJECT_REF)`, and every URL below
+   * satisfied it while pointing somewhere else. `evaluateAutoLoginPolicy` sends
+   * the development email and password to whatever passes, so each of these was
+   * a way to be handed those credentials by naming the project ref anywhere in
+   * the string. They are listed individually rather than as one case so a
+   * regression names the shape that came back.
+   */
+  it.each([
+    // The ref as a subdomain label of a host the attacker owns.
+    [`https://${DEV_PROJECT_REF}.evil.example`, 'ref as a subdomain of a hostile domain'],
+    [`https://${DEV_PROJECT_REF}.supabase.co.evil.example`, 'real host as a hostile prefix'],
+    // The ref somewhere in the path or query of a hostile host.
+    [`https://evil.example/${DEV_PROJECT_REF}`, 'ref in the path'],
+    [`https://evil.example/?project=${DEV_PROJECT_REF}`, 'ref in the query string'],
+    [`https://evil.example/#${DEV_PROJECT_REF}`, 'ref in the fragment'],
+    [`https://evil.example/${DEV_PROJECT_REF}.supabase.co`, 'whole host in the path'],
+    // Right host, wrong scheme or port: credentials must not cross plaintext,
+    // and Supabase serves the project on the default port.
+    [`http://${DEV_PROJECT_REF}.supabase.co`, 'correct host over plaintext HTTP'],
+    [`https://${DEV_PROJECT_REF}.supabase.co:8443`, 'correct host on a custom port'],
+    // Neighbouring hosts that share the suffix but not the project.
+    ['https://supabase.co', 'the bare Supabase domain'],
+    ['https://vkfnsqdyhvtwyqkisxhk.supabase.co', 'the PRODUCTION project'],
+    // Not a URL at all.
+    [DEV_PROJECT_REF, 'the bare project ref'],
+    ['not-a-url', 'unparseable input'],
+  ])('refuses %s (%s)', (url) => {
+    expect(isDevProjectUrl(url)).toBe(false)
+  })
+
+  it('refuses to auto-login against every one of those backends', () => {
+    // The unit above proves the predicate; this proves the policy that consumes
+    // it, because the credentials are only at risk through the policy.
+    for (const url of [
+      `https://${DEV_PROJECT_REF}.evil.example`,
+      `https://evil.example/?project=${DEV_PROJECT_REF}`,
+      `http://${DEV_PROJECT_REF}.supabase.co`,
+    ]) {
+      expect(() =>
+        evaluateAutoLoginPolicy({
+          DEV: true,
+          VITE_DEV_AUTOLOGIN: 'true',
+          VITE_DEV_USER_EMAIL: 'dev@euro28.local',
+          VITE_DEV_USER_PASSWORD: 'dev-password',
+          VITE_SUPABASE_URL: url,
+        }),
+      ).toThrow(AutoLoginWrongProjectError)
+    }
   })
 })
 
