@@ -146,6 +146,7 @@ describe('the map cannot rot', () => {
       // gallery is, rather than being given a weekly journey they have not got.
       'vnext-home.spec.ts',
       'vnext-shell.spec.ts',
+      'vnext-predictor.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(

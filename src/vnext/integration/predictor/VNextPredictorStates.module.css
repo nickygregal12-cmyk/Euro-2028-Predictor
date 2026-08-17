@@ -1,0 +1,160 @@
+/*
+ * THE MATCH PREDICTOR'S CONNECTED STATES, IN THE APPROVED LANGUAGE.
+ *
+ * No new design and no new token. Every value below is one the vNext lane already
+ * uses, and the notice deliberately matches the Home adapter's notice value for
+ * value — a failure has to look like this product having a bad day, and two pages
+ * disagreeing about what a bad day looks like is two products.
+ *
+ * WHAT DIFFERS FROM HOME'S SKELETON IS ONLY THE GEOMETRY, because the geometry is
+ * the point: Home stands in for a ticker and a tall stage, this stands in for a
+ * brief and a column of decision rows. A block the size of the thing coming says
+ * "that is coming" and nothing reflows when it arrives.
+ *
+ * REDUCED MOTION IS DESIGNED HERE, NOT ADDED LATER. The shimmer is the only motion
+ * these states have and its reduced pair is a STILL surface rather than a faster
+ * shimmer: a 1ms animation on a gradient still moves. The block keeps its shape,
+ * stays visibly a placeholder, and stops pulsing to say so.
+ */
+
+/* ---- skeleton ---------------------------------------------------------- */
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding-inline: var(--vnext-page-inset);
+}
+
+.block {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+}
+
+.block::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: vnext-predictor-shimmer 1400ms ease-in-out infinite;
+}
+
+@keyframes vnext-predictor-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .block::after {
+    animation: none;
+    transform: none;
+    background-image: none;
+    /* Still, and a touch lighter than the block, so a placeholder is obviously a
+       placeholder without moving to say so. Mixed from a token rather than written
+       as a literal — the Home skeleton reached the same value through the
+       `background` shorthand, which the colour guard cannot see. */
+    background-color: color-mix(in srgb, var(--vnext-text) 4%, transparent);
+  }
+}
+
+/* The brief: the deadline, the progress and the Joker, which is a short block. */
+.brief {
+  block-size: 220px;
+  border-radius: var(--vnext-radius-lg);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+/* A decision row, at the height the stacked composition actually is — two club
+   rows with a stepper each. */
+.row {
+  block-size: 148px;
+  border-radius: var(--vnext-radius-lg);
+}
+
+/* Where the brief becomes a rail, the skeleton follows it: a page that loads in
+   one composition and arrives in another has jumped. */
+@container vnext-page (min-width: 1000px) {
+  .skeleton {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--vnext-personal-rail);
+    gap: var(--vnext-space-5);
+    align-items: start;
+  }
+
+  .brief {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .rows {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .row {
+    block-size: 96px;
+  }
+}
+
+/* ---- notice: failed, signed out, no competition, season over ----------- */
+
+.notice {
+  margin-inline: var(--vnext-page-inset);
+  padding: var(--vnext-space-6) var(--vnext-space-5);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  box-shadow: var(--vnext-shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  max-inline-size: 56ch;
+}
+
+.noticeTitle {
+  margin: 0;
+}
+
+.noticeBody {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.retry {
+  min-block-size: 44px;
+  min-inline-size: 44px;
+  padding-inline: var(--vnext-space-5);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) ease;
+}
+
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-accent);
+  outline-offset: 2px;
+}

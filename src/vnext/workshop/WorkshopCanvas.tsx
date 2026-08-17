@@ -22,6 +22,14 @@ export const workshopViewports: readonly WorkshopViewport[] = [
   { id: 'phone-375', label: 'Phone 375', width: 375, height: 812 },
   { id: 'phone-430', label: 'Phone 430', width: 430, height: 900 },
   { id: 'tablet-768', label: 'Tablet 768', width: 768, height: 1024 },
+  /**
+   * Added in Stage 7, because the Match Predictor's page-level composition
+   * changes between 768 and 1440 — the brief stops being a band above the list and
+   * becomes a rail beside it — and there was no frame at the width where that
+   * happens. It is ADDITIVE: every existing story names the frames it wants, so
+   * none of them gained one, and the default pair is unchanged.
+   */
+  { id: 'laptop-1024', label: 'Laptop 1024', width: 1024, height: 768 },
   { id: 'laptop-1440', label: 'Laptop 1440', width: 1440, height: 900 },
   { id: 'desktop-1920', label: 'Desktop 1920', width: 1920, height: 1080 },
 ]

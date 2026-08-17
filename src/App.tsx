@@ -182,6 +182,16 @@ const AiLabPreview = import.meta.env.DEV
 const VNextHomePreview = import.meta.env.DEV
   ? lazy(() => import('./dev/VNextHomePreview').then((m) => ({ default: m.VNextHomePreview })))
   : null
+// vNext Stage 7's integration evidence, on exactly the same terms as Stage 6's
+// above: statically eliminated in a production build, absent from the production
+// navigation, and behind no flag. The production Match Predictor is untouched.
+const VNextMatchPredictorPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextMatchPredictorPreview').then((m) => ({
+        default: m.VNextMatchPredictorPreview,
+      })),
+    )
+  : null
 
 function SessionlessChrome() {
   return (
@@ -233,6 +243,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextHomePreview ? (
                   <Route path="/dev/vnext-home" element={<VNextHomePreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextMatchPredictorPreview ? (
+                  <Route path="/dev/vnext-match-predictor" element={<VNextMatchPredictorPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

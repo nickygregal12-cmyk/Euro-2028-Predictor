@@ -1,0 +1,1120 @@
+/* vNEXT MATCH PREDICTOR.
+ *
+ * THREE CONTAINERS, AND KNOWING WHICH IS WHICH IS THE WHOLE FILE.
+ *
+ *   `vnext-page`              the shell's content region. The PAGE layout
+ *                             decision — brief above the list, or beside it — is
+ *                             made against this and nothing else.
+ *   `vnext-predictor-work`    the working column. How many fixtures sit across
+ *                             it is its decision, because it is narrower than the
+ *                             page wherever the brief is beside it.
+ *   `vnext-predictor-fixture` ONE fixture row. Whether that row is a stacked pair
+ *                             of clubs or a scoreboard is the row's own decision.
+ *
+ * The third one is the load-bearing one and it is why this file has it. At 1920
+ * the working column is ~1480px wide and holds TWO fixtures across; a row that
+ * measured the column would be handed 1480px and would compose as though it had
+ * all of it, when it actually has 730. That is the mistake the workshop note
+ * records being learned four separate times — "a row that fitted at one width
+ * starved club names to 'Ca…' at another" — and the only arrangement that cannot
+ * reopen it is a row that measures itself. A container query is answered by an
+ * ANCESTOR container, so `.fixture` declares the container and `.fixtureBody`
+ * asks the question.
+ *
+ * NO VIEWPORT UNITS ANYWHERE, per the workshop's rule. The one place a height is
+ * bounded reads `--vnext-frame-block`, which is `none` unless a host declares a
+ * real one — and `calc(none - …)` is invalid at computed-value time, so the bound
+ * simply does not apply where the frame has no definite height. That is the
+ * token's designed behaviour rather than a trick.
+ *
+ * EVERY COLOUR IS A TOKEN. Club colour arrives per fixture as
+ * `--vnext-fixture-home` / `--vnext-fixture-away` and is used only as a spine and
+ * a wash — never on a state chip, a badge or a border that means something.
+ * `foundations/teamColour.ts` holds that rule: team colour is atmosphere, and
+ * semantic colour is state.
+ */
+
+/* ---- the page ----------------------------------------------------------- */
+
+.page {
+  display: grid;
+  gap: var(--vnext-space-4);
+  padding-inline: var(--vnext-page-inset);
+  min-width: 0;
+}
+
+/* ---- the brief -----------------------------------------------------------
+ * Dense and short rather than cinematic: a player arrives here to work, and a
+ * half-screen of atmosphere is a half-screen of scrolling before the first
+ * decision. It is the same markup in both compositions — a band above the list
+ * on a phone, a sticky rail beside it on a desktop. */
+
+.brief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  min-width: 0;
+}
+
+/* The deadline's urgency is the model's answer, never a comparison made here.
+ * Each tone is paired with the words above it, so the colour is emphasis. */
+.brief[data-urgency='urgent'] {
+  border-color: var(--vnext-live);
+  box-shadow: var(--vnext-glow-live);
+}
+
+.brief[data-urgency='soon'] {
+  border-color: var(--vnext-warn);
+}
+
+.brief[data-phase='settled'] {
+  border-color: var(--vnext-hit);
+}
+
+/* THE COMPLETION MOMENT. A card with every fixture entered is a different state
+ * and looks like one — the edge takes the hit colour and the words beside the
+ * count say so. Urgency loses to completion on purpose: once there is nothing left
+ * to do, shouting about the deadline is shouting at somebody who has finished. */
+.brief[data-complete] {
+  border-color: var(--vnext-hit);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+.brief[data-complete][data-urgency='urgent'] .briefHeadline {
+  color: var(--vnext-text);
+}
+
+.briefDeadline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.briefHeadline {
+  overflow-wrap: anywhere;
+}
+
+.briefWhen {
+  color: var(--vnext-text-secondary);
+}
+
+.brief[data-urgency='urgent'] .briefHeadline {
+  color: var(--vnext-live);
+}
+
+.consequence {
+  padding: var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- progress -----------------------------------------------------------
+ * One segment per fixture rather than a percentage bar, because the question on
+ * this page is "how many are left" and not "how far through am I". Ten segments
+ * make the remaining decisions countable; a 60% bar does not. The segments are
+ * `aria-hidden` and the sentence beside them carries the whole state. */
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.progressLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+}
+
+.progressCount {
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.track {
+  display: flex;
+  gap: 3px;
+  min-width: 0;
+}
+
+.segment {
+  flex: 1 1 0;
+  /* A floor rather than a fixed width: a matchweek of twenty still fits a 343px
+     column, and a matchweek of six does not stretch into six fat blocks. */
+  min-width: 4px;
+  height: 6px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline);
+  transition: background-color var(--vnext-duration-base) var(--vnext-ease-standard);
+}
+
+.segment[data-filled] {
+  background-color: var(--vnext-accent);
+  border-color: var(--vnext-accent);
+}
+
+.track[data-complete] .segment[data-filled] {
+  background-color: var(--vnext-hit);
+  border-color: var(--vnext-hit);
+}
+
+/* ---- the jump ---------------------------------------------------------- */
+
+.jump {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--vnext-space-2);
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-accent);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-small);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .jump:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+  }
+}
+
+.jumpGlyph {
+  width: 16px;
+  height: 16px;
+}
+
+/* ---- the joker ---------------------------------------------------------
+ * A stake, not a checkbox. It names the effect and the allowance in the same
+ * place, so the decision is made with both numbers visible. */
+
+.joker {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+/* The refused and locked forms are a `<p>`, so they must not look pressable. */
+.joker[data-static] {
+  cursor: default;
+}
+
+.joker[data-played] {
+  border-color: var(--vnext-joker);
+  background-color: color-mix(in srgb, var(--vnext-joker) 12%, var(--vnext-surface-sunken));
+}
+
+@media (any-hover: hover) {
+  .joker:not([data-static]):hover {
+    background-color: var(--vnext-surface-interactive);
+    border-color: var(--vnext-hairline-strong);
+  }
+}
+
+.jokerMark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text-muted);
+}
+
+.joker[data-played] .jokerMark {
+  background-color: var(--vnext-joker);
+  color: var(--vnext-canvas-deep);
+}
+
+.jokerGlyph {
+  width: 18px;
+  height: 18px;
+}
+
+.jokerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* ---- confirm ----------------------------------------------------------- */
+
+.confirm {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .confirm:hover {
+    background-color: var(--vnext-accent-strong);
+  }
+}
+
+.confirmState {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the deadline chip, in the shell's masthead ------------------------- */
+
+.deadline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+  white-space: nowrap;
+}
+
+.deadline[data-urgency='urgent'] {
+  border-color: var(--vnext-live);
+  color: var(--vnext-live);
+}
+
+.deadline[data-urgency='soon'] {
+  border-color: var(--vnext-warn);
+}
+
+.deadline[data-kind='unavailable'] {
+  border-color: var(--vnext-warn);
+}
+
+/* ---- page notice ------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+}
+
+.notice[data-tone='error'] {
+  border-color: var(--vnext-live);
+}
+
+.notice[data-tone='warn'] {
+  border-color: var(--vnext-warn);
+}
+
+/* ---- the working column ------------------------------------------------ */
+
+.work {
+  container-type: inline-size;
+  container-name: vnext-predictor-work;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-width: 0;
+}
+
+.empty {
+  padding: var(--vnext-space-5);
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- days -------------------------------------------------------------
+ * The matchweek split into the days it is played on. This is the structure that
+ * stops ten rows reading as a wall of identical cards, and it costs the reader
+ * nothing to learn because the football already has it. */
+
+.days {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.dayHeading {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  padding-block-end: var(--vnext-space-2);
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+/* How many matches that day, as a count rather than a sentence — the same
+   information-snacking idea as the form run. */
+.dayCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 5px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
+
+.fixtures {
+  display: grid;
+  gap: var(--vnext-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- one fixture ------------------------------------------------------- */
+
+.fixture {
+  container-type: inline-size;
+  container-name: vnext-predictor-fixture;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface-raised);
+  box-shadow: var(--vnext-shadow-sm);
+  min-width: 0;
+  overflow: hidden;
+  transition: border-color var(--vnext-duration-base) var(--vnext-ease-standard);
+}
+
+/* THE SPINE: the two clubs' colours entering from either end of the top edge.
+ * Atmosphere, and the only thing on this row painted in a club's colour. */
+.fixture::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  height: 2px;
+  background-image: linear-gradient(
+    to right,
+    var(--vnext-fixture-home, transparent) 0%,
+    transparent 45%,
+    transparent 55%,
+    var(--vnext-fixture-away, transparent) 100%
+  );
+}
+
+/* State on the row itself, always alongside the word in `PredictionState`. */
+.fixture[data-state='empty'] {
+  border-color: var(--vnext-hairline-strong);
+}
+
+.fixture[data-state='partial'] {
+  border-color: var(--vnext-warn);
+}
+
+.fixture[data-state='entered'] {
+  border-color: color-mix(in srgb, var(--vnext-accent) 45%, var(--vnext-hairline));
+}
+
+.fixture[data-verdict='exact'] {
+  border-color: var(--vnext-hit);
+}
+
+/* THE NEXT DECISION, AND THE ONLY ROW THAT GETS MORE THAN THE ROW BESIDE IT.
+ * A lifted surface, a slightly stronger edge and a real depth step — enough to
+ * find at a glance in a list of ten, and deliberately far short of a hero. The
+ * emphasis is a state, so it moves down the list as the card fills, which is the
+ * feedback loop doing its job rather than a decoration sitting still. */
+.fixture[data-next] {
+  background-color: var(--vnext-surface-interactive);
+  border-color: var(--vnext-accent);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+.nextTag {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-end: var(--vnext-space-2);
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+}
+
+.fixtureHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.kickoff {
+  color: var(--vnext-text-secondary);
+}
+
+/* THE ROW'S TWO COMPOSITIONS, over one markup.
+ *
+ * NARROW is the default and it is the mobile-first one: each club takes its own
+ * grid row with its score stepper at the inline end, so the controls sit under
+ * the thumb and a long club name has the full width to wrap into. `.entry` is
+ * `display: contents` here, which lets its three children be placed
+ * individually — that is what puts each club's box on that club's own row. */
+.fixtureBody {
+  display: grid;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'home homeScore'
+    'away awayScore';
+  min-width: 0;
+}
+
+.entry[data-mode='edit'] {
+  display: contents;
+}
+
+/* The read-only scoreline is one block rather than three loose items, so it
+   spans both club rows in the narrow grid. */
+.entry[data-mode='standing'] {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-4);
+}
+
+.club[data-side='home'] {
+  grid-area: home;
+}
+
+.club[data-side='away'] {
+  grid-area: away;
+}
+
+.scoreBox[data-side='home'] {
+  grid-area: homeScore;
+}
+
+.scoreBox[data-side='away'] {
+  grid-area: awayScore;
+}
+
+/* Meaningless in the stacked composition — the two boxes are not adjacent — and
+   restored in the scoreboard one, where it separates them. */
+.versus {
+  display: none;
+  color: var(--vnext-text-muted);
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.clubText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.clubMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+/* On the row at every width. Five glyphs and an ordinal are the cheapest football
+   information there is, and the premium version of this page is the one where a
+   lot of football coexists because the hierarchy carries it — not the sparse one. */
+.inlineForm {
+  display: inline-flex;
+}
+
+/* ---- the crowd, in one line -------------------------------------------
+ * `71% home · 18% draw · 11% away` over a hairline split bar. The whole answer to
+ * "which way is everybody going" without opening anything; the popular scorelines
+ * stay behind the disclosure.
+ *
+ * THE TWO ENDS ARE THE TWO CLUBS' COLOURS, not a green-to-red risk ramp. A crowd
+ * split is neither good nor bad, and colouring it as though it were is the single
+ * fastest way to make a prediction game look like a sportsbook. */
+
+.snack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.snackBar {
+  display: flex;
+  gap: 2px;
+  height: 4px;
+  border-radius: var(--vnext-radius-pill);
+  overflow: hidden;
+}
+
+.snackHome,
+.snackDraw,
+.snackAway {
+  min-width: 2px;
+  border-radius: var(--vnext-radius-pill);
+}
+
+.snackHome {
+  background-color: var(--vnext-fixture-home, var(--vnext-surface-interactive));
+}
+
+.snackDraw {
+  background-color: var(--vnext-text-muted);
+}
+
+.snackAway {
+  background-color: var(--vnext-fixture-away, var(--vnext-surface-interactive));
+}
+
+.snackText {
+  display: flex;
+  gap: var(--vnext-space-3);
+  flex-wrap: wrap;
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+}
+
+/* ---- score entry ------------------------------------------------------- */
+
+.scoreBox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-1);
+  flex: 0 0 auto;
+  padding: 2px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  transition: border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+/* An unfilled box asks to be acted on; a filled one calms down. The same idea
+   the legacy score input shipped, in this lane's own colours. */
+.scoreBox:not([data-filled]) {
+  border-color: var(--vnext-accent);
+}
+
+.step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The 44px promise the tokens make, on the control a thumb hits ten times a
+     matchweek. */
+  width: var(--vnext-tap-target);
+  height: var(--vnext-tap-target);
+  border: 0;
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-lead);
+  cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .step:enabled:hover {
+    background-color: var(--vnext-surface-interactive);
+  }
+}
+
+/* The one disabled control in this lane, and it is disabled because an empty box
+   has nothing to decrease and zero cannot go lower. It keeps its full 44px so the
+   box does not resize as a score is entered. */
+.step:disabled {
+  color: var(--vnext-text-muted);
+  cursor: default;
+  opacity: 0.45;
+}
+
+.scoreInput {
+  width: 3ch;
+  min-width: 44px;
+  height: var(--vnext-tap-target);
+  padding: 0;
+  border: 0;
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-size: var(--vnext-size-headline);
+  text-align: center;
+  /* The keyboard is asked for by `inputMode`; this removes the platform's own
+     number chrome for the text input the component actually uses. */
+  appearance: none;
+}
+
+.scoreInput::placeholder {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- a scoreline that can no longer be changed ------------------------- */
+
+.standing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.standingScore {
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.standing[data-role='result'] .standingScore {
+  color: var(--vnext-text);
+}
+
+.standing[data-role='prediction'] .standingScore {
+  color: var(--vnext-text-secondary);
+}
+
+.verdict {
+  padding: 1px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-micro);
+  white-space: nowrap;
+}
+
+.verdict[data-verdict='exact'] {
+  border-color: var(--vnext-hit);
+  color: var(--vnext-hit);
+}
+
+.verdict[data-verdict='result'] {
+  border-color: var(--vnext-accent);
+  color: var(--vnext-accent);
+}
+
+.verdict[data-verdict='missed'] {
+  border-color: var(--vnext-miss);
+  color: var(--vnext-miss);
+}
+
+/* ---- prediction state -------------------------------------------------- */
+
+.predictionState {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  padding: 3px var(--vnext-space-2) 3px 3px;
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface-sunken);
+  white-space: nowrap;
+}
+
+.predictionState[data-mark='partial'],
+.predictionState[data-mark='alert'] {
+  border-color: var(--vnext-warn);
+  color: var(--vnext-warn);
+}
+
+.predictionState[data-mark='entered'] {
+  border-color: var(--vnext-accent);
+  color: var(--vnext-accent);
+}
+
+.predictionState[data-mark='settled'] {
+  border-color: var(--vnext-hit);
+  color: var(--vnext-hit);
+}
+
+.stateGlyph {
+  width: 14px;
+  height: 14px;
+  margin-inline-start: 3px;
+}
+
+/* THE SHAPE HALF OF THE STATE, drawn rather than fetched so it inherits the
+ * pill's own colour and size. Three genuinely different shapes: a dashed ring
+ * for nothing said, a half-filled ring for half said, a solid disc for settled.
+ * Take the colour away and the three are still distinguishable. */
+.stateRing {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin-inline-start: 3px;
+  border-radius: var(--vnext-radius-pill);
+  border: 2px solid currentColor;
+}
+
+.stateRing[data-mark='empty'] {
+  border-style: dashed;
+  border-color: var(--vnext-text-muted);
+}
+
+.stateRing[data-mark='partial'] {
+  background-image: linear-gradient(to right, currentColor 50%, transparent 50%);
+}
+
+.stateRing[data-mark='settled'] {
+  background-color: currentColor;
+}
+
+.stateRing[data-mark='busy'] {
+  border-style: dotted;
+  border-color: var(--vnext-text-secondary);
+}
+
+.stateRing[data-mark='alert'] {
+  border-radius: 2px;
+  transform: rotate(45deg);
+}
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-1);
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-2);
+  border: 0;
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.retryGlyph {
+  width: 12px;
+  height: 12px;
+}
+
+/* ---- the row's footer -------------------------------------------------- */
+
+.fixtureFoot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+.textAction,
+.disclosure {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-1);
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-2);
+  border: 0;
+  background-color: transparent;
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-caption);
+  cursor: pointer;
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .textAction:hover,
+  .disclosure:hover {
+    color: var(--vnext-text);
+  }
+}
+
+.textAction {
+  text-decoration: underline;
+}
+
+.disclosureGlyph {
+  width: 14px;
+  height: 14px;
+  transition: transform var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.disclosureGlyph[data-open] {
+  transform: rotate(180deg);
+}
+
+/* ---- the evidence panel ------------------------------------------------ */
+
+.evidence {
+  /* Height is animated by the disclosure preset, so the panel must clip while it
+     travels. Under reduced motion the preset is instant and this costs nothing. */
+  overflow: hidden;
+}
+
+.evidenceBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding-block-start: var(--vnext-space-3);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.evidenceClubs {
+  display: grid;
+  gap: var(--vnext-space-3);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.evidenceClub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  align-items: flex-start;
+  padding: var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  min-width: 0;
+}
+
+/* ---- the settled outcome ---------------------------------------------- */
+
+.outcome {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-4);
+}
+
+.outcomeTotal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.outcomePoints {
+  color: var(--vnext-hit);
+}
+
+.outcomeSplit {
+  display: grid;
+  gap: var(--vnext-space-2);
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  margin: 0;
+}
+
+.outcomeCount {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+}
+
+.outcomeCount > dd {
+  margin: 0;
+}
+
+.outcomeCount[data-tone='hit'] .outcomeCountValue {
+  color: var(--vnext-hit);
+}
+
+.outcomeCount[data-tone='accent'] .outcomeCountValue {
+  color: var(--vnext-accent);
+}
+
+.outcomeCount[data-tone='miss'] .outcomeCountValue {
+  color: var(--vnext-miss);
+}
+
+.outcomeCount[data-tone='muted'] .outcomeCountValue {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- focus ------------------------------------------------------------
+ * One ring, on everything focusable, in the lane's own focus colour. It is an
+ * outline with an offset rather than a border change, so nothing reflows when
+ * focus lands and the ring is visible against every surface in the ramp. */
+
+.step:focus-visible,
+.scoreInput:focus-visible,
+.retry:focus-visible,
+.textAction:focus-visible,
+.disclosure:focus-visible,
+.joker:focus-visible,
+.jump:focus-visible,
+.confirm:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ============================================================================
+ * ONE FIXTURE ROW, WIDE ENOUGH TO BE A SCOREBOARD.
+ *
+ * Measured against the ROW, not the column and not the page — so this is right
+ * whether the row is alone in a 632px column or one of two across a 1480px one.
+ * ========================================================================== */
+
+@container vnext-predictor-fixture (min-width: 560px) {
+  .fixtureBody {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: 'home score away';
+  }
+
+  /* Back to one unit in the middle, which is where a scoreline belongs. The
+     `grid-area` declarations on the boxes become inert once they are flex items
+     rather than grid items, so nothing has to be unset. */
+  .entry[data-mode='edit'] {
+    display: flex;
+    align-items: center;
+    gap: var(--vnext-space-2);
+    grid-area: score;
+  }
+
+  .entry[data-mode='standing'] {
+    grid-area: score;
+    grid-row: auto;
+    grid-column: auto;
+  }
+
+  .versus {
+    display: inline-flex;
+  }
+
+  /* The away club mirrors: crest outboard, text aligned to the end, so the two
+     clubs read outwards from the scoreline exactly as a scoreboard does. */
+  .club[data-side='away'] {
+    flex-direction: row-reverse;
+    justify-self: end;
+    text-align: end;
+  }
+
+  .club[data-side='away'] .clubText {
+    align-items: flex-end;
+  }
+
+  .club[data-side='away'] .clubMeta {
+    flex-direction: row-reverse;
+  }
+
+  .evidenceClubs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============================================================================
+ * THE WORKING COLUMN, WIDE ENOUGH FOR TWO FIXTURES ACROSS.
+ *
+ * At 1920 the column is about 1480px. One fixture per row there would be a
+ * scoreboard with 500px of nothing in the middle and five rows visible; two
+ * across is 730px each — still a full scoreboard row, per the row's own query —
+ * and twice as much of the matchweek in one screen, which on this page is the
+ * whole point. Fewer scrolls is a faster card.
+ *
+ * DOM ORDER IS READING ORDER. The grid flows row-wise, so 1 and 2 are the top
+ * pair and focus travels 1, 2, 3, 4 exactly as the eye does.
+ * ========================================================================== */
+
+@container vnext-predictor-work (min-width: 1180px) {
+  .fixtures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--vnext-space-3) var(--vnext-space-4);
+  }
+
+  /* The outcome summary is a statement about the whole matchweek, so it keeps
+     the full width rather than becoming a third fixture-sized card. */
+  .outcome {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ============================================================================
+ * THE PAGE: THE BRIEF BESIDE THE WORK.
+ *
+ * Below this the brief is a band above the list and the deadline also rides in
+ * the shell's sticky masthead, so it stays visible while scrolling without the
+ * page spending viewport on a second sticky band of its own.
+ *
+ * At and above it the brief becomes a sticky rail. It earns the column: the
+ * deadline, the progress, the Joker and the confirm action are all things a
+ * player is asking about WHILE they type, and above the list they would scroll
+ * away at exactly the moment they were being used.
+ * ========================================================================== */
+
+@container vnext-page (min-width: 1000px) {
+  .page {
+    grid-template-columns: minmax(0, 1fr) var(--vnext-personal-rail);
+    gap: var(--vnext-space-5);
+    align-items: start;
+  }
+
+  /* The notice is about the whole page, so it spans both tracks and stays above
+     everything rather than becoming a rail item. */
+  .notice {
+    grid-column: 1 / -1;
+  }
+
+  /* Source order is brief-then-work, because on a phone the brief is the
+     orientation you read first. On a desktop the work is the left-hand column
+     and the brief is the rail, which is a placement change and not a reorder:
+     the DOM is untouched and so is the focus order. */
+  .brief {
+    grid-column: 2;
+    grid-row: 2;
+    position: sticky;
+    /* Home's own value for its sticky zone, so the two pages behave alike. */
+    top: var(--vnext-space-8);
+    /* Bounded only where the host declares a definite frame height — in an
+       ordinary page `--vnext-frame-block` is `none`, `calc()` is then invalid at
+       computed-value time and no bound applies at all. */
+    max-height: calc(var(--vnext-frame-block) - var(--vnext-space-8) * 2);
+    overflow-y: auto;
+  }
+
+  .work {
+    grid-column: 1;
+    grid-row: 2;
+  }
+}

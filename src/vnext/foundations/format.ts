@@ -35,6 +35,14 @@ const dayKeyFormatter = new Intl.DateTimeFormat('en-CA', {
 
 const numberFormatter = new Intl.NumberFormat(WORKSHOP_LOCALE)
 
+/** "Sat 21 August" — the heading over a day's fixtures. */
+const dayHeadingFormatter = new Intl.DateTimeFormat(WORKSHOP_LOCALE, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'long',
+  timeZone: WORKSHOP_TIME_ZONE,
+})
+
 /** "17:30" */
 export function formatTime(iso: string): string {
   return timeFormatter.format(new Date(iso))
@@ -82,6 +90,28 @@ export function formatCountdown(target: string, now: string): string | null {
 
   const days = Math.floor(hours / 24)
   return days === 1 ? '1 day' : `${days} days`
+}
+
+/**
+ * "2027-08-21" — a stable key for the calendar day an instant falls on.
+ *
+ * FOR GROUPING, AND FOR NOTHING ELSE. Splitting a matchweek's fixtures into the
+ * days they are played on is layout: it is the football information architecture
+ * a fixture list has always had, and it is what stops a card of ten reading as
+ * ten identical rows. It decides no lock, no state and no permission.
+ *
+ * It uses the SAME pinned zone as `formatTime` and `formatKickoffLabel`, so a day
+ * heading and the kickoff times under it can never disagree about which day a
+ * 22:45 kickoff belongs to. The zone is a workshop decision and the product-wide
+ * time-zone policy is still open, which is recorded in the workshop note.
+ */
+export function formatDayKey(iso: string): string {
+  return dayKeyFormatter.format(new Date(iso))
+}
+
+/** "Sat 21 August" — the heading a day's fixtures sit under. */
+export function formatDayHeading(iso: string): string {
+  return dayHeadingFormatter.format(new Date(iso))
 }
 
 /** How many calendar days apart two instants are, in the workshop's zone. */
