@@ -61,7 +61,13 @@ def _string_literals(path: Path) -> list[str]:
 
 def violations() -> list[str]:
     found: list[str] = []
-    for path in sorted(ROOT.glob("*.py")):
+    # Recursive. This used to glob `*.py`, which covered every file in the
+    # package for as long as the package was flat — and stopped covering it the
+    # moment one subdirectory appeared. A guard whose reach depends on nobody
+    # ever adding a subpackage is a guard with an expiry date nobody wrote
+    # down, and the failure is silent: code in `ai/anything/` would simply not
+    # be read.
+    for path in sorted(ROOT.rglob("*.py")):
         if path.name in EXCLUDED or path.name.startswith("test_"):
             continue
         for literal in _string_literals(path):
@@ -73,11 +79,11 @@ def violations() -> list[str]:
                     continue
                 if "." not in target:
                     found.append(
-                        f"{path.name}: `{verb} {target}` names no schema — "
+                        f"{path.relative_to(ROOT)}: `{verb} {target}` names no schema — "
                         f"say `{ALLOWED_SCHEMA}.{target}` so the target cannot "
                         f"depend on a search_path")
                 elif target.split(".", 1)[0].lower() != ALLOWED_SCHEMA:
-                    found.append(f"{path.name}: `{verb} {target}` writes "
+                    found.append(f"{path.relative_to(ROOT)}: `{verb} {target}` writes "
                                  f"outside schema {ALLOWED_SCHEMA}")
     return found
 
