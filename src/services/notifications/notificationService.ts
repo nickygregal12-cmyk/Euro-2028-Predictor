@@ -14,6 +14,14 @@
  * **Ordinary rendering never depends on this.** No page, route, Storybook story
  * or vNext component may import it. Notification delivery being unavailable is
  * not a reason a player cannot see their predictions.
+ *
+ * **Scheduling, retry and the audit trail are NOT this module's job.**
+ * `public.reminder_deliveries` (contracts 163 and 172) already owns when a
+ * reminder is due, claiming it, counting attempts, abandoning it and
+ * reclaiming stalled rows. This boundary is the provider half that ledger has
+ * always been missing — so a retry loop, an attempt counter or a delivery
+ * table added here would be a second authority for something already settled.
+ * `docs/ops/notification-delivery.md` has the seam.
  */
 
 import {
