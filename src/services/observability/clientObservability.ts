@@ -148,10 +148,66 @@ function sanitiseText(value: string, maximumLength: number): string {
     .slice(0, maximumLength)
 }
 
+/** A UUID in its own path segment — every player, league and fixture id here. */
+const UUID_SEGMENT = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/** A bare numeric id. Two digits or more, so `/v1` and `/v2` survive. */
+const NUMERIC_SEGMENT = /^\d{2,}$/
+/** A long hex digest: a content hash, a token, a raw key. */
+const HEX_SEGMENT = /^[0-9a-f]{16,}$/i
+
+/**
+ * Whether a path segment looks like an opaque identifier rather than a name.
+ *
+ * The mixed-alphanumeric rule needs both a digit and a letter, so a readable
+ * route or RPC name survives — `admin_ai_dashboard` is eighteen characters and
+ * carries no digit, and losing it would make a Supabase failure much harder to
+ * read for no privacy gain.
+ */
+function isIdentifierSegment(segment: string): boolean {
+  if (UUID_SEGMENT.test(segment) || NUMERIC_SEGMENT.test(segment) || HEX_SEGMENT.test(segment)) {
+    return true
+  }
+  return segment.length >= 16 && /\d/.test(segment) && /[A-Za-z]/.test(segment)
+}
+
+function redactIdentifierSegments(pathname: string): string {
+  return pathname
+    .split('/')
+    .map((segment) => (isIdentifierSegment(segment) ? '[id]' : segment))
+    .join('/')
+}
+
+/**
+ * A URL reduced to something safe to send to a third party.
+ *
+ * IT USED TO RETURN `origin + pathname` VERBATIM, and the pathname is where this
+ * application keeps its secrets. `/join/<invite-code>` is the whole invite:
+ * contract 152 hardened the generator precisely because possession of a code is
+ * what gets someone into a private league. `/league/<id>`, `/h2h/<rivalId>` and
+ * `/tournament/profile/<playerId>` are identifiers for real people and groups.
+ * Query strings, hashes, emails, JWTs and database credentials were already
+ * stripped, so the path was the one place a live value still travelled — and it
+ * travelled from any error message or stack line that happened to quote a URL.
+ *
+ * AN INVITE CODE CANNOT BE RECOGNISED STRUCTURALLY, which decides the approach.
+ * It is six or more upper-case alphanumerics, so it is indistinguishable from an
+ * ordinary path word like `SCORING`; no heuristic can separate them. So known
+ * application routes are replaced wholesale by the category `routeCategory`
+ * already computes for telemetry — `/join/ABC123` becomes `/[invite]` — which
+ * cannot carry a value because the category vocabulary is a fixed closed set.
+ *
+ * Anything `routeCategory` does not recognise is not one of our routes: a
+ * Supabase endpoint, a CDN asset, a third-party script. Those keep their shape
+ * with identifier-looking segments redacted, because a readable
+ * `/rest/v1/rpc/<name>` is worth a great deal when reading a remote error and
+ * gives nothing away.
+ */
 function sanitiseUrl(value: string): string {
   try {
     const url = new URL(value)
-    return `${url.origin}${url.pathname}`
+    const category = routeCategory(url.pathname)
+    const path = category === 'unknown' ? redactIdentifierSegments(url.pathname) : `/[${category}]`
+    return `${url.origin}${path}`
   } catch {
     return '[redacted-url]'
   }
