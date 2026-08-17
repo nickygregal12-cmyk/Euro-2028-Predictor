@@ -155,10 +155,38 @@ Nothing here is a hosted action, and none of it is done.
    emits events. Never in a committed file, never with a `VITE_` prefix.
 3. Set `NOTIFICATIONS_DELIVERY=enabled` for that runtime **only**. Leave it
    unset everywhere else — previews and CI included.
-4. Wire emission at the points that own each fact. This is the deliberately
-   unbuilt half: no caller emits events yet, because the emitting sites are
-   settlement, lock and progression paths whose authority is not this layer's
-   to assume.
+4. Deploy `supabase/functions/notification-dispatch` and set its secrets. This
+   is the send loop: it claims due reminders, maps them, delivers them and
+   records the result. **It is written and tested but has never been
+   deployed.** Its secrets are `notification_dispatch` (the caller key —
+   underscored, because Supabase rejects a hyphen in a secret name),
+   `NOVU_API_KEY`, `NOTIFICATIONS_DELIVERY` and optionally
+   `NOVU_API_ORIGIN` / `NOTIFICATIONS_ENVIRONMENT`.
+5. Schedule it, the same way contract 172 schedules the reminder scheduler.
+
+### What the dispatch loop will and will not send
+
+Scope is **deadline reminders only**, because that is what the ledger actually
+schedules. `reminder_kind` `deadline` becomes `prediction.window_closing` and
+`final_call` becomes `prediction.entries_outstanding`, both for action type
+`matchweek_predictions_due`.
+
+`lms_pick_due`, `cup_penalty_number_due`, `matchweek_settled`,
+`game_consequence` and `league_invitation` all have plausible-looking homes in
+the taxonomy and **none is wired**. Each needs its own evidence about what the
+notification should say, and a plausible mapping is still a guess about what to
+tell a player. They are recorded in the ledger as
+`unsupported-action-type:<type>` rather than skipped silently.
+
+Nothing is invented. Where the action item carries no usable `matchweek`, or a
+final call has no outstanding count to state, the row is refused with a reason
+rather than sent with a guess — a reminder naming the wrong matchweek is worse
+than one that did not go out, because the second gets retried and the first
+gets believed.
+
+Three independent switches must all be open before anything sends: the caller
+key, the ledger's own `dry_run` on the row, and `NOTIFICATIONS_DELIVERY` on the
+deployment.
 
 Persisted per-player notification preferences would need schema. That is **not**
 included here and must not be added casually: inspect the existing profile and
