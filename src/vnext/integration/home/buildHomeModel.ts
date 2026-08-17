@@ -433,9 +433,12 @@ function initialsOf(name: string): string {
     .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ''))
     .filter((word) => word.length > 0)
 
-  if (words.length === 0) return '?'
-  if (words.length === 1) return words[0].slice(0, 2).toUpperCase()
-  return `${words[0][0]}${words[words.length - 1][0]}`.toUpperCase()
+  const [first] = words
+  if (first === undefined) return '?'
+  if (words.length === 1) return first.slice(0, 2).toUpperCase()
+  const last = words[words.length - 1]
+  if (last === undefined) return '?'
+  return `${first[0]}${last[0]}`.toUpperCase()
 }
 
 /* ------------------------------------------------------------------ *
@@ -723,6 +726,7 @@ function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Riva
 
   const movement = movementRows(league.movement)
   const you = rows[index]
+  if (you === undefined) return []
   const picked: { row: SeasonLeagueStandingsRow; relation: Rival['relation'] }[] = []
 
   const above = rows[index - 1]
@@ -827,6 +831,8 @@ export function buildHomeModel(source: HomeSource): HomeModel {
       entry.model !== null,
     )
 
+  const leadLeague = leagues[0]
+
   return {
     generatedAt: source.generatedAt,
     user: userOf(source),
@@ -839,7 +845,7 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     privateLeagues: leagues.map((entry) => entry.model),
     // Rivals come from the league Home leads with. Every league's adjacent rows
     // would be a longer list saying the same thing about a smaller race.
-    rivals: leagues.length > 0 ? rivalsOf(leagues[0].source, leagues[0].model) : [],
+    rivals: leadLeague ? rivalsOf(leadLeague.source, leadLeague.model) : [],
     activity: [],
   }
 }

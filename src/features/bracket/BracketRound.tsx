@@ -123,7 +123,26 @@ export function BracketRound() {
     )
   }
 
-  const activeRound = pipeline.rounds.find((r) => r.key === active) ?? pipeline.rounds[0]
+  const firstRound = pipeline.rounds.find((r) => r.key === active) ?? pipeline.rounds[0]
+
+  if (!firstRound) {
+    return (
+      <div className={s.page}>
+        {header}
+        <EmptyState
+          icon={<TrophyIcon size={22} />}
+          title="Finish the group stage first"
+          description="Your bracket is drawn from your group predictions. Predict every group match and settle any ties, and the Round of 16 appears here."
+          action={
+            <Button onClick={() => navigate('/predict/groups/A')}>
+              Continue the groups
+            </Button>
+          }
+        />
+      </div>
+    )
+  }
+  const activeRound = firstRound
 
   function commit(next: Record<string, string>, pickedRef: string) {
     preds.setBracketProgression(progressionMap(next))
@@ -134,7 +153,8 @@ export function BracketRound() {
       setAutoTarget({ kind: 'tie', ref: nextTie })
     } else {
       const idx = ROUND_ORDER.indexOf(active)
-      if (idx < ROUND_ORDER.length - 1) setAutoTarget({ kind: 'round', key: ROUND_ORDER[idx + 1] })
+      const nextRound = idx < ROUND_ORDER.length - 1 ? ROUND_ORDER[idx + 1] : undefined
+      if (nextRound !== undefined) setAutoTarget({ kind: 'round', key: nextRound })
     }
   }
 

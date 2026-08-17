@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Every effective public relation must have a reviewed Stage C disposition.
@@ -54,7 +55,7 @@ function stripNonCode(source: string): string {
           index += 2
           continue
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -65,7 +66,7 @@ function stripNonCode(source: string): string {
       index += 1
       while (index < source.length) {
         if (source[index] === '\\' && index + 1 < source.length) {
-          output += ` ${blankCharacter(source[index + 1])}`
+          output += ` ${blankCharacter(at(source, index + 1))}`
           index += 2
           continue
         }
@@ -79,7 +80,7 @@ function stripNonCode(source: string): string {
           index += 1
           break
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -91,7 +92,7 @@ function stripNonCode(source: string): string {
         output += ' '.repeat(dollarTag.length)
         index += dollarTag.length
         while (index < source.length && !source.startsWith(dollarTag, index)) {
-          output += blankCharacter(source[index])
+          output += blankCharacter(at(source, index))
           index += 1
         }
         if (source.startsWith(dollarTag, index)) {
@@ -121,8 +122,8 @@ function relationEvents(source: string): RelationEvent[] {
     events.push({
       action: 'create',
       index: match.index,
-      kind: match[1].toLowerCase() as RelationKind,
-      name: match[3].toLowerCase(),
+      kind: at(match, 1).toLowerCase() as RelationKind,
+      name: at(match, 3).toLowerCase(),
     })
   }
 
@@ -132,8 +133,8 @@ function relationEvents(source: string): RelationEvent[] {
     events.push({
       action: 'drop',
       index: match.index,
-      kind: /view/i.test(match[1]) ? 'view' : 'table',
-      name: match[3].toLowerCase(),
+      kind: /view/i.test(at(match, 1)) ? 'view' : 'table',
+      name: at(match, 3).toLowerCase(),
     })
   }
 

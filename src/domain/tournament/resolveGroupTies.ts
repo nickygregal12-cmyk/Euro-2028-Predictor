@@ -43,7 +43,12 @@ type Block = { teamIds: string[]; resolved: boolean }
 // ranks higher than b (each component is "bigger is better").
 function compareScores(a: number[], b: number[]): number {
   for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return a[i] - b[i]
+    const av = a[i]
+    const bv = b[i]
+    if (av === undefined || bv === undefined) {
+      throw new Error('compareScores: score vectors must be equal length')
+    }
+    if (av !== bv) return av - bv
   }
   return 0
 }
@@ -59,7 +64,10 @@ function bucketBy(
   const buckets: string[][] = []
   for (const id of sorted) {
     const last = buckets[buckets.length - 1]
-    if (last && compareScores(score(last[0]), score(id)) === 0) {
+    // Every bucket ever pushed below has at least one team, so `last[0]` is
+    // genuinely defined whenever `last` is — checked rather than asserted.
+    const lastFirst = last?.[0]
+    if (last && lastFirst !== undefined && compareScores(score(lastFirst), score(id)) === 0) {
       last.push(id)
     } else {
       buckets.push([id])

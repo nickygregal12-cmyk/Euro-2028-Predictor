@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { presentPeriodStandings } from '../../../src/features/season/periodStandingsModel'
 import type { SeasonPeriodRow } from '../../../src/services/supabase/seasonPeriodStandings'
+import { at } from '../../support/indexed'
 
 function row(overrides: Partial<SeasonPeriodRow> = {}): SeasonPeriodRow {
   return {
@@ -27,10 +28,10 @@ describe('presentPeriodStandings', () => {
       'mine',
     )
 
-    expect(view.tables[0].rows.map((r) => r.label)).toEqual(['You', 'Entrant'])
+    expect(view.tables[0]?.rows.map((r) => r.label)).toEqual(['You', 'Entrant'])
     // The entry id survives as the React key and in nothing else — not in the
     // label, and not in the sentence assistive technology reads out.
-    const other = view.tables[0].rows[1]
+    const other = at(at(view.tables, 0).rows, 1)
     expect(other.key).toBe('theirs')
     expect(other.label).not.toContain('theirs')
     expect(other.accessibleSummary).not.toContain('theirs')
@@ -51,8 +52,8 @@ describe('presentPeriodStandings', () => {
 
     // "You" still outranks the caller's own name: a player scanning for
     // themselves scans for that word, not for their display name.
-    expect(view.tables[0].rows.map((r) => r.label)).toEqual(['You', 'Alex'])
-    expect(view.tables[0].rows[1].accessibleSummary).toContain('Alex')
+    expect(view.tables[0]?.rows.map((r) => r.label)).toEqual(['You', 'Alex'])
+    expect(view.tables[0]?.rows[1]?.accessibleSummary).toContain('Alex')
   })
 
   it('marks nobody when the caller holds no entry', () => {
@@ -61,8 +62,8 @@ describe('presentPeriodStandings', () => {
       null,
     )
 
-    expect(view.tables[0].rows[0].isYou).toBe(false)
-    expect(view.tables[0].yourLine).toBeNull()
+    expect(view.tables[0]?.rows[0]?.isYou).toBe(false)
+    expect(view.tables[0]?.yourLine).toBeNull()
   })
 
   it('marks a shared rank as shared, without re-ranking', () => {
@@ -75,8 +76,8 @@ describe('presentPeriodStandings', () => {
       'a',
     )
 
-    expect(view.tables[0].rows.map((r) => r.rankLabel)).toEqual(['=1', '=1'])
-    expect(view.tables[0].yourLine).toContain('joint 1')
+    expect(view.tables[0]?.rows.map((r) => r.rankLabel)).toEqual(['=1', '=1'])
+    expect(view.tables[0]?.yourLine).toContain('joint 1')
   })
 
   it('shows the top of a long table and says how long it is', () => {
@@ -86,8 +87,8 @@ describe('presentPeriodStandings', () => {
 
     const view = presentPeriodStandings({ period: 'form', window: 5, rows }, null, 10)
 
-    expect(view.tables[0].rows).toHaveLength(10)
-    expect(view.tables[0].totalCount).toBe(25)
+    expect(view.tables[0]?.rows).toHaveLength(10)
+    expect(view.tables[0]?.totalCount).toBe(25)
   })
 
   it('pins the caller beneath the table when they fall outside the rows shown', () => {
@@ -97,8 +98,8 @@ describe('presentPeriodStandings', () => {
 
     const view = presentPeriodStandings({ period: 'form', window: 5, rows }, 'entry-20', 10)
 
-    expect(view.tables[0].pinnedYou?.rank).toBe(21)
-    expect(view.tables[0].yourLine).toContain('21 of 25')
+    expect(view.tables[0]?.pinnedYou?.rank).toBe(21)
+    expect(view.tables[0]?.yourLine).toContain('21 of 25')
   })
 
   it('does not pin a row the caller can already see', () => {
@@ -107,8 +108,8 @@ describe('presentPeriodStandings', () => {
       'mine',
     )
 
-    expect(view.tables[0].pinnedYou).toBeNull()
-    expect(view.tables[0].yourLine).toContain('1 of 1')
+    expect(view.tables[0]?.pinnedYou).toBeNull()
+    expect(view.tables[0]?.yourLine).toContain('1 of 1')
   })
 
   it('reads months newest first', () => {

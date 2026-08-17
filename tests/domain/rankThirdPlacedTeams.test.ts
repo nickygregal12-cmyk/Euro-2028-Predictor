@@ -6,6 +6,7 @@ import {
 import { resolveRoundOf16 } from '../../src/domain/tournament/resolveRoundOf16'
 import type { TieResolution } from '../../src/domain/tournament/tieResolutions'
 import type { GroupLetter } from '../../src/domain/tournament/roundOf16Allocation'
+import { at } from '../support/indexed'
 
 // Builds a third-placed team from just the fields the ranking cares about;
 // the rest are filled with consistent-enough placeholders.
@@ -109,8 +110,8 @@ describe('rankThirdPlacedTeams', () => {
     const result = rankThirdPlacedTeams(teams)
 
     expect(result.unresolvedGroups).toHaveLength(1)
-    expect([...result.unresolvedGroups[0].teamIds].sort()).toEqual(['b', 'c'])
-    expect(result.unresolvedGroups[0].positions).toEqual([2, 3])
+    expect([...at(result.unresolvedGroups, 0).teamIds].sort()).toEqual(['b', 'c'])
+    expect(result.unresolvedGroups[0]?.positions).toEqual([2, 3])
     // Both share the block's top position.
     const b = result.ranking.find((t) => t.teamId === 'b')!
     const c = result.ranking.find((t) => t.teamId === 'c')!
@@ -156,8 +157,8 @@ describe('rankThirdPlacedTeams', () => {
 
     expect(result.qualifiers).toBeNull()
     expect(result.unresolvedGroups).toHaveLength(1)
-    expect([...result.unresolvedGroups[0].teamIds].sort()).toEqual(['d', 'e'])
-    expect(result.unresolvedGroups[0].positions).toEqual([4, 5])
+    expect([...at(result.unresolvedGroups, 0).teamIds].sort()).toEqual(['d', 'e'])
+    expect(result.unresolvedGroups[0]?.positions).toEqual([4, 5])
   })
 })
 

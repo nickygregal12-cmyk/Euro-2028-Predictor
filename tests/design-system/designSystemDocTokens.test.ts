@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The design-system document's token table against `tokens.css`.
@@ -48,11 +49,16 @@ function theme(selector: string): Record<string, string> {
   const literal: Record<string, string> = {}
   const alias: Record<string, string> = {}
   for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+    // Both groups are mandatory in the pattern, so an absent one means the
+    // regex stopped matching what it claims to rather than a token to skip.
+    if (name === undefined || value === undefined) {
+      throw new Error(`tokens.css declaration in ${selector} did not parse`)
+    }
     const trimmed = value.trim()
     if (/^#[0-9A-Fa-f]{6}$/.test(trimmed)) literal[name] = trimmed.toUpperCase()
     else {
-      const reference = /^var\(--([a-z0-9-]+)\)$/.exec(trimmed)
-      if (reference) alias[name] = reference[1]
+      const reference = /^var\(--([a-z0-9-]+)\)$/.exec(trimmed)?.[1]
+      if (reference !== undefined) alias[name] = reference
     }
   }
 
@@ -62,7 +68,8 @@ function theme(selector: string): Record<string, string> {
     for (let hop = 0; hop < 8 && !literal[current]; hop += 1) {
       current = alias[current] ?? current
     }
-    if (literal[current]) values[name] = literal[current]
+    const resolved = literal[current]
+    if (resolved !== undefined) values[name] = resolved
   }
   return values
 }
@@ -83,9 +90,9 @@ const documentedTokens = [
     /\|\s*`--([a-z0-9-]+)`\s*\|[^|]*\|\s*`(#[0-9A-Fa-f]{6})`\s*\|\s*`(#[0-9A-Fa-f]{6})`\s*\|/g,
   ),
 ].map((match) => ({
-  name: match[1],
-  dark: match[2].toUpperCase(),
-  light: match[3].toUpperCase(),
+  name: at(match, 1),
+  dark: at(match, 2).toUpperCase(),
+  light: at(match, 3).toUpperCase(),
 }))
 
 describe('design-system token table', () => {

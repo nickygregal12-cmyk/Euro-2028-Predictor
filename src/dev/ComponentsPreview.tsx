@@ -191,7 +191,12 @@ const SAMPLE_SCORE_EVENTS: ScoreEvent[] = [
  * The patterned and dark-monogram entries match the reviewed overlay so the
  * gallery and the resolver do not drift into showing different things.
  */
-const CLUB: Record<string, ClubIdentityTokens> = {
+// `satisfies`, not `:` — every entry is still checked against
+// `ClubIdentityTokens`, but the object keeps its literal keys so `CLUB.ARS`
+// resolves directly instead of through a `Record` index signature. Nothing
+// here looks a club code up dynamically; every reference below is a literal
+// `CLUB.XXX` for a code written right above.
+const CLUB = {
   ARS: { monogram: 'ARS', primary: '#EF0107' },
   NEW: { monogram: 'NEW', primary: '#241F20', secondary: '#FFFFFF', pattern: 'stripes' },
   CEL: { monogram: 'CEL', primary: '#018749', secondary: '#FFFFFF', pattern: 'hoops' },
@@ -222,7 +227,7 @@ const CLUB: Record<string, ClubIdentityTokens> = {
   // Degenerate: a pattern with no secondary colour. Must fall back to solid
   // rather than render a gradient against `undefined`.
   BAD: { monogram: 'BAD', primary: '#7A5FB0', pattern: 'stripes' },
-}
+} satisfies Record<string, ClubIdentityTokens>
 
 const PREMIER_LEAGUE_ZONES: LeagueZone[] = [
   { from: 1, to: 1, kind: 'champion', label: 'Champions' },

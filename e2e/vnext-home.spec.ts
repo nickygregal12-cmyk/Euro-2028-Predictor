@@ -139,6 +139,7 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       for (let j = i + 1; j < boxes.length; j += 1) {
         const a = boxes[i]
         const b = boxes[j]
+        if (a === undefined || b === undefined) continue
         const verticalOverlap =
           Math.min(a.box.bottom, b.box.bottom) - Math.max(a.box.top, b.box.top)
         const horizontalOverlap =

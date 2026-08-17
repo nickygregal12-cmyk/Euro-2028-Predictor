@@ -43,7 +43,7 @@ export type ClubMatchCardProps = {
   onHomeScoreChange?: ((v: number | null) => void) | undefined
   onAwayScoreChange?: ((v: number | null) => void) | undefined
   // editable
-  saveStatus?: SaveStatus
+  saveStatus?: SaveStatus | undefined
   onRetrySave?: () => void
   // locked
   countdown?: string | undefined

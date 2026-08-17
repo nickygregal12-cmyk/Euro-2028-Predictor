@@ -314,6 +314,11 @@ if (js.length === 0) {
 const entry = js
   .map((file) => ({ file, kb: gzipKb(file) }))
   .sort((left, right) => right.kb - left.kb)[0]
+if (entry === undefined) {
+  // A build with no JavaScript is not a passing budget, it is a broken build.
+  console.error('No JavaScript chunk was emitted, so the entry budget cannot be checked.')
+  process.exit(1)
+}
 
 const totalJs = js.reduce((sum, file) => sum + gzipKb(file), 0)
 const totalCss = css.reduce((sum, file) => sum + gzipKb(file), 0)

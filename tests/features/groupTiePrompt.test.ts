@@ -78,7 +78,7 @@ describe('groupTiePrompt', () => {
       title: 'Group A needs your decision',
       resolved: false,
     })
-    expect(result.ties[0].teams.map((team) => team.id)).toEqual([
+    expect(result.ties[0]?.teams.map((team) => team.id)).toEqual([
       'a',
       'b',
       'c',
@@ -100,8 +100,8 @@ describe('groupTiePrompt', () => {
     )
 
     expect(result.pendingCount).toBe(0)
-    expect(result.ties[0].resolved).toBe(true)
-    expect(result.ties[0].teams.map((team) => team.id)).toEqual([
+    expect(result.ties[0]?.resolved).toBe(true)
+    expect(result.ties[0]?.teams.map((team) => team.id)).toEqual([
       'a',
       'b',
       'c',
@@ -126,8 +126,8 @@ describe('groupTiePrompt', () => {
     )
 
     expect(result.pendingCount).toBe(1)
-    expect(result.ties[0].resolved).toBe(false)
-    expect(result.ties[0].teams.map((team) => team.id).sort()).toEqual(['c', 'd'])
+    expect(result.ties[0]?.resolved).toBe(false)
+    expect(result.ties[0]?.teams.map((team) => team.id).sort()).toEqual(['c', 'd'])
   })
 
   it('shows a confirmed manual order in the predicted group table', () => {

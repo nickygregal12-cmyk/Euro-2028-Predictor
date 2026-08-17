@@ -39,7 +39,7 @@ describe('mapSeasonLeagueStandingsPage', () => {
     )
 
     expect(page.rows.map((entry) => entry.displayName)).toEqual(['Sam', 'Alex'])
-    expect(page.rows[1].tied).toBe(true)
+    expect(page.rows[1]?.tied).toBe(true)
     expect(page.totalCount).toBe(2)
   })
 
@@ -72,7 +72,7 @@ describe('mapSeasonLeagueStandingsPage', () => {
       payload({ rows: [row({ hasEntry: false, points: 0, matchweeksPlayed: 0 })] }),
     )
 
-    expect(page.rows[0].hasEntry).toBe(false)
+    expect(page.rows[0]?.hasEntry).toBe(false)
   })
 
   it('refuses a row with no matchweeks played rather than defaulting it to zero', () => {

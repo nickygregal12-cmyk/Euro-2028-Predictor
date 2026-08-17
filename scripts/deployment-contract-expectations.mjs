@@ -69,6 +69,11 @@ export function deriveContractExpectations({ root = repoRoot } = {}) {
     )
   }
   const [, latestMigrationVersion, latestMigrationName] = latestMatch
+  if (latestMigrationVersion === undefined || latestMigrationName === undefined) {
+    throw new Error(
+      `Could not derive a version and name from the latest migration ${latest}.`,
+    )
+  }
 
   return {
     contractVersion: contract.contractVersion,

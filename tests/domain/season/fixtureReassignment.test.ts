@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../../support/indexed'
 import {
   resolveFixtureReassignment,
   type FixtureReassignmentInput,
@@ -113,7 +114,7 @@ describe('refusals fail closed', () => {
       ).kind,
     ).toBe('refused')
     expect(
-      resolveFixtureReassignment(input({ rounds: [...ROUNDS, { ...ROUNDS[0] }] })).kind,
+      resolveFixtureReassignment(input({ rounds: [...ROUNDS, { ...at(ROUNDS, 0) }] })).kind,
     ).toBe('refused')
   })
 })

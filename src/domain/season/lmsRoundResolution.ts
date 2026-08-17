@@ -137,8 +137,8 @@ export function concludeLmsRound(
 
   if (survivors.length > 1) return { kind: 'continues' }
 
-  if (survivors.length === 1) {
-    const survivor = survivors[0]
+  const [survivor] = survivors
+  if (survivors.length === 1 && survivor !== undefined) {
     return survivor.viaPostponement
       ? { kind: 'continues_postponement_cannot_win', soleSurvivorEntryId: survivor.entryId }
       : { kind: 'winner', entryId: survivor.entryId }

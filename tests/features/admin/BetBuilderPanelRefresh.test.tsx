@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BetBuilderPanel, chooseBetBuilderBookmaker } from '../../../src/features/admin/BetBuilderPanel'
 import { fetchBetBuilderBookmakers, fetchBetBuilderCandidates } from '../../../src/services/supabase/betBuilder'
+import { at } from '../../support/indexed'
 
 vi.mock('../../../src/services/supabase/betBuilder', () => ({
   fetchBetBuilderBookmakers: vi.fn(),
@@ -14,13 +15,13 @@ const staleBooks = [
 ]
 
 const freshBooks = [
-  { ...staleBooks[0], legs: 2 },
-  { ...staleBooks[1], legs: 38 },
+  { ...at(staleBooks, 0), legs: 2 },
+  { ...at(staleBooks, 1), legs: 38 },
   { code: 'MAX', name: 'MAX', kind: 'aggregate' as const, isRealPrice: false, exchangeCommission: null, legs: 999, lastDecidedAt: null },
 ]
 
 function candidates(bookmaker: string) {
-  const book = freshBooks.find((row) => row.code === bookmaker) ?? staleBooks[0]
+  const book = freshBooks.find((row) => row.code === bookmaker) ?? at(staleBooks, 0)
   return {
     bookmaker: {
       code: book.code, name: book.name, kind: book.kind,

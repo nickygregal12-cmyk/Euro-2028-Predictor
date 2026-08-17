@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The league invite-code surface, AFTER contract 152 mitigated it.
@@ -77,7 +78,7 @@ function generatorBody(): string {
   if (definitions.length === 0) {
     throw new Error('No gen_invite_code definition found in the migration chain.')
   }
-  return definitions[definitions.length - 1][1]
+  return at(at(definitions, definitions.length - 1), 1)
 }
 
 /**
@@ -98,7 +99,7 @@ function functionBody(name: string): string {
     ),
   ]
   if (matches.length === 0) throw new Error(`No definition found for ${name}.`)
-  return matches[matches.length - 1][0]
+  return at(matches, matches.length - 1)[0]
 }
 
 describe('invite-code generation', () => {
@@ -190,7 +191,7 @@ describe('invite-code probing costs the caller', () => {
   function rateLimitedActions(): Record<string, number> {
     const found: Record<string, number> = {}
     for (const match of allSql.matchAll(/enforce_rate_limit\s*\(\s*'([a-z_]+)'\s*,\s*(\d+)\s*\)/gi)) {
-      found[match[1]] = Number(match[2])
+      found[at(match, 1)] = Number(match[2])
     }
     return found
   }
@@ -233,8 +234,8 @@ describe('invite-code probing costs the caller', () => {
       /create\s+(?:or\s+replace\s+)?function\s+(?:public\.)?get_league_preview\s*\(\s*p_code\s+text\s*\)\s*returns\s+table\s*\(([^)]*)\)/gi
     const matches = [...allSql.matchAll(signature)]
     const columns = [
-      ...matches[matches.length - 1][1].matchAll(/([a-z_]+)\s+(?:uuid|text|int|boolean)/gi),
-    ].map((match) => match[1])
+      ...at(at(matches, matches.length - 1), 1).matchAll(/([a-z_]+)\s+(?:uuid|text|int|boolean)/gi),
+    ].map((match) => at(match, 1))
 
     // Was `['id', 'name', 'member_count', 'owner_name', 'is_member']`.
     // `member_count` and `owner_name` are what identified WHICH private group a
@@ -269,7 +270,7 @@ describe('a leaked code is recoverable', () => {
     // Otherwise rotation becomes a probe of its own: two different refusals
     // would tell a caller which league ids are real.
     const rotate = functionBody('rotate_league_invite_code')
-    const refusals = [...rotate.matchAll(/raise\s+exception\s+'([^']+)'/gi)].map((m) => m[1])
+    const refusals = [...rotate.matchAll(/raise\s+exception\s+'([^']+)'/gi)].map((m) => at(m, 1))
 
     expect(refusals).toContain('Only the league owner can change its invite code')
     expect(

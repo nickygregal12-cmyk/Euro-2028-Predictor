@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The Metabase analytics surface, checked without a database.
@@ -60,7 +61,7 @@ function migrationTables(): Set<string> {
 /** Every `schema.table` the analytics views read from. */
 function referencedTables(): string[] {
   const pattern = /\b(?:from|join)\s+((?:public|ai|predictor_internal)\.[a-z_][a-z0-9_]*)/gi
-  return [...new Set([...viewSql.matchAll(pattern)].map((m) => m[1].toLowerCase()))]
+  return [...new Set([...viewSql.matchAll(pattern)].map((m) => at(m, 1).toLowerCase()))]
 }
 
 describe('Metabase analytics views', () => {
@@ -81,7 +82,7 @@ describe('Metabase analytics views', () => {
     ]
     expect(created.length).toBeGreaterThan(0)
     for (const [, schema] of created) {
-      expect(schema.toLowerCase()).toBe('analytics')
+      expect((schema ?? '').toLowerCase()).toBe('analytics')
     }
   })
 
@@ -183,7 +184,7 @@ describe('Metabase deployment configuration', () => {
     const ports = [...compose.matchAll(/^\s*-\s*'([^']*:\d+:\d+)'/gm)].map((m) => m[1])
     expect(ports.length).toBeGreaterThan(0)
     for (const port of ports) {
-      expect(port.startsWith('127.0.0.1:')).toBe(true)
+      expect((port ?? '').startsWith('127.0.0.1:')).toBe(true)
     }
   })
 

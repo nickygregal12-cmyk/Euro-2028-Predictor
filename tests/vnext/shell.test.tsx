@@ -11,6 +11,7 @@ import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { defaultNavItems } from '../../src/vnext/components/navigation/VNextNav'
 import { homeScenarios } from '../../src/vnext/fixtures'
 import { fromRoot, reachableFrom } from '../app/importGraph'
+import { at } from '../support/indexed'
 
 /**
  * THE SHELL CONTRACT — the part every future vNext page inherits.
@@ -64,12 +65,12 @@ function expectLandmarkContract(expectedHeading: string) {
 
   const headings = screen.getAllByRole('heading', { level: 1 })
   expect(headings, 'the page owns exactly one h1').toHaveLength(1)
-  expect(headings[0].textContent).toBe(expectedHeading)
+  expect(headings[0]?.textContent).toBe(expectedHeading)
 
   // The wiring, not just the counts: a shell that generated an id and a header
   // that generated a different one would satisfy both assertions above and
   // still leave `<main>` labelled by nothing.
-  const labelledBy = mains[0].getAttribute('aria-labelledby')
+  const labelledBy = at(mains, 0).getAttribute('aria-labelledby')
   expect(labelledBy, 'main is labelled by the page heading').toBeTruthy()
   expect(document.getElementById(labelledBy as string)).toBe(headings[0])
 }
@@ -143,13 +144,13 @@ describe('global navigation', () => {
 
       const current = [...nav.querySelectorAll('[aria-current="page"]')]
       expect(current, 'exactly one current destination').toHaveLength(1)
-      expect(current[0].textContent).toContain('Fixtures')
+      expect(current[0]?.textContent).toContain('Fixtures')
     }
   })
 
   it('offers the four vNext destinations and no invented ones', () => {
     renderShell(<p>Placeholder</p>)
-    const nav = screen.getAllByRole('navigation')[0]
+    const nav = at(screen.getAllByRole('navigation'), 0)
     const labels = [...nav.querySelectorAll('button')].map((button) =>
       button.textContent?.trim(),
     )
@@ -264,7 +265,7 @@ describe('the shell accessibility floor', () => {
       </VNextRoot>,
     )
 
-    const nav = screen.getAllByRole('navigation')[0]
+    const nav = at(screen.getAllByRole('navigation'), 0)
     expect(
       [...nav.querySelectorAll('button')].map((button) => button.textContent?.trim()),
     ).toEqual(['Startseite', 'Spielbegegnungen', 'Ligatabellen', 'Saisonübersicht'])

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * `aria-label` only on elements allowed to carry a name.
@@ -47,7 +48,7 @@ const OPENING_TAG = /<(div|span)(\s[^>]*?)?>/gs
 
 function unroledLabels(source: string): string[] {
   return [...source.matchAll(OPENING_TAG)]
-    .map((match) => match[0])
+    .map((match) => at(match, 0))
     .filter((tag) => /\saria-label[=\s]/.test(tag) && !/\srole[=\s]/.test(tag))
     .map((tag) => tag.replace(/\s+/g, ' ').slice(0, 90))
 }

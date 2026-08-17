@@ -3,6 +3,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The shape of the Stage C1 audit-scope backfill, read out of the migration.
@@ -115,14 +116,14 @@ describe('Stage C1 audit scope backfill source', () => {
         ...normalise(migrationSource(file)).matchAll(
           /update public\.bonus_competition_audit\b[^;]*;/g,
         ),
-      ].map((match) => match[0]),
+      ].map((match) => at(match, 0)),
     )
 
     expect(updates).toHaveLength(1)
 
-    const assignments = updates[0].slice(
-      updates[0].indexOf(' set ') + ' set '.length,
-      updates[0].indexOf(' from '),
+    const assignments = at(updates, 0).slice(
+      at(updates, 0).indexOf(' set ') + ' set '.length,
+      at(updates, 0).indexOf(' from '),
     )
 
     expect(assignments).toBe('tournament_id = c.tournament_id')
@@ -143,7 +144,7 @@ describe('Stage C1 audit scope backfill source', () => {
     for (const file of migrationFiles) {
       const source = normalise(migrationSource(file))
       const suspensions = [...source.matchAll(/disable trigger ([a-z_"* ]+?);/g)].map(
-        (match) => match[1].trim(),
+        (match) => at(match, 1).trim(),
       )
 
       if (file === STAGE_C1) {

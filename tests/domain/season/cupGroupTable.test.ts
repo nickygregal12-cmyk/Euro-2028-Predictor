@@ -84,7 +84,7 @@ describe('the pinned tie-break sequence', () => {
       ],
       level,
     )
-    expect(result.ok && result.rows[0].entryId).toBe('b')
+    expect(result.ok && result.rows[0]?.entryId).toBe('b')
   })
 
   it('falls to exacts, then correct results, when window points are level', () => {
@@ -95,7 +95,7 @@ describe('the pinned tie-break sequence', () => {
       ],
       level,
     )
-    expect(byExacts.ok && byExacts.rows[0].entryId).toBe('b')
+    expect(byExacts.ok && byExacts.rows[0]?.entryId).toBe('b')
 
     const byResults = buildCupGroupTable(
       [
@@ -104,7 +104,7 @@ describe('the pinned tie-break sequence', () => {
       ],
       level,
     )
-    expect(byResults.ok && byResults.rows[0].entryId).toBe('a')
+    expect(byResults.ok && byResults.rows[0]?.entryId).toBe('a')
   })
 
   it('falls to lowest scoreline error before the draw number', () => {
@@ -112,7 +112,7 @@ describe('the pinned tie-break sequence', () => {
       [record('a', { scorelineError: 30 }), record('b', { scorelineError: 12 })],
       level,
     )
-    expect(result.ok && result.rows[0].entryId).toBe('b')
+    expect(result.ok && result.rows[0]?.entryId).toBe('b')
   })
 
   it('always terminates on the neutral draw number — ranking is total', () => {
@@ -182,7 +182,7 @@ describe('the split continues the competition', () => {
     expect(bottom.rows.map((row) => row.entryId)).toEqual(rows.slice(6).map((row) => row.entryId))
     // Points carry through — the split is not a reset.
     expect(top.rows.map((row) => row.tablePoints)).toEqual(rows.slice(0, 6).map((row) => row.tablePoints))
-    expect(bottom.rows[0].tablePoints).toBe(rows[6].tablePoints)
+    expect(bottom.rows[0]?.tablePoints).toBe(rows[6]?.tablePoints)
   })
 
   it('eliminates nobody — every entrant lands in exactly one half', () => {

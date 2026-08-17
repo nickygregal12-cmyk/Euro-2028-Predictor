@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { weeklyRoutePatterns, weeklyRoutes } from '../../src/app/shellRoutes'
+import { at } from '../support/indexed'
 
 /**
  * The routes `src/App.tsx` declares, read once for every guard that needs them.
@@ -22,7 +23,7 @@ const routeAuthorities = {
 type RouteAuthorityName = keyof typeof routeAuthorities
 
 function openingRouteTags(source: string): string[] {
-  return [...source.matchAll(/<Route\b[^>]*?>/g)].map((match) => match[0])
+  return [...source.matchAll(/<Route\b[^>]*?>/g)].map((match) => at(match, 0))
 }
 
 function routePathFromTag(tag: string): string | null {

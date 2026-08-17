@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mapBonusGamesResponse } from '../../src/services/supabase/bonusGamesModel'
+import { at } from '../support/indexed'
 
 const TOURNAMENT = 'tournament-1'
 const USER = 'user-1'
@@ -45,7 +46,7 @@ describe('bonus games response parsing', () => {
     expect(read.serverNow).toBe('2028-06-27T12:00:00+00:00')
     expect(read.games).toHaveLength(1)
 
-    const game = read.games[0]
+    const game = at(read.games, 0)
     expect(game.competition).toEqual({
       id: 'comp-ko',
       gameKey: 'ko_predictor',
@@ -64,8 +65,8 @@ describe('bonus games response parsing', () => {
       outcome: 'active',
       pendingInputs: 0,
     })
-    expect(game.windows[0].competitionId).toBe('comp-ko')
-    expect(game.windows[0].fixtures).toEqual([
+    expect(game.windows[0]?.competitionId).toBe('comp-ko')
+    expect(game.windows[0]?.fixtures).toEqual([
       { kickoffAt: '2028-06-29T15:00:00+00:00', resultState: 'scheduled' },
       { kickoffAt: null, resultState: 'confirmed' },
     ])
@@ -74,7 +75,7 @@ describe('bonus games response parsing', () => {
   it('maps a non-entrant to a null entrant', () => {
     const raw = payload()
     ;(raw.competitions[0] as Record<string, unknown>).entrant = null
-    expect(mapBonusGamesResponse(raw, TOURNAMENT, USER).games[0].entrant).toBeNull()
+    expect(mapBonusGamesResponse(raw, TOURNAMENT, USER).games[0]?.entrant).toBeNull()
   })
 
   it('skips a game this hub does not model, rather than failing the whole read', () => {
@@ -100,7 +101,7 @@ describe('bonus games response parsing', () => {
 
     const games = mapBonusGamesResponse(raw, TOURNAMENT, USER).games
     expect(games).toHaveLength(1)
-    expect(games[0].competition.gameKey).toBe('ko_predictor')
+    expect(games[0]?.competition.gameKey).toBe('ko_predictor')
   })
 
   it('rejects an unknown entrant outcome', () => {
@@ -122,7 +123,7 @@ describe('bonus games response parsing', () => {
   it('rejects an unknown fixture result state', () => {
     const raw = payload()
     const windows = (raw.competitions[0] as { windows: { fixtures: unknown[] }[] }).windows
-    windows[0].fixtures[0] = { kickoff_at: null, result_state: 'live' }
+    at(windows, 0).fixtures[0] = { kickoff_at: null, result_state: 'live' }
     expect(() => mapBonusGamesResponse(raw, TOURNAMENT, USER)).toThrow(
       'unknown fixture result state',
     )

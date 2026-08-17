@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * `DB-002` — security-definer caller assurance, asserted over the committed
@@ -89,11 +90,11 @@ function functionBodies(): FunctionBody[] {
     const starts: { name: string; index: number }[] = []
 
     for (const match of code.matchAll(header)) {
-      starts.push({ name: match[1], index: match.index ?? 0 })
+      starts.push({ name: at(match, 1), index: match.index ?? 0 })
     }
 
     starts.forEach((start, position) => {
-      const end = position + 1 < starts.length ? starts[position + 1].index : code.length
+      const end = position + 1 < starts.length ? at(starts, position + 1).index : code.length
       const body = code.slice(start.index, end)
       bodies.push({
         migration,

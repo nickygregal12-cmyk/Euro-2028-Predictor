@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { isGameConfig } from '../../src/domain/competition/game'
 import { isLeagueSeasonCompetitionConfig } from '../../src/domain/competition/kinds'
+import { at } from '../support/indexed'
 import {
   MATCHWEEK_COUNT,
   PREVIEW_GAMES,
@@ -129,8 +130,8 @@ describe('kickoffs are wall-clock in the competition zone, across the clock chan
 
   // Matchweek 1 falls in August (BST, UTC+1); the clocks go back on Sunday
   // 31 October 2027, so matchweek 13 falls in November (GMT, UTC+0).
-  const august = fixturesForMatchweek(1)[1]
-  const november = fixturesForMatchweek(13)[1]
+  const august = at(fixturesForMatchweek(1), 1)
+  const november = at(fixturesForMatchweek(13), 1)
 
   it('is a Saturday 15:00 kickoff in both, to anyone reading the competition', () => {
     expect(inCompetitionZone(august.kickoffAt)).toBe('15:00')
@@ -149,21 +150,21 @@ describe('kickoffs are wall-clock in the competition zone, across the clock chan
 
 describe('the matchweek lock belongs to the game, not the season', () => {
   it('keeps the Main Predictor open right up to the first kickoff', () => {
-    const before = contextAt(-1, { game: 'main-predictor' }).lockScopes[SCOPE]
+    const before = at(contextAt(-1, { game: 'main-predictor' }).lockScopes, SCOPE)
     expect(before.locked).toBe(false)
     expect(before.reason).toBe('before_scope_lock')
   })
 
   it('locks the Main Predictor exactly at the first kickoff, with no buffer', () => {
-    const lock = contextAt(0, { game: 'main-predictor' }).lockScopes[SCOPE]
+    const lock = at(contextAt(0, { game: 'main-predictor' }).lockScopes, SCOPE)
     expect(lock.locked).toBe(true)
     expect(lock.reason).toBe('scope_lock_reached')
   })
 
   it('locks Last Man Standing 30 minutes before the first kickoff', () => {
-    const open = contextAt(-31, { game: 'last-man-standing' }).lockScopes[SCOPE]
+    const open = at(contextAt(-31, { game: 'last-man-standing' }).lockScopes, SCOPE)
     expect(open.locked).toBe(false)
-    const shut = contextAt(-29, { game: 'last-man-standing' }).lockScopes[SCOPE]
+    const shut = at(contextAt(-29, { game: 'last-man-standing' }).lockScopes, SCOPE)
     expect(shut.locked).toBe(true)
     expect(shut.reason).toBe('scope_lock_reached')
   })
@@ -172,8 +173,8 @@ describe('the matchweek lock belongs to the game, not the season', () => {
     // 29 minutes out: LMS is shut, the Main Predictor is still open. One
     // season configuration, two game-owned policies — the pairing the old
     // competition-wide 30-minute buffer could not express.
-    const main = contextAt(-29, { game: 'main-predictor' }).lockScopes[SCOPE]
-    const lms = contextAt(-29, { game: 'last-man-standing' }).lockScopes[SCOPE]
+    const main = at(contextAt(-29, { game: 'main-predictor' }).lockScopes, SCOPE)
+    const lms = at(contextAt(-29, { game: 'last-man-standing' }).lockScopes, SCOPE)
     expect(main.locked).toBe(false)
     expect(lms.locked).toBe(true)
   })
@@ -182,8 +183,8 @@ describe('the matchweek lock belongs to the game, not the season', () => {
     // The rolling part. With matchweek 5 locked, matchweek 6 must still be open
     // — a season that locked everything at once would be a tournament.
     const context = contextAt(0, { game: 'main-predictor' })
-    expect(context.lockScopes[SCOPE].locked).toBe(true)
-    expect(context.lockScopes[matchweekScopeId(MATCHWEEK + 1)].locked).toBe(false)
+    expect(context.lockScopes[SCOPE]?.locked).toBe(true)
+    expect(context.lockScopes[matchweekScopeId(MATCHWEEK + 1)]?.locked).toBe(false)
   })
 
   it('fails closed when fixture data is missing or stale', () => {
@@ -212,7 +213,7 @@ describe('the league phase and match states resolve', () => {
   })
 
   it('moves a fixture from editable to locked to in-play under each game', () => {
-    const earliest = fixturesForMatchweek(MATCHWEEK)[0]
+    const earliest = at(fixturesForMatchweek(MATCHWEEK), 0)
     const stateAt = (offset: number, options: Record<string, unknown> = {}) =>
       contextAt(offset, options).matches.find((match) => match.id === earliest.id)?.state
 
@@ -229,7 +230,7 @@ describe('the league phase and match states resolve', () => {
     // `in_play_no_feed` exists because "we cannot see it" and "it is not
     // happening" are different answers, and the preview must be able to show
     // the difference.
-    const earliest = fixturesForMatchweek(MATCHWEEK)[0]
+    const earliest = at(fixturesForMatchweek(MATCHWEEK), 0)
     const context = contextAt(60, { feedAvailable: false })
     const match = context.matches.find((candidate) => candidate.id === earliest.id)
 

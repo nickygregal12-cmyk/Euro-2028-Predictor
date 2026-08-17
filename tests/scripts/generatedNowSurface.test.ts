@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * NOW.md against the sources it is generated from.
@@ -207,7 +208,7 @@ describe('the template hard-codes no contract number', () => {
     // number anywhere in it would be right today and silently wrong later, which
     // is exactly the failure this page exists to end.
     const body = source.slice(source.lastIndexOf('import '))
-    const suspicious = [...body.matchAll(/\bcontract[- ](\d{2,3})\b/gi)].map((m) => m[1])
+    const suspicious = [...body.matchAll(/\bcontract[- ](\d{2,3})\b/gi)].map((m) => at(m, 1))
 
     expect(suspicious).toEqual([])
   })

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 import {
   ALLOWED_FIXTURE_STATUSES,
@@ -28,7 +29,7 @@ describe('the status map targets only what the database allows', () => {
     // compares it to the original.
     const check = /status in \(([^)]*)\)/.exec(migration)
     expect(check, 'season_fixtures_status_allowed CHECK not found').toBeTruthy()
-    const declared = [...check![1].matchAll(/'([a-z_]+)'/g)].map((match) => match[1]).sort()
+    const declared = [...at(check!, 1).matchAll(/'([a-z_]+)'/g)].map((match) => at(match, 1)).sort()
     expect(declared).toEqual([...ALLOWED_FIXTURE_STATUSES].sort())
   })
 

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Competitions never combine into one entry, score or standing.
@@ -172,7 +173,7 @@ describe('no standings surface returns an unscoped total', () => {
     const pattern =
       /create (?:or replace )?function\s+(?:public\.)?([a-z_0-9]+)\s*\(([\s\S]*?)\)\s*returns/gi
     for (const match of withoutComments(allSql).matchAll(pattern)) {
-      found.push({ name: match[1], parameters: match[2] })
+      found.push({ name: at(match, 1), parameters: at(match, 2) })
     }
     return found
   }

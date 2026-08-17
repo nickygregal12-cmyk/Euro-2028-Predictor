@@ -5,6 +5,7 @@ import {
   type R16Fixture,
 } from '../../src/domain/tournament/resolveRoundOf16'
 import type { GroupLetter } from '../../src/domain/tournament/roundOf16Allocation'
+import { at } from '../support/indexed'
 
 const GROUPS: GroupLetter[] = ['A', 'B', 'C', 'D', 'E', 'F']
 
@@ -63,7 +64,7 @@ describe('resolveRoundOf16', () => {
       const fixtures = byRef(resolveRoundOf16(inputFor(qualifyingGroups)))
 
       for (const slot of ['WB', 'WC', 'WE', 'WF'] as const) {
-        const fixture = fixtures[THIRD_FIXTURE_REF[slot]]
+        const fixture = at(fixtures, THIRD_FIXTURE_REF[slot])
         const expectedGroup = expected[slot]
         expect(fixture.away.slot).toEqual({ type: 'third', group: expectedGroup })
         expect(fixture.away.teamId).toBe(`3-${expectedGroup}`)
@@ -90,7 +91,7 @@ describe('resolveRoundOf16', () => {
       const fixtures = byRef(resolveRoundOf16(inputFor(qualifyingGroups)))
 
       for (const slot of ['WB', 'WC', 'WE', 'WF'] as const) {
-        const side = fixtures[THIRD_FIXTURE_REF[slot]].away
+        const side = at(fixtures, THIRD_FIXTURE_REF[slot]).away
         expect(side.slot.type).toBe('third')
         expect(allowed[slot]).toContain(side.slot.group)
       }
@@ -100,20 +101,20 @@ describe('resolveRoundOf16', () => {
   it('resolves the fixed winner/runner-up fixtures from the skeleton', () => {
     const fixtures = byRef(resolveRoundOf16(inputFor(['A', 'B', 'C', 'D'])))
 
-    expect(fixtures['R16-1'].home).toEqual({ slot: { type: 'winner', group: 'A' }, teamId: 'W-A' })
-    expect(fixtures['R16-1'].away).toEqual({ slot: { type: 'runnerUp', group: 'C' }, teamId: 'RU-C' })
-    expect(fixtures['R16-2'].home).toEqual({ slot: { type: 'runnerUp', group: 'A' }, teamId: 'RU-A' })
-    expect(fixtures['R16-2'].away).toEqual({ slot: { type: 'runnerUp', group: 'B' }, teamId: 'RU-B' })
-    expect(fixtures['R16-6'].home).toEqual({ slot: { type: 'runnerUp', group: 'D' }, teamId: 'RU-D' })
-    expect(fixtures['R16-6'].away).toEqual({ slot: { type: 'runnerUp', group: 'E' }, teamId: 'RU-E' })
-    expect(fixtures['R16-8'].home).toEqual({ slot: { type: 'winner', group: 'D' }, teamId: 'W-D' })
-    expect(fixtures['R16-8'].away).toEqual({ slot: { type: 'runnerUp', group: 'F' }, teamId: 'RU-F' })
+    expect(fixtures['R16-1']?.home).toEqual({ slot: { type: 'winner', group: 'A' }, teamId: 'W-A' })
+    expect(fixtures['R16-1']?.away).toEqual({ slot: { type: 'runnerUp', group: 'C' }, teamId: 'RU-C' })
+    expect(fixtures['R16-2']?.home).toEqual({ slot: { type: 'runnerUp', group: 'A' }, teamId: 'RU-A' })
+    expect(fixtures['R16-2']?.away).toEqual({ slot: { type: 'runnerUp', group: 'B' }, teamId: 'RU-B' })
+    expect(fixtures['R16-6']?.home).toEqual({ slot: { type: 'runnerUp', group: 'D' }, teamId: 'RU-D' })
+    expect(fixtures['R16-6']?.away).toEqual({ slot: { type: 'runnerUp', group: 'E' }, teamId: 'RU-E' })
+    expect(fixtures['R16-8']?.home).toEqual({ slot: { type: 'winner', group: 'D' }, teamId: 'W-D' })
+    expect(fixtures['R16-8']?.away).toEqual({ slot: { type: 'runnerUp', group: 'F' }, teamId: 'RU-F' })
 
     // Winner home sides for the third-place fixtures.
-    expect(fixtures['R16-3'].home).toEqual({ slot: { type: 'winner', group: 'B' }, teamId: 'W-B' })
-    expect(fixtures['R16-4'].home).toEqual({ slot: { type: 'winner', group: 'C' }, teamId: 'W-C' })
-    expect(fixtures['R16-5'].home).toEqual({ slot: { type: 'winner', group: 'F' }, teamId: 'W-F' })
-    expect(fixtures['R16-7'].home).toEqual({ slot: { type: 'winner', group: 'E' }, teamId: 'W-E' })
+    expect(fixtures['R16-3']?.home).toEqual({ slot: { type: 'winner', group: 'B' }, teamId: 'W-B' })
+    expect(fixtures['R16-4']?.home).toEqual({ slot: { type: 'winner', group: 'C' }, teamId: 'W-C' })
+    expect(fixtures['R16-5']?.home).toEqual({ slot: { type: 'winner', group: 'F' }, teamId: 'W-F' })
+    expect(fixtures['R16-7']?.home).toEqual({ slot: { type: 'winner', group: 'E' }, teamId: 'W-E' })
   })
 
   it('returns all eight fixtures in order', () => {

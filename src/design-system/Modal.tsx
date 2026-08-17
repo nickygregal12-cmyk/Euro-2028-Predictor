@@ -43,6 +43,7 @@ export function Modal({ open, onClose, title, children, footer }: ModalProps) {
         }
         const first = list[0]
         const last = list[list.length - 1]
+        if (!first || !last) return
         if (e.shiftKey && document.activeElement === first) {
           e.preventDefault()
           last.focus()

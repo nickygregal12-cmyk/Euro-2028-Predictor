@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveFixtureReassignment } from '../../src/domain/season/fixtureReassignment'
+import { at } from '../support/indexed'
 
 /**
  * Contract 123's refresh, against the three things it has to stay in step with.
@@ -63,7 +64,7 @@ function definition(source: string, name: string): string {
   const opening = /\bas\s+(\$[a-z_]*\$)/.exec(rest)
   expect(opening, `${name} has no dollar-quoted body`).not.toBeNull()
 
-  const tag = (opening as RegExpExecArray)[1]
+  const tag = at((opening as RegExpExecArray), 1)
   const bodyStart = (opening as RegExpExecArray).index + (opening as RegExpExecArray)[0].length
   const bodyEnd = rest.indexOf(tag, bodyStart)
   expect(bodyEnd, `${name}'s body is not closed`).toBeGreaterThan(-1)

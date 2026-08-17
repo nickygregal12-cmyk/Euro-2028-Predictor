@@ -273,7 +273,8 @@ export const LongNavigationLabels: StoryObj = {
   ),
 }
 
+const GERMAN_LABELS = ['Startseite', 'Spielbegegnungen', 'Ligatabellen', 'Saisonübersicht']
 const LONG_LABELS = defaultNavItems.map((item, index) => ({
   ...item,
-  label: ['Startseite', 'Spielbegegnungen', 'Ligatabellen', 'Saisonübersicht'][index],
+  label: GERMAN_LABELS[index] ?? item.label,
 }))

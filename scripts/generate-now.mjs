@@ -91,7 +91,7 @@ function journeyFlags(root) {
     // Which Netlify context, if any, sets it. Anything unset fails closed to
     // the legacy journey, which is routeFlags.ts's own stated rule.
     const contexts = [...netlify.matchAll(/\[context\.([a-z-]+)\.environment]([\s\S]*?)(?=\n\[|$)/g)]
-      .filter(([, , body]) => new RegExp(`^\\s*${name}\\s*=`, 'm').test(body))
+      .filter(([, , body]) => body !== undefined && new RegExp(`^\\s*${name}\\s*=`, 'm').test(body))
       .map(([, context]) => context)
     const inBuild = new RegExp(`\\[build\\.environment][\\s\\S]*?^\\s*${name}\\s*=`, 'm').test(netlify)
     return { name, contexts, inBuild }

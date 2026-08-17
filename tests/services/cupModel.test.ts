@@ -115,10 +115,10 @@ describe('Predictor Cup response parsing', () => {
     })
     expect(read.penaltyNumber?.lane).toBe('even')
     expect(read.penaltyNumber?.locked).toBe(false)
-    expect(read.bracket?.[0].decidedBy).toBe('penalty_number')
-    expect(read.bracket?.[0].winnerUserId).toBe('user-7')
+    expect(read.bracket?.[0]?.decidedBy).toBe('penalty_number')
+    expect(read.bracket?.[0]?.winnerUserId).toBe('user-7')
     expect(read.champion?.displayName).toBe('Eta')
-    expect(read.goldenPredictor?.top[0].points).toBe(23)
+    expect(read.goldenPredictor?.top[0]?.points).toBe(23)
     expect(read.goldenPredictor?.me?.rank).toBe(2)
   })
 
@@ -190,10 +190,10 @@ describe('Predictor Cup response parsing', () => {
       },
     ]
     const read = mapCupResponse(raw)
-    expect(read.myFixtures[0].myPoints).toBe(8)
-    expect(read.myFixtures[0].result).toBe('win')
-    expect(read.myFixtures[0].status).toBe('settled')
-    expect(read.myGroup?.standings[0].tablePoints).toBe(3)
+    expect(read.myFixtures[0]?.myPoints).toBe(8)
+    expect(read.myFixtures[0]?.result).toBe('win')
+    expect(read.myFixtures[0]?.status).toBe('settled')
+    expect(read.myGroup?.standings[0]?.tablePoints).toBe(3)
   })
 
   it('rejects malformed payloads instead of guessing', () => {

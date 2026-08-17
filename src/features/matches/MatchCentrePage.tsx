@@ -55,8 +55,10 @@ function koStagesFor(
   match: { homeTeamId: string | null; awayTeamId: string | null },
   progression: Record<string, ProgressionStage>,
 ): { homeStage: KnockoutStage | null; awayStage: KnockoutStage | null } {
-  const up = (id: string | null): KnockoutStage | null =>
-    id && progression[id] ? STAGE_UP[progression[id]] : null
+  const up = (id: string | null): KnockoutStage | null => {
+    const stage = id ? progression[id] : undefined
+    return stage ? (STAGE_UP[stage] ?? null) : null
+  }
   return { homeStage: up(match.homeTeamId), awayStage: up(match.awayTeamId) }
 }
 

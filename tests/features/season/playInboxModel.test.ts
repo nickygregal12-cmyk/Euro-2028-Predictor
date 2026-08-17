@@ -71,7 +71,7 @@ describe('presentPlayInbox', () => {
       main_predictor: 'enabled',
     })
 
-    expect(inbox.entries[0].href).toBe(`${BASE}/games/match-predictor`)
+    expect(inbox.entries[0]?.href).toBe(`${BASE}/games/match-predictor`)
   })
 
   it('reports an empty inbox rather than an empty list', () => {
@@ -84,6 +84,6 @@ describe('presentPlayInbox', () => {
   it('names games as the public interface names them, not as the database does', () => {
     const inbox = presentPlayInbox([joined('predictor_cup')], BASE)
 
-    expect(inbox.entries[0].name).toBe('Predictor Championship')
+    expect(inbox.entries[0]?.name).toBe('Predictor Championship')
   })
 })

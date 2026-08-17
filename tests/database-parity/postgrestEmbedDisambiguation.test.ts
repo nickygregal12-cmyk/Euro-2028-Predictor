@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Every PostgREST embed in application code must name the foreign key it
@@ -57,14 +58,14 @@ function embedsIn(file: string): Embed[] {
   const found: Embed[] = []
 
   for (const selectMatch of source.matchAll(/\.select\(\s*'([^']*)'/g)) {
-    const select = selectMatch[1]
+    const select = at(selectMatch, 1)
     if (!select.includes('(')) continue
 
     for (const embed of select.matchAll(embedPattern)) {
       found.push({
         file,
         select,
-        parent: embed[2],
+        parent: at(embed, 2),
         disambiguated: Boolean(embed[3]),
       })
     }

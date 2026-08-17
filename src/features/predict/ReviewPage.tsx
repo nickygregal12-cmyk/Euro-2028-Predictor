@@ -33,7 +33,9 @@ import s from '../shared.module.css'
 import r from './review.module.css'
 import a from './awards.module.css'
 
-const GOALS_MAX_POINTS = TOTAL_GOALS_BANDS[0].points // 40 (exact)
+const exactGoalsBand = TOTAL_GOALS_BANDS[0]
+if (exactGoalsBand === undefined) throw new Error('TOTAL_GOALS_BANDS must not be empty')
+const GOALS_MAX_POINTS = exactGoalsBand.points // 40 (exact)
 const SQUADS_PENDING =
   'Player search available once squads are confirmed — closer to the tournament.'
 

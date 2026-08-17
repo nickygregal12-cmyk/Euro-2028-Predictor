@@ -6,6 +6,7 @@ import type { CompetitionTableRow } from '../../src/services/supabase/competitio
 import type { SeasonConsensus } from '../../src/services/supabase/seasonConsensusModel'
 import { buildPredictorModel } from '../../src/vnext/integration/predictor/buildPredictorModel'
 import type { PredictorSource } from '../../src/vnext/integration/predictor/predictorSource'
+import { at } from '../support/indexed'
 
 /**
  * WHAT THE MATCH PREDICTOR ADAPTER MUST NEVER DO.
@@ -183,14 +184,14 @@ describe('editability and the lock', () => {
     // The mapper must believe the server. Anything else is the browser deciding a
     // deadline, which is the one thing this layer may not do.
     const page = card({
-      fixtures: [{ ...card().fixtures[0], kickoffAt: '2025-01-01T00:00:00.000Z' }],
+      fixtures: [{ ...at(card().fixtures, 0), kickoffAt: '2025-01-01T00:00:00.000Z' }],
       lock: { status: 'open', locked: false, lockAt: LOCK_AT, reason: 'before_scope_lock' },
     })
     const model = buildPredictorModel(source({ card: page }))
 
     expect(model.editable).toBe(true)
     expect(model.phase).toBe('open')
-    expect(model.fixtures[0].editable).toBe(true)
+    expect(model.fixtures[0]?.editable).toBe(true)
   })
 
   it('never infers an open card from a deadline in the future', () => {
@@ -254,8 +255,8 @@ describe('editability and the lock', () => {
     expect(buildPredictorModel(source()).atLock).toBe('banksEntered')
 
     const untouched = card({ cardStatus: 'no_submission', fixtures: [
-      { ...card().fixtures[0], prediction: null },
-      card().fixtures[1],
+      { ...at(card().fixtures, 0), prediction: null },
+      at(card().fixtures, 1),
     ] })
     expect(buildPredictorModel(source({ card: untouched })).atLock).toBe('unbanked')
   })
@@ -274,7 +275,7 @@ describe('editability and the lock', () => {
     expect(model.editable).toBe(false)
     expect(model.notice?.tone).toBe('error')
     expect(model.notice?.retryable).toBe(true)
-    expect(model.fixtures[0].save).toBe('conflict')
+    expect(model.fixtures[0]?.save).toBe('conflict')
   })
 })
 
@@ -288,26 +289,26 @@ describe('points and verdicts', () => {
     // returns a number this mapper deliberately ignores. An exact score is worth
     // more than zero under the rule, and it still must not be printed here.
     const page = card({
-      fixtures: [{ ...card().fixtures[0], result: { home: 2, away: 1 }, points: null }],
+      fixtures: [{ ...at(card().fixtures, 0), result: { home: 2, away: 1 }, points: null }],
       settledPoints: 12,
     })
     const model = buildPredictorModel(source({ card: page }))
 
-    expect(model.fixtures[0].verdict).toBe('exact')
-    expect(model.fixtures[0].points).toBeNull()
+    expect(model.fixtures[0]?.verdict).toBe('exact')
+    expect(model.fixtures[0]?.points).toBeNull()
     expect(model.settledPoints).toBe(12)
   })
 
   it('passes a per-fixture figure through where the application does supply one', () => {
     const page = card({
-      fixtures: [{ ...card().fixtures[0], result: { home: 2, away: 1 }, points: 5 }],
+      fixtures: [{ ...at(card().fixtures, 0), result: { home: 2, away: 1 }, points: 5 }],
       settledPoints: 5,
     })
-    expect(buildPredictorModel(source({ card: page })).fixtures[0].points).toBe(5)
+    expect(buildPredictorModel(source({ card: page })).fixtures[0]?.points).toBe(5)
   })
 
   it('takes the verdict from the shared rule for all four of its answers', () => {
-    const base = card().fixtures[0]
+    const base = at(card().fixtures, 0)
     const cases = [
       { prediction: { home: 2, away: 1 }, result: { home: 2, away: 1 }, verdict: 'exact' },
       { prediction: { home: 3, away: 1 }, result: { home: 2, away: 1 }, verdict: 'result' },
@@ -323,7 +324,7 @@ describe('points and verdicts', () => {
         fixtures: [{ ...base, prediction: entry.prediction, result: entry.result }],
         settledPoints: 10,
       })
-      expect(buildPredictorModel(source({ card: page })).fixtures[0].verdict).toBe(entry.verdict)
+      expect(buildPredictorModel(source({ card: page })).fixtures[0]?.verdict).toBe(entry.verdict)
     }
   })
 
@@ -335,7 +336,7 @@ describe('points and verdicts', () => {
   })
 
   it('counts the settled split and keeps a blank apart from a miss', () => {
-    const base = card().fixtures[0]
+    const base = at(card().fixtures, 0)
     const page = card({
       fixtures: [
         { ...base, fixtureId: 'a', prediction: { home: 2, away: 1 }, result: { home: 2, away: 1 } },
@@ -360,7 +361,7 @@ describe('points and verdicts', () => {
     // Unbanked is not "every fixture scored zero". Itemising misses against
     // predictions that were never made is a breakdown of a thing that did not
     // happen — the same line `presentMatchweekPoints` draws.
-    const base = card().fixtures[0]
+    const base = at(card().fixtures, 0)
     const page = card({
       cardStatus: 'no_submission',
       fixtures: [{ ...base, prediction: null, result: { home: 2, away: 1 } }],
@@ -377,16 +378,16 @@ describe('points and verdicts', () => {
     // card-level flag says. The AND can only ever narrow the application's answer.
     const page = card({
       fixtures: [
-        { ...card().fixtures[0], result: { home: 1, away: 1 } },
-        card().fixtures[1],
+        { ...at(card().fixtures, 0), result: { home: 1, away: 1 } },
+        at(card().fixtures, 1),
       ],
     })
     const model = buildPredictorModel(source({ card: page }))
 
     expect(model.editable).toBe(true)
-    expect(model.fixtures[0].state).toBe('settled')
-    expect(model.fixtures[0].editable).toBe(false)
-    expect(model.fixtures[1].editable).toBe(true)
+    expect(model.fixtures[0]?.state).toBe('settled')
+    expect(model.fixtures[0]?.editable).toBe(false)
+    expect(model.fixtures[1]?.editable).toBe(true)
   })
 })
 
@@ -415,14 +416,14 @@ describe('community consensus', () => {
   it('maps the server’s counts onto the fixture that owns them, and no other', () => {
     const model = buildPredictorModel(source({ consensus: consensus() }))
 
-    expect(model.fixtures[0].consensus).not.toBeNull()
+    expect(model.fixtures[0]?.consensus).not.toBeNull()
     // The payload named only `fx-1`. `fx-2` must not inherit its crowd.
-    expect(model.fixtures[1].consensus).toBeNull()
+    expect(model.fixtures[1]?.consensus).toBeNull()
     expect(model.enrichment.consensus).toBe(true)
   })
 
   it('converts the server’s percentages to shares without re-deriving them', () => {
-    const group = buildPredictorModel(source({ consensus: consensus() })).fixtures[0].consensus
+    const group = at(buildPredictorModel(source({ consensus: consensus() })).fixtures, 0).consensus
     expect(group?.homeWinShare).toBeCloseTo(0.71)
     expect(group?.drawShare).toBeCloseTo(0.18)
     expect(group?.awayWinShare).toBeCloseTo(0.11)
@@ -433,7 +434,7 @@ describe('community consensus', () => {
   it('produces one cohort and never invents a friends group from it', () => {
     // Contract 130's cohort is the competition's entrants. A second group over the
     // same sample would be two labels for one set of numbers.
-    const group = buildPredictorModel(source({ consensus: consensus() })).fixtures[0].consensus
+    const group = at(buildPredictorModel(source({ consensus: consensus() })).fixtures, 0).consensus
     expect(group?.label).toBe('Everyone')
   })
 })
@@ -461,16 +462,16 @@ describe('enrichment', () => {
     // Not "0 form" and not a padded run of five: at matchweek one that is every
     // club in the competition, and an empty row of pills reads as a terrible season.
     const model = buildPredictorModel(source({ clubForm: formTable() }))
-    expect(model.fixtures[0].away.form).toEqual([])
-    expect(model.fixtures[0].away.formRecord).toBeNull()
+    expect(model.fixtures[0]?.away.form).toEqual([])
+    expect(model.fixtures[0]?.away.formRecord).toBeNull()
     // And the read DID answer, which the surface says differently.
     expect(model.enrichment.form).toBe(true)
   })
 
   it('maps the server’s letters one for one and never re-reads who won', () => {
     const model = buildPredictorModel(source({ clubForm: formTable() }))
-    expect(model.fixtures[0].home.form).toEqual(['win', 'win', 'draw', 'loss', 'win'])
-    expect(model.fixtures[0].home.formRecord).toEqual({
+    expect(model.fixtures[0]?.home.form).toEqual(['win', 'win', 'draw', 'loss', 'win'])
+    expect(model.fixtures[0]?.home.formRecord).toEqual({
       record: 'Won 3, drawn 1, lost 1 of the last 5',
       goalDifference: '+6',
       played: 5,
@@ -479,22 +480,22 @@ describe('enrichment', () => {
 
   it('never lands one club’s form on the other club', () => {
     const model = buildPredictorModel(source({ clubForm: formTable() }))
-    expect(model.fixtures[0].home.team.name).toBe('Glenmore Athletic')
-    expect(model.fixtures[0].home.form.length).toBe(5)
-    expect(model.fixtures[0].away.team.name).toBe('Strathkelvin United')
-    expect(model.fixtures[0].away.form.length).toBe(0)
+    expect(model.fixtures[0]?.home.team.name).toBe('Glenmore Athletic')
+    expect(model.fixtures[0]?.home.form.length).toBe(5)
+    expect(model.fixtures[0]?.away.team.name).toBe('Strathkelvin United')
+    expect(model.fixtures[0]?.away.form.length).toBe(0)
     // A club the form table does not mention gets nothing rather than a neighbour's.
-    expect(model.fixtures[1].home.form).toEqual([])
-    expect(model.fixtures[1].away.form).toEqual([])
+    expect(model.fixtures[1]?.home.form).toEqual([])
+    expect(model.fixtures[1]?.away.form).toEqual([])
   })
 
   it('leaves a league position null rather than zero when the table has no row', () => {
     const model = buildPredictorModel(
       source({ table: [tableRow('Glenmore Athletic', 2)] }),
     )
-    expect(model.fixtures[0].home.leaguePosition).toBe(2)
-    expect(model.fixtures[0].away.leaguePosition).toBeNull()
-    expect(model.fixtures[1].home.leaguePosition).toBeNull()
+    expect(model.fixtures[0]?.home.leaguePosition).toBe(2)
+    expect(model.fixtures[0]?.away.leaguePosition).toBeNull()
+    expect(model.fixtures[1]?.home.leaguePosition).toBeNull()
   })
 
   it('reports a competition with no palette as having none', () => {
@@ -505,13 +506,13 @@ describe('enrichment', () => {
   it('turns an empty kickoff string back into a real absence', () => {
     // The gateway maps an absent kickoff to `''`; a surface formatting that would
     // print a formatted nothing.
-    const page = card({ fixtures: [{ ...card().fixtures[0], kickoffAt: '' }] })
-    expect(buildPredictorModel(source({ card: page })).fixtures[0].kickoff).toBeNull()
+    const page = card({ fixtures: [{ ...at(card().fixtures, 0), kickoffAt: '' }] })
+    expect(buildPredictorModel(source({ card: page })).fixtures[0]?.kickoff).toBeNull()
   })
 
   it('resolves club identity from the domain tokens and no crest', () => {
     const model = buildPredictorModel(source())
-    const home = model.fixtures[0].home.team
+    const home = at(model.fixtures, 0).home.team
     expect(home.abbreviation).toBe('GLN')
     expect(home.colours.primary).toBe('#0B4DA2')
     // A club with only one colour gets its primary in both roles rather than a
@@ -578,8 +579,8 @@ describe('commands', () => {
 
   it('carries the save status per fixture and defaults the rest to idle', () => {
     const model = buildPredictorModel(source({ saveStatus: { 'fx-1': 'saving' } }))
-    expect(model.fixtures[0].save).toBe('saving')
-    expect(model.fixtures[1].save).toBe('idle')
+    expect(model.fixtures[0]?.save).toBe('saving')
+    expect(model.fixtures[1]?.save).toBe('idle')
   })
 
   it('ignores a save-status key that is not a fixture', () => {

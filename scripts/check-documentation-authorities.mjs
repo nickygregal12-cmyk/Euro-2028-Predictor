@@ -96,7 +96,9 @@ const CONTRACT_MENTION =
 export function namedContracts(text) {
   const found = new Set()
   for (const match of text.matchAll(CONTRACT_MENTION)) {
-    for (const digits of match[1].matchAll(/\d{2,3}/g)) {
+    const mention = match[1]
+    if (mention === undefined) continue
+    for (const digits of mention.matchAll(/\d{2,3}/g)) {
       found.add(Number(digits[0]))
     }
   }
@@ -279,7 +281,10 @@ export function addedMigrations(base, head) {
     .split('\n')
     .filter(Boolean)
     .map((line) => line.split('\t')[1])
-    .filter((path) => path?.startsWith('supabase/migrations/'))
+    .filter(
+      /** @returns {path is string} */
+      (path) => path !== undefined && path.startsWith('supabase/migrations/'),
+    )
 }
 
 /**

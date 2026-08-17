@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { resolveCardAtLock } from '../../src/domain/season/cardSubmission'
+import { at } from '../support/indexed'
 
 /**
  * What happens to a matchweek card when its round locks, in both languages.
@@ -82,7 +83,7 @@ const resolutionBodies = [
     // asserted against the proof instead of the implementation.
     /create or replace function predictor_internal\.resolve_season_card_at_lock\([\s\S]*?\$\$([\s\S]*?)\$\$;/g,
   ),
-].map((match) => withoutComments(match[1]))
+].map((match) => withoutComments(at(match, 1)))
 
 const card = (playerPrediction: unknown) => [{ fixtureId: 'f1', playerPrediction }]
 
