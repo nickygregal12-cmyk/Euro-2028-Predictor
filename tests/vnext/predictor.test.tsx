@@ -21,6 +21,7 @@ import {
   untouchedPredictorModel,
 } from '../../src/vnext/fixtures'
 import type { PredictorActions, PredictorModel } from '../../src/vnext/models/predictor'
+import { at } from '../support/indexed'
 
 /**
  * WHAT THE vNEXT MATCH PREDICTOR MUST NOT BE ABLE TO GET WRONG.
@@ -224,7 +225,7 @@ describe('editability', () => {
 describe('score entry', () => {
   it('names each box after its own club, so ownership is never positional', () => {
     renderPredictor(openPredictorModel)
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
 
     expect(
       screen.getByRole('textbox', { name: `${fixture.home.team.name} score` }),
@@ -243,7 +244,7 @@ describe('score entry', () => {
     renderPredictor(openPredictorModel, actions)
 
     // Fixture 0 is entered 2–1 in this scenario, so stepping home reaches 3–1.
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.home.team.name} score` }),
     )
@@ -256,7 +257,7 @@ describe('score entry', () => {
     const actions = spyActions()
     renderPredictor(openPredictorModel, actions)
 
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.away.team.name} score` }),
     )
@@ -273,7 +274,7 @@ describe('score entry', () => {
     // visibly un-entered and must not save: `save_season_prediction` refuses one
     // score without the other, so the only way to complete this command would be
     // to invent the away goal — which is exactly the legacy page's `?? 0`.
-    const fixture = openPredictorModel.fixtures[1]
+    const fixture = at(openPredictorModel.fixtures, 1)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.home.team.name} score` }),
     )
@@ -291,7 +292,7 @@ describe('score entry', () => {
     const user = userEvent.setup()
     renderPredictor(openPredictorModel)
 
-    const fixture = openPredictorModel.fixtures[1]
+    const fixture = at(openPredictorModel.fixtures, 1)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.home.team.name} score` }),
     )
@@ -304,7 +305,7 @@ describe('score entry', () => {
     const actions = spyActions()
     renderPredictor(openPredictorModel, actions)
 
-    const fixture = openPredictorModel.fixtures[1]
+    const fixture = at(openPredictorModel.fixtures, 1)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.home.team.name} score` }),
     )
@@ -322,7 +323,7 @@ describe('score entry', () => {
     // A nil is the single most predicted score, so it costs one tap rather than
     // two. This is the legacy score input's own decision, kept because it was
     // paid for by a player's complaint.
-    const fixture = openPredictorModel.fixtures[1]
+    const fixture = at(openPredictorModel.fixtures, 1)
     await user.click(
       screen.getByRole('button', { name: `Add one to ${fixture.home.team.name} score` }),
     )
@@ -336,7 +337,7 @@ describe('score entry', () => {
     const actions = spyActions()
     renderPredictor(openPredictorModel, actions)
 
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
     const home = screen.getByRole('textbox', { name: `${fixture.home.team.name} score` })
     const away = screen.getByRole('textbox', { name: `${fixture.away.team.name} score` })
 
@@ -353,7 +354,7 @@ describe('score entry', () => {
     const user = userEvent.setup()
     renderPredictor(untouchedPredictorModel)
 
-    const fixture = untouchedPredictorModel.fixtures[0]
+    const fixture = at(untouchedPredictorModel.fixtures, 0)
     const home = screen.getByRole('textbox', { name: `${fixture.home.team.name} score` })
     await user.click(home)
     await user.keyboard('2')
@@ -365,7 +366,7 @@ describe('score entry', () => {
     const user = userEvent.setup()
     renderLive(openPredictorModel)
 
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
     const home = screen.getByRole('textbox', { name: `${fixture.home.team.name} score` })
     // Typed into a box that ALREADY holds a value, deliberately: no auto-advance
     // fires out of a filled box, which is what protects a two-digit score.
@@ -675,7 +676,7 @@ describe('the page contract', () => {
     const user = userEvent.setup()
     renderPredictor(untouchedPredictorModel)
 
-    const first = untouchedPredictorModel.fixtures[0]
+    const first = at(untouchedPredictorModel.fixtures, 0)
     const homeName = first.home.team.name
     const awayName = first.away.team.name
 
@@ -695,7 +696,7 @@ describe('the page contract', () => {
 
   it('names the evidence disclosure after the fixture it belongs to', () => {
     renderPredictor(openPredictorModel)
-    const fixture = openPredictorModel.fixtures[0]
+    const fixture = at(openPredictorModel.fixtures, 0)
     const disclosure = screen.getByRole('button', {
       name: `Form and crowd for ${fixture.home.team.name} versus ${fixture.away.team.name}`,
     })
@@ -707,7 +708,7 @@ describe('the page contract', () => {
     const user = userEvent.setup()
     renderPredictor(lockedPredictorModel)
 
-    const fixture = lockedPredictorModel.fixtures[1]
+    const fixture = at(lockedPredictorModel.fixtures, 1)
     const name = `Form and crowd for ${fixture.home.team.name} versus ${fixture.away.team.name}`
     expect(screen.queryByText(/goal difference/i)).toBeNull()
 
@@ -783,7 +784,7 @@ describe('rehearsePredictor', () => {
   it('never changes editability, the lock or the phase', () => {
     const next = rehearsePredictor(openPredictorModel, {
       kind: 'setPrediction',
-      fixtureId: openPredictorModel.fixtures[1].id,
+      fixtureId: at(openPredictorModel.fixtures, 1).id,
       score: { home: 1, away: 0 },
     })
     expect(next.editable).toBe(openPredictorModel.editable)
@@ -795,7 +796,7 @@ describe('rehearsePredictor', () => {
   it('advances the progress count it is asked to advance, and only that', () => {
     const next = rehearsePredictor(openPredictorModel, {
       kind: 'setPrediction',
-      fixtureId: openPredictorModel.fixtures[1].id,
+      fixtureId: at(openPredictorModel.fixtures, 1).id,
       score: { home: 1, away: 0 },
     })
     expect(next.progress.entered).toBe(openPredictorModel.progress.entered + 1)
@@ -808,7 +809,7 @@ describe('rehearsePredictor', () => {
     expect(untouchedPredictorModel.atLock).toBe('unbanked')
     const next = rehearsePredictor(untouchedPredictorModel, {
       kind: 'setPrediction',
-      fixtureId: untouchedPredictorModel.fixtures[0].id,
+      fixtureId: at(untouchedPredictorModel.fixtures, 0).id,
       score: { home: 1, away: 0 },
     })
     expect(next.atLock).toBe('banksEntered')
@@ -866,7 +867,7 @@ describe('working through the card', () => {
     const marked = container.querySelector('[data-next]')
     expect(
       within(marked as HTMLElement).getByRole('textbox', {
-        name: `${openPredictorModel.fixtures[1].home.team.name} score`,
+        name: `${at(openPredictorModel.fixtures, 1).home.team.name} score`,
       }),
     ).toBeInTheDocument()
   })
