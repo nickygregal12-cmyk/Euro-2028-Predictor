@@ -1,0 +1,12 @@
+{
+  "graphify": {
+    "package": "graphifyy",
+    "version": "0.9.46",
+    "extras": ["sql", "openai"]
+  },
+  "omniroute": {
+    "package": "omniroute",
+    "version": "3.8.49",
+    "port": 20128
+  }
+}
