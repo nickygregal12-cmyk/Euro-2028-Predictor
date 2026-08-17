@@ -8,7 +8,7 @@ import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import { competitionColourStyle } from '../../foundations/teamColour'
 import { useIaNavigation } from '../shared/navigation'
 import type { IaDestination } from '../shared/navigation'
-import { useFocusReturn } from '../shared/focusReturn'
+import { useFocusReturn } from '../../foundations/focusReturn'
 import {
   BackControl,
   CompetitionMark,
@@ -126,7 +126,7 @@ export function ConceptA({
    * A single `useRef` shared by the rail copy and the bar copy holds whichever
    * mounted last, so closing the sheet on a desktop focused the phone's
    * `display: none` switcher and dropped the keyboard user on `<body>`. The
-   * opener is captured from the press instead — see `shared/focusReturn.ts`.
+   * opener is captured from the press instead — see `foundations/focusReturn.ts`.
    */
   const { captureOpener, returnFocus } = useFocusReturn()
   const rise = useVNextMotion(vnextMotion.riseIn)

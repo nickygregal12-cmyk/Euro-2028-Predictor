@@ -1,0 +1,145 @@
+/* JUMP IS AN ACCELERATOR AND LOOKS LIKE ONE.
+ *
+ * The control is the quietest thing in the rail — quieter than the
+ * destinations, quieter than the competition — because a player who has never
+ * pressed it must be able to ignore it forever without wondering what they are
+ * missing.
+ */
+
+.control {
+  display: flex;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background: var(--vnext-surface-sunken);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-muted);
+  text-align: start;
+  cursor: pointer;
+}
+
+.control:hover {
+  background: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+}
+
+.controlLabel {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  flex: none;
+  padding: 2px var(--vnext-space-1);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-xs);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the body ----------------------------------------------------------- */
+
+.search {
+  min-block-size: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-sunken);
+  font: inherit;
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.groupTitle {
+  margin: var(--vnext-space-2) 0 0;
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.groupEmpty {
+  margin: 0;
+  padding-block: var(--vnext-space-1);
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.rowText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowDetail {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}
+
+.explore {
+  margin-block-start: var(--vnext-space-2);
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.explore:hover {
+  background: var(--vnext-surface-interactive-hover);
+}

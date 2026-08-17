@@ -40,6 +40,17 @@ import { useCallback, useRef } from 'react'
  * dialogs keep their own Escape handling and their own entry focus. A focus
  * library would be a dependency the Stage 7.5 rules forbid, and would answer a
  * larger question than the one that is wrong.
+ *
+ * ================================ WHY IT IS HERE NOW ========================
+ *
+ * It was written in Stage 7.5 as `ia/shared/focusReturn.ts`, for a lab. Stage
+ * 7.6 gives the ACCEPTED shell two overlays of its own — the competition
+ * switcher's sheet and the Jump accelerator — with the same twinned openers and
+ * therefore the same defect available to it. Promoting the module is the one
+ * thing §16 of that brief sanctions moving "toward an accepted shared
+ * foundation ONLY if Stage 7.6 genuinely needs it"; copying it into `app/`
+ * instead would leave two implementations of a rule that is hard to get right
+ * once. The three lab concepts import it from here and are otherwise untouched.
  */
 export type FocusReturn = {
   /**

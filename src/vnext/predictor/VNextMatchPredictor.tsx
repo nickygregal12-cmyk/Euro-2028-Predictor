@@ -2,7 +2,6 @@ import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
-import { defaultNavItems } from '../components/navigation/VNextNav'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatCountdown, formatDayHeading, formatDayKey } from '../foundations/format'
 import surfaces from '../foundations/surfaces.module.css'
@@ -134,12 +133,17 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
 
   return (
     <VNextShell
-      destination="fixtures"
+      // THE MATCH PREDICTOR IS A GAME, AND GAMES LIVE UNDER `games`.
+      // It was `fixtures` under Stage 5's platform navigation, which had no
+      // place for a game format and put the predictor beside the football. The
+      // Competition Deck separates the two: Matches is this competition's
+      // football, Games is what you do with it, and this page is one of three
+      // things that live there.
+      destination="games"
+      // A FALLBACK, NOT AN INSTRUCTION — the shell takes the competition's
+      // colours from its own active football context wherever an application
+      // supplied one. This keeps the page renderable on its own.
       competitionColours={model.competition.colours}
-      // The badge is what is still outstanding, which is the same number the
-      // brief prints. Home puts it on Fixtures for the same reason: that is where
-      // predictions are made, and this page IS that destination.
-      navItems={withBadge(model.progress.total - model.progress.entered)}
       header={
         <VNextPageHeader
           title="Match Predictor"
@@ -321,13 +325,5 @@ function DeadlineChip({ lock, now }: { lock: PredictorLock; now: string }) {
         {lock.kind === 'open' && countdown !== null ? countdown : lock.kind === 'open' ? 'Open' : '—'}
       </span>
     </span>
-  )
-}
-
-/** Outstanding predictions ride on Fixtures, exactly as they do on Home. */
-function withBadge(outstanding: number) {
-  if (outstanding <= 0) return defaultNavItems
-  return defaultNavItems.map((item) =>
-    item.id === 'fixtures' ? { ...item, badge: outstanding } : item,
   )
 }

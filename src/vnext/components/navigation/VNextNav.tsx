@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { motion } from 'framer-motion'
-import { CalendarDays, Home, Trophy, Users } from 'lucide-react'
+import { CalendarDays, Gamepad2, Home, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import {
   useReducedMotionPreference,
@@ -23,35 +23,49 @@ export type VNextNavProps = {
   items?: readonly VNextNavItem[]
   activeId: string
   onSelect?: ((id: string) => void) | undefined
-  /** `bar` is the mobile bottom bar; `band` is the desktop masthead row. */
-  variant?: 'bar' | 'band'
+  /** `bar` is the mobile bottom bar; `rail` is the desktop rail's column. */
+  variant?: 'bar' | 'rail'
+  /** The navigation landmark's name. Two shapes, one name. */
+  label?: string
 }
 
 /**
- * THE vNext DESTINATIONS, AND THE TERMINOLOGY DECISION BEHIND THEM.
+ * THE FOUR COMPETITION-SCOPED DESTINATIONS — STAGE 7.6.
  *
- * Stage 4 had to settle whether this surface is the product HOME or a
- * competition MATCHDAY tab, because Stage 3's Matchday Arena shipped both — a
- * "Live" destination and a "Matchday" destination, with Matchday current — and
- * a user cannot tell from that whether they are on the front door or inside one
- * competition.
+ * They belong to the ACTIVE FOOTBALL COMPETITION and not to the platform. That
+ * is the whole of the selected information architecture in one array: there is
+ * no global Matches, no global Games and no global Leagues, because the
+ * competition is the root and these are its own sections.
  *
- * IT IS HOME. Live football is CONTENT on Home, not a place you go: the
- * emphasis system already makes the page rearrange itself around whatever is
- * happening, so a separate "Live" tab would navigate to the state Home is
- * already in. And the competition the user is looking at is context, which the
- * masthead states in words ("Premiership · Matchweek 4") rather than spending a
- * navigation slot on.
+ * WHAT THEY REPLACED, AND WHY. Stage 4 settled `Home · Fixtures · Leagues ·
+ * Season` for a product whose navigation was the platform's. `Season` was a
+ * destination because the competition had nowhere else to be stated; under the
+ * Competition Deck the competition IS the chrome above these four, so a Season
+ * tab would be a link to where the player already is. `Fixtures` became
+ * `Matches` to match the product's own word for football
+ * (`SeasonMatchesRoute`, `/competitions/:c/:s/matches`, the Match Centre), and
+ * `Games` is new: the place where Match Predictor, Last Man Standing and the
+ * Predictor Championship are PEERS. That place is what stopped Last Man
+ * Standing being "another little tab".
  *
- * That leaves four global destinations, and four is deliberate: it is the most
- * that clears a 44px target across a 375px bar without the labels shrinking to
- * a memory test.
+ * `Games` AND NOT `Play`. Independent review asked whether "Matches" and
+ * "Games" read as synonyms in a UK football product. They can — and "Play" is
+ * still the wrong fix here, because this product already uses both words and
+ * they already mean different things: a *game* is a joinable format
+ * (`get_competition_games`, `CompetitionGameKey`, onboarding's "Choose your
+ * games"), and *Play* is the cross-competition action inbox at `/play` whose
+ * job the Competition Deck moves into Home. The full comparison is in
+ * `docs/product/vnext-shell-ia.md` §"Games versus Play".
+ *
+ * STILL FOUR. Four is the most that clears a 44px target across a 375px bar
+ * without the labels shrinking to a memory test — the finding Stage 4 recorded
+ * and the reason the attention layer and Jump are not a fifth and a sixth.
  */
 export const defaultNavItems: readonly VNextNavItem[] = [
   { id: 'home', label: 'Home', icon: Home },
-  { id: 'fixtures', label: 'Fixtures', icon: CalendarDays },
+  { id: 'matches', label: 'Matches', icon: CalendarDays },
+  { id: 'games', label: 'Games', icon: Gamepad2 },
   { id: 'leagues', label: 'Leagues', icon: Users },
-  { id: 'season', label: 'Season', icon: Trophy },
 ]
 
 /**
@@ -62,11 +76,15 @@ export const defaultNavItems: readonly VNextNavItem[] = [
  * mean two places to keep the active item, the badge and the label in step.
  * Only the CSS differs.
  *
- * WHY A BAND AND NOT A RAIL. A vertical rail takes a column off the football
- * for the entire life of the page; a band in the masthead costs 48px once. On a
- * surface whose whole argument is that football gets the horizontal space, the
- * band wins, and the rail variant was removed rather than left as a shape
- * nothing chooses.
+ * WHY A RAIL AND NOT A BAND, NOW. Stage 5 chose a masthead band on the argument
+ * that a vertical rail takes a column off the football for the life of the
+ * page. That argument was right about a page and wrong about a PRODUCT: the
+ * Competition Deck has permanent things to say that a 48px band cannot hold —
+ * which competition you are in, which others you have, what is waiting in one
+ * of them — and squeezing those into a band was how Stage 5's navigation ran
+ * out of room and grew a `Season` tab. The rail is bounded (see
+ * `SHELL_SHORTCUT_LIMIT`) and appears only at 1120px and above, where the
+ * column is spare.
  *
  * THE INDICATOR. The active marker uses a shared `layoutId`, so it travels
  * between items instead of blinking — the piece of motion that makes the two
@@ -88,6 +106,7 @@ export function VNextNav({
   activeId,
   onSelect,
   variant = 'bar',
+  label = 'Competition sections',
 }: VNextNavProps) {
   const instanceId = useId()
   const reduced = useReducedMotionPreference()
@@ -97,7 +116,7 @@ export function VNextNav({
   return (
     <nav
       className={`${styles.nav} ${styles[variant]}`}
-      aria-label="vNext primary"
+      aria-label={label}
     >
       <ul className={styles.list}>
         {items.map((item) => {

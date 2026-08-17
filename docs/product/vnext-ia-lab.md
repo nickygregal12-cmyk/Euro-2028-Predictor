@@ -1,10 +1,12 @@
 # vNext Stage 7.5 — information architecture, navigation and competition discovery lab
 
-**Status:** three concepts, no winner. This document records what was built and what was found; it decides nothing.
+**Status:** SUPERSEDED AS A SELECTION SURFACE — the selection was made in Stage 7.6. This document is now the EVIDENCE for that decision: what was built, what was found, and what the two rejected concepts contributed.
+**The decision:** [`vnext-shell-ia.md`](vnext-shell-ia.md) — Concept A, the Competition Deck, is the accepted vNext information architecture. Concept B contributed cross-competition attention as a secondary layer; Concept C contributed Jump as an optional accelerator.
+**Do not build on B or C as primary architectures.** They are kept, unmodified, because a decision record whose losing options have been deleted is a decision record nobody can audit.
 **Scope:** presentation and information architecture only.
 **Does not govern:** scoring, locks, membership, reveal, settlement, progression, profile visibility, provider truth or any route currently registered in `src/App.tsx`.
 **Companion:** [`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) — every user-facing route with an explicit fate.
-**Implementation:** `src/vnext/ia/`, `src/vnext/models/ia.ts`, `src/vnext/fixtures/ia/`, reviewed at `vNext/IA Lab (Stage 7.5)` in Storybook.
+**Implementation:** `src/vnext/ia/`, `src/vnext/models/ia.ts`, `src/vnext/fixtures/ia/`, reviewed at `vNext/IA Lab (Stage 7.5)` in Storybook. **All three concepts still render and are still reviewable.** The accepted shell does not import any of it; `src/vnext/models/shell.ts` is the product contract and `models/ia.ts` remains the lab's own.
 
 ---
 
@@ -521,18 +523,29 @@ Three places the lab could have reached for a dependency and did not:
 
 ## 14. What is deliberately undecided
 
-1. **Which concept wins.** Stage 7.5 is a selection stage and the selection is
-   not this lane's to make.
+**Items 1, 3, 4 and 6 were RESOLVED by Stage 7.6.** They are struck through
+rather than deleted, so the record still shows what was open when the concepts
+were reviewed.
+
+1. ~~**Which concept wins.**~~ **RESOLVED.** Concept A, the Competition Deck,
+   with cross-competition attention retained from B as a secondary layer and
+   Jump retained from C as an optional accelerator. See
+   [`vnext-shell-ia.md`](vnext-shell-ia.md) §1–2 for the rationale.
 2. **Whether global-leaderboard identity should exist at all** — §5, GAP 1. A
    product and backend decision, not a frontend one.
-3. **Whether `/` and `/competitions/:c/:s` are one surface or two.** A
-   consequence of the selection, recorded in the route matrix as unresolved.
-4. **Whether a Games index survives.** A permanent destination in one concept,
-   absent in the other two.
-5. **Whether reduced motion should imply no haptics** — §10.
-6. **Whether recently-viewed competitions should be stored**, and if so whether
-   locally or server-side for cross-device continuity. The same question
-   `lastVisit.ts` already parks for the Hub marker.
+3. ~~**Whether `/` and `/competitions/:c/:s` are one surface or two.**~~
+   **RESOLVED as a TARGET IA decision.** They are ONE competition-rooted Home
+   concept. No route was repointed; see the route matrix.
+4. ~~**Whether a Games index survives.**~~ **RESOLVED: yes**, as a first-class
+   competition-scoped destination. It is where Match Predictor, Last Man
+   Standing and the Predictor Championship are peers.
+5. **Whether reduced motion should imply no haptics** — §10. Still open. Stage
+   7.6 adopted no haptics and added no call site, so nothing turns on it yet.
+6. ~~**Whether recently-viewed competitions should be stored**~~ — **RESOLVED
+   for now: no.** `VNextShellModel` carries no recency field at all, so the
+   accepted shell cannot draw a history the platform does not hold. Whether to
+   store one later, locally or server-side, is still open; nothing depends on
+   it. See [`vnext-shell-ia.md`](vnext-shell-ia.md) §7.
 7. **Whether a weekly-season head-to-head should exist.** There is no read for
    it and the tournament's is not shaped for a season's per-round locks.
 8. **Time-zone policy**, carried over unresolved from Stage 7 and untouched here.

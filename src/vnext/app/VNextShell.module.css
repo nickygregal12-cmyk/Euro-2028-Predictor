@@ -1,38 +1,33 @@
-/* THE vNEXT APPLICATION SHELL.
+/* THE vNEXT APPLICATION SHELL — THE COMPETITION DECK.
  *
- * Extracted from Home's `home.module.css` rather than rewritten: every value
- * below is the value the Gold Standard Home already shipped, so migrating Home
- * onto the shell moves no pixel.
+ * Stage 5 extracted this sheet from the Gold Standard Home so that a page could
+ * start from a shell instead of copying one. Stage 7.6 keeps every value that
+ * was about a PAGE — the bands, the insets, the atmosphere, the sticky
+ * masthead, the bottom bar's safe-area clearance — and replaces the part that
+ * was about the PRODUCT: the masthead band of four platform destinations
+ * becomes a competition-rooted rail.
  *
  * THE THREE SHELL BANDS. They are the widths at which the APPLICATION changes,
- * which is a smaller set than the four compositions a page may want:
+ * which is a smaller set than the compositions a page may want:
  *
  *   compact  (< 760px)   page inset 16px, navigation is a bottom bar
  *   regular  (>= 760px)  page inset 24px, the content region breathes
- *   expanded (>= 1120px) page inset 32px, the masthead takes the navigation and
- *                        the bottom bar goes
+ *   expanded (>= 1120px) page inset 32px, the competition RAIL appears and the
+ *                        bottom bar and the phone's context bar both go
  *
- * A page's own thresholds are its own business. Home splits its football into
- * columns at 760 and gives the competitive module a column at 1560; neither
- * number appears here, because neither is an application decision.
+ * A page's own thresholds are its own business. Home splits its football at 760
+ * and gives the competitive module a column at 1560; the Match Predictor turns
+ * its brief into a rail at 1000; none of those numbers appear here, because
+ * none of them is an application decision.
  *
- * EVERY QUERY IS A CONTAINER QUERY and no length is viewport-relative. That is
- * the workshop's load-bearing rule: a 430px frame on a 1920px monitor has to
- * compose as a phone or the review is a lie.
+ * EVERY QUERY IS A CONTAINER QUERY and no length is viewport-relative. A 430px
+ * frame on a 1920px monitor has to compose as a phone or the review is a lie.
  *
  * WHY THE INSET IS A CUSTOM PROPERTY AND NOT PADDING ON `.main`. Padding on the
- * content region would make every page inset, including a standings table that
- * wants to reach the page bounds, and it would shrink the container the page
- * measures itself against so a page's own thresholds would stop meaning the
- * width they say. The shell states the inset and the page decides where to
- * spend it.
- *
- * WHY THE SHELL'S OWN `gap` HAS NO BAND OVERRIDES. It cannot have any: a
- * container query is evaluated against an ANCESTOR container, so `.shell` can
- * never match a query against the container `.shell` itself declares. Home
- * carried exactly such a rule and it was inert at every width — measured, not
- * assumed — so nothing was lost by not carrying it across. Anything that must
- * change per band is set on a child.
+ * content region would inset every page, including a standings table that wants
+ * to reach the page bounds, and it would shrink the container the page measures
+ * itself against so a page's own thresholds would stop meaning the width they
+ * say. The shell states the inset and the page decides where to spend it.
  */
 
 /* NOT `position: relative`, however tempting. Making the shell a positioned
@@ -40,18 +35,15 @@
  * scroller sits in, and Chromium then propagates that scroller's overflow all
  * the way out to the frame: Home gained 371px of sideways scroll at 375px on
  * the first build of this file, from one declaration added for a skip link that
- * did not need it. Anything here that wants an absolute box positions itself
- * against the masthead, which is already sticky and therefore already
- * positioned. */
+ * did not need it. The overlays are `position: fixed` for the same reason — see
+ * `ShellOverlay.module.css`. */
 .shell {
   container-type: inline-size;
   container-name: vnext-shell;
 
   display: flex;
   flex-direction: column;
-  gap: var(--vnext-space-4);
   min-height: 100%;
-  padding-block-end: var(--vnext-space-4);
 
   /* THE ATMOSPHERE. Two soft competition-colour washes anchored to the top of
      the surface, on the shell's own background rather than on an element, so
@@ -59,8 +51,8 @@
      no information, which is why it is this quiet and why it is the only
      decorative layer the shell paints. `background-size` is a length rather
      than a percentage because a percentage of a very tall page is a very tall
-     wash. Both fall back to `transparent`, so a page that supplies no
-     competition gets a plain canvas rather than a grey smear. */
+     wash. Both fall back to `transparent`, so a shell with no competition in
+     context gets a plain canvas rather than a grey smear. */
   background-image:
     radial-gradient(
       88% 100% at 8% 0%,
@@ -87,6 +79,31 @@
   background-position: top left, top right;
 }
 
+/* THE GRID LIVES ON A CHILD, AND THAT IS LOAD-BEARING RATHER THAN TIDY.
+ *
+ * A container query is answered by an ANCESTOR container, so `.shell` — which
+ * declares `vnext-shell` — can never match a query against it. Stage 7.5
+ * shipped exactly this mistake into a concept: `grid-template-columns` sat on
+ * the element that declared the container, the rule was inert at every width,
+ * the rail rendered as a full-width block above the content, and it looked
+ * entirely plausible until something measured it. */
+.frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-width: 0;
+  /* No inline padding. `<main>` is the container every page measures itself
+     against, and padding here would make a page's own thresholds mean a width
+     they do not say. */
+}
+
 /* THE PAGE BOUNDS, declared on the shell's children rather than on the shell.
  * `.main` passes it down to the page by inheritance, which is how a page zone
  * applies the same inset the masthead does without knowing the number. */
@@ -98,16 +115,21 @@
 
 /* ---- skip link ----------------------------------------------------------
  * Hidden by clipping rather than by `display: none`, so it stays focusable, and
- * absolutely positioned at 1px so it costs no layout and shifts nothing when it
- * appears. It lives INSIDE the masthead: the masthead is sticky, so the link is
- * still on screen when the user is halfway down the page, and it is already a
- * positioned element so nothing else has to become one. */
+ * out of flow so it costs no layout and shifts nothing when it appears.
+ *
+ * `fixed` RATHER THAN `absolute`, and for the same reason the overlays are: the
+ * shell must not become a positioned ancestor — one `position: relative` added
+ * to it for a skip link is what gave Home 371px of sideways scroll at 375px —
+ * and a `fixed` box is contained by the workshop's own transformed frame, so it
+ * lands at the top of the DEVICE being reviewed rather than of the monitor
+ * showing it. In the running application it lands at the top of the window,
+ * which is where a skip link belongs. */
 
 .skipLink {
-  position: absolute;
+  position: fixed;
   inset-block-start: var(--vnext-space-2);
-  inset-inline-start: var(--vnext-page-inset);
-  z-index: var(--vnext-layer-raised);
+  inset-inline-start: var(--vnext-space-2);
+  z-index: var(--vnext-layer-overlay);
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -148,12 +170,77 @@
   box-shadow: var(--vnext-shadow-md);
 }
 
-/* The desktop navigation band. Hidden entirely below `expanded`, which removes
- * it from the accessibility tree as well as from the page. */
-.navBand {
+/* THE CONTEXT BAR — the phone's copy of the rail's head, and the loudest
+ * permanent thing on a 375px screen. The switcher takes all the width it can;
+ * Explore and the account take a target each and no more. */
+.contextBar {
+  display: flex;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  min-width: 0;
+}
+
+/* The phone's attention strip. It exists only when something is waiting
+ * elsewhere, and it goes at 1120 with the context bar, because the rail carries
+ * its own copy and two live copies of one control is the duplicate-navigation
+ * defect in another costume. */
+.attentionBand {
+  display: flex;
+  min-width: 0;
+}
+
+/* THE ESCAPE HATCH INTO THE CATALOGUE. It costs the bar NO HEIGHT — the
+ * switcher and the avatar already set a `--vnext-tap-target` row — so the
+ * permanent chrome does not grow, which is the measurement the whole
+ * scalability requirement turns on. */
+.explore {
+  display: inline-flex;
+  flex: none;
+  gap: var(--vnext-space-1);
+  align-items: center;
+  justify-content: center;
+  min-width: var(--vnext-tap-target);
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-2);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background: none;
+  font: inherit;
+  color: var(--vnext-text-muted);
+  cursor: pointer;
+}
+
+.explore:hover {
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+}
+
+/* At 375 the word is dropped and the compass carries the control; the
+ * accessible name is `Explore competitions` either way, so nothing is lost to
+ * a screen reader and nothing is lost to speech input. */
+.exploreLabel {
   display: none;
-  border-block-start: 1px solid var(--vnext-hairline);
-  padding-block-start: var(--vnext-space-2);
+  font-size: var(--vnext-size-micro);
+}
+
+.avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--vnext-tap-target);
+  height: var(--vnext-tap-target);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.avatar:hover {
+  background-color: var(--vnext-surface-interactive-hover);
 }
 
 /* ---- content region -----------------------------------------------------
@@ -188,8 +275,6 @@
   bottom: 0;
   z-index: var(--vnext-layer-sticky);
   margin-block-start: auto;
-  /* The inline padding stays at the compact inset in every band it is visible
-     in — this is Home's shipped value, and the bar is gone by `expanded`. */
   padding-block: var(--vnext-space-2)
     calc(var(--vnext-space-3) + env(safe-area-inset-bottom, 0px));
   padding-inline: var(--vnext-space-4);
@@ -198,6 +283,138 @@
     var(--vnext-canvas-deep) 68%,
     transparent
   );
+}
+
+/* ---- the competition rail ----------------------------------------------
+ * Hidden entirely below `expanded`, which removes it from the accessibility
+ * tree as well as from the page — so there is never a duplicate landmark or a
+ * focus stop nobody can see. */
+
+.rail {
+  display: none;
+}
+
+.railInner {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  /* Bounded only where the host declares a definite frame height — in an
+     ordinary page `--vnext-frame-block` is `none`, the `calc()` is invalid at
+     computed-value time and no bound applies. The predictor's own sticky rail
+     uses the same idiom, and vNext bans viewport units outright: a device shell
+     is not a viewport, so `vh` would measure the browser showing the workshop
+     rather than the phone being reviewed. */
+  max-height: var(--vnext-frame-block);
+  padding: var(--vnext-space-4) var(--vnext-space-3);
+  overflow-y: auto;
+  border-inline-end: 1px solid var(--vnext-hairline);
+}
+
+/* THE BOUNDED SHORTCUT GROUP. Six rows and then a count, so the rail's height
+ * is a function of what the player PLAYS and never of what the platform
+ * publishes. This is the declaration that stops twenty competitions becoming a
+ * twenty-logo wall. */
+.shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.groupTitle {
+  margin: 0;
+  padding-inline: var(--vnext-space-3);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shortcut,
+.railAction {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 0;
+  border-radius: var(--vnext-radius-md);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text-secondary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.shortcut:hover,
+.railAction:hover {
+  background-color: var(--vnext-surface-interactive);
+}
+
+.shortcut[aria-current] {
+  background-color: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+}
+
+/* A COMPETITION NAME IS NEVER TRUNCATED, in a 264px rail least of all. The row
+ * grows and the word wraps; nothing hides overflow, so the defect cannot
+ * reopen. */
+.shortcutName,
+.railActionLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-warn);
+}
+
+.overflow {
+  margin: 0;
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.railFoot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-block-start: auto;
+  padding-block-start: var(--vnext-space-2);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.initials {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text);
 }
 
 /* ---- regular ------------------------------------------------------------ */
@@ -212,9 +429,22 @@
   .main {
     gap: var(--vnext-space-5);
   }
+
+  /* There is room for the word by 760, and a labelled control beats an icon
+     nobody has to guess at. */
+  .exploreLabel {
+    display: inline;
+  }
 }
 
-/* ---- expanded: the masthead takes the navigation ------------------------ */
+/* ---- expanded: the rail becomes real ------------------------------------
+ *
+ * 264px, and the number is answerable rather than chosen: it is the width at
+ * which a two-letter mark, a 44px row and a two-word competition name coexist
+ * without the name wrapping on an ordinary competition. It is also small enough
+ * that the Match Predictor still gets a ~1228px working column at 1920 and
+ * still lays two fixtures across — measured in `e2e/vnext-predictor.spec.ts`,
+ * which is the gate that would catch a rail grown greedy. */
 
 @container vnext-shell (min-width: 1120px) {
   .masthead,
@@ -223,11 +453,25 @@
     --vnext-page-inset: var(--vnext-space-6);
   }
 
-  .navBar {
+  .frame {
+    grid-template-columns: 264px minmax(0, 1fr);
+  }
+
+  .rail {
+    display: block;
+    min-width: 0;
+  }
+
+  /* The bottom bar and the phone's context bar both go: the rail says
+     everything they said, and two copies of one control is the duplicate
+     navigation the accessibility contract forbids. */
+  .navBar,
+  .contextBar,
+  .attentionBand {
     display: none;
   }
 
-  .navBand {
-    display: block;
+  .column {
+    padding-block-end: var(--vnext-space-6);
   }
 }

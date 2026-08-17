@@ -304,4 +304,32 @@ fate in [`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md).
   no Last Man Standing", "you have not joined the one it runs" and "registration
   has closed" are three different sentences, and a disabled tab says none of them.
 
-**No concept has been chosen. Nothing above was changed to accommodate one.**
+**Three things it establishes that survived the selection unchanged** — the list
+above is exactly what Stage 7.6 carried into `src/vnext/models/shell.ts`.
+
+## Stage 7.6 — the selection becomes the shell
+
+**Concept A, the Competition Deck, was selected as the primary vNext information
+architecture.** Cross-competition attention was retained from Concept B as a
+SECONDARY layer and Jump was retained from Concept C as an OPTIONAL accelerator.
+That is a hierarchy and not a blend: A is the mental model, B is a layer over it
+and C is a shortcut past it.
+
+The decision, its rationale, the `Games` versus `Play` naming comparison and the
+binding one-competition and scale contracts are in
+[`vnext-shell-ia.md`](vnext-shell-ia.md). The lab is kept as the evidence for it.
+
+**What changed in the workshop.** `app/VNextShell` is now the Competition Deck:
+`Home · Matches · Games · Leagues`, belonging to the ACTIVE COMPETITION rather
+than to the platform, as a bottom bar below 1120px and a 264px competition rail
+at and above it. `vNext/Shell` stopped being three neutral placeholders and
+became ten deterministic worlds — one competition through twenty published, a
+quiet day, urgent work elsewhere, an unsupported game, names far too long — plus
+the Gold Standard Home and the Stage 7 Match Predictor rendered unmodified
+inside it.
+
+**What did not change.** Home's composition, zones, emphasis system and masthead;
+the Match Predictor's brief, rows, score entry and deadline clock. Both pages
+lost only the application-level props they should never have owned — a
+`navItems` array with a count on it — and the count now arrives on the shell
+model from the host that knows it.

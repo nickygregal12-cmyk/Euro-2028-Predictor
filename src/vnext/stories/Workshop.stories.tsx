@@ -27,10 +27,10 @@ export default {
 }
 
 const withBadge = defaultNavItems.map((item) =>
-  item.id === 'fixtures' ? { ...item, badge: 2 } : item,
+  item.id === 'games' ? { ...item, badge: 2 } : item,
 )
 
-/** Both shapes, with the open-prediction badge on Fixtures. */
+/** Both shapes, with the outstanding-prediction badge on Games. */
 export const Shapes: StoryObj = {
   render: () => (
     <VNextRoot>
@@ -42,9 +42,9 @@ export const Shapes: StoryObj = {
           </div>
         </div>
         <div className={styles.navSample}>
-          <p className={typography.label}>Masthead band — expanded</p>
+          <p className={typography.label}>Competition rail — expanded</p>
           <div className={styles.bandWidth}>
-            <VNextNav variant="band" activeId="leagues" items={withBadge} />
+            <VNextNav variant="rail" activeId="leagues" items={withBadge} />
           </div>
         </div>
       </div>

@@ -1,0 +1,35 @@
+/* The competition's own colours, on a mark small enough to sit in a 44px row.
+ *
+ * The text colour is not derived from the primary — presentation may not decide
+ * a contrast rule from a hex value it was handed — so the mark keeps its own
+ * legible foreground and lets the colour do the identifying. */
+.mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--vnext-radius-sm);
+  background-image: linear-gradient(
+    140deg,
+    var(--mark-primary, var(--vnext-surface-interactive)),
+    color-mix(in srgb, var(--mark-accent, var(--vnext-surface-interactive)) 70%, transparent)
+  );
+  box-shadow: inset 0 0 0 1px var(--vnext-hairline-strong);
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  letter-spacing: var(--vnext-tracking-label);
+  color: var(--vnext-text);
+  text-transform: uppercase;
+}
+
+.sm {
+  inline-size: 26px;
+  block-size: 26px;
+  font-size: var(--vnext-size-micro);
+}
+
+.md {
+  inline-size: 34px;
+  block-size: 34px;
+  font-size: var(--vnext-size-caption);
+}

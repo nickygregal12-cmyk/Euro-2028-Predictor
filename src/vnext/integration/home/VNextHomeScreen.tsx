@@ -1,5 +1,9 @@
 import { useMemo } from 'react'
 import { VNextHome } from '../../home/VNextHome'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
+import type { HomeModel } from '../../models/home'
+import type { ShellIntent } from '../../models/shell'
+import { buildShellModel } from '../shell/buildShellModel'
 import { buildHomeModel } from './buildHomeModel'
 import { useVNextHomeSource, type VNextHomeSourceInput } from './useVNextHomeSource'
 import { VNextHomeLoading, VNextHomeNotice } from './VNextHomeStates'
@@ -24,9 +28,28 @@ import { VNextHomeLoading, VNextHomeNotice } from './VNextHomeStates'
  * component — would put "something went wrong" in front of a player who is
  * merely signed out, and would offer a retry button to a player whose season has
  * no competition. The acquisition hook keeps them apart; this keeps them apart.
+ *
+ * WHY IT SUPPLIES A SHELL MODEL — STAGE 7.6. The shell around Home now owns the
+ * active football context, competition switching, discovery and the primary
+ * destinations, and Home owns none of them. Something has to hand the shell the
+ * world, and this is the only file on the connected path that knows both the
+ * competition and the player. It states the ONE competition the application
+ * answered for and nothing more; see `../shell/shellSource.ts` for exactly what
+ * the application cannot say yet and why nothing is invented to fill it.
+ *
+ * The provider wraps the WHOLE switch, including the notices, because every one
+ * of those states renders `VNextShell` too — a signed-out player looking at a
+ * shell with no competition in it is the honest picture, and so is a loading one.
  */
 
-export type VNextHomeScreenProps = VNextHomeSourceInput
+export type VNextHomeScreenProps = VNextHomeSourceInput & {
+  /**
+   * What the host does with a shell intent. Supplying it is what makes Explore
+   * and the account control appear at all: a host with nowhere to send the
+   * player gets no control rather than an inert one.
+   */
+  readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+}
 
 export function VNextHomeScreen(props: VNextHomeScreenProps) {
   const state = useVNextHomeSource(props)
@@ -41,6 +64,49 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
     [state],
   )
 
+  // ONE CONTEXT, FROM THE READ THE PAGE WAS ADDRESSED BY. It exists only in the
+  // ready state; every other state has no competition to state, which is what
+  // the shell's own no-competition shape is for.
+  const shell = useMemo(
+    () =>
+      state.status === 'ready' && model
+        ? buildShellModel({
+            competition: {
+              tournamentId: state.source.competition.tournamentId,
+              name: state.source.competition.name,
+              seasonLabel: state.source.competition.seasonLabel,
+              colours: model.competition.colours,
+            },
+            playerName: state.source.user.displayName,
+            // The same number Home's own banner prints, from the model that
+            // already decided it. It rides on Games, which is where the Match
+            // Predictor lives under the selected architecture.
+            outstandingPredictions: model.primaryAction.progress
+              ? model.primaryAction.progress.total - model.primaryAction.progress.completed
+              : null,
+            canNavigateAway: props.onShellIntent !== undefined,
+          })
+        : null,
+    [state, model, props.onShellIntent],
+  )
+
+  return shell === null ? (
+    <VNextHomeBody state={state} model={model} />
+  ) : (
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+      <VNextHomeBody state={state} model={model} />
+    </VNextShellProvider>
+  )
+}
+
+/** The four sentences and the surface, unchanged by Stage 7.6. */
+function VNextHomeBody({
+  state,
+  model,
+}: {
+  readonly state: ReturnType<typeof useVNextHomeSource>
+  readonly model: HomeModel | null
+}) {
   switch (state.status) {
     case 'loading':
       return <VNextHomeLoading />

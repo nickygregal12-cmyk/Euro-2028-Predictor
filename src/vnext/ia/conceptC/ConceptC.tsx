@@ -6,7 +6,7 @@ import { GAME_NAMES, offeredGames } from '../../models/ia'
 import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import { useIaNavigation } from '../shared/navigation'
 import type { IaDestination, IaNavigation } from '../shared/navigation'
-import { useFocusReturn } from '../shared/focusReturn'
+import { useFocusReturn } from '../../foundations/focusReturn'
 import {
   BackControl,
   CompetitionMark,
@@ -94,7 +94,7 @@ export function ConceptC({
    * opener. A hard-coded ref to the Jump button therefore returned focus to a
    * `display: none` element on every desktop width, and the keyboard user
    * landed on `<body>`. The opener travels with the press — see
-   * `shared/focusReturn.ts`.
+   * `foundations/focusReturn.ts`.
    */
   const { captureOpener, returnFocus } = useFocusReturn()
 

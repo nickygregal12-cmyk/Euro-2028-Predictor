@@ -1,40 +1,34 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * THE vNEXT APPLICATION SHELL, MEASURED BY A REAL ENGINE.
+ * THE SELECTED vNEXT SHELL, MEASURED BY A REAL ENGINE.
  *
- * `tests/vnext/shell.test.tsx` holds the semantic half of the contract —
- * landmarks, headings, the current destination, the direction of the
- * dependency — because none of that needs layout. This suite holds the half
- * that is nothing but layout, and that jsdom cannot see at all: it evaluates no
- * container query and computes no boxes, so every claim below would pass there
- * whether or not it were true.
+ * jsdom evaluates no container query and computes no layout, so every
+ * responsive and scale claim in `tests/vnext/shell.test.tsx` and
+ * `tests/vnext/shellIa.test.tsx` is about the MODEL and the MARKUP. This suite
+ * is about the picture.
  *
- * WHAT IT ASSERTS, and why each one is a thing a shell gets wrong:
+ * WHAT IT ASSERTS, and why each one needs a browser:
  *
- *   1. exactly one navigation is REAL at any width. Both are always rendered
- *      and CSS shows one; a shell that hid the wrong one, or neither, would
- *      give every future page a duplicate landmark;
- *   2. the navigation swaps SHAPE at the right band — a bottom bar below
- *      1120px, a masthead band at and above it — and the bar is genuinely at
- *      the bottom rather than merely present;
- *   3. mobile content CLEARS the bar with no page doing anything. This is the
- *      one promise that would silently break every future mobile page: a bar
- *      changed from sticky to fixed still looks right until you scroll to the
- *      end of a page and find the last row underneath it;
- *   4. the shell imposes NO reading column. At 1440 and 1920 a data-dense page
- *      gets essentially the whole frame, because standings, fixtures grids and
- *      Match Centre are the pages this shell exists to host;
- *   5. nothing overflows sideways, in any demonstration, at any width;
- *   6. every control clears the 44px target, including with labels three times
- *      longer than the English ones;
- *   7. the page bounds are the SAME number for the masthead and for the page,
- *      which is what `--vnext-page-inset` is for.
- *
- * THE DEMONSTRATION MARKUP IS NEVER ASSERTED. Those placeholders exist to be
- * replaced by real pages and a test that froze them would make them permanent;
- * what is measured is the shell around them. There is no pixel baseline here
- * for the same reason `vnext-home.spec.ts` has none.
+ *   1. exactly one primary navigation is REAL at any width. Both shapes — the
+ *      phone's bottom bar and the desktop rail — are always in the DOM and CSS
+ *      hides one, so only a layout engine can say which. A duplicate here is a
+ *      focus stop nobody can see.
+ *   2. THE PERMANENT CHROME DOES NOT GROW WITH THE PLATFORM. This is the
+ *      measurement Stage 7.6 exists for: one competition, four, twelve and a
+ *      twenty-competition catalogue must all produce chrome of the same size.
+ *      It cannot be asserted from markup, because the defect is a rail that
+ *      quietly gets taller.
+ *   3. the one-competition contract, as a picture: no chooser, no stranger's
+ *      name, and Explore still one press away at 375 and at 1440.
+ *   4. FOCUS RETURNS TO THE CONTROL THAT WAS PRESSED, not to its hidden twin.
+ *      Every opener exists twice and `display: none` decides which is real —
+ *      the exact defect jsdom cannot see, because it gives every element a box.
+ *   5. nothing overflows sideways and nothing clips, at any width, including a
+ *      competition name far too long for a 264px rail;
+ *   6. every control clears the 44px target the tokens promise;
+ *   7. the two REAL pages — the Gold Standard Home and the Stage 7 Match
+ *      Predictor — sit inside the new chrome without being crushed by it.
  *
  * THE BROWSER IS THE WRONG SIZE ON PURPOSE. The page opens at 1280×900, which
  * is the width and height of no frame under review, so anything inside a frame
@@ -43,45 +37,64 @@ import { expect, test } from '@playwright/test'
 
 /** The band each width belongs to, which decides which navigation is real. */
 const WIDTHS = [
-  { story: 'content-375', width: 375, height: 812, navigation: 'bar' },
-  { story: 'content-430', width: 430, height: 900, navigation: 'bar' },
-  { story: 'content-768', width: 768, height: 1024, navigation: 'bar' },
-  { story: 'content-1440', width: 1440, height: 900, navigation: 'band' },
-  { story: 'content-1920', width: 1920, height: 1080, navigation: 'band' },
+  { story: 'four-375', width: 375, height: 812, navigation: 'bar' },
+  { story: 'four-430', width: 430, height: 900, navigation: 'bar' },
+  { story: 'four-768', width: 768, height: 1024, navigation: 'bar' },
+  { story: 'four-1024', width: 1024, height: 768, navigation: 'bar' },
+  { story: 'four-1440', width: 1440, height: 900, navigation: 'rail' },
+  { story: 'four-1920', width: 1920, height: 1080, navigation: 'rail' },
 ] as const
 
-/** Every demonstration, so a shell defect cannot hide in the page nobody ran. */
-const DEMONSTRATIONS = [
-  { story: 'content-375', label: 'content at 375', width: 375, destination: 'Fixtures' },
-  { story: 'content-430', label: 'content at 430', width: 430, destination: 'Fixtures' },
-  { story: 'content-768', label: 'content at 768', width: 768, destination: 'Fixtures' },
-  {
-    story: 'content-1440',
-    label: 'content at 1440',
-    width: 1440,
-    destination: 'Fixtures',
-  },
-  {
-    story: 'content-1920',
-    label: 'content at 1920',
-    width: 1920,
-    destination: 'Fixtures',
-  },
-  { story: 'dense-430', label: 'dense at 430', width: 430, destination: 'Leagues' },
-  { story: 'dense-1440', label: 'dense at 1440', width: 1440, destination: 'Leagues' },
-  { story: 'dense-1920', label: 'dense at 1920', width: 1920, destination: 'Leagues' },
-  { story: 'detail-430', label: 'detail at 430', width: 430, destination: 'Season' },
-  { story: 'detail-1440', label: 'detail at 1440', width: 1440, destination: 'Season' },
+/** Every world, at the two widths the composition differs most between. */
+const WORLDS = [
+  { story: 'one-375', label: 'one competition at 375', width: 375 },
+  { story: 'one-430', label: 'one competition at 430', width: 430 },
+  { story: 'one-768', label: 'one competition at 768', width: 768 },
+  { story: 'one-1024', label: 'one competition at 1024', width: 1024 },
+  { story: 'one-1440', label: 'one competition at 1440', width: 1440 },
+  { story: 'one-1920', label: 'one competition at 1920', width: 1920 },
+  { story: 'many-375', label: 'twelve competitions at 375', width: 375 },
+  { story: 'many-1440', label: 'twelve competitions at 1440', width: 1440 },
+  { story: 'many-1920', label: 'twelve competitions at 1920', width: 1920 },
+  { story: 'platform-375', label: 'twenty published at 375', width: 375 },
+  { story: 'platform-1440', label: 'twenty published at 1440', width: 1440 },
+  { story: 'quiet-375', label: 'a quiet day at 375', width: 375 },
+  { story: 'quiet-1440', label: 'a quiet day at 1440', width: 1440 },
+  { story: 'live-1440', label: 'live elsewhere at 1440', width: 1440 },
+  { story: 'none-375', label: 'no competitions at 375', width: 375 },
+  { story: 'none-1440', label: 'no competitions at 1440', width: 1440 },
+  { story: 'unsupported-375', label: 'an unsupported game at 375', width: 375 },
+  { story: 'unsupported-1440', label: 'an unsupported game at 1440', width: 1440 },
+  { story: 'long-375', label: 'long names at 375', width: 375 },
+  { story: 'long-430', label: 'long names at 430', width: 430 },
+  { story: 'long-1440', label: 'long names at 1440', width: 1440 },
+  { story: 'long-1920', label: 'long names at 1920', width: 1920 },
+] as const
+
+/** The two accepted pages, inside the new chrome. */
+const PAGES = [
+  { story: 'home-one-375', label: 'Home, one competition at 375', width: 375 },
+  { story: 'home-one-1440', label: 'Home, one competition at 1440', width: 1440 },
+  { story: 'home-four-375', label: 'Home, four competitions at 375', width: 375 },
+  { story: 'home-four-1440', label: 'Home, four competitions at 1440', width: 1440 },
+  { story: 'home-four-1920', label: 'Home, four competitions at 1920', width: 1920 },
+  { story: 'predictor-one-375', label: 'the predictor, one competition at 375', width: 375 },
+  { story: 'predictor-one-1440', label: 'the predictor, one competition at 1440', width: 1440 },
+  { story: 'predictor-four-375', label: 'the predictor, four competitions at 375', width: 375 },
+  { story: 'predictor-four-1440', label: 'the predictor, four competitions at 1440', width: 1440 },
+  { story: 'predictor-four-1920', label: 'the predictor, four competitions at 1920', width: 1920 },
 ] as const
 
 type Reading = {
   frameWidth: number
   frameHeight: number
   horizontalOverflow: number
+  /** Named landmarks that are actually rendered, in document order. */
   navigationLabels: string[]
-  /** `bar` or `band`, decided by where the one real navigation actually sits. */
-  navigationShape: 'bar' | 'band' | 'none'
+  /** `bar` or `rail`, decided by where the one primary navigation actually sits. */
+  navigationShape: 'bar' | 'rail' | 'none'
   currentDestinations: string[]
+  destinationLabels: string[]
   smallTargets: string[]
   mainCount: number
   headingCount: number
@@ -90,13 +103,31 @@ type Reading = {
   headingIsWired: boolean
   /** The content region's own width. The shell adds no inline padding to it. */
   mainWidth: number
-  /** The widest box the page drew inside its own inset, and that inset. */
-  contentWidth: number
-  contentInsetStart: number
-  mastheadInsetStart: number
+  /**
+   * EVERY PIXEL THE PLAYER CANNOT USE FOR FOOTBALL.
+   *
+   * The rail's area plus the masthead's plus the bottom bar's. This is the
+   * number the whole scalability argument turns on, and it must not be a
+   * function of how many competitions the PLATFORM has published.
+   */
+  chromeArea: number
+  railWidth: number
+  mastheadHeight: number
+  /** Competition rows permanently on screen. Bounded, or it is a logo wall. */
+  shortcutRows: number
+  /** Whether a switcher CONTROL — not a label — is rendered. */
+  switcherIsControl: boolean
+  switcherIsLabel: boolean
+  exploreControls: number
+  attentionControls: number
+  jumpControls: number
+  /** All permanent chrome text, for "no stranger's name here" assertions. */
+  chromeText: string
   clipped: string[]
   /** Destination labels whose text escapes the target it belongs to. */
   spillingLabels: string[]
+  /** The gap between the last content the page drew and the bottom bar. */
+  contentClearsBar: boolean
 }
 
 /**
@@ -104,9 +135,9 @@ type Reading = {
  *
  * `WorkshopCanvas` fits several frames on one screen with a CSS transform, so
  * `getBoundingClientRect()` inside a frame shown at 62% returns 62% of the real
- * number — 1190 for a 1920 frame. A transform does not change layout, and
- * `offsetWidth` is the layout box, so it is the width the page actually got.
- * Only relative comparisons within one frame use rects, where the scale cancels.
+ * number. A transform does not change layout, and `offsetWidth` is the layout
+ * box, so it is the width the page actually got. Only relative comparisons
+ * within one frame use rects, where the scale cancels.
  *
  * Everything is scoped to the FIRST frame, because a story may board several
  * widths at once and each frame renders its own shell.
@@ -114,36 +145,42 @@ type Reading = {
 async function read(page: import('@playwright/test').Page): Promise<Reading> {
   return page.evaluate<Reading>(() => {
     const root = document.querySelector('figure [data-vnext]')
-    // The frame's scrollport: the element `WorkshopCanvas` gives the device
-    // shell's real pixel height. Anything wider than this has left its shell.
     const scroller = root?.firstElementChild ?? null
     const shell = scroller?.querySelector('[data-vnext-shell]') ?? null
     const main = shell?.querySelector('main') ?? null
     const masthead = shell?.querySelector('[data-vnext-zone="masthead"]') ?? null
+    const rail = shell?.querySelector('[data-vnext-shell-zone="rail"]') ?? null
     const rendered = (element: Element) => element.getClientRects().length > 0
 
     const visibleNavs = [...(shell?.querySelectorAll('nav') ?? [])].filter(rendered)
+    const primaryNavs = visibleNavs.filter(
+      (nav) => nav.getAttribute('aria-label') === 'Competition sections',
+    )
 
     /**
-     * WHICH SHAPE THE REAL NAVIGATION IS, measured rather than read off a class.
-     *
-     * A band lives inside the masthead; a bar is the last thing on the page. A
-     * shell that rendered the bar inside the masthead would still have exactly
-     * one navigation and would still pass every count below.
+     * WHICH SHAPE THE PRIMARY NAVIGATION IS, measured rather than read off a
+     * class. The rail sits beside `<main>`; the bar is the last thing on the
+     * page. A shell that rendered the bar inside the rail would still have
+     * exactly one primary navigation and would still pass every count below.
      */
-    let navigationShape: 'bar' | 'band' | 'none' = 'none'
-    const onlyNav = visibleNavs[0]
-    if (visibleNavs.length === 1 && onlyNav && masthead && main) {
-      navigationShape = masthead.contains(onlyNav)
-        ? 'band'
+    let navigationShape: 'bar' | 'rail' | 'none' = 'none'
+    const onlyNav = primaryNavs[0]
+    if (primaryNavs.length === 1 && onlyNav && main) {
+      navigationShape = rail?.contains(onlyNav)
+        ? 'rail'
         : onlyNav.getBoundingClientRect().top >= main.getBoundingClientRect().top
           ? 'bar'
           : 'none'
     }
 
     const smallTargets: string[] = []
-    for (const control of shell?.querySelectorAll('button') ?? []) {
+    for (const control of shell?.querySelectorAll('button, a[href]') ?? []) {
       if (!rendered(control)) continue
+      // The skip link is a 1px clipped box UNTIL IT IS FOCUSED, at which point
+      // its own rule gives it a 44px target. `clip-path` is the idiom that
+      // hides it, and it is what separates "deliberately invisible" from "a
+      // control a finger cannot hit".
+      if (getComputedStyle(control).clipPath !== 'none') continue
       // `offsetWidth`/`offsetHeight` are layout boxes and ignore the CSS
       // transform the workshop uses to fit frames on one screen, so they are
       // the real size a finger would meet.
@@ -157,28 +194,19 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
 
     const headings = [...(shell?.querySelectorAll('h1') ?? [])].filter(rendered)
     const labelledBy = main?.getAttribute('aria-labelledby') ?? null
-
-    /**
-     * THE WIDEST BOX THE PAGE DREW INSIDE ITS OWN INSET.
-     *
-     * Strictly narrower than the content region, on purpose: a page's outermost
-     * wrapper spans the whole region and carries the inset as padding, so
-     * measuring THAT would report an inset of zero on every page. What is wanted
-     * is the first thing the page actually painted — the editorial page's panels,
-     * the dense page's table scroller — because that is what reaches, or fails to
-     * reach, the page bounds.
-     */
     const mainWidth = (main as HTMLElement | null)?.offsetWidth ?? 0
-    let contentWidth = 0
-    for (const element of main?.querySelectorAll<HTMLElement>('*') ?? []) {
-      if (!rendered(element)) continue
-      if (element.offsetWidth > contentWidth && element.offsetWidth < mainWidth) {
-        contentWidth = element.offsetWidth
-      }
+
+    const box = (element: Element | null) => {
+      if (!element || !rendered(element)) return { w: 0, h: 0 }
+      const node = element as HTMLElement
+      return { w: node.offsetWidth, h: node.offsetHeight }
     }
+    const railBox = box(rail)
+    const mastheadBox = box(masthead)
+    const barBox = box(shell?.querySelector('[data-vnext-shell-zone="navbar"]') ?? null)
 
     const clipped: string[] = []
-    for (const element of shell?.querySelectorAll<HTMLElement>('span, p, h1') ?? []) {
+    for (const element of shell?.querySelectorAll<HTMLElement>('span, p, h1, kbd') ?? []) {
       if (!rendered(element)) continue
       const style = getComputedStyle(element)
       // The skip link is a 1px box holding a whole sentence, so it overflows by
@@ -192,16 +220,14 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
     }
 
     /**
-     * A DESTINATION LABEL THAT HAS LEFT ITS OWN TARGET.
+     * A LABEL THAT HAS LEFT ITS OWN TARGET.
      *
      * Not the same defect as clipping, and invisible to every other measurement
      * here: the text is not cut off, the frame does not scroll, and every target
-     * still clears 44px — the words simply run through the destination beside
-     * them. That is exactly what the long German labels did at 375px on the
-     * first build of this shell, and only a picture showed it.
+     * still clears 44px — the words simply run through the control beside them.
      */
     const spillingLabels: string[] = []
-    for (const nav of visibleNavs) {
+    for (const nav of primaryNavs) {
       for (const control of nav.querySelectorAll('button')) {
         if (!rendered(control)) continue
         const target = control.getBoundingClientRect()
@@ -215,7 +241,41 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       }
     }
 
-    const mastheadStyle = masthead ? getComputedStyle(masthead) : null
+    /**
+     * MOBILE CONTENT CLEARS THE BAR WITHOUT THE PAGE PAYING FOR IT.
+     *
+     * The bar is sticky and IN FLOW, so it reserves its own height at the END of
+     * the document. A `fixed` bar would sit on top of the last thing the page
+     * drew, and no other measurement here would notice.
+     *
+     * IT IS MEASURED AT THE BOTTOM OF THE SCROLL, which is the only place the
+     * question means anything. Measured un-scrolled, every element below the
+     * fold is "under the bar" — which is what scrolling is — and a tall page
+     * like Home or the Match Predictor fails a check that is really asking
+     * about the LAST thing on the page.
+     */
+    let contentClearsBar = true
+    const bar = navigationShape === 'bar' ? primaryNavs[0] : null
+    if (bar && main && scroller) {
+      const restore = scroller.scrollTop
+      scroller.scrollTop = scroller.scrollHeight
+      const barTop = bar.getBoundingClientRect().top
+      for (const element of main.querySelectorAll<HTMLElement>('*')) {
+        if (!rendered(element)) continue
+        if (element.children.length > 0) continue
+        // Screen-reader-only text is a 1px absolutely-positioned box holding a
+        // whole sentence — "You moved up 2 places" sits 250px below the bar by
+        // design. `clip-path` is what separates deliberately invisible from
+        // accidentally underneath.
+        if (getComputedStyle(element).clipPath !== 'none') continue
+        if (element.getBoundingClientRect().bottom > barTop + 1) contentClearsBar = false
+      }
+      scroller.scrollTop = restore
+    }
+
+    const chromeClone = shell?.cloneNode(true) as HTMLElement | null
+    chromeClone?.querySelector('main')?.remove()
+    chromeClone?.querySelector('[data-vnext-overlay]')?.remove()
 
     return {
       frameWidth: scroller?.clientWidth ?? 0,
@@ -225,11 +285,15 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
         (nav) => nav.getAttribute('aria-label') ?? '(unnamed)',
       ),
       navigationShape,
-      currentDestinations: visibleNavs.flatMap((nav) =>
+      currentDestinations: primaryNavs.flatMap((nav) =>
         [...nav.querySelectorAll('[aria-current="page"]')].map(
           (item) => item.textContent?.trim() ?? '',
         ),
       ),
+      destinationLabels: (primaryNavs[0]
+        ? [...primaryNavs[0].querySelectorAll('button')]
+        : []
+      ).map((button) => button.textContent?.trim() ?? ''),
       smallTargets,
       mainCount: shell?.querySelectorAll('main').length ?? 0,
       headingCount: headings.length,
@@ -238,15 +302,44 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
         labelledBy && document.getElementById(labelledBy) === headings[0],
       ),
       mainWidth,
-      contentWidth,
-      // Symmetric by construction: the inset is `padding-inline`, so half the
-      // difference is the inset on each side.
-      contentInsetStart: Math.round((mainWidth - contentWidth) / 2),
-      mastheadInsetStart: Math.round(
-        Number.parseFloat(mastheadStyle?.paddingLeft ?? '0'),
-      ),
+      chromeArea:
+        railBox.w * railBox.h +
+        mastheadBox.w * mastheadBox.h +
+        (navigationShape === 'bar' ? barBox.w * barBox.h : 0),
+      railWidth: railBox.w,
+      mastheadHeight: mastheadBox.h,
+      shortcutRows: [
+        ...(shell?.querySelectorAll('nav[aria-label="Your competitions"] button') ?? []),
+      ].filter(rendered).length,
+      switcherIsControl:
+        [...(shell?.querySelectorAll('[data-vnext-switcher="control"]') ?? [])].filter(
+          rendered,
+        ).length > 0,
+      switcherIsLabel:
+        [...(shell?.querySelectorAll('[data-vnext-switcher="label"]') ?? [])].filter(
+          rendered,
+        ).length > 0,
+      // BY ACCESSIBLE NAME AND NOT BY ONE ATTRIBUTE. The phone's Explore drops
+      // its visible word at 375 and carries the name in `aria-label`; the
+      // rail's says it in text. Counting only the attribute reported zero at
+      // 1440 for a control that was plainly on screen.
+      exploreControls: [...(shell?.querySelectorAll('button') ?? [])]
+        .filter(rendered)
+        .filter(
+          (control) =>
+            (control.getAttribute('aria-label') ?? control.textContent ?? '').trim() ===
+            'Explore competitions',
+        ).length,
+      attentionControls: [
+        ...(shell?.querySelectorAll('[data-vnext-attention="control"]') ?? []),
+      ].filter(rendered).length,
+      jumpControls: [
+        ...(shell?.querySelectorAll('[data-vnext-jump="control"]') ?? []),
+      ].filter(rendered).length,
+      chromeText: (chromeClone?.textContent ?? '').replace(/\s+/g, ' ').trim(),
       clipped,
       spillingLabels,
+      contentClearsBar,
     }
   })
 }
@@ -261,17 +354,28 @@ async function open(page: import('@playwright/test').Page, story: string) {
   await page.waitForTimeout(1200)
 }
 
-/** Every demonstration owes the same baseline, whatever it is demonstrating. */
+/** Every world owes the same baseline, whatever it is demonstrating. */
 function expectShellBaseline(reading: Reading, where: string) {
   expect(reading.horizontalOverflow, `${where} scrolls sideways`).toBe(0)
+
+  // ONE PRIMARY NAVIGATION, whichever shape it is. The other is `display: none`
+  // and therefore out of the accessibility tree as well as off the page.
   expect(
-    reading.navigationLabels,
-    `${where} should show exactly one navigation`,
+    reading.navigationLabels.filter((label) => label === 'Competition sections'),
+    `${where} should show exactly one primary navigation`,
   ).toHaveLength(1)
   expect(
     reading.currentDestinations.length,
     `${where} should mark exactly one current destination`,
   ).toBe(1)
+
+  // Every navigation landmark is named. An unnamed one is indistinguishable
+  // from the others to anyone listing landmarks.
+  expect(
+    reading.navigationLabels.filter((label) => label === '(unnamed)'),
+    `${where} has an anonymous navigation landmark`,
+  ).toEqual([])
+
   expect(reading.mainCount, `${where} should have exactly one main`).toBe(1)
   expect(reading.headingCount, `${where} should have exactly one h1`).toBe(1)
   expect(reading.headingIsWired, `${where} main is not labelled by its own h1`).toBe(true)
@@ -281,7 +385,15 @@ function expectShellBaseline(reading: Reading, where: string) {
     reading.spillingLabels,
     `${where} has a destination label sitting outside its own target`,
   ).toEqual([])
+  expect(
+    reading.contentClearsBar,
+    `${where} draws page content underneath the bottom bar`,
+  ).toBe(true)
 }
+
+/* ========================================================================== *
+ * The bands
+ * ========================================================================== */
 
 test.describe('the shell holds its frame', () => {
   for (const width of WIDTHS) {
@@ -297,154 +409,380 @@ test.describe('the shell holds its frame', () => {
 
       expectShellBaseline(reading, where)
 
-      expect(
-        reading.navigationShape,
-        `${where} should use the ${width.navigation} navigation`,
-      ).toBe(width.navigation)
+      // THE SWAP, measured rather than read off a stylesheet. Below 1120 the
+      // navigation is a bottom bar and the competition is a context bar above
+      // the page; at 1120 and up it is a rail beside it.
+      expect(reading.navigationShape, `${where} navigation shape`).toBe(width.navigation)
 
-      // The page bounds are one number, and the masthead and the page both use
-      // it. A page that hard-coded its own inset would diverge here at 1120.
       expect(
-        reading.contentInsetStart,
-        `${where} page inset should match the masthead inset`,
-      ).toBe(reading.mastheadInsetStart)
+        reading.destinationLabels.map((label) => label.replace(/\d+/g, '')),
+        `${where} destinations`,
+      ).toEqual(['Home', 'Matches', 'Games', 'Leagues'])
     })
   }
+})
 
-  for (const demo of DEMONSTRATIONS) {
-    test(`${demo.label} holds the shell contract`, async ({ page }) => {
-      await open(page, demo.story)
+/* ========================================================================== *
+ * Every world
+ * ========================================================================== */
+
+test.describe('the shell holds every world', () => {
+  for (const world of WORLDS) {
+    test(world.label, async ({ page }) => {
+      await open(page, world.story)
+      const reading = await read(page)
+      expect(reading.frameWidth, `${world.label} frame width`).toBe(world.width)
+      expectShellBaseline(reading, world.label)
+    })
+  }
+})
+
+/* ========================================================================== *
+ * THE MEASUREMENT STAGE 7.6 EXISTS FOR
+ * ========================================================================== */
+
+test.describe('the platform may be large and the product must feel small', () => {
+  test('does not grow the permanent chrome between one competition and twenty', async ({
+    page,
+  }) => {
+    await open(page, 'one-1440')
+    const one = await read(page)
+
+    await open(page, 'four-1440')
+    const four = await read(page)
+
+    await open(page, 'platform-1440')
+    const twenty = await read(page)
+
+    await open(page, 'many-1440')
+    const twelve = await read(page)
+
+    // THE RAIL IS THE SAME WIDTH WHATEVER THE PLAYER HAS. A rail that widened
+    // to fit the longest competition name would take the difference off the
+    // football, and would do it silently.
+    for (const [label, reading] of [
+      ['four', four],
+      ['twenty published', twenty],
+      ['twelve', twelve],
+    ] as const) {
+      expect(
+        reading.railWidth,
+        `the rail is ${reading.railWidth}px at ${label} and ${one.railWidth}px at one`,
+      ).toBe(one.railWidth)
+      expect(
+        reading.mainWidth,
+        `the football column is ${reading.mainWidth}px at ${label} and ${one.mainWidth}px at one`,
+      ).toBe(one.mainWidth)
+    }
+
+    // AND THE SHORTCUT LIST IS BOUNDED. Twelve competitions and twenty
+    // published both stop at six rows; the remainder is a count.
+    expect(one.shortcutRows, 'one competition needs no shortcut group').toBe(0)
+    expect(four.shortcutRows).toBe(4)
+    expect(twenty.shortcutRows, 'twenty published, three relevant').toBe(3)
+    expect(twelve.shortcutRows, 'twelve competitions, six rows and a count').toBe(6)
+
+    // THE CATALOGUE DOES NOT LEAK BEFORE DISCOVERY. Seventeen competitions the
+    // player has not taken up are not named anywhere in the permanent chrome.
+    for (const stranger of ['La Liga', 'Bundesliga', 'Eredivisie', 'Ligue 1']) {
+      expect(
+        twenty.chromeText,
+        `${stranger} is in the catalogue, not in this player's chrome`,
+      ).not.toContain(stranger)
+    }
+  })
+
+  test('does not grow the phone’s chrome between one competition and twenty', async ({
+    page,
+  }) => {
+    await open(page, 'one-375')
+    const one = await read(page)
+    await open(page, 'platform-375')
+    const twenty = await read(page)
+
+    // The context bar is ONE row whatever the player has: a switcher, Explore
+    // and the account. Nothing about twenty published competitions may cost a
+    // phone a pixel of football.
+    expect(twenty.mastheadHeight).toBe(one.mastheadHeight)
+    expect(twenty.chromeArea).toBe(one.chromeArea)
+  })
+
+  test('gives a one-competition player no chooser and still a way out', async ({
+    page,
+  }) => {
+    for (const story of ['one-375', 'one-1440']) {
+      await open(page, story)
       const reading = await read(page)
 
-      expect(reading.frameWidth, `${demo.label} frame width`).toBe(demo.width)
-      expectShellBaseline(reading, demo.label)
-      expect(reading.currentDestinations[0], `${demo.label} current destination`).toBe(
-        demo.destination,
-      )
-    })
-  }
-})
-
-test.describe('mobile content clears the bottom navigation', () => {
-  for (const story of ['content-375', 'content-430', 'dense-430'] as const) {
-    test(story, async ({ page }) => {
-      await open(page, story)
-
-      // AT REST AT THE BOTTOM OF THE PAGE, which is the only place this can
-      // fail. A sticky bar is in flow and reserves its own height, so the last
-      // row lands above it; a fixed bar would look identical until here.
-      const gap = await page.evaluate(() => {
-        const scroller = document.querySelector('[data-vnext]')
-          ?.firstElementChild as HTMLElement
-        scroller.scrollTop = scroller.scrollHeight
-        const shell = scroller.querySelector('[data-vnext-shell]') as HTMLElement
-        const main = shell.querySelector('main') as HTMLElement
-        const nav = [...shell.querySelectorAll('nav')].filter(
-          (element) => element.getClientRects().length > 0,
-        )[0]
-        if (!nav) throw new Error('The shell rendered no visible navigation.')
-        return (
-          nav.getBoundingClientRect().top - main.getBoundingClientRect().bottom
-        )
-      })
-
+      expect(reading.switcherIsLabel, `${story}: the competition is a label`).toBe(true)
       expect(
-        gap,
-        `${story}: the bottom navigation overlaps the end of the page by ${Math.round(-gap)}px`,
-      ).toBeGreaterThanOrEqual(-1)
-    })
-  }
-})
+        reading.switcherIsControl,
+        `${story}: a control offering one choice is furniture`,
+      ).toBe(false)
+      expect(reading.shortcutRows, `${story}: nothing to switch within`).toBe(0)
+      expect(reading.jumpControls, `${story}: no accelerator to learn`).toBe(0)
+      expect(reading.attentionControls, `${story}: nothing waiting elsewhere`).toBe(0)
 
-test.describe('the shell imposes no reading column', () => {
-  for (const { story, width } of [
-    { story: 'dense-1440', width: 1440 },
-    { story: 'dense-1920', width: 1920 },
-  ] as const) {
-    test(`a data-dense page uses the workspace at ${width}`, async ({ page }) => {
+      // Discovery is a different job from switching, and it never disappears.
+      expect(reading.exploreControls, `${story}: exactly one Explore`).toBe(1)
+      expect(reading.chromeText).toContain('Premier League')
+      for (const stranger of ['Scottish Premiership', 'Champions League', 'Euro 2028']) {
+        expect(reading.chromeText, `${story}: ${stranger} does not belong here`)
+          .not.toContain(stranger)
+      }
+    }
+  })
+
+  test('offers the accelerator only where the rail has stopped being complete', async ({
+    page,
+  }) => {
+    await open(page, 'four-1440')
+    expect((await read(page)).jumpControls, 'four competitions all fit the rail').toBe(0)
+
+    await open(page, 'many-1440')
+    expect((await read(page)).jumpControls, 'twelve do not').toBe(1)
+  })
+
+  test('says nothing at all on a quiet day', async ({ page }) => {
+    for (const story of ['quiet-375', 'quiet-1440']) {
       await open(page, story)
       const reading = await read(page)
+      expect(reading.attentionControls, `${story}: nothing is waiting`).toBe(0)
+      expect(reading.chromeText.toLowerCase()).not.toContain('needs you')
+    }
+  })
 
-      // The content region is the whole frame — the shell adds no inline
-      // padding of its own, which is what lets a page bleed to the bounds.
-      expect(reading.mainWidth, `main at ${width}`).toBe(width)
-
-      // And what the page drew reaches the page bounds. A shell with a reading
-      // column, or a `max-width` left over from an earlier frame, fails here
-      // while every other assertion in this file stays green.
-      const expected = width - 2 * reading.mastheadInsetStart
-      expect(
-        Math.round(reading.contentWidth),
-        `a dense page at ${width} got ${Math.round(reading.contentWidth)}px of ${expected}px`,
-      ).toBe(expected)
-    })
-  }
-})
-
-test.describe('long and localised destination labels', () => {
-  test('keep four legible destinations above 44px targets', async ({ page }) => {
-    await open(page, 'long-navigation-labels')
-    const reading = await read(page)
-
-    expectShellBaseline(reading, 'long labels')
-    expect(reading.currentDestinations[0]).toBe('Spielbegegnungen')
+  test('surfaces work waiting in another competition without leaving this one', async ({
+    page,
+  }) => {
+    for (const story of ['four-375', 'four-1440']) {
+      await open(page, story)
+      const reading = await read(page)
+      expect(reading.attentionControls, `${story}: exactly one attention control`).toBe(1)
+      expect(reading.chromeText).toContain('need you elsewhere')
+      // The current competition is still the root. The attention layer is a
+      // strip, never the front door.
+      expect(reading.chromeText).toContain('Premier League')
+      expect(reading.currentDestinations).toEqual(['Home'])
+    }
   })
 })
+
+/* ========================================================================== *
+ * Focus, in a browser where `display: none` is real
+ * ========================================================================== */
+
+test.describe('focus behaves where a hidden twin exists', () => {
+  test('returns focus to the switcher that was actually pressed, at 1440', async ({
+    page,
+  }) => {
+    await open(page, 'four-1440')
+
+    // THE DEFECT THIS MEASURES. Every opener exists twice — a rail copy and a
+    // bar copy — and a shared ref holds whichever mounted last. Closing the
+    // sheet on a desktop then focuses the phone's `display: none` control, the
+    // browser refuses, and focus falls to `<body>` with no indication that
+    // anything moved. jsdom cannot see it: it gives every element a box.
+    const opener = page
+      .locator('figure [data-vnext-shell] [data-vnext-switcher="control"]:visible')
+      .first()
+    await opener.click()
+
+    const dialog = page.getByRole('dialog', { name: 'Choose a competition' })
+    await expect(dialog).toBeVisible()
+
+    // Focus ENTERED the overlay rather than staying behind it.
+    expect(
+      await page.evaluate(() =>
+        document.querySelector('[data-vnext-overlay]')?.contains(document.activeElement),
+      ),
+    ).toBe(true)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+
+    const focusReturned = await page.evaluate(() => {
+      const active = document.activeElement as HTMLElement | null
+      return {
+        isSwitcher: active?.getAttribute('data-vnext-switcher') === 'control',
+        isVisible: (active?.getClientRects().length ?? 0) > 0,
+      }
+    })
+    expect(focusReturned.isSwitcher, 'focus went back to a switcher').toBe(true)
+    expect(focusReturned.isVisible, 'and to the one that is on screen').toBe(true)
+  })
+
+  test('returns focus to the switcher that was actually pressed, at 375', async ({
+    page,
+  }) => {
+    await open(page, 'four-375')
+    const opener = page
+      .locator('figure [data-vnext-shell] [data-vnext-switcher="control"]:visible')
+      .first()
+    await opener.click()
+    await expect(page.getByRole('dialog', { name: 'Choose a competition' })).toBeVisible()
+    await page.keyboard.press('Escape')
+
+    expect(
+      await page.evaluate(() => {
+        const active = document.activeElement as HTMLElement | null
+        return (
+          active?.getAttribute('data-vnext-switcher') === 'control' &&
+          (active?.getClientRects().length ?? 0) > 0
+        )
+      }),
+    ).toBe(true)
+  })
+
+  test('lets the keyboard reach Explore and the competition switcher', async ({
+    page,
+  }) => {
+    await open(page, 'four-1440')
+    // The skip link is the first stop, which is the whole point of moving it
+    // ahead of the rail — a keyboard user at 1440 must not have to pass the
+    // switcher, four destinations, four shortcuts, Explore and the account
+    // before being offered a way past them.
+    await page.keyboard.press('Tab')
+    expect(
+      await page.evaluate(() => document.activeElement?.textContent?.trim()),
+    ).toBe('Skip to content')
+
+    const reachable = await page.evaluate(() => {
+      const shell = document.querySelector('figure [data-vnext-shell]')
+      const rendered = (element: Element) => element.getClientRects().length > 0
+      return [...(shell?.querySelectorAll('button, a[href]') ?? [])]
+        .filter(rendered)
+        .map((control) => control.getAttribute('aria-label') ?? control.textContent?.trim())
+    })
+    expect(reachable).toContain('Explore competitions')
+    expect(reachable.some((name) => name?.includes('change competition'))).toBe(true)
+  })
+
+  test('opens Jump from the keyboard and never from inside a text field', async ({
+    page,
+  }) => {
+    await open(page, 'many-1440')
+
+    const jump = page.locator('figure [data-vnext-shell] [data-vnext-jump="control"]')
+    await jump.focus()
+    await page.keyboard.press('Control+k')
+    const dialog = page.getByRole('dialog', { name: 'Jump to' })
+    await expect(dialog).toBeVisible()
+
+    // AND THE ACCELERATOR DOES NOT EAT THE PRODUCT. Focus is in Jump's own
+    // search field; a second `Ctrl+K` there must type nothing and re-open
+    // nothing, because the same shortcut inside the predictor's score boxes
+    // would be the accelerator taking a keystroke off the game.
+    await page.keyboard.press('Control+k')
+    await expect(dialog).toHaveCount(1)
+
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    expect(
+      await page.evaluate(
+        () => document.activeElement?.getAttribute('data-vnext-jump') === 'control',
+      ),
+    ).toBe(true)
+  })
+
+  test('groups Jump’s results and keeps the three dimensions apart', async ({ page }) => {
+    await open(page, 'many-1440')
+    await page.locator('figure [data-vnext-shell] [data-vnext-jump="control"]').click()
+
+    const dialog = page.getByRole('dialog', { name: 'Jump to' })
+    await expect(dialog.getByRole('list', { name: 'Competitions' })).toBeVisible()
+    await expect(dialog.getByRole('list', { name: 'Games' })).toBeVisible()
+    await expect(dialog.getByRole('list', { name: 'Leagues' })).toBeVisible()
+
+    // A competition row and a game row are never in the same list.
+    await expect(
+      dialog.getByRole('list', { name: 'Competitions' }).getByRole('button', {
+        name: /Match Predictor/,
+      }),
+    ).toHaveCount(0)
+  })
+})
+
+/* ========================================================================== *
+ * The two real pages
+ * ========================================================================== */
+
+test.describe('the shell hosts the accepted pages', () => {
+  for (const entry of PAGES) {
+    test(entry.label, async ({ page }) => {
+      await open(page, entry.story)
+      const reading = await read(page)
+      expect(reading.frameWidth, `${entry.label} frame width`).toBe(entry.width)
+      expectShellBaseline(reading, entry.label)
+      // The competition is stated by the CHROME and the page's own `h1` says
+      // what the page is. Neither repeats the other.
+      expect(reading.chromeText).toContain('Premier League')
+      expect(reading.headingText).not.toBe('Premier League')
+    })
+  }
+
+  test('does not crush the predictor’s mobile entry', async ({ page }) => {
+    await open(page, 'predictor-four-375')
+
+    const measurement = await page.evaluate(() => {
+      const shell = document.querySelector('figure [data-vnext-shell]')
+      const main = shell?.querySelector('main') as HTMLElement | null
+      const inputs = [...(main?.querySelectorAll<HTMLInputElement>('input') ?? [])].filter(
+        (input) => input.getClientRects().length > 0,
+      )
+      return {
+        mainWidth: main?.offsetWidth ?? 0,
+        inputCount: inputs.length,
+        smallest: Math.min(...inputs.map((input) => input.offsetHeight)),
+      }
+    })
+
+    // At 375 the shell is a masthead and a bar; the score boxes get the whole
+    // width and the whole target. A shell that had taken a column here would
+    // show up as a narrower `<main>` than the frame.
+    expect(measurement.mainWidth).toBe(375)
+    expect(measurement.inputCount).toBeGreaterThan(4)
+    expect(measurement.smallest).toBeGreaterThanOrEqual(44)
+  })
+
+  test('leaves the predictor its two-across working column at 1920', async ({ page }) => {
+    await open(page, 'predictor-four-1920')
+
+    const measurement = await page.evaluate(() => {
+      const shell = document.querySelector('figure [data-vnext-shell]')
+      const rail = shell?.querySelector('[data-vnext-shell-zone="rail"]')
+      const main = shell?.querySelector('main') as HTMLElement | null
+      const rows = [...(main?.querySelectorAll<HTMLElement>('ol > li') ?? [])].filter(
+        (row) => row.getClientRects().length > 0,
+      )
+      return {
+        railWidth: (rail as HTMLElement | null)?.offsetWidth ?? 0,
+        mainWidth: main?.offsetWidth ?? 0,
+        columns: new Set(rows.map((row) => Math.round(row.getBoundingClientRect().left)))
+          .size,
+      }
+    })
+
+    // The rail costs 264px and the predictor still lays two fixtures across —
+    // the measurement that would catch a rail grown greedy.
+    expect(measurement.railWidth).toBe(264)
+    expect(measurement.mainWidth).toBe(1920 - 264)
+    expect(measurement.columns).toBeGreaterThanOrEqual(2)
+  })
+})
+
+/* ========================================================================== *
+ * Reduced motion
+ * ========================================================================== */
 
 test.describe('reduced motion', () => {
-  test('lays out identically with the preference set', async ({ page }) => {
-    await open(page, 'content-430')
-    const normal = await read(page)
+  test('is the same shell with the travel removed', async ({ page }) => {
+    await open(page, 'reduced-motion')
+    const reading = await read(page)
+    expectShellBaseline(reading, 'the shell under reduced motion')
 
-    await page.emulateMedia({ reducedMotion: 'reduce' })
-    await open(page, 'content-430')
-    const reduced = await read(page)
-
-    // The reduced path removes travel, not content, bounds or composition.
-    expect(reduced.navigationShape).toBe(normal.navigationShape)
-    expect(reduced.contentWidth).toBe(normal.contentWidth)
-    expect(reduced.contentInsetStart).toBe(normal.contentInsetStart)
-    expect(reduced.horizontalOverflow).toBe(0)
-    expect(reduced.smallTargets).toEqual([])
-    expect(reduced.clipped).toEqual([])
-  })
-})
-
-test.describe('the skip link', () => {
-  test('appears on focus and moves focus into the page', async ({ page }) => {
-    await open(page, 'content-430')
-
-    const before = await page.evaluate(
-      () =>
-        (
-          document.querySelector('[data-vnext-shell] a') as HTMLElement
-        ).getBoundingClientRect().width,
-    )
-    expect(before, 'the skip link should cost no layout until it is focused').toBeLessThan(
-      2,
-    )
-
-    await page.evaluate(() =>
-      (document.querySelector('[data-vnext-shell] a') as HTMLElement).focus(),
-    )
-
-    const focused = await page.evaluate(() => {
-      const link = document.querySelector('[data-vnext-shell] a') as HTMLElement
-      const box = link.getBoundingClientRect()
-      return { width: box.width, height: box.height, href: link.getAttribute('href') }
-    })
-
-    expect(focused.width, 'the focused skip link should be visible').toBeGreaterThan(80)
-    expect(focused.height, 'the focused skip link should clear 44px').toBeGreaterThanOrEqual(
-      44,
-    )
-
-    await page.evaluate(() =>
-      (document.querySelector('[data-vnext-shell] a') as HTMLElement).click(),
-    )
-    expect(
-      await page.evaluate(() => document.activeElement?.tagName),
-      'the skip link should move focus into the content region',
-    ).toBe('MAIN')
+    // Nothing is LOST under reduced motion — the same controls, the same words.
+    expect(reading.chromeText).toContain('Premier League')
+    expect(reading.attentionControls).toBe(1)
   })
 })

@@ -154,6 +154,12 @@
      literals so a concept cannot quietly invent a fourth level. */
   --vnext-layer-raised: 1;
   --vnext-layer-sticky: 2;
+  /* Stage 7.6. The accepted shell gained three overlays — the competition
+     sheet, the attention list and Jump — and every one of them must cover the
+     sticky masthead that opened it. Stage 7.5's concepts wrote
+     `calc(var(--vnext-layer-sticky) + 1)` at each site and reported it as a
+     gap; this is that gap closed, ADDITIVELY, with no existing value changed. */
+  --vnext-layer-overlay: 3;
 
   /* HOW TALL THE FRAME IS, WHEN THE FRAME KNOWS.
      `none` is the honest default: a vNext frame dropped into an ordinary page

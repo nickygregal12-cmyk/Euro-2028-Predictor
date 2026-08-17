@@ -25,7 +25,7 @@ import styles from './VNextPredictorStates.module.css'
 
 export function VNextPredictorLoading() {
   return (
-    <VNextShell destination="fixtures" header={<VNextPageHeader title="Match Predictor" />}>
+    <VNextShell destination="games" header={<VNextPageHeader title="Match Predictor" />}>
       {/* `role="group"` because ARIA prohibits a name on the generic role, so an
           `aria-label` on a bare div reaches nobody. Named and marked busy once —
           deliberately not a live region, which would narrate the whole load. */}
@@ -71,7 +71,7 @@ export type VNextPredictorNoticeProps = {
  */
 export function VNextPredictorNotice({ title, body, onRetry }: VNextPredictorNoticeProps) {
   return (
-    <VNextShell destination="fixtures" header={<VNextPageHeader title="Match Predictor" />}>
+    <VNextShell destination="games" header={<VNextPageHeader title="Match Predictor" />}>
       <div className={styles.notice} role="group">
         <h2 className={`${typography.title} ${styles.noticeTitle}`}>{title}</h2>
         <p className={`${typography.body} ${styles.noticeBody}`}>{body}</p>

@@ -56,6 +56,19 @@ export { rehearsePredictor } from './predictor/rehearse'
  */
 export { iaScenarioNames, iaScenarios } from './ia/scenarios'
 export type { IaScenarioName } from './ia/scenarios'
+/**
+ * Stage 7.6's SELECTED shell worlds.
+ *
+ * The registry and its premises, and nothing else: the competition identities
+ * and the game builders are inputs to the scenarios rather than things a story
+ * or a test has any business reaching for. A review surface renders a WORLD.
+ */
+export {
+  shellScenarioNames,
+  shellScenarioPremises,
+  shellScenarios,
+} from './shell/scenarios'
+export type { ShellScenarioName } from './shell/scenarios'
 export {
   COMPETITION_NOW,
   DECISION_NOW,

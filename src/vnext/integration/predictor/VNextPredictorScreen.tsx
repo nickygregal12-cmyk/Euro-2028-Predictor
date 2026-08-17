@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import type { MatchPredictorGateway } from '../../../features/season/matchPredictorModel'
 import { useSeasonMatchPredictor } from '../../../features/season/useSeasonMatchPredictor'
 import type { PredictorActions } from '../../models/predictor'
+import type { ShellIntent } from '../../models/shell'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { buildShellModel } from '../shell/buildShellModel'
 import { VNextMatchPredictor } from '../../predictor/VNextMatchPredictor'
 import { buildPredictorModel } from './buildPredictorModel'
 import type { PredictorSource } from './predictorSource'
@@ -42,14 +45,74 @@ import { VNextPredictorLoading, VNextPredictorNotice } from './VNextPredictorSta
  * is no previous player's card left to compose with the current player's identity,
  * not even for one render. That is Stage 6's rule kept by the means available here
  * rather than by forking a shared hook.
+ *
+ * WHY IT SUPPLIES A SHELL MODEL — STAGE 7.6. The shell around this page owns the
+ * active football context, competition switching, discovery and the four
+ * destinations, and the page owns none of them; something on the connected path
+ * has to hand the shell the world, and this is the file that knows the
+ * competition. It states the ONE competition the play context answered for and
+ * nothing else — see `../shell/shellSource.ts` for what the application cannot
+ * say yet and why nothing is invented to fill it.
+ *
+ * THE OUTSTANDING COUNT IS NOT SUPPLIED HERE, and that is deliberate. The card
+ * lives one component down, behind `useSeasonMatchPredictor`; hoisting the count
+ * up to this level to badge the navigation would mean loading the card twice or
+ * lifting a hook that owns optimistic saving. The page itself prints the
+ * progress in its own brief, which is where a player entering scores is looking.
  */
 
-export type VNextPredictorScreenProps = VNextPredictorContextInput
+export type VNextPredictorScreenProps = VNextPredictorContextInput & {
+  /**
+   * What the host does with a shell intent. Supplying it is what makes Explore
+   * and the account control appear: a host with nowhere to send the player gets
+   * no control rather than an inert one.
+   */
+  readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+}
 
 export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
   const state = useVNextPredictorContext(props)
   const createGateway = useGatewayFactory()
 
+  const shell = useMemo(
+    () =>
+      state.status === 'ready'
+        ? buildShellModel({
+            competition: {
+              tournamentId: state.competition.tournamentId,
+              name: state.competition.name,
+              seasonLabel: state.competition.seasonLabel,
+              // No application read holds a competition palette; the mapper
+              // resolves one from the model, and the model is built below this
+              // point. The shell falls back to a neutral canvas rather than
+              // painting an unknown competition somebody else's colours.
+              colours: null,
+            },
+            playerName: null,
+            outstandingPredictions: null,
+            canNavigateAway: props.onShellIntent !== undefined,
+          })
+        : null,
+    [state, props.onShellIntent],
+  )
+
+  return shell === null ? (
+    <VNextPredictorBody state={state} createGateway={createGateway} />
+  ) : (
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+      <VNextPredictorBody state={state} createGateway={createGateway} />
+    </VNextShellProvider>
+  )
+}
+
+/** The five sentences and the card, unchanged by Stage 7.6. */
+function VNextPredictorBody({
+  state,
+  createGateway,
+}: {
+  readonly state: ReturnType<typeof useVNextPredictorContext>
+  readonly createGateway: GatewayFactory | null
+}) {
   switch (state.status) {
     case 'loading':
       return <VNextPredictorLoading />

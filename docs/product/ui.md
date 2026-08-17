@@ -43,8 +43,25 @@ When real integration begins later:
 - provider enrichment remains provisional context unless a separate authority promotes a field to a stronger role;
 - responsive, accessibility and reduced-motion behaviour are part of acceptance, not later polish.
 
+## vNext information architecture
+
+The vNext navigation and information architecture is **SELECTED** as of Stage
+7.6: **the Competition Deck** — a player is inside a football competition, and
+`Home · Matches · Games · Leagues` are that competition's own destinations.
+Cross-competition attention is a secondary layer over it and a Jump accelerator
+is an optional shortcut past it; neither is a destination.
+
+That decision, its rationale, the `Games` versus `Play` naming comparison and
+the binding one-competition and scale contracts are in
+[`vnext-shell-ia.md`](vnext-shell-ia.md). The lab that produced the options is
+[`vnext-ia-lab.md`](vnext-ia-lab.md) and remains the evidence for it.
+
+**It is not a production cutover.** vNext is still a parallel lane; no route was
+repointed and the legacy Hub navigation is untouched.
+
 ## Where to go next
 
+- **selected vNext information architecture: [`vnext-shell-ia.md`](vnext-shell-ia.md)**
 - vNext implementation scope: [`../../src/vnext/AGENTS.md`](../../src/vnext/AGENTS.md)
 - legacy/current production UI maintenance: [`../design/README.md`](../design/README.md)
 - product/rule decisions: [`../adr/README.md`](../adr/README.md)
