@@ -1,0 +1,96 @@
+name: Agent tooling smoke
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'config/agent-tools.json'
+      - '.devcontainer/**'
+      - '.graphifyignore'
+      - 'scripts/agent-tools/**'
+      - 'tests/scripts/agentToolConfiguration.test.ts'
+      - 'docs/ops/graphify-navigation.md'
+      - 'docs/ops/omniroute-agent-routing.md'
+      - '.github/workflows/agent-tooling-smoke.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Install pinned Graphify and OmniRoute
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Read canonical versions
+        id: versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "node=$(node -p "require('./package.json').engines.node")" >> "${GITHUB_OUTPUT}"
+          echo "graphify=$(node -p "require('./config/agent-tools.json').graphify.version")" >> "${GITHUB_OUTPUT}"
+          echo "omniroute=$(node -p "require('./config/agent-tools.json').omniroute.version")" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up repository Node version
+        uses: actions/setup-node@1e60f620b9541d28c5407b88132d438dcf59e022 # v4
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Validate helper syntax and configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/agent-tools/bootstrap.sh
+          bash -n scripts/agent-tools/graphify-deep-via-omniroute.sh
+          node -e "JSON.parse(require('fs').readFileSync('.devcontainer/devcontainer.json', 'utf8'))"
+          node -e "JSON.parse(require('fs').readFileSync('config/agent-tools.json', 'utf8'))"
+
+      - name: Install and identify Graphify
+        shell: bash
+        env:
+          GRAPHIFY_VERSION: ${{ steps.versions.outputs.graphify }}
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "graphifyy[sql,openai]==${GRAPHIFY_VERSION}"
+          python - <<'PY'
+          from importlib.metadata import version
+          print(f"graphifyy {version('graphifyy')}")
+          PY
+          graphify --help >/dev/null
+
+      - name: Install and identify OmniRoute
+        shell: bash
+        env:
+          OMNIROUTE_VERSION: ${{ steps.versions.outputs.omniroute }}
+        run: |
+          set -euo pipefail
+          prefix="${RUNNER_TEMP}/omniroute"
+          npm install --global --prefix "${prefix}" --no-fund --no-audit "omniroute@${OMNIROUTE_VERSION}"
+          "${prefix}/bin/omniroute" --version
+          "${prefix}/bin/omniroute" --help >/dev/null
+
+      - name: Summary
+        shell: bash
+        run: |
+          {
+            echo '## Agent tooling smoke'
+            echo
+            echo "- Node: \`${{ steps.versions.outputs.node }}\`"
+            echo "- Graphify: \`${{ steps.versions.outputs.graphify }}\` (SQL + OpenAI-compatible extras installed)"
+            echo "- OmniRoute: \`${{ steps.versions.outputs.omniroute }}\`"
+            echo '- No provider credential was configured and no model request was made.'
+          } >> "${GITHUB_STEP_SUMMARY}"
