@@ -1,0 +1,4 @@
+model_id,league,family,version,status
+M1,EPL,logistic,v1.0,current
+M2,EPL,poisson,v1.0,challenger
+M3,SPL,logistic,v1.0,current

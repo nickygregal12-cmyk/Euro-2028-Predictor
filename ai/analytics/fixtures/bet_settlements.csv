@@ -1,0 +1,4 @@
+recommendation_id,outcome,profit_units,closing_price,clv
+R1,win,0.90,1.95,0.026
+R3,loss,-1.00,,
+R4,win,0.40,1.38,-0.014

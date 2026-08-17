@@ -1,0 +1,7 @@
+fixture_id,league,season,kickoff_utc,home_team,away_team,home_goals,away_goals,status
+FX1,EPL,2026/27,2026-09-12 14:00:00,Arsenal,Chelsea,2,1,completed
+FX2,EPL,2026/27,2026-09-19 14:00:00,Liverpool,Everton,1,1,completed
+FX3,EPL,2026/27,2026-10-03 14:00:00,Spurs,Fulham,0,2,completed
+FX4,EPL,2026/27,2026-10-10 14:00:00,Brighton,Burnley,,,scheduled
+FX5,SPL,2026/27,2026-09-12 14:00:00,Celtic,Hearts,3,0,completed
+FX6,SPL,2026/27,2026-10-03 14:00:00,Rangers,Aberdeen,,,scheduled
