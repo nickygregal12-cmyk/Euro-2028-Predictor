@@ -134,7 +134,11 @@ function useGatewayFactory(): GatewayFactory | null {
  *
  * EVERY COMMAND GOES OUT THROUGH THAT HOOK AND NOWHERE ELSE. `setPrediction`,
  * `setJoker` and `confirmCard` are `MatchPredictorCommand`'s three cases; `retry`
- * and `reload` are its own recovery controls. Nothing here writes to Supabase, and
+ * and `reload` are its own recovery controls, and `refreshAfterDeadline` is its
+ * save-safe re-read — the one the deadline clock is given, so a timer can never
+ * run the destructive recovery path over a write that has not settled. Nothing
+ * here decides when that is safe: the hook does, from its own save controller.
+ * Nothing here writes to Supabase, and
  * `clearPrediction` is `setPrediction(id, null)` — the application's own way of
  * clearing, because `save_season_prediction` deletes the row on a null home score
  * rather than treating null as an absent argument.
@@ -169,7 +173,7 @@ function PredictorCard({
 
   const view = useSeasonMatchPredictor(gateway, context.matchweek)
 
-  const { setPrediction, setJoker, confirmCard, retrySave, reload } = view
+  const { setPrediction, setJoker, confirmCard, retrySave, reload, refreshAfterDeadline } = view
 
   const actions: PredictorActions = useMemo(
     () => ({
@@ -179,8 +183,9 @@ function PredictorCard({
       confirmCard,
       retrySave,
       reload,
+      refreshAfterDeadline,
     }),
-    [setPrediction, setJoker, confirmCard, retrySave, reload],
+    [setPrediction, setJoker, confirmCard, retrySave, reload, refreshAfterDeadline],
   )
 
   const model = useMemo(() => {

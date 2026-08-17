@@ -84,6 +84,7 @@ function spyActions(): PredictorActions & { calls: string[] } {
     confirmCard: () => calls.push('confirmCard'),
     retrySave: (fixtureId) => calls.push(`retrySave:${fixtureId}`),
     reload: () => calls.push('reload'),
+    refreshAfterDeadline: () => calls.push('refreshAfterDeadline'),
   }
 }
 
@@ -118,6 +119,7 @@ function Harness({ initial }: { initial: PredictorModel }) {
     confirmCard: () => setModel((current) => rehearsePredictor(current, { kind: 'confirmCard' })),
     retrySave: () => {},
     reload: () => {},
+    refreshAfterDeadline: () => {},
   }
   return <VNextMatchPredictor model={model} actions={actions} />
 }

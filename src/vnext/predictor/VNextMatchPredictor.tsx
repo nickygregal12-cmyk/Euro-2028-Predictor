@@ -86,9 +86,14 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
   const displayNow = useDeadlineClock({
     generatedAt: model.generatedAt,
     lock: model.lock,
-    // The existing recovery command on the existing hook. vNext asks; the server
-    // answers; the answer arrives as the next model.
-    onBoundaryReached: actions.reload,
+    // THE BOUNDARY COMMAND, WHICH IS NOT THE RECOVERY ONE. `reload` abandons
+    // whatever this device was still writing, which is right when a player asks
+    // for it and wrong when a clock does — a deadline arriving between a save
+    // leaving and its replacement being queued would throw the replacement away.
+    // `refreshAfterDeadline` is the application's save-safe answer to the same
+    // question. vNext asks; the server answers; the answer arrives as the next
+    // model.
+    onBoundaryReached: actions.refreshAfterDeadline,
   })
 
   /**

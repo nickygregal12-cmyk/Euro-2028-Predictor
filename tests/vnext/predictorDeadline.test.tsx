@@ -28,6 +28,16 @@ import type { PredictorActions, PredictorModel } from '../../src/vnext/models/pr
  * clock has been driven hours past the lock, which is precisely the state a
  * `Date.now() >= lockAt` shortcut would have broken.
  *
+ * AND A THIRD, ADDED BY THE SECOND CORRECTION: browser time may not run a
+ * DESTRUCTIVE command. The boundary was first wired to `actions.reload`, which
+ * resets the save controller — cancelling retries and discarding the newer
+ * scoreline queued behind an in-flight save. The surface is now given
+ * `actions.refreshAfterDeadline` instead, and this file records the two commands
+ * separately so every boundary assertion below is also an assertion that the
+ * recovery command was not reached. What that safe refresh then does with an
+ * unsettled write is the application's, and is proven in
+ * `tests/features/season/seasonBoundaryRefresh.test.ts`.
+ *
  * FAKE TIMERS THROUGHOUT, and `vi.setSystemTime` where a BACKGROUND tab is being
  * simulated: a throttled or frozen tab is exactly the case where the clock moves
  * and the interval callback does not, and `advanceTimersByTime` cannot express
@@ -53,7 +63,13 @@ function recorder() {
     setJoker: (played) => calls.push(`setJoker:${played}`),
     confirmCard: () => calls.push('confirmCard'),
     retrySave: (fixtureId) => calls.push(`retrySave:${fixtureId}`),
+    // RECORDED SEPARATELY, WHICH IS THE POINT. `reload` is the destructive
+    // recovery command a player chooses; `refreshAfterDeadline` is the save-safe
+    // re-read a timer is allowed to ask for. Every assertion below that expects
+    // `refreshAfterDeadline` is therefore also asserting that the timer did NOT
+    // reach the command that resets the save controller.
     reload: () => calls.push('reload'),
+    refreshAfterDeadline: () => calls.push('refreshAfterDeadline'),
   }
   return { calls, actions }
 }
@@ -205,8 +221,35 @@ describe('crossing the lock instant', () => {
       vi.advanceTimersByTime(86 * MINUTE)
     })
 
-    // THE EXISTING RECOVERY COMMAND, and nothing else.
-    expect(calls).toEqual(['reload'])
+    // THE EXISTING SAVE-SAFE RE-READ, and nothing else. Not `reload`: that one
+    // resets the save controller, and a timer that did it would discard a
+    // scoreline queued behind an in-flight save.
+    expect(calls).toEqual(['refreshAfterDeadline'])
+  })
+
+  it('never reaches the destructive recovery command, however long it waits', () => {
+    /**
+     * THE SECOND FINDING, HELD AT THE SURFACE.
+     *
+     * `actions.reload` resets the save controller: it clears every key's state,
+     * cancels scheduled retries and throws away the newer scoreline the
+     * coordinator is holding behind an in-flight one. That is the right reading
+     * of a click and the wrong reading of a clock. The surface is given a
+     * different command for the boundary, and this asserts that the recovery one
+     * is unreachable from the timer no matter how far past the deadline the page
+     * is left — the crossing itself, a whole day after it, and a foreground
+     * return on top.
+     */
+    const { calls, actions } = recorder()
+    renderPredictor(closingPredictorModel, actions)
+
+    act(() => {
+      vi.advanceTimersByTime(25 * 60 * MINUTE)
+    })
+    returnToForeground()
+
+    expect(calls).not.toContain('reload')
+    expect(calls).toEqual(['refreshAfterDeadline'])
   })
 
   it('manufactures no locked state while it waits for the answer', () => {
@@ -284,8 +327,8 @@ describe('when the reload comes back still open', () => {
           model={model}
           actions={{
             ...actions,
-            reload: () => {
-              actions.reload()
+            refreshAfterDeadline: () => {
+              actions.refreshAfterDeadline()
               // The authority answers, and its answer is the same open card at the
               // same instant — freshly stamped, which is what a real reload does.
               setModel((current) => ({ ...current, generatedAt: new Date().toISOString() }))
@@ -304,7 +347,7 @@ describe('when the reload comes back still open', () => {
     act(() => {
       vi.advanceTimersByTime(86 * MINUTE)
     })
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
 
     act(() => {
       vi.advanceTimersByTime(240 * MINUTE)
@@ -312,7 +355,7 @@ describe('when the reload comes back still open', () => {
 
     // Exactly one, four hours later. The watch re-arms only when the AUTHORITY
     // supplies a different instant.
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
 
     // And the page still reflects the authoritative answer rather than a local
     // opinion about it.
@@ -331,8 +374,8 @@ describe('when the reload comes back still open', () => {
           model={model}
           actions={{
             ...actions,
-            reload: () => {
-              actions.reload()
+            refreshAfterDeadline: () => {
+              actions.refreshAfterDeadline()
               // The postponement case, and the one that makes a single-slot memory
               // correct rather than merely cheap: the same card, a new instant.
               setModel((current) => ({
@@ -358,7 +401,7 @@ describe('when the reload comes back still open', () => {
     act(() => {
       vi.advanceTimersByTime(85 * MINUTE)
     })
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
 
     // The new deadline is the active one, counted from the new instant.
     expect(briefCountdown()).toBe('1 hr 30 min')
@@ -366,14 +409,14 @@ describe('when the reload comes back still open', () => {
     act(() => {
       vi.advanceTimersByTime(30 * MINUTE)
     })
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
 
     act(() => {
       vi.advanceTimersByTime(70 * MINUTE)
     })
 
     // One more, for the new boundary. Not two, and not a stream.
-    expect(calls).toEqual(['reload', 'reload'])
+    expect(calls).toEqual(['refreshAfterDeadline', 'refreshAfterDeadline'])
   })
 })
 
@@ -419,6 +462,7 @@ describe('identity', () => {
       confirmCard: () => {},
       retrySave: () => {},
       reload: () => sink.calls.push('reload'),
+      refreshAfterDeadline: () => sink.calls.push('refreshAfterDeadline'),
     })
 
     const view = render(
@@ -465,6 +509,7 @@ describe('identity', () => {
       confirmCard: () => {},
       retrySave: () => {},
       reload: () => sink.calls.push('reload'),
+      refreshAfterDeadline: () => sink.calls.push('refreshAfterDeadline'),
     })
 
     const view = render(
@@ -544,7 +589,7 @@ describe('a tab that was in the background', () => {
 
     // THE CASE THE FINDING WAS ACTUALLY ABOUT. The player is back, the matchweek
     // kicked off while they were away, and the page's first act is to ask.
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
     // And still not to decide: the card on screen is the one the application last
     // described, until it describes another.
     expect(screen.getAllByRole('textbox').length).toBeGreaterThan(0)
@@ -629,14 +674,14 @@ describe('browser time is never a permission', () => {
     passed()
 
     // The boundary refresh was requested; that is the only thing the clock did.
-    expect(calls).toEqual(['reload'])
+    expect(calls).toEqual(['refreshAfterDeadline'])
 
     screen.getByRole('button', { name: /confirm card/i }).click()
 
     // A page that had locked itself would have swallowed this. The command is
     // issued and the server refuses it or does not — which is where that decision
     // has always belonged.
-    expect(calls).toEqual(['reload', 'confirmCard'])
+    expect(calls).toEqual(['refreshAfterDeadline', 'confirmCard'])
   })
 
   it('does not talk a locked card into offering controls either', () => {

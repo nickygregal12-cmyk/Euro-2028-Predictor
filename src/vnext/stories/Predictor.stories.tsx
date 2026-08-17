@@ -79,11 +79,15 @@ function Rehearsed({ scenario }: { scenario: PredictorScenarioName }) {
     setJoker: (played) =>
       setModel((current) => rehearsePredictor(current, { kind: 'setJoker', played })),
     confirmCard: () => setModel((current) => rehearsePredictor(current, { kind: 'confirmCard' })),
-    // A rehearsal has no failing save to retry and no server to re-read, so both
-    // recovery controls reset the scenario. That is honest about the harness: it
-    // shows what the control looks like and claims nothing about what it does.
+    // A rehearsal has no failing save to retry and no server to re-read, so all
+    // three re-read controls reset the scenario. That is honest about the
+    // harness: it shows what the control looks like and claims nothing about
+    // what it does. The distinction the application draws between an explicit
+    // `reload` and the deadline's `refreshAfterDeadline` is about unsettled
+    // writes, and a rehearsal has none to be unsafe with.
     retrySave: () => setModel(predictorScenarios[scenario]),
     reload: () => setModel(predictorScenarios[scenario]),
+    refreshAfterDeadline: () => setModel(predictorScenarios[scenario]),
   }
 
   return <VNextMatchPredictor model={model} actions={actions} />

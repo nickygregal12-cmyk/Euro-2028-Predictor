@@ -19,7 +19,9 @@ import type { PredictorLock } from '../models/predictor'
  * `locked`, `closed`, non-editability, a Joker refusal, a settlement or a
  * consensus reveal, and it does not so much as look at `editable`: those are the
  * application's, they arrive on the model, and the only thing this file can do
- * about a passed deadline is call `reload` and draw whatever comes back. There is
+ * about a passed deadline is call `refreshAfterDeadline` and draw whatever comes
+ * back — including WHEN that refresh is safe to perform, which is the
+ * application's answer too and not a delay invented here. There is
  * deliberately no `if (Date.now() >= lockAt)` anywhere in the predictor lane, and
  * `tests/vnext/predictorDeadline.test.tsx` holds that by advancing the clock
  * across a lock and asserting that `editable`, `lock.kind`, the Joker and every
@@ -123,9 +125,16 @@ export type DeadlineClockOptions = {
    */
   readonly lock: PredictorLock
   /**
-   * ASK THE AUTHORITY AGAIN. `PredictorActions.reload`, which is
-   * `useSeasonMatchPredictor`'s own recovery control, so the answer to "is this
+   * ASK THE AUTHORITY AGAIN. `PredictorActions.refreshAfterDeadline`, which is
+   * `useSeasonMatchPredictor`'s SAVE-SAFE re-read, so the answer to "is this
    * matchweek still open" comes back from the server that owns it.
+   *
+   * DELIBERATELY NOT `reload`. That control is a recovery command: it resets the
+   * save controller, which cancels scheduled retries and discards the newer
+   * value the coordinator is holding behind an in-flight one. A player who
+   * changed 1–0 to 2–0 a second before kickoff would have had 2–0 dropped by a
+   * timer. What happens while a write is unsettled is the application's to
+   * decide and it decides it there; this file only says when to ask.
    */
   readonly onBoundaryReached: () => void
 }
@@ -213,6 +222,12 @@ export function useDeadlineClock({
    * AUTHORITY supplies a different `lock.at`, which is the authority deciding
    * that there is a new deadline to watch rather than the browser deciding it is
    * owed a fresh answer.
+   *
+   * ONE ASK, EVEN WHEN THE ANSWER IS DEFERRED. `refreshAfterDeadline` may hold
+   * the request until every save is settled, so a boundary can be marked here
+   * well before the card is re-read. Asking a second time would not make it
+   * arrive sooner — the application is already holding exactly one request, and
+   * releases it itself.
    */
   const refreshedFor = useRef<string | null>(null)
 

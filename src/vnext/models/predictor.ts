@@ -86,8 +86,10 @@ export type PredictorLock = {
    * is `kind`'s job, and `kind` came from the server's resolved state.
    *
    * REACHING IT IS ALLOWED TO DO EXACTLY ONE THING: ask again. `useDeadlineClock`
-   * requests `actions.reload` once per distinct instant on an `open` card, and
-   * whatever the application then says is the new answer — including "still open".
+   * requests `actions.refreshAfterDeadline` once per distinct instant on an `open`
+   * card, and whatever the application then says is the new answer — including
+   * "still open". It is deliberately NOT `actions.reload`: that one is a recovery
+   * command that abandons unsettled writes, which a timer may not do.
    */
   readonly at: string | null
 }
@@ -411,4 +413,20 @@ export type PredictorActions = {
   confirmCard: () => void
   retrySave: (fixtureId: string) => void
   reload: () => void
+  /**
+   * THE BOUNDARY REFRESH, AND WHY IT IS NOT `reload`.
+   *
+   * `reload` is a RECOVERY command a player chose: it abandons what this device
+   * was still trying to write, because that is what "show me what the server
+   * holds" means. `refreshAfterDeadline` is requested by a clock nobody pressed,
+   * and a timer that abandoned an in-flight save, a coalesced newer scoreline or
+   * a scheduled retry would silently lose a prediction at the exact moment a
+   * prediction is worth most.
+   *
+   * The application supplies both. `useSeasonMatchPredictor.refreshAfterDeadline`
+   * defers to the existing save authority and re-reads the card only once every
+   * key is terminal and clean; the surface knows nothing about that, and only
+   * that these are two different questions.
+   */
+  refreshAfterDeadline: () => void
 }
