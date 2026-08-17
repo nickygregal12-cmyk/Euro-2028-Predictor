@@ -17,6 +17,7 @@
   max-width: 100%;
 }
 
-.railWidth {
-  width: var(--vnext-nav-rail);
+.bandWidth {
+  width: 520px;
+  max-width: 100%;
 }

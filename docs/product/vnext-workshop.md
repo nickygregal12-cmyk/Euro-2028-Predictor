@@ -15,12 +15,12 @@ is what the workshop is currently *testing*, so the next stage can argue with it
 entirely on deterministic fixtures: no Supabase, no provider calls, no routing,
 no application state. Nothing in it is wired into the running product.
 
-**There is still no approved Home screen in it.** Stage 2's `WorkshopHomeSketch`
-has been deleted — it was explicitly disposable, and Stage 3's three concepts
-replaced its purpose. What remains in `workshop/` is `AppFrameProbe`, a plain
-rig that populates `AppFrame`'s four regions so the browser-level frame contract
-still has something to measure. It is hidden from the Storybook review sidebar
-so a rig cannot be reviewed as a fourth design.
+**There is now one approved Home, in `src/vnext/home/`.** It is the Gold
+Standard surface and the quality bar the rest of vNext inherits from. The three
+Stage 3 concepts have been removed — git history holds them — along with
+`AppFrame`, `Rail` and the `AppFrameProbe` rig that existed to measure the
+frame. What remains in `workshop/` is `WorkshopCanvas`, the container-framed
+device board every review runs in.
 
 ## Visual principles being tested
 
@@ -98,46 +98,84 @@ settlement in the fixtures are presentation inputs. Optional fields are optional
 honestly: `crestUrl` is null everywhere because no crest source is agreed, and
 provisional points are flagged as provisional because the backend awards points.
 
+## What Home is
+
+**One shell, three emphases.** Home does not give the same content equal
+prominence at all times. `selectHomeEmphasis(model)` answers one question —
+what should be biggest — from state the model already supplied, and the shell
+reorders around the answer:
+
+| Emphasis | When | Dominant zone |
+| --- | --- | --- |
+| **Live** | the model has live matches | the featured live fixture |
+| **Decision** | nothing live, and a pressing prediction decision | a cinematic next-decision hero |
+| **Competition** | neither | the league race and the season figures |
+
+The masthead, score bar, navigation, typography, spacing, surfaces,
+team-colour language and motion are identical in all three. Same stadium,
+different match state — not three Homes.
+
+**That selector is presentation and nothing else.** It reads
+`model.liveMatches` rather than comparing kick-offs against the clock, and
+`primaryAction.urgency` rather than deciding whether a prediction is still
+editable. It is not an authority for locks, scoring, settlement, reveal,
+official match status or progression, and a test holds that by feeding it a
+model whose "live" fixture kicks off in 2099.
+
+**Selected: Matchday Arena**, with competitive intelligence borrowed from Game
+Command Centre and selective cinematic emphasis from Cinematic Football. The
+full decision, including what was deliberately left behind, the navigation
+terminology and the `AppFrame` removal, is in
+[`vnext-home-concepts.md`](vnext-home-concepts.md).
+
+## Scenarios
+
+Home is reviewed against four deterministic states, all one `HomeModel` schema:
+the canonical live matchday, the same matchday four hours earlier (decision),
+the Tuesday after (competition), and a new user with no private league looking
+at fixtures that carry no venue, head to head or consensus. They are visual
+fixtures; none of them invents a rule.
+
 ## Deliberately unresolved
 
-These are for the concept stage to decide, not for this note to settle:
+Home settled the questions about Home. These are still open:
 
-- How cinematic should Home be — full-bleed featured match, or a dense board?
-- How dominant should live football be when matches are in play, and what should
-  Home look like on a Tuesday when nothing is on?
-- How much league and rival context belongs above the fold?
-- How much is visible at once versus progressively disclosed?
-- The exact desktop navigation composition, and whether the context column is a
-  navigation surface or a competition surface.
-- The exact mobile navigation treatment, and whether the primary action lives in
-  it.
-- How strongly team colours should influence a fixture — accent only, or the
-  whole card.
-- Whether a light theme is in scope for the alpha.
+- Whether a light theme is in scope for the alpha. **Deferred** — vNext is dark
+  and the direction works dark.
 - Time zone handling. The workshop pins Europe/London for determinism; the real
   product must use the user's zone.
-- Whether score changes should be announced to assistive technology while a match
-  is live, and how.
+- Whether score changes should be announced to assistive technology while a
+  match is live, and how. `LiveIndicator` is `aria-live="off"` on purpose; a
+  polite region on a minute that changes constantly would talk over everything
+  else. Designing the announcement properly is its own piece of work.
+- How much of Home's language survives contact with Match Predictor, Match
+  Centre, Matches, Leagues, Predictor Championship and Last Man Standing. Home
+  is built to be inherited from; nothing has inherited from it yet.
+- Everything about real data. Home runs on fixtures and calls nothing.
 
-## The three concepts, and what is still open
+### Settled by Home, and no longer open
 
-Stage 3 built them: **Matchday Arena**, **Game Command Centre** and **Cinematic
-Football**, in `src/vnext/concepts/`, reviewed through the `vNext/Home Concepts`
-Storybook group at all five widths with a reduced-motion story each. Their
-rationale is in [`vnext-home-concepts.md`](vnext-home-concepts.md); the
-screenshots do the rest of the talking.
+How cinematic Home should be (once, on the next decision — not everywhere); how
+dominant live football is when matches are in play (it takes the stage); what
+Home looks like on a Tuesday (the competition emphasis); how much league and
+rival context belongs above the fold (the gap and the two adjacent rivals, not a
+table); the desktop and mobile navigation treatments (a masthead band and a
+bottom bar, four destinations, terminology "Home"); and how strongly team colour
+influences a fixture (loud on the featured moment, a spine elsewhere, never
+semantic).
 
-All three consume the one Home model and the one matchday. No model extension
-was needed to build them, which is the most useful thing the exercise proved
-about the model.
+## What the exploration settled by measurement
 
-Each concept answers the questions above differently and on purpose, so those
-questions are **not** settled by this note — they are settled by whichever
-concept, or combination of concepts, the owner selects. Until that choice is
-made, no composition in `src/vnext/` should be treated as Home.
+**A dense zone must be sized against its own column, never against the page.**
+The same mistake appeared three times across the three concepts — a row that
+fitted at one width starved club names to "Ca…" and "E" at another.
 
-What the concepts DID settle, by measurement rather than by argument: a dense
-zone must be sized against its own column and never against the page. The same
-mistake was made three times across the three concepts — a four-column row that
-fitted at one width starved club names to a single letter at another — and each
-time the fix was a container query on the zone rather than on the shell.
+Home hit it a fourth time, at 768px, where "Inver Caledonian" clipped in a
+296px grounds column. The fix this time was not another threshold: the row
+**stops truncating**. A club name wraps to a second line and only then
+ellipsises, so no future composition can reopen it. A row that is occasionally
+two lines tall is worth more than a club called "Inver Caledonia…".
+
+The browser spec now measures this directly — any text clipped by its own box,
+in any zone, at any width, in any emphasis — rather than trusting a stylesheet
+to be read correctly. It found the 768px clip on the first run.

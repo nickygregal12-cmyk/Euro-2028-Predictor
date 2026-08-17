@@ -20,8 +20,7 @@ export default defineConfig({
     'axe-unauthenticated.spec.ts',
     'visual-gallery.spec.ts',
     // Storybook, not the application: vNext has no application route yet.
-    'vnext-workshop-layout.spec.ts',
-    'vnext-home-concepts.spec.ts',
+    'vnext-home.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',

@@ -1,39 +1,41 @@
-import type { Match, MatchSide } from '../../models/football'
-import {
-  formatCountdown,
-  formatKickoffLabel,
-  formatOrdinal,
-  formatShare,
-} from '../../foundations/format'
-import typography from '../../foundations/typography.module.css'
-import { FormRun } from '../../components/football/FormRun'
-import { LiveIndicator } from '../../components/football/LiveIndicator'
-import { TeamCrest } from '../../components/football/TeamCrest'
-import { fixtureColourStyle } from '../shared/teamColour'
-import styles from './arena.module.css'
+import type { Match, MatchSide } from '../models/football'
+import { formatOrdinal, formatShare } from '../foundations/format'
+import typography from '../foundations/typography.module.css'
+import { FormRun } from '../components/football/FormRun'
+import { LiveIndicator } from '../components/football/LiveIndicator'
+import { TeamCrest } from '../components/football/TeamCrest'
+import { fixtureColourStyle } from '../foundations/teamColour'
+import styles from './home.module.css'
 
-export type ArenaFeatureProps = {
+export type FeaturedMatchProps = {
   match: Match
-  now: string
 }
 
 /**
- * The stage: one match, given a whole zone.
+ * THE STAGE — one live match, given a whole zone.
  *
- * This is not "the MatchCard, bigger". A card lists a fixture; this composes a
- * broadcast graphic — the field painted in both clubs' colours, the scoreline
- * at display size with the minute beside it, and the user's own prediction
- * folded INTO the football rather than parked beneath it as a separate chip.
- * That last decision is the concept's whole argument: on a matchday, "you are
+ * This is Matchday Arena's strongest piece and it is kept almost intact,
+ * because it was already right: a card LISTS a fixture, this composes a
+ * broadcast graphic. The field is painted in both clubs' colours, the scoreline
+ * is at display size with the minute beside it, and the user's prediction is
+ * folded INTO the football rather than parked below it — on a matchday "you are
  * currently exactly right" is a fact about the match, not a fact about your
  * account.
  *
- * The colour field carries a scrim above it, so the text contrast is decided
- * by the scrim rather than by whichever two clubs happen to be playing.
+ * THE ONE THING THAT CHANGED IS THE ACTION, and it is a product decision rather
+ * than a visual one. Stage 3 made "Follow live" the loud primary and "Match
+ * centre" the quiet secondary. There is no follow, subscribe or notify concept
+ * anywhere in the model, in the product, or in anything that has been
+ * specified — so the loudest control on the most important card on Home was a
+ * promise of functionality that does not exist. It is gone, and Match Centre —
+ * a surface the product is actually going to build — is the single primary
+ * destination. One real action beats two, one of which is imaginary.
+ *
+ * The colour field carries a scrim, so text contrast is decided by the scrim
+ * rather than by whichever two clubs happen to be playing.
  */
-export function ArenaFeature({ match, now }: ArenaFeatureProps) {
+export function FeaturedMatch({ match }: FeaturedMatchProps) {
   const isLive = match.status === 'live' || match.status === 'halfTime'
-  const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
   const prediction = match.prediction
   const community = match.consensus?.community ?? null
   const friends = match.consensus?.friends ?? null
@@ -42,7 +44,7 @@ export function ArenaFeature({ match, now }: ArenaFeatureProps) {
     <article
       className={styles.feature}
       style={fixtureColourStyle(match.home.team, match.away.team)}
-      aria-labelledby={`${match.id}-arena-heading`}
+      aria-labelledby={`${match.id}-feature-heading`}
     >
       <div className={styles.featureField} aria-hidden="true" />
 
@@ -51,10 +53,8 @@ export function ArenaFeature({ match, now }: ArenaFeatureProps) {
           {isLive ? (
             <LiveIndicator status={match.status} clock={match.clock} />
           ) : (
-            <span className={`${typography.label} ${styles.featureKickoff}`}>
-              {match.status === 'fullTime'
-                ? 'Full time'
-                : formatKickoffLabel(match.kickoff, now)}
+            <span className={`${typography.label} ${styles.featureState}`}>
+              {match.status === 'fullTime' ? 'Full time' : 'Next up'}
             </span>
           )}
           <span className={styles.featureMeta}>
@@ -72,7 +72,7 @@ export function ArenaFeature({ match, now }: ArenaFeatureProps) {
         {/* The scoreline below is `aria-hidden` — "2 – 1" read out of a grid is
             not a sentence — so the accessible name of the whole stage is
             written here instead. */}
-        <h2 id={`${match.id}-arena-heading`} className={typography.srOnly}>
+        <h2 id={`${match.id}-feature-heading`} className={typography.srOnly}>
           {match.score
             ? `${match.home.team.name} ${match.score.home}–${match.score.away} ${match.away.team.name}`
             : `${match.home.team.name} versus ${match.away.team.name}`}
@@ -81,24 +81,19 @@ export function ArenaFeature({ match, now }: ArenaFeatureProps) {
         <div className={styles.scoreboard}>
           <FeatureSide side={match.home} align="start" />
           <p className={`${styles.featureScore} ${typography.numeric}`} aria-hidden="true">
-            {match.score ? (
-              <>
-                <span>{match.score.home}</span>
-                <span className={styles.featureScoreDash}>–</span>
-                <span>{match.score.away}</span>
-              </>
-            ) : (
-              <span className={styles.featureKickoffBig}>
-                {formatKickoffLabel(match.kickoff, now).replace('Today ', '')}
-              </span>
-            )}
+            <span>{match.score ? match.score.home : '–'}</span>
+            <span className={styles.featureScoreDash}>–</span>
+            <span>{match.score ? match.score.away : '–'}</span>
           </p>
           <FeatureSide side={match.away} align="end" />
         </div>
 
-        {/* The prediction, inside the football. */}
         {prediction ? (
-          <div className={styles.featureCall}>
+          <div
+            className={`${styles.featureCall} ${
+              callTone(match) === 'hit' ? styles.featureCallHit : styles.featureCallCold
+            }`}
+          >
             <span className={typography.label}>Your call</span>
             <span className={`${styles.featureCallScore} ${typography.numeric}`}>
               {prediction.score.home}–{prediction.score.away}
@@ -119,29 +114,29 @@ export function ArenaFeature({ match, now }: ArenaFeatureProps) {
           <div className={`${styles.featureCall} ${styles.featureCallOpen}`}>
             <span className={typography.label}>Your call</span>
             <span className={`${typography.body} ${styles.featureCallLine}`}>
-              Not predicted{countdown ? ` — locks in ${countdown}` : ''}
+              Not predicted
             </span>
           </div>
         )}
 
         {community ? (
-          <div className={styles.featureCrowd}>
-            <span className={typography.label}>The crowd</span>
-            <p className={`${typography.caption} ${styles.featureCrowdLine}`}>
-              {crowdLine(match, community.homeWinShare, community.awayWinShare)}
-              {friends
-                ? ` · ${friends.label}: ${formatShare(friends.awayWinShare)} away`
-                : ''}
-            </p>
-          </div>
+          <p className={`${typography.caption} ${styles.featureCrowd}`}>
+            <span className={typography.label}>The crowd</span>{' '}
+            {crowdLine(match, community.homeWinShare, community.awayWinShare)}
+            {friends
+              ? ` · ${friends.label}: ${formatShare(friends.awayWinShare)} on ${match.away.team.shortName}`
+              : ''}
+          </p>
         ) : null}
 
+        {/* ONE destination, and it is a real one. See the note above. */}
         <div className={styles.featureActions}>
           <button type="button" className={styles.featurePrimary}>
-            {isLive ? 'Follow live' : match.prediction ? 'Change prediction' : 'Predict'}
-          </button>
-          <button type="button" className={styles.featureSecondary}>
             Match centre
+            <span className={typography.srOnly}>
+              {' '}
+              for {match.home.team.name} versus {match.away.team.name}
+            </span>
           </button>
         </div>
       </div>
@@ -167,32 +162,53 @@ function FeatureSide({ side, align }: { side: MatchSide; align: 'start' | 'end' 
 }
 
 /**
- * The one sentence that says what the scoreline means for the user. It is
- * written rather than coloured, so it survives greyscale — and it never claims
- * points have been awarded while a match is still being played.
+ * The one sentence that says what the scoreline means for the user.
+ *
+ * WRITTEN, NOT COLOURED, so it survives greyscale — and it never claims points
+ * have been awarded while a match is still being played. "Provisional" is not
+ * decoration here: the backend awards points, and a presentation layer that
+ * drops the qualifier has quietly told the user they have six points they may
+ * not end up with.
  */
 function describeCall(match: Match): string {
   const prediction = match.prediction
   if (!prediction || !match.score) return 'Submitted'
-  const exact =
-    prediction.score.home === match.score.home &&
-    prediction.score.away === match.score.away
-  if (exact) {
+  if (isExact(match)) {
     return prediction.pointsAreProvisional
       ? 'Exact right now — provisional'
       : 'Exact score'
   }
-  const resultOf = (home: number, away: number) =>
-    home === away ? 'draw' : home > away ? 'home' : 'away'
-  const sameResult =
-    resultOf(prediction.score.home, prediction.score.away) ===
-    resultOf(match.score.home, match.score.away)
-  if (sameResult) {
+  if (isSameResult(match)) {
     return prediction.pointsAreProvisional
       ? 'Right result as it stands — provisional'
       : 'Right result'
   }
   return prediction.pointsAreProvisional ? 'Off the pace as it stands' : 'Missed'
+}
+
+/** Which of the two prediction surfaces the call sits on. Never the only signal. */
+function callTone(match: Match): 'hit' | 'cold' {
+  return isExact(match) || isSameResult(match) ? 'hit' : 'cold'
+}
+
+function isExact(match: Match): boolean {
+  const prediction = match.prediction
+  if (!prediction || !match.score) return false
+  return (
+    prediction.score.home === match.score.home &&
+    prediction.score.away === match.score.away
+  )
+}
+
+function isSameResult(match: Match): boolean {
+  const prediction = match.prediction
+  if (!prediction || !match.score) return false
+  const outcome = (home: number, away: number) =>
+    home === away ? 'draw' : home > away ? 'home' : 'away'
+  return (
+    outcome(prediction.score.home, prediction.score.away) ===
+    outcome(match.score.home, match.score.away)
+  )
 }
 
 function crowdLine(match: Match, homeShare: number, awayShare: number): string {

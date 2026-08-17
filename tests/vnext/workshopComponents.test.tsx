@@ -9,7 +9,6 @@ import { LeagueLadder } from '../../src/vnext/components/social/LeagueLadder'
 import { RivalStrip } from '../../src/vnext/components/social/RivalStrip'
 import { VNextNav } from '../../src/vnext/components/navigation/VNextNav'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
-import { AppFrameProbe } from '../../src/vnext/workshop/AppFrameProbe'
 import {
   MATCHDAY_NOW,
   deadlineMatch,
@@ -299,10 +298,10 @@ describe('VNextNav', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders both compositions without duplicating the badge text', () => {
+  it('renders the masthead band with the same names as the bar', () => {
     render(
       <VNextRoot>
-        <VNextNav variant="rail" activeId="leagues" />
+        <VNextNav variant="band" activeId="leagues" />
       </VNextRoot>,
     )
     expect(
@@ -311,57 +310,22 @@ describe('VNextNav', () => {
   })
 })
 
-describe('AppFrame probe', () => {
-  /**
-   * The rig that replaced `WorkshopHomeSketch`. It is not a design and is not
-   * reviewed as one — it exists so `AppFrame`'s four compositions still have
-   * something to render in `e2e/vnext-workshop-layout.spec.ts`, which measures
-   * them in a real browser because jsdom evaluates no container query.
-   */
-  it('populates all four frame regions from fixtures alone', () => {
-    render(
-      <VNextRoot>
-        <AppFrameProbe model={workshopHomeModel} />
-      </VNextRoot>,
-    )
-
-    expect(screen.getByRole('main')).toBeInTheDocument()
-    expect(
-      screen.getByRole('region', { name: 'Frame probe rail' }),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Work League' })).toBeInTheDocument()
-  })
-
-  it('keeps the rail reachable from the keyboard', () => {
-    render(
-      <VNextRoot>
-        <AppFrameProbe model={workshopHomeModel} />
-      </VNextRoot>,
-    )
-
-    // A scrollable region no keyboard user can reach fails WCAG 2.1.1, which is
-    // why Rail carries tabIndex on the scroller.
-    const region = screen.getByRole('region', { name: 'Frame probe rail' })
-    expect(region.querySelector('[tabindex="0"]')).not.toBeNull()
-  })
-})
-
 describe('reduced motion', () => {
   it('renders the same content on the reduced path', () => {
     const { unmount } = render(
       <VNextRoot motion="full">
-        <AppFrameProbe model={workshopHomeModel} />
+        <RivalStrip rivals={workshopHomeModel.rivals} />
       </VNextRoot>,
     )
-    const fullText = screen.getByRole('main').textContent
+    const fullText = document.body.textContent
     unmount()
 
     render(
       <VNextRoot motion="reduced">
-        <AppFrameProbe model={workshopHomeModel} />
+        <RivalStrip rivals={workshopHomeModel.rivals} />
       </VNextRoot>,
     )
-    expect(screen.getByRole('main').textContent).toBe(fullText)
+    expect(document.body.textContent).toBe(fullText)
   })
 
   it('marks the reduced setting on the vNext root so CSS can answer it too', () => {

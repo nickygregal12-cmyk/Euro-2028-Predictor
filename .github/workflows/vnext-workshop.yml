@@ -29,8 +29,7 @@ on:
     paths:
       - 'src/vnext/**'
       - '.storybook/**'
-      - 'e2e/vnext-workshop-layout.spec.ts'
-      - 'e2e/vnext-home-concepts.spec.ts'
+      - 'e2e/vnext-home.spec.ts'
       - 'playwright.vnext.config.ts'
       - 'package-lock.json'
       - '.github/workflows/vnext-workshop.yml'

@@ -23,13 +23,29 @@ export type VNextNavProps = {
   items?: readonly VNextNavItem[]
   activeId: string
   onSelect?: (id: string) => void
-  /** `bar` is the mobile bottom bar; `rail` is the desktop side rail. */
-  variant?: 'bar' | 'rail'
+  /** `bar` is the mobile bottom bar; `band` is the desktop masthead row. */
+  variant?: 'bar' | 'band'
 }
 
 /**
- * The default vNext destinations. Deliberately four: the concept PRs decide
- * what navigation finally is, and five items is already a decision.
+ * THE vNext DESTINATIONS, AND THE TERMINOLOGY DECISION BEHIND THEM.
+ *
+ * Stage 4 had to settle whether this surface is the product HOME or a
+ * competition MATCHDAY tab, because Stage 3's Matchday Arena shipped both — a
+ * "Live" destination and a "Matchday" destination, with Matchday current — and
+ * a user cannot tell from that whether they are on the front door or inside one
+ * competition.
+ *
+ * IT IS HOME. Live football is CONTENT on Home, not a place you go: the
+ * emphasis system already makes the page rearrange itself around whatever is
+ * happening, so a separate "Live" tab would navigate to the state Home is
+ * already in. And the competition the user is looking at is context, which the
+ * masthead states in words ("Premiership · Matchweek 4") rather than spending a
+ * navigation slot on.
+ *
+ * That leaves four global destinations, and four is deliberate: it is the most
+ * that clears a 44px target across a 375px bar without the labels shrinking to
+ * a memory test.
  */
 export const defaultNavItems: readonly VNextNavItem[] = [
   { id: 'home', label: 'Home', icon: Home },
@@ -41,10 +57,16 @@ export const defaultNavItems: readonly VNextNavItem[] = [
 /**
  * Navigation, in the two shapes vNext needs.
  *
- * WHY ONE COMPONENT. A bottom bar and a side rail are the same list of
+ * WHY ONE COMPONENT. A bottom bar and a masthead band are the same list of
  * destinations with the same state; splitting them into two components would
  * mean two places to keep the active item, the badge and the label in step.
  * Only the CSS differs.
+ *
+ * WHY A BAND AND NOT A RAIL. A vertical rail takes a column off the football
+ * for the entire life of the page; a band in the masthead costs 48px once. On a
+ * surface whose whole argument is that football gets the horizontal space, the
+ * band wins, and the rail variant was removed rather than left as a shape
+ * nothing chooses.
  *
  * THE INDICATOR. The active marker uses a shared `layoutId`, so it travels
  * between items instead of blinking — the piece of motion that makes the two
