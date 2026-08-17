@@ -352,3 +352,5 @@ blockquotes could never show without being read end to end.
 > **Contract 192 stage effect:** a season standings surface can now plot true position over time and open a rivalry in one request. No hub build-stage scope changes.
 
 > **Contract 193 stage effect:** a season Championship surface can open an entrant’s own tie without reconstructing the bracket client-side. No hub build-stage scope changes.
+
+> **Contract 194 stage effect:** Championship settlement consults entrant eligibility. No hub build-stage scope changes.

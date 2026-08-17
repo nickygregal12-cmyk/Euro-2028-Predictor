@@ -105,3 +105,5 @@ same paragraph existed in seven places at once.
 > **Contract 192:** implements ADR 0012’s cumulative ranking over time and reuses contract 129’s reveal boundary unchanged. No ADR changes status because of this contract, and no second ranking authority is created — the differential test is what makes that a measured claim rather than an intention.
 
 > **Contract 193:** implements ADR 0014’s existing bracket and § 8.3 Penalty Number rules as a READ. No ADR changes status, no rule is added, and the sealed-bid property is reproduced exactly as `get_my_cup` enforces it.
+
+> **Contract 194:** implements ADR 0028 § 8 and preserves ADR 0022 § "no rule may be altered while rescoping" by leaving the submission ladder byte-identical, proved by round trip. No ADR changes status.

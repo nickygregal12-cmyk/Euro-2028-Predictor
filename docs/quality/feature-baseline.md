@@ -331,3 +331,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 192:** records a backend capability: a weekly season can now report a player’s POSITION at every settled matchweek, not merely their points, and can answer a season-long head-to-head in one read. No frontend feature baseline changes and no disclosure boundary moves.
 
 > **Contract 193:** records a backend capability: a season Predictor Championship entrant can now see their knockout tie and bracket. No frontend feature baseline changes, and no Championship rule moves.
+
+> **Contract 194:** records a backend correctness fix rather than a feature: a removed player can no longer win a Championship knockout tie. No frontend feature baseline changes.

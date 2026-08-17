@@ -263,3 +263,5 @@ blockquotes could never show without being read end to end.
 > **Contract 192 programme effect:** the vNext Profiles/H2H stage gains rank over time and a season-long comparison, so that surface no longer needs a per-matchweek browser loop. No programme reordering.
 
 > **Contract 193 programme effect:** the vNext Predictor Championship stage gains the entrant-facing bracket read it had none of. No programme reordering.
+
+> **Contract 194 programme effect:** closes a settlement correctness defect ahead of any Championship launch. No programme reordering.

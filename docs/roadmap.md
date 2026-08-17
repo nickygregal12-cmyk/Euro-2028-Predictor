@@ -351,3 +351,17 @@ same paragraph existed in seven places at once.
 > neither is whether they have submitted one. The Penalty Number WRITE
 > authority is untouched and was already season-capable through contract 98.
 > **`CUP-004` and `CUP-006` remain the Championship work.**
+
+> **Contract 194 — `CUP-004`, eligibility at tie settlement.**
+> **Advances item 18 and reorders nothing else.** Counted over the installed
+> `admin_settle_predictor_cup_round`, the terms `game_memberships`,
+> `disqualif`, `withdraw` and `left_at` appear zero times: the driver decided a
+> knockout tie from submission and points and never asked whether either
+> entrant could legally contest it, so a disqualified or withdrawn entrant who
+> had submitted before being removed still won and advanced. The eligibility
+> branch sits above the existing submission ladder, which is carried through
+> unedited because ADR 0022 forbids altering the "neither submitted" rule and
+> one function serves the tournament too. Exactly one eligible entrant
+> advances, the reason is audit evidence, no score or prediction points are
+> invented, and a tie neither may contest refuses rather than fabricating a
+> winner. **`CUP-006` is the remaining Championship work.**

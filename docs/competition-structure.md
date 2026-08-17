@@ -182,3 +182,5 @@ same paragraph existed in seven places at once.
 > **Contract 192:** does not alter competition structure, scoring, entry or ranking rules. It derives cumulative position at settled matchweeks from the banked scores that already exist, and adds two bounded reads.
 
 > **Contract 193:** does not alter Championship structure, qualification, seeding, pairing or settlement. It reads the rows the canonical drivers wrote and adds one bounded entrant read.
+
+> **Contract 194:** does not alter Championship qualification, seeding, pairing or scoring. It adds an eligibility question above the existing settlement ladder and leaves that ladder unedited.
