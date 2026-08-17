@@ -6,11 +6,21 @@ on:
       - '.github/workflows/database-parity.yml'
       - '.github/workflows/stage-c1-development-rollout.yml'
       - 'config/deployment-contract.json'
+      # `liveCompetitionCallerBoundary` asserts against the development hosted
+      # record, so a change to it must re-run the suite that reads it.
+      - 'config/development-hosted-contract.json'
       - 'fixtures/predicted-group-order.json'
+      # `liveCompetitionConflictTargets` names the published catalogue SQL.
+      - 'scripts/bonus-games/**'
       - 'scripts/database-rollout/**'
       - 'scripts/ops/**'
       # Cover every shared domain sibling, including competition and future season modules.
       - 'src/domain/**'
+      # `enumUnionParity` and `seasonComparisonReadsParity` read these reads to
+      # compare their TypeScript unions against the database enums. Scoped to the
+      # Supabase service directory rather than all of `src/services`, because that
+      # is the whole of what the suites consume.
+      - 'src/services/supabase/**'
       - 'supabase/**'
       - 'tests/database-parity/**'
       - 'tests/migration-transition/**'

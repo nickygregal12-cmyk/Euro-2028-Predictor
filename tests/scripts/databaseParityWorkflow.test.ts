@@ -8,6 +8,112 @@ const workflow = readFileSync(workflowPath, 'utf8')
 const paritySuiteDir = resolve(repositoryRoot, 'tests/database-parity')
 const transitionSuiteDir = resolve(repositoryRoot, 'tests/migration-transition')
 
+/** The `paths:` entries the pull-request trigger actually declares. */
+function declaredFilters(): string[] {
+  const block = /^ {4}paths:\n((?: {6}(?:-|#).*\n)+)/m.exec(workflow)?.[1] ?? ''
+  return [...block.matchAll(/^ {6}- '([^']+)'$/gm)].map((match) => match[1])
+}
+
+/**
+ * Whether the declared filter list would run the workflow for a change under
+ * `path`. An entry is either an exact file or a `dir/**` glob.
+ */
+function filterCovers(path: string): boolean {
+  return declaredFilters().some((entry) => {
+    if (entry === path) return true
+    const glob = /^(.*)\/\*\*$/.exec(entry)?.[1]
+    return glob !== undefined && (path === glob || path.startsWith(`${glob}/`))
+  })
+}
+
+/**
+ * Every repository path the parity suites actually read or import, derived from
+ * their own source rather than restated here.
+ *
+ * WHY DERIVED. The assertions below this used to be five `toContain` calls for
+ * five path literals, and on 17 August 2026 an adversarial pass showed what that
+ * shape cannot do: `- 'src/domain/**'` and `- 'supabase/**'` — the migrations and
+ * the domain logic, which are the two things database parity exists to compare —
+ * were absent from those five, so deleting both from the workflow left the whole
+ * suite green. A list of literals only ever guards the literals someone
+ * remembered, and the ones nobody remembered are the ones that go missing.
+ *
+ * Deriving the requirement from what the suites consume closes the class instead
+ * of the instance: a new parity test that reads a new area fails this assertion
+ * until the trigger covers that area. It also found three gaps the literals
+ * missed — `config/development-hosted-contract.json`, `scripts/bonus-games/**`
+ * and `src/services/supabase/**`, each read by a parity test whose result the
+ * trigger would not have re-run.
+ *
+ * Only quoted string literals count. Paths named in prose use backticks in this
+ * repository, and a comment mentioning a file is not the suite depending on it.
+ */
+function consumedPaths(): string[] {
+  const pattern =
+    /['"]((?:\.\.\/)*(?:src|supabase|config|scripts|fixtures)\/[A-Za-z0-9_./-]+)['"]/g
+  const found = new Set<string>()
+
+  for (const directory of [paritySuiteDir, transitionSuiteDir]) {
+    for (const file of readdirSync(directory)) {
+      if (!file.endsWith('.ts')) continue
+      const source = readFileSync(resolve(directory, file), 'utf8')
+      for (const match of source.matchAll(pattern)) {
+        const relative = match[1].replace(/^(\.\.\/)+/, '')
+        const segments = relative.split('/')
+        if (relative.startsWith('supabase/')) {
+          // One tree, and every parity suite reads migrations from it.
+          found.add('supabase')
+        } else if (relative.startsWith('src/')) {
+          // The directory holding the file, so the trigger is no broader than
+          // the dependency: `src/services/supabase`, not all of `src/services`.
+          found.add(segments.slice(0, -1).join('/'))
+        } else if (relative.startsWith('scripts/')) {
+          found.add(segments.slice(0, 2).join('/'))
+        } else {
+          // `config/` and `fixtures/` are named files, not trees.
+          found.add(relative)
+        }
+      }
+    }
+  }
+
+  return [...found].sort()
+}
+
+describe('database parity trigger covers what the suites consume', () => {
+  it('finds the dependencies at all, so the assertion below is not vacuous', () => {
+    const consumed = consumedPaths()
+    expect(consumed.length).toBeGreaterThanOrEqual(5)
+    // The two the literal list omitted. Named explicitly as well as derived,
+    // because these are the reason the whole workflow exists.
+    expect(consumed).toContain('supabase')
+    expect(consumed.some((path) => path.startsWith('src/domain'))).toBe(true)
+    // Positive control on the parser: a filter list it cannot read would make
+    // every path look uncovered rather than covered.
+    expect(declaredFilters().length).toBeGreaterThanOrEqual(10)
+  })
+
+  it('runs for a change to anything the parity suites read', () => {
+    const uncovered = consumedPaths().filter((path) => !filterCovers(path))
+
+    expect(
+      uncovered,
+      'The parity suites read these paths, but a change to them would not run ' +
+        'the parity workflow — so the suite asserting against them would not ' +
+        'be re-run on the pull request that changed them. Add each to the ' +
+        '`paths:` filter in .github/workflows/database-parity.yml.',
+    ).toEqual([])
+  })
+
+  it('watches the migrations and the domain logic it exists to compare', () => {
+    // The instance the derived rule above generalises. Stated separately so a
+    // regression names the two paths rather than a computed list.
+    expect(filterCovers('supabase')).toBe(true)
+    expect(filterCovers('src/domain')).toBe(true)
+    expect(filterCovers('src/domain/season')).toBe(true)
+  })
+})
+
 describe('database parity workflow trigger contract', () => {
   it('watches the production rollout SQL directory', () => {
     expect(workflow).toContain("- 'scripts/database-rollout/**'")
