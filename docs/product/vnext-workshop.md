@@ -15,8 +15,9 @@ is what the workshop is currently *testing*, so the next stage can argue with it
 entirely on deterministic fixtures: no Supabase, no provider calls, no routing,
 no application state. Nothing in it is wired into the running product.
 
-**There is now one approved Home, in `src/vnext/home/`.** It is the Gold
-Standard surface and the quality bar the rest of vNext inherits from. The three
+**There is one approved Home, in `src/vnext/home/`, and a second page beside it in
+`src/vnext/predictor/`.** Home is the Gold Standard surface and the quality bar the
+rest of vNext inherits from; the Match Predictor is the first page to inherit it. The three
 Stage 3 concepts have been removed — git history holds them — along with
 `AppFrame`, `Rail` and the `AppFrameProbe` rig that existed to measure the
 frame. What remains in `workshop/` is `WorkshopCanvas`, the container-framed
@@ -164,19 +165,10 @@ Home settled the questions about Home. These are still open:
   match is live, and how. `LiveIndicator` is `aria-live="off"` on purpose; a
   polite region on a minute that changes constantly would talk over everything
   else. Designing the announcement properly is its own piece of work.
-- How much of Home's language survives contact with Match Predictor, Match
-  Centre, Matches, Leagues, Predictor Championship and Last Man Standing. The
-  APPLICATION half of it has been extracted and proved against neutral content,
-  narrow and wide; the CONTENT half — how dense a prediction grid should be, what
-  a match page emphasises, whether any of them want page-local tabs — is
-  untested, because no real page has been built on the shell yet.
-- Whether the page header's `trailing` slot is the right shape. One page uses it
-  today, for something no other page will want. It stayed a slot rather than
-  becoming props precisely so the second and third users can disagree with Home
-  cheaply, and the second user is the one that will settle it. **Real data did not
-  settle it either** — Home's standing block composes into the slot unchanged,
-  including in its unranked form, so the slot is neither vindicated nor strained.
-  The second real page is still the evidence that matters.
+- How much of Home's language survives contact with Match Centre, Matches,
+  Leagues, Predictor Championship and Last Man Standing. The Match Predictor has
+  now answered the question for one content shape — see below — but a match page,
+  a table and a knockout are still untested.
 - Whether `Match.score` needs a provisional marker. A fixture a provider calls
   `final` before the platform settles it currently shows the provider's scoreline
   as its full-time score, because `Match` has one score field. The POINTS beside
@@ -206,6 +198,38 @@ registry and contracts 141 and 130 — which was the pleasant surprise.
 **Storybook is unchanged as the visual authority.** A fifth scenario, `reduced`,
 was added beside the four approved ones rather than editing any of them, so the
 nullable states have a deterministic screenshot of their own.
+
+## What the second real page settled
+
+The Match Predictor is the second page on the shell, and it was built to disagree
+with Home where the task differs. It does.
+
+- **`VNextPageHeader.trailing` is settled and stays a slot.** Home puts a standing
+  block there, the predictor puts a deadline chip; they share nothing but their
+  position, and neither needed a prop, a variant or a shell change. The slot also
+  earned the predictor something real — the masthead is already sticky, so a page
+  can keep one status permanently on screen without spending viewport on a second
+  sticky band of its own.
+- **The shell needed no change at all.** Not one line under `app/` moved, and Home
+  is byte-identical: the only files Stage 7 touched outside `predictor/` are the
+  fixture index, `foundations/format.ts` (two new formatters), `WorkshopCanvas`'s
+  viewport list (a 1024 frame added; every existing story names its own frames, so
+  none gained one) and the boundary test.
+- **The CONTENT half of the language travelled.** The type ramp, the surface ramp,
+  the spacing steps, the club-colour idiom, the motion pairs, the state-in-words
+  rule and the container-query discipline all carried over unchanged. What did NOT
+  travel is Home's composition: no emphasis selector, no stage, no featured
+  fixture, no ticker, no Around the Grounds, no social zone. That is the extraction
+  working rather than failing.
+- **A row must measure itself, not the column that placed it.** At 1920 the
+  predictor's working column takes two fixtures across, so each row has about
+  730px of a 1480px column. This is the fifth time the lane has met the
+  size-against-the-wrong-thing defect and the first time the answer was structural:
+  the row declares its own container.
+- **Do not truncate a club name anywhere.** Home stopped at two lines and then
+  ellipsised. The browser suite caught that cutting "Strathallan Caledonian
+  Thistle" in a ~150px scoreboard column, so the predictor clamps a club name at
+  no lines at all and lets the row grow.
 
 ### Settled by Home, and no longer open
 

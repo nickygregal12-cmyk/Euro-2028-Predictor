@@ -562,6 +562,18 @@
   min-width: 0;
 }
 
+/* NO LINE CLAMP AND NO ELLIPSIS, ANYWHERE A CLUB IS NAMED.
+ * `foundations/typography.module.css`'s `clamp2` stops at two lines and then cuts,
+ * which is Home's fix and is one line short here: a scoreboard row gives each club
+ * about 150px, and "Strathallan Caledonian Thistle" needs three. The row grows
+ * instead. `overflow-wrap` is what stops a single long word pushing the row wider
+ * than its container, and because nothing hides overflow there is no way for a
+ * future composition to cut a club's name again. `e2e/vnext-predictor.spec.ts`
+ * measures clipped text in every state at every width and found this one. */
+.clubName {
+  overflow-wrap: anywhere;
+}
+
 .clubMeta {
   display: flex;
   align-items: center;
@@ -1035,7 +1047,19 @@
     align-items: flex-end;
   }
 
-  .club[data-side='away'] .clubMeta {
+  .club[data-side='away'] /* NO LINE CLAMP AND NO ELLIPSIS, ANYWHERE A CLUB IS NAMED.
+ * `foundations/typography.module.css`'s `clamp2` stops at two lines and then cuts,
+ * which is Home's fix and is one line short here: a scoreboard row gives each club
+ * about 150px, and "Strathallan Caledonian Thistle" needs three. The row grows
+ * instead. `overflow-wrap` is what stops a single long word pushing the row wider
+ * than its container, and because nothing hides overflow there is no way for a
+ * future composition to cut a club's name again. `e2e/vnext-predictor.spec.ts`
+ * measures clipped text in every state at every width and found this one. */
+.clubName {
+  overflow-wrap: anywhere;
+}
+
+.clubMeta {
     flex-direction: row-reverse;
   }
 

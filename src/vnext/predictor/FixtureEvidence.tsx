@@ -105,7 +105,7 @@ function ClubEvidence({
   return (
     <div className={styles.evidenceClub}>
       <p className={typography.label}>{place}</p>
-      <p className={`${typography.caption} ${typography.emphasis} ${typography.clamp2}`}>
+      <p className={`${typography.caption} ${typography.emphasis} ${styles.clubName}`}>
         {team.name}
       </p>
 

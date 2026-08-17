@@ -59,7 +59,7 @@ import styles from './predictor.module.css'
  */
 const MAX_SCORE = 99
 
-export type ScoreDraft = {
+type ScoreDraft = {
   readonly home: number | null
   readonly away: number | null
 }

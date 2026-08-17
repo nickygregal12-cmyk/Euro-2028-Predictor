@@ -265,10 +265,15 @@ function ConsensusSnack({
  * One club on the row: its identity, its name in full, and the football that
  * fits inline.
  *
- * THE NAME WRAPS RATHER THAN TRUNCATES, which is the fix Home arrived at after
- * "Inver Caledonian" clipped to "Inver Caledonia…" in a 296px column. A row that
- * is occasionally two lines tall is worth more than a club with a shortened
- * name, and it means no future composition can reopen the defect.
+ * THE NAME WRAPS AS FAR AS IT NEEDS TO AND NEVER TRUNCATES, which is Home's fix
+ * taken one step further. Home stopped truncating at two lines and then
+ * ellipsised; the browser suite caught "Strathallan Caledonian Thistle" clipping
+ * at 768, 1024 and 1920, because a scoreboard row gives each club roughly 150px
+ * and that name needs three lines. So there is no line clamp here at all:
+ * `overflow-wrap: anywhere` stops a single long word pushing the row wide, and the
+ * row grows instead. A row that is occasionally three lines tall is worth more
+ * than a club called "Strathallan Caledonia…", and with nothing hiding overflow no
+ * future composition can reopen the defect.
  *
  * THE FORM RUN AND THE POSITION ARE ON THE ROW AT EVERY WIDTH. `W W D L W` and
  * `4th` are the cheapest football information there is — five glyphs and an
@@ -283,7 +288,7 @@ function ClubLine({ side, place }: { side: PredictorSide; place: 'home' | 'away'
     <div className={styles.club} data-side={place}>
       <TeamCrest team={side.team} size="sm" decorative />
       <span className={styles.clubText}>
-        <span className={`${typography.body} ${typography.emphasis} ${typography.clamp2}`}>
+        <span className={`${typography.body} ${typography.emphasis} ${styles.clubName}`}>
           {side.team.name}
         </span>
         <span className={styles.clubMeta}>

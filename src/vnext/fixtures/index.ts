@@ -46,7 +46,6 @@ export {
 } from './predictor/scenarios'
 export type { PredictorScenarioName } from './predictor/scenarios'
 export { rehearsePredictor } from './predictor/rehearse'
-export type { RehearsalCommand } from './predictor/rehearse'
 export {
   COMPETITION_NOW,
   DECISION_NOW,

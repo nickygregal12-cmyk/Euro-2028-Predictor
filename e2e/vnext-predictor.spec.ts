@@ -193,14 +193,25 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       horizontalOverflow: scroller ? scroller.scrollWidth - scroller.clientWidth : -1,
       navigationLabels,
       smallTargets,
-      headings: document.querySelectorAll('h1').length,
-      mains: document.querySelectorAll('main').length,
+      // RENDERED ONLY. Storybook's own chrome ships a hidden "No Preview" and a
+      // hidden error display, each carrying an `h1`, so a bare count reports three
+      // headings on a page that has one. The same `rendered` filter the navigation
+      // count uses is what makes this a statement about the page under review.
+      headings: [...document.querySelectorAll('h1')].filter(rendered).length,
+      mains: [...document.querySelectorAll('main')].filter(rendered).length,
       railBesideWork,
       fixtureColumns,
       scoreboardRows,
       stackedRows,
-      fixtureWidths: rows.map((row) => Math.round(row.getBoundingClientRect().width)),
-      workWidth: work ? Math.round(work.getBoundingClientRect().width) : 0,
+      // LAYOUT WIDTHS, NOT PAINTED ONES. `WorkshopCanvas` scales a wide frame with
+      // a CSS transform so several fit on one screen, and
+      // `getBoundingClientRect()` reports the TRANSFORMED box — a 1492px column at
+      // 62% reads as 925. `offsetWidth` is the layout box and ignores the
+      // transform, which is the same reason the tap-target check uses it. The
+      // relative comparisons above are unaffected either way, because both sides of
+      // a ratio scale together.
+      fixtureWidths: rows.map((row) => row.offsetWidth),
+      workWidth: work ? (work as HTMLElement).offsetWidth : 0,
       scoreInputs: [...document.querySelectorAll('main input')].filter(rendered).length,
       clipped,
       dayHeadings: [...document.querySelectorAll('main section[aria-label]')].map(
