@@ -27,6 +27,7 @@
     "scripts/run-lighthouse.mjs",
     "scripts/select-browser-journeys.mjs",
     "scripts/validate-deployment-contract.mjs",
-    "scripts/validate-netlify-environment.mjs"
+    "scripts/validate-netlify-environment.mjs",
+    "scripts/list-notification-workflows.mjs"
   ]
 }

@@ -33,6 +33,7 @@
     "check:lighthouse": "node scripts/run-lighthouse.mjs",
     "generate:now": "node scripts/generate-now.mjs",
     "generate:types": "node scripts/generate-database-types.mjs",
+    "notifications:workflows": "node scripts/list-notification-workflows.mjs",
     "check:now": "node scripts/generate-now.mjs --check",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
