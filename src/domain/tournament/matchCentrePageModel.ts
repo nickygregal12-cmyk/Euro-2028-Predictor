@@ -23,7 +23,7 @@ export type MatchCentrePageModelInput = {
   groups: Group[]
   now?: string
   fetchedAt?: string
-  matchState?: MatchState
+  matchState?: MatchState | undefined
 }
 
 export type MatchCentrePageModel = ReturnType<typeof bridgeExternalMatchToLegacyHeader> & {

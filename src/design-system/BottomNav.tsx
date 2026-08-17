@@ -50,7 +50,7 @@ export type BottomNavProps = {
    * bar is the weekly platform's — which is also what the fail-closed site
    * variant resolves to.
    */
-  items?: readonly BottomNavItem[]
+  items?: readonly BottomNavItem[] | undefined
   /** Dev/demo-only override. Production navigation should omit this. */
   onNavigate?: (key: NavKey) => void
 }

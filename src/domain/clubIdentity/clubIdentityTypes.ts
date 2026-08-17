@@ -17,8 +17,8 @@ export type ClubIdentityTokens = {
   /** Primary kit colour as a CSS colour value. */
   primary: string
   /** Secondary kit colour, required by every non-solid pattern. */
-  secondary?: string
+  secondary?: string | undefined
   pattern?: ClubKitPattern
   /** Contrast treatment when a light primary needs a dark monogram. */
-  onPrimary?: 'light' | 'dark'
+  onPrimary?: 'light' | 'dark' | undefined
 }

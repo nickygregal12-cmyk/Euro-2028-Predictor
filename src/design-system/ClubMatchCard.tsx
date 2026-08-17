@@ -46,9 +46,9 @@ export type ClubMatchCardProps = {
   saveStatus?: SaveStatus
   onRetrySave?: () => void
   // locked
-  countdown?: string
+  countdown?: string | undefined
   // scored
-  result?: { home: number; away: number }
+  result?: { home: number; away: number } | undefined
   score?: ClubMatchCardScore
   // navigation
   showChevron?: boolean

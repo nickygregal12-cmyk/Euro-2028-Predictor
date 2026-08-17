@@ -28,7 +28,7 @@ export type LeagueMemberRowProps = {
   progress?: { predicted: number; total: number } | null
   // Champion pick, revealed only post-lock by the caller (reveal rules). Dims
   // when the picked team is eliminated.
-  championPick?: MatchTeam
+  championPick?: MatchTeam | undefined
   championEliminated?: boolean
   // Expansion is controlled by the parent (one row open at a time).
   expanded: boolean

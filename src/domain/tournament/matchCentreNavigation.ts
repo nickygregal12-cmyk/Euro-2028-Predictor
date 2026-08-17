@@ -1,7 +1,7 @@
 export type MatchCentreReturnPath = {
   pathname: string
-  search?: string
-  hash?: string
+  search?: string | undefined
+  hash?: string | undefined
 }
 
 export type MatchCentreLocation = {

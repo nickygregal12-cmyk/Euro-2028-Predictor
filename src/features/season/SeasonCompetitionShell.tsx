@@ -39,7 +39,7 @@ export type SeasonCompetitionShellProps = {
   seasonLabel: string
   statusStrip: readonly string[]
   active: SeasonShellSection
-  destinations?: Partial<Record<SeasonShellSection, string>>
+  destinations?: Partial<Record<SeasonShellSection, string>> | undefined
   /**
    * The desktop contextual panel for this section, and the name it is given as
    * a landmark. Below the wide breakpoint it stacks under the content in source
@@ -49,15 +49,15 @@ export type SeasonCompetitionShellProps = {
    * and its gateway already are, and a page that fetched a panel's data would
    * make the panel compulsory.
    */
-  aside?: ReactNode
-  asideLabel?: string
+  aside?: ReactNode | undefined
+  asideLabel?: string | undefined
   /**
    * `reading` caps the content column at a readable measure and is the default
    * — a fixture list or a form spread across 1440px is the widened-phone
    * failure in reverse. `full` is for the sections whose content genuinely is a
    * wide table.
    */
-  width?: 'reading' | 'full'
+  width?: 'reading' | 'full' | undefined
   children: ReactNode
 }
 

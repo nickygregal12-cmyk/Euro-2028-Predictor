@@ -32,13 +32,13 @@ import styles from './Workspace.module.css'
 export type WorkspaceProps = {
   children: ReactNode
   /** The contextual panel. Omitted entirely where a page has no second column. */
-  aside?: ReactNode
+  aside?: ReactNode | undefined
   /**
    * Names the panel for assistive technology. Required whenever `aside` is
    * given — an unnamed complementary region is one more landmark to skip past
    * without knowing what is in it.
    */
-  asideLabel?: string
+  asideLabel?: string | undefined
   /**
    * `reading` caps the main column at a comfortable measure (about 820px) and
    * centres it: for prose, forms and single-list pages, where a full-width line
