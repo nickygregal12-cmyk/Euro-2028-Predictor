@@ -423,6 +423,13 @@ insert into expected_authenticated_functions (signature) values
 insert into expected_authenticated_functions (signature) values
   ('resolve_season_player(uuid,uuid)');
 
+-- Contract 192: position over time, and one season-long rivalry. Both carry
+-- contract 95's entry boundary and read auth.uid(), so both stay out of
+-- expected_service_functions for the same reason every season read above does.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_rank_history(uuid,uuid)'),
+  ('get_season_rivalry(uuid,uuid,integer)');
+
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),

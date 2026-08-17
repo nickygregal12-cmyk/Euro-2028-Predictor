@@ -483,3 +483,5 @@ same paragraph existed in seven places at once.
 > **Contract 190:** closes the synthetic-price betting-evidence safety item for the AI Lab. It does not reclassify unrelated product work; hosted rollout is still pending.
 
 > **Contract 191:** gives a weekly-season standing row a player it can address — a season-scoped `playerRef`, a server-decided `reach`, and the auth identifier only where a profile will answer. It consolidates the three copies of the private-league visibility rule onto one authority and moves no rule. `PROF-001` registers the one decision it deliberately does not take. Hosted rollout is pending.
+
+> **Contract 192:** adds POSITION over time and one season-long rivalry. The rank history reuses contract 94’s ranking expression and whole field, and its agreement with the canonical standings is differentially tested rather than asserted. The rivalry read answers a whole comparison in one request and counts a matchweek only when both players banked it. `MIG-UI-04` is closed by it. Hosted rollout is pending.

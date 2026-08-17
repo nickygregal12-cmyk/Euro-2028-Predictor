@@ -317,3 +317,23 @@ same paragraph existed in seven places at once.
 > fourth. **The one product decision it does not take** is whether a same-season
 > participant should also read another participant's PROFILE; that is registered
 > as `PROF-001` rather than settled by a migration.
+
+> **Contract 192 — position over time, and one season-long rivalry.**
+> **Reorders nothing.** Two measured gaps, both of which the vNext Profiles/H2H
+> stage reaches: a season could produce POINTS over time and could NOT produce
+> POSITION over time, because `get_season_league_rank_movement` answers one
+> matchweek inside one private league and `get_h2h_rank_history` is the
+> tournament's, keyed on seven hard-coded matchday keys over `entry_totals`
+> that a season never writes; and `get_season_head_to_head` compares two
+> players over ONE named matchweek, so a season-long comparison meant asking it
+> thirty-eight times. `predictor_internal.season_rank_history` derives
+> cumulative points, rank and field size at every settled matchweek, reusing
+> contract 94's ranking expression and contract 94's whole field — and the
+> agreement is DIFFERENTIALLY TESTED rather than asserted, over a fixture built
+> with deliberate ties so that `dense_rank` and `row_number` both fail it.
+> `get_season_rivalry` answers a whole comparison in one request and counts a
+> matchweek only when BOTH players banked it, so a late joiner cannot be handed
+> a walkover record. Both take their permission from contract 191's single
+> visibility authority, neither returns an individual prediction, and the
+> rivalry read speaks only about matchweeks that are settled AND past their own
+> lock. `MIG-UI-04` closes.

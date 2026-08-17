@@ -256,6 +256,18 @@ reference at a time.
 
 - `resolve_season_player`
 
+Contract 192 adds two more taking `p_tournament_id`, with the same
+season-scoped disposition. `get_season_rank_history` and `get_season_rivalry`
+read only that competition season's own settled rows, write nothing, take
+their disclosure boundary from contract 191's single visibility authority and
+address players by `entries.id` rather than by an auth identifier. Neither
+introduces a ranking authority: the rank history reuses contract 94's
+expression and its agreement with `predictor_internal.season_standings` is
+differentially tested rather than asserted.
+
+- `get_season_rank_history`
+- `get_season_rivalry`
+
 Contracts 175 to 178 add five more taking `p_tournament_id`, and their
 disposition is the same season-scoped one with one distinction worth recording.
 Three are ordinary season-scoped reads or writes: the projection and the DNA
