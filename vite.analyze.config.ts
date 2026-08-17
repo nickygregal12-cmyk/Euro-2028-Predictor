@@ -6,7 +6,7 @@ import {
   type ConfigEnv,
   type UserConfig,
 } from 'vite'
-import baseConfig from './vite.config'
+import baseConfig from './vite.config.ts'
 
 async function resolveBaseConfig(env: ConfigEnv): Promise<UserConfig> {
   if (typeof baseConfig === 'function') {
