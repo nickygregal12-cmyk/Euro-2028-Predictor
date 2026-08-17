@@ -103,3 +103,5 @@ same paragraph existed in seven places at once.
 > **Contract 191:** implements the existing profile and comparison boundaries — ADR 0025 § 4 and the `MIG-UI-02` disclosure recommendation — behind one function. No ADR changes status because of this contract. Whether a same-season participant should also read another participant’s profile is registered as `PROF-001` and is the ADR-shaped decision this contract refuses to take in a migration.
 
 > **Contract 192:** implements ADR 0012’s cumulative ranking over time and reuses contract 129’s reveal boundary unchanged. No ADR changes status because of this contract, and no second ranking authority is created — the differential test is what makes that a measured claim rather than an intention.
+
+> **Contract 193:** implements ADR 0014’s existing bracket and § 8.3 Penalty Number rules as a READ. No ADR changes status, no rule is added, and the sealed-bid property is reproduced exactly as `get_my_cup` enforces it.

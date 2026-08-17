@@ -430,6 +430,12 @@ insert into expected_authenticated_functions (signature) values
   ('get_season_rank_history(uuid,uuid)'),
   ('get_season_rivalry(uuid,uuid,integer)');
 
+-- Contract 193 / CUP-003: one season Championship entrant's own knockout tie.
+-- It reads auth.uid() and refuses a non-entrant, so it stays out of
+-- expected_service_functions like every other season player read.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_cup_bracket(uuid)');
+
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),

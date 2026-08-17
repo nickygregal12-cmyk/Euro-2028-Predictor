@@ -337,3 +337,17 @@ same paragraph existed in seven places at once.
 > visibility authority, neither returns an individual prediction, and the
 > rivalry read speaks only about matchweeks that are settled AND past their own
 > lock. `MIG-UI-04` closes.
+
+> **Contract 193 — `CUP-003`, an entrant can see their own tie.**
+> **Advances item 18 and reorders nothing else.** `get_season_cup_player_view`
+> (contract 133) is group-scoped throughout — it resolves a group id from the
+> phase and lists only that group's members and fixtures — which was harmless
+> while no season Championship could reach a knockout. Contract 187 ended that,
+> so a qualifier had no browser-reachable read of the tie in front of them.
+> `get_season_cup_bracket` returns the caller's live tie, their Penalty Number
+> state, their progression, the bracket and the champion, reading every
+> structural fact from the rows the canonical drivers wrote. **The opponent's
+> Penalty Number is never returned**, matching `get_my_cup` exactly, and
+> neither is whether they have submitted one. The Penalty Number WRITE
+> authority is untouched and was already season-capable through contract 98.
+> **`CUP-004` and `CUP-006` remain the Championship work.**

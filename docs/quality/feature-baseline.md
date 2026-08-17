@@ -329,3 +329,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 191:** records a backend capability rather than a feature change: a global weekly-season standings row can now be addressed as a player, subject to the same disclosure boundaries as before. No frontend feature baseline changes, and no visibility rule is widened.
 
 > **Contract 192:** records a backend capability: a weekly season can now report a player’s POSITION at every settled matchweek, not merely their points, and can answer a season-long head-to-head in one read. No frontend feature baseline changes and no disclosure boundary moves.
+
+> **Contract 193:** records a backend capability: a season Predictor Championship entrant can now see their knockout tie and bracket. No frontend feature baseline changes, and no Championship rule moves.
