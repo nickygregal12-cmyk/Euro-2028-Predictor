@@ -73,6 +73,61 @@ The adapter uses `fetch` against Novu's HTTP API rather than an SDK. One
 authenticated POST does not justify putting a package one careless import away
 from a measured production bundle.
 
+## The reminder delivery ledger already exists — this is its other half
+
+**Read this before building anything that schedules, retries or records a
+notification.** That work is done, in the database, and duplicating it is the
+obvious mistake to make from here.
+
+`public.reminder_deliveries` (contracts 163 and 172, `DFA-012`) is a complete
+delivery ledger with a scheduler, retry accounting and an audit trail. What it
+has never had is a provider — [`../roadmap.md`](../roadmap.md) records it as
+"no provider is chosen and nothing sends". This boundary is that missing half.
+
+The split is clean, and neither side should grow the other's job:
+
+| Concern | Owner |
+| --- | --- |
+| when a reminder is due, claiming it, retrying, abandoning, stall reclamation | `reminder_deliveries` and its functions |
+| what a domain event means, and how it becomes a provider payload | this boundary |
+| actually sending | the Novu adapter |
+
+The seam is already shaped for it:
+
+```text
+public.claim_due_reminders(p_limit, p_dry_run)   -- rows that are due
+        v
+NotificationService.deliver(event)               -- this boundary
+        v
+public.record_reminder_result(
+    p_id, p_sent, p_provider, p_provider_message_id, p_error)
+```
+
+`DeliveryOutcome` maps onto that call directly: `delivered` is `p_sent`, and a
+refusal's `reason` is what belongs in `p_error`.
+
+Two things to get right when wiring it, both of which look like duplication and
+are not:
+
+- **There are two idempotency mechanisms and they guard different things.** The
+  ledger's `unique (user_id, action_key, reminder_kind)` stops the same
+  reminder being *scheduled* twice. This boundary's `transactionId` stops the
+  same fact being *sent* twice when a claim is retried after an ambiguous
+  failure. Removing either does not simplify anything.
+- **`dry_run` defaults to true on the ledger, and `NOTIFICATIONS_DELIVERY`
+  defaults to off here.** Both must be turned off deliberately. That is two
+  switches on purpose, not an oversight to tidy away.
+
+**One known gap.** The adapter reports success from the HTTP status and does
+not read Novu's returned transaction id, so `p_provider_message_id` has nothing
+real to carry yet. Populating it means parsing the trigger response — small,
+but it is not done, and passing this boundary's own `transactionId` in that
+slot would record a value Novu never issued.
+
+Nothing above is wired. `DFA-012` and `SITE-007` are **not** closed by this
+change: no provider is configured, no claim loop calls this boundary, and
+nothing sends.
+
 ## Switching it on
 
 Nothing here is a hosted action, and none of it is done.
