@@ -230,6 +230,20 @@ with Home where the task differs. It does.
   ellipsised. The browser suite caught that cutting "Strathallan Caledonian
   Thistle" in a ~150px scoreboard column, so the predictor clamps a club name at
   no lines at all and lets the row grow.
+- **A DEADLINE PAGE NEEDS A DISPLAY INSTANT, AND IT IS NOT THE MODEL'S.** A model
+  is stamped with the instant the application answered at and rebuilt only when its
+  inputs change, so a countdown drawn straight against it freezes the moment a
+  player stops typing — and nothing notices when wall-clock time crosses the
+  deadline on a tab left open across kickoff. The predictor's answer is
+  `predictor/useDeadlineClock.ts`: one presentation instant, anchored to
+  `model.generatedAt` and advanced by observed elapsed time, shared by the masthead
+  chip, the brief and every kickoff label so they cannot drift apart. Reaching an
+  open card's `lock.at` requests the existing `reload` — once per distinct
+  authoritative instant — and the answer that comes back is the new state. **The
+  clock may refresh presentation and may ask; it may never answer.** Editability,
+  the lock, the Joker and settlement stay the application's, and `lock.urgency`
+  stays the model's: the escalation beat still waits for an authoritative rebuild,
+  because how loudly the page shouts is a decision presentation does not own.
 
 ### Settled by Home, and no longer open
 

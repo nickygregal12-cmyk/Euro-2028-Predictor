@@ -23,7 +23,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`) |
 | `fixtures/` | one deterministic fictional matchday, the Home model, and one designed matchweek |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
-| `predictor/` | **the Match Predictor** — the brief, the decision row, score entry |
+| `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
 | `integration/` | **the only application-facing code** — one adapter per connected page |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
@@ -162,6 +162,20 @@ parts, because the split is the point:
 - Home is ONE surface with three emphases, not three pages. The stable frame — masthead, score bar, navigation, type, spacing, surfaces, team colour, motion — does not change between them; only the dominant zone and the order beneath it do.
 - The application shell may not learn anything about a page. Nothing under `app/` may import from `home/` or `fixtures/`, and a prop named after Home's content — a hero, a ticker, a rank — is the shell becoming Home under a general name. `tests/vnext/shell.test.tsx` holds the import direction.
 - Presentation-selection logic may read the model's own partitions and flags. It may never re-derive them: read `liveMatches`, not `kickoff` against `now`; read `urgency`, not a deadline against a clock.
+- **A LIVE COUNTDOWN IS PRESENTATION; A PERMISSION FROM ONE IS NOT.** A model's
+  `generatedAt` is the instant the application answered at, and it moves only when
+  the model is rebuilt — so a page that draws a countdown straight against it goes
+  stale the moment the player stops interacting. The one sanctioned mechanism is
+  `predictor/useDeadlineClock.ts`: a DISPLAY instant anchored to `generatedAt` and
+  advanced by observed elapsed time, produced once per page and passed down, so
+  every deadline and every kickoff label on that page is measured against the same
+  moment. It may do exactly two things — make a countdown current, and decide it is
+  time to call the application's own `reload` (once per distinct `lock.at`, on a
+  card the application already says is `open`). It may not produce `locked`,
+  `closed`, non-editability, a Joker refusal, a settlement or a reveal, and
+  `urgency` stays the mapper's because it is a decision rather than a format. Do
+  not put an interval in a visual component, and do not rebuild a model on a timer
+  to fake a fresh answer.
 - A dense zone sizes itself against its own column — and where a name can still be cut, let it wrap rather than adding another threshold. `e2e/vnext-home.spec.ts` measures clipped text at every width and emphasis.
 - **A ROW MEASURES ITSELF, not the column that placed it.** Stage 7 is where this stopped being a slogan: at 1920 the predictor's working column takes two fixtures across, so a row has ~730px of a ~1480px column, and a row that had queried the column would compose as though it had all of it. A container query is answered by an ANCESTOR, so the row declares `container-name` and its own body asks the question. `e2e/vnext-predictor.spec.ts` measures the outcome per row.
 - **Do not truncate a club name.** Home stopped at two lines then ellipsised; the browser suite caught that clipping "Strathallan Caledonian Thistle" in a ~150px scoreboard column. The predictor has no line clamp on a club name at all — the row grows, `overflow-wrap: anywhere` stops a long word widening it, and with nothing hiding overflow the defect cannot reopen.

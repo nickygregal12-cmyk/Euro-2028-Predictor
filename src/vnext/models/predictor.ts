@@ -81,9 +81,13 @@ export type PredictorLock = {
    * confident number about nothing.
    *
    * A COUNTDOWN OVER THIS IS PRESENTATION, A PERMISSION FROM IT IS NOT. The
-   * surface may format "locks in 2 hr 15 min" from this and `generatedAt`; it
+   * surface may format "locks in 2 hr 15 min" from this and a display instant; it
    * may never conclude from the pair that the matchweek is open or closed. That
    * is `kind`'s job, and `kind` came from the server's resolved state.
+   *
+   * REACHING IT IS ALLOWED TO DO EXACTLY ONE THING: ask again. `useDeadlineClock`
+   * requests `actions.reload` once per distinct instant on an `open` card, and
+   * whatever the application then says is the new answer — including "still open".
    */
   readonly at: string | null
 }
@@ -292,8 +296,17 @@ export type PredictorEnrichment = {
 
 export type PredictorModel = {
   /**
-   * The instant the model describes, supplied rather than read. Every countdown
-   * on the page is measured against this, so nothing in the lane reads a clock.
+   * The instant the model describes, supplied rather than read.
+   *
+   * IT IS THE AUTHORITATIVE INSTANT AND IT DOES NOT TICK. It moves when the
+   * application rebuilds the model and at no other time, which is what makes it
+   * safe for the mapper to derive `lock.urgency` from it.
+   *
+   * The page does not draw its countdown directly against it. `useDeadlineClock`
+   * takes it as an ANCHOR and advances a separate presentation instant by observed
+   * elapsed time, so a card left open keeps a current countdown without anything
+   * pretending the server answered again. Nothing in either direction touches
+   * `editable`, `lock.kind`, the phase or the Joker.
    */
   readonly generatedAt: string
 

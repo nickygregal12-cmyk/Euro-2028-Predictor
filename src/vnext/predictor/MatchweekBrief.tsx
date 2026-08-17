@@ -30,13 +30,23 @@ import styles from './predictor.module.css'
  * IT NEVER DECIDES ANYTHING. `lock.kind`, `lock.urgency`, `editable`, the
  * progress counts, the Joker's playability and the confirm command's legality
  * all arrive as stated facts. The only arithmetic here is the countdown's own
- * formatting, which takes `generatedAt` as its "now" and therefore reads no
- * clock.
+ * formatting, which takes `now` as an input and therefore reads no clock.
  */
 
 export type MatchweekBriefProps = {
   model: PredictorModel
   actions: PredictorActions
+  /**
+   * The instant to draw the deadline against.
+   *
+   * SUPPLIED, NOT READ, and it is the page's single display instant from
+   * `useDeadlineClock` — the same one the masthead's chip and every kickoff label
+   * use, so the brief's "Locks tomorrow 12:00" cannot disagree with a row's
+   * "Today 12:00". It advances while the page is open and it is presentation
+   * only: `lock.kind` and `editable` still decide everything this component
+   * draws, and neither is derived from this value here or anywhere else.
+   */
+  now: string
   /**
    * Take the player to the next fixture that still needs a decision. Null where
    * there is none — every fixture is entered, or the card is not editable.
@@ -44,11 +54,11 @@ export type MatchweekBriefProps = {
   onJumpToNext: (() => void) | null
 }
 
-export function MatchweekBrief({ model, actions, onJumpToNext }: MatchweekBriefProps) {
+export function MatchweekBrief({ model, actions, now, onJumpToNext }: MatchweekBriefProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { lock, progress, phase } = model
   const remaining = progress.total - progress.entered
-  const countdown = lock.at === null ? null : formatCountdown(lock.at, model.generatedAt)
+  const countdown = lock.at === null ? null : formatCountdown(lock.at, now)
 
   return (
     <motion.aside
@@ -99,7 +109,7 @@ export function MatchweekBrief({ model, actions, onJumpToNext }: MatchweekBriefP
             evening wants the second, and the two together are three words. */}
         {lock.kind === 'open' && lock.at !== null ? (
           <p className={`${typography.caption} ${typography.numeric} ${styles.briefWhen}`}>
-            Locks {formatKickoffLabel(lock.at, model.generatedAt)}
+            Locks {formatKickoffLabel(lock.at, now)}
           </p>
         ) : null}
         <p className={typography.caption}>{lock.detail}</p>

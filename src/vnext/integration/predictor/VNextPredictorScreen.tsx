@@ -188,9 +188,17 @@ function PredictorCard({
 
     const source: PredictorSource = {
       // ONE INSTANT FOR THE WHOLE MODEL, stamped where a clock read is legitimate
-      // and passed down as data. Nothing in the mapper or in any component reads a
-      // clock, so the countdown and the urgency band are measured against the same
-      // moment.
+      // and passed down as data. It is the moment the APPLICATION answered, so the
+      // mapper — which reads no clock — bands `lock.urgency` against the same
+      // moment the card was resolved at.
+      //
+      // IT DOES NOT TICK, AND IT SHOULD NOT. Rebuilding the model on a timer to
+      // keep a countdown moving would mean re-deriving everything on it, urgency
+      // included, from a clock in the browser once a minute. Instead the surface's
+      // `useDeadlineClock` anchors a separate DISPLAY instant to this one and
+      // advances that, and when it reaches an open card's `lock.at` it calls
+      // `reload` below — so a stale card is answered by the authority rather than
+      // by arithmetic here.
       generatedAt: new Date().toISOString(),
       competition: {
         name: context.competition.name,

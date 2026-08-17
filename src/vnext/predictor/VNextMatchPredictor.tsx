@@ -11,6 +11,7 @@ import type { PredictorActions, PredictorLock, PredictorModel } from '../models/
 import { FixtureDecision } from './FixtureDecision'
 import { MatchweekBrief } from './MatchweekBrief'
 import { MatchweekOutcome } from './MatchweekOutcome'
+import { useDeadlineClock } from './useDeadlineClock'
 import styles from './predictor.module.css'
 
 /**
@@ -67,6 +68,30 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
   const stagger = useVNextMotion(vnextMotion.stagger)
 
   /**
+   * THE INSTANT THE WHOLE PAGE IS DRAWN AGAINST, kept current.
+   *
+   * `model.generatedAt` is the authoritative instant and it moves only when the
+   * application rebuilds the model, which is not often enough for a countdown a
+   * player is watching. `useDeadlineClock` advances it by observed elapsed time
+   * and, where the application says this card is open at a resolved instant, asks
+   * the application again once that instant is reached.
+   *
+   * IT IS ONE VALUE FOR THE PAGE, deliberately: the masthead's chip, the brief's
+   * countdown and every kickoff label read the same instant, so "Locks tomorrow
+   * 12:00" and a row saying "Today 12:00" cannot both be on screen. And it
+   * decides nothing — every control below is drawn from `model.editable`,
+   * `model.lock.kind` and the Joker's own `playable`, none of which this value can
+   * reach.
+   */
+  const displayNow = useDeadlineClock({
+    generatedAt: model.generatedAt,
+    lock: model.lock,
+    // The existing recovery command on the existing hook. vNext asks; the server
+    // answers; the answer arrives as the next model.
+    onBoundaryReached: actions.reload,
+  })
+
+  /**
    * THE FIRST SCORE BOX OF EVERY FIXTURE, so typing can run through a whole card
    * and the brief's jump control has somewhere to go.
    *
@@ -121,7 +146,7 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
           // the slot took this without a change. It also earns the page something
           // real: the masthead is already sticky, so the deadline stays on screen
           // while scrolling and the page does not need a second sticky band.
-          trailing={<DeadlineChip lock={model.lock} now={model.generatedAt} />}
+          trailing={<DeadlineChip lock={model.lock} now={displayNow} />}
         />
       }
     >
@@ -148,6 +173,7 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
         <MatchweekBrief
           model={model}
           actions={actions}
+          now={displayNow}
           onJumpToNext={firstOutstanding === undefined ? null : () => focusFixture(firstOutstanding)}
         />
 
@@ -189,7 +215,7 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
                         key={fixture.id}
                         fixture={fixture}
                         enrichment={model.enrichment}
-                        now={model.generatedAt}
+                        now={displayNow}
                         actions={actions}
                         // SELECTIVE EMPHASIS, ON EXACTLY ONE ROW. The next
                         // decision is the one thing on this list that deserves
@@ -274,9 +300,11 @@ function groupByDay(fixtures: readonly PredictorModel['fixtures'][number][]) {
  * formatting over two values it was handed, which is a different thing from a
  * decision.
  *
- * `aria-live` is deliberately absent. The countdown only changes when the model
- * is rebuilt, and a region that announced a deadline as a player typed a score
- * would talk over the save status they are actually waiting for.
+ * `aria-live` is deliberately absent, and now that the countdown advances on its
+ * own that is a stronger decision rather than a weaker one: a region that
+ * announced a new number every minute — over the save status a player is actually
+ * waiting for — would be the page interrupting the work it exists to support. The
+ * deadline is also stated in the brief, in words, where it is read on demand.
  */
 function DeadlineChip({ lock, now }: { lock: PredictorLock; now: string }) {
   const countdown = lock.at === null ? null : formatCountdown(lock.at, now)
