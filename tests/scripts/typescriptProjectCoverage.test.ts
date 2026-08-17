@@ -39,6 +39,7 @@ const COVERED_PREFIXES = [
 /** Individually-named root files. */
 const COVERED_FILES = [
   'vite.config.ts',
+  'vite.analyze.config.ts',
   'playwright.config.ts',
   'playwright.auth.config.ts',
   'playwright.production.config.ts',

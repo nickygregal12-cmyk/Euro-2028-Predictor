@@ -1,0 +1,77 @@
+name: Local performance smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  local-k6-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22.22.2
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production bundle
+        run: npm run build
+      - name: Start local preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/euro28-preview.log 2>&1 &
+          echo $! > /tmp/euro28-preview.pid
+          for _ in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/release.json > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/euro28-preview.log
+          exit 1
+      - name: Install verified k6 v2.2.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive=/tmp/k6.tar.gz
+          curl --fail --location --silent --show-error \
+            'https://github.com/grafana/k6/releases/download/v2.2.0/k6-v2.2.0-linux-amd64.tar.gz' \
+            --output "$archive"
+          echo 'b5a8003c86f35f5cd5ceef1490312c48e587696c94d998cefc6d7b3b4cb1597d  /tmp/k6.tar.gz' | sha256sum --check --strict
+          mkdir -p /tmp/k6
+          tar -xzf "$archive" -C /tmp/k6 --strip-components=1
+          install -m 0755 /tmp/k6/k6 /usr/local/bin/k6
+          k6 version
+      - name: Run local protocol smoke
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: k6 run tests/performance/local-smoke.js
+      - name: Upload preview diagnostics
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: performance-preview-log
+          path: /tmp/euro28-preview.log
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Stop local preview
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/euro28-preview.pid ]; then
+            kill "$(cat /tmp/euro28-preview.pid)" || true
+          fi

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:best-practices"],
+  "timezone": "Europe/London",
+  "dependencyDashboard": true,
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "schedule": ["before 6am on Monday"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on Monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Keep major dependency updates explicitly approved",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Group React runtime updates",
+      "matchPackageNames": ["react", "react-dom", "react-router"],
+      "groupName": "react runtime"
+    },
+    {
+      "description": "Group Vitest and Testing Library updates",
+      "matchPackageNames": ["vitest", "@vitest/**", "@testing-library/**", "jsdom"],
+      "groupName": "test toolchain"
+    },
+    {
+      "description": "Group browser and accessibility tooling",
+      "matchPackageNames": ["@playwright/**", "playwright", "@axe-core/**", "axe-core"],
+      "groupName": "browser accessibility tooling"
+    },
+    {
+      "description": "Group GitHub Actions updates",
+      "matchManagers": ["github-actions"],
+      "groupName": "github actions"
+    },
+    {
+      "description": "Automerge patch-only development dependency updates after required checks",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["patch"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true
+    }
+  ]
+}

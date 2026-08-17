@@ -35,7 +35,10 @@
     "generate:types": "node scripts/generate-database-types.mjs",
     "check:now": "node scripts/generate-now.mjs --check",
     "storybook": "storybook dev -p 6006",
-    "build:storybook": "storybook build"
+    "build:storybook": "storybook build",
+    "test:property": "vitest run tests/domain/calculateScore.property.test.ts",
+    "test:mutation": "stryker run",
+    "analyze:bundle": "npm run prebuild && tsc -b && vite build --config vite.analyze.config.ts"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",
@@ -51,13 +54,16 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router": "8.3.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.10.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
     "@lhci/cli": "^0.15.1",
     "@playwright/test": "1.62.1",
     "@storybook/react-vite": "^10.5.8",
+    "@stryker-mutator/core": "9.6.1",
+    "@stryker-mutator/vitest-runner": "9.6.1",
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.2",
@@ -66,10 +72,13 @@
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/coverage-v8": "^4.1.10",
     "axe-core": "^4.12.1",
+    "fast-check": "4.9.0",
     "jsdom": "^30.0.1",
     "knip": "^6.32.0",
     "lefthook": "^2.1.10",
+    "msw": "2.15.0",
     "oxlint": "^1.71.0",
+    "rollup-plugin-visualizer": "7.0.1",
     "storybook": "^10.5.8",
     "stylelint": "^17.14.1",
     "stylelint-config-standard": "^40.0.0",
