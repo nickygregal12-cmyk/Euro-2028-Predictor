@@ -226,6 +226,160 @@ describe('the two documents that state the development contract agree', () => {
   })
 })
 
+const PRODUCTION_CONTRACT =
+  /production(?:\s+Supabase)?\s+is\s+hosted\s+at\s+(?:contract\s*)?\**(\d+)/gi
+
+/**
+ * The hosted contract a document currently claims, out of every value it states.
+ *
+ * WHY THE MAXIMUM AND NOT THE FIRST MATCH. `current-status.md` keeps historical
+ * hosted evidence in the same file as its current claim — it states "Production
+ * Supabase is hosted at **131**" four times in a contract-131 passage that is
+ * still true *of 131*. A rule that read every match as a current claim would
+ * fail on correct history, and a rule that read only the first would be silently
+ * defeated by anyone appending a newer paragraph below an older one. Hosted
+ * contracts only ever move forward, so the highest value a document names is the
+ * one it is claiming now, and every lower mention is history.
+ */
+function currentHostedClaim(source: string, pattern: RegExp): number | null {
+  const stated = statedVersions(source, pattern)
+  return stated.length > 0 ? Math.max(...stated) : null
+}
+
+/**
+ * Whether a document's current hosted claim equals the machine record.
+ *
+ * A SEPARATE PURE FUNCTION SO THE MUTATION CAN BE ASSERTED. The bug this exists
+ * for was not a missing test but a test that could not fail: on 17 August 2026
+ * `current-status.md` — which calls itself the only hosted-status authority —
+ * said hosted Production was 189 while `config/production-hosted-contract.json`
+ * recorded 190, verified three days earlier, and this suite was green. The
+ * Production record was loaded and used only to check that the *Netlify
+ * declaration* did not lead it, through `declarationMayTargetHostedContract`,
+ * which permits trailing by design. Nothing compared the prose to the record,
+ * and no `PRODUCTION_CONTRACT` pattern existed at all while `REPOSITORY_CONTRACT`
+ * and `DEVELOPMENT_CONTRACT` did.
+ *
+ * Returning `false` for "states nothing" is deliberate and is half the point. A
+ * regex that stops matching because the sentence was reworded would otherwise
+ * turn this check into dead control that reports success — the exact failure the
+ * `namesContract` docstring above already records once.
+ */
+function hostedProseMatchesRecord(source: string, pattern: RegExp, record: number): boolean {
+  const claim = currentHostedClaim(source, pattern)
+  return claim !== null && claim === record
+}
+
+describe('the hosted-status authority agrees with the hosted records', () => {
+  const status = 'docs/quality/current-status.md'
+
+  it('states the hosted Production contract, and it is the recorded one', () => {
+    const claim = currentHostedClaim(read(status), PRODUCTION_CONTRACT)
+    expect(claim, `${status} no longer states a hosted Production contract`).not.toBeNull()
+    expect(
+      claim,
+      `${status} says hosted Production is ${claim} while config/production-hosted-contract.json records ${productionHosted.requiredMigrationCount}`,
+    ).toBe(productionHosted.requiredMigrationCount)
+  })
+
+  it('states the hosted Development contract, and it is the recorded one', () => {
+    const claim = currentHostedClaim(read(status), DEVELOPMENT_CONTRACT)
+    expect(claim, `${status} no longer states a hosted Development contract`).not.toBeNull()
+    expect(
+      claim,
+      `${status} says hosted Development is ${claim} while config/development-hosted-contract.json records ${developmentHosted.requiredMigrationCount}`,
+    ).toBe(developmentHosted.requiredMigrationCount)
+  })
+
+  it('never claims a hosted environment is ahead of the repository', () => {
+    for (const [label, pattern] of [
+      ['Production', PRODUCTION_CONTRACT],
+      ['Development', DEVELOPMENT_CONTRACT],
+    ] as const) {
+      const claim = currentHostedClaim(read(status), pattern)
+      expect(claim, `${status} states no hosted ${label} contract`).not.toBeNull()
+      expect(
+        claim as number,
+        `${status} claims hosted ${label} ${claim} is ahead of the repository at ${contract.contractVersion}`,
+      ).toBeLessThanOrEqual(contract.contractVersion)
+    }
+  })
+
+  it('current-status and the rollout inventory name the same Production contract', () => {
+    const claim = currentHostedClaim(read(status), PRODUCTION_CONTRACT)
+    const inventoryRows = [
+      ...read('docs/ops/ops-pending-migrations.md').matchAll(
+        /\|\s*Production Supabase[^|]*\|\s*\*\*(\d+)\*\*/g,
+      ),
+    ].map((match) => Number(match[1]))
+    expect(inventoryRows.length, 'the rollout inventory names no Production contract').toBeGreaterThan(0)
+    expect(
+      claim,
+      'current-status.md and ops-pending-migrations.md disagree about the Production contract',
+    ).toBe(Math.max(...inventoryRows))
+  })
+})
+
+describe('the hosted-prose check can actually fail', () => {
+  // Mutation coverage. Each case is the assertion above run against fabricated
+  // prose, because a freshness rule that has never been observed to reject
+  // anything is indistinguishable from one that cannot.
+  const record = 190
+
+  it('accepts prose that names the recorded contract', () => {
+    expect(
+      hostedProseMatchesRecord('Production Supabase is hosted at **190**.', PRODUCTION_CONTRACT, record),
+    ).toBe(true)
+  })
+
+  it('rejects the exact stale state that shipped: Production 190 recorded, 189 written', () => {
+    expect(
+      hostedProseMatchesRecord('Production Supabase is hosted at **189**.', PRODUCTION_CONTRACT, record),
+    ).toBe(false)
+  })
+
+  it('rejects a claim ahead of the record as well as behind it', () => {
+    expect(
+      hostedProseMatchesRecord('Production Supabase is hosted at **191**.', PRODUCTION_CONTRACT, record),
+    ).toBe(false)
+  })
+
+  it('keeps accepting correct history beside the current claim', () => {
+    expect(
+      hostedProseMatchesRecord(
+        'Production Supabase is hosted at **131** after guard work. Later: Production Supabase is hosted at **190**.',
+        PRODUCTION_CONTRACT,
+        record,
+      ),
+    ).toBe(true)
+  })
+
+  it('is not defeated by a newer paragraph appended below an older one', () => {
+    expect(
+      hostedProseMatchesRecord(
+        'Production Supabase is hosted at **190**. An older note: Production Supabase is hosted at **189**.',
+        PRODUCTION_CONTRACT,
+        record,
+      ),
+    ).toBe(true)
+  })
+
+  it('fails closed when the sentence is reworded out of recognition', () => {
+    expect(hostedProseMatchesRecord('Production is fully up to date.', PRODUCTION_CONTRACT, record)).toBe(
+      false,
+    )
+  })
+
+  it('rejects stale Development prose on the same rule', () => {
+    expect(
+      hostedProseMatchesRecord('Development Supabase is hosted at **188**.', DEVELOPMENT_CONTRACT, 189),
+    ).toBe(false)
+    expect(
+      hostedProseMatchesRecord('Development Supabase is hosted at **189**.', DEVELOPMENT_CONTRACT, 189),
+    ).toBe(true)
+  })
+})
+
 function declarationMayTargetHostedContract(declared: number, hosted: number): boolean {
   return declared <= hosted
 }
