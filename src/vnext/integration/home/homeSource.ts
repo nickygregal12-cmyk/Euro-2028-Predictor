@@ -39,7 +39,7 @@ import type { SeasonLeagueMovement } from '../../../services/supabase/seasonLeag
  */
 
 /** The user, as the existing auth authority states them. */
-export type HomeSourceUser = {
+type HomeSourceUser = {
   readonly id: string
   readonly displayName: string | null
 }
@@ -50,7 +50,7 @@ export type HomeSourceUser = {
  * `matchweek` is the matchweek that read OPENS ON, which is the application's
  * own answer to "which matchweek is current". Home does not pick one.
  */
-export type HomeSourceCompetition = {
+type HomeSourceCompetition = {
   readonly tournamentId: string
   readonly name: string
   readonly seasonLabel: string

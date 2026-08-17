@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { presentCard } from '../../../features/season/matchPredictorModel'
 import { presentCompetitionWeek, weekActionForGame } from '../../../features/hub/competitionWeekModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
@@ -103,8 +103,31 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
   return result.status === 'fulfilled' ? result.value : null
 }
 
+/**
+ * What the effect stores: everything the reads returned, and NOT the user.
+ *
+ * THE USER IS COMPOSED IN AFTERWARDS, AND THAT IS A FIX RATHER THAN A STYLE.
+ * `displayName` arrives from `AuthProvider` in two steps — null while the profile
+ * read is in flight, then the name — so an effect that depended on it ran twice
+ * and issued every one of Home's reads twice. The display name addresses no read
+ * and belongs to no payload, so it is merged in below where it costs nothing.
+ */
+type Loaded = {
+  status: 'loaded'
+  payload: Omit<HomeSource, 'user'>
+  unavailable: readonly HomeSourceName[]
+  leaguesNotShown: number
+}
+
+type InternalState =
+  | { status: 'loading' }
+  | { status: 'signedOut' }
+  | { status: 'noCompetition' }
+  | { status: 'failed' }
+  | Loaded
+
 export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSourceState {
-  const [state, setState] = useState<VNextHomeSourceState>({ status: 'loading' })
+  const [state, setState] = useState<InternalState>({ status: 'loading' })
   const [nonce, setNonce] = useState(0)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
@@ -194,7 +217,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
         // a Home drawn without them would be a confident empty matchweek.
         const fixtureList = settled(fixtures)
         if (fixtureList === null) {
-          setState({ status: 'failed', retry })
+          setState({ status: 'failed' })
           return
         }
 
@@ -250,14 +273,13 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
         if (projectionValue === null && matchweek !== null) unavailable.push('projection')
 
         setState({
-          status: 'ready',
-          source: {
+          status: 'loaded',
+          payload: {
             // ONE INSTANT FOR THE WHOLE MODEL, stamped once here where a clock
             // read is legitimate, and passed down as data. Nothing in the mapper
             // or in any component reads a clock, so every deadline and relative
             // time on the page is measured against the same moment.
             generatedAt: new Date().toISOString(),
-            user: { id: userId, displayName },
             competition: {
               tournamentId: context.tournamentId,
               name: context.competitionName,
@@ -292,28 +314,42 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
           },
           unavailable,
           leaguesNotShown: Math.max(0, allLeagues.length - shown.length),
-          retry,
         })
       } catch {
         // The context read failed, or something threw before the enrichments
         // were reached. Either way Home has no competition to draw.
-        if (active) setState({ status: 'failed', retry })
+        if (active) setState({ status: 'failed' })
       }
     })()
 
     return () => {
       active = false
     }
-  }, [
-    authLoading,
-    userId,
-    displayName,
-    competitionSlug,
-    seasonSlug,
-    gameCompetitionId,
-    retry,
-    nonce,
-  ])
+    // `displayName` is DELIBERATELY ABSENT. It addresses no read, and including
+    // it made every read fire twice — once before the profile resolved and once
+    // after. It is merged into the source below instead.
+  }, [authLoading, userId, competitionSlug, seasonSlug, gameCompetitionId, nonce])
 
-  return state
+  return useMemo<VNextHomeSourceState>(() => {
+    switch (state.status) {
+      case 'loading':
+        return { status: 'loading' }
+      case 'signedOut':
+        return { status: 'signedOut' }
+      case 'noCompetition':
+        return { status: 'noCompetition' }
+      case 'failed':
+        return { status: 'failed', retry }
+      default:
+        return {
+          status: 'ready',
+          // The user is attached here, so a display name arriving late updates
+          // the greeting without re-reading a single fixture.
+          source: { ...state.payload, user: { id: userId ?? '', displayName } },
+          unavailable: state.unavailable,
+          leaguesNotShown: state.leaguesNotShown,
+          retry,
+        }
+    }
+  }, [state, userId, displayName, retry])
 }

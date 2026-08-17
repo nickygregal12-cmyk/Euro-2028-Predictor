@@ -2,6 +2,10 @@ import { useState } from 'react'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextHomeScreen } from '../vnext/integration/home/VNextHomeScreen'
+import {
+  VNextHomeLoading,
+  VNextHomeNotice,
+} from '../vnext/integration/home/VNextHomeStates'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -41,8 +45,30 @@ export function VNextHomePreview() {
   )
 }
 
+/**
+ * A STATE OVERRIDE, FOR REVIEWING THE STATES THAT ARE HARD TO CAUSE ON PURPOSE.
+ *
+ * `?state=loading|failed|noCompetition` renders that state directly. It exists
+ * because the interesting ones are the ones you cannot arrange: a read failure
+ * needs the database to break, and "no competition" needs a season that does not
+ * exist. Both have to be looked at — they are the states a real player is most
+ * likely to meet on a bad day, and the ones nobody screenshots.
+ *
+ * IT OVERRIDES THE HARNESS, NOT THE SCREEN. `VNextHomeScreen`'s own state
+ * machine is untouched and unmocked; this renders the same two presentational
+ * components the screen renders, with the same props. So it proves how a state
+ * LOOKS and never what decides it.
+ */
+type ForcedState = 'loading' | 'failed' | 'noCompetition'
+
+function forcedStateFrom(search: string): ForcedState | null {
+  const value = new URLSearchParams(search).get('state')
+  return value === 'loading' || value === 'failed' || value === 'noCompetition' ? value : null
+}
+
 function PreviewBody() {
   const { userId, displayName, loading } = useAuth()
+  const forced = forcedStateFrom(window.location.search)
   const [competitionSlug, setCompetitionSlug] = useState('')
   const [seasonSlug, setSeasonSlug] = useState('')
   const [gameCompetitionId, setGameCompetitionId] = useState('')
@@ -55,7 +81,12 @@ function PreviewBody() {
   return (
     <div className={styles.page}>
       <header className={styles.controls}>
-        <h1 className={styles.heading}>vNext Home — real data</h1>
+        {/* AN `h2`, NOT AN `h1`. The shell below owns the page's single `<h1>`
+            and points `<main aria-labelledby>` at it. A harness heading that
+            claimed `h1` too would give the document two, which is exactly the
+            contract Home's own review checks for — and the harness must not be
+            the thing that breaks it. */}
+        <h2 className={styles.heading}>vNext Home — real data</h2>
         <p className={styles.note}>
           Development harness. Reads the live database through the same season
           services the Hub uses, and renders the approved Home unchanged. Not a
@@ -120,7 +151,20 @@ function PreviewBody() {
         nothing renders correctly outside it.
       */}
       <VNextRoot>
-        {applied ? (
+        {forced === 'loading' ? (
+          <VNextHomeLoading />
+        ) : forced === 'failed' ? (
+          <VNextHomeNotice
+            title="We could not load your matchweek"
+            body="The football and your standing are both fine — we just could not read them just now. Trying again usually works."
+            onRetry={() => window.location.reload()}
+          />
+        ) : forced === 'noCompetition' ? (
+          <VNextHomeNotice
+            title="No competition to show"
+            body="Pick a competition and season, and this is where its matchweek will be."
+          />
+        ) : applied ? (
           <VNextHomeScreen
             userId={userId}
             displayName={displayName}
