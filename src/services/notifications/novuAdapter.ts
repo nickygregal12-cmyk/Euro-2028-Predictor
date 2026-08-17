@@ -24,10 +24,63 @@ import {
   type NotificationConfiguration,
   type NotificationService,
   type PayloadTransport,
+  type TransportResult,
 } from './notificationService'
 
 /** Novu's trigger endpoint, relative to the configured API origin. */
 const TRIGGER_PATH = '/v1/events/trigger'
+
+/**
+ * The one status that means the notification actually entered the workflow.
+ *
+ * Novu answers 2xx for a request it accepted and then declined to act on:
+ * `trigger_not_active` when the workflow is disabled,
+ * `no_workflow_steps_defined` / `no_workflow_active_steps_defined` when it has
+ * no channels configured, `invalid_recipients` when the subscriber cannot be
+ * resolved, `no_tenant_found`, and `error`. Every one of those is a normal
+ * state for an account that has just been created and whose workflows are not
+ * finished, so reading the HTTP status alone would report delivery for a
+ * notification nobody received.
+ */
+const PROCESSED = 'processed'
+
+interface TriggerResponseBody {
+  readonly data?: {
+    readonly acknowledged?: unknown
+    readonly status?: unknown
+    readonly transactionId?: unknown
+  }
+}
+
+/**
+ * Interpret Novu's trigger response.
+ *
+ * Exported for its own tests: this is the part with real branching, and the
+ * cases that matter are the ones a live account produces before its workflows
+ * are complete.
+ */
+export function interpretTriggerResponse(
+  ok: boolean,
+  body: unknown,
+): TransportResult {
+  if (!ok) return { outcome: 'failed' }
+
+  const data = (body as TriggerResponseBody | null)?.data
+  const status = typeof data?.status === 'string' ? data.status : null
+  const acknowledged = data?.acknowledged
+
+  if (status === PROCESSED && acknowledged !== false) {
+    return {
+      outcome: 'delivered',
+      providerMessageId:
+        typeof data?.transactionId === 'string' ? data.transactionId : null,
+    }
+  }
+
+  // A 2xx with no readable status is not evidence of delivery either. It is
+  // reported as unreadable rather than guessed at in the optimistic direction.
+  return { outcome: 'not-processed', providerStatus: status ?? 'unreadable-response' }
+}
 
 /**
  * True when this module is executing somewhere a secret must never exist.
@@ -84,10 +137,19 @@ function createNovuTransport(
       },
     )
 
-    // Any non-2xx is a refusal. The body is deliberately not inspected or
-    // logged: a provider error body can echo the request, and the request
-    // carries player identifiers.
-    return { delivered: response.ok }
+    // The body is read for its status and transaction id ONLY. Nothing from it
+    // is logged or propagated: a provider error body can echo the request back,
+    // and the request carries player identifiers.
+    let body: unknown = null
+    try {
+      body = await response.json()
+    } catch {
+      // A 2xx with an unreadable body is reported as not-processed by the
+      // interpreter below rather than assumed to have worked.
+      body = null
+    }
+
+    return interpretTriggerResponse(response.ok, body)
   }
 }
 

@@ -118,11 +118,10 @@ are not:
   defaults to off here.** Both must be turned off deliberately. That is two
   switches on purpose, not an oversight to tidy away.
 
-**One known gap.** The adapter reports success from the HTTP status and does
-not read Novu's returned transaction id, so `p_provider_message_id` has nothing
-real to carry yet. Populating it means parsing the trigger response — small,
-but it is not done, and passing this boundary's own `transactionId` in that
-slot would record a value Novu never issued.
+`DeliveryOutcome` now carries `providerMessageId` — Novu's own transaction id,
+read from the trigger response — which is what `p_provider_message_id` records.
+It is deliberately distinct from this boundary's `transactionId`: one traces
+the run in Novu's activity feed, the other is our idempotency key.
 
 Nothing above is wired. `DFA-012` and `SITE-007` are **not** closed by this
 change: no provider is configured, no claim loop calls this boundary, and
@@ -132,9 +131,26 @@ nothing sends.
 
 Nothing here is a hosted action, and none of it is done.
 
-1. Provision a Novu environment and create the nineteen workflows named in
-   `notificationPayload.ts`. Until a workflow exists, triggering it returns a
-   provider error and the boundary reports `provider-error`.
+1. Create the nineteen workflows in the Novu environment. Get the list from
+   the source rather than by reading it off:
+
+   ```bash
+   npm run notifications:workflows          # identifiers, categories, payload vars
+   npm run notifications:workflows -- --json
+   ```
+
+   **A missing workflow does not fail loudly, and this is the trap.** Novu
+   answers **2xx** for a trigger it accepted and then declined to act on — the
+   workflow is absent, disabled, or has no channel steps — with a `status` of
+   `trigger_not_active`, `no_workflow_steps_defined`,
+   `no_workflow_active_steps_defined`, `invalid_recipients`, `no_tenant_found`
+   or `error`. Reading the HTTP status alone would record a delivery for a
+   notification nobody received, and the ledger would then mark it `sent` and
+   never retry.
+
+   The adapter reads the body and reports those as
+   `provider-not-processed:<status>`, which is the string to look for when a
+   notification does not arrive.
 2. Put `NOVU_API_KEY` in the server-side secret store of whichever runtime
    emits events. Never in a committed file, never with a `VITE_` prefix.
 3. Set `NOTIFICATIONS_DELIVERY=enabled` for that runtime **only**. Leave it

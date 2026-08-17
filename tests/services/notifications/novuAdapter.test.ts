@@ -46,6 +46,11 @@ const EVENT: NotificationEvent = {
   pointsBehind: null,
 }
 
+/** What Novu answers when a trigger really did enter the workflow. */
+const PROCESSED_RESPONSE = {
+  data: { acknowledged: true, status: 'processed', transactionId: 'novu-txn-1' },
+}
+
 const server = setupServer()
 
 beforeAll(() => {
@@ -84,7 +89,7 @@ describe('createNovuNotificationService', () => {
           body: await request.json(),
           authorization: request.headers.get('authorization'),
         })
-        return HttpResponse.json({ data: { acknowledged: true } })
+        return HttpResponse.json(PROCESSED_RESPONSE)
       }),
     )
 
@@ -111,7 +116,7 @@ describe('createNovuNotificationService', () => {
       http.post(TRIGGER_URL, async ({ request }) => {
         const body = (await request.json()) as { transactionId?: unknown }
         transactionIds.push(body.transactionId)
-        return HttpResponse.json({ data: { acknowledged: true } })
+        return HttpResponse.json(PROCESSED_RESPONSE)
       }),
     )
 
@@ -130,7 +135,7 @@ describe('createNovuNotificationService', () => {
     server.use(
       http.post(TRIGGER_URL, async ({ request }) => {
         body = (await request.json()) as { payload?: Record<string, unknown> }
-        return HttpResponse.json({ data: { acknowledged: true } })
+        return HttpResponse.json(PROCESSED_RESPONSE)
       }),
     )
 
@@ -175,6 +180,78 @@ describe('createNovuNotificationService', () => {
     ).resolves.toEqual({ delivered: false, reason: 'provider-error' })
   })
 
+  it("records Novu's own transaction id, not this boundary's key", async () => {
+    server.use(http.post(TRIGGER_URL, () => HttpResponse.json(PROCESSED_RESPONSE)))
+
+    const result = await createNovuNotificationService(CONFIGURATION).deliver(EVENT)
+
+    expect(result).toMatchObject({
+      delivered: true,
+      providerMessageId: 'novu-txn-1',
+    })
+  })
+
+  describe('a 2xx that Novu did not act on is not a delivery', () => {
+    // These are the ordinary states of an account somebody has just created:
+    // the workflow does not exist yet, exists but is switched off, or has no
+    // channel steps configured. Novu answers 2xx for all of them. Reading the
+    // HTTP status alone would report a notification that nobody received, and
+    // the reminder ledger would then record it as sent and never retry.
+    it.each([
+      'trigger_not_active',
+      'no_workflow_active_steps_defined',
+      'no_workflow_steps_defined',
+      'invalid_recipients',
+      'no_tenant_found',
+      'error',
+    ])('reports status %s as not processed', async (status) => {
+      server.use(
+        http.post(TRIGGER_URL, () =>
+          HttpResponse.json({ data: { acknowledged: true, status } }),
+        ),
+      )
+
+      await expect(
+        createNovuNotificationService(CONFIGURATION).deliver(EVENT),
+      ).resolves.toEqual({
+        delivered: false,
+        reason: `provider-not-processed:${status}`,
+      })
+    })
+
+    it('does not trust acknowledged:false even alongside a processed status', async () => {
+      server.use(
+        http.post(TRIGGER_URL, () =>
+          HttpResponse.json({
+            data: { acknowledged: false, status: 'processed' },
+          }),
+        ),
+      )
+
+      await expect(
+        createNovuNotificationService(CONFIGURATION).deliver(EVENT),
+      ).resolves.toEqual({
+        delivered: false,
+        reason: 'provider-not-processed:processed',
+      })
+    })
+
+    it('treats an unreadable 2xx body as not processed rather than guessing', async () => {
+      server.use(
+        http.post(TRIGGER_URL, () =>
+          HttpResponse.text('gateway says hello', { status: 200 }),
+        ),
+      )
+
+      await expect(
+        createNovuNotificationService(CONFIGURATION).deliver(EVENT),
+      ).resolves.toEqual({
+        delivered: false,
+        reason: 'provider-not-processed:unreadable-response',
+      })
+    })
+  })
+
   it('honours a self-hosted API origin', async () => {
     const selfHosted = 'https://novu.internal.example'
     let reached = false
@@ -182,7 +259,7 @@ describe('createNovuNotificationService', () => {
     server.use(
       http.post(`${selfHosted}/v1/events/trigger`, () => {
         reached = true
-        return HttpResponse.json({ data: { acknowledged: true } })
+        return HttpResponse.json(PROCESSED_RESPONSE)
       }),
     )
 

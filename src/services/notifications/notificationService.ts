@@ -32,7 +32,17 @@ import {
 import type { NotificationEvent } from './notificationEvents'
 
 export type DeliveryOutcome =
-  | { readonly delivered: true; readonly transactionId: string }
+  | {
+      readonly delivered: true
+      /** This boundary's own idempotency key for the fact. */
+      readonly transactionId: string
+      /**
+       * The provider's identifier for the accepted trigger, for tracing it in
+       * the provider's own console. `null` when the provider acknowledged
+       * without naming one.
+       */
+      readonly providerMessageId: string | null
+    }
   | { readonly delivered: false; readonly reason: DeliveryRefusal }
 
 export type DeliveryRefusal =
@@ -42,8 +52,20 @@ export type DeliveryRefusal =
   | 'delivery-not-authorised'
   /** The event was not well-formed enough to send. */
   | `malformed-event:${PayloadRejectionReason}`
-  /** The provider was reachable and refused, or was unreachable. */
+  /** The provider was unreachable, or answered with a transport-level error. */
   | 'provider-error'
+  /**
+   * The provider ACCEPTED the request and then did not act on it.
+   *
+   * This is its own outcome because it is not a transport failure and must not
+   * be read as a success. Novu answers 2xx with a status of
+   * `trigger_not_active`, `no_workflow_steps_defined` or `invalid_recipients`
+   * when the workflow is missing, disabled, empty or the subscriber cannot be
+   * resolved — every one of which is the ordinary state of an account somebody
+   * has just created. Treating the HTTP status alone as delivery would report
+   * a notification that was never sent.
+   */
+  | `provider-not-processed:${string}`
 
 export interface NotificationService {
   /**
@@ -83,10 +105,23 @@ export function createDisabledNotificationService(
   }
 }
 
+/**
+ * What a provider adapter reports back.
+ *
+ * Three outcomes rather than a boolean, because "the provider took the request
+ * and did nothing with it" is neither a success nor a transport failure, and
+ * collapsing it into either one loses the only information that explains why
+ * nothing arrived.
+ */
+export type TransportResult =
+  | { readonly outcome: 'delivered'; readonly providerMessageId: string | null }
+  | { readonly outcome: 'not-processed'; readonly providerStatus: string }
+  | { readonly outcome: 'failed' }
+
 /** How a configured provider actually sends one mapped payload. */
 export type PayloadTransport = (
   payload: NotificationPayload,
-) => Promise<{ readonly delivered: boolean }>
+) => Promise<TransportResult>
 
 /**
  * Wrap a transport in the shared mapping, validation and never-throw contract,
@@ -105,9 +140,21 @@ export function createNotificationService(
 
       try {
         const result = await transport(mapped.payload)
-        return result.delivered
-          ? { delivered: true, transactionId: mapped.payload.transactionId }
-          : { delivered: false, reason: 'provider-error' }
+        switch (result.outcome) {
+          case 'delivered':
+            return {
+              delivered: true,
+              transactionId: mapped.payload.transactionId,
+              providerMessageId: result.providerMessageId,
+            }
+          case 'not-processed':
+            return {
+              delivered: false,
+              reason: `provider-not-processed:${result.providerStatus}`,
+            }
+          case 'failed':
+            return { delivered: false, reason: 'provider-error' }
+        }
       } catch {
         // Swallowed on purpose, and narrowly: a provider outage may not
         // propagate into whatever domain operation emitted the event.

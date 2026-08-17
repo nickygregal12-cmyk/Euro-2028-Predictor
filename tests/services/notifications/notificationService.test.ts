@@ -132,7 +132,9 @@ describe('createDisabledNotificationService', () => {
 
 describe('createNotificationService', () => {
   it('delivers a well-formed event through the transport', async () => {
-    const transport = vi.fn().mockResolvedValue({ delivered: true })
+    const transport = vi
+      .fn()
+      .mockResolvedValue({ outcome: 'delivered', providerMessageId: 'novu-txn-1' })
     const result = await createNotificationService(transport).deliver(EVENT)
 
     expect(result.delivered).toBe(true)
@@ -144,8 +146,35 @@ describe('createNotificationService', () => {
     })
   })
 
+  it("carries the provider's own identifier back to the caller", async () => {
+    // This is what `record_reminder_result(p_provider_message_id)` records, so
+    // it has to be the provider's value rather than this boundary's key.
+    const transport = vi
+      .fn()
+      .mockResolvedValue({ outcome: 'delivered', providerMessageId: 'novu-txn-1' })
+    const result = await createNotificationService(transport).deliver(EVENT)
+
+    expect(result).toMatchObject({
+      delivered: true,
+      providerMessageId: 'novu-txn-1',
+    })
+    if (result.delivered) {
+      expect(result.providerMessageId).not.toBe(result.transactionId)
+    }
+  })
+
+  it('accepts a provider that acknowledges without naming an identifier', async () => {
+    const transport = vi
+      .fn()
+      .mockResolvedValue({ outcome: 'delivered', providerMessageId: null })
+    const result = await createNotificationService(transport).deliver(EVENT)
+    expect(result).toMatchObject({ delivered: true, providerMessageId: null })
+  })
+
   it('never reaches the transport with a malformed event', async () => {
-    const transport = vi.fn().mockResolvedValue({ delivered: true })
+    const transport = vi
+      .fn()
+      .mockResolvedValue({ outcome: 'delivered', providerMessageId: null })
     const result = await createNotificationService(transport).deliver(
       MALFORMED as NotificationEvent,
     )
@@ -157,11 +186,27 @@ describe('createNotificationService', () => {
     expect(transport).not.toHaveBeenCalled()
   })
 
-  it('reports a refusing provider without throwing', async () => {
-    const transport = vi.fn().mockResolvedValue({ delivered: false })
+  it('reports a failing transport without throwing', async () => {
+    const transport = vi.fn().mockResolvedValue({ outcome: 'failed' })
     await expect(
       createNotificationService(transport).deliver(EVENT),
     ).resolves.toEqual({ delivered: false, reason: 'provider-error' })
+  })
+
+  it('does not report delivery when the provider declined to act', async () => {
+    // The case that matters on a new account: the request was accepted and the
+    // notification was never sent. Reporting it as delivered would be a lie
+    // the ledger then records as success.
+    const transport = vi
+      .fn()
+      .mockResolvedValue({ outcome: 'not-processed', providerStatus: 'trigger_not_active' })
+
+    await expect(
+      createNotificationService(transport).deliver(EVENT),
+    ).resolves.toEqual({
+      delivered: false,
+      reason: 'provider-not-processed:trigger_not_active',
+    })
   })
 
   it('absorbs a thrown transport error', async () => {
