@@ -433,6 +433,27 @@ const root = rootFlag === -1 ? process.cwd() : resolve(args[rootFlag + 1] ?? '.'
 const output = render(collect(root))
 const target = resolve(root, 'NOW.md')
 
+/**
+ * A file's contents, or `null` when it is not there.
+ *
+ * ONE OPERATION, NOT A CHECK THEN A USE. `existsSync` followed by `readFileSync`
+ * asks the filesystem twice and acts on the first answer, which CodeQL flagged as
+ * a race on this very script. Letting the read itself report absence removes the
+ * window rather than narrowing it — and it is the honest shape anyway, because
+ * "can I read this" is exactly the question being asked.
+ *
+ * @param {string} path
+ * @returns {string | null}
+ */
+function readIfPresent(path) {
+  try {
+    return readFileSync(path, 'utf8')
+  } catch (error) {
+    if (/** @type {{ code?: string }} */ (error)?.code === 'ENOENT') return null
+    throw error
+  }
+}
+
 const facts = collect(root)
 const statusTarget = resolve(root, HOSTED_STATE_TARGET)
 // ABSENT IS NOT THE SAME AS UNMARKED. The generator's own contract is NOW.md, and
@@ -442,17 +463,17 @@ const statusTarget = resolve(root, HOSTED_STATE_TARGET)
 // region to manage. A status document that exists WITHOUT the markers is the
 // different case, and `applyHostedState` fails closed on it, because that is
 // someone having removed the managed region from the file that needs it.
-const statusManaged = existsSync(statusTarget)
-const statusSource = statusManaged ? readFileSync(statusTarget, 'utf8') : ''
-const statusOutput = statusManaged
-  ? applyHostedState(statusSource, renderHostedState(facts))
-  : statusSource
+const statusSource = readIfPresent(statusTarget)
+const statusOutput =
+  statusSource === null ? null : applyHostedState(statusSource, renderHostedState(facts))
 
 if (args.includes('--stdout')) {
   process.stdout.write(output)
 } else if (args.includes('--check')) {
-  const current = existsSync(target) ? readFileSync(target, 'utf8') : ''
-  if (current !== output) {
+  // Same one-operation rule as the status document. This read predates the
+  // hosted-state region and carried the same check-then-use shape; leaving it
+  // would fix the instance CodeQL named and keep its twin two lines away.
+  if (readIfPresent(target) !== output) {
     fail('NOW.md is out of date. Run `npm run generate:now`.')
   }
   if (statusSource !== statusOutput) {
@@ -468,7 +489,12 @@ if (args.includes('--stdout')) {
   )
 } else {
   writeFileSync(target, output)
-  if (statusSource !== statusOutput) writeFileSync(statusTarget, statusOutput)
+  // `null` means there was no status document to manage. Narrowed rather than
+  // asserted: the compiler cannot know the two are null together, and a
+  // non-null assertion here would be the reviewer's problem later.
+  if (statusOutput !== null && statusSource !== statusOutput) {
+    writeFileSync(statusTarget, statusOutput)
+  }
   console.log(
     `NOW.md written: repository ${facts.repositoryContract}. ` +
       `${HOSTED_STATE_TARGET} hosted-state region: development ${facts.developmentContract}, ` +
