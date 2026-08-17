@@ -42,21 +42,44 @@ function read(file: string): string {
 const NOTIFICATION_MODULE = 'services/notifications'
 
 describe('notification secret containment', () => {
-  it('declares no VITE_-prefixed notification variable anywhere', () => {
+  it('declares no VITE_-prefixed notification variable where one could take effect', () => {
+    // Scoped to the places a `VITE_` name actually does something: the tree
+    // Vite bundles, and the files a deployment declares environment in.
+    //
+    // The test tree is deliberately excluded, and the reason is not
+    // convenience. `notificationService.test.ts` passes `VITE_NOVU_API_KEY`
+    // to the resolver precisely to prove it is IGNORED, and this file names
+    // the pattern it searches for. Both are assertions that the variable has
+    // no power; neither is ever bundled. Scanning them would make the guard
+    // fire on the evidence that the thing it guards against does not happen.
     const offenders = tracked(
-      '*.ts',
-      '*.tsx',
-      '*.mjs',
-      '*.js',
-      '*.json',
-      '*.md',
-      '*.example',
-      '*.toml',
-      '*.yml',
-      '*.yaml',
+      'src/**/*.ts',
+      'src/**/*.tsx',
+      'index.html',
+      'vite.config.ts',
+      'vite.analyze.config.ts',
+      '.env.example',
+      'netlify.toml',
+      '.github/workflows/*.yml',
+      'config/*.json',
     ).filter((file) => /VITE_(?:NOVU|NOTIFICATIONS)/.test(read(file)))
 
     expect(offenders).toEqual([])
+  })
+
+  it('scans a surface that actually exists', () => {
+    // A glob that matches nothing makes the guard above pass vacuously, which
+    // is the failure mode of every path-based check.
+    const scanned = tracked(
+      'src/**/*.ts',
+      'index.html',
+      'vite.config.ts',
+      '.env.example',
+      'netlify.toml',
+      '.github/workflows/*.yml',
+    )
+    expect(scanned.length).toBeGreaterThan(20)
+    expect(scanned).toContain('.env.example')
   })
 
   it('keeps .env.example free of a real-looking credential', () => {

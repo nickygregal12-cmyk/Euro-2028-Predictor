@@ -21,6 +21,29 @@ state, and it deliberately states no contract number.
 | Can a running deployment actually be attacked? | **Strix** | controlled, manual |
 | Tell a player something happened | **Novu**, behind the notification boundary | product capability |
 
+Each capability's own authority carries its detail; this table only routes.
+
+| Capability | Authority |
+| --- | --- |
+| Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
+| Notification delivery | [`notification-delivery.md`](notification-delivery.md) |
+| Internal BI | [`metabase-analytics.md`](metabase-analytics.md) |
+| Dynamic security assessment | [`strix-security-assessment.md`](strix-security-assessment.md) |
+| CI and supply-chain tooling | [`final-engineering-tooling.md`](final-engineering-tooling.md) |
+
+## What is configured versus what is running
+
+Stated here because "we added Novu" and "notifications send" are different
+claims, and the gap between them is where a reader gets misled.
+
+| Capability | State |
+| --- | --- |
+| Playwright MCP, Chrome DevTools MCP | configured; usable now, development-only |
+| DuckDB offline analytics | implemented and tested against a committed snapshot |
+| Novu notification boundary | implemented and tested; **no credential, no emitter, nothing sends** |
+| Metabase | views, role and container config defined; **not applied anywhere, not deployed** |
+| Strix | workflow defined; **inert until an owner provisions `STRIX_LLM_API_KEY`** |
+
 ## The two browser MCP servers are not interchangeable
 
 Both are configured in [`../../.mcp.json`](../../.mcp.json) and both are
