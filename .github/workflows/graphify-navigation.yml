@@ -75,7 +75,10 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --disable-pip-version-check "graphifyy[sql]==${GRAPHIFY_VERSION}"
-          graphify --version
+          python - <<'PY'
+          from importlib.metadata import version
+          print(f"graphifyy {version('graphifyy')}")
+          PY
 
       - name: Build structural code graph
         shell: bash
@@ -104,27 +107,48 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-      - name: Publish portable graph outputs on main
+      - name: Publish latest snapshot branch
         if: >-
           success() && github.ref == 'refs/heads/main' &&
           (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
         shell: bash
         run: |
           set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 
-          git add -f graphify-out/graph.json
+          snapshot_dir="$(mktemp -d)"
+          cp graphify-out/graph.json "${snapshot_dir}/graph.json"
           for optional_output in graphify-out/graph.html graphify-out/GRAPH_REPORT.md; do
             if [ -f "${optional_output}" ]; then
-              git add -f "${optional_output}"
+              cp "${optional_output}" "${snapshot_dir}/$(basename "${optional_output}")"
             fi
           done
 
-          if git diff --cached --quiet; then
-            echo 'Graphify navigation output is already current.'
-            exit 0
-          fi
+          cat > "${snapshot_dir}/README.md" <<EOF
+          # Graphify navigation snapshot
 
-          git commit -m 'chore: refresh Graphify navigation graph'
-          git push origin HEAD:main
+          Generated from \`${GITHUB_REPOSITORY}@${GITHUB_SHA}\` by
+          \`.github/workflows/graphify-navigation.yml\`.
+
+          This branch is a replace-in-place navigation snapshot, not repository
+          authority or release evidence. Verify important conclusions against the
+          source commit above.
+
+          - \`graph.json\` is the portable machine-readable knowledge graph.
+          - \`graph.html\` is present when Graphify's HTML export succeeds.
+          - \`GRAPH_REPORT.md\` is present only when a richer run creates it.
+          EOF
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan graphify-navigation-publish
+          git rm -rf --ignore-unmatch .
+          git clean -fdx
+          cp -a "${snapshot_dir}/." .
+          git add README.md graph.json
+          for optional_output in graph.html GRAPH_REPORT.md; do
+            if [ -f "${optional_output}" ]; then
+              git add "${optional_output}"
+            fi
+          done
+          git commit -m "chore: refresh Graphify snapshot (${GITHUB_SHA:0:12})"
+          git push --force origin HEAD:refs/heads/graphify-navigation
