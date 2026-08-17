@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mapSeasonMatchweekFixtures } from '../../src/services/supabase/seasonFixturesModel'
+import { at } from '../support/indexed'
 
 function fixture(overrides: Record<string, unknown> = {}) {
   return {
@@ -48,8 +49,8 @@ describe('mapSeasonMatchweekFixtures', () => {
       card([fixture({ status: 'played', result_home: 2, result_away: 1 })]),
     )
 
-    expect(page.fixtures[0].homeScore).toBe(2)
-    expect(page.fixtures[0].awayScore).toBe(1)
+    expect(page.fixtures[0]?.homeScore).toBe(2)
+    expect(page.fixtures[0]?.awayScore).toBe(1)
   })
 
   it('keeps a nil-nil draw, which is a result rather than an absent one', () => {
@@ -59,8 +60,8 @@ describe('mapSeasonMatchweekFixtures', () => {
       card([fixture({ status: 'played', result_home: 0, result_away: 0 })]),
     )
 
-    expect(page.fixtures[0].homeScore).toBe(0)
-    expect(page.fixtures[0].awayScore).toBe(0)
+    expect(page.fixtures[0]?.homeScore).toBe(0)
+    expect(page.fixtures[0]?.awayScore).toBe(0)
   })
 
   it('refuses half a scoreline rather than showing one side of it', () => {
@@ -68,8 +69,8 @@ describe('mapSeasonMatchweekFixtures', () => {
       card([fixture({ status: 'played', result_home: 2, result_away: null })]),
     )
 
-    expect(page.fixtures[0].homeScore).toBeNull()
-    expect(page.fixtures[0].awayScore).toBeNull()
+    expect(page.fixtures[0]?.homeScore).toBeNull()
+    expect(page.fixtures[0]?.awayScore).toBeNull()
   })
 
   it('drops the caller’s prediction, which belongs to the game and not to the fixture list', () => {
@@ -81,7 +82,7 @@ describe('mapSeasonMatchweekFixtures', () => {
     )
 
     expect(JSON.stringify(page)).not.toContain('version')
-    expect(Object.keys(page.fixtures[0])).not.toContain('prediction')
+    expect(Object.keys(at(page.fixtures, 0))).not.toContain('prediction')
   })
 
   it('keeps a fixture with no kickoff, rather than dropping it', () => {
@@ -89,7 +90,7 @@ describe('mapSeasonMatchweekFixtures', () => {
     const page = mapSeasonMatchweekFixtures(card([fixture({ kickoff_at: null })]))
 
     expect(page.fixtures).toHaveLength(1)
-    expect(page.fixtures[0].kickoffAt).toBeNull()
+    expect(page.fixtures[0]?.kickoffAt).toBeNull()
   })
 
   it('refuses a fixture missing a club, because half a fixture is not one', () => {

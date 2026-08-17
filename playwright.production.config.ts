@@ -17,6 +17,7 @@ import { defineConfig, devices } from '@playwright/test'
  */
 const productionOrigins = ['https://euro28predictor.com', 'https://predictorhub.netlify.app']
 const productionOrigin = productionOrigins[0]
+if (productionOrigin === undefined) throw new Error('No production origin is configured.')
 const configuredOrigin = process.env.EURO28_SMOKE_ORIGIN ?? productionOrigin
 const allowNonProduction =
   process.env.EURO28_SMOKE_ALLOW_NON_PRODUCTION === 'true'

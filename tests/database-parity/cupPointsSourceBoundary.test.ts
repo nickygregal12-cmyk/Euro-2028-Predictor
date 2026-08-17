@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The boundary between the Cup's points source and its shared arithmetic.
@@ -53,7 +54,7 @@ function lastBody(name: string): string {
     `create or replace function predictor_internal\\.${name}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$;`,
     'g',
   )
-  const bodies = [...allSql.matchAll(pattern)].map((match) => match[1])
+  const bodies = [...allSql.matchAll(pattern)].map((match) => at(match, 1))
   return bodies.at(-1) ?? ''
 }
 

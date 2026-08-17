@@ -3,6 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react'
 import { createSeasonMatchPredictorGateway } from '../../../src/dev/seasonMatchPredictorGateway'
 import { instantFor } from '../../../src/dev/seasonPreviewFixture'
 import { useSeasonMatchPredictor } from '../../../src/features/season/useSeasonMatchPredictor'
+import { at } from '../../support/indexed'
 
 /**
  * The season save path: optimistic edits, failure, and version-conflict
@@ -27,7 +28,7 @@ describe('optimistic save', () => {
     const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
 
     await waitFor(() => expect(result.current.status).toBe('ready'), { timeout: 5000 })
-    const fixtureId = result.current.page!.fixtures[0].fixtureId
+    const fixtureId = at(result.current.page!.fixtures, 0).fixtureId
     expect(result.current.presentation!.state).toBe('not_created')
 
     act(() => {
@@ -36,7 +37,7 @@ describe('optimistic save', () => {
 
     // Immediately, without waiting for the slow gateway: the value is on screen
     // and the card has stopped being unbanked. Both are the point of optimism.
-    expect(result.current.page!.fixtures[0].prediction).toEqual({ home: 2, away: 1 })
+    expect(result.current.page!.fixtures[0]?.prediction).toEqual({ home: 2, away: 1 })
     expect(result.current.presentation!.atLock).toBe('banks_entered')
     expect(result.current.presentation!.state).toBe('active_in_progress')
   })
@@ -45,7 +46,7 @@ describe('optimistic save', () => {
     const gateway = createSeasonMatchPredictorGateway({ scenario: 'save_failure', now: BEFORE_LOCK() })
     const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    const fixtureId = result.current.page!.fixtures[0].fixtureId
+    const fixtureId = at(result.current.page!.fixtures, 0).fixtureId
 
     act(() => {
       result.current.setPrediction(fixtureId, { home: 3, away: 0 })
@@ -54,7 +55,7 @@ describe('optimistic save', () => {
     // Silently reverting a player's typing is worse than showing a retrying
     // save: they cannot tell a revert from having mistyped.
     await waitFor(() => expect(result.current.saveStatus[fixtureId]).toBeDefined())
-    expect(result.current.page!.fixtures[0].prediction).toEqual({ home: 3, away: 0 })
+    expect(result.current.page!.fixtures[0]?.prediction).toEqual({ home: 3, away: 0 })
   })
 })
 
@@ -66,7 +67,7 @@ describe('version-conflict recovery', () => {
     })
     const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    const fixtureId = result.current.page!.fixtures[0].fixtureId
+    const fixtureId = at(result.current.page!.fixtures, 0).fixtureId
 
     act(() => {
       result.current.setPrediction(fixtureId, { home: 1, away: 1 })
@@ -93,7 +94,7 @@ describe('version-conflict recovery', () => {
     })
     const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
     await waitFor(() => expect(result.current.status).toBe('ready'))
-    const fixtureId = result.current.page!.fixtures[0].fixtureId
+    const fixtureId = at(result.current.page!.fixtures, 0).fixtureId
 
     act(() => {
       result.current.setPrediction(fixtureId, { home: 1, away: 1 })
@@ -128,10 +129,10 @@ describe('load failure and lock states', () => {
 
     expect(result.current.presentation!.state).toBe('locked')
     act(() => {
-      result.current.setPrediction(result.current.page!.fixtures[0].fixtureId, { home: 9, away: 9 })
+      result.current.setPrediction(at(result.current.page!.fixtures, 0).fixtureId, { home: 9, away: 9 })
     })
     expect(result.current.refusal).toBe('This matchweek is locked.')
-    expect(result.current.page!.fixtures[0].prediction).toBeNull()
+    expect(result.current.page!.fixtures[0]?.prediction).toBeNull()
   })
 
   it('presents an empty published matchweek without inventing fixtures', async () => {

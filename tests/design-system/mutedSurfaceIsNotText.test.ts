@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { globSync } from 'node:fs'
+import { at } from '../support/indexed'
 
 /**
  * `--mut` is a surface. It may not be used as a text colour.
@@ -49,7 +50,7 @@ function mutedForegrounds(): { file: string; selector: string; line: number }[] 
       // Track the most recent selector. Good enough for this codebase's flat
       // CSS modules, and a nested rule would still name its own selector here.
       const opening = line.match(/^([^{}]+)\{\s*$/)
-      if (opening) selector = opening[1].trim()
+      if (opening) selector = at(opening, 1).trim()
 
       // `border-color`/`outline-color` are not foregrounds; require a boundary.
       if (/(^|[^-])color:\s*var\(--mut\)/.test(line)) {

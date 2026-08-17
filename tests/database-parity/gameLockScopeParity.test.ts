@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 import {
   expectedLockScopeCount,
   lastManStandingLockPolicy,
@@ -57,13 +58,13 @@ function effectiveLockScope(gameKey: string): string | null {
       `\\('${gameKey}',\\s*'[^']*',\\s*(?:true|false),\\s*'([a-z]+)'`,
       'i',
     ).exec(sql)
-    if (seeded !== null) scope = seeded[1]
+    if (seeded !== null) scope = at(seeded, 1)
 
     // `update ... set lock_scope = 'x' where game_key in (...)`
     for (const update of sql.matchAll(
       /update\s+public\.game_definitions\s+set\s+lock_scope\s*=\s*'([a-z]+)'\s+where\s+game_key\s+in\s*\(([^)]*)\)/gi,
     )) {
-      if (update[2].includes(`'${gameKey}'`)) scope = update[1]
+      if (at(update, 2).includes(`'${gameKey}'`)) scope = at(update, 1)
     }
   }
 

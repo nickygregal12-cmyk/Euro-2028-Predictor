@@ -33,7 +33,14 @@
      * this, `{ a: undefined }` satisfies `{ a?: string }`, so spreading a partial
      * object over a complete one can erase a field while the types say it cannot.
      */
-    "exactOptionalPropertyTypes": true
+    "exactOptionalPropertyTypes": true,
+
+    /**
+     * `array[i]` and `record[key]` are typed as if the index always exists.
+     * Without this, a scoring or elimination read past the end of an array is
+     * silently `undefined` at runtime while the type says it cannot be.
+     */
+    "noUncheckedIndexedAccess": true
   },
   "include": ["src", ".storybook"]
 }

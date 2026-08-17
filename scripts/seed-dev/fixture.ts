@@ -77,10 +77,13 @@ export type Fixture = {
 }
 
 export function buildFixture(): Fixture {
-  const groups: FixtureGroup[] = GROUP_LETTERS.map((letter) => ({
-    letter,
-    teams: GROUP_TEAMS[letter],
-  }))
+  const groups: FixtureGroup[] = GROUP_LETTERS.map((letter) => {
+    const teams = GROUP_TEAMS[letter]
+    // Every letter in GROUP_LETTERS has a squad right above; a missing one
+    // would seed a group with no teams, which is worse than refusing.
+    if (teams === undefined) throw new Error(`No seed teams for group ${letter}`)
+    return { letter, teams }
+  })
 
   const matches: FixtureMatch[] = []
   for (const letter of GROUP_LETTERS) {

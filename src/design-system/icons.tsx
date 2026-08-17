@@ -4,7 +4,7 @@
 
 export type IconProps = {
   size?: number
-  className?: string
+  className?: string | undefined
   title?: string // when set, the icon is meaningful and gets an accessible name
 }
 

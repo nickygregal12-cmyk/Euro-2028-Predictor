@@ -134,7 +134,7 @@ describe('orderLeagueGroupPicks', () => {
     )
     expect(rows.map((r) => r.outcome)).toEqual(['exact', 'correct', 'wrong'])
     expect(rows[0]).toMatchObject({ displayName: 'Amy', points: 10, isYou: true })
-    expect(rows[2].points).toBe(0)
+    expect(rows[2]?.points).toBe(0)
   })
 })
 

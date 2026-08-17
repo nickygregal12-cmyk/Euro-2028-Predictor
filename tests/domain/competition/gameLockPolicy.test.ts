@@ -157,45 +157,45 @@ describe('Main Predictor lock: first matchweek kickoff, zero buffer', () => {
   it('is open one millisecond before the first kickoff', () => {
     const context = resolveSeason(MAIN_PREDICTOR, '2026-08-15T13:59:59.999Z')
     expect(context.lockConfigurationValid).toBe(true)
-    expect(context.lockScopes['matchweek-1'].locked).toBe(false)
-    expect(context.lockScopes['matchweek-1'].lockAt).toBe(AUGUST_FIRST_KICKOFF)
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(false)
+    expect(context.lockScopes['matchweek-1']?.lockAt).toBe(AUGUST_FIRST_KICKOFF)
   })
 
   it('locks exactly at the first kickoff instant', () => {
     const context = resolveSeason(MAIN_PREDICTOR, AUGUST_FIRST_KICKOFF)
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-1'].reason).toBe('scope_lock_reached')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.reason).toBe('scope_lock_reached')
   })
 
   it('stays locked after the boundary', () => {
     const context = resolveSeason(MAIN_PREDICTOR, '2026-08-15T14:00:00.001Z')
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
   })
 
   it('locks on the earliest kickoff in the matchweek, not any later one', () => {
     const context = resolveSeason(MAIN_PREDICTOR, '2026-08-15T15:00:00.000Z')
     // Between the 15:00 BST and 17:30 BST kickoffs: the matchweek is already
     // shut. A later fixture never reopens entry.
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
   })
 })
 
 describe('Last Man Standing lock: 30 minutes before the first relevant kickoff', () => {
   it('is open one millisecond before the buffered boundary', () => {
     const context = resolveSeason(LAST_MAN_STANDING, '2026-08-15T13:29:59.999Z')
-    expect(context.lockScopes['matchweek-1'].locked).toBe(false)
-    expect(context.lockScopes['matchweek-1'].lockAt).toBe('2026-08-15T13:30:00.000Z')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(false)
+    expect(context.lockScopes['matchweek-1']?.lockAt).toBe('2026-08-15T13:30:00.000Z')
   })
 
   it('locks exactly 30 minutes before kickoff', () => {
     const context = resolveSeason(LAST_MAN_STANDING, '2026-08-15T13:30:00.000Z')
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-1'].reason).toBe('scope_lock_reached')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.reason).toBe('scope_lock_reached')
   })
 
   it('stays locked after the buffered boundary', () => {
     const context = resolveSeason(LAST_MAN_STANDING, '2026-08-15T13:30:00.001Z')
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
   })
 })
 
@@ -207,17 +207,17 @@ describe('one season, two concurrently different game policies', () => {
     const at = '2026-08-15T13:45:00.000Z'
     const main = resolveSeason(MAIN_PREDICTOR, at)
     const lms = resolveSeason(LAST_MAN_STANDING, at)
-    expect(main.lockScopes['matchweek-1'].locked).toBe(false)
-    expect(lms.lockScopes['matchweek-1'].locked).toBe(true)
+    expect(main.lockScopes['matchweek-1']?.locked).toBe(false)
+    expect(lms.lockScopes['matchweek-1']?.locked).toBe(true)
   })
 })
 
 describe('matchweek isolation', () => {
   it('locking matchweek 1 leaves matchweek 2 open', () => {
     const context = resolveSeason(MAIN_PREDICTOR, AUGUST_FIRST_KICKOFF)
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-2'].locked).toBe(false)
-    expect(context.lockScopes['matchweek-2'].lockAt).toBe(NOVEMBER_FIRST_KICKOFF)
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-2']?.locked).toBe(false)
+    expect(context.lockScopes['matchweek-2']?.lockAt).toBe(NOVEMBER_FIRST_KICKOFF)
   })
 
   it('a previously locked matchweek never reopens, whatever the data says', () => {
@@ -225,8 +225,8 @@ describe('matchweek isolation', () => {
       { id: 'matchweek-1', kickoffs: [AUGUST_FIRST_KICKOFF], previouslyLocked: true },
       { id: 'matchweek-2', kickoffs: [NOVEMBER_FIRST_KICKOFF] },
     ])
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-1'].reason).toBe('already_locked')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.reason).toBe('already_locked')
   })
 })
 
@@ -235,9 +235,9 @@ describe('GMT handling', () => {
     // Same 15:00 Saturday wall clock as August, but after the October
     // clock change it pins to 15:00Z, not 14:00Z.
     const before = resolveSeason(MAIN_PREDICTOR, '2026-11-21T14:59:59.999Z')
-    expect(before.lockScopes['matchweek-2'].locked).toBe(false)
+    expect(before.lockScopes['matchweek-2']?.locked).toBe(false)
     const at = resolveSeason(MAIN_PREDICTOR, NOVEMBER_FIRST_KICKOFF)
-    expect(at.lockScopes['matchweek-2'].locked).toBe(true)
+    expect(at.lockScopes['matchweek-2']?.locked).toBe(true)
   })
 })
 
@@ -364,8 +364,8 @@ describe('fail closed', () => {
       { id: 'matchweek-1', kickoffs: ['not-a-kickoff'] },
       { id: 'matchweek-2', kickoffs: [NOVEMBER_FIRST_KICKOFF] },
     ])
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-1'].reason).toBe('invalid_fixture_data')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.reason).toBe('invalid_fixture_data')
   })
 
   it('locks a matchweek whose fixture snapshot has gone stale', () => {
@@ -379,8 +379,8 @@ describe('fail closed', () => {
       },
       { id: 'matchweek-2', kickoffs: [NOVEMBER_FIRST_KICKOFF] },
     ])
-    expect(context.lockScopes['matchweek-1'].locked).toBe(true)
-    expect(context.lockScopes['matchweek-1'].reason).toBe('stale_fixture_data')
+    expect(context.lockScopes['matchweek-1']?.locked).toBe(true)
+    expect(context.lockScopes['matchweek-1']?.reason).toBe('stale_fixture_data')
   })
 })
 

@@ -1,6 +1,7 @@
 import { readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * A pgTAP suite number identifies exactly one file.
@@ -73,7 +74,7 @@ function suiteFiles(): string[] {
  */
 function numberOf(file: string): string | null {
   const match = /^(\d+[a-z]?)_/.exec(file)
-  return match ? match[1] : null
+  return match ? at(match, 1) : null
 }
 
 function filesByNumber(): Map<string, string[]> {

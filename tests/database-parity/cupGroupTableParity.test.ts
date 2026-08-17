@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The Cup group table's ranking, in both languages — and a correction.
@@ -41,7 +42,7 @@ function lastBody(name: string): string {
     `create or replace function predictor_internal\\.${name}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$;`,
     'g',
   )
-  return [...allSql.matchAll(pattern)].map((match) => match[1]).at(-1) ?? ''
+  return [...allSql.matchAll(pattern)].map((match) => at(match, 1)).at(-1) ?? ''
 }
 
 const groupTables = lastBody('cup_final_group_tables')

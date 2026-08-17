@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Stage C keeps `tournament_id` as the physical competition-season scope name.
@@ -61,7 +62,7 @@ function stripNonCode(source: string): string {
           index += 2
           continue
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -72,7 +73,7 @@ function stripNonCode(source: string): string {
       index += 1
       while (index < source.length) {
         if (source[index] === '\\' && index + 1 < source.length) {
-          output += ` ${blankCharacter(source[index + 1])}`
+          output += ` ${blankCharacter(at(source, index + 1))}`
           index += 2
           continue
         }
@@ -86,7 +87,7 @@ function stripNonCode(source: string): string {
           index += 1
           break
         }
-        output += blankCharacter(source[index])
+        output += blankCharacter(at(source, index))
         index += 1
       }
       continue
@@ -98,7 +99,7 @@ function stripNonCode(source: string): string {
         output += ' '.repeat(dollarTag.length)
         index += dollarTag.length
         while (index < source.length && !source.startsWith(dollarTag, index)) {
-          output += blankCharacter(source[index])
+          output += blankCharacter(at(source, index))
           index += 1
         }
         if (source.startsWith(dollarTag, index)) {
@@ -137,7 +138,7 @@ function columnEvents(source: string): ColumnEvent[] {
   const createPattern = /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s*\(/gi
 
   for (const match of sql.matchAll(createPattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (!table) continue
     const openingIndex = match.index + match[0].lastIndexOf('(')
     const closingIndex = matchingParenthesis(sql, openingIndex)
@@ -148,48 +149,48 @@ function columnEvents(source: string): ColumnEvent[] {
     events.push({
       action: 'set',
       index: match.index,
-      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(declaration[1]) },
+      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(at(declaration, 1)) },
       table,
     })
   }
 
   const addPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+add\s+column\s+(?:if\s+not\s+exists\s+)?tournament_id\s+uuid\b([^;]*)/gi
   for (const match of sql.matchAll(addPattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (!table) continue
     events.push({
       action: 'set',
       index: match.index,
-      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(match[3]) },
+      shape: { dataType: 'uuid', nullable: !/\bnot\s+null\b/i.test(at(match, 3)) },
       table,
     })
   }
 
   const dropColumnPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+drop\s+column\s+(?:if\s+exists\s+)?tournament_id\b/gi
   for (const match of sql.matchAll(dropColumnPattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (table) events.push({ action: 'remove', index: match.index, table })
   }
 
   const nullabilityPattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(set|drop)\s+not\s+null\b/gi
   for (const match of sql.matchAll(nullabilityPattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (!table) continue
     events.push({
       action: 'set-nullability',
       index: match.index,
-      nullable: match[3].toLowerCase() === 'drop',
+      nullable: at(match, 3).toLowerCase() === 'drop',
       table,
     })
   }
 
   const typePattern = /\balter\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\s+alter\s+column\s+tournament_id\s+(?:set\s+data\s+)?type\s+([a-z_][a-z0-9_]*)/gi
   for (const match of sql.matchAll(typePattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (!table) continue
     events.push({
       action: 'set-type',
-      dataType: match[3].toLowerCase(),
+      dataType: at(match, 3).toLowerCase(),
       index: match.index,
       table,
     })
@@ -197,7 +198,7 @@ function columnEvents(source: string): ColumnEvent[] {
 
   const dropTablePattern = /\bdrop\s+table\s+(?:if\s+exists\s+)?(?:([a-z_][a-z0-9_]*)\s*\.\s*)?([a-z_][a-z0-9_]*)\b/gi
   for (const match of sql.matchAll(dropTablePattern)) {
-    const table = publicTable(match[1], match[2])
+    const table = publicTable(match[1], at(match, 2))
     if (table) events.push({ action: 'remove', index: match.index, table })
   }
 

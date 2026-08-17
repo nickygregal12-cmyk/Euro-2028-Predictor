@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8')
 
@@ -23,7 +24,7 @@ const tieBreakOrder = (source: string, functionName: string): string => {
   const body = source.slice(start)
   const match = body.match(/order by([\s\S]*?)\)::integer as group_rank/)
   expect(match, `${functionName} has no group_rank ordering`).not.toBeNull()
-  return match![1].replace(/--[^\n]*/g, ' ').replace(/\s+/g, ' ').trim()
+  return at(match!, 1).replace(/--[^\n]*/g, ' ').replace(/\s+/g, ' ').trim()
 }
 
 describe('contract 169 season Championship initial group table', () => {

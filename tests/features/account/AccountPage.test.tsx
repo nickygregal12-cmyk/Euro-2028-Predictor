@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fromRoot, reachableFrom } from '../../app/importGraph'
 import { AccountPage } from '../../../src/features/account/AccountPage'
+import { at } from '../../support/indexed'
 
 const mocks = vi.hoisted(() => ({
   signOut: vi.fn<() => Promise<void>>(),
@@ -127,7 +128,7 @@ describe('AccountPage danger zone', () => {
     mocks.updateMyDisplayName.mockResolvedValue(undefined)
     renderPage()
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Change' })[0])
+    fireEvent.click(at(screen.getAllByRole('button', { name: 'Change' }), 0))
     const input = await screen.findByLabelText('New display name')
     fireEvent.change(input, { target: { value: 'New Nick' } })
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

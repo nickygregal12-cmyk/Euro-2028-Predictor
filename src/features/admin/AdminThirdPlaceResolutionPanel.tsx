@@ -128,7 +128,11 @@ export function AdminThirdPlaceResolutionPanel({
       const nextIndex = index + direction
       if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current
       const next = [...current]
-      ;[next[index], next[nextIndex]] = [next[nextIndex], next[index]]
+      const a = next[index]
+      const b = next[nextIndex]
+      if (a === undefined || b === undefined) return current
+      next[index] = b
+      next[nextIndex] = a
       return next
     })
     setNotice(null)

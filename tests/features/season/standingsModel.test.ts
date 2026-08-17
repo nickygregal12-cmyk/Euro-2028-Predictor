@@ -83,13 +83,13 @@ describe('the season standings model', () => {
   it('carries matchweeks played into the accessible sentence', () => {
     const rows = [row({ displayName: 'Ada', points: 84, matchweeksPlayed: 22 })]
     const view = presentStandings(page({ rows }), rows)
-    expect(view.rows[0].accessibleSummary).toBe('Ada, 1, 84 points from 22 matchweeks')
+    expect(view.rows[0]?.accessibleSummary).toBe('Ada, 1, 84 points from 22 matchweeks')
   })
 
   it('says "joint" rather than "=" to assistive technology, and singularises one matchweek', () => {
     const rows = [row({ displayName: 'Bo', rank: 4, position: 5, tied: true, matchweeksPlayed: 1 })]
     const view = presentStandings(page({ rows }), rows)
-    expect(view.rows[0].accessibleSummary).toBe('Bo, joint 4, 84 points from 1 matchweek')
+    expect(view.rows[0]?.accessibleSummary).toBe('Bo, joint 4, 84 points from 1 matchweek')
   })
 
   it('pins the caller when their row is outside the loaded pages', () => {
@@ -134,7 +134,7 @@ describe('the season standings model', () => {
       rows,
     )
     expect(view.pinnedYou).toBeNull()
-    expect(view.rows[0].isYou).toBe(true)
+    expect(view.rows[0]?.isYou).toBe(true)
   })
 
   it('answers visibility against every accumulated row, not just the newest page', () => {

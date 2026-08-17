@@ -58,7 +58,7 @@ describe('workshop matchday fixture', () => {
       (match) => match.prediction === null && match.status === 'upcoming',
     )
     expect(needsAction).toHaveLength(1)
-    expect(formatCountdown(needsAction[0].lockAt ?? '', MATCHDAY_NOW)).toBe('38 min')
+    expect(formatCountdown(needsAction[0]?.lockAt ?? '', MATCHDAY_NOW)).toBe('38 min')
 
     // One settled exact score, and one joker in play.
     expect(

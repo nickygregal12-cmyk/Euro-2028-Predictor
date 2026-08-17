@@ -132,10 +132,11 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
      * one navigation and would still pass every count below.
      */
     let navigationShape: 'bar' | 'band' | 'none' = 'none'
-    if (visibleNavs.length === 1 && masthead && main) {
-      navigationShape = masthead.contains(visibleNavs[0])
+    const onlyNav = visibleNavs[0]
+    if (visibleNavs.length === 1 && onlyNav && masthead && main) {
+      navigationShape = masthead.contains(onlyNav)
         ? 'band'
-        : visibleNavs[0].getBoundingClientRect().top >= main.getBoundingClientRect().top
+        : onlyNav.getBoundingClientRect().top >= main.getBoundingClientRect().top
           ? 'bar'
           : 'none'
     }
@@ -341,6 +342,7 @@ test.describe('mobile content clears the bottom navigation', () => {
         const nav = [...shell.querySelectorAll('nav')].filter(
           (element) => element.getClientRects().length > 0,
         )[0]
+        if (!nav) throw new Error('The shell rendered no visible navigation.')
         return (
           nav.getBoundingClientRect().top - main.getBoundingClientRect().bottom
         )

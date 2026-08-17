@@ -27,8 +27,8 @@ describe('calculateScore — section 1: group match points', () => {
 
   it('awards 3 for a correctly predicted draw with the wrong score', () => {
     const r = calculateScore(predict(1, 1), actual(2, 2))
-    expect(r.groupMatches.items[0].kind).toBe('correct')
-    expect(r.groupMatches.items[0].points).toBe(3)
+    expect(r.groupMatches.items[0]?.kind).toBe('correct')
+    expect(r.groupMatches.items[0]?.points).toBe(3)
   })
 
   it('awards 0 for the wrong result', () => {
@@ -143,8 +143,8 @@ describe('calculateScore — section 2: group position points', () => {
       order(['d', 'c', 'b', 'a']),
       actualOrder(['a', 'b', 'c', 'd'])
     )
-    expect(r.groupOrders.items[0].correctPositions).toBe(0)
-    expect(r.groupOrders.items[0].points).toBe(0)
+    expect(r.groupOrders.items[0]?.correctPositions).toBe(0)
+    expect(r.groupOrders.items[0]?.points).toBe(0)
   })
 })
 
@@ -158,24 +158,24 @@ describe('calculateScore — section 3: knockout progression points', () => {
 
   it('stacks all five stages for a team correctly predicted as champion (110)', () => {
     const r = calculateScore(predictStage('CHAMPION'), actualStage('CHAMPION'))
-    expect(r.knockout.items[0].correctStages).toEqual([
+    expect(r.knockout.items[0]?.correctStages).toEqual([
       'R16', 'QF', 'SF', 'FINAL', 'CHAMPION',
     ])
-    expect(r.knockout.items[0].points).toBe(110)
+    expect(r.knockout.items[0]?.points).toBe(110)
   })
 
   it('scores only the stages actually reached when the team fell short of the prediction', () => {
     // Predicted champion, only reached the semi-final → 10 + 15 + 20 = 45.
     const r = calculateScore(predictStage('CHAMPION'), actualStage('SF'))
-    expect(r.knockout.items[0].correctStages).toEqual(['R16', 'QF', 'SF'])
-    expect(r.knockout.items[0].points).toBe(45)
+    expect(r.knockout.items[0]?.correctStages).toEqual(['R16', 'QF', 'SF'])
+    expect(r.knockout.items[0]?.points).toBe(45)
   })
 
   it('scores only up to the predicted stage when the team went further', () => {
     // Predicted final, became champion → 10 + 15 + 20 + 25 = 70 (no champion pts).
     const r = calculateScore(predictStage('FINAL'), actualStage('CHAMPION'))
-    expect(r.knockout.items[0].correctStages).toEqual(['R16', 'QF', 'SF', 'FINAL'])
-    expect(r.knockout.items[0].points).toBe(70)
+    expect(r.knockout.items[0]?.correctStages).toEqual(['R16', 'QF', 'SF', 'FINAL'])
+    expect(r.knockout.items[0]?.points).toBe(70)
   })
 
   it('scores nothing for a team that never reached the knockouts', () => {

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const repositoryRoot = process.cwd()
 const coverage = readFileSync(
@@ -23,12 +24,12 @@ function tableTokens(source: string): string[] {
     ...source.matchAll(
       /^\|\s*`([a-z_][a-z0-9_]*)`(?:\s+view)?\s*\|/gm,
     ),
-  ].map((match) => match[1])
+  ].map((match) => at(match, 1))
 }
 
 function bulletTokens(source: string): string[] {
   return [...source.matchAll(/^-\s+`([a-z_][a-z0-9_]*)`\s*$/gm)].map(
-    (match) => match[1],
+    (match) => at(match, 1),
   )
 }
 

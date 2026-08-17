@@ -80,7 +80,7 @@ export function countInRangeResponse(body: string, suffix: string): number {
   for (const line of body.split('\n')) {
     const [candidate, count] = line.trim().split(':')
     if (candidate !== wanted) continue
-    const parsed = Number.parseInt(count, 10)
+    const parsed = count === undefined ? Number.NaN : Number.parseInt(count, 10)
     // A malformed count on a matching line still means the password was found.
     // Reporting 0 there would turn a hit into a miss, which is the one direction
     // this function must never fail in.

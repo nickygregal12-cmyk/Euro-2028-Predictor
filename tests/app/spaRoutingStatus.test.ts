@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { appSource, declaredRoutes, routePaths } from './declaredRoutes'
+import { at } from '../support/indexed'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 
@@ -29,7 +30,7 @@ const redirects: Redirect[] = [
   ...netlifyConfig.matchAll(
     /\[\[redirects\]\]\s*\n\s*from = "([^"]+)"\s*\n\s*to = "([^"]+)"\s*\n\s*status = (\d+)/g,
   ),
-].map((match) => ({ from: match[1], to: match[2], status: Number(match[3]) }))
+].map((match) => ({ from: at(match, 1), to: at(match, 2), status: Number(at(match, 3)) }))
 
 const okRoutes = redirects.filter((rule) => rule.status === 200).map((rule) => rule.from)
 

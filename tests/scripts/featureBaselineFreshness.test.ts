@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const baseline = readFileSync(
   resolve(process.cwd(), 'docs/quality/feature-baseline.md'),
@@ -59,10 +60,10 @@ describe('feature baseline freshness', () => {
   })
 
   it('keeps the stable compact identifier contract unchanged', () => {
-    const compact = baseline.split(
-      '## Identifier continuity and archived dispositions',
-      1,
-    )[0]
+    const compact = at(
+      baseline.split('## Identifier continuity and archived dispositions', 1),
+      0,
+    )
     const rows = compact
       .split('\n')
       .filter(

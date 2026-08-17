@@ -11,7 +11,7 @@ export type TurnstileFieldProps = {
    */
   resetKey: number
   onToken: (token: string | null) => void
-  className?: string
+  className?: string | undefined
 }
 
 /**

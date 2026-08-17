@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 import {
   computeBracketHealth,
   deriveKnockoutState,
@@ -18,8 +19,8 @@ function groupMatches(resulted: boolean): KnockoutMatchSnapshot[] {
 function populatedR16(teamIds: string[]): KnockoutMatchSnapshot[] {
   return Array.from({ length: 8 }, (_, index) => ({
     round: 'r16' as const,
-    homeTeamId: teamIds[index * 2],
-    awayTeamId: teamIds[index * 2 + 1],
+    homeTeamId: at(teamIds, index * 2),
+    awayTeamId: at(teamIds, index * 2 + 1),
     winnerTeamId: null,
     resulted: false,
   }))

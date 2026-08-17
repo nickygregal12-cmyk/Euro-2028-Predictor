@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { describe, expect, it } from 'vitest'
 import fixtures from '../../fixtures/predicted-group-order.json'
+import { at } from '../support/indexed'
 import {
   calculateGroupTable,
   type MatchScore,
@@ -139,11 +140,11 @@ function assertRecursiveProof(
 
   const subsetGoalsFor = standingByTeam(
     headToHead,
-    recursiveSubset[0],
+    at(recursiveSubset, 0),
   ).goalsFor
   const outsideGoalsFor = standingByTeam(
     headToHead,
-    outsideSubset[0],
+    at(outsideSubset, 0),
   ).goalsFor
 
   if (proof.criterion === 'recursive-subset-resolved') {
@@ -158,9 +159,9 @@ function assertRecursiveProof(
   if (proof.criterion === 'recursive-subset-resolved') {
     expectDifferent(valuesFor(recursiveHeadToHead, recursiveSubset, 'points'))
     expect(
-      standingByTeam(recursiveHeadToHead, recursiveSubset[0]).points,
+      standingByTeam(recursiveHeadToHead, at(recursiveSubset, 0)).points,
     ).toBeGreaterThan(
-      standingByTeam(recursiveHeadToHead, recursiveSubset[1]).points,
+      standingByTeam(recursiveHeadToHead, at(recursiveSubset, 1)).points,
     )
     return
   }
@@ -335,7 +336,7 @@ function variants<T>(items: T[]): T[][] {
   return [
     items,
     [...items].reverse(),
-    [...items.slice(1), items[0]],
+    [...items.slice(1), at(items, 0)],
   ]
 }
 

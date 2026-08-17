@@ -201,6 +201,11 @@ describe('JavaScript under scripts/', () => {
     // refuses Production by name, which is not code to leave unexamined.
     'scripts/generate-database-types.mjs',
     'scripts/generate-now.mjs',
+    // Arrived with one implicit-any, fixed on the spot rather than recorded as
+    // a deferred count. It parses the notification source to produce the
+    // workflow manifest an operator builds the provider environment from, so a
+    // type error here would surface as a workflow somebody never created.
+    'scripts/list-notification-workflows.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',

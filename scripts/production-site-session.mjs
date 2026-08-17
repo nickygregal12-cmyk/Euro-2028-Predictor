@@ -95,7 +95,7 @@ export async function resolveSiteCookie(origin, password) {
 function cookieHeaderFrom(response) {
   const pairs = response.headers
     .getSetCookie()
-    .map((entry) => entry.split(';', 1)[0].trim())
+    .map((entry) => (entry.split(';', 1)[0] ?? '').trim())
     .filter((pair) => pair.includes('=') && !pair.endsWith('='))
 
   return pairs.join('; ')

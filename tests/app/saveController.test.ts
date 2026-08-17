@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createSaveController } from '../../src/app/providers/saveController'
 import type { SaveStatus } from '../../src/domain/saveCoordinator'
+import { at } from '../support/indexed'
 
 // Exercises the impure runner end-to-end (its effects → real timers/promises)
 // with a controllable mock save. The pure ordering is proven in
@@ -42,15 +43,15 @@ describe('createSaveController', () => {
     controller.change('m:1', 'b') // coalesced (not sent)
     controller.change('m:1', 'c') // replaces pending b
     expect(calls).toHaveLength(1)
-    expect(calls[0].payload).toBe('a')
+    expect(calls[0]?.payload).toBe('a')
 
-    gates[0].resolve()
+    at(gates, 0).resolve()
     await flush()
     // Latest pending 'c' saves next; intermediate 'b' is never sent.
     expect(calls).toHaveLength(2)
-    expect(calls[1].payload).toBe('c')
+    expect(calls[1]?.payload).toBe('c')
 
-    gates[1].resolve()
+    at(gates, 1).resolve()
     await flush()
     expect(calls).toHaveLength(2)
     expect(statuses.at(-1)).toBe('saved')
@@ -70,7 +71,7 @@ describe('createSaveController', () => {
     })
 
     controller.change('m:1', 'a') // seq1 issued
-    gates[0].reject() // fails → schedules retry of 'a'
+    at(gates, 0).reject() // fails → schedules retry of 'a'
     await flush()
     expect(calls).toEqual(['a'])
 
@@ -99,7 +100,7 @@ describe('createSaveController', () => {
 
     controller.change('gb', 'x')
     expect(gates).toHaveLength(1)
-    gates[0].reject()
+    at(gates, 0).reject()
     await flush()
     // Still 'saving' (retrying is not a distinct visual state), retry scheduled.
     expect(statuses.at(-1)).toBe('saving')
@@ -108,7 +109,7 @@ describe('createSaveController', () => {
     // Advance past the first backoff → retry fires a new save.
     await vi.advanceTimersByTimeAsync(600)
     expect(gates).toHaveLength(2)
-    gates[1].resolve()
+    at(gates, 1).resolve()
     await flush()
     expect(statuses.at(-1)).toBe('saved')
   })
@@ -130,7 +131,7 @@ describe('createSaveController', () => {
     controller.change('gb', 'x')
     // Fail the initial + both auto-retries.
     for (let i = 0; i < 3; i++) {
-      gates[i].reject()
+      at(gates, i).reject()
       await flush()
       await vi.advanceTimersByTimeAsync(RETRY_WAIT)
     }
@@ -140,7 +141,7 @@ describe('createSaveController', () => {
     const before = gates.length
     controller.manualRetry('gb')
     expect(gates.length).toBe(before + 1)
-    gates[before].resolve()
+    at(gates, before).resolve()
     await flush()
     expect(lastStatus).toBe('saved')
   })
@@ -198,7 +199,7 @@ describe('createSaveController', () => {
     ])
     expect(settled).toBe(false)
 
-    calls[0].gate.resolve()
+    at(calls, 0).gate.resolve()
     await flush()
     expect(calls.map((call) => [call.key, call.payload])).toEqual([
       ['m:1', 'old'],
@@ -207,11 +208,11 @@ describe('createSaveController', () => {
     ])
     expect(settled).toBe(false)
 
-    calls[1].gate.resolve()
+    at(calls, 1).gate.resolve()
     await flush()
     expect(settled).toBe(false)
 
-    calls[2].gate.resolve()
+    at(calls, 2).gate.resolve()
     await flush()
     await expect(barrier).resolves.toEqual({
       ok: true,
@@ -236,7 +237,7 @@ describe('createSaveController', () => {
     const barrier = controller.waitForSettled()
 
     for (let i = 0; i < 3; i++) {
-      gates[i].reject()
+      at(gates, i).reject()
       await flush()
       await vi.advanceTimersByTimeAsync(RETRY_WAIT)
     }
@@ -310,7 +311,7 @@ describe('createSaveController', () => {
     controller.change('m:1', 'a')
     controller.dispose()
     const countAtDispose = statuses.length
-    gates[0].resolve()
+    at(gates, 0).resolve()
     await flush()
     // No status pushed after dispose (the late 'result' is ignored).
     expect(statuses.length).toBe(countAtDispose)

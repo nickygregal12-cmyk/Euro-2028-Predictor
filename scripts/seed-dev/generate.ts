@@ -71,7 +71,16 @@ function shuffle<T>(items: T[], rng: () => number): T[] {
   const out = items.slice()
   for (let i = out.length - 1; i > 0; i--) {
     const j = intBelow(rng, i + 1)
-    ;[out[i], out[j]] = [out[j], out[i]]
+    // Both indices are in range by construction — `i` counts down from
+    // `length - 1` and `j` is drawn below `i + 1` — so this is a real
+    // invariant rather than a read that might miss.
+    const a = out[i]
+    const b = out[j]
+    if (a === undefined || b === undefined) {
+      throw new Error(`shuffle: index ${i} or ${j} out of range`)
+    }
+    out[i] = b
+    out[j] = a
   }
   return out
 }
@@ -115,7 +124,11 @@ function generateProgression(
   let i = 0
   for (const { stage, count } of STAGE_PLAN) {
     for (let c = 0; c < count; c++) {
-      progression.push({ ...qualifiers[i], stage })
+      const qualifier = qualifiers[i]
+      if (qualifier === undefined) {
+        throw new Error(`seed progression wanted qualifier ${i} of ${qualifiers.length}`)
+      }
+      progression.push({ ...qualifier, stage })
       i++
     }
   }
@@ -137,7 +150,10 @@ function generateEntry(name: string, index: number, fixture: Fixture, rng: () =>
     groupMatches.map((_, i) => i),
     rng,
   ).slice(0, jokerCount)
-  for (const t of jokerTargets) groupMatches[t].joker = true
+  for (const t of jokerTargets) {
+    const target = groupMatches[t]
+    if (target !== undefined) target.joker = true
+  }
 
   const groupOrders = GROUP_LETTERS.map((letter) => ({
     groupLetter: letter,

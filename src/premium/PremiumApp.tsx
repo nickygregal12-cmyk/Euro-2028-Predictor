@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion, type MotionStyle } from 'framer-motion'
+import type { LucideIcon } from 'lucide-react'
 import Lenis from 'lenis'
 import {
   Activity,
@@ -142,9 +143,9 @@ function useDialogA11y(open: boolean, onClose: () => void) {
       if (event.key === 'Escape') onClose()
       if (event.key !== 'Tab' || !dialogRef.current) return
       const focusable = dialogRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])')
-      if (!focusable.length) return
       const first = focusable[0]
       const last = focusable[focusable.length - 1]
+      if (!first || !last) return
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
       if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
     }
@@ -326,7 +327,7 @@ function LandingPage() {
           <motion.div className="hero-fixture-panel" initial={{ opacity: 0, x: 50, rotate: 1.5 }} animate={{ opacity: 1, x: 0, rotate: 0 }} transition={{ duration: .9, delay: .2, ease }}>
             <div className="panel-heading"><div><span>Live game week</span><strong>{LEAGUES[league].name}</strong></div><LeagueSwitcher compact /></div>
             <Countdown />
-            <AnimatePresence mode="wait"><motion.div key={activeFixture.id} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}><FixtureCard fixture={activeFixture} demo onSignUp={() => setPrompt(true)} /></motion.div></AnimatePresence>
+            {activeFixture ? <AnimatePresence mode="wait"><motion.div key={activeFixture.id} initial={{ opacity: 0, x: 14 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -14 }}><FixtureCard fixture={activeFixture} demo onSignUp={() => setPrompt(true)} /></motion.div></AnimatePresence> : null}
             <div className="panel-pagination"><span><b>{String(fixtureIndex + 1).padStart(2, '0')}</b> / {String(fixtures.length).padStart(2, '0')} fixtures</span><div><button onClick={() => setFixtureIndex((fixtureIndex - 1 + fixtures.length) % fixtures.length)} aria-label="Previous fixture"><ArrowDown className="rotate-90" /></button><button onClick={() => setFixtureIndex((fixtureIndex + 1) % fixtures.length)} aria-label="Next fixture"><ArrowDown className="-rotate-90" /></button></div></div>
           </motion.div>
           <a href="#how" className="scroll-cue"><span>Scroll to explore</span><ArrowDown size={17} /></a>
@@ -339,11 +340,13 @@ function LandingPage() {
         <section id="how" className="section-shell how-section">
           <Reveal><div className="section-heading"><div><p className="eyebrow">How it works</p><h2>Three steps.<br />Endless debate.</h2></div><p>Nothing to study. Nothing to buy. Just your football judgement against everyone else’s.</p></div></Reveal>
           <div className="steps-grid">
-            {[
-              ['01', 'Choose your league', 'Premier League or Scottish Premiership. Add the other whenever you fancy it.', ShieldCheck],
-              ['02', 'Make your calls', 'Predict each score, select your survivor and back yourself head to head.', Target],
-              ['03', 'Own the table', 'Earn points, climb rankings and collect proof for the group chat.', Trophy],
-            ].map(([number, title, copy, Icon], index) => (
+            {(
+              [
+                ['01', 'Choose your league', 'Premier League or Scottish Premiership. Add the other whenever you fancy it.', ShieldCheck],
+                ['02', 'Make your calls', 'Predict each score, select your survivor and back yourself head to head.', Target],
+                ['03', 'Own the table', 'Earn points, climb rankings and collect proof for the group chat.', Trophy],
+              ] satisfies [string, string, string, LucideIcon][]
+            ).map(([number, title, copy, Icon], index) => (
               <Reveal key={String(title)} delay={index * .08}><article className="step-card"><span>{String(number)}</span><Icon size={26} /><h3>{String(title)}</h3><p>{String(copy)}</p></article></Reveal>
             ))}
           </div>

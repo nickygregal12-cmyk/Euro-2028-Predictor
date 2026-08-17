@@ -28,6 +28,17 @@ export type BracketHealthMilestone = {
   status: BracketHealthStatus
 }
 
+// `KNOCKOUT_STAGE_ORDER` is the exhaustive, ordered list of every
+// `KnockoutStage`, so an index already proven `< KNOCKOUT_STAGE_ORDER.length`
+// is genuinely never out of range — but not something the index signature
+// can see. A guard that throws documents the invariant instead of silently
+// asserting past it.
+function stageAt(index: number): KnockoutStage {
+  const stage = KNOCKOUT_STAGE_ORDER[index]
+  if (stage === undefined) throw new Error(`bracketHealth: stage index ${index} out of range`)
+  return stage
+}
+
 export type BracketHealth = {
   securedPoints: number
   possiblePoints: number
@@ -59,7 +70,7 @@ function markReached(
   const reached = reachedByTeam.get(teamId) ?? new Set<KnockoutStage>()
   const stageIndex = KNOCKOUT_STAGE_ORDER.indexOf(stage)
   for (let index = 0; index <= stageIndex; index += 1) {
-    reached.add(KNOCKOUT_STAGE_ORDER[index])
+    reached.add(stageAt(index))
   }
   reachedByTeam.set(teamId, reached)
 }
@@ -126,7 +137,7 @@ export function computeBracketHealth(
     if (furthestIndex < 0) continue
 
     for (let index = 0; index <= furthestIndex; index += 1) {
-      const stage = KNOCKOUT_STAGE_ORDER[index]
+      const stage = stageAt(index)
       const status: BracketHealthStatus = state.reachedByTeam.get(prediction.teamId)?.has(stage)
         ? 'secured'
         : state.eliminatedTeamIds.has(prediction.teamId)

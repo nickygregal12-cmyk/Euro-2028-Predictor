@@ -216,8 +216,14 @@ function buildFixtures(): SeasonFixture[] {
     const order = [clubs[0], ...rotating.slice(round), ...rotating.slice(0, round)]
 
     for (let pair = 0; pair < half; pair += 1) {
+      // `order` always holds exactly `clubs.length` entries (one fixed slot
+      // plus every rotation), and `pair < half`, so both reads are genuinely
+      // in range — checked rather than asserted.
       const a = order[pair]
       const b = order[order.length - 1 - pair]
+      if (a === undefined || b === undefined) {
+        throw new Error('seasonPreviewFixture: round-robin index out of range')
+      }
       // Alternate which side is at home across rounds, so no club is ever at
       // home for every fixture of the first half.
       const homeFirst = (round + pair) % 2 === 0

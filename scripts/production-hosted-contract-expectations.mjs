@@ -41,6 +41,9 @@ export function deriveProductionHostedExpectations({ root = repoRoot } = {}) {
   }
 
   const [, latestMigrationVersion, latestMigrationName] = match
+  if (latestMigrationVersion === undefined || latestMigrationName === undefined) {
+    throw new Error('Could not derive the hosted Production migration boundary.')
+  }
   if (
     latestMigrationVersion !== record.latestMigrationVersion ||
     latestMigrationName !== record.latestMigrationName

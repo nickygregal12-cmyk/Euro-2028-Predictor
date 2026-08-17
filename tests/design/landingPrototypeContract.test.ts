@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The public landing prototype against its own authority.
@@ -36,7 +37,7 @@ const prototype = readFileSync(
   'utf8',
 )
 
-const darkBlock = prototype.split('html[data-theme="light"]')[0]
+const darkBlock = at(prototype.split('html[data-theme="light"]'), 0)
 const lightBlock = /html\[data-theme="light"\]\{(.*?)\n {4}\}/s.exec(prototype)?.[1] ?? ''
 
 function tokens(block: string): Record<string, string> {
@@ -56,12 +57,12 @@ function channels(hex: string): [number, number, number] {
 function luminance(hex: string): number {
   const [r, g, b] = channels(hex).map((c) =>
     c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
-  )
+  ) as [number, number, number]
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
 function contrast(a: string, b: string): number {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x)
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x) as [number, number]
   return (hi + 0.05) / (lo + 0.05)
 }
 
@@ -91,21 +92,21 @@ describe('light mode clears WCAG AA on the worst-case surface', () => {
   // --n-3 is surface-2, the darkest surface a semantic foreground sits on, and
   // therefore the hardest for a dark foreground.
   it.each(SEMANTIC)('%s reaches 4.5:1 on the darkest light surface', (token) => {
-    expect(contrast(light[token], light['--n-3'])).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(at(light, token), at(light, '--n-3'))).toBeGreaterThanOrEqual(4.5)
   })
 
   it('the auth error clears on the tint it composes from itself', () => {
     // `.auth-error` background is `color-mix(in srgb, var(--danger) 10%,
     // var(--surface-1))`, which is darker than any plain surface — so a token
     // that passes on --n-3 can still fail here.
-    const tint = mix(light['--danger'], light['--n-2'], 0.1)
-    expect(contrast(light['--danger'], tint)).toBeGreaterThanOrEqual(4.5)
+    const tint = mix(at(light, '--danger'), at(light, '--n-2'), 0.1)
+    expect(contrast(at(light, '--danger'), tint)).toBeGreaterThanOrEqual(4.5)
   })
 })
 
 describe('dark mode is not regressed by the light fix', () => {
   it.each(SEMANTIC)('%s still clears 4.5:1 on the dark surface', (token) => {
-    expect(contrast(dark[token], dark['--n-3'])).toBeGreaterThanOrEqual(4.5)
+    expect(contrast(at(dark, token), at(dark, '--n-3'))).toBeGreaterThanOrEqual(4.5)
   })
 })
 
@@ -136,7 +137,7 @@ describe('Appendix E.4 token discipline', () => {
 
 describe('Appendix E.3 content order', () => {
   it('runs hero → proof → how → experience → leagues → games → CTA', () => {
-    const body = prototype.split('<body>')[1]
+    const body = at(prototype.split('<body>'), 1)
     const markers = [
       'class="hero"',
       'competition-pair',

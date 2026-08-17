@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
+import { at } from '../support/indexed'
 
 /**
  * The AI Lab workflow's operational boundary, asserted rather than reviewed.
@@ -268,7 +269,7 @@ describe('every task the manual step implements is one the selector offers', () 
   // value)` sits deeper and is deliberately not matched — its arms are not
   // tasks, they are a second dispatch on the same already-offered task.
   const arms = [...manualStep.matchAll(/^ {2}([a-z|-]+)\)/gm)]
-    .flatMap((m) => m[1].split('|'))
+    .flatMap((m) => at(m, 1).split('|'))
 
   it('finds the arms at all', () => {
     expect(arms).toContain('research')
@@ -294,7 +295,7 @@ describe('every task the manual step implements is one the selector offers', () 
 describe('the studies are runnable and promote nothing', () => {
   it('offers every study the module implements', () => {
     const module = readFileSync(resolve(process.cwd(), 'ai/experiments.py'), 'utf8')
-    const implemented = [...module.matchAll(/^ {4}"([a-z-]+)": study_/gm)].map((m) => m[1])
+    const implemented = [...module.matchAll(/^ {4}"([a-z-]+)": study_/gm)].map((m) => at(m, 1))
     expect(implemented.length).toBeGreaterThan(0)
     expect(dispatch.study?.options?.slice().sort()).toEqual(implemented.slice().sort())
   })
@@ -380,7 +381,7 @@ describe('research runs against a hosted database without being able to change i
     expect(zoo).toMatch(/ENSEMBLE_ADMISSION: dict\[str, Admission\]/)
     // Every option must name families the zoo actually registers, or the
     // dispatch offers a run that dies in argparse twenty minutes in.
-    const registered = [...zoo.matchAll(/^ {4}"([a-z_]+)": /gm)].map((m) => m[1])
+    const registered = [...zoo.matchAll(/^ {4}"([a-z_]+)": /gm)].map((m) => at(m, 1))
     expect(registered.length).toBeGreaterThan(0)
     for (const option of dispatch.base_families?.options ?? []) {
       if (option === 'default') continue
@@ -424,8 +425,8 @@ describe('research-ablate measures a candidate family without writing one in', (
     const defaults = [
       ...(/DEFAULT_GROUPS: tuple\[str, \.\.\.\] = \(([^)]*)\)/.exec(features)?.[1] ?? '')
         .matchAll(/"([a-z_]+)"/g),
-    ].map((m) => m[1])
-    const known = [...features.matchAll(/^ {4}"([a-z_]+)": \(/gm)].map((m) => m[1])
+    ].map((m) => at(m, 1))
+    const known = [...features.matchAll(/^ {4}"([a-z_]+)": \(/gm)].map((m) => at(m, 1))
     const offered = dispatch.groups?.options ?? []
     expect(offered.length).toBeGreaterThan(0)
     for (const group of offered) {

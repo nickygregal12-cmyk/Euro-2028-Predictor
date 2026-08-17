@@ -192,12 +192,22 @@ function singleRoundRobin(clubCount: number): Array<Array<[number, number]>> {
   const rotating = Array.from({ length: clubCount - 1 }, (_, index) => index + 1)
   const rounds: Array<Array<[number, number]>> = []
 
+  // Every index below is in range by the circle method's own arithmetic:
+  // `rotating` always holds `clubCount - 1` entries and `step < clubCount / 2`.
+  // Stated as a guard so a changed club count fails here rather than seeding a
+  // fixture list with holes in it.
+  const seat = (index: number): number => {
+    const value = rotating[index]
+    if (value === undefined) throw new Error(`round-robin seat ${index} out of range`)
+    return value
+  }
+
   for (let round = 0; round < clubCount - 1; round += 1) {
     const pairs: Array<[number, number]> = []
-    pairs.push(round % 2 === 0 ? [0, rotating[0]] : [rotating[0], 0])
+    pairs.push(round % 2 === 0 ? [0, seat(0)] : [seat(0), 0])
 
     for (let step = 1; step < clubCount / 2; step += 1) {
-      pairs.push([rotating[step], rotating[rotating.length - step]])
+      pairs.push([seat(step), seat(rotating.length - step)])
     }
     rounds.push(pairs)
     rotating.unshift(rotating.pop()!)

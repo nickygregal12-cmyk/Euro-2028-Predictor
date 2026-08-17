@@ -144,10 +144,10 @@ describe('presentCupPhase', () => {
     for (const presented of presentation.rows) {
       expect(presented.accessibleSummary).not.toContain('entrant-1')
     }
-    expect(presentation.rows[0].accessibleSummary).toBe(
+    expect(presentation.rows[0]?.accessibleSummary).toBe(
       'An entrant, 1, 9 table points, 41 for, 30 against',
     )
-    expect(presentation.rows[1].accessibleSummary).toBe(
+    expect(presentation.rows[1]?.accessibleSummary).toBe(
       'You, 2, 7 table points, 38 for, 33 against',
     )
   })
@@ -165,6 +165,6 @@ describe('presentCupPhase', () => {
     )
 
     expect(presentation.rows.map((r) => r.rankLabel)).toEqual(['1', '=2', '=2', '4'])
-    expect(presentation.rows[1].accessibleSummary).toContain('joint 2')
+    expect(presentation.rows[1]?.accessibleSummary).toContain('joint 2')
   })
 })

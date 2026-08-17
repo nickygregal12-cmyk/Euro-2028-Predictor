@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /** Effective account-deletion behaviour encoded by every auth.users FK. */
 const repositoryRoot = process.cwd()
@@ -32,10 +33,10 @@ function collectAuthUserReferences(): AuthUserReference[] {
           // `predictor_internal.season_fixture_result_revisions`, and a
           // `public.`-only prefix made the parser read the SCHEMA as the table
           // name and pin the column as `predictor_internal.actor_id`.
-          lines[cursor].match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
-          lines[cursor].match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
+          at(lines, cursor).match(/create table (?:if not exists )?(?:[a-z_]+\.)?([a-z_]+)/i) ??
+          at(lines, cursor).match(/alter table (?:[a-z_]+\.)?([a-z_]+)/i)
         if (match) {
-          table = match[1]
+          table = at(match, 1)
           break
         }
       }
@@ -43,7 +44,7 @@ function collectAuthUserReferences(): AuthUserReference[] {
       const column =
         (line.match(/^\s*(?:add column\s+)?([a-z_]+)\s+uuid/i) ??
           line.match(/foreign key \(([a-z_]+)\)/i))?.[1] ?? 'unknown'
-      const declared = line.match(/on delete (cascade|restrict|set null)/i)?.[1].toLowerCase()
+      const declared = line.match(/on delete (cascade|restrict|set null)/i)?.[1]?.toLowerCase()
 
       found.push({
         migration,
@@ -216,9 +217,9 @@ describe('account deletion — consequences', () => {
         if (!/references\s+(?:public\.)?entries\s*\(/i.test(line)) return
         if (!/on delete cascade/i.test(line)) return
         for (let cursor = index; cursor >= 0; cursor -= 1) {
-          const match = lines[cursor].match(/create table (?:if not exists )?(?:public\.)?([a-z_]+)/i)
+          const match = at(lines, cursor).match(/create table (?:if not exists )?(?:public\.)?([a-z_]+)/i)
           if (match) {
-            dependants.add(match[1])
+            dependants.add(at(match, 1))
             break
           }
         }

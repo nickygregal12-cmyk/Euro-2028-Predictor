@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { sectionAnchor } from '../../src/dev/sectionAnchor'
+import { at } from '../support/indexed'
 
 /**
  * The visual contract harness, against the properties that make a screenshot
@@ -64,11 +65,11 @@ describe('the section anchor', () => {
 
 describe('every anchor the spec names exists in the gallery', () => {
   /** The `data-section^="..."` prefixes the visual spec addresses. */
-  const referenced = [...spec.matchAll(/^\s+'([a-z0-9-]+)',$/gm)].map((match) => match[1])
+  const referenced = [...spec.matchAll(/^\s+'([a-z0-9-]+)',$/gm)].map((match) => at(match, 1))
 
   /** Every section the gallery declares, slugged the way the component does. */
   const declared = [...gallery.matchAll(/<Section title="([^"]+)"/g)].map((match) =>
-    sectionAnchor(match[1]),
+    sectionAnchor(at(match, 1)),
   )
 
   it('parses both sides, so the comparison is not vacuous', () => {

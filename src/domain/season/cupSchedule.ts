@@ -64,6 +64,17 @@ export function generateCupLeagueSchedule(
   const size = circle.length
   const roundsPerMeeting = size - 1
 
+  // Every read below is at an offset already proven `< size` by the circle
+  // method's own arithmetic (a rotation mod `size - 1`, plus the fixed slot
+  // `0`) — genuinely never out of range, but not something the index
+  // signature can see. A guard that throws documents the invariant instead
+  // of silently asserting past it.
+  function circleAt(i: number): string | null {
+    const value = circle[i]
+    if (value === undefined) throw new Error(`circle index ${i} out of range`)
+    return value
+  }
+
   const rounds: CupScheduledRound[] = []
   for (let meeting = 0; meeting < meetings; meeting += 1) {
     for (let turn = 0; turn < roundsPerMeeting; turn += 1) {
@@ -71,8 +82,8 @@ export function generateCupLeagueSchedule(
       let bye: string | null = null
 
       for (let pair = 0; pair < size / 2; pair += 1) {
-        const first = pair === 0 ? circle[0] : circle[((turn + pair - 1) % (size - 1)) + 1]
-        const second = circle[((turn + size - 1 - pair - 1) % (size - 1)) + 1]
+        const first = pair === 0 ? circleAt(0) : circleAt(((turn + pair - 1) % (size - 1)) + 1)
+        const second = circleAt(((turn + size - 1 - pair - 1) % (size - 1)) + 1)
         if (first === BYE || second === BYE) {
           bye = first === BYE ? (second as string) : (first as string)
           continue

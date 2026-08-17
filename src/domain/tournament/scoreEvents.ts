@@ -175,7 +175,12 @@ export function scoreEventsFromBreakdown(
   // §3 Knockout progression
   for (const item of breakdown.knockout.items) {
     if (item.points === 0) continue // no partial-credit "wrong" row for knockout
+    // Nonzero knockout points are the sum of per-stage points over
+    // `correctStages`, so a nonzero total means the list is genuinely
+    // non-empty — checked rather than asserted, and skipped (not thrown) if
+    // that ever turns out false, since this only builds a display event.
     const furthest = item.correctStages[item.correctStages.length - 1]
+    if (furthest === undefined) continue
     const { text, flag } = resolvers.team(item.teamId)
     events.push({
       id: `ko-${item.teamId}`,

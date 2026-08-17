@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { at } from '../../support/indexed'
 import {
   buildAccumulators,
   defaultRequest,
@@ -280,7 +281,7 @@ describe('an actionable accumulator is one real bookmaker, or it is not actionab
     const result = buildAccumulators(legs, defaultRequest({ legs: 2 }), REGISTRY)
     for (const acc of result.accumulators) {
       expect(new Set(acc.legs.map((l) => l.bookmaker.toUpperCase())).size).toBe(1)
-      expect(acc.bookmaker).toBe(acc.legs[0].bookmaker.toUpperCase())
+      expect(acc.bookmaker).toBe(acc.legs[0]?.bookmaker.toUpperCase())
     }
     expect(result.bookmakersWithCandidates).toEqual(['B365', 'PS'])
   })
@@ -321,7 +322,7 @@ describe('the money arithmetic says what it means', () => {
       defaultRequest({ legs: 3, stake: 10 }),
       REGISTRY,
     )
-    const acc = result.accumulators[0]
+    const acc = at(result.accumulators, 0)
     expect(acc.combinedOdds).toBeCloseTo(8, 6)
     expect(acc.exchangeCommission).toBe(0.02)
     // gross 80; commission is 2% of the 70 of winnings, never of the stake.
@@ -331,13 +332,13 @@ describe('the money arithmetic says what it means', () => {
 
   it('keeps total return and profit as separate numbers', () => {
     const result = buildAccumulators(threeCleanLegs(), defaultRequest({ stake: 10 }), REGISTRY)
-    const acc = result.accumulators[0]
+    const acc = at(result.accumulators, 0)
     expect(acc.estimatedTotalReturn - acc.estimatedProfit).toBeCloseTo(acc.stake, 6)
   })
 
   it('derives joint probability, fair odds and expected value from the legs', () => {
     const result = buildAccumulators(threeCleanLegs(), defaultRequest({ legs: 3 }), REGISTRY)
-    const acc = result.accumulators[0]
+    const acc = at(result.accumulators, 0)
     expect(acc.estimatedJointProbability).toBeCloseTo(0.55 ** 3, 6)
     expect(acc.fairCombinedOdds).toBeCloseTo(1 / 0.55 ** 3, 3)
     expect(acc.expectedValue).toBeCloseTo(0.55 ** 3 * 8 - 1, 5)
@@ -345,7 +346,7 @@ describe('the money arithmetic says what it means', () => {
 
   it('warns that an exchange stating no commission is reported gross', () => {
     const result = buildAccumulators(threeCleanLegs('SMK'), defaultRequest(), REGISTRY)
-    const acc = result.accumulators[0]
+    const acc = at(result.accumulators, 0)
     expect(acc.exchangeCommission).toBeNull()
     expect(acc.actionableNote).toMatch(/GROSS of commission/)
   })
@@ -360,7 +361,7 @@ describe('the money arithmetic says what it means', () => {
       defaultRequest({ legs: 1 }),
       REGISTRY,
     ).accumulators[0]
-    expect(acc.estimatedJointProbability).toBe(0.073484)
+    expect(acc?.estimatedJointProbability).toBe(0.073484)
     expect(Math.round(0.0734845 * 1e6) / 1e6).toBe(0.073485)
   })
 
@@ -373,7 +374,7 @@ describe('the money arithmetic says what it means', () => {
       defaultRequest({ legs: 1 }),
       REGISTRY,
     ).accumulators[0]
-    expect(acc.combinedOdds).toBe(1.062)
+    expect(acc?.combinedOdds).toBe(1.062)
     expect(Math.round(1.0625 * 1e3) / 1e3).toBe(1.063)
   })
 })
@@ -410,7 +411,7 @@ describe('a combined-odds window is applied to the combination, not to the legs'
 describe('the correlation the estimate cannot see is stated rather than hidden', () => {
   it('attaches the correlation treatment to every accumulator', () => {
     const result = buildAccumulators(threeCleanLegs(), defaultRequest(), REGISTRY)
-    expect(result.accumulators[0].correlationTreatment).toBe(CORRELATION_NOTE)
+    expect(result.accumulators[0]?.correlationTreatment).toBe(CORRELATION_NOTE)
   })
 
   it('warns when every leg sits in one league', () => {
@@ -420,7 +421,7 @@ describe('the correlation the estimate cannot see is stated rather than hidden',
       leg({ fixtureId: 'f3', home: 'Stoke', away: 'Cardiff' }),
     ]
     const result = buildAccumulators(legs, defaultRequest({ legs: 3 }), REGISTRY)
-    expect(result.accumulators[0].warnings.some((w) => /every leg is in EPL/.test(w))).toBe(true)
+    expect(result.accumulators[0]?.warnings.some((w) => /every leg is in EPL/.test(w))).toBe(true)
   })
 
   it('carries the weakest evidence and the oldest price of its legs', () => {
@@ -428,7 +429,7 @@ describe('the correlation the estimate cannot see is stated rather than hidden',
       leg({ fixtureId: 'f1', dataConfidence: 0.9, agreement: 0.9, uncertaintyWidth: 0.02, capturedAt: '2026-08-13T09:00:00Z' }),
       leg({ fixtureId: 'f2', home: 'Hearts', away: 'Hibernian', league: 'SPL', dataConfidence: 0.4, agreement: 0.3, uncertaintyWidth: 0.11, capturedAt: '2026-08-13T08:00:00Z' }),
     ]
-    const acc = buildAccumulators(legs, defaultRequest({ legs: 2 }), REGISTRY).accumulators[0]
+    const acc = at(buildAccumulators(legs, defaultRequest({ legs: 2 }), REGISTRY).accumulators, 0)
     expect(acc.minDataConfidence).toBeCloseTo(0.4)
     expect(acc.minAgreement).toBeCloseTo(0.3)
     expect(acc.maxUncertaintyWidth).toBeCloseTo(0.11)
@@ -440,7 +441,7 @@ describe('the correlation the estimate cannot see is stated rather than hidden',
       leg({ fixtureId: 'f1', dataConfidence: null, agreement: null, uncertaintyWidth: null, capturedAt: null }),
       leg({ fixtureId: 'f2', home: 'Hearts', away: 'Hibernian', league: 'SPL', dataConfidence: null, agreement: null, uncertaintyWidth: null, capturedAt: null }),
     ]
-    const acc = buildAccumulators(legs, defaultRequest({ legs: 2 }), REGISTRY).accumulators[0]
+    const acc = at(buildAccumulators(legs, defaultRequest({ legs: 2 }), REGISTRY).accumulators, 0)
     expect(acc.minDataConfidence).toBeNull()
     expect(acc.minAgreement).toBeNull()
     expect(acc.maxUncertaintyWidth).toBeNull()
@@ -461,7 +462,7 @@ describe('the objective changes which combination is offered first', () => {
 
   it('puts the most likely combination first when safety is asked for', () => {
     const result = buildAccumulators(mixed(), defaultRequest({ legs: 2, objective: 'safety' }), REGISTRY)
-    const first = result.accumulators[0]
+    const first = at(result.accumulators, 0)
     expect(first.legs.map((l) => l.fixtureId).sort()).toEqual(['a1', 'a2'])
   })
 
@@ -471,7 +472,7 @@ describe('the objective changes which combination is offered first', () => {
       defaultRequest({ legs: 2, objective: 'confidence' }),
       REGISTRY,
     )
-    const first = result.accumulators[0]
+    const first = at(result.accumulators, 0)
     expect(first.legs.map((l) => l.fixtureId).sort()).toEqual(['b1', 'b2'])
     expect(first.minDataConfidence).toBeGreaterThan(0.9)
   })
@@ -544,8 +545,8 @@ describe('"no qualifying bet" is an answer rather than a failure', () => {
 
   it('falls silent about the empty answer once an actionable combination exists', () => {
     const result = buildAccumulators(threeCleanLegs(), defaultRequest({ legs: 3 }), REGISTRY)
-    expect(result.accumulators[0].actionable).toBe(true)
-    expect(result.accumulators[0].actionableNote).toMatch(/Every leg is priced at B365/)
+    expect(result.accumulators[0]?.actionable).toBe(true)
+    expect(result.accumulators[0]?.actionableNote).toMatch(/Every leg is priced at B365/)
     expect(result.answerWhenEmpty).toBeNull()
   })
 

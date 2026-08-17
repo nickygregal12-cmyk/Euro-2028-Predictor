@@ -26,6 +26,7 @@ Do **not** preload the whole documentation tree. Historical audits, reconciliati
 | Deployment / hosted contract work | [`docs/quality/current-status.md`](docs/quality/current-status.md), the exact machine contract records, and the relevant operations runbook |
 | Architecture / programme work | [`docs/architecture/README.md`](docs/architecture/README.md), then the named workstream only |
 | Historical / regression archaeology | [`docs/history/README.md`](docs/history/README.md) and the specific dated evidence needed to answer the question |
+| Choosing a tool — browser, analytics, notifications, security | [`docs/ops/agent-tooling-map.md`](docs/ops/agent-tooling-map.md), which says which tool answers which question and links to each one's authority |
 
 ## Invariants
 

@@ -39,13 +39,19 @@ function block(selector: string): Record<string, string> {
 
   const raw: Record<string, string> = {}
   for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+    // Both groups are mandatory in the pattern, so a match without them would
+    // be a broken regex rather than a token worth skipping quietly.
+    if (name === undefined || value === undefined) {
+      throw new Error(`tokens.css declaration in ${selector} did not parse`)
+    }
     raw[name] = value.trim()
   }
 
   const resolved: Record<string, string> = {}
   for (const [name, value] of Object.entries(raw)) {
     const alias = /^var\(--([a-z0-9-]+)\)$/.exec(value)
-    resolved[name] = alias ? (raw[alias[1]] ?? value) : value
+    const target = alias?.[1]
+    resolved[name] = target === undefined ? value : (raw[target] ?? value)
   }
   return resolved
 }
@@ -53,6 +59,19 @@ function block(selector: string): Record<string, string> {
 const dark = block(':root,')
 const light = block('[data-theme="light"] {')
 const scale = block(':root {')
+
+/**
+ * One declared token, or a failure naming the one that is missing.
+ *
+ * A missing token is a real failure of these suites, and saying which token was
+ * absent is the whole diagnostic — far better than the assertion below tripping
+ * over `undefined` several frames later.
+ */
+function token(tokens: Record<string, string>, name: string): string {
+  const value = tokens[name]
+  if (value === undefined) throw new Error(`tokens.css declares no --${name}`)
+  return value
+}
 
 function luminance(hex: string): number {
   const value = Number.parseInt(hex.slice(1), 16)
@@ -96,12 +115,12 @@ describe('the target neutral ramp', () => {
     // The whole point of a numbered ramp. Without this a step number is
     // decoration, and two adjacent steps can silently swap contrast order.
     for (const [name, tokens] of THEMES) {
-      const distances = STEPS.map((step) => contrast(tokens[step], tokens['n-1']))
+      const distances = STEPS.map((step) => contrast(token(tokens, step), token(tokens, 'n-1')))
       for (let index = 1; index < distances.length; index += 1) {
         expect(
           distances[index],
           `${name} --n-${index + 1} is no further from the background than --n-${index}`,
-        ).toBeGreaterThan(distances[index - 1])
+        ).toBeGreaterThan(distances[index - 1] ?? Number.NaN)
       }
     }
   })
@@ -109,7 +128,7 @@ describe('the target neutral ramp', () => {
   it('spans a usable range in both themes', () => {
     for (const [name, tokens] of THEMES) {
       expect(
-        contrast(tokens['n-12'], tokens['n-1']),
+        contrast(token(tokens, 'n-12'), token(tokens, 'n-1')),
         `${name} ramp is too shallow to carry primary text`,
       ).toBeGreaterThanOrEqual(15)
     }
@@ -122,7 +141,7 @@ describe('the target surface, border and text tokens', () => {
       for (const text of TEXT) {
         for (const surface of SURFACES) {
           expect(
-            Number(contrast(tokens[text], tokens[surface]).toFixed(2)),
+            Number(contrast(token(tokens, text), token(tokens, surface)).toFixed(2)),
             `--${text} on --${surface} in the ${name} theme`,
           ).toBeGreaterThanOrEqual(AA_NORMAL_TEXT)
         }
@@ -157,11 +176,11 @@ describe('the target surface, border and text tokens', () => {
 
 describe('the scale, motion and layering contracts', () => {
   it('declares exactly six type steps, ascending', () => {
-    const sizes = [1, 2, 3, 4, 5, 6].map((step) => Number.parseInt(scale[`fs-${step}`], 10))
+    const sizes = [1, 2, 3, 4, 5, 6].map((step) => Number.parseInt(token(scale, `fs-${step}`), 10))
     expect(sizes.every(Number.isFinite), 'the six-step type scale is incomplete').toBe(true)
     for (let index = 1; index < sizes.length; index += 1) {
       expect(sizes[index], `--fs-${index + 1} does not exceed --fs-${index}`).toBeGreaterThan(
-        sizes[index - 1],
+        sizes[index - 1] ?? Number.NaN,
       )
     }
     expect(scale['fs-7'], 'a seventh type step defeats a fixed scale').toBeUndefined()
@@ -171,12 +190,12 @@ describe('the scale, motion and layering contracts', () => {
     // §11.7 states the direction, so the tokens must actually run that way —
     // two tracking tokens with the same sign would satisfy a presence check
     // and none of the intent.
-    expect(Number.parseFloat(scale['tracking-tight'])).toBeLessThan(0)
-    expect(Number.parseFloat(scale['tracking-open'])).toBeGreaterThan(0)
+    expect(Number.parseFloat(token(scale, 'tracking-tight'))).toBeLessThan(0)
+    expect(Number.parseFloat(token(scale, 'tracking-open'))).toBeGreaterThan(0)
   })
 
   it('keeps routine motion under 300ms and the signature at 400ms', () => {
-    const duration = (name: string) => Number.parseInt(scale[`duration-${name}`], 10)
+    const duration = (name: string) => Number.parseInt(token(scale, `duration-${name}`), 10)
     for (const routine of ['micro', 'enter', 'sheet']) {
       expect(duration(routine), `--duration-${routine} exceeds the routine ceiling`).toBeLessThan(
         300,
@@ -209,11 +228,11 @@ describe('the scale, motion and layering contracts', () => {
 
   it('declares one ordered stacking scale', () => {
     const order = ['content', 'sticky', 'navigation', 'overlay', 'modal', 'toast'].map((layer) =>
-      Number.parseInt(scale[`z-${layer}`], 10),
+      Number.parseInt(token(scale, `z-${layer}`), 10),
     )
     expect(order.every(Number.isFinite), 'the stacking scale is incomplete').toBe(true)
     for (let index = 1; index < order.length; index += 1) {
-      expect(order[index], 'the stacking scale is not ordered').toBeGreaterThan(order[index - 1])
+      expect(order[index], 'the stacking scale is not ordered').toBeGreaterThan(order[index - 1] ?? Number.NaN)
     }
   })
 

@@ -115,12 +115,10 @@ export function MatchesPage() {
       }
 
       const winner = authoritativeWinnerSide(match)
-      const homeStage = (match.homeTeamId && preds.bracketProgression[match.homeTeamId]
-        ? STAGE_UP[preds.bracketProgression[match.homeTeamId]]
-        : null) as KnockoutStage | null
-      const awayStage = (match.awayTeamId && preds.bracketProgression[match.awayTeamId]
-        ? STAGE_UP[preds.bracketProgression[match.awayTeamId]]
-        : null) as KnockoutStage | null
+      const homeProgression = match.homeTeamId ? preds.bracketProgression[match.homeTeamId] : undefined
+      const awayProgression = match.awayTeamId ? preds.bracketProgression[match.awayTeamId] : undefined
+      const homeStage = (homeProgression ? STAGE_UP[homeProgression] : null) as KnockoutStage | null
+      const awayStage = (awayProgression ? STAGE_UP[awayProgression] : null) as KnockoutStage | null
       const stake = koStake(homeStage, awayStage, match.round, winner)
       const backedName = stake.backed === 'home' ? home.name : stake.backed === 'away' ? away.name : null
       return {
@@ -145,12 +143,12 @@ export function MatchesPage() {
     const viewModels: MatchesGroupVM[] = groups.map((group) => ({
       key: group.key,
       label: group.label,
-      dateLabel: group.matches.length ? dateLabel(group.matches[0]) : '',
+      dateLabel: group.matches[0] ? dateLabel(group.matches[0]) : '',
       rows: group.matches.map(rowOf),
     }))
 
-    const scrollToKey = filter === 'all' && viewModels.length
-      ? viewModels[currentGroupIndexFromContext(groups, competition.context)].key
+    const scrollToKey = filter === 'all'
+      ? (viewModels[currentGroupIndexFromContext(groups, competition.context)]?.key ?? null)
       : null
     return { vm: viewModels, scrollToKey }
   }, [data, preds, teamName, filter])
