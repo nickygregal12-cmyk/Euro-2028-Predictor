@@ -30,11 +30,18 @@ function workflowIds() {
   const block = source.match(
     /const WORKFLOW_IDS: Record<\s*NotificationEventKind,\s*string\s*> = \{([\s\S]*?)\n\}/,
   )
+  // Two separate failures, said separately: the map is missing, or it matched
+  // and its body did not come back. Collapsing them into one `!` would silence
+  // the checker and report neither.
   if (!block) throw new Error('WORKFLOW_IDS not found in notificationPayload.ts')
+  const body = block[1]
+  if (body === undefined) throw new Error('WORKFLOW_IDS matched without a body')
 
-  return [...block[1].matchAll(/'([^']+)':\s*'([^']+)'/g)].map(
-    ([, kind, workflowId]) => ({ kind, workflowId }),
-  )
+  return [...body.matchAll(/'([^']+)':\s*'([^']+)'/g)].flatMap((match) => {
+    const kind = match[1]
+    const workflowId = match[2]
+    return kind && workflowId ? [{ kind, workflowId }] : []
+  })
 }
 
 /** `'kind': 'category',` pairs from NOTIFICATION_CATEGORIES. */
@@ -44,11 +51,17 @@ function categories() {
     /export const NOTIFICATION_CATEGORIES: Record<[\s\S]*?> = \{([\s\S]*?)\n\}/,
   )
   if (!block) throw new Error('NOTIFICATION_CATEGORIES not found')
+  const body = block[1]
+  if (body === undefined) {
+    throw new Error('NOTIFICATION_CATEGORIES matched without a body')
+  }
 
   return new Map(
-    [...block[1].matchAll(/'([^']+)':\s*'([^']+)'/g)].map(
-      ([, kind, category]) => [kind, category],
-    ),
+    [...body.matchAll(/'([^']+)':\s*'([^']+)'/g)].flatMap((match) => {
+      const kind = match[1]
+      const category = match[2]
+      return kind && category ? [[kind, category]] : []
+    }),
   )
 }
 
@@ -61,11 +74,16 @@ function payloadFields() {
     /interface \w+ extends NotificationEventBase \{([\s\S]*?)\n\}/g,
   )) {
     const body = match[1]
+    // An interface whose body did not come back is skipped rather than read as
+    // an interface with no fields, which would silently produce a workflow the
+    // manifest says takes no payload.
+    if (body === undefined) continue
+
     const kind = body.match(/readonly kind:\s*'([^']+)'/)?.[1]
     if (!kind) continue
 
     const own = [...body.matchAll(/readonly (\w+):/g)]
-      .map(([, name]) => name)
+      .flatMap((field) => (field[1] === undefined ? [] : [field[1]]))
       .filter((name) => name !== 'kind')
 
     // `competitionId` and `occurredAt` reach every template; `recipientId`
