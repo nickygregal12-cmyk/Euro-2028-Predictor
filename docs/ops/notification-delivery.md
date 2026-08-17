@@ -13,13 +13,13 @@ service deliberately.
 ```text
 domain fact (lock passed, matchweek settled, entrant eliminated)
         ↓  emitted by whatever owns that fact
-NotificationEvent          src/services/notifications/notificationEvents.ts
+NotificationEvent          supabase/functions/_shared/notifications/notificationEvents.ts
         ↓  pure mapping, no network, no clock
-NotificationPayload        src/services/notifications/notificationPayload.ts
+NotificationPayload        supabase/functions/_shared/notifications/notificationPayload.ts
         ↓  provider-neutral interface
-NotificationService        src/services/notifications/notificationService.ts
+NotificationService        supabase/functions/_shared/notifications/notificationService.ts
         ↓  one implementation
-Novu adapter               src/services/notifications/novuAdapter.ts
+Novu adapter               supabase/functions/_shared/notifications/novuAdapter.ts
 ```
 
 Application code depends on `NotificationService`. It must not import the

@@ -204,7 +204,7 @@ Deno.serve(async (request: Request) => {
     // constructed where a DOM exists, and this keeps the boundary's own
     // browser guard the single place that rule lives.
     const { createNovuNotificationService } = await import(
-      '../../../src/services/notifications/novuAdapter.ts'
+      '../_shared/notifications/novuAdapter.ts'
     )
     const service = createNovuNotificationService({
       apiKey: novuApiKey,

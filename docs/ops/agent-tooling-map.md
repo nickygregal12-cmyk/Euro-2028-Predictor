@@ -72,6 +72,47 @@ under you produces measurements that cannot be compared with last week's, and an
 uncontrolled `@latest` in a checked-in configuration is a dependency nobody
 reviewed.
 
+### It needs a Chrome binary, and will not find one in every environment
+
+The server launches **Google Chrome stable** by default, from the platform's
+usual install location. A container or CI runner that has only Playwright's
+Chromium — which is this repository's normal browser provisioning — fails at the
+first tool call with `Could not find Google Chrome executable for channel
+'stable'`. The MCP server itself starts fine, so the failure arrives later than
+you expect and looks like a tool bug rather than a missing dependency.
+
+Point it at the browser that is actually there:
+
+```bash
+npx chrome-devtools-mcp@1.7.0 \
+  --executablePath "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux/chrome \
+  --headless --isolated
+```
+
+That override is deliberately **not** in `.mcp.json`: the path is specific to a
+container, and hard-coding it would break the ordinary case of a developer with
+Chrome installed. `--isolated` is worth adding when you do override, so a
+profiling session uses a throwaway profile rather than your own.
+
+### Both of its telemetry defaults are off, on purpose
+
+The server ships with two outbound paths to Google, both **on** by default, and
+`.mcp.json` disables both:
+
+| Flag | Default | What it sends |
+| --- | --- | --- |
+| `--usageStatistics` | on | tool usage data |
+| `--performanceCrux` | on | **the URLs from performance traces**, to the CrUX API |
+
+The second is the one that matters. Profiling a slow page means profiling a real
+URL, and this product's URLs carry invite codes and player identifiers — which
+is precisely the defect *"Stop telemetry URLs carrying invite codes and
+identifiers"* was landed to fix. A profiler transmitting the URL by default
+would reintroduce it through tooling rather than through application code.
+
+Neither default fails anything when left on, which is why
+`tests/scripts/mcpServerConfiguration.test.ts` pins them rather than a comment.
+
 ## Boundaries
 
 - Both MCP servers are **development-only**. They are declared in `.mcp.json`,

@@ -39,7 +39,7 @@ function read(file: string): string {
   return readFileSync(resolve(repositoryRoot, file), 'utf8')
 }
 
-const NOTIFICATION_MODULE = 'services/notifications'
+const NOTIFICATION_MODULE = '_shared/notifications'
 
 describe('notification secret containment', () => {
   it('declares no VITE_-prefixed notification variable where one could take effect', () => {

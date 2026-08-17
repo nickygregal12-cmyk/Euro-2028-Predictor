@@ -7,12 +7,12 @@
 import { HttpResponse, http } from 'msw'
 import { setupServer } from 'msw/node'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
-import type { NotificationEvent } from '../../../src/services/notifications/notificationEvents'
-import { DEFAULT_NOVU_API_ORIGIN } from '../../../src/services/notifications/notificationService'
+import type { NotificationEvent } from '../../../supabase/functions/_shared/notifications/notificationEvents'
+import { DEFAULT_NOVU_API_ORIGIN } from '../../../supabase/functions/_shared/notifications/notificationService'
 import {
   NotificationCredentialInBrowserError,
   createNovuNotificationService,
-} from '../../../src/services/notifications/novuAdapter'
+} from '../../../supabase/functions/_shared/notifications/novuAdapter'
 
 /**
  * The Novu adapter across a real HTTP boundary.

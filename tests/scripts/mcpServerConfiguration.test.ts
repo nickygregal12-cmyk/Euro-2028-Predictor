@@ -109,6 +109,36 @@ describe('MCP server configuration', () => {
     }
   })
 
+  it('opts Chrome DevTools MCP out of both of its outbound telemetry paths', () => {
+    // Two separate defaults, both ON, and both send data to Google:
+    //
+    //   usageStatistics  — tool usage data.
+    //   performanceCrux  — sends the URLs from PERFORMANCE TRACES to the CrUX
+    //                      API to fetch field data.
+    //
+    // The second is the one that matters here. A developer profiling a slow
+    // page profiles a real URL, and this repository's URLs carry invite codes
+    // and identifiers — which is the exact defect `Stop telemetry URLs
+    // carrying invite codes and identifiers` was landed to fix. A profiler
+    // that transmits the URL by default would reintroduce it through a tool
+    // rather than through application code.
+    //
+    // Both are pinned because both are silent: nothing fails when they are on,
+    // which is why they need a test rather than a comment.
+    const args = mcpConfiguration().mcpServers['chrome-devtools']?.args ?? []
+    const flags = args.join(' ')
+
+    expect(flags).toMatch(/--usageStatistics=false|--no-usage-statistics/)
+    expect(flags).toMatch(/--performanceCrux=false|--no-performance-crux/)
+  })
+
+  it('leaves the browser-driving server free of telemetry flags it does not need', () => {
+    // Playwright MCP sends nothing by default, so an opt-out flag there would
+    // be cargo-culted rather than reasoned.
+    const args = mcpConfiguration().mcpServers['playwright']?.args ?? []
+    expect(args.join(' ')).not.toMatch(/usageStatistics|performanceCrux/)
+  })
+
   it('keeps every server out of the application dependency graph', () => {
     const manifest = packageManifest()
     const declared = {
