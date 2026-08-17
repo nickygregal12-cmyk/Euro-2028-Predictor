@@ -41,6 +41,22 @@ import type { HomeSource, HomeSourceLeague } from './homeSource'
  * would drag credentials into the module graph of anything that renders Home —
  * including Storybook and the deterministic tests. The visual tree must stay
  * renderable without a database, and this is what keeps it that way.
+ *
+ * A LOADED PAYLOAD BELONGS TO THE IDENTITY THAT ASKED FOR IT, and that is the
+ * strongest rule in this file. Everything Home draws is somebody's private
+ * state: their predictions, their rank, their private-league table, their
+ * rivals. Holding it in React state means it outlives the inputs that produced
+ * it, and an effect cannot help — an effect runs AFTER the render that changed
+ * the inputs, so a hook that trusted its own stored payload would, for exactly
+ * one render, compose the previous account's answers with the current account's
+ * identity and call the result ready. One render is enough to paint.
+ *
+ * So the payload is stored WITH the identity that addressed the reads, the
+ * public state is derived from the CURRENT inputs first, and a payload whose
+ * identity no longer matches is not a payload — it is loading. Nothing about
+ * that depends on when an effect is scheduled, which is the point: the leak is
+ * made unrepresentable rather than merely unlikely. `tests/vnext/
+ * homeSourceIdentity.test.tsx` drives all four transitions that could expose it.
  */
 
 /** How many private leagues Home will read a table for. */
@@ -104,51 +120,93 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
 }
 
 /**
- * What the effect stores: everything the reads returned, and NOT the user.
+ * WHICH REQUEST A PAYLOAD ANSWERS: the four inputs that ADDRESS Home's reads.
+ *
+ * `userId` addresses the profile and the card, the two slugs address the play
+ * context every other read hangs off, and `gameCompetitionId` addresses the
+ * private leagues. Change any one of them and every answer already in hand is
+ * about somebody else, some other competition, or some other set of leagues.
+ *
+ * `displayName` is deliberately not part of it — it addresses no read, and it is
+ * merged into the source at the end rather than re-fetched for. `authLoading` is
+ * not part of it either: it is not an address, it is a reason not to decide yet,
+ * and the derivation below handles it before an identity is even computed.
+ *
+ * JSON rather than a joined string because a slug is user-visible text and a
+ * separator can appear inside one. `a|b` and `a` + `|b` must not collide.
+ */
+type RequestIdentity = string
+
+function requestIdentity(input: {
+  userId: string
+  competitionSlug: string
+  seasonSlug: string
+  gameCompetitionId: string | null
+}): RequestIdentity {
+  return JSON.stringify([
+    input.userId,
+    input.competitionSlug,
+    input.seasonSlug,
+    input.gameCompetitionId,
+  ])
+}
+
+/**
+ * What the effect stores: everything the reads returned, the identity that asked
+ * for them, and NOT the user.
  *
  * THE USER IS COMPOSED IN AFTERWARDS, AND THAT IS A FIX RATHER THAN A STYLE.
  * `displayName` arrives from `AuthProvider` in two steps — null while the profile
  * read is in flight, then the name — so an effect that depended on it ran twice
  * and issued every one of Home's reads twice. The display name addresses no read
  * and belongs to no payload, so it is merged in below where it costs nothing.
+ *
+ * `identity` travels WITH the payload rather than beside it, so there is no way
+ * to read one without the other and no moment where the pair is half-updated.
  */
 type Loaded = {
   status: 'loaded'
+  identity: RequestIdentity
   payload: Omit<HomeSource, 'user'>
   unavailable: readonly HomeSourceName[]
   leaguesNotShown: number
 }
 
+/**
+ * `idle` means NOTHING IS HELD FOR ANY IDENTITY — the honest state before a read
+ * lands, and the state this hook returns to the moment its inputs change. There
+ * is no internal `loading`, `signedOut` or `noCompetition` any more: those are
+ * facts about the CURRENT inputs, not things acquisition discovers, and storing
+ * them was what let a payload from a previous identity outlive its inputs.
+ */
 type InternalState =
-  | { status: 'loading' }
-  | { status: 'signedOut' }
-  | { status: 'noCompetition' }
-  | { status: 'failed' }
+  | { status: 'idle' }
+  | { status: 'failed'; identity: RequestIdentity }
   | Loaded
 
+const IDLE: InternalState = { status: 'idle' }
+
 export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSourceState {
-  const [state, setState] = useState<InternalState>({ status: 'loading' })
+  const [state, setState] = useState<InternalState>(IDLE)
   const [nonce, setNonce] = useState(0)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
   const { userId, displayName, authLoading, competitionSlug, seasonSlug, gameCompetitionId } = input
 
   useEffect(() => {
-    if (authLoading) {
-      setState({ status: 'loading' })
-      return
-    }
-    if (!userId) {
-      setState({ status: 'signedOut' })
-      return
-    }
-    if (!competitionSlug || !seasonSlug) {
-      setState({ status: 'noCompetition' })
+    // Nothing to acquire, and nothing may be kept: a signed-out surface must not
+    // still be holding the last signed-in player's card in memory.
+    if (authLoading || !userId || !competitionSlug || !seasonSlug) {
+      setState((current) => (current.status === 'idle' ? current : IDLE))
       return
     }
 
+    const identity = requestIdentity({ userId, competitionSlug, seasonSlug, gameCompetitionId })
+
     let active = true
-    setState({ status: 'loading' })
+    // Dropped rather than kept-while-loading. The derivation below would refuse
+    // to expose it anyway; releasing it here means it is not retained either.
+    setState((current) => (current.status === 'idle' ? current : IDLE))
 
     void (async () => {
       try {
@@ -217,7 +275,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
         // a Home drawn without them would be a confident empty matchweek.
         const fixtureList = settled(fixtures)
         if (fixtureList === null) {
-          setState({ status: 'failed' })
+          setState({ status: 'failed', identity })
           return
         }
 
@@ -274,6 +332,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
 
         setState({
           status: 'loaded',
+          identity,
           payload: {
             // ONE INSTANT FOR THE WHOLE MODEL, stamped once here where a clock
             // read is legitimate, and passed down as data. Nothing in the mapper
@@ -318,7 +377,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
       } catch {
         // The context read failed, or something threw before the enrichments
         // were reached. Either way Home has no competition to draw.
-        if (active) setState({ status: 'failed' })
+        if (active) setState({ status: 'failed', identity })
       }
     })()
 
@@ -330,26 +389,48 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     // after. It is merged into the source below instead.
   }, [authLoading, userId, competitionSlug, seasonSlug, gameCompetitionId, nonce])
 
+  /**
+   * THE PUBLIC STATE IS DERIVED FROM THE CURRENT INPUTS, IN THIS ORDER, and the
+   * order is the safety property. Auth, then the user, then the competition are
+   * answered from what is true THIS RENDER — never from what acquisition last
+   * stored — so signing out is `signedOut` on the very next render, before any
+   * effect has run and while the previous payload is still in state.
+   *
+   * Only after those does stored state get a say, and only if its identity is
+   * the one being asked about now. A mismatch is `loading`: the reads for this
+   * identity have not answered yet, which is exactly what is true. The one path
+   * to `ready` therefore composes a payload with the identity that produced it,
+   * and `old payload + new user` has no expression here at all.
+   */
   return useMemo<VNextHomeSourceState>(() => {
-    switch (state.status) {
-      case 'loading':
-        return { status: 'loading' }
-      case 'signedOut':
-        return { status: 'signedOut' }
-      case 'noCompetition':
-        return { status: 'noCompetition' }
-      case 'failed':
-        return { status: 'failed', retry }
-      default:
-        return {
-          status: 'ready',
-          // The user is attached here, so a display name arriving late updates
-          // the greeting without re-reading a single fixture.
-          source: { ...state.payload, user: { id: userId ?? '', displayName } },
-          unavailable: state.unavailable,
-          leaguesNotShown: state.leaguesNotShown,
-          retry,
-        }
+    if (authLoading) return { status: 'loading' }
+    if (!userId) return { status: 'signedOut' }
+    if (!competitionSlug || !seasonSlug) return { status: 'noCompetition' }
+
+    const identity = requestIdentity({ userId, competitionSlug, seasonSlug, gameCompetitionId })
+    if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
+    if (state.status === 'failed') return { status: 'failed', retry }
+
+    return {
+      status: 'ready',
+      // The user is attached here, so a display name arriving late updates the
+      // greeting without re-reading a single fixture. `userId` is the same one
+      // the payload's identity was built from — checked immediately above — so
+      // this is the account those answers are about, not merely the account
+      // signed in now.
+      source: { ...state.payload, user: { id: userId, displayName } },
+      unavailable: state.unavailable,
+      leaguesNotShown: state.leaguesNotShown,
+      retry,
     }
-  }, [state, userId, displayName, retry])
+  }, [
+    state,
+    authLoading,
+    userId,
+    displayName,
+    competitionSlug,
+    seasonSlug,
+    gameCompetitionId,
+    retry,
+  ])
 }
