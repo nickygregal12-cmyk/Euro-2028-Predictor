@@ -126,6 +126,10 @@ describe('the vNext workshop', () => {
     const visual = presentationFiles.filter(
       (file) =>
         file.includes('/src/vnext/home/') ||
+        // Stage 7's page joins the list on the same terms as Home's: it takes a
+        // `PredictorModel` and nothing else, and the adapter beside it is the only
+        // thing that knows the application exists.
+        file.includes('/src/vnext/predictor/') ||
         file.includes('/src/vnext/app/') ||
         file.includes('/src/vnext/components/'),
     )
@@ -149,6 +153,45 @@ describe('the vNext workshop', () => {
       [...new Set(offenders)],
       'a vNext visual component can reach Supabase — Home components take a ' +
         'HomeModel and nothing else',
+    ).toEqual([])
+  })
+
+  it('keeps the Match Predictor renderable without its adapter', () => {
+    // THE SAME PROPERTY AS HOME'S BELOW, AND FOR THE SAME REASON. If
+    // `VNextMatchPredictor` could reach `integration/`, every deterministic story
+    // and every render test would drag the season services — and their Supabase
+    // client — into a jsdom run, and the surface would have quietly become
+    // network-dependent. The dependency runs the other way: the adapter imports
+    // the page, never the reverse.
+    const predictor = reachableFrom(
+      resolve(repositoryRoot, 'src/vnext/predictor/VNextMatchPredictor.tsx'),
+    )
+    const leaked = [...predictor].filter((file) => file.includes(INTEGRATION))
+
+    expect(
+      leaked.map(fromRoot),
+      'VNextMatchPredictor reached the integration layer — the dependency runs ' +
+        'the other way: the adapter imports the page, never the reverse',
+    ).toEqual([])
+  })
+
+  it('keeps the Storybook rehearsal out of the product', () => {
+    // `fixtures/predictor/rehearse.ts` exists so a story can actually be typed
+    // into. It is a harness, and a harness that a real surface imported would be a
+    // second source of truth about what a command does — the thing the file's own
+    // header says it is not.
+    const consumers = [
+      ...filesUnder(resolve(repositoryRoot, 'src/vnext/predictor')),
+      ...filesUnder(resolve(repositoryRoot, 'src/vnext/integration')),
+    ]
+    const offenders = consumers.filter((file) =>
+      [...reachableFrom(file)].some((reached) => reached.includes('/fixtures/predictor/rehearse')),
+    )
+
+    expect(
+      offenders.map(fromRoot),
+      'a predictor surface or adapter reached the Storybook rehearsal — it is a ' +
+        'review harness and must never decide what a command does',
     ).toEqual([])
   })
 

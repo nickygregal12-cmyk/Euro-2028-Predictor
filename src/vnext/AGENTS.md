@@ -20,10 +20,11 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `app/` | **the application shell** — `VNextShell`, `VNextPageHeader` |
 | `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
-| `models/` | the typed presentation model (`football.ts`, `home.ts`) |
-| `fixtures/` | one deterministic fictional matchday and the Home model built on it |
+| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`) |
+| `fixtures/` | one deterministic fictional matchday, the Home model, and one designed matchweek |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
-| `integration/` | **the only application-facing code** — `home/` holds the Home adapter |
+| `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
+| `integration/` | **the only application-facing code** — one adapter per connected page |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
 
@@ -64,6 +65,15 @@ composition, its own container thresholds, its own zones, and its single `<h1>`.
   entrance belongs to the page — two entrances competing is a page arriving
   twice — and route transitions are not built yet.
 
+- **`VNextPageHeader.trailing` SURVIVED THE SECOND PAGE UNCHANGED.** Stage 5 left
+  the slot unsettled and said the second real page would decide it. Home puts a
+  standing block there; the Match Predictor puts a deadline chip. The two have
+  nothing in common but their position, which is exactly what the slot's own
+  comment predicted, and neither needed a prop, a variant or a shell change. It
+  also earned the predictor something real: the masthead is already sticky, so a
+  page can keep one status on screen without spending viewport on a second sticky
+  band. **Treat the slot as settled and keep it a slot.**
+
 `vNext/Shell` stories are neutral placeholders that prove the shell hosts a page
 that is not Home. **They are not designs and not authorities.** Where they and
 `vNext/Home` disagree about type, colour, density or motion, Home is right.
@@ -78,15 +88,16 @@ Do not load database, provider, AI Lab or deployment history for ordinary compon
 
 ## The integration contract
 
-`integration/home/` is the ONE place vNext knows the application exists. Its
-shape is the split, and the split is the point:
+`integration/` is the ONE place vNext knows the application exists. There is one
+adapter per connected page — `home/` and `predictor/` — and each has the same four
+parts, because the split is the point:
 
 | File | Job |
 | --- | --- |
-| `homeSource.ts` | what the application hands over — existing read models, nothing reshaped |
-| `useVNextHomeSource.ts` | acquisition only, through existing services; no mapping |
-| `buildHomeModel.ts` | **pure** `HomeSource → HomeModel`; no network, storage, clock or React |
-| `VNextHomeScreen.tsx` | loading/signed-out/no-competition/failed, then `VNextHome` |
+| `*Source.ts` | what the application hands over — existing read models, nothing reshaped |
+| `useVNext*Source.ts` / `useVNextPredictorContext.ts` | acquisition only, through existing services; no mapping |
+| `build*Model.ts` | **pure** `Source → Model`; no network, storage, clock or React |
+| `VNext*Screen.tsx` | loading/signed-out/no-competition/failed, then the surface |
 
 - **`VNextHome({ model })` stays usable without any of it.** Storybook, the
   deterministic visual matrix and every render test hand Home a model directly.
@@ -109,8 +120,27 @@ shape is the split, and the split is the point:
   consensus are all absent from current reads. `fixtures/home/scenarios.ts`'s
   `reduced` scenario is the deterministic visual authority for that state; the
   four approved scenarios were not edited to make room for it.
-- **Storybook stays deterministic.** Real-data review happens at `/dev/vnext-home`,
-  behind `import.meta.env.DEV`. A story must never change because somebody scored.
+- **Storybook stays deterministic.** Real-data review happens at `/dev/vnext-home`
+  and `/dev/vnext-match-predictor`, both behind `import.meta.env.DEV`. A story must
+  never change because somebody scored.
+- **A COMMAND GOES OUT THROUGH THE APPLICATION'S OWN HOOK.** The predictor writes
+  through `useSeasonMatchPredictor`, which already owns optimistic saving, save
+  ordering, conflict classification and reload. vNext supplies an `actions` object
+  over it and nothing more; a second save path here would be a weaker duplicate of
+  a hook that has already been got right. `PredictorActions`' five members are the
+  three `MatchPredictorCommand` cases plus that hook's two recovery controls, and
+  `clearPrediction` is `setPrediction(id, null)` because that is how the RPC
+  clears.
+- **A PAYLOAD BELONGS TO THE IDENTITY THAT ASKED FOR IT** — Stage 6's rule, kept by
+  whichever means the code allows. The predictor's own reads store the request
+  identity with the payload; the card cannot, because the shared hook holds it, so
+  the component that calls that hook is given a `key` of the identity and remounts
+  instead. Either way, `old payload + new user` has no expression.
+- **`partial` is the one presentation-owned prediction state,** and it exists
+  because `save_season_prediction` refuses one score without the other. It lives in
+  `predictor/ScoreEntry.tsx`, reaches no server, survives no reload, and
+  `buildPredictorModel` cannot produce it. Do not grow it into a draft store —
+  there is already a real one, `INNOV-020`'s, behind the same hook.
 
 ## vNext rules
 
@@ -132,7 +162,23 @@ shape is the split, and the split is the point:
 - Home is ONE surface with three emphases, not three pages. The stable frame — masthead, score bar, navigation, type, spacing, surfaces, team colour, motion — does not change between them; only the dominant zone and the order beneath it do.
 - The application shell may not learn anything about a page. Nothing under `app/` may import from `home/` or `fixtures/`, and a prop named after Home's content — a hero, a ticker, a rank — is the shell becoming Home under a general name. `tests/vnext/shell.test.tsx` holds the import direction.
 - Presentation-selection logic may read the model's own partitions and flags. It may never re-derive them: read `liveMatches`, not `kickoff` against `now`; read `urgency`, not a deadline against a clock.
+- **A LIVE COUNTDOWN IS PRESENTATION; A PERMISSION FROM ONE IS NOT.** A model's
+  `generatedAt` is the instant the application answered at, and it moves only when
+  the model is rebuilt — so a page that draws a countdown straight against it goes
+  stale the moment the player stops interacting. The one sanctioned mechanism is
+  `predictor/useDeadlineClock.ts`: a DISPLAY instant anchored to `generatedAt` and
+  advanced by observed elapsed time, produced once per page and passed down, so
+  every deadline and every kickoff label on that page is measured against the same
+  moment. It may do exactly two things — make a countdown current, and decide it is
+  time to call the application's own `reload` (once per distinct `lock.at`, on a
+  card the application already says is `open`). It may not produce `locked`,
+  `closed`, non-editability, a Joker refusal, a settlement or a reveal, and
+  `urgency` stays the mapper's because it is a decision rather than a format. Do
+  not put an interval in a visual component, and do not rebuild a model on a timer
+  to fake a fresh answer.
 - A dense zone sizes itself against its own column — and where a name can still be cut, let it wrap rather than adding another threshold. `e2e/vnext-home.spec.ts` measures clipped text at every width and emphasis.
+- **A ROW MEASURES ITSELF, not the column that placed it.** Stage 7 is where this stopped being a slogan: at 1920 the predictor's working column takes two fixtures across, so a row has ~730px of a ~1480px column, and a row that had queried the column would compose as though it had all of it. A container query is answered by an ANCESTOR, so the row declares `container-name` and its own body asks the question. `e2e/vnext-predictor.spec.ts` measures the outcome per row.
+- **Do not truncate a club name.** Home stopped at two lines then ellipsised; the browser suite caught that clipping "Strathallan Caledonian Thistle" in a ~150px scoreboard column. The predictor has no line clamp on a club name at all — the row grows, `overflow-wrap: anywhere` stops a long word widening it, and with nothing hiding overflow the defect cannot reopen.
 
 ## Context budget
 
