@@ -49,3 +49,25 @@ def test_an_upsert_conflict_clause_is_not_a_second_target(tmp_path,
     monkeypatch.setattr(guard, "ROOT", tmp_path)
 
     assert guard.violations() == []
+
+
+def test_a_write_inside_a_subpackage_is_caught(tmp_path, monkeypatch) -> None:
+    """The guard reads subdirectories, not just the top level.
+
+    It globbed `*.py` until `ai/analytics/` existed, which covered the whole
+    package only for as long as the package was flat. A guard that silently
+    stops reaching new code is worse than no guard, because the passing message
+    keeps arriving.
+    """
+    nested = tmp_path / "analytics" / "deeper"
+    nested.mkdir(parents=True)
+    (nested / "planted.py").write_text(
+        'SQL = "delete from public.predictions where id = 1"\n')
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+
+    found = guard.violations()
+
+    assert len(found) == 1
+    assert "public.predictions" in found[0]
+    # Named by its path within the package, so the offending file is findable.
+    assert "analytics/deeper/planted.py" in found[0].replace("\\", "/")

@@ -90,6 +90,19 @@ export type SeasonMatchPredictorView = {
   retrySave: (key: string) => void
   reload: () => void
   /**
+   * ASK THE AUTHORITY AGAIN BECAUSE A DEADLINE PASSED — and only when doing so
+   * cannot cost the player a keystroke.
+   *
+   * THE COMPANION OF `reload`, NOT AN ALIAS FOR IT. `reload` is a RECOVERY
+   * command: the player chose it, so abandoning whatever this device was still
+   * trying to write is the correct reading of the click. This one is requested
+   * by a timer nobody pressed, so it may not abandon anything. It waits for the
+   * existing save authority to reach a terminal answer for every key and
+   * re-reads the card only then. See the implementation for what each terminal
+   * answer does with it.
+   */
+  refreshAfterDeadline: () => void
+  /**
    * `INNOV-020`. Null where offline drafting is not configured, so a surface
    * asks whether the feature exists rather than rendering an empty
    * synchronisation dashboard on every prediction screen.
@@ -121,6 +134,25 @@ export function useSeasonMatchPredictor(
   const controllerRef = useRef<SaveController | null>(null)
   const pageRef = useRef<MatchPredictorPage | null>(null)
   pageRef.current = page
+
+  /**
+   * THE AUTOMATIC BOUNDARY REFRESH, WAITING ITS TURN.
+   *
+   * `armed` means a deadline was crossed and this card owes itself a fresh
+   * authoritative read. `waiting` means one barrier is already outstanding, so
+   * a second request cannot register a second waiter for the same question.
+   *
+   * A ref rather than state on purpose: nothing renders from it, and making it
+   * state would re-render the card on every save transition to say nothing.
+   */
+  const boundaryRefresh = useRef({ armed: false, waiting: false })
+
+  /**
+   * Re-evaluated whenever a save changes state, which is the only thing that can
+   * make an armed refresh become safe. The controller is built once, below, and
+   * cannot close over a callback defined after it.
+   */
+  const attemptBoundaryRefreshRef = useRef<() => void>(() => {})
 
   // ---------------------------------------------------------------------
   // INNOV-020 — the drafts this device is holding.
@@ -256,6 +288,11 @@ export function useSeasonMatchPredictor(
           const remaining = removeDraft(draftsRef.current, key)
           if (remaining.length !== draftsRef.current.length) commitDraftsRef.current(remaining)
         }
+        // A key reaching a new state is the ONLY thing that can turn an unsafe
+        // moment into a safe one, so it is the only thing that re-examines a
+        // waiting boundary refresh. Nothing polls; with none armed this returns
+        // on its first line.
+        attemptBoundaryRefreshRef.current()
       },
       isConflict: isVersionConflict,
     })
@@ -371,11 +408,92 @@ export function useSeasonMatchPredictor(
   }, [])
 
   const reload = useCallback(() => {
+    // A DELIBERATE RECOVERY, AND DELIBERATELY DESTRUCTIVE. `reset` drops every
+    // key's state, its retry timers and any coalesced pending write. That is
+    // right for a command the player chose — they are asking to be shown what
+    // the server holds — and it is exactly why a timer may not call this.
     controllerRef.current?.reset()
     setSaveStatus({})
     setRefusal(null)
+    // The player has just re-asked the authority themselves, which is the same
+    // question an armed boundary refresh was waiting to ask. It is answered.
+    boundaryRefresh.current.armed = false
     setReloadToken((token) => token + 1)
   }, [])
+
+  /**
+   * ---------------------------------------------------------------------
+   * THE SAVE-SAFE BOUNDARY REFRESH.
+   *
+   * WHAT WENT WRONG WITHOUT IT. `useDeadlineClock` was wired straight to
+   * `reload`, so a deadline arriving mid-edit ran `controller.reset()` — which
+   * clears per-key state, cancels scheduled retries and throws away the
+   * COALESCED PENDING write the coordinator holds behind an in-flight one. The
+   * sequence that costs a player their prediction is short: they enter 1–0, the
+   * save goes on the wire, they change it to 2–0, 2–0 becomes pending, the
+   * deadline arrives, the timer resets the controller, 1–0 completes, and 2–0
+   * was never sent. Nobody clicked anything.
+   *
+   * THE RULE. Crossing the deadline may request an authoritative refresh only
+   * when doing so cannot discard, cancel or overwrite unsaved player intent.
+   * Browser time may still ask; it may still never answer; and it may not
+   * behave like a manual recovery while writes are unsettled.
+   *
+   * THE MECHANISM IS THE SAVE AUTHORITY'S OWN. `SaveController.waitForSettled`
+   * already exists to answer "is every key terminal, and how did they end" —
+   * it is what the tournament submit barrier is built on. Reusing it means
+   * there is no second opinion about save state anywhere in this file: no
+   * inspection of `inFlight`, no copy of the coordinator, no timeout, no poll.
+   *
+   * WHAT EACH TERMINAL ANSWER DOES WITH THE REQUEST:
+   *
+   *   - EVERYTHING SETTLED CLEANLY — the refresh happens, once. With nothing
+   *     saving at all the barrier is already settled and it happens immediately.
+   *   - IN FLIGHT, OR A NEWER VALUE COALESCED BEHIND ONE, OR WAITING ON AN
+   *     AUTOMATIC RETRY — the barrier has not resolved, so nothing happens yet.
+   *     The coordinator sends the newest pending value when the flight settles,
+   *     exactly as it would have with no deadline at all, and the server —
+   *     never this file — decides whether a last-second write was in time.
+   *   - TERMINAL ORDINARY ERROR, OR A VERSION CONFLICT — the refresh does NOT
+   *     happen and the request STAYS ARMED. Re-reading here would replace the
+   *     player's optimistic value and its error with the server's older row and
+   *     erase the recovery path (`retrySave`, or the conflict's explicit
+   *     reload) while they are looking at it. The request is re-examined when a
+   *     save next changes state, so a manual retry that finally succeeds
+   *     releases it; an explicit `reload` disarms it, having asked the same
+   *     question already.
+   *   - THE BARRIER WAS CANCELLED — a reset or dispose overtook it. The
+   *     question is moot, so the request is dropped rather than re-armed.
+   * ---------------------------------------------------------------------
+   */
+  const attemptBoundaryRefresh = useCallback(() => {
+    const request = boundaryRefresh.current
+    const controller = controllerRef.current
+    if (!request.armed || request.waiting || controller === null) return
+
+    request.waiting = true
+    void controller.waitForSettled().then((result) => {
+      request.waiting = false
+      // Unmounted between the request and the answer: `controllerRef` is
+      // nulled by this hook's own cleanup, so there is no card left to refresh.
+      if (controllerRef.current === null) return
+      if (result.cancelled) {
+        request.armed = false
+        return
+      }
+      // `ok` is false when a key ended in `error` or `conflict`. Both are the
+      // player's to resolve, and neither is a reason to re-read over them.
+      if (!result.ok) return
+      request.armed = false
+      setReloadToken((token) => token + 1)
+    })
+  }, [])
+  attemptBoundaryRefreshRef.current = attemptBoundaryRefresh
+
+  const refreshAfterDeadline = useCallback(() => {
+    boundaryRefresh.current.armed = true
+    attemptBoundaryRefresh()
+  }, [attemptBoundaryRefresh])
 
   // ---------------------------------------------------------------------
   // INNOV-020 — reconciliation.
@@ -418,6 +536,9 @@ export function useSeasonMatchPredictor(
         if (result.accepted > 0) {
           controllerRef.current?.reset()
           setSaveStatus({})
+          // Same reasoning as `reload`: the card is being re-read anyway, so an
+          // armed boundary refresh has nothing left to ask for.
+          boundaryRefresh.current.armed = false
           setReloadToken((token) => token + 1)
         }
       })
@@ -486,6 +607,7 @@ export function useSeasonMatchPredictor(
     confirmCard,
     retrySave,
     reload,
+    refreshAfterDeadline,
     drafts: draftsView,
     syncDrafts,
     retryDraft: retryOneDraft,

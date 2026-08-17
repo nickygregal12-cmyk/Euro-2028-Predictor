@@ -23,6 +23,29 @@ export {
   workshopMatchday,
 } from './matches/matchday'
 export { workshopHomeModel } from './home/homeModel'
+export { predictorClubs } from './predictor/clubs'
+export {
+  MATCHWEEK_LOCK_AT,
+  PREDICTOR_NOW,
+  PREDICTOR_NOW_SETTLED,
+  PREDICTOR_NOW_URGENT,
+  matchweekFootball,
+} from './predictor/matchweek'
+export {
+  predictorScenarios,
+  closingPredictorModel,
+  completePredictorModel,
+  conflictPredictorModel,
+  emptyPredictorModel,
+  lockedPredictorModel,
+  openPredictorModel,
+  reducedPredictorModel,
+  settledPredictorModel,
+  unavailablePredictorModel,
+  untouchedPredictorModel,
+} from './predictor/scenarios'
+export type { PredictorScenarioName } from './predictor/scenarios'
+export { rehearsePredictor } from './predictor/rehearse'
 export {
   COMPETITION_NOW,
   DECISION_NOW,

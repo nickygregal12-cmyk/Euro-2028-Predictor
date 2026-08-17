@@ -1,4 +1,5 @@
 import { db } from './client'
+import { parseAiLabRawSnapshot } from './aiLabBoundary'
 import { mapAiLabSnapshot, type AiLabSnapshot } from './aiLabModel'
 
 function leagueArgs(league: string | null): { p_league?: string } {
@@ -33,7 +34,7 @@ export async function fetchAiLabSnapshot(league: string | null): Promise<AiLabSn
   const failed = responses.find((response) => response.error)
   if (failed?.error) throw failed.error
 
-  return mapAiLabSnapshot({
+  const raw = parseAiLabRawSnapshot({
     dashboard: dashboard.data,
     upcoming: upcoming.data,
     recent: recent.data,
@@ -43,6 +44,8 @@ export async function fetchAiLabSnapshot(league: string | null): Promise<AiLabSn
     markets: markets.data,
     odds: odds.data,
   })
+
+  return mapAiLabSnapshot(raw)
 }
 
 export async function promoteAiModel(modelId: string, reason: string): Promise<void> {

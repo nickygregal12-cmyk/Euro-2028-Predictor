@@ -49,7 +49,12 @@ jobs:
           cache-dependency-path: ai/requirements.txt
       - name: Install Python dependencies
         working-directory: ai
-        run: pip install -r requirements.txt pytest
+        # requirements-analytics.txt carries the offline DuckDB layer. It is a
+        # separate file so the training pipeline does not depend on it, and it
+        # is installed here so `ai/analytics` is genuinely exercised rather
+        # than skipped: its suite calls importorskip, which would turn a
+        # missing dependency into a silent pass.
+        run: pip install -r requirements.txt -r requirements-analytics.txt pytest
       - name: Compile and run unit plus database lifecycle tests
         working-directory: ai
         run: |

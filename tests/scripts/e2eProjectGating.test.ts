@@ -138,7 +138,13 @@ describe('browser E2E project gating', () => {
     // all: vNext is deliberately unreachable from `src/main.tsx`. A spec that
     // drifted into the weekly config would open the wrong product and pass by
     // finding nothing.
-    expect(vnextMatch).toEqual(['vnext-home.spec.ts', 'vnext-shell.spec.ts'])
+    expect(vnextMatch).toEqual([
+      'vnext-home.spec.ts',
+      'vnext-shell.spec.ts',
+      // Stage 7's Match Predictor, on the same terms: Storybook is its review
+      // surface, and the weekly config must ignore it for the same reason.
+      'vnext-predictor.spec.ts',
+    ])
     expect(vnextProjects).toEqual(['vnext-workshop-chromium'])
     expect(vnextConfig).toContain('npm run storybook')
     for (const spec of vnextMatch) {

@@ -67,3 +67,8 @@ provider-bakeoff/
 # Graphify knowledge-graph output is a disposable local navigation cache, not
 # repository authority or CI evidence. See docs/ops/graphify-navigation.md.
 graphify-out/
+
+# On-demand engineering-tool reports; regenerated rather than versioned.
+.artifacts/
+.stryker-tmp/
+reports/mutation/
