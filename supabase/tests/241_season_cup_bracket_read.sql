@@ -29,14 +29,6 @@ select 'C193 Bracket Probe', 2069, t.competition_id, 'cup-bracket', 'league_seas
 select set_config('test.cb_season',
   (select id::text from public.tournaments where season_key = 'cup-bracket'), true);
 
-insert into public.bonus_competitions (
-  id, tournament_id, game_key, published, availability_status,
-  draw_required, visibility_kind, registration_opens_at, draw_completed_at
-) values (
-  md5('cb-cup')::uuid, current_setting('test.cb_season')::uuid,
-  'predictor_cup', true, 'active', true, 'private',
-  now() - interval '60 days', now() - interval '55 days');
-
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
 select md5('cb-user-' || n)::uuid, format('cb-%s@example.test', n),
@@ -47,6 +39,22 @@ set local session_replication_role = origin;
 insert into public.profiles (id, display_name, welcomed_at)
 select md5('cb-user-' || n)::uuid, 'Bracket ' || n, now()
 from generate_series(1, 5) as n;
+
+-- A PRIVATE Championship, because that is the shape `CUP-003` matters most for
+-- and the one a stranger must not be able to probe. `bonus_competitions_private_identity`
+-- (contract 152) requires a private competition to carry a name, an owner and
+-- an invite code, and to carry NONE of them when it is public — so all three
+-- are supplied here rather than the competition being quietly made public to
+-- get the insert through.
+insert into public.bonus_competitions (
+  id, tournament_id, game_key, name, owner_id, invite_code, published,
+  availability_status, draw_required, visibility_kind,
+  registration_opens_at, draw_completed_at
+) values (
+  md5('cb-cup')::uuid, current_setting('test.cb_season')::uuid,
+  'predictor_cup', 'Bracket Probe Championship', md5('cb-user-1')::uuid,
+  'CBBRACKETCODE1', true, 'active', true, 'private',
+  now() - interval '60 days', now() - interval '55 days');
 
 -- Four entrants qualify; user 5 is a stranger and enters nothing.
 insert into public.bonus_competition_entrants (competition_id, user_id)
