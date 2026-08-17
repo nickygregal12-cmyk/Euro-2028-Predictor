@@ -1,0 +1,29 @@
+/* The page identity row, extracted verbatim from Home's `.mastheadTop`.
+ *
+ * The identity block shrinks and the trailing slot does not, which is what
+ * stops a long competition name pushing a page's status off the row. */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--vnext-space-4);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.title {
+  color: var(--vnext-text);
+}
+
+/* Position only. Whatever a page puts here brings its own composition — the
+ * shell has no opinion about what a status or an action looks like. */
+.trailing {
+  flex: none;
+  min-width: 0;
+}

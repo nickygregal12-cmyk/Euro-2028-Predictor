@@ -1,15 +1,15 @@
-import { useId } from 'react'
 import { motion } from 'framer-motion'
 import type { HomeModel } from '../models/home'
+import { VNextShell } from '../app/VNextShell'
+import { defaultNavItems } from '../components/navigation/VNextNav'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
-import { competitionColourStyle } from '../foundations/teamColour'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
 import { CompetitionFocus } from './CompetitionFocus'
 import { DecisionHero } from './DecisionHero'
 import { FeaturedMatch } from './FeaturedMatch'
 import { FixtureTicker } from './FixtureTicker'
-import { HomeMasthead, HomeNavBar } from './HomeMasthead'
+import { HomeMasthead } from './HomeMasthead'
 import { SocialContext } from './SocialContext'
 import {
   pickDecisionMatch,
@@ -58,6 +58,14 @@ const GROUNDS_TITLE = {
  *   and one genuinely cinematic treatment reserved for the next decision. Its
  *   empty half-screen heroes and its poster-per-fixture did not come with it.
  *
+ * WHAT HOME STOPPED OWNING IN STAGE 5. The canvas, the atmospheric wash, the
+ * page bounds, the sticky band the masthead sits in, both navigations, the
+ * `<main>` landmark and the mobile bottom spacing are the APPLICATION's, and
+ * they are `app/VNextShell` now. Home kept what was never general: the score
+ * bar, the outstanding-action banner, the emphasis system and the three-zone
+ * grid it drives. The extraction moved no pixel — `e2e/vnext-home.spec.ts`
+ * measures the composition at every width and emphasis either way.
+ *
  * THE EMPHASIS IS PRESENTATION ONLY. `selectHomeEmphasis` reads state the model
  * already decided — which matches are live, how urgent the outstanding action
  * is — and answers one question: what should be biggest. It is not consulted
@@ -65,7 +73,6 @@ const GROUNDS_TITLE = {
  * under way, and it must never become so.
  */
 export function VNextHome({ model }: VNextHomeProps) {
-  const headingId = useId()
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
@@ -90,81 +97,73 @@ export function VNextHome({ model }: VNextHomeProps) {
   const openPredictions = progress ? progress.total - progress.completed : 0
 
   return (
-    <div
-      className={styles.shell}
-      data-vnext-emphasis={emphasis}
-      style={competitionColourStyle(model.competition.colours)}
+    <VNextShell
+      destination="home"
+      header={<HomeMasthead model={model} />}
+      navItems={withBadge(openPredictions)}
+      competitionColours={model.competition.colours}
     >
-      <motion.header
-        className={styles.masthead}
-        data-vnext-zone="masthead"
-        variants={rise}
+      <FixtureTicker matches={allMatches} now={now} />
+
+      {/* In decision emphasis the hero IS the outstanding action, so the
+          banner would say the same thing twice in a row. Everywhere else it
+          sits above the football, because a deadline you can still act on
+          outranks a match you cannot. */}
+      {emphasis === 'decision' ? null : (
+        <ActionBanner action={model.primaryAction} now={now} />
+      )}
+
+      {/* Keyed on the emphasis so a change of state re-runs the entrance
+          rather than swapping content in place. Under reduced motion the
+          resolved variants make that a fade with no travel. */}
+      <motion.div
+        key={emphasis}
+        className={styles.body}
+        data-vnext-emphasis={emphasis}
+        variants={stagger}
         initial="hidden"
         animate="visible"
       >
-        <HomeMasthead
-          model={model}
-          headingId={headingId}
-          openPredictions={openPredictions}
-        />
-      </motion.header>
+        <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
+          {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
+          {emphasis === 'decision' && decision ? (
+            <DecisionHero match={decision} now={now} />
+          ) : null}
+          {emphasis === 'competition' ? <CompetitionFocus model={model} /> : null}
+        </motion.div>
 
-      <main className={styles.main} aria-labelledby={headingId}>
-        <FixtureTicker matches={allMatches} now={now} />
-
-        {/* In decision emphasis the hero IS the outstanding action, so the
-            banner would say the same thing twice in a row. Everywhere else it
-            sits above the football, because a deadline you can still act on
-            outranks a match you cannot. */}
-        {emphasis === 'decision' ? null : (
-          <ActionBanner action={model.primaryAction} now={now} />
-        )}
-
-        {/* Keyed on the emphasis so a change of state re-runs the entrance
-            rather than swapping content in place. Under reduced motion the
-            resolved variants make that a fade with no travel. */}
         <motion.div
-          key={emphasis}
-          className={styles.body}
-          variants={stagger}
-          initial="hidden"
-          animate="visible"
+          className={styles.groundsZone}
+          data-vnext-zone="grounds"
+          variants={rise}
         >
-          <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
-            {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
-            {emphasis === 'decision' && decision ? (
-              <DecisionHero match={decision} now={now} />
-            ) : null}
-            {emphasis === 'competition' ? <CompetitionFocus model={model} /> : null}
-          </motion.div>
+          <AroundTheGrounds
+            matches={supporting}
+            now={now}
+            title={GROUNDS_TITLE[emphasis]}
+          />
+        </motion.div>
 
+        {/* Competition emphasis has the league race in the dominant zone
+            already; a second copy underneath would be the same table twice. */}
+        {emphasis === 'competition' ? null : (
           <motion.div
-            className={styles.groundsZone}
-            data-vnext-zone="grounds"
+            className={styles.socialZone}
+            data-vnext-zone="social"
             variants={rise}
           >
-            <AroundTheGrounds
-              matches={supporting}
-              now={now}
-              title={GROUNDS_TITLE[emphasis]}
-            />
+            <SocialContext model={model} />
           </motion.div>
+        )}
+      </motion.div>
+    </VNextShell>
+  )
+}
 
-          {/* Competition emphasis has the league race in the dominant zone
-              already; a second copy underneath would be the same table twice. */}
-          {emphasis === 'competition' ? null : (
-            <motion.div
-              className={styles.socialZone}
-              data-vnext-zone="social"
-              variants={rise}
-            >
-              <SocialContext model={model} />
-            </motion.div>
-          )}
-        </motion.div>
-      </main>
-
-      <HomeNavBar openPredictions={openPredictions} />
-    </div>
+/** Open predictions ride on Fixtures, which is where they are made. */
+function withBadge(openPredictions: number) {
+  if (openPredictions <= 0) return defaultNavItems
+  return defaultNavItems.map((item) =>
+    item.id === 'fixtures' ? { ...item, badge: openPredictions } : item,
   )
 }

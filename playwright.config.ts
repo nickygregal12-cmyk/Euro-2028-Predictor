@@ -21,6 +21,7 @@ export default defineConfig({
     'visual-gallery.spec.ts',
     // Storybook, not the application: vNext has no application route yet.
     'vnext-home.spec.ts',
+    'vnext-shell.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',

@@ -1,0 +1,233 @@
+/* THE vNEXT APPLICATION SHELL.
+ *
+ * Extracted from Home's `home.module.css` rather than rewritten: every value
+ * below is the value the Gold Standard Home already shipped, so migrating Home
+ * onto the shell moves no pixel.
+ *
+ * THE THREE SHELL BANDS. They are the widths at which the APPLICATION changes,
+ * which is a smaller set than the four compositions a page may want:
+ *
+ *   compact  (< 760px)   page inset 16px, navigation is a bottom bar
+ *   regular  (>= 760px)  page inset 24px, the content region breathes
+ *   expanded (>= 1120px) page inset 32px, the masthead takes the navigation and
+ *                        the bottom bar goes
+ *
+ * A page's own thresholds are its own business. Home splits its football into
+ * columns at 760 and gives the competitive module a column at 1560; neither
+ * number appears here, because neither is an application decision.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY and no length is viewport-relative. That is
+ * the workshop's load-bearing rule: a 430px frame on a 1920px monitor has to
+ * compose as a phone or the review is a lie.
+ *
+ * WHY THE INSET IS A CUSTOM PROPERTY AND NOT PADDING ON `.main`. Padding on the
+ * content region would make every page inset, including a standings table that
+ * wants to reach the page bounds, and it would shrink the container the page
+ * measures itself against so a page's own thresholds would stop meaning the
+ * width they say. The shell states the inset and the page decides where to
+ * spend it.
+ *
+ * WHY THE SHELL'S OWN `gap` HAS NO BAND OVERRIDES. It cannot have any: a
+ * container query is evaluated against an ANCESTOR container, so `.shell` can
+ * never match a query against the container `.shell` itself declares. Home
+ * carried exactly such a rule and it was inert at every width — measured, not
+ * assumed — so nothing was lost by not carrying it across. Anything that must
+ * change per band is set on a child.
+ */
+
+/* NOT `position: relative`, however tempting. Making the shell a positioned
+ * ancestor changes the containing-block chain the score bar's horizontal
+ * scroller sits in, and Chromium then propagates that scroller's overflow all
+ * the way out to the frame: Home gained 371px of sideways scroll at 375px on
+ * the first build of this file, from one declaration added for a skip link that
+ * did not need it. Anything here that wants an absolute box positions itself
+ * against the masthead, which is already sticky and therefore already
+ * positioned. */
+.shell {
+  container-type: inline-size;
+  container-name: vnext-shell;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-height: 100%;
+  padding-block-end: var(--vnext-space-4);
+
+  /* THE ATMOSPHERE. Two soft competition-colour washes anchored to the top of
+     the surface, on the shell's own background rather than on an element, so
+     there is no extra node and no stacking context to reason about. It carries
+     no information, which is why it is this quiet and why it is the only
+     decorative layer the shell paints. `background-size` is a length rather
+     than a percentage because a percentage of a very tall page is a very tall
+     wash. Both fall back to `transparent`, so a page that supplies no
+     competition gets a plain canvas rather than a grey smear. */
+  background-image:
+    radial-gradient(
+      88% 100% at 8% 0%,
+      color-mix(
+        in srgb,
+        var(--vnext-competition-primary, transparent) 60%,
+        transparent
+      )
+        0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      72% 100% at 96% 0%,
+      color-mix(
+        in srgb,
+        var(--vnext-competition-accent, transparent) 16%,
+        transparent
+      )
+        0%,
+      transparent 74%
+    );
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 460px, 100% 360px;
+  background-position: top left, top right;
+}
+
+/* THE PAGE BOUNDS, declared on the shell's children rather than on the shell.
+ * `.main` passes it down to the page by inheritance, which is how a page zone
+ * applies the same inset the masthead does without knowing the number. */
+.masthead,
+.main,
+.navBar {
+  --vnext-page-inset: var(--vnext-space-4);
+}
+
+/* ---- skip link ----------------------------------------------------------
+ * Hidden by clipping rather than by `display: none`, so it stays focusable, and
+ * absolutely positioned at 1px so it costs no layout and shifts nothing when it
+ * appears. It lives INSIDE the masthead: the masthead is sticky, so the link is
+ * still on screen when the user is halfway down the page, and it is already a
+ * positioned element so nothing else has to become one. */
+
+.skipLink {
+  position: absolute;
+  inset-block-start: var(--vnext-space-2);
+  inset-inline-start: var(--vnext-page-inset);
+  z-index: var(--vnext-layer-raised);
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skipLink:focus-visible {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  height: auto;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  overflow: visible;
+  clip-path: none;
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  text-decoration: none;
+}
+
+/* ---- masthead ----------------------------------------------------------- */
+
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: var(--vnext-layer-sticky);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding-block: var(--vnext-space-4) var(--vnext-space-3);
+  padding-inline: var(--vnext-page-inset);
+  background-color: var(--vnext-canvas-deep);
+  border-block-end: 1px solid var(--vnext-hairline);
+  box-shadow: var(--vnext-shadow-md);
+}
+
+/* The desktop navigation band. Hidden entirely below `expanded`, which removes
+ * it from the accessibility tree as well as from the page. */
+.navBand {
+  display: none;
+  border-block-start: 1px solid var(--vnext-hairline);
+  padding-block-start: var(--vnext-space-2);
+}
+
+/* ---- content region -----------------------------------------------------
+ * The container every vNext page measures itself against, and the reason a page
+ * never has to know how wide the shell is. */
+
+.main {
+  container-type: inline-size;
+  container-name: vnext-page;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-width: 0;
+}
+
+/* A `tabindex="-1"` landmark is a script target, not a tab stop, and it must
+ * not draw the lane's focus ring when the skip link sends focus to it. */
+.main:focus {
+  outline: none;
+}
+
+/* ---- mobile bottom bar --------------------------------------------------
+ * Sticky rather than fixed, for two reasons. It belongs to the frame being
+ * reviewed rather than to the browser window showing the workshop; and being in
+ * flow it RESERVES its own height, so page content clears it without any page
+ * adding bottom padding for it. That is the whole of a page's mobile bottom
+ * spacing obligation: none. */
+
+.navBar {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--vnext-layer-sticky);
+  margin-block-start: auto;
+  /* The inline padding stays at the compact inset in every band it is visible
+     in — this is Home's shipped value, and the bar is gone by `expanded`. */
+  padding-block: var(--vnext-space-2)
+    calc(var(--vnext-space-3) + env(safe-area-inset-bottom, 0px));
+  padding-inline: var(--vnext-space-4);
+  background-image: linear-gradient(
+    to top,
+    var(--vnext-canvas-deep) 68%,
+    transparent
+  );
+}
+
+/* ---- regular ------------------------------------------------------------ */
+
+@container vnext-shell (min-width: 760px) {
+  .masthead,
+  .main,
+  .navBar {
+    --vnext-page-inset: var(--vnext-space-5);
+  }
+
+  .main {
+    gap: var(--vnext-space-5);
+  }
+}
+
+/* ---- expanded: the masthead takes the navigation ------------------------ */
+
+@container vnext-shell (min-width: 1120px) {
+  .masthead,
+  .main,
+  .navBar {
+    --vnext-page-inset: var(--vnext-space-6);
+  }
+
+  .navBar {
+    display: none;
+  }
+
+  .navBand {
+    display: block;
+  }
+}

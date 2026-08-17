@@ -1,98 +1,67 @@
 import type { HomeModel } from '../models/home'
+import { VNextPageHeader } from '../app/VNextPageHeader'
 import { formatNumber, formatOrdinal } from '../foundations/format'
 import typography from '../foundations/typography.module.css'
 import { RankMovementIndicator } from '../components/game/RankMovementIndicator'
-import { VNextNav, defaultNavItems } from '../components/navigation/VNextNav'
 import styles from './home.module.css'
 
 export type HomeMastheadProps = {
   model: HomeModel
-  headingId: string
-  /** Open predictions, for the badge on Fixtures. Zero renders nothing. */
-  openPredictions: number
 }
 
 /**
- * THE MASTHEAD — the part of Home that does not change.
+ * WHAT HOME PUTS IN THE SHELL'S PAGE HEADER.
  *
- * Whatever the page is emphasising underneath, this band answers the same two
- * questions in the same place: WHICH COMPETITION AND MATCHWEEK AM I IN, and HOW
- * AM I DOING. That constancy is what makes the three emphases feel like one
- * surface rather than three products — same stadium, different match state.
+ * The masthead used to be a Home component that also owned the sticky band, the
+ * navigation and the page bounds. Those are the application's, and they now live
+ * in `app/VNextShell`. What is left is the part that was only ever Home's: which
+ * competition and matchweek this is — which every page states, so it goes
+ * through `VNextPageHeader` — and how the user is doing, which no other page
+ * states, so it goes through the header's `trailing` slot as a node Home builds.
  *
  * THE USER'S STANDING IS THREE SHORT LINES, NOT A PANEL. Football has first
  * claim on area on this page, and on a matchday the user's rank is context
- * rather than the subject. But "how am I doing" is one of the five questions
- * the first screen owes an answer to, so the season total, the rank, the
- * movement and the points still in play are all present — just small, and never
- * competing with the score.
+ * rather than the subject. But "how am I doing" is one of the five questions the
+ * first screen owes an answer to, so the season total, the rank, the movement
+ * and the points still in play are all present — just small, and never competing
+ * with the score.
  *
- * NAVIGATION IS RENDERED ONCE HERE AND ONCE AT THE FOOT OF THE PAGE, and CSS
- * shows exactly one of them. `display: none` removes the other from the
- * accessibility tree as well as from the page, so there is never a duplicate
- * landmark or a focus stop on a navigation nobody can see.
+ * The shell does not know any of that, and must not learn it. A `rank` prop on
+ * `VNextPageHeader` would be this composition with a generic name, and the next
+ * page would inherit a points display it has no points for.
  */
-export function HomeMasthead({
-  model,
-  headingId,
-  openPredictions,
-}: HomeMastheadProps) {
-  const { competition, recentPerformance: performance } = model
+export function HomeMasthead({ model }: HomeMastheadProps) {
+  const { competition } = model
+
+  return (
+    <VNextPageHeader
+      competition={competition.shortName}
+      title={competition.matchweekLabel}
+      context={`${competition.seasonLabel} · ${matchdayLine(model)}`}
+      trailing={<HomeStanding model={model} />}
+    />
+  )
+}
+
+function HomeStanding({ model }: { model: HomeModel }) {
+  const performance = model.recentPerformance
   const provisional = performance.provisionalPoints
 
   return (
-    <>
-      <div className={styles.mastheadTop}>
-        <div className={styles.competition}>
-          <p className={typography.label}>{competition.shortName}</p>
-          <h1 id={headingId} className={`${typography.title} ${styles.matchweek}`}>
-            {competition.matchweekLabel}
-          </h1>
-          <p className={typography.micro}>
-            {competition.seasonLabel} · {matchdayLine(model)}
-          </p>
-        </div>
-
-        <div className={styles.standing}>
-          <p className={typography.label}>Your rank</p>
-          <p className={`${styles.standingValue} ${typography.numeric}`}>
-            {formatOrdinal(performance.rank)}
-            <RankMovementIndicator movement={performance.rankMovement} />
-          </p>
-          <p className={typography.micro}>
-            {formatNumber(performance.totalPoints)} pts
-            {provisional > 0 ? ` · ${formatNumber(provisional)} on the pitch` : ''}
-          </p>
-          <p className={typography.micro}>
-            of {formatNumber(performance.rankOutOf)} players
-          </p>
-        </div>
-      </div>
-
-      <div className={styles.mastheadNav}>
-        <VNextNav
-          variant="band"
-          activeId="home"
-          items={withBadge(openPredictions)}
-        />
-      </div>
-    </>
-  )
-}
-
-/** The bottom bar, rendered by the shell at the foot of the page. */
-export function HomeNavBar({ openPredictions }: { openPredictions: number }) {
-  return (
-    <div className={styles.navBar}>
-      <VNextNav variant="bar" activeId="home" items={withBadge(openPredictions)} />
+    <div className={styles.standing}>
+      <p className={typography.label}>Your rank</p>
+      <p className={`${styles.standingValue} ${typography.numeric}`}>
+        {formatOrdinal(performance.rank)}
+        <RankMovementIndicator movement={performance.rankMovement} />
+      </p>
+      <p className={typography.micro}>
+        {formatNumber(performance.totalPoints)} pts
+        {provisional > 0 ? ` · ${formatNumber(provisional)} on the pitch` : ''}
+      </p>
+      <p className={typography.micro}>
+        of {formatNumber(performance.rankOutOf)} players
+      </p>
     </div>
-  )
-}
-
-function withBadge(openPredictions: number) {
-  if (openPredictions <= 0) return defaultNavItems
-  return defaultNavItems.map((item) =>
-    item.id === 'fixtures' ? { ...item, badge: openPredictions } : item,
   )
 }
 

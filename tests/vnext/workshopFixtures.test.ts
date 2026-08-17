@@ -189,7 +189,7 @@ describe('workshop home model', () => {
 })
 
 /**
- * HOME'S CONTAINER-QUERY STRUCTURE.
+ * THE CONTAINER-QUERY STRUCTURE OF THE SHELL AND OF HOME.
  *
  * `container-type` applies to an element's DESCENDANTS. A grid that declares
  * itself the container can never respond to its own width, so every composition
@@ -197,54 +197,99 @@ describe('workshop home model', () => {
  * the first build of the Stage 2 frame: 1440px rendered the phone layout and
  * looked entirely plausible. jsdom evaluates no container query, so the
  * structure is asserted from the stylesheet and the RESULT is measured in
- * Chromium by `e2e/vnext-home.spec.ts`.
+ * Chromium by `e2e/vnext-home.spec.ts` and `e2e/vnext-shell.spec.ts`.
  *
- * The three thresholds are Stage 3's, and they were measured rather than
+ * THERE ARE NOW TWO STYLESHEETS AND TWO CONTAINERS, and the split is the point
+ * of Stage 5. The shell declares `vnext-shell` and changes the page bounds and
+ * the navigation at 760 and 1120 — the widths at which the APPLICATION changes.
+ * Its `<main>` declares `vnext-page`, and Home changes its football columns at
+ * 760 and 1560 against that. Same assertions as before the extraction, pointed
+ * at whichever file now owns each claim; nothing was dropped for having moved.
+ *
+ * Home's thresholds are still Stage 3's, and they were measured rather than
  * chosen: each is the width at which the club NAMES in a zone fit, not the
  * width at which the tracks fit.
  */
-describe('Home container-query structure', () => {
-  const css = readFileSync(
-    resolve(import.meta.dirname, '../../src/vnext/home/home.module.css'),
-    'utf8',
-  )
+describe('container-query structure', () => {
+  const read = (path: string) =>
+    readFileSync(resolve(import.meta.dirname, '../../src/vnext', path), 'utf8')
 
-  function ruleBody(selector: string): string {
+  const shellCss = read('app/VNextShell.module.css')
+  const homeCss = read('home/home.module.css')
+
+  function ruleBody(css: string, selector: string): string {
     const match = css.match(new RegExp(`\\${selector}\\s*\\{([^}]*)\\}`))
     expect(match, `no rule for ${selector}`).not.toBeNull()
     return match?.[1] ?? ''
   }
 
-  it('declares the container on the shell, which the zones then answer', () => {
-    expect(ruleBody('.shell')).toContain('container-type: inline-size')
-    expect(ruleBody('.shell')).toContain('container-name: vnext-home')
+  it('declares the shell container on the shell and the page container on main', () => {
+    expect(ruleBody(shellCss, '.shell')).toContain('container-type: inline-size')
+    expect(ruleBody(shellCss, '.shell')).toContain('container-name: vnext-shell')
+
+    // The content region is the container a PAGE answers, which is what lets a
+    // page keep its own thresholds without knowing the shell's.
+    expect(ruleBody(shellCss, '.main')).toContain('container-type: inline-size')
+    expect(ruleBody(shellCss, '.main')).toContain('container-name: vnext-page')
+
     // The grid is a descendant of the container, never the container itself.
-    expect(ruleBody('.body')).not.toContain('container-type')
-    expect(ruleBody('.body')).toContain('grid-template-areas')
+    expect(ruleBody(homeCss, '.body')).not.toContain('container-type')
+    expect(ruleBody(homeCss, '.body')).toContain('grid-template-areas')
   })
 
-  it('sizes every composition against the container, never the viewport', () => {
-    expect(css).not.toMatch(/@media[^{]*\((min|max)-width/)
+  it('leaves the page bounds a property to read, not padding on the region', () => {
+    // Padding on `<main>` would inset EVERY page — including a standings table
+    // that wants the bounds — and would shrink the container a page measures
+    // itself against, so a page's own thresholds would stop meaning the width
+    // they say. The shell states the inset and the page spends it.
+    expect(ruleBody(shellCss, '.main')).not.toContain('padding')
+    expect(ruleBody(shellCss, '.main')).not.toContain('max-width')
+    expect(shellCss).toContain('--vnext-page-inset: var(--vnext-space-4)')
+    for (const zone of ['.ticker', '.banner', '.body']) {
+      expect(
+        ruleBody(homeCss, zone),
+        `${zone} should take the page bounds from the shell`,
+      ).toContain('var(--vnext-page-inset)')
+    }
+  })
+
+  it('sizes every composition against a container, never the viewport', () => {
+    for (const css of [shellCss, homeCss]) {
+      expect(css).not.toMatch(/@media[^{]*\((min|max)-width/)
+    }
+    for (const width of [760, 1120]) {
+      expect(shellCss).toContain(`@container vnext-shell (min-width: ${width}px)`)
+    }
     for (const width of [760, 1120, 1560]) {
-      expect(css).toContain(`@container vnext-home (min-width: ${width}px)`)
+      expect(homeCss).toContain(`@container vnext-page (min-width: ${width}px)`)
     }
   })
 
   it('reorders the body for each emphasis rather than restyling a new page', () => {
     // The three emphases differ by grid area order inside ONE grid. A second
-    // `.body`-shaped rule under a different class would be a second page.
+    // `.body`-shaped rule under a different class would be a second page. The
+    // flag now sits ON the grid rather than on an ancestor, because the only
+    // ancestor left is the application shell and an emphasis is not its
+    // business.
     for (const emphasis of ['decision', 'competition']) {
-      expect(css).toContain(`[data-vnext-emphasis='${emphasis}'] .body`)
+      expect(homeCss).toContain(`.body[data-vnext-emphasis='${emphasis}']`)
     }
+    expect(shellCss, 'the shell must not know what an emphasis is').not.toContain(
+      'data-vnext-emphasis',
+    )
   })
 
   it('shows exactly one navigation and one league-race shape per width', () => {
     // Both halves of each pair are always rendered and CSS hides one, so the
     // hidden half must be `display: none` — which removes it from the
     // accessibility tree as well as from the page.
-    expect(ruleBody('.mastheadNav')).toContain('display: none')
-    expect(ruleBody('.socialFull')).toContain('display: none')
-    expect(css).toContain('.navBar {\n    display: none;\n  }')
+    expect(ruleBody(shellCss, '.navBand')).toContain('display: none')
+    expect(shellCss).toContain('.navBar {\n    display: none;\n  }')
+    expect(ruleBody(homeCss, '.socialFull')).toContain('display: none')
+
+    // And the page owns neither of them any more, so it cannot grow a third.
+    expect(homeCss).not.toContain('.navBar')
+    expect(homeCss).not.toContain('.mastheadNav')
   })
 })
 
