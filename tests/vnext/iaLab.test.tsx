@@ -1,10 +1,11 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, renderHook, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import { describe, expect, it } from 'vitest'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { IA_CONCEPTS, IA_CONCEPT_KEYS, IaConcept } from '../../src/vnext/ia/IaLab'
 import type { IaConceptKey } from '../../src/vnext/ia/IaLab'
+import { useFocusReturn } from '../../src/vnext/ia/shared/focusReturn'
 import { iaScenarios, iaScenarioNames } from '../../src/vnext/fixtures'
 import type { IaScenarioName } from '../../src/vnext/fixtures'
 
@@ -261,6 +262,54 @@ describe.each(IA_CONCEPT_KEYS)('Concept %s', (concept) => {
       expect(switchers.map((entry) => entry.textContent)).toEqual([])
     })
 
+    it('still lets a one-competition player reach the wider catalogue', async () => {
+      /**
+       * THE OTHER HALF OF THE ONE-COMPETITION RULE, and the half the first
+       * build of this lab lost.
+       *
+       * "The product may feel like a one-competition product, but other
+       * competitions must remain easy to discover." Removing the chooser is
+       * correct; removing the WAY OUT is not, and the two are easy to confuse
+       * because at one competition a chooser and a catalogue look like the same
+       * list. They are different actions: one moves between things the player
+       * already has, the other is the platform.
+       *
+       * EXPRESSED AS AN OUTCOME RATHER THAN AS A CONTROL. Each concept names
+       * its own route because that is the variable under review — A a quiet
+       * Explore beside the competition, B the last chip in the filter row, C
+       * the command surface, which is discovery. What is asserted is that the
+       * route exists, is reachable from what is permanently on screen, and
+       * ARRIVES: the heading has to read "Competitions".
+       *
+       * jsdom shows both the phone copy and the desktop copy of every
+       * duplicated control, so this proves the route exists and not that it is
+       * on screen at a phone width. `e2e/vnext-ia.spec.ts` proves that half in
+       * an engine that evaluates the container queries.
+       */
+      const user = userEvent.setup()
+      renderConcept(concept, 'single')
+
+      const routes: Record<IaConceptKey, readonly RegExp[]> = {
+        a: [/^Explore competitions$/],
+        b: [/^Find a competition$/],
+        c: [/^Jump$/, /^Browse all \d+ competitions/],
+      }
+
+      for (const step of routes[concept]) {
+        const control = screen.getAllByRole('button', { name: step })[0]
+        expect(control, `${name} has no control matching ${step}`).toBeTruthy()
+        await user.click(control as HTMLElement)
+      }
+
+      expect(
+        screen.getByRole('heading', { level: 1 }).textContent,
+        `${name} did not reach the catalogue from its permanent chrome`,
+      ).toBe('Competitions')
+      // And it is the whole published catalogue, not the one competition the
+      // player already owns dressed up as a choice.
+      expect(screen.getAllByText('Scottish Premiership').length).toBeGreaterThan(0)
+    })
+
     it('renders eleven competitions without naming the whole catalogue', () => {
       const { container } = renderConcept(concept, 'power')
       const text = container.textContent ?? ''
@@ -439,6 +488,70 @@ describe('the lab itself', () => {
         }
       }
     }
+  })
+})
+
+/**
+ * THE FOCUS-RETURN HELPER, AT THE LEVEL jsdom CAN ACTUALLY SPEAK TO.
+ *
+ * It exists because Concepts A and C both restore focus to a control that has a
+ * hidden twin, and the twin is decided by a container query. jsdom evaluates no
+ * container query and has no layout at all, so the HIDDEN-COPY case belongs to
+ * `e2e/vnext-ia.spec.ts` and is asserted there in both layout modes for both
+ * concepts. What is provable here is the rest of the contract: the opener is
+ * the element that was pressed, it is remembered exactly, and an opener that
+ * has genuinely left the document is declined rather than focused.
+ */
+describe('the opener focus-return helper', () => {
+  it('returns focus to the exact element that opened the overlay', () => {
+    const first = document.createElement('button')
+    const second = document.createElement('button')
+    document.body.append(first, second)
+    const { result } = renderHook(() => useFocusReturn())
+
+    result.current.captureOpener(second)
+    first.focus()
+    expect(result.current.returnFocus()).toBe(true)
+    expect(document.activeElement).toBe(second)
+
+    first.remove()
+    second.remove()
+  })
+
+  it('falls back to whatever holds focus when no opener is handed over', () => {
+    const button = document.createElement('button')
+    document.body.append(button)
+    button.focus()
+    const { result } = renderHook(() => useFocusReturn())
+
+    result.current.captureOpener(null)
+    ;(document.activeElement as HTMLElement).blur()
+    expect(result.current.returnFocus()).toBe(true)
+    expect(document.activeElement).toBe(button)
+
+    button.remove()
+  })
+
+  it('declines an opener that has left the document rather than focusing nothing', () => {
+    const button = document.createElement('button')
+    document.body.append(button)
+    const { result } = renderHook(() => useFocusReturn())
+
+    result.current.captureOpener(button)
+    button.remove()
+    expect(result.current.returnFocus()).toBe(false)
+  })
+
+  it('forgets the opener once it has been used, so a later close cannot resurrect it', () => {
+    const button = document.createElement('button')
+    document.body.append(button)
+    const { result } = renderHook(() => useFocusReturn())
+
+    result.current.captureOpener(button)
+    expect(result.current.returnFocus()).toBe(true)
+    expect(result.current.returnFocus()).toBe(false)
+
+    button.remove()
   })
 })
 

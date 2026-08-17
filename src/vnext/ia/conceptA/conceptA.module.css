@@ -164,6 +164,42 @@
   color: var(--vnext-text-muted);
 }
 
+/* THE MOBILE ESCAPE HATCH INTO THE CATALOGUE.
+ *
+ * It is what the rail's "All competitions" row is below 1120px, where there is
+ * no rail. It costs the bar NO HEIGHT — the switcher and the avatar already set
+ * a `--vnext-tap-target` row — so the permanent chrome does not grow, which is
+ * the measurement the scalability requirement actually turns on.
+ *
+ * It is hidden at and above 1120 with the rest of `.contextBar`, because the
+ * rail says the same thing in a row of its own and two copies of one control is
+ * the duplicate-navigation defect this sheet exists to avoid. */
+.explore {
+  display: inline-flex;
+  flex: none;
+  gap: var(--vnext-space-1);
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--vnext-tap-target);
+  min-block-size: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-2);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background: none;
+  font: inherit;
+  color: var(--vnext-text-muted);
+  cursor: pointer;
+}
+
+.explore:hover {
+  background: var(--vnext-surface-interactive);
+  color: var(--vnext-text-secondary);
+}
+
+.exploreLabel {
+  font-size: var(--vnext-size-micro);
+}
+
 .avatar {
   display: inline-flex;
   flex: none;

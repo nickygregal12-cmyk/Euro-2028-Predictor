@@ -6,6 +6,7 @@ import { GAME_NAMES, offeredGames } from '../../models/ia'
 import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import { useIaNavigation } from '../shared/navigation'
 import type { IaDestination, IaNavigation } from '../shared/navigation'
+import { useFocusReturn } from '../shared/focusReturn'
 import {
   BackControl,
   CompetitionMark,
@@ -85,19 +86,45 @@ export function ConceptC({
   const contentId = useId()
   const rise = useVNextMotion(vnextMotion.riseIn)
   const [commandOpen, setCommandOpen] = useState(false)
-  const jumpRef = useRef<HTMLButtonElement>(null)
+  /**
+   * THE COMMAND SURFACE HAS TWO OPENERS AND ONLY ONE OF THEM IS EVER ON SCREEN.
+   *
+   * Below 1120 it is the bottom bar's Jump control; at and above it the bottom
+   * bar is gone entirely and the command centre's own search button is the
+   * opener. A hard-coded ref to the Jump button therefore returned focus to a
+   * `display: none` element on every desktop width, and the keyboard user
+   * landed on `<body>`. The opener travels with the press — see
+   * `shared/focusReturn.ts`.
+   */
+  const { captureOpener, returnFocus } = useFocusReturn()
 
+  function openCommand(opener: HTMLElement | null) {
+    captureOpener(opener)
+    setCommandOpen(true)
+  }
+
+  function closeCommand() {
+    setCommandOpen(false)
+    returnFocus()
+  }
+
+  /**
+   * `jump` and `chooseContext` ARE CALLED FROM THREE PLACES, AND ONLY ONE OF
+   * THEM IS AN OVERLAY. The command surface, the desktop command centre and the
+   * spine's own menus all share these two functions; restoring focus
+   * unconditionally meant the spine's menu handed focus to its segment button
+   * and this function immediately took it away again. Focus is only returned
+   * where it was actually taken.
+   */
   function jump(destination: IaDestination) {
     nav.go(destination)
-    setCommandOpen(false)
-    jumpRef.current?.focus()
+    if (commandOpen) closeCommand()
   }
 
   function chooseContext(contextId: string) {
     nav.switchContext(contextId)
-    setCommandOpen(false)
     emitFeedback('selection', { preference: feedback })
-    jumpRef.current?.focus()
+    if (commandOpen) closeCommand()
   }
 
   return (
@@ -121,10 +148,16 @@ export function ConceptC({
           landmark at all. A screen-reader user would have had a list of
           landmarks with nowhere to go in it. */}
       <nav className={styles.centre} aria-label="Your play">
+        {/* THE DESKTOP OPENER. It is a different element from the phone's Jump
+            control, not a copy of it, and closing the command surface must come
+            back HERE — which is exactly what a single shared ref could not
+            express. */}
         <button
           type="button"
           className={styles.centreSearch}
-          onClick={() => setCommandOpen(true)}
+          aria-haspopup="dialog"
+          aria-expanded={commandOpen}
+          onClick={(event) => openCommand(event.currentTarget)}
         >
           <Search size={16} strokeWidth={1.75} aria-hidden="true" />
           <span>Jump to anything</span>
@@ -176,12 +209,11 @@ export function ConceptC({
                   everything that is not Home or You. If this concept fails, it
                   fails here. */}
               <button
-                ref={jumpRef}
                 type="button"
                 className={`${styles.bottomLink} ${styles.jump}`}
                 aria-haspopup="dialog"
                 aria-expanded={commandOpen}
-                onClick={() => setCommandOpen(true)}
+                onClick={(event) => openCommand(event.currentTarget)}
               >
                 <Search size={22} strokeWidth={2} aria-hidden="true" />
                 <span className={styles.bottomLabel}>Jump</span>
@@ -208,10 +240,7 @@ export function ConceptC({
           nav={nav}
           onChooseContext={chooseContext}
           onJump={jump}
-          onClose={() => {
-            setCommandOpen(false)
-            jumpRef.current?.focus()
-          }}
+          onClose={closeCommand}
         />
       ) : null}
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { CalendarDays, Gamepad2, Home, Users } from 'lucide-react'
+import { CalendarDays, Compass, Gamepad2, Home, Users } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { motion } from 'framer-motion'
 import type { FootballContext, IaModel } from '../../models/ia'
@@ -8,6 +8,7 @@ import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import { competitionColourStyle } from '../../foundations/teamColour'
 import { useIaNavigation } from '../shared/navigation'
 import type { IaDestination } from '../shared/navigation'
+import { useFocusReturn } from '../shared/focusReturn'
 import {
   BackControl,
   CompetitionMark,
@@ -44,11 +45,23 @@ import text from '../../foundations/typography.module.css'
  *
  * ================================ WHAT IS PERMANENT ========================
  *
- *   mobile   a context bar (the competition, its season, its tempo) above a
- *            four-item bottom bar of that competition's destinations
+ *   mobile   a context bar (the competition, its season, its tempo, a quiet
+ *            Explore control and the account) above a four-item bottom bar of
+ *            that competition's destinations
  *   desktop  a rail whose HEAD is the switcher, then the same four
  *            destinations, then the player's bounded competition shortcuts,
- *            then the account
+ *            then All competitions and the account
+ *
+ * THE TWO SHAPES CARRY THE SAME THREE THINGS: where I am, everywhere else, and
+ * me. The rail says "everywhere else" with a full row; the bar says it with one
+ * small control beside the competition. WHICHEVER WAY THE SWITCHER RENDERS —
+ * button at two competitions, label at one — THE CATALOGUE IS ONE PRESS AWAY AT
+ * EVERY WIDTH. Switching between competitions the player already has and
+ * browsing the ones they do not are two different actions, and this concept is
+ * the one that says so loudest: the switcher does the first and disappears as a
+ * control when there is nothing to switch between; Explore does the second and
+ * never disappears, because a platform of twenty published competitions always
+ * has somewhere else to go.
  *
  * The two are not the same shape and are not meant to be: a phone gets one
  * decision per thumb reach, a 1440 screen gets the competition list open
@@ -57,7 +70,9 @@ import text from '../../foundations/typography.module.css'
  * ================================ HOW IT SCALES ============================
  *
  *   1 competition    the switcher renders as a LABEL and cannot be pressed.
- *                    A control that offers one choice is furniture.
+ *                    A control that offers one choice is furniture. Explore
+ *                    still stands beside it, because the catalogue is not the
+ *                    player's own competitions and never was.
  *   2–6              a sheet listing them, no search.
  *   7+               the same sheet, search first, recents beneath, then the
  *                    rest — and the desktop rail still shows only six.
@@ -105,7 +120,15 @@ export function ConceptA({
   const headingId = useId()
   const contentId = useId()
   const [sheetOpen, setSheetOpen] = useState(false)
-  const switcherRef = useRef<HTMLButtonElement>(null)
+  /**
+   * THE SWITCHER EXISTS TWICE AND ONE REF CANNOT HOLD BOTH.
+   *
+   * A single `useRef` shared by the rail copy and the bar copy holds whichever
+   * mounted last, so closing the sheet on a desktop focused the phone's
+   * `display: none` switcher and dropped the keyboard user on `<body>`. The
+   * opener is captured from the press instead — see `shared/focusReturn.ts`.
+   */
+  const { captureOpener, returnFocus } = useFocusReturn()
   const rise = useVNextMotion(vnextMotion.riseIn)
 
   const context = nav.context
@@ -145,15 +168,28 @@ export function ConceptA({
     nav.go(destination)
   }
 
+  function openSheet(opener: HTMLElement | null) {
+    captureOpener(opener)
+    setSheetOpen(true)
+  }
+
+  function closeSheet() {
+    setSheetOpen(false)
+    returnFocus()
+  }
+
   function chooseContext(contextId: string) {
     nav.switchContext(contextId)
-    setSheetOpen(false)
     // A DELIBERATE CHOICE LANDED. This is the one place in Concept A that asks
     // for haptic feedback, and it is `selection` rather than `success`: the
     // player picked something, nothing completed. Ordinary navigation between
     // the four destinations emits nothing at all.
     emitFeedback('selection', { preference: feedback })
-    switcherRef.current?.focus()
+    // ONLY THE SHEET RESTORES FOCUS, because only the sheet took it. The rail's
+    // own shortcut list calls this too, and moving focus off the row the player
+    // just pressed — onto a switcher they did not ask for — is the same defect
+    // in the other direction.
+    if (sheetOpen) closeSheet()
   }
 
   return (
@@ -192,8 +228,8 @@ export function ConceptA({
             context={context}
             switchable={switchable}
             open={sheetOpen}
-            onToggle={() => setSheetOpen((value) => !value)}
-            buttonRef={switcherRef}
+            onOpen={openSheet}
+            onClose={closeSheet}
           />
           <ul className={styles.railList}>
             {DESTINATIONS.map((destination) => (
@@ -298,16 +334,51 @@ export function ConceptA({
           animate="visible"
         >
           {/* THE CONTEXT BAR — mobile's copy of the switcher, and the loudest
-              permanent thing on the phone. */}
+              permanent thing on the phone. It carries the two small controls
+              the rail carries as rows: the way out to the catalogue and the
+              way in to the account. */}
           <div className={styles.contextBar}>
             <ContextSwitcher
               variant="bar"
               context={context}
               switchable={switchable}
               open={sheetOpen}
-              onToggle={() => setSheetOpen((value) => !value)}
-              buttonRef={switcherRef}
+              onOpen={openSheet}
+              onClose={closeSheet}
             />
+            {/* THE ESCAPE HATCH, AND WHY IT IS NOT CONDITIONAL.
+                Below 1120 the rail is gone, and with it the row that said "All
+                competitions". A player with one competition then had a switcher
+                that is correctly not a control, four destinations that all
+                belong to that one competition, and NO ROUTE INTO THE CATALOGUE
+                AT ALL — the product stopped feeling like a one-competition
+                product and started being one.
+
+                It is present at every scale rather than only at one, because
+                the alternative is chrome that rearranges itself the first time
+                a player joins a second competition, and because the thing it
+                reaches — twenty published competitions the player does not have
+                — exists whatever the player owns. It is deliberately the
+                smallest control in the bar: discovery is secondary here, and a
+                concept whose whole claim is "you are inside a competition"
+                cannot make leaving it the loudest thing on screen. */}
+            {/* THE NAME IS AN `aria-label` AND THE VISIBLE WORD IS INSIDE IT.
+                Name computation joins text nodes with no separator, so an
+                sr-only " competitions" beside a visible "Explore" announces as
+                "Explorecompetitions" — the `PredictionChip` gotcha, and one
+                this control cannot dodge with a comma the way the urgency dot
+                does. `Explore` is a substring of `Explore competitions`, so the
+                speech-input requirement that a visible label be part of the
+                accessible name still holds. */}
+            <button
+              type="button"
+              className={styles.explore}
+              aria-label="Explore competitions"
+              onClick={() => nav.go({ kind: 'discover' })}
+            >
+              <Compass size={18} strokeWidth={1.75} aria-hidden="true" />
+              <span className={styles.exploreLabel}>Explore</span>
+            </button>
             <button
               type="button"
               className={styles.avatar}
@@ -367,13 +438,13 @@ export function ConceptA({
           activeId={context?.competition.id ?? null}
           onChoose={chooseContext}
           onExplore={() => {
+            // The catalogue REPLACES the sheet rather than closing behind it,
+            // so focus follows the content to `<main>` — there is no opener to
+            // return to when the player has deliberately gone somewhere.
             setSheetOpen(false)
             nav.go({ kind: 'discover' })
           }}
-          onClose={() => {
-            setSheetOpen(false)
-            switcherRef.current?.focus()
-          }}
+          onClose={closeSheet}
         />
       ) : null}
     </div>
@@ -388,21 +459,32 @@ export function ConceptA({
  * proving there is not — which is precisely how a platform with twenty
  * competitions makes a one-competition player feel like a tourist in someone
  * else's product.
+ *
+ * IT IS NOT THE DISCOVERY CONTROL AND MUST NEVER BECOME ONE. Making the label
+ * pressable so that "there is somewhere to go" would be the same lie in nicer
+ * clothes: a control named after the competition the player is already in, that
+ * opens a list of competitions they do not have. Explore sits beside it and
+ * says what it does.
+ *
+ * IT TAKES NO REF. There are two of these on screen at once — a rail copy and a
+ * bar copy — and a ref shared between them holds whichever mounted last. The
+ * press itself carries the opener, which is the only source that cannot name
+ * the hidden one.
  */
 function ContextSwitcher({
   variant,
   context,
   switchable,
   open,
-  onToggle,
-  buttonRef,
+  onOpen,
+  onClose,
 }: {
   variant: 'bar' | 'rail'
   context: FootballContext | null
   switchable: boolean
   open: boolean
-  onToggle: () => void
-  buttonRef: React.RefObject<HTMLButtonElement | null>
+  onOpen: (opener: HTMLElement) => void
+  onClose: () => void
 }) {
   if (!context) {
     return (
@@ -443,12 +525,14 @@ function ContextSwitcher({
 
   return (
     <button
-      ref={buttonRef}
       type="button"
       className={`${styles.switcher} ${styles.switcherButton} ${styles[variant]}`}
       aria-expanded={open}
       aria-haspopup="dialog"
-      onClick={onToggle}
+      onClick={(event) => {
+        if (open) onClose()
+        else onOpen(event.currentTarget)
+      }}
     >
       {inner}
     </button>

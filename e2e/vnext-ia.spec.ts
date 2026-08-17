@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 
 /**
  * THE STAGE 7.5 CONCEPTS, MEASURED BY A REAL ENGINE.
@@ -21,8 +21,9 @@ import type { Page } from '@playwright/test'
  *   2. NOTHING OVERFLOWS SIDEWAYS, in any concept, at any width, in the worlds
  *      that stress it — twenty competitions and the longest names the fixtures
  *      hold.
- *   3. EVERY CONTROL CLEARS 44×44, measured with `offsetWidth` so the
- *      workshop's scaling transform cannot flatter it.
+ *   3. EVERY CONTROL CLEARS 44×44 IN BOTH AXES, measured with
+ *      `offsetWidth`/`offsetHeight` so the workshop's scaling transform cannot
+ *      flatter it.
  *   4. NOTHING IS CLIPPED. A competition name may wrap; it may never be cut.
  *   5. MOBILE CONTENT CLEARS THE BOTTOM BAR, which is the promise that breaks
  *      silently — the last row sits under the bar and everything above it looks
@@ -87,11 +88,34 @@ async function read(page: Page, concept: Concept, frameIndex = 0): Promise<Readi
 
       const visibleNavs = [...(shell?.querySelectorAll('nav') ?? [])].filter(rendered)
 
+      /**
+       * 44×44 MEANS 44×44, IN BOTH AXES.
+       *
+       * The first build of this suite asserted `offsetHeight >= 44` and
+       * `offsetWidth >= 24`, and the lab report claimed every target cleared
+       * 44×44. Those are not the same statement, and the report was the one
+       * making a promise: a 24px-wide control passes WCAG 2.5.8's minimum and
+       * fails 2.5.5 and the vNext tap-target contract, which is what
+       * `--vnext-tap-target` exists to hold. The assertion now measures the
+       * contract that was written down.
+       *
+       * THE INTERACTIVE BOX, NOT THE GLYPH. `offsetWidth`/`offsetHeight` are
+       * the control's own layout box, so an 18px compass inside a 44px button
+       * measures 44 — which is the number a thumb actually meets. They are also
+       * layout numbers rather than painted ones, so `WorkshopCanvas`'s scaling
+       * transform cannot flatter them.
+       *
+       * NO EXCEPTIONS ARE CARVED. Every control in all three concepts is a
+       * button, an input or the skip link; there is no inline text link in the
+       * chrome or in the shared bodies, so the question of whether prose links
+       * are held to the same size does not arise here and is deliberately not
+       * answered by this lab.
+       */
       const smallTargets: string[] = []
       for (const control of shell?.querySelectorAll('button, input, a') ?? []) {
         if (!rendered(control)) continue
         const { offsetWidth, offsetHeight } = control as HTMLElement
-        if (offsetHeight < 44 || offsetWidth < 24) {
+        if (offsetHeight < 44 || offsetWidth < 44) {
           smallTargets.push(
             `${control.textContent?.trim().slice(0, 24) || '(icon)'} @ ${offsetWidth}x${offsetHeight}`,
           )
@@ -299,17 +323,88 @@ test.describe('twenty published competitions', () => {
   }
 })
 
+/** Frame 0 is 375 and frame 1 is 430 in the `one-competition` story. */
+const PHONE_FRAMES = [
+  { index: 0, width: 375 },
+  { index: 1, width: 430 },
+]
+
 test.describe('one competition', () => {
   for (const concept of CONCEPTS) {
-    test(`Concept ${concept.toUpperCase()} costs a one-competition player nothing`, async ({
+    for (const phone of PHONE_FRAMES) {
+      test(`Concept ${concept.toUpperCase()} costs a one-competition player nothing at ${phone.width}`, async ({
+        page,
+      }) => {
+        await open(page, 'one-competition')
+        const reading = await read(page, concept, phone.index)
+        expect(reading.frameWidth).toBe(phone.width)
+        expect(reading.horizontalOverflow).toBeLessThanOrEqual(1)
+        expect(reading.smallTargets).toEqual([])
+        expect(reading.clipped).toEqual([])
+        expect(reading.visibleNavCount).toBe(1)
+      })
+    }
+  }
+
+  /**
+   * THE OTHER HALF OF THE ONE-COMPETITION REQUIREMENT.
+   *
+   * "The product may feel like a one-competition product, but other
+   * competitions must remain easy to discover." The first build of Concept A
+   * kept the first clause and lost the second: with one owned context the
+   * switcher correctly stops being a control, and below 1120 the rail that
+   * carried "All competitions" is not rendered at all — so an EPL-only player
+   * on a phone had Home, Matches, Games and Leagues, every one of them scoped
+   * to the single competition, and no route into the catalogue whatsoever.
+   *
+   * This is the regression, and it is deliberately expressed as THREE separate
+   * facts rather than one: the label must stay a label, the catalogue must stay
+   * reachable, and the reachable thing must actually arrive somewhere. A fix
+   * that satisfied any two of them would be one of the fixes the review ruled
+   * out — a fake chooser, an undocumented route, or a fifth bottom-bar
+   * destination.
+   */
+  for (const phone of PHONE_FRAMES) {
+    test(`Concept A keeps discovery reachable for an EPL-only player at ${phone.width}`, async ({
       page,
     }) => {
       await open(page, 'one-competition')
-      const reading = await read(page, concept, 0)
-      expect(reading.horizontalOverflow).toBeLessThanOrEqual(1)
-      expect(reading.smallTargets).toEqual([])
-      expect(reading.clipped).toEqual([])
-      expect(reading.visibleNavCount).toBe(1)
+      const frames = page.locator('figure [data-vnext]')
+      const shell = frames.nth(phone.index).locator('[data-ia-concept="a"]')
+
+      // 1. THE COMPETITION IS A LABEL AND NOT A FAKE CHOOSER. It is named on
+      //    screen — counted among the elements that actually have a box, since
+      //    the rail's copy of the switcher is in the DOM at every width — and
+      //    pressing it is not a thing the player can do anywhere.
+      const named = await shell
+        .getByText('Premier League', { exact: true })
+        .evaluateAll((elements) => elements.filter((el) => el.getClientRects().length > 0).length)
+      expect(named, 'the single competition is not stated anywhere on screen').toBeGreaterThan(0)
+      await expect(shell.getByRole('heading', { level: 1 })).toHaveText('Premier League')
+      await expect(shell.getByRole('button', { name: /Premier League/ })).toHaveCount(0)
+
+      // 2. DISCOVERY IS VISIBLE, not a gesture and not a route the player has
+      //    to already know. Exactly one copy of it is on screen — the rail's
+      //    "All competitions" row is not rendered at a phone width.
+      const explore = shell.getByRole('button', { name: 'Explore competitions' })
+      await expect(explore).toHaveCount(1)
+      await expect(explore).toBeVisible()
+
+      // 3. IT IS SECONDARY. The bottom bar still has four destinations and
+      //    discovery is not one of them.
+      const bottom = shell.getByRole('navigation', { name: 'Competition sections' })
+      await expect(bottom.getByRole('button')).toHaveCount(4)
+      await expect(bottom.getByRole('button', { name: /Explore/ })).toHaveCount(0)
+
+      // 4. AND IT ARRIVES. The catalogue is the destination, not a sheet
+      //    listing the one competition the player already has.
+      await explore.click()
+      await expect(shell.getByRole('heading', { level: 1 })).toHaveText('Competitions')
+      const catalogue = await shell
+        .getByRole('main')
+        .getByText(/Scottish Premiership|Champions League/)
+        .count()
+      expect(catalogue).toBeGreaterThan(0)
     })
   }
 })
@@ -355,31 +450,246 @@ test.describe('mobile bottom-bar clearance', () => {
    interaction — the journeys the selection turns on
    ========================================================================== */
 
-test('Concept A switches competition through its sheet and restores focus', async ({
-  page,
-}) => {
+/* --------------------------------------------------------------------------
+   focus return, in both layout modes
+   -------------------------------------------------------------------------- */
+
+/**
+ * THE DEFECT THESE TESTS EXIST FOR, AND WHY THEY HAVE TO RUN IN A BROWSER.
+ *
+ * All three concepts render their navigation twice and let CSS show one. The
+ * first build of the lab restored focus with a single `useRef` shared by both
+ * copies (Concept A) and with a hard-coded reference to the phone's Jump button
+ * (Concept C). Both are correct on a phone and wrong on a desktop: the element
+ * that receives `.focus()` is `display: none`, the browser refuses, and the
+ * keyboard user is silently returned to `<body>` at the top of the document.
+ *
+ * jsdom cannot see any of this. It evaluates no container query, so both copies
+ * are "visible" there and both `.focus()` calls appear to work — which is
+ * exactly why the unit suite passed while the desktop was broken. The engine is
+ * not a nicety here; it is the only witness.
+ */
+
+/** The one copy of a duplicated control that CSS is actually showing. */
+async function onlyVisible(locator: Locator, what: string): Promise<Locator> {
+  const candidates = await locator.all()
+  const shown: Locator[] = []
+  for (const candidate of candidates) {
+    if (await candidate.isVisible()) shown.push(candidate)
+  }
+  expect(shown.length, `${what}: expected exactly one copy on screen`).toBe(1)
+  return shown[0] as Locator
+}
+
+/**
+ * What actually holds focus, described well enough to fail usefully.
+ *
+ * `rendered` is the assertion that matters: a `display: none` duplicate has no
+ * client rects, and `<body>` is what the browser falls back to when a focus
+ * call is refused.
+ */
+async function activeElement(page: Page) {
+  return page.evaluate(() => {
+    const active = document.activeElement as HTMLElement | null
+    return {
+      tag: active?.tagName.toLowerCase() ?? '(none)',
+      isBody: active === document.body,
+      rendered: Boolean(active) && active!.getClientRects().length > 0,
+      label:
+        active?.getAttribute('aria-label') ?? active?.textContent?.trim().slice(0, 40) ?? '',
+    }
+  })
+}
+
+/** Focus is on the visible opener, and demonstrably not on a hidden twin. */
+async function expectFocusReturned(page: Page, opener: Locator, what: string) {
+  const active = await activeElement(page)
+  expect(active.isBody, `${what}: focus fell to <body>`).toBe(false)
+  expect(active.rendered, `${what}: focus landed on a control with no box — ${active.label}`).toBe(
+    true,
+  )
+  await expect(opener, `${what}: focus did not return to the opener`).toBeFocused()
+}
+
+const A_OPENER = 'button[aria-haspopup="dialog"]'
+
+for (const layout of [
+  { name: 'mobile', story: 'compare-on-a-phone', region: 'header' },
+  { name: 'desktop', story: 'compare-on-a-desktop', region: 'nav[aria-label="Competition"]' },
+] as const) {
+  test.describe(`Concept A focus return — ${layout.name}`, () => {
+    test('closing the sheet returns focus to the visible opener', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="a"]').first()
+
+      // The switcher exists twice in the DOM at every width. Exactly one of the
+      // two is on screen, and it is the one this test presses.
+      const opener = await onlyVisible(shell.locator(A_OPENER), 'Concept A switcher')
+      expect(
+        await opener.evaluate((element, selector) => Boolean(element.closest(selector)), layout.region),
+        `the visible switcher is not the ${layout.name} copy`,
+      ).toBe(true)
+
+      await opener.click()
+      const sheet = page.getByRole('dialog', { name: 'Choose a competition' })
+      await expect(sheet).toBeVisible()
+
+      await sheet.getByRole('button', { name: 'Close' }).click()
+      await expect(sheet).toBeHidden()
+      await expectFocusReturned(page, opener, `Concept A ${layout.name} close`)
+    })
+
+    test('choosing a competition returns focus to the visible opener', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="a"]').first()
+      const opener = await onlyVisible(shell.locator(A_OPENER), 'Concept A switcher')
+
+      await opener.click()
+      const sheet = page.getByRole('dialog', { name: 'Choose a competition' })
+      await expect(sheet).toBeVisible()
+
+      // The selection path closes the sheet separately from the Close button,
+      // so it restores focus separately and is tested separately.
+      await sheet.getByRole('button', { name: /Scottish Premiership/ }).first().click()
+      await expect(sheet).toBeHidden()
+
+      // The context changed. Asserted on the page HEADING rather than on the
+      // switcher's own text, because the switcher exists twice.
+      await expect(shell.getByRole('heading', { level: 1 })).toHaveText(/Scottish Premiership/)
+      await expectFocusReturned(page, opener, `Concept A ${layout.name} selection`)
+    })
+
+    test('the hidden copy of the switcher never receives focus', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="a"]').first()
+      const opener = await onlyVisible(shell.locator(A_OPENER), 'Concept A switcher')
+
+      await opener.click()
+      await page.getByRole('dialog', { name: 'Choose a competition' }).getByRole('button', { name: 'Close' }).click()
+
+      const hidden = await shell.locator(A_OPENER).evaluateAll(
+        (elements) =>
+          elements
+            .filter((element) => element.getClientRects().length === 0)
+            .map((element) => element === document.activeElement),
+      )
+      expect(hidden, 'there is no hidden copy of the switcher to check').not.toEqual([])
+      expect(hidden, 'a display:none copy of the switcher holds focus').not.toContain(true)
+    })
+  })
+}
+
+for (const layout of [
+  {
+    name: 'mobile',
+    story: 'compare-on-a-phone',
+    region: 'nav[aria-label="Primary"]',
+    openerName: /^Jump$/,
+  },
+  {
+    name: 'desktop',
+    story: 'compare-on-a-desktop',
+    region: 'nav[aria-label="Your play"]',
+    openerName: /^Jump to anything$/,
+  },
+] as const) {
+  test.describe(`Concept C focus return — ${layout.name}`, () => {
+    test('closing the command surface returns focus to the visible opener', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="c"]').first()
+
+      const opener = await onlyVisible(
+        shell.locator('button[aria-haspopup="dialog"]'),
+        'Concept C command opener',
+      )
+      await expect(opener).toHaveAccessibleName(layout.openerName)
+      expect(
+        await opener.evaluate((element, selector) => Boolean(element.closest(selector)), layout.region),
+        `the visible opener is not the ${layout.name} copy`,
+      ).toBe(true)
+
+      await opener.click()
+      const command = page.getByRole('dialog', { name: 'Jump to anything' })
+      await expect(command).toBeVisible()
+
+      await command.getByRole('button', { name: 'Close' }).click()
+      await expect(command).toBeHidden()
+      await expectFocusReturned(page, opener, `Concept C ${layout.name} close`)
+    })
+
+    test('selecting a destination returns focus to the visible opener', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="c"]').first()
+      const opener = await onlyVisible(
+        shell.locator('button[aria-haspopup="dialog"]'),
+        'Concept C command opener',
+      )
+
+      await opener.click()
+      const command = page.getByRole('dialog', { name: 'Jump to anything' })
+      await expect(command).toBeVisible()
+
+      await command.getByRole('button', { name: /Last Man Standing · Premier League/ }).click()
+      await expect(command).toBeHidden()
+
+      // The spine states both dimensions, so the jump landed.
+      await expect(shell.getByRole('button', { name: /^Game: Last Man Standing/ })).toBeVisible()
+      await expectFocusReturned(page, opener, `Concept C ${layout.name} selection`)
+    })
+
+    test('the hidden opener never receives focus', async ({ page }) => {
+      await open(page, layout.story)
+      const shell = page.locator('[data-ia-concept="c"]').first()
+      const opener = await onlyVisible(
+        shell.locator('button[aria-haspopup="dialog"]'),
+        'Concept C command opener',
+      )
+
+      await opener.click()
+      await page
+        .getByRole('dialog', { name: 'Jump to anything' })
+        .getByRole('button', { name: 'Close' })
+        .click()
+
+      const hidden = await shell.locator('button[aria-haspopup="dialog"]').evaluateAll(
+        (elements) =>
+          elements
+            .filter((element) => element.getClientRects().length === 0)
+            .map((element) => element === document.activeElement),
+      )
+      expect(hidden, 'there is no hidden opener to check').not.toEqual([])
+      expect(hidden, 'a display:none opener holds focus').not.toContain(true)
+    })
+  })
+}
+
+/**
+ * CONCEPT B, AUDITED IN THE SAME SEAM AND FOUND SAFE.
+ *
+ * It duplicates its anchors and its filter exactly as the other two duplicate
+ * their navigation, so it is exposed to the same class of defect — but it opens
+ * no sheet, dialog or menu anywhere, and therefore performs no focus
+ * restoration at all. There is nothing to point at the wrong copy. This test
+ * holds that property rather than the fix: if Concept B ever grows an overlay,
+ * it fails here and has to adopt the same opener capture the other two use.
+ */
+test('Concept B has no overlay, and therefore no focus to restore', async ({ page }) => {
   await open(page, 'compare-on-a-phone')
-  const shell = page.locator('[data-ia-concept="a"]').first()
-  const switcher = shell.getByRole('button', { name: /Premier League/ }).first()
+  const shell = page.locator('[data-ia-concept="b"]').first()
 
-  await switcher.click()
-  const sheet = page.getByRole('dialog', { name: 'Choose a competition' })
-  await expect(sheet).toBeVisible()
+  await expect(shell.locator('[aria-haspopup]')).toHaveCount(0)
+  await expect(shell.getByRole('dialog')).toHaveCount(0)
 
-  await sheet.getByRole('button', { name: /Scottish Premiership/ }).first().click()
-  await expect(sheet).toBeHidden()
-
-  // The context changed. Asserted on the page HEADING rather than on the
-  // switcher's own text: Concept A renders the switcher twice — a rail copy and
-  // a bar copy, with CSS showing one — so `getByText(...).first()` resolves to
-  // whichever is first in the DOM and not to whichever is on screen.
-  await expect(shell.getByRole('heading', { level: 1 })).toHaveText(
-    /Scottish Premiership/,
+  // Its one interaction — filtering — moves nothing, so the pressed chip keeps
+  // focus and no hidden duplicate can acquire it. Scoped to the masthead, which
+  // is where the phone's copy of the filter lives: the queue below it also
+  // names competitions, on cards that are not the filter.
+  const chip = await onlyVisible(
+    shell.locator('header').getByRole('button', { name: /Champions League/ }),
+    'Concept B filter chip',
   )
-  const focused = await page.evaluate(
-    () => document.activeElement?.textContent?.slice(0, 40) ?? '',
-  )
-  expect(focused).toContain('Scottish Premiership')
+  await chip.click()
+  await expectFocusReturned(page, chip, 'Concept B filter')
 })
 
 test('Concept B filters the queue by competition without leaving it', async ({ page }) => {

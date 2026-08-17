@@ -86,10 +86,11 @@ Matches and no global Leagues.
 | --- | --- |
 | **Global navigation** | Four competition-scoped destinations. A bottom bar under 1120px, a rail at and above it. |
 | **Competition switching** | A large permanent switcher: a full-width control on a phone, the head of the rail on a desktop. It opens a sheet of recents, then the player's own, then the whole catalogue. **At one competition it is not a button at all** — it renders as a label. |
+| **Competition discovery** | A separate, deliberately small **Explore** control: a row in the rail on a desktop ("All competitions"), one quiet button beside the competition on a phone. **It is not the switcher and never becomes it.** Switching between competitions the player already has and browsing the ones they do not are different actions, and only the first is worth removing when there is one competition. Explore is present at every scale, so an EPL-only player on a phone still has a route into the other nineteen. |
 | **Game switching** | Games is a destination. Every game is a peer inside it, with its own status vocabulary. |
 | **Social model** | Leagues is one of the four. Private leagues and the global table sit on the same surface, scoped to the competition. |
 | **Desktop** | A 264px rail: the switcher, the four destinations, a bounded six competition shortcuts, then All competitions and the account. The switch becomes free because the list is already open. |
-| **Mobile** | The competition bar is the loudest permanent thing on screen; the four destinations are small. |
+| **Mobile** | The competition bar is the loudest permanent thing on screen; the four destinations are small, and Explore is smaller still. |
 | **Advantages** | The clearest answer to "where am I" of the three. A one-competition player pays literally nothing. Games — and therefore Last Man Standing — get a place where they are peers. Closest to what the existing backend and route tree already assume, so the migration is the cheapest. |
 | **Weaknesses** | **No cross-competition view of what needs doing, at any time.** Urgency in a competition the player is not currently in is a dot on a rail row, and a dot cannot say what. A four-competition player with one deadline has to already know which competition it is in. The rail is also the most expensive chrome of the three. |
 
@@ -143,7 +144,7 @@ stated in the note; `✗` means it does not answer it.
 
 | Scenario | A | B | C | Note |
 | --- | :-: | :-: | :-: | --- |
-| **1 competition** | ✓ | ~ | ✓ | A's switcher becomes a label and costs nothing. B keeps a filter row with one useful chip — furniture for a player who will never use it. C's spine reads as a title. |
+| **1 competition** | ✓ | ~ | ✓ | A's switcher becomes a label and costs nothing, while Explore keeps the catalogue one press away — the first build of A dropped the second half on a phone, where there is no rail to carry it, and left the player with four competition-scoped destinations and no way out. B keeps a filter row with one useful chip — furniture for a player who will never use it. C's spine reads as a title and Jump is unaffected. |
 | **3–4 competitions** | ✓ | ✓ | ✓ | All three are comfortable. This is the width at which the concepts are hardest to tell apart, which is why it is not the deciding scenario. |
 | **10+ competitions** | ~ | ✓ | ✓ | A's rail bounds at six and then says "+5 more" — honest, and the point at which a permanent list stops being a permanent list. B and C are unaffected. |
 | **~20 published** | ✓ | ✓ | ✓ | Measured, not asserted: the browser suite compares permanent chrome height at twenty published against four played and fails a concept that grows by more than 8px. All three pass. |
@@ -291,7 +292,7 @@ share one, which is exactly what "settle the navigation contract" means here.
 | --- | --- | --- | --- |
 | How does a competition become part of my normal experience? | Follow or join it; it appears in the switcher sheet and the rail | Follow or join it; it becomes a filter chip | Follow or join it; it appears in the command centre and the command surface index |
 | How is it removed? | Unfollow, in the account surface — unchanged from today | Same | Same |
-| How is another one explored? | The sheet's last row → the catalogue | The filter row's last chip | The command surface, which *is* discovery |
+| How is another one explored? | Explore, beside the competition on a phone and a rail row on a desktop; and the sheet's last row when the sheet exists | The filter row's last chip | The command surface, which *is* discovery |
 | What does Home use as the active context? | The switcher's competition — explicit and permanent | **Nothing.** Home is the unfiltered queue | The spine's competition |
 | What happens with no competition selected? | Opens on discovery; the switcher says "No competition yet" | Opens on discovery; the queue is empty and says so | Opens on discovery; the spine says "No competition chosen yet" |
 
@@ -447,10 +448,40 @@ no two of them can be blended without losing the thing that makes each work.
 
 **Accessibility is the one row where the difference is a real risk rather than a
 trade-off.** All three pass axe at wcag2a/2aa/21aa/22aa with no critical or
-serious violation, clear 44×44 everywhere, restore focus from every overlay and
-survive reduced motion. C scores lower because it puts more behind menus and
-dialogs than the other two, which is more surface area for a future regression
-rather than a defect today.
+serious violation, survive reduced motion, and — now measured rather than
+claimed — clear **44×44 in both axes** and return focus to the control that was
+actually pressed. C scores lower because it puts more behind menus and dialogs
+than the other two, which is more surface area for a future regression rather
+than a defect today.
+
+Both of those were corrected after the first independent review, and both had
+passed a test that was not testing them:
+
+- **The target assertion was `height ≥ 44` and `width ≥ 44` in the report and
+  `height ≥ 44`, `width ≥ 24` in the browser suite.** The written contract is
+  the one that survives — `--vnext-tap-target` is 44 and the vNext
+  accessibility authority is not weakened to keep a lab green — so the
+  assertion now measures the control's own layout box in both axes.
+  **No exception is carved for any concept.** The question of whether inline
+  text links are held to the same size does not arise here: every interactive
+  thing in all three concepts is a button, an input or the skip link, and there
+  is no prose link in the chrome or in the shared bodies.
+- **Focus return pointed at the wrong copy of a duplicated control.** All three
+  concepts render a phone navigation and a desktop navigation and let CSS show
+  one. A restores focus after its sheet closes and used a single `useRef`
+  shared by both switchers, so the desktop returned focus to the phone's
+  `display: none` copy; C used the phone's Jump button as the restoration
+  target while the desktop opens the surface from the command centre instead.
+  In both cases the browser refused the focus call and the keyboard user landed
+  on `<body>`. **jsdom could not have caught it** — it evaluates no container
+  query, so both copies are "visible" there. `ia/shared/focusReturn.ts` now
+  captures the opener from the triggering press and verifies it still has a
+  layout box before focusing it, and `e2e/vnext-ia.spec.ts` asserts the return
+  path in both layout modes for both concepts, including that no hidden
+  duplicate holds focus. **B was audited in the same seam and left alone**: it
+  duplicates its anchors and filter identically, but opens no overlay at all
+  and therefore restores no focus. A test holds that property so a future
+  overlay cannot be added without adopting the same capture.
 
 ---
 

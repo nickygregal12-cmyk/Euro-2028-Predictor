@@ -138,9 +138,15 @@ export const CompareOnADesktop: Story = {
  * ONE COMPETITION. The question every concept has to pass: does the product
  * feel like a Premier League prediction game, or like a platform the player is
  * visiting?
+ *
+ * AND THE SECOND HALF OF THAT QUESTION, which the first review of this lab
+ * found unanswered: the product may FEEL like a one-competition product, but
+ * the other nineteen have to stay findable. Both phone widths, because the
+ * concept that costs a one-competition player nothing is also the concept with
+ * the least room to put the way out.
  */
 export const OneCompetition: Story = {
-  args: { viewports: ['phone-430'], scale: 1 },
+  args: { viewports: ['phone-375', 'phone-430'], scale: 1 },
   render: (args) => (
     <WorkshopCanvas {...args}>
       <Compare scenario="single" />
