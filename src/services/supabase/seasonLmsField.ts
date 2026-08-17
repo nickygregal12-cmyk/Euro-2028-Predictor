@@ -29,7 +29,7 @@ export async function fetchSeasonLmsField(
 ): Promise<SeasonLmsField> {
   const { data, error } = await db.rpc('get_season_lms_field', {
     p_tournament_id: tournamentId,
-    p_window_sequence: windowSequence,
+    ...(windowSequence === undefined ? {} : { p_window_sequence: windowSequence }),
   })
   if (error) throw error
   return mapSeasonLmsField(data)

@@ -59,15 +59,15 @@ export type SeasonMatchesPageProps = {
    * any future context with fixtures but no player — and the rows are then
    * plain rows rather than controls that open nothing.
    */
-  readMatchweekCard?: SeasonMatchCentreCardReader
+  readMatchweekCard?: SeasonMatchCentreCardReader | undefined
   /**
    * Contract 141's club form and season head-to-head, for an opened fixture.
    * Optional and independent of the card: the football is the same for
    * everybody and is shown even where an entry could not be read.
    */
-  football?: SeasonFootballContext
+  football?: SeasonFootballContext | undefined
   /** Where a fixture's matchweek is predicted; passed through to the panel. */
-  predictHref?: (matchweek: number) => string
+  predictHref?: ((matchweek: number) => string) | undefined
   /**
    * Contract 160's league table for this competition, read by the route.
    *

@@ -30,7 +30,7 @@ export async function fetchSeasonLeaderboardPage(
   const { data, error } = await db.rpc('get_season_leaderboard', {
     p_tournament_id: tournamentId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? undefined,
+    ...(options.after == null ? {} : { p_after: options.after }),
   })
   if (error) throw error
   return mapSeasonLeaderboardPage(data)

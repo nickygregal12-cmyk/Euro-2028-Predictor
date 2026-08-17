@@ -52,7 +52,7 @@ export type BottomNavProps = {
    */
   items?: readonly BottomNavItem[] | undefined
   /** Dev/demo-only override. Production navigation should omit this. */
-  onNavigate?: (key: NavKey) => void
+  onNavigate?: ((key: NavKey) => void) | undefined
 }
 
 /**

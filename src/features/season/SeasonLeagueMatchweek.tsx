@@ -50,7 +50,7 @@ export type SeasonLeagueMatchweekProps = {
     competitionRoundId: string,
   ) => Promise<SeasonLeagueMatchweekPredictions>
   /** Where a member's name links. Omitted renders plain text. */
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
   /** Deterministic zone for harnesses and tests; production resolves the viewer's. */
   timeZone?: string
   /**
@@ -250,7 +250,7 @@ function FixtureCard({
   playerHref,
 }: {
   fixture: LeagueMatchweekFixture
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
 }) {
   return (
     <li className={styles.fixture}>

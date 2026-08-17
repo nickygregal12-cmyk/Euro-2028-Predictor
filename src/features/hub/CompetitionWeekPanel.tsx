@@ -34,7 +34,7 @@ function ActionRow({
   primary,
 }: {
   action: WeekAction
-  timeZone?: string
+  timeZone?: string | undefined
   primary: boolean
 }) {
   const when = formatWeekDeadline(action, timeZone)

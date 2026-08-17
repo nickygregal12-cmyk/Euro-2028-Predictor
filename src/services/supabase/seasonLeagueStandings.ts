@@ -45,7 +45,7 @@ export async function fetchSeasonLeagueStandingsPage(
   const { data, error } = await db.rpc('get_season_league_standings', {
     p_league_id: leagueId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? undefined,
+    ...(options.after == null ? {} : { p_after: options.after }),
   })
   if (error) throw error
   return mapSeasonLeagueStandingsPage(data)

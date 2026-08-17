@@ -15,7 +15,7 @@ export async function fetchKoPredictorStandings(
   const { data, error } = await db.rpc('get_ko_predictor_standings', {
     p_tournament_id: tournamentId,
     p_limit: 50,
-    p_after: after ?? undefined,
+    ...(after == null ? {} : { p_after: after }),
   })
   if (error) throw error
   return mapKoStandingsResponse(data)

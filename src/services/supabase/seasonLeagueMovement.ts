@@ -28,7 +28,7 @@ export async function fetchSeasonLeagueMovement(
 ): Promise<SeasonLeagueMovement> {
   const { data, error } = await db.rpc('get_season_league_rank_movement', {
     p_league_id: leagueId,
-    p_competition_round_id: competitionRoundId ?? undefined,
+    ...(competitionRoundId == null ? {} : { p_competition_round_id: competitionRoundId }),
   })
   if (error) throw error
   return mapSeasonLeagueMovement(data)

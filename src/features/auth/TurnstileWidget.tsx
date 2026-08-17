@@ -65,7 +65,7 @@ export type TurnstileWidgetProps = {
    */
   onStatusChange?: (status: TurnstileStatus) => void
   // Optional class on the container (e.g. to centre the fixed-width widget).
-  className?: string
+  className?: string | undefined
 }
 
 export function TurnstileWidget({

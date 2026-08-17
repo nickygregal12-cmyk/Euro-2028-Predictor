@@ -12,6 +12,14 @@ export function useMatchCentreBackNavigation() {
   const navigate = useNavigate()
 
   return useCallback(() => {
-    navigate(matchCentreReturnLocation(location.state), { replace: true })
+    const returnTo = matchCentreReturnLocation(location.state)
+    navigate(
+      {
+        pathname: returnTo.pathname,
+        ...(returnTo.search === undefined ? {} : { search: returnTo.search }),
+        ...(returnTo.hash === undefined ? {} : { hash: returnTo.hash }),
+      },
+      { replace: true },
+    )
   }, [location.state, navigate])
 }

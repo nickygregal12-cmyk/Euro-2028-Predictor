@@ -117,7 +117,7 @@ function DuringLayout({
   m: HomeModel
   navigate: Nav
   onOpenMatch: (matchRef: string) => void
-  onShare?: (variant: ShareVariant) => void
+  onShare?: ((variant: ShareVariant) => void) | undefined
 }) {
   const leagueDataAvailable = !m.unavailable.includes('leagues')
 
@@ -170,7 +170,7 @@ function PreSubmittedLayout({
 }: {
   m: HomeModel
   navigate: Nav
-  onShare?: (variant: ShareVariant) => void
+  onShare?: ((variant: ShareVariant) => void) | undefined
 }) {
   const days = m.lockAt
     ? daysUntil(m.lockAt.slice(0, 10))

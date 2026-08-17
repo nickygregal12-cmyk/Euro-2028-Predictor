@@ -237,7 +237,7 @@ export function SeasonChampionshipPlayerPage({
 }: {
   gateway: SeasonCupPlayerViewGateway
   mode: ChampionshipPageMode
-  registration?: SeasonLmsRegistrationGateway
+  registration?: SeasonLmsRegistrationGateway | undefined
   /** Where the full group table lives, for the standing panel's one link. */
   tableHref?: string
   /**

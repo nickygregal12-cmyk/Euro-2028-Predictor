@@ -49,7 +49,7 @@ export type SeasonLmsPageProps = {
   gateway: SeasonLmsGateway
   now: () => Date
   /** Registration for this competition, when the caller can name it. */
-  registration?: SeasonLmsRegistrationGateway
+  registration?: SeasonLmsRegistrationGateway | undefined
   /**
    * Contract 164's field, when the caller can name the season.
    *

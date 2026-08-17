@@ -38,7 +38,7 @@ export type LeagueMemberRowProps = {
   revealed?: boolean
   stats?: MemberStats
   onProfile?: () => void
-  onHeadToHead?: () => void
+  onHeadToHead?: (() => void) | undefined
 }
 
 function statValue(n: number | null | undefined): string {

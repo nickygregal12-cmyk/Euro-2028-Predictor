@@ -24,8 +24,8 @@ export async function fetchMySeasonHistory(
   offset?: number,
 ): Promise<SeasonHistoryPage> {
   const { data, error } = await db.rpc('get_my_season_history', {
-    p_limit: limit,
-    p_offset: offset,
+    ...(limit === undefined ? {} : { p_limit: limit }),
+    ...(offset === undefined ? {} : { p_offset: offset }),
   })
   if (error) throw error
   return mapSeasonHistoryPage(data)

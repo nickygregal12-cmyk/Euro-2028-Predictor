@@ -84,7 +84,7 @@ export type SeasonFixtureLeaguesProps = {
     competitionRoundId: string,
   ) => Promise<SeasonLeagueMovement>
   /** Where a co-member's name links to. Omitted renders plain text. */
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
 }
 
 type LeagueState =
@@ -234,7 +234,7 @@ function LeagueSection({
 }: {
   name: string
   state: LeagueState
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
 }) {
   if (state.kind === 'loading') {
     return (
@@ -320,7 +320,7 @@ function MemberRow({
   playerHref,
 }: {
   row: LeagueFixtureRow
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
 }) {
   const href = playerHref?.(row.userId)
   const outcome =

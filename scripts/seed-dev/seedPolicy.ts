@@ -30,14 +30,14 @@ export const DEV_PROJECT_REF = 'iouzoutneyjpugbbtdem'
 
 export type SeedEnv = {
   // Explicit acknowledgement — must equal 'i-understand' or the run refuses.
-  SEED_DEV?: string
-  NODE_ENV?: string
-  SUPABASE_URL?: string
+  SEED_DEV?: string | undefined
+  NODE_ENV?: string | undefined
+  SUPABASE_URL?: string | undefined
   // The service-role key is required to create auth users and bypass RLS.
-  SUPABASE_SERVICE_ROLE_KEY?: string
+  SUPABASE_SERVICE_ROLE_KEY?: string | undefined
   // Once a production project exists, set this to its URL; the seed then refuses
   // to run against it, belt-and-braces with SEED_DEV.
-  SUPABASE_PROD_URL?: string
+  SUPABASE_PROD_URL?: string | undefined
 }
 
 export type SeedDecision = { url: string; serviceKey: string }

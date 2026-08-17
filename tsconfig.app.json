@@ -26,7 +26,14 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    /**
+     * An optional property means ABSENT, not "present and undefined". Without
+     * this, `{ a: undefined }` satisfies `{ a?: string }`, so spreading a partial
+     * object over a complete one can erase a field while the types say it cannot.
+     */
+    "exactOptionalPropertyTypes": true
   },
   "include": ["src", ".storybook"]
 }

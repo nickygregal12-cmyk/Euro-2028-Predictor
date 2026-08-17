@@ -44,7 +44,7 @@ export type InvitePreviewCardProps = {
    * here. The honest control is the one that leaves, relabelled to say where it
    * goes, rather than an Open button pointing at an id the client does not have.
    */
-  declineLabel?: string
+  declineLabel?: string | undefined
 }
 
 export function InvitePreviewCard({

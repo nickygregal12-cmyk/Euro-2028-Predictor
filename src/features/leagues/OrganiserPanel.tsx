@@ -133,9 +133,9 @@ function Detail({
 }: {
   competitionId: string
   open: (competitionId: string) => Promise<OrganisedCompetition | null>
-  readCupLaunch?: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
-  launchCup?: (competitionId: string) => Promise<CupLaunchResult>
-  onCompetitionChanged?: () => void
+  readCupLaunch?: ((competitionId: string) => Promise<PrivateCupLaunchReadiness | null>) | undefined
+  launchCup?: ((competitionId: string) => Promise<CupLaunchResult>) | undefined
+  onCompetitionChanged?: (() => void) | undefined
 }) {
   const [state, setState] = useState<
     { status: 'loading' } | { status: 'failed' } | { status: 'ready'; view: OrganisedCompetition | null }
@@ -249,7 +249,7 @@ function CupLaunchControl({
   competitionId: string
   read: (competitionId: string) => Promise<PrivateCupLaunchReadiness | null>
   launch: (competitionId: string) => Promise<CupLaunchResult>
-  onChanged?: () => void
+  onChanged?: (() => void) | undefined
 }) {
   const [state, setState] = useState<LaunchState>({ status: 'loading' })
   const [launching, setLaunching] = useState(false)

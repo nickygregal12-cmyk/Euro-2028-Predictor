@@ -482,7 +482,7 @@ type CreatedStepProps = {
   game: CreateJourneyGame | null
   host: CreateJourneyHost | null
   launchCup: (competitionId: string) => Promise<CupLaunchResult>
-  onOpen?: (league: CreatedGameLeague) => void
+  onOpen?: ((league: CreatedGameLeague) => void) | undefined
   onDone: () => void
   headingId: string
 }

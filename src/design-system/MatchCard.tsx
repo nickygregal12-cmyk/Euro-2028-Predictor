@@ -46,8 +46,8 @@ export type MatchCardProps = {
   // locked
   countdown?: string
   // scored
-  result?: { home: number; away: number }
-  score?: MatchCardScore
+  result?: { home: number; away: number } | undefined
+  score?: MatchCardScore | undefined
   // joker (group-stage matches only)
   jokerState?: JokerState
   onToggleJoker?: () => void

@@ -42,7 +42,7 @@ export function SignUpPage() {
     displayName: string
     email: string
     password: string
-    captchaToken?: string
+    captchaToken?: string | undefined
   }) {
     setSubmitting(true)
     setError(null)

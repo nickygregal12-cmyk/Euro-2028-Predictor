@@ -19,7 +19,7 @@ export type SignUpFormProps = {
     displayName: string
     email: string
     password: string
-    captchaToken?: string
+    captchaToken?: string | undefined
   }) => void
   submitting?: boolean
   // A friendly, already-mapped server error (e.g. email already in use).

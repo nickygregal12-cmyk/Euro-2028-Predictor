@@ -235,8 +235,10 @@ export type MatchPredictorGateway = {
    * whether the method exists rather than being told by a flag that can
    * disagree with the gateway it is describing.
    */
-  reconcile?(
-    matchweek: number,
-    drafts: readonly MatchPredictorDraft[],
-  ): Promise<PredictionBatchResult>
+  reconcile?:
+    | ((
+        matchweek: number,
+        drafts: readonly MatchPredictorDraft[],
+      ) => Promise<PredictionBatchResult>)
+    | undefined
 }

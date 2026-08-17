@@ -80,8 +80,8 @@ export type MatchCentreScreenProps = {
   saidLoading?: boolean
   saidError?: string | null
   onRetrySaid?: () => void
-  onPreviousMatch?: () => void
-  onNextMatch?: () => void
+  onPreviousMatch?: (() => void) | undefined
+  onNextMatch?: (() => void) | undefined
   consequence?: { casualties: number; example: string | null } | null
   scoreEvents: ScoreEvent[]
   onBack?: () => void
@@ -129,7 +129,7 @@ function CollapsibleList({
 }: {
   count: number
   /** Contract 171: what the server carried, when it said. */
-  coverage?: ListCoverage
+  coverage?: ListCoverage | undefined
   children: React.ReactNode[]
 }) {
   const [open, setOpen] = useState(false)

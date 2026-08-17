@@ -51,7 +51,7 @@ export async function signUpWithPassword(params: {
   email: string
   password: string
   displayName: string
-  captchaToken?: string
+  captchaToken?: string | undefined
 }): Promise<{ needsConfirmation: boolean }> {
   const { data, error } = await db.auth.signUp({
     email: params.email,

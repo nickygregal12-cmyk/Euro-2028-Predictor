@@ -75,7 +75,7 @@ export type SeasonFootballContext = {
    * settled matches, and the panel must not render the form block at all
    * rather than show two clubs as having played nothing.
    */
-  formFor?: (clubName: string) => SeasonClubForm | null
+  formFor?: ((clubName: string) => SeasonClubForm | null) | undefined
   /** This season's meetings between two clubs, fetched when a fixture opens. */
   headToHead?: (teamId: string, opponentId: string) => Promise<ClubHeadToHead>
   /**
@@ -100,7 +100,7 @@ export type SeasonFootballContext = {
    * a league season. Both cases render no table block rather than two clubs
    * shown as having no position, which is a claim about the football.
    */
-  tableFor?: (clubName: string) => CompetitionTableRow | null
+  tableFor?: ((clubName: string) => CompetitionTableRow | null) | undefined
 }
 
 /**
@@ -145,7 +145,7 @@ export type SeasonMatchCentreProps = {
    * Where this fixture's matchweek is predicted. Supplied by the route, which
    * owns the slugs; absent where the Match Predictor is not reachable.
    */
-  predictHref?: (matchweek: number) => string
+  predictHref?: ((matchweek: number) => string) | undefined
 }
 
 function FormRow({ name, summary }: { name: string; summary: ClubFormSummary }) {

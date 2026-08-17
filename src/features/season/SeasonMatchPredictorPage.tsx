@@ -37,7 +37,7 @@ export type SeasonMatchPredictorPageProps = {
    * harness, which has no season to read one from — the panel is then absent
    * rather than empty.
    */
-  consensus?: (matchweek: number) => Promise<SeasonConsensus>
+  consensus?: ((matchweek: number) => Promise<SeasonConsensus>) | undefined
   /**
    * Where another matchweek of this card lives. Supplied by the route, which
    * owns URL construction; omitted by the DEV harness, which is not on one.
@@ -70,7 +70,7 @@ export type SeasonMatchPredictorPageProps = {
    * INDEPENDENT OF THE FORM. A competition with a table and no settled form is
    * as real as the reverse, and the panel shows whichever it has.
    */
-  tableFor?: (clubName: string) => CompetitionTableRow | null
+  tableFor?: ((clubName: string) => CompetitionTableRow | null) | undefined
 }
 
 const SKELETON_ROWS = 10

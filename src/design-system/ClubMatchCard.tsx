@@ -40,8 +40,8 @@ export type ClubMatchCardProps = {
   // quiet "You predicted" text when scored)
   homeScore: number | null
   awayScore: number | null
-  onHomeScoreChange?: (v: number | null) => void
-  onAwayScoreChange?: (v: number | null) => void
+  onHomeScoreChange?: ((v: number | null) => void) | undefined
+  onAwayScoreChange?: ((v: number | null) => void) | undefined
   // editable
   saveStatus?: SaveStatus
   onRetrySave?: () => void

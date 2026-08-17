@@ -14,7 +14,7 @@ export type TieCardProps = {
   pickedTeamId: string | null
   // Called with the picked team's id. Omitted (or a non-pickable tie) makes the
   // rows non-interactive — a forward tie can't be decided until both feeders are.
-  onPick?: (teamId: string) => void
+  onPick?: ((teamId: string) => void) | undefined
 }
 
 /**
@@ -71,7 +71,7 @@ function TieRow({
   side: TieSide
   picked: string | null
   pickable: boolean
-  onPick?: (teamId: string) => void
+  onPick?: ((teamId: string) => void) | undefined
 }) {
   if (side.kind === 'placeholder') {
     return (

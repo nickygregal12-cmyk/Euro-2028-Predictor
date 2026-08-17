@@ -36,8 +36,8 @@ export async function fetchMyOrganisedCompetitions(
   offset?: number,
 ): Promise<readonly OrganisedCompetitionSummary[]> {
   const { data, error } = await db.rpc('get_my_organised_competitions', {
-    p_limit: limit,
-    p_offset: offset,
+    ...(limit === undefined ? {} : { p_limit: limit }),
+    ...(offset === undefined ? {} : { p_offset: offset }),
   })
   if (error) throw error
   return mapOrganisedCompetitions(data)

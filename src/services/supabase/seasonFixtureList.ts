@@ -52,8 +52,8 @@ export async function fetchSeasonFixtureList(
 ): Promise<SeasonFixtureList> {
   const { data, error } = await db.rpc('get_season_fixtures', {
     p_tournament_id: tournamentId,
-    p_from: window.from ?? undefined,
-    p_to: window.to ?? undefined,
+    ...(window.from == null ? {} : { p_from: window.from }),
+    ...(window.to == null ? {} : { p_to: window.to }),
   })
   if (error) throw error
   return mapSeasonFixtureList(data)
