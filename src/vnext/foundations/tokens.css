@@ -134,12 +134,16 @@
   --vnext-tracking-tight: -0.02em;
 
   /* ---- layout measures --------------------------------------------------
-     Read by the layout primitives, which respond to their CONTAINER rather
-     than the viewport so a 375px frame on a 1440px monitor is honest. */
+     Read by layout that responds to its CONTAINER rather than the viewport, so
+     a 375px frame on a 1440px monitor is honest.
+     `--vnext-shell-max`, `--vnext-nav-rail` and `--vnext-context-rail` were
+     removed in Stage 5. They were `AppFrame`'s measures and nothing had read
+     one since `AppFrame` itself went; `--vnext-shell-max` had become actively
+     wrong, because the application shell deliberately imposes NO maximum width
+     — a standings table at 1920 is meant to use the workspace. The page inset
+     is not a token either: it changes per shell band, so the shell states it as
+     `--vnext-page-inset` on its own children. */
   --vnext-gutter: var(--vnext-space-4);
-  --vnext-shell-max: 1600px;
-  --vnext-nav-rail: 88px;
-  --vnext-context-rail: 280px;
   --vnext-personal-rail: 340px;
   --vnext-tap-target: 44px;
 

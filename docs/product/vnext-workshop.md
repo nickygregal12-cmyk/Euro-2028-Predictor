@@ -22,6 +22,19 @@ Stage 3 concepts have been removed — git history holds them — along with
 frame. What remains in `workshop/` is `WorkshopCanvas`, the container-framed
 device board every review runs in.
 
+**The reusable half of that language is now `src/vnext/app/`.** The shell owns
+the canvas, the page bounds, the masthead band, the two navigations, the `<main>`
+landmark and mobile bottom spacing; a page owns everything inside `<main>`.
+Home was migrated onto it as a structural extraction and measured before and
+after at every reviewed width and emphasis: the only difference in the whole
+comparison was the fifteen characters of the new skip link. The contract a
+future page needs is in
+[`../../src/vnext/AGENTS.md`](../../src/vnext/AGENTS.md), not here.
+
+The `vNext/Shell` Storybook group is neutral placeholder content proving the
+shell hosts a page that is not Home. It is deliberately dull and it is **not a
+visual authority** — Home is.
+
 ## Visual principles being tested
 
 1. **Broadcast, not dashboard.** A near-black canvas with two soft washes, large
@@ -49,8 +62,11 @@ device board every review runs in.
    inside otherwise container-driven layouts. A frame that has a definite height
    declares it as `--vnext-frame-block`; a frame that has not bounds nothing.
    `tests/vnext/workshopFixtures.test.ts` holds the ban, and
-   `e2e/vnext-workshop-layout.spec.ts` measures the result in Chromium at all
-   five widths, because jsdom evaluates no container query.
+   `e2e/vnext-home.spec.ts` and `e2e/vnext-shell.spec.ts` measure the result in
+   Chromium at all five widths, because jsdom evaluates no container query.
+   The shell states the page bounds as `--vnext-page-inset` rather than padding
+   its content region, so a page reads one number for its margins and still
+   measures its own thresholds against the full width.
 
 ## Token and motion hypotheses
 
@@ -149,8 +165,15 @@ Home settled the questions about Home. These are still open:
   polite region on a minute that changes constantly would talk over everything
   else. Designing the announcement properly is its own piece of work.
 - How much of Home's language survives contact with Match Predictor, Match
-  Centre, Matches, Leagues, Predictor Championship and Last Man Standing. Home
-  is built to be inherited from; nothing has inherited from it yet.
+  Centre, Matches, Leagues, Predictor Championship and Last Man Standing. The
+  APPLICATION half of it has been extracted and proved against neutral content,
+  narrow and wide; the CONTENT half — how dense a prediction grid should be, what
+  a match page emphasises, whether any of them want page-local tabs — is
+  untested, because no real page has been built on the shell yet.
+- Whether the page header's `trailing` slot is the right shape. One page uses it
+  today, for something no other page will want. It stayed a slot rather than
+  becoming props precisely so the second and third users can disagree with Home
+  cheaply, and the second user is the one that will settle it.
 - Everything about real data. Home runs on fixtures and calls nothing.
 
 ### Settled by Home, and no longer open

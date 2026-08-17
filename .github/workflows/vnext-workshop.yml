@@ -30,6 +30,7 @@ on:
       - 'src/vnext/**'
       - '.storybook/**'
       - 'e2e/vnext-home.spec.ts'
+      - 'e2e/vnext-shell.spec.ts'
       - 'playwright.vnext.config.ts'
       - 'package-lock.json'
       - '.github/workflows/vnext-workshop.yml'

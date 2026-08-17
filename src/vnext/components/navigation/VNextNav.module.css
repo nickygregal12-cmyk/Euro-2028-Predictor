@@ -90,8 +90,28 @@
   flex-direction: column;
   gap: 3px;
   width: 100%;
+  min-width: 0;
   padding: var(--vnext-space-2) var(--vnext-space-1);
   border-radius: var(--vnext-radius-md);
+}
+
+/* A LONG LABEL WRAPS; IT DOES NOT SPILL INTO THE NEXT DESTINATION.
+ *
+ * The four English labels are short enough that this bar looked safe. It was
+ * not: at 375px the German set — "Startseite", "Spielbegegnungen",
+ * "Ligatabellen", "Saisonübersicht" — ran straight through the neighbouring
+ * targets, so the words of one destination sat on top of another's, and the
+ * active marker appeared to cover three of them.
+ *
+ * Same answer as the club names in Home's dense rows, for the same reason: the
+ * row wraps rather than truncates, because a destination called
+ * "Spielbegegnun…" is a destination the user has to guess at. `overflow-wrap:
+ * anywhere` handles the single long word no soft break exists in. Nothing here
+ * changes an English bar — those labels still fit on one line — so this is a
+ * capability the bar gained rather than a shape it changed. */
+.bar .label {
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 /* ---- masthead band (expanded) ----

@@ -1,0 +1,67 @@
+/* PLACEHOLDER STYLING FOR THE SHELL DEMONSTRATIONS.
+ *
+ * Deliberately plain. These stories exist to prove the shell hosts a page that
+ * is not Home, and anything here that looked designed would start competing
+ * with the Gold Standard Home for authority. Tokens only, no new language.
+ *
+ * The one thing worth reading here is `.column`: it takes its inline padding
+ * from `--vnext-page-inset`, which is how ANY vNext page gets the page bounds
+ * the masthead uses without knowing what they are at a given width. */
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding-inline: var(--vnext-page-inset);
+  min-width: 0;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.status {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+/* A wide table scrolls INSIDE its own box. The page never grows past the frame,
+ * which is the same rule Home's score bar follows. */
+.tableScroller {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--vnext-size-caption);
+  color: var(--vnext-text);
+}
+
+.table th,
+.table td {
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  text-align: end;
+  white-space: nowrap;
+  border-block-end: 1px solid var(--vnext-hairline);
+}
+
+.table thead th {
+  color: var(--vnext-text-muted);
+  font-weight: var(--vnext-weight-medium);
+}
+
+.table th[scope='row'] {
+  text-align: start;
+  color: var(--vnext-text-secondary);
+}

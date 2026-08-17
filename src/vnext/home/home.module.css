@@ -1,8 +1,17 @@
 /* vNEXT HOME — THE GOLD STANDARD SURFACE.
  *
- * Every query below is a CONTAINER query against `vnext-home`, and no length is
- * viewport-relative. That is the workshop's load-bearing rule: a 430px frame on
- * a 1920px monitor has to compose as a phone, or the review is a lie.
+ * WHAT IS NO LONGER HERE. The canvas, the competition wash, the page bounds,
+ * the sticky masthead band, both navigations, the `<main>` landmark and the
+ * mobile bottom spacing moved to `app/VNextShell.module.css` in Stage 5. They
+ * are application structure, and every vNext page needs them; what stayed is
+ * what only Home needs. The inset the shell decides arrives as
+ * `--vnext-page-inset`, so the zones below apply the page bounds without
+ * knowing the number.
+ *
+ * Every query below is a CONTAINER query against `vnext-page` — the shell's
+ * content region — and no length is viewport-relative. That is the workshop's
+ * load-bearing rule: a 430px frame on a 1920px monitor has to compose as a
+ * phone, or the review is a lie.
  *
  * THE FOUR COMPOSITIONS.
  *
@@ -22,6 +31,12 @@
  *                       league race is already its dominant zone. Track count
  *                       follows area count per emphasis, never the widest case.
  *
+ * Two of those four are shell bands and two are Home's. The shell owns 760 and
+ * 1120 because the inset and the navigation change there for every page; Home
+ * owns 760 and 1560 because that is where ITS football re-columns. They agree
+ * at 760 by coincidence of measurement, not by inheritance, and Home would keep
+ * 1560 if the shell moved every band it has.
+ *
  * THE THRESHOLDS ARE MEASURED, NOT CHOSEN. They are Stage 3's, kept because
  * Stage 3 earned them: a dense zone must be sized against ITS OWN column, and
  * the number that matters is the width at which the club NAMES fit, not the
@@ -35,81 +50,7 @@
  * of "correct".
  */
 
-.shell {
-  container-type: inline-size;
-  container-name: vnext-home;
-
-  display: flex;
-  flex-direction: column;
-  gap: var(--vnext-space-4);
-  min-height: 100%;
-  padding-block-end: var(--vnext-space-4);
-
-  /* THE ATMOSPHERE — Cinematic Football's contribution to the page itself.
-     Two soft competition-colour washes anchored to the top of the surface, on
-     the shell's own background rather than on an element, so there is no extra
-     node and no stacking context to reason about. It carries no information,
-     which is why it is this quiet and why it is the only decorative layer on
-     the page. `background-size` is a length rather than a percentage because a
-     percentage of a very tall page is a very tall wash. */
-  background-image:
-    radial-gradient(
-      88% 100% at 8% 0%,
-      color-mix(
-        in srgb,
-        var(--vnext-competition-primary, transparent) 60%,
-        transparent
-      )
-        0%,
-      transparent 72%
-    ),
-    radial-gradient(
-      72% 100% at 96% 0%,
-      color-mix(
-        in srgb,
-        var(--vnext-competition-accent, transparent) 16%,
-        transparent
-      )
-        0%,
-      transparent 74%
-    );
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100% 460px, 100% 360px;
-  background-position: top left, top right;
-}
-
-/* ---- masthead ---------------------------------------------------------- */
-
-.masthead {
-  position: sticky;
-  top: 0;
-  z-index: var(--vnext-layer-sticky);
-  display: flex;
-  flex-direction: column;
-  gap: var(--vnext-space-3);
-  padding: var(--vnext-space-4) var(--vnext-space-4) var(--vnext-space-3);
-  background-color: var(--vnext-canvas-deep);
-  border-block-end: 1px solid var(--vnext-hairline);
-  box-shadow: var(--vnext-shadow-md);
-}
-
-.mastheadTop {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--vnext-space-4);
-}
-
-.competition {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.matchweek {
-  color: var(--vnext-text);
-}
+/* ---- what Home puts in the shell's page header -------------------------- */
 
 .standing {
   display: flex;
@@ -129,28 +70,10 @@
   margin: 0;
 }
 
-/* The desktop navigation band. Hidden entirely below `expanded`, which removes
- * it from the accessibility tree as well as from the page, so there is never a
- * duplicate landmark or a focus stop nobody can see. */
-.mastheadNav {
-  display: none;
-  border-block-start: 1px solid var(--vnext-hairline);
-  padding-block-start: var(--vnext-space-2);
-}
-
-/* ---- main -------------------------------------------------------------- */
-
-.main {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vnext-space-4);
-  min-width: 0;
-}
-
 /* ---- score bar --------------------------------------------------------- */
 
 .ticker {
-  padding-inline: var(--vnext-space-4);
+  padding-inline: var(--vnext-page-inset);
 }
 
 .tickerScroller {
@@ -255,7 +178,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--vnext-space-2) var(--vnext-space-3);
-  margin-inline: var(--vnext-space-4);
+  margin-inline: var(--vnext-page-inset);
   padding: var(--vnext-space-3) var(--vnext-space-4);
   border: 1px solid var(--vnext-hairline-strong);
   border-radius: var(--vnext-radius-md);
@@ -341,17 +264,21 @@
     'grounds';
   grid-template-columns: minmax(0, 1fr);
   gap: var(--vnext-space-4);
-  padding-inline: var(--vnext-space-4);
+  padding-inline: var(--vnext-page-inset);
 }
 
-[data-vnext-emphasis='decision'] .body {
+/* The emphasis flag sits ON the grid rather than on an ancestor, because the
+ * grid is the only thing it changes. It used to live on Home's own shell
+ * element; that element is the application's now, and putting a page's display
+ * state on the application shell is how a shell learns what an emphasis is. */
+.body[data-vnext-emphasis='decision'] {
   grid-template-areas:
     'stage'
     'grounds'
     'social';
 }
 
-[data-vnext-emphasis='competition'] .body {
+.body[data-vnext-emphasis='competition'] {
   grid-template-areas:
     'stage'
     'grounds';
@@ -1178,44 +1105,9 @@
   color: var(--vnext-text-muted);
 }
 
-/* ---- the mobile bottom bar ---------------------------------------------
- * Sticky rather than fixed, so it belongs to the frame being reviewed rather
- * than to the browser window showing the workshop. */
-
-.navBar {
-  position: sticky;
-  bottom: 0;
-  z-index: var(--vnext-layer-sticky);
-  margin-block-start: auto;
-  padding: var(--vnext-space-2) var(--vnext-space-4) var(--vnext-space-3);
-  background-image: linear-gradient(
-    to top,
-    var(--vnext-canvas-deep) 68%,
-    transparent
-  );
-}
-
 /* ---- regular: the football splits into two columns ---------------------- */
 
-@container vnext-home (min-width: 760px) {
-  .shell {
-    gap: var(--vnext-space-5);
-  }
-
-  .masthead,
-  .ticker,
-  .body {
-    padding-inline: var(--vnext-space-5);
-  }
-
-  .banner {
-    margin-inline: var(--vnext-space-5);
-  }
-
-  .main {
-    gap: var(--vnext-space-5);
-  }
-
+@container vnext-page (min-width: 760px) {
   /* THE COMPETITIVE MODULE GOES UNDER THE STAGE, NOT UNDER THE PAGE.
      A full-width band below both columns was the first build, and it left a
      void: the featured match is shorter than Around the Grounds, so the left
@@ -1237,13 +1129,13 @@
     gap: var(--vnext-space-5);
   }
 
-  [data-vnext-emphasis='decision'] .body {
+  .body[data-vnext-emphasis='decision'] {
     grid-template-areas:
       'stage grounds'
       'social grounds';
   }
 
-  [data-vnext-emphasis='competition'] .body {
+  .body[data-vnext-emphasis='competition'] {
     grid-template-areas: 'stage grounds';
   }
 
@@ -1305,30 +1197,14 @@
   }
 }
 
-/* ---- expanded: the masthead takes the navigation ------------------------ */
+/* ---- expanded: the football gets the extra width ------------------------
+ * The shell widens the page inset and swaps the bottom bar for the masthead
+ * band at this width; what is left here is what the FOOTBALL does with it. */
 
-@container vnext-home (min-width: 1120px) {
-  .masthead,
-  .ticker,
-  .body {
-    padding-inline: var(--vnext-space-6);
-  }
-
-  .banner {
-    margin-inline: var(--vnext-space-6);
-  }
-
+@container vnext-page (min-width: 1120px) {
   .body {
     gap: var(--vnext-space-6);
     grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
-  }
-
-  .navBar {
-    display: none;
-  }
-
-  .mastheadNav {
-    display: block;
   }
 
   .featureCallPoints {
@@ -1349,7 +1225,7 @@
  * to the football and to the league table beside it, not to another band of
  * furniture invented because the space existed. */
 
-@container vnext-home (min-width: 1560px) {
+@container vnext-page (min-width: 1560px) {
   .body {
     grid-template-areas: 'stage grounds social';
     grid-template-columns:
@@ -1359,7 +1235,7 @@
     align-items: start;
   }
 
-  [data-vnext-emphasis='decision'] .body {
+  .body[data-vnext-emphasis='decision'] {
     grid-template-areas: 'stage grounds social';
   }
 
@@ -1372,7 +1248,7 @@
      edge while the masthead, score bar and action banner still spanned the full
      width. The competition emphasis does not need a rail just because the live
      one does; it needs the width it actually uses. */
-  [data-vnext-emphasis='competition'] .body {
+  .body[data-vnext-emphasis='competition'] {
     grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   }
 

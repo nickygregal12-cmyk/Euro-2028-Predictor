@@ -140,11 +140,12 @@ describe('the map cannot rot', () => {
       'auth-capacity.spec.ts',
       'axe-unauthenticated.spec.ts',
       'visual-gallery.spec.ts',
-      // Runs under playwright.vnext.config.ts against Storybook. vNext is not
-      // on any application route, so no weekly journey can reach it and no
-      // source area maps to it — listed here for the same reason the visual
-      // gallery is, rather than being given a weekly journey it has not got.
+      // Run under playwright.vnext.config.ts against Storybook. vNext is not
+      // on any application route, so no weekly journey can reach either and no
+      // source area maps to them — listed here for the same reason the visual
+      // gallery is, rather than being given a weekly journey they have not got.
       'vnext-home.spec.ts',
+      'vnext-shell.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(
