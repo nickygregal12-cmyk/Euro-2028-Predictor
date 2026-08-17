@@ -21,9 +21,9 @@ export type ProviderClub = {
   // Provider short name, e.g. 'Wolves'. Absent for some clubs.
   shortName?: string
   // Three-letter code, e.g. 'WOL'. Absent for some clubs.
-  tla?: string
+  tla?: string | undefined
   // Free text, e.g. 'Gold / Black'. Ordering is meaningful; hex is not given.
-  clubColors?: string
+  clubColors?: string | undefined
 }
 
 /**

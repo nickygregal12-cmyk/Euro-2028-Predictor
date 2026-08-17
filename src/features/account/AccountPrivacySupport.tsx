@@ -4,7 +4,7 @@ import s from '../shared.module.css'
 import a from './account.module.css'
 
 export type AccountPrivacySupportProps = {
-  supportEmail?: string | null
+  supportEmail?: string | null | undefined
   accountEmail?: string | null
 }
 

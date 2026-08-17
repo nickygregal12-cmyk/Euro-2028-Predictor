@@ -31,7 +31,7 @@ export type SeasonMatchPredictorPageProps = {
   competitionName: string
   seasonLabel: string
   destinations?: Partial<Record<SeasonShellSection, string>>
-  registration?: SeasonLmsRegistrationGateway
+  registration?: SeasonLmsRegistrationGateway | undefined
   /**
    * The post-lock consensus read, supplied by the route. Omitted by the DEV
    * harness, which has no season to read one from — the panel is then absent
@@ -49,7 +49,7 @@ export type SeasonMatchPredictorPageProps = {
    * batch path and no account — the drafts strip is then absent rather than a
    * control that cannot work.
    */
-  offline?: OfflineDraftingOptions
+  offline?: OfflineDraftingOptions | undefined
   /**
    * Contract 141's club form for this whole season, for the football half of
    * the contextual panel (`UI-F06`).

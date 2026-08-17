@@ -38,11 +38,11 @@ export type ScoreEvent = {
   // Plain-language explanation, e.g. "Sco 2–1 Eng · exact score".
   explanation: string
   // Optional team badge for the row.
-  flag?: ScoreEventFlag
+  flag?: ScoreEventFlag | undefined
   // Final points awarded, with any joker already applied.
   points: number
   // Whether a joker doubled this event (group matches only).
-  joker?: boolean
+  joker?: boolean | undefined
 }
 
 export type CategoryGroup = {

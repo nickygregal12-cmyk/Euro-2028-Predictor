@@ -21,9 +21,9 @@ export interface AutoLoginEnv {
   /** import.meta.env.DEV — true under `vite dev` / tests, false in prod builds. */
   readonly DEV: boolean
   /** VITE_DEV_AUTOLOGIN — opt-in flag; "on" only when exactly the string "true". */
-  readonly VITE_DEV_AUTOLOGIN?: string
-  readonly VITE_DEV_USER_EMAIL?: string
-  readonly VITE_DEV_USER_PASSWORD?: string
+  readonly VITE_DEV_AUTOLOGIN?: string | undefined
+  readonly VITE_DEV_USER_EMAIL?: string | undefined
+  readonly VITE_DEV_USER_PASSWORD?: string | undefined
   /** VITE_SUPABASE_URL — must be shared development or standard local Supabase. */
   readonly VITE_SUPABASE_URL?: string
 }

@@ -12,9 +12,9 @@ import { authoritativeMatchScore, hasAuthoritativeResult } from './authoritative
 export type RepositoryMatchAdapterInput = {
   match: Match
   teams: Team[]
-  now?: string
-  fetchedAt?: string
-  matchState?: MatchState
+  now?: string | undefined
+  fetchedAt?: string | undefined
+  matchState?: MatchState | undefined
   predictor?: Partial<PredictorMatchData>
 }
 

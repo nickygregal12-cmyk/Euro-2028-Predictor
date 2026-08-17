@@ -140,7 +140,7 @@ function ordinalPosition(position: number): string {
 export type SeasonMatchCentreProps = {
   fixture: FixtureListRow
   read: SeasonMatchCentreCardReader
-  football?: SeasonFootballContext
+  football?: SeasonFootballContext | undefined
   /**
    * Where this fixture's matchweek is predicted. Supplied by the route, which
    * owns the slugs; absent where the Match Predictor is not reachable.

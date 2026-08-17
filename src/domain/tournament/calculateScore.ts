@@ -36,7 +36,7 @@ export type MatchScorePrediction = {
   // A joker doubles this match's points (group stage only). Optional; absent =
   // no joker. Whether the joker is validly placed/committed is enforced
   // server-side — scoring just honours the flag it is given.
-  joker?: boolean
+  joker?: boolean | undefined
 }
 export type MatchScoreResult = {
   matchId: string
