@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
+import { useSite } from '../../app/site/SiteProvider'
 import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { InvitePreviewCard } from './InvitePreviewCard'
+import { joinedInviteHref } from './joinDestination'
 import { useInviteCode, type InviteJoinResult } from './useInviteCode'
 import { clearPendingJoin, setPendingJoin } from './pendingJoin'
 import j from './join.module.css'
@@ -23,6 +25,13 @@ import j from './join.module.css'
  * the end rather than swallowing it — a first-time visitor who arrived from an
  * invite still gets where they were going.
  *
+ * WHERE IT LANDS IS A RULE ABOUT THE BUILD, and it is not this file's. A joined
+ * league used to open at `/league/:id` unconditionally; that address is the
+ * TOURNAMENT's league table — its read refuses a season league by name and its
+ * page needs both tournament providers — so on the Hub it is a destination that
+ * cannot answer. `joinDestination.ts` owns the choice and states the
+ * measurement.
+ *
  * WHAT IT NO LONGER DOES. It used to create an Original Predictor entry before
  * joining, a compatibility step for the preserved Euro invite that predates
  * game ids. `resolve_invite_code` states the prerequisite instead —
@@ -35,6 +44,7 @@ export function JoinLandingPage() {
   const { code } = useParams<{ code: string }>()
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
+  const site = useSite()
   const { state, joining, resolve, accept } = useInviteCode()
   const [storedPendingCode, setStoredPendingCode] = useState<string | null>(null)
 
@@ -67,15 +77,13 @@ export function JoinLandingPage() {
   }
 
   function landOn(joined: InviteJoinResult) {
-    if (joined.kind === 'league') {
-      navigate(`/league/${joined.leagueId}`, { replace: true })
-      return
-    }
-    // A private competition has no page of its own to open yet; the private
-    // play list is where it appears, and sending the player there is honest.
-    // A dedicated competition route is recorded as remaining work rather than
-    // faked with a link that 404s.
-    navigate(weeklyRoutes.leagues, { replace: true })
+    // Where a joined container opens is a rule about this BUILD, not about this
+    // component, so it lives in `joinDestination.ts` and is asserted there. A
+    // private competition has no page of its own on either build, and a league
+    // has one only where the tournament is served — see that file for the
+    // measurement. Sending a player to the private play list is honest; sending
+    // them to a page whose server read refuses their league is not.
+    navigate(joinedInviteHref(joined, site.servesEuroTournament), { replace: true })
   }
 
   return (
