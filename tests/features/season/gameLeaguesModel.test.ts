@@ -76,8 +76,8 @@ describe('presentGameLeagues', () => {
       leagues: [league({ isOwner: true }), league({ id: 'l2', isOwner: false })],
     })
 
-    expect(view.leagues[0].ownerLine).toBe('You own this league')
-    expect(view.leagues[1].ownerLine).toBe('Owned by Sam')
+    expect(view.leagues[0]?.ownerLine).toBe('You own this league')
+    expect(view.leagues[1]?.ownerLine).toBe('Owned by Sam')
   })
 
   it('resolves the member plural once, in the model', () => {

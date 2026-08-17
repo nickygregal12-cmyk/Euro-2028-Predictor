@@ -3,6 +3,7 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { computeSeasonStandings } from '../../src/domain/season/standings'
+import { at } from '../support/indexed'
 
 /**
  * Contract 128's season league standings, against the authorities it obeys.
@@ -39,7 +40,7 @@ function definition(text: string, name: string, schema = 'public'): string {
 
   const rest = text.slice(start)
   const opening = /\bas\s+(\$[a-z_]*\$)/.exec(rest) as RegExpExecArray
-  const tag = opening[1]
+  const tag = at(opening, 1)
   const bodyStart = opening.index + opening[0].length
   const bodyEnd = rest.indexOf(tag, bodyStart)
   expect(bodyEnd).toBeGreaterThan(-1)

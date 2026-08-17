@@ -1,6 +1,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Whether the browser suite runs at all.
@@ -22,7 +23,7 @@ const workflow = readFileSync(resolve(root, workflowPath), 'utf8')
 /** The `paths:` entries of the `pull_request` trigger. */
 const watchedPaths = (() => {
   const block = /paths:\n((?:\s*(?:#[^\n]*|- '[^']+')\n)+)/.exec(workflow)?.[1] ?? ''
-  return [...block.matchAll(/- '([^']+)'/g)].map((match) => match[1])
+  return [...block.matchAll(/- '([^']+)'/g)].map((match) => at(match, 1))
 })()
 
 /** The configuration a guard of this harness would have to open. */

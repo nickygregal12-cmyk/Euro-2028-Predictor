@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The two schema-wide security invariants, asserted over the committed migrations.
@@ -37,7 +38,7 @@ function createdTables(): CreatedTable[] {
   for (const migration of migrationFiles()) {
     const pattern = /create table\s+(?:if not exists\s+)?(?:([a-z_0-9]+)\.)?([a-z_0-9]+)/gi
     for (const match of statementsOf(migration).matchAll(pattern)) {
-      tables.push({ schema: match[1] ?? 'public', name: match[2] })
+      tables.push({ schema: match[1] ?? 'public', name: at(match, 2) })
     }
   }
   return tables
@@ -48,7 +49,7 @@ function rowLevelSecurityEnabled(): Set<string> {
   for (const migration of migrationFiles()) {
     const pattern = /alter table\s+(?:public\.)?([a-z_0-9]+)\s+enable row level security/gi
     for (const match of statementsOf(migration).matchAll(pattern)) {
-      enabled.add(match[1])
+      enabled.add(at(match, 1))
     }
   }
   return enabled
@@ -270,7 +271,7 @@ describe('security definer functions', () => {
       '20260803070000_c1b_game_catalogue_memberships.sql',
     ])
 
-    expect(sourceOf(occurrences[0])).not.toMatch(
+    expect(sourceOf(at(occurrences, 0))).not.toMatch(
       /enforce_entry_lock_generic[\s\S]{0,200}set search_path/i,
     )
     expect(definitions.get(redefined)?.migration).toBe(occurrences.at(-1))

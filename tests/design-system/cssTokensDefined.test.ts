@@ -77,7 +77,7 @@ const sources = new Map(
 
 const defined = new Set<string>()
 for (const css of sources.values()) {
-  for (const [, name] of css.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)) defined.add(name)
+  for (const [, name] of css.matchAll(/(--[a-zA-Z0-9-]+)\s*:/g)) if (name) defined.add(name)
 }
 
 type Reference = { file: string; token: string }

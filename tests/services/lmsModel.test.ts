@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { mapLmsResponse } from '../../src/services/supabase/lmsModel'
+import { at } from '../support/indexed'
 
 function payload(overrides: Record<string, unknown> = {}) {
   return {
@@ -48,8 +49,8 @@ describe('Last Man Standing response parsing', () => {
     expect(read.entrantCount).toBe(5)
     expect(read.remainingCount).toBe(2)
     expect(read.usedTeamIds).toEqual(['team-a'])
-    expect(read.windows[0].mySelection).toEqual({ teamId: 'team-a', version: 1 })
-    expect(read.windows[0].fixtures[0].homeTeamId).toBe('team-a')
+    expect(read.windows[0]?.mySelection).toEqual({ teamId: 'team-a', version: 1 })
+    expect(read.windows[0]?.fixtures[0]?.homeTeamId).toBe('team-a')
   })
 
   it('maps a non-entrant and a pickless round', () => {
@@ -57,7 +58,7 @@ describe('Last Man Standing response parsing', () => {
     ;(raw.windows[0] as Record<string, unknown>).my_selection = null
     const read = mapLmsResponse(raw)
     expect(read.entrant).toBeNull()
-    expect(read.windows[0].mySelection).toBeNull()
+    expect(read.windows[0]?.mySelection).toBeNull()
   })
 
   it('rejects malformed payloads instead of guessing', () => {
@@ -68,7 +69,7 @@ describe('Last Man Standing response parsing', () => {
       'invalid remaining count',
     )
     const raw = payload()
-    ;(raw.windows[0] as { fixtures: Record<string, unknown>[] }).fixtures[0].result_state =
+    ;at((raw.windows[0] as { fixtures: Record<string, unknown>[] }).fixtures, 0).result_state =
       'live'
     expect(() => mapLmsResponse(raw)).toThrow('unknown fixture result state')
     expect(() => mapLmsResponse(null)).toThrow()

@@ -30,5 +30,6 @@ export function scoreOneMatch(
     { groupMatches: [{ matchId: 'm', homeScore: result.home, awayScore: result.away }] },
   )
   const item = breakdown.groupMatches.items[0]
+  if (!item) return null
   return { kind: item.kind, points: item.points, joker: item.joker }
 }

@@ -55,13 +55,14 @@ export type LeagueStanding = {
  */
 export function selectBestLeague(leagues: LeagueStanding[]): LeagueStanding | null {
   if (leagues.length === 0) return null
-  return [...leagues].sort((a, b) => {
+  const sorted = [...leagues].sort((a, b) => {
     const ar = a.rank ?? Number.POSITIVE_INFINITY
     const br = b.rank ?? Number.POSITIVE_INFINITY
     if (ar !== br) return ar - br
     if (b.lastActivityMs !== a.lastActivityMs) return b.lastActivityMs - a.lastActivityMs
     return a.name.localeCompare(b.name)
-  })[0]
+  })
+  return sorted[0] ?? null
 }
 
 export type CatchUp = { pointsDelta: number; rankDelta: number | null }

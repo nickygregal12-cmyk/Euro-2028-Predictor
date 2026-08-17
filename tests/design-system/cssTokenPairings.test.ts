@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Contrast of the token pairings the stylesheets actually declare.
@@ -39,6 +40,7 @@ function theme(selector: string): Record<string, string> {
   const body = tokensCss.slice(start, tokensCss.indexOf('}', start))
   const values: Record<string, string> = {}
   for (const [, name, value] of body.matchAll(/--([a-z0-9-]+):\s*(#[0-9A-Fa-f]{6})/g)) {
+    if (name === undefined || value === undefined) continue
     values[name] = value
   }
   return values
@@ -96,6 +98,7 @@ function pairingsIn(css: string): Pairing[] {
   const withoutComments = css.replace(/\/\*[\s\S]*?\*\//g, ' ')
 
   for (const [, selector, body] of withoutComments.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    if (selector === undefined || body === undefined) continue
     const surface = /background(?:-color)?:\s*var\(--([a-z0-9-]+)\)/.exec(body)?.[1]
     const text = /(?:^|[;\s])color:\s*var\(--([a-z0-9-]+)\)/.exec(body)?.[1]
     if (surface && text) pairings.push({ rule: selector.trim().replace(/\s+/g, ' '), text, surface })
@@ -168,13 +171,15 @@ describe('CSS token pairings meet AA', () => {
       .filter((name) => {
         const tokens = THEMES[name]
         // Semantic and one-off colours are outside the measured palette.
-        if (!tokens[text] || !tokens[surface]) return false
-        return contrast(tokens[text], tokens[surface]) < AA_NORMAL_TEXT
+        const textValue = tokens[text]
+        const surfaceValue = tokens[surface]
+        if (!textValue || !surfaceValue) return false
+        return contrast(textValue, surfaceValue) < AA_NORMAL_TEXT
       })
       .map((name) => ({
         pairing: `--${text} on --${surface}`,
         where: `${sheet} ${rule}`,
-        ratio: contrast(THEMES[name][text], THEMES[name][surface]),
+        ratio: contrast(at(at(THEMES, name), text), at(at(THEMES, name), surface)),
         theme: name,
       })),
   )

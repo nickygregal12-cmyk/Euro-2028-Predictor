@@ -31,7 +31,18 @@ export type LmsScenario =
   | 'save_refused'
   | 'version_conflict'
 
-const CLUBS: readonly (readonly [string, string])[] = [
+// A fixed-length tuple, not `(readonly [string, string])[]` — exactly six
+// fixtures are built below by literal position, so the type states the true,
+// fixed shape instead of a general array noUncheckedIndexedAccess would treat
+// every position of as possibly missing.
+const CLUBS: readonly [
+  readonly [string, string],
+  readonly [string, string],
+  readonly [string, string],
+  readonly [string, string],
+  readonly [string, string],
+  readonly [string, string],
+] = [
   ['arsenal', 'Arsenal'],
   ['newcastle', 'Newcastle'],
   ['crystal-palace', 'Crystal Palace'],

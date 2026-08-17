@@ -180,13 +180,13 @@ for (const { config, game } of FIXTURES) {
         previouslyLockedScopeIds: ['scope-1'],
       })
       expect(context.entryState).toBe('locked')
-      expect(context.matches[0].state).toBe('scheduled_locked')
+      expect(context.matches[0]?.state).toBe('scheduled_locked')
     })
 
     it('first match today not started', () => {
       const context = resolveFixture(config, game)
       expect(context.dayState).toBe('before_first_match')
-      expect(context.matches[0].state).toBe('scheduled_editable')
+      expect(context.matches[0]?.state).toBe('scheduled_editable')
     })
 
     it('one live match', () => {
@@ -233,7 +233,7 @@ for (const { config, game } of FIXTURES) {
         liveMatches: [{ matchId: 'match-1', state: 'full_time', homeScore: 2, awayScore: 1, minute: 90 }],
       })
       expect(context.dayState).toBe('awaiting_confirmation')
-      expect(context.awaitingConfirmation[0].state).toBe('full_time_unconfirmed')
+      expect(context.awaitingConfirmation[0]?.state).toBe('full_time_unconfirmed')
     })
 
     it('day complete', () => {
@@ -307,15 +307,15 @@ for (const { config, game } of FIXTURES) {
         now: '2028-06-10T18:30:00Z',
         feedAvailable: false,
       })
-      expect(context.matches[0].state).toBe('in_play_no_feed')
-      expect(context.matches[0].overlays).toContain('feed_unavailable')
+      expect(context.matches[0]?.state).toBe('in_play_no_feed')
+      expect(context.matches[0]?.overlays).toContain('feed_unavailable')
     })
 
     it('postponed match', () => {
       const context = resolveFixture(config, game, {
         matches: [match('match-1', '2028-06-10T18:00:00Z', { administrationState: 'postponed' })],
       })
-      expect(context.matches[0].state).toBe('postponed')
+      expect(context.matches[0]?.state).toBe('postponed')
     })
 
     it('corrected result', () => {
@@ -323,8 +323,8 @@ for (const { config, game } of FIXTURES) {
         now: '2028-06-10T21:00:00Z',
         matches: [match('match-1', '2028-06-10T18:00:00Z', { officialState: 'scored', corrected: true })],
       })
-      expect(context.matches[0].state).toBe('scored')
-      expect(context.matches[0].overlays).toContain('corrected')
+      expect(context.matches[0]?.state).toBe('scored')
+      expect(context.matches[0]?.overlays).toContain('corrected')
     })
 
     it('final complete', () => {
@@ -356,7 +356,7 @@ describe('one implementation across competition shapes', () => {
     expect(season.lockConfigurationValid).toBe(true)
     expect(Object.keys(tournament.lockScopes)).toHaveLength(1)
     expect(Object.keys(season.lockScopes)).toHaveLength(38)
-    expect(tournament.matches[0].state).toBe('scheduled_editable')
-    expect(season.matches[0].state).toBe('scheduled_editable')
+    expect(tournament.matches[0]?.state).toBe('scheduled_editable')
+    expect(season.matches[0]?.state).toBe('scheduled_editable')
   })
 })

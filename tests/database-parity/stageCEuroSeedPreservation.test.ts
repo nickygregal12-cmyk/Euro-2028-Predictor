@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Repository half of CS-012. The seed can pin Euro's natural identifiers and
@@ -75,7 +76,7 @@ function parseTuples(block: string): Scalar[][] {
   const tuplePattern = /\(([^()]*)\)/g
 
   for (const match of code.matchAll(tuplePattern)) {
-    const values = parseTuple(match[1])
+    const values = parseTuple(at(match, 1))
     if (values.length > 0) tuples.push(values)
   }
 
@@ -87,12 +88,12 @@ function tournamentIdentity(): [string, number, string, string] {
     /select\s+'([^']+)'\s*,\s*(\d+)\s*,\s*'(\d{4}-\d{2}-\d{2})'\s*,\s*'(\d{4}-\d{2}-\d{2})'\s*\nwhere\s+not\s+exists/i,
   )
   expect(match, 'Euro tournament seed identity').toBeTruthy()
-  return [match![1], Number(match![2]), match![3], match![4]]
+  return [at(match!, 1), Number(match![2]), at(match!, 3), at(match!, 4)]
 }
 
 function groupLetters(): string[] {
   const section = sectionBetween(seed, '-- Groups A–F.', '-- 24 placeholder teams')
-  return [...section.matchAll(/\('([A-F])'\)/g)].map((match) => match[1])
+  return [...section.matchAll(/\('([A-F])'\)/g)].map((match) => at(match, 1))
 }
 
 function teamSlots(): number[] {

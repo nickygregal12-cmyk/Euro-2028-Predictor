@@ -52,13 +52,13 @@ describe('presentLeagueStandings', () => {
     const rows = [row({ hasEntry: false, points: 0, matchweeksPlayed: 0, position: 2, rank: 2 })]
     const view = presentLeagueStandings(page({ rows, totalCount: 1 }), rows)
 
-    expect(view.rows[0].notEnteredLabel).toBe('Not entered')
-    expect(view.rows[0].points).toBeNull()
-    expect(view.rows[0].matchweeksPlayed).toBeNull()
-    expect(view.rows[0].accessibleSummary).toContain('has not entered this game')
+    expect(view.rows[0]?.notEnteredLabel).toBe('Not entered')
+    expect(view.rows[0]?.points).toBeNull()
+    expect(view.rows[0]?.matchweeksPlayed).toBeNull()
+    expect(view.rows[0]?.accessibleSummary).toContain('has not entered this game')
     // No rank is read out either — the server ranks them last on zero, and
     // stating that would assert a standing they never took part in.
-    expect(view.rows[0].accessibleSummary).not.toMatch(/\b2\b/)
+    expect(view.rows[0]?.accessibleSummary).not.toMatch(/\b2\b/)
   })
 
   it('accumulates pages rather than replacing them', () => {
@@ -137,7 +137,7 @@ describe('presentLeagueStandings', () => {
     const rows = [row({ isOwner: true })]
     const view = presentLeagueStandings(page({ rows }), rows)
 
-    expect(view.rows[0].accessibleSummary).toContain('league owner')
+    expect(view.rows[0]?.accessibleSummary).toContain('league owner')
   })
 })
 

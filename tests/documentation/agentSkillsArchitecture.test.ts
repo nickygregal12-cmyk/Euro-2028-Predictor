@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const root = resolve(import.meta.dirname, '../..')
 
@@ -25,10 +26,10 @@ describe('project-specific agent skills', () => {
   })
 
   it('keeps the skills subordinate to repository authorities', () => {
-    const context = read(skills[0])
-    const ui = read(skills[1])
-    const ai = read(skills[2])
-    const graph = read(skills[3])
+    const context = read(at(skills, 0))
+    const ui = read(at(skills, 1))
+    const ai = read(at(skills, 2))
+    const graph = read(at(skills, 3))
 
     expect(context).toContain('Existing repository authorities always outrank this skill')
     expect(plain(ui)).toContain('critics, never authorities')
@@ -40,7 +41,7 @@ describe('project-specific agent skills', () => {
   })
 
   it('keeps Graphify optional and generated output disposable', () => {
-    const graph = read(skills[3])
+    const graph = read(at(skills, 3))
     const guide = plain(read('docs/ops/graphify-navigation.md'))
     const gitignore = read('.gitignore')
 

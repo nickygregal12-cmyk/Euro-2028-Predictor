@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The Strix assessment workflow, checked as configuration.
@@ -35,8 +36,8 @@ const workflow = readFileSync(
 function triggerBlock(): string {
   const match = workflow.match(/^on:\n([\s\S]*?)(?=^\S)/m)
     ?? workflow.match(/^on:\n([\s\S]*)$/m)
-  expect(match, 'workflow has no on: block').not.toBeNull()
-  return match![1]
+  if (match === null) throw new Error('workflow has no on: block')
+  return at(match, 1)
 }
 
 describe('Strix workflow triggers', () => {
@@ -63,8 +64,8 @@ describe('Strix workflow triggers', () => {
 describe('Strix target scope', () => {
   it('offers no production option', () => {
     const options = workflow.match(/options:\n((?:\s+- .*\n)+)/)
-    expect(options, 'target input has no options list').not.toBeNull()
-    const listed = options![1].toLowerCase()
+    if (options === null) throw new Error('target input has no options list')
+    const listed = at(options, 1).toLowerCase()
     expect(listed).toContain('local-preview')
     expect(listed).toContain('staging')
     expect(listed).not.toContain('production')

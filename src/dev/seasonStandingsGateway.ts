@@ -99,7 +99,7 @@ function build(scenario: StandingsScenario, cursor: string | null): SeasonLeader
         : scenario === 'empty'
           ? null
           : {
-              displayName: NAMES[2],
+              displayName: NAMES[2] ?? 'You',
               points: 108,
               rank: 3,
               matchweeksPlayed: 22,

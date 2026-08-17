@@ -41,11 +41,15 @@ function parseSeededTeam(id: string, name: string): SeededTeam {
   const match = /^Team ([A-F])([1-4])$/.exec(name)
   if (!match) throw new Error(`Unexpected seeded team name: ${name}`)
 
+  const [, group, slot] = match
+  if (group === undefined || slot === undefined) {
+    throw new Error(`Unexpected browser E2E seed team name: ${name}`)
+  }
   return {
     id,
     name,
-    groupIndex: match[1].charCodeAt(0) - 'A'.charCodeAt(0),
-    slot: Number(match[2]),
+    groupIndex: group.charCodeAt(0) - 'A'.charCodeAt(0),
+    slot: Number(slot),
   }
 }
 

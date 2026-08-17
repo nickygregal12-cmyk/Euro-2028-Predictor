@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Documents that declare themselves live authorities, against the contract they
@@ -172,13 +173,13 @@ function currentLines(source: string): Map<number, string> {
   })
 
   for (let index = 0; index < lines.length; index += 1) {
-    const heading = /^(#{2,6})\s+(.*\bcurrent\b.*)$/i.exec(lines[index])
+    const heading = /^(#{2,6})\s+(.*\bcurrent\b.*)$/i.exec(at(lines, index))
     if (heading === null) continue
-    const level = heading[1].length
+    const level = at(heading, 1).length
     let end = index + 1
     while (end < lines.length) {
-      const next = /^(#{1,6})\s/.exec(lines[end])
-      if (next !== null && next[1].length <= level) break
+      const next = /^(#{1,6})\s/.exec(at(lines, end))
+      if (next !== null && at(next, 1).length <= level) break
       end += 1
     }
     lines.slice(index + 1, end).forEach((line, offset) => found.set(index + 2 + offset, line))
@@ -399,7 +400,7 @@ describe('the two documents that state the Netlify declaration agree', () => {
   for (const match of inventory.matchAll(
     /\|\s*Netlify\s+`euro28predictor`\s+([^|]+?)\s*\|\s*\*\*(\d+) hosted declaration\*\*/g,
   )) {
-    if (!inventoryRows.has(match[1])) inventoryRows.set(match[1], Number(match[2]))
+    if (!inventoryRows.has(at(match, 1))) inventoryRows.set(at(match, 1), Number(match[2]))
   }
 
   const runbookRows = new Map(
@@ -514,7 +515,7 @@ describe('live-authority documents do not pin a moving commit', () => {
     const source = read(file)
     const offenders = [...source.matchAll(/current\s*`?main`?[^\n]*?\b([0-9a-f]{40})\b/gi)]
     expect(
-      offenders.map((match) => match[1]),
+      offenders.map((match) => at(match, 1)),
       `${file} pins a commit as current main; read it from git instead`,
     ).toEqual([])
   })

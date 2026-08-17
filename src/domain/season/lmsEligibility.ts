@@ -130,6 +130,6 @@ export function resolveLmsEligibility(input: LmsEligibilityInput): LmsEligibilit
  */
 export function autoAssignLmsTeam(input: LmsEligibilityInput): string | null {
   const eligibility = resolveLmsEligibility(input)
-  if (!eligibility.ok || eligibility.eligibleTeamIds.length === 0) return null
-  return eligibility.eligibleTeamIds[0]
+  if (!eligibility.ok) return null
+  return eligibility.eligibleTeamIds[0] ?? null
 }

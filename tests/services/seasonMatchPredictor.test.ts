@@ -92,7 +92,7 @@ describe('createSeasonMatchPredictorRpcGateway — load', () => {
       result: null,
       points: null,
     })
-    expect(page.fixtures[1].prediction).toBeNull()
+    expect(page.fixtures[1]?.prediction).toBeNull()
   })
 
   it('reports the matchweek locked once the earliest kickoff has passed', async () => {

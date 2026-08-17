@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /** What browser roles can reach directly without a bounded RPC. */
 const repositoryRoot = process.cwd()
@@ -52,9 +53,10 @@ function browserRelationGrants(): string[] {
   const pattern =
     /grant\s+([a-z, ]+?)\s+on\s+(?:table\s+|view\s+)?(?:public\.)?([a-z_0-9]+)\s+to\s+([^;]+);/gi
   for (const match of allSql.matchAll(pattern)) {
-    const privileges = match[1].trim()
+    const privileges = at(match, 1).trim()
     const relation = match[2]
     const roles = match[3]
+    if (roles === undefined) continue
     if (!/\b(anon|authenticated)\b/.test(roles)) continue
     if (/\bexecute\b/.test(privileges)) continue
     grants.push(`${relation}:${privileges}`)
@@ -83,7 +85,7 @@ describe('views are not reachable by browser roles', () => {
         )
         const match = schemaRevoke.exec(allSql)
         if (!match) return true
-        return !/\banon\b/.test(match[1]) || !/\bauthenticated\b/.test(match[1])
+        return !/\banon\b/.test(at(match, 1)) || !/\bauthenticated\b/.test(at(match, 1))
       }
       const revoke = new RegExp(
         `revoke\\s+all\\s+on\\s+(?:table\\s+|view\\s+)?(?:public\\.)?${view}\\s+from\\s+([^;]+);`,
@@ -92,6 +94,7 @@ describe('views are not reachable by browser roles', () => {
       const match = revoke.exec(allSql)
       if (!match) return true
       const roles = match[1]
+      if (roles === undefined) return true
       return !/\banon\b/.test(roles) || !/\bauthenticated\b/.test(roles)
     })
 
@@ -181,7 +184,7 @@ function createdPublicTables(): string[] {
   const pattern = /create table\s+(?:if not exists\s+)?(?:([a-z_0-9]+)\.)?([a-z_0-9]+)/gi
   for (const match of allStatements.matchAll(pattern)) {
     if ((match[1] ?? 'public') !== 'public') continue
-    tables.add(match[2])
+    tables.add(at(match, 2))
   }
   return [...tables].sort()
 }
@@ -193,8 +196,9 @@ function tablesRevokedFromBrowserRoles(): Set<string> {
     /revoke\s+all[a-z ]*\s+on\s+(?:table\s+)?(?:public\.)?([a-z_0-9]+)\s+from\s+([^;]+);/gi
   for (const match of allStatements.matchAll(pattern)) {
     const roles = match[2]
+    if (roles === undefined) continue
     if (!/\banon\b/.test(roles) || !/\bauthenticated\b/.test(roles)) continue
-    revoked.add(match[1])
+    revoked.add(at(match, 1))
   }
   return revoked
 }

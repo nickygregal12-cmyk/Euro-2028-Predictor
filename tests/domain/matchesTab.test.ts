@@ -27,8 +27,8 @@ describe('groupByMatchday', () => {
   it('groups + orders MD1 → MD2 → … → Final, dropping empty matchdays', () => {
     const g = groupByMatchday(matches)
     expect(g.map((x) => x.key)).toEqual(['MD1', 'MD2', 'R16', 'FINAL'])
-    expect(g[0].label).toBe('Matchday 1')
-    expect(g[2].label).toBe('Round of 16')
+    expect(g[0]?.label).toBe('Matchday 1')
+    expect(g[2]?.label).toBe('Round of 16')
   })
 
   it('orders fixtures within a matchday by kickoff time', () => {
@@ -49,7 +49,7 @@ describe('groupByGroupLetter', () => {
   it('regroups group-stage fixtures by letter, excludes knockouts', () => {
     const g = groupByGroupLetter(matches, letterOf)
     expect(g.map((x) => x.label)).toEqual(['Group A', 'Group B'])
-    expect(g[0].matches.map((m) => m.id)).toEqual(['GA-1', 'GA-2'])
+    expect(g[0]?.matches.map((m) => m.id)).toEqual(['GA-1', 'GA-2'])
     expect(g.flatMap((x) => x.matches).some((m) => m.round === 'r16')).toBe(false)
   })
 })

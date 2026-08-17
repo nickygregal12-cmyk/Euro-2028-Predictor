@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { at } from '../../support/indexed'
 import {
   buildLiveTablesView,
   buildBracketView,
@@ -72,11 +73,11 @@ describe('buildLiveTablesView', () => {
     expect(view.playedCount).toBe(3)
     expect(view.totalCount).toBe(4)
     const groupA = view.groups.find((g) => g.letter === 'A')!
-    expect(groupA.rows[0].team.name).toBe('Team A1')
-    expect(groupA.rows[0].points).toBe(3)
-    expect(groupA.rows[0].position).toBe(1)
+    expect(groupA.rows[0]?.team.name).toBe('Team A1')
+    expect(groupA.rows[0]?.points).toBe(3)
+    expect(groupA.rows[0]?.position).toBe(1)
     // A3 also won but 1–0 — goal difference splits them.
-    expect(groupA.rows[1].team.name).toBe('Team A3')
+    expect(groupA.rows[1]?.team.name).toBe('Team A3')
   })
 
   it('flags unresolved shared positions instead of inventing an order', () => {
@@ -132,20 +133,20 @@ describe('buildBracketView', () => {
     const rounds = buildBracketView(makeData([...groupFixtures, ...knockout]))
 
     expect(rounds.map((r) => r.label)).toEqual(['Round of 16', 'Final'])
-    const r16 = rounds[0]
-    expect(r16.ties[0].home).toEqual({ name: 'Team A1', known: true })
-    expect(r16.ties[1].home).toEqual({ name: 'Runner-up Group B', known: false })
-    expect(rounds[1].ties[0].home.name).toBe('Winner SF-1')
+    const r16 = at(rounds, 0)
+    expect(r16.ties[0]?.home).toEqual({ name: 'Team A1', known: true })
+    expect(r16.ties[1]?.home).toEqual({ name: 'Runner-up Group B', known: false })
+    expect(rounds[1]?.ties[0]?.home.name).toBe('Winner SF-1')
   })
 
   it('carries the authoritative score, winner and decided-by detail', () => {
     const rounds = buildBracketView(makeData([...groupFixtures, ...knockout]))
-    const settled = rounds[0].ties[0]
+    const settled = at(at(rounds, 0).ties, 0)
     expect(settled.score).toEqual({ home: 1, away: 1 })
     expect(settled.winner).toBe('home')
     expect(settled.detail).toBe('Team A1 won 4–2 on penalties')
 
-    const open = rounds[0].ties[1]
+    const open = at(at(rounds, 0).ties, 1)
     expect(open.score).toBeNull()
     expect(open.winner).toBeNull()
   })
@@ -164,7 +165,7 @@ describe('buildStatsView', () => {
       'Highest-scoring match',
     ])
     expect(view.goalsPerMatch).toBe(1.7)
-    expect(view.records[0].value).toBe('Team A1 2–0 Team A2')
+    expect(view.records[0]?.value).toBe('Team A1 2–0 Team A2')
     expect(view.topTeams[0]).toEqual({ name: 'Team A1', goals: 2, played: 1 })
   })
 

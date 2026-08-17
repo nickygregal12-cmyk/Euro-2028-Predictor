@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Prediction } from '../../../src/app/providers/PredictionsProvider'
 import { buildPredictHubModel } from '../../../src/features/predict/hubJourney'
+import { at } from '../../support/indexed'
 import type {
   Match,
   Team,
@@ -20,7 +21,7 @@ const TEAM_IDS: Record<string, string[]> = {
 }
 
 const teams: Team[] = GROUPS.flatMap((group) =>
-  TEAM_IDS[group.id].map((id, index) => ({
+  at(TEAM_IDS, group.id).map((id, index) => ({
     id,
     name: `Team ${id.toUpperCase()}`,
     groupId: group.id,
@@ -39,17 +40,17 @@ const PAIRINGS = [
 
 const matches: Match[] = GROUPS.flatMap((group, groupIndex) =>
   PAIRINGS.map(([home, away], index): Match => {
-    const ids = TEAM_IDS[group.id]
+    const ids = at(TEAM_IDS, group.id)
     return {
       id: `${group.letter}${index + 1}`,
       matchRef: `G-${group.letter}-${index + 1}`,
       round: 'group',
       groupId: group.id,
       matchday: Math.floor(index / 2) + 1,
-      homeSource: ids[home],
-      awaySource: ids[away],
-      homeTeamId: ids[home],
-      awayTeamId: ids[away],
+      homeSource: at(ids, home),
+      awaySource: at(ids, away),
+      homeTeamId: at(ids, home),
+      awayTeamId: at(ids, away),
       matchDate: `2028-06-0${groupIndex + 1}`,
       kickoffAt: null,
       venue: 'Test venue',
@@ -151,7 +152,7 @@ describe('buildPredictHubModel', () => {
     const model = buildPredictHubModel(data, getter(predictions), 0)
 
     expect(model.status.groups.complete).toBe(true)
-    expect(model.groupChips[0].pendingTies).toBeGreaterThan(0)
+    expect(model.groupChips[0]?.pendingTies).toBeGreaterThan(0)
     expect(model.stageStates.groups).toBe('attention')
     expect(model.continueTarget).toEqual({
       label: 'Resolve the Group A tie',

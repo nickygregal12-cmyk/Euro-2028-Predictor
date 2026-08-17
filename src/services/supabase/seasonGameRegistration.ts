@@ -65,7 +65,12 @@ export function createSeasonGameRegistrationRpcGateway(options: {
       )
     }
 
-    return { season, game: matches[0] }
+    const [game] = matches
+    if (game === undefined) {
+      throw new Error('That game is not listed for this season.')
+    }
+
+    return { season, game }
   }
 
   return {

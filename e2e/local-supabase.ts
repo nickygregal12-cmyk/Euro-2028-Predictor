@@ -104,11 +104,15 @@ type SeedTeam = {
 function parseSeedTeam(id: string, name: string): SeedTeam {
   const match = /^Team ([A-F])([1-4])$/.exec(name)
   if (!match) throw new Error(`Unexpected browser E2E seed team name: ${name}`)
+  const [, group, slot] = match
+  if (group === undefined || slot === undefined) {
+    throw new Error(`Unexpected browser E2E seed team name: ${name}`)
+  }
   return {
     id,
     name,
-    groupIndex: match[1].charCodeAt(0) - 'A'.charCodeAt(0),
-    slot: Number(match[2]),
+    groupIndex: group.charCodeAt(0) - 'A'.charCodeAt(0),
+    slot: Number(slot),
   }
 }
 
@@ -228,6 +232,7 @@ export async function prepareCompleteGroupEntry(): Promise<PreparedEntry> {
   if (predictionError) throw predictionError
 
   const first = matches[0]
+  if (!first) throw new Error('No seeded matches.')
   if (!first.home_team_id || !first.away_team_id) {
     throw new Error('First seeded match is unresolved.')
   }

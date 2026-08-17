@@ -139,7 +139,8 @@ export function selectCupFormat(fieldSize: number, remainingRounds: number): Cup
   }
   const groupCount = Math.ceil(fieldSize / largestViableGroup)
   const groupSizes = balancedGroups(fieldSize, groupCount)
-  if (groupSizes[groupSizes.length - 1] < CUP_MINIMUM_FIELD) {
+  const smallestGroupSize = groupSizes.at(-1)
+  if (smallestGroupSize === undefined || smallestGroupSize < CUP_MINIMUM_FIELD) {
     return { kind: 'refused', reason: 'insufficient_rounds' }
   }
   return { kind: 'groups', groupCount, groupSizes }

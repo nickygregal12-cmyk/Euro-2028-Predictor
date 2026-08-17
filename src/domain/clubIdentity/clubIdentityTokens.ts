@@ -123,8 +123,9 @@ export function deriveMonogram(name: string): string {
     .map((word) => word.replace(/[^\p{L}]/gu, ''))
     .filter((word) => word.length > 0 && !noise.has(word.toLowerCase()))
 
-  if (words.length === 0) return '???'
-  if (words.length === 1) return words[0].slice(0, 3).toUpperCase()
+  const [only] = words
+  if (only === undefined) return '???'
+  if (words.length === 1) return only.slice(0, 3).toUpperCase()
   return words
     .slice(0, 3)
     .map((word) => word[0])

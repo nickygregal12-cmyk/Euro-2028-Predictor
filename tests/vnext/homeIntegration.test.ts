@@ -5,6 +5,7 @@ import type {
   HomeSourceLeague,
 } from '../../src/vnext/integration/home/homeSource'
 import { selectHomeEmphasis } from '../../src/vnext/home/selectHomeEmphasis'
+import { first } from '../support/indexed'
 import type { CardPresentation, MatchPredictorPage } from '../../src/features/season/matchPredictorModel'
 import type { SeasonListFixture } from '../../src/services/supabase/seasonFixtureListModel'
 import type { SeasonLeagueStandingsPage } from '../../src/services/supabase/seasonLeagueStandingsModel'
@@ -213,7 +214,7 @@ describe('a normal populated matchweek', () => {
   })
 
   it('omits every football enrichment the application does not expose', () => {
-    const [match] = buildHomeModel(source()).upcomingMatches
+    const match = first(buildHomeModel(source()).upcomingMatches)
 
     // Each of these is a real capability gap and is asserted so that supplying
     // one later is a deliberate change rather than an accident.
@@ -227,7 +228,7 @@ describe('a normal populated matchweek', () => {
   })
 
   it('takes club colour from the domain identity registry, never from a guess', () => {
-    const [match] = buildHomeModel(source()).upcomingMatches
+    const match = first(buildHomeModel(source()).upcomingMatches)
 
     expect(match.home.team.abbreviation).toBe('POR')
     expect(match.home.team.colours.primary).toBe('#123456')
@@ -251,8 +252,8 @@ describe('live football', () => {
     const model = buildHomeModel(source({ fixtures: [inPlay] }))
 
     expect(model.liveMatches).toHaveLength(1)
-    expect(model.liveMatches[0].status).toBe('live')
-    expect(model.liveMatches[0].score).toEqual({ home: 1, away: 0 })
+    expect(model.liveMatches[0]?.status).toBe('live')
+    expect(model.liveMatches[0]?.score).toEqual({ home: 1, away: 0 })
     expect(selectHomeEmphasis(model)).toBe('live')
   })
 
@@ -270,7 +271,7 @@ describe('live football', () => {
 
   it('carries no minute, because no read supplies one', () => {
     const model = buildHomeModel(source({ fixtures: [inPlay] }))
-    expect(model.liveMatches[0].clock).toBeNull()
+    expect(model.liveMatches[0]?.clock).toBeNull()
   })
 
   it('lets the platform outrank the provider on a settled fixture', () => {
@@ -290,7 +291,7 @@ describe('live football', () => {
 
     expect(model.liveMatches).toEqual([])
     expect(model.recentResults).toHaveLength(1)
-    expect(model.recentResults[0].score).toEqual({ home: 3, away: 1 })
+    expect(model.recentResults[0]?.score).toEqual({ home: 3, away: 1 })
   })
 
   it('ignores a one-sided provisional score, which is not a scoreline', () => {
@@ -300,7 +301,7 @@ describe('live football', () => {
       }),
     )
 
-    expect(model.liveMatches[0].score).toBeNull()
+    expect(model.liveMatches[0]?.score).toBeNull()
   })
 })
 
@@ -442,7 +443,7 @@ describe('a new user', () => {
     expect(model.privateLeagues).toEqual([])
     expect(model.rivals).toEqual([])
     // A model with no card has no prediction to show and does not pretend to.
-    expect(model.upcomingMatches[0].prediction).toBeNull()
+    expect(model.upcomingMatches[0]?.prediction).toBeNull()
     expect(model.primaryAction.progress).toBeNull()
   })
 })
@@ -492,7 +493,7 @@ describe('awarded and provisional points', () => {
       }),
     )
 
-    const prediction = model.liveMatches[0].prediction
+    const prediction = first(model.liveMatches).prediction
     expect(prediction?.points).toBe(5)
     expect(prediction?.pointsAreProvisional).toBe(true)
   })
@@ -505,7 +506,7 @@ describe('awarded and provisional points', () => {
       }),
     )
 
-    const prediction = model.recentResults[0].prediction
+    const prediction = first(model.recentResults).prediction
     expect(prediction?.points).toBe(5)
     expect(prediction?.pointsAreProvisional).toBe(false)
   })
@@ -520,7 +521,7 @@ describe('awarded and provisional points', () => {
       }),
     )
 
-    const prediction = model.recentResults[0].prediction
+    const prediction = first(model.recentResults).prediction
     expect(prediction?.score).toEqual({ home: 2, away: 1 })
     expect(prediction?.points).toBeNull()
     expect(prediction?.pointsAreProvisional).toBe(false)
@@ -579,7 +580,7 @@ describe('rank and standings', () => {
       }),
     )
 
-    const [leagueModel] = model.privateLeagues
+    const leagueModel = first(model.privateLeagues)
     expect(leagueModel.userRank).toBe(2)
     expect(leagueModel.standings.map((row) => row.rank)).toEqual([1, 2])
     expect(leagueModel.gapToLeader).toBe(0)
@@ -594,7 +595,7 @@ describe('rank and standings', () => {
       source({ leagues: [league({ standings: { ...page, totalCount: 48, hasMore: true, nextCursor: 'c' } })] }),
     )
 
-    expect(model.privateLeagues[0].participantCount).toBe(48)
+    expect(model.privateLeagues[0]?.participantCount).toBe(48)
   })
 
   it('picks the adjacent rivals from the server order', () => {
@@ -612,8 +613,8 @@ describe('rank and standings', () => {
   it('claims no movement where no settled matchweek stated one', () => {
     const model = buildHomeModel(source())
 
-    expect(model.privateLeagues[0].userMovement).toBeNull()
-    for (const row of model.privateLeagues[0].standings) expect(row.movement).toBeNull()
+    expect(model.privateLeagues[0]?.userMovement).toBeNull()
+    for (const row of first(model.privateLeagues).standings) expect(row.movement).toBeNull()
     for (const rival of model.rivals) expect(rival.movement).toBeNull()
   })
 
@@ -648,7 +649,7 @@ describe('rank and standings', () => {
       }),
     )
 
-    expect(model.privateLeagues[0].userMovement).toEqual({ direction: 'up', places: 3 })
+    expect(model.privateLeagues[0]?.userMovement).toEqual({ direction: 'up', places: 3 })
   })
 
   it('ignores an unsettled movement answer entirely', () => {
@@ -668,7 +669,7 @@ describe('rank and standings', () => {
       }),
     )
 
-    expect(model.privateLeagues[0].userMovement).toBeNull()
+    expect(model.privateLeagues[0]?.userMovement).toBeNull()
   })
 
   it('drops a league table the caller has no row in', () => {
@@ -718,7 +719,7 @@ describe('consensus', () => {
 
   it('shows a consensus only when the server answered with one', () => {
     const model = buildHomeModel(source({ consensus: answered }))
-    const consensus = model.upcomingMatches[0].consensus
+    const consensus = first(model.upcomingMatches).consensus
 
     expect(consensus?.community.sampleSize).toBe(400)
     expect(consensus?.community.homeWinShare).toBeCloseTo(0.76)
@@ -729,12 +730,12 @@ describe('consensus', () => {
     // The server hides consensus before the matchweek locks. A null read must
     // become no consensus — never an empty group, which would read as "nobody
     // has an opinion" and is a different claim.
-    expect(buildHomeModel(source({ consensus: null })).upcomingMatches[0].consensus).toBeNull()
+    expect(buildHomeModel(source({ consensus: null })).upcomingMatches[0]?.consensus).toBeNull()
   })
 
   it('shows no consensus when the server suppressed it', () => {
     const model = buildHomeModel(source({ consensus: { ...answered, suppressed: true } }))
-    expect(model.upcomingMatches[0].consensus).toBeNull()
+    expect(model.upcomingMatches[0]?.consensus).toBeNull()
   })
 
   it('never exposes a private-league cohort as friends consensus', () => {
@@ -743,7 +744,7 @@ describe('consensus', () => {
     // than a group assembled from a league table — which would be inferring
     // named players' picks from an aggregate they never agreed to.
     const model = buildHomeModel(source({ consensus: answered }))
-    expect(model.upcomingMatches[0].consensus?.friends).toBeNull()
+    expect(model.upcomingMatches[0]?.consensus?.friends).toBeNull()
   })
 
   it('leaks no rival prediction anywhere in the model', () => {
@@ -800,11 +801,11 @@ describe('optional enrichment and awkward states', () => {
       }),
     )
 
-    const [match] = buildHomeModel(source()).upcomingMatches
+    const match = first(buildHomeModel(source()).upcomingMatches)
     expect(match.home.form).toEqual([])
-    expect(model.upcomingMatches[0].home.form).toEqual(['win', 'win', 'loss', 'win'])
+    expect(model.upcomingMatches[0]?.home.form).toEqual(['win', 'win', 'loss', 'win'])
     // The away club had no row in the form table. An empty run, not five blanks.
-    expect(model.upcomingMatches[0].away.form).toEqual([])
+    expect(model.upcomingMatches[0]?.away.form).toEqual([])
   })
 
   it('keeps a postponed fixture out of the live and settled buckets', () => {
@@ -812,7 +813,7 @@ describe('optional enrichment and awkward states', () => {
 
     expect(model.liveMatches).toEqual([])
     expect(model.recentResults).toEqual([])
-    expect(model.upcomingMatches[0].status).toBe('postponed')
+    expect(model.upcomingMatches[0]?.status).toBe('postponed')
   })
 
   it('respects the platform status over a cheerful provider on a postponed fixture', () => {
@@ -828,7 +829,7 @@ describe('optional enrichment and awkward states', () => {
     )
 
     expect(model.liveMatches).toEqual([])
-    expect(model.upcomingMatches[0].status).toBe('postponed')
+    expect(model.upcomingMatches[0]?.status).toBe('postponed')
   })
 
   it('carries long club and league names through without truncating them', () => {
@@ -842,9 +843,9 @@ describe('optional enrichment and awkward states', () => {
 
     // Shortening a name is the layout's job — Home's dense rows wrap and then
     // ellipsise — and a mapper that cut it would make that impossible to undo.
-    expect(model.upcomingMatches[0].home.team.name).toBe(long)
-    expect(model.upcomingMatches[0].home.team.shortName).toBe(long)
-    expect(model.privateLeagues[0].name).toBe('The Thursday Night Five-a-Side Prediction Society')
+    expect(model.upcomingMatches[0]?.home.team.name).toBe(long)
+    expect(model.upcomingMatches[0]?.home.team.shortName).toBe(long)
+    expect(model.privateLeagues[0]?.name).toBe('The Thursday Night Five-a-Side Prediction Society')
   })
 
   it('renders with every optional source missing at once', () => {

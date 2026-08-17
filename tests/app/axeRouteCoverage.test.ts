@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { declaredRoutes } from './declaredRoutes'
+import { at } from '../support/indexed'
 
 const repositoryRoot = process.cwd()
 
@@ -13,7 +14,7 @@ const axeSource = read('e2e/axe-accessibility.spec.ts')
 const axeUnauthenticatedSource = read('e2e/axe-unauthenticated.spec.ts')
 
 const scannedRoutes = [axeSource, axeUnauthenticatedSource].flatMap((source) =>
-  [...source.matchAll(/^\s*'(\/[^']*)',$/gm)].map((match) => match[1]),
+  [...source.matchAll(/^\s*'(\/[^']*)',$/gm)].map((match) => at(match, 1)),
 )
 
 const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
@@ -21,7 +22,7 @@ const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
   .flatMap((entry) => [
     ...read(`e2e/${entry}`).matchAll(/expectNoSeriousAxeViolations\(\s*page,\s*'([^']+)'/g),
   ])
-  .map((match) => match[1])
+  .map((match) => at(match, 1))
 
 /**
  * Parameterised weekly routes are accounted for here until the E2E harness has

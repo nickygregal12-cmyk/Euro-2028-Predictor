@@ -32,7 +32,7 @@ export function groupPickPoints(
     { groupMatches: [{ matchId: 'm', homeScore: pick.homeScore, awayScore: pick.awayScore, joker: pick.joker }] },
     { groupMatches: [{ matchId: 'm', homeScore: result.home, awayScore: result.away }] },
   )
-  return b.groupMatches.items[0].points
+  return b.groupMatches.items[0]?.points ?? null
 }
 
 // --- Your stake ------------------------------------------------------------

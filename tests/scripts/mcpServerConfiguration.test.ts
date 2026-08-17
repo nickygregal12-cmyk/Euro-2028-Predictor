@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * The MCP servers an agent may drive this repository with.
@@ -91,7 +92,7 @@ describe('MCP server configuration', () => {
     const servers = mcpConfiguration().mcpServers
     for (const [key, packageName] of Object.entries(EXPECTED_SERVERS)) {
       expect(servers[key], `${key} server missing`).toBeDefined()
-      expect(splitSpecifier(pinnedSpecifier(servers[key].args)).name).toBe(
+      expect(splitSpecifier(pinnedSpecifier(at(servers, key)?.args)).name).toBe(
         packageName,
       )
     }

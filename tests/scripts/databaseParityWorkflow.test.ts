@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const workflowPath = resolve(repositoryRoot, '.github/workflows/database-parity.yml')
@@ -11,7 +12,7 @@ const transitionSuiteDir = resolve(repositoryRoot, 'tests/migration-transition')
 /** The `paths:` entries the pull-request trigger actually declares. */
 function declaredFilters(): string[] {
   const block = /^ {4}paths:\n((?: {6}(?:-|#).*\n)+)/m.exec(workflow)?.[1] ?? ''
-  return [...block.matchAll(/^ {6}- '([^']+)'$/gm)].map((match) => match[1])
+  return [...block.matchAll(/^ {6}- '([^']+)'$/gm)].map((match) => at(match, 1))
 }
 
 /**
@@ -58,7 +59,7 @@ function consumedPaths(): string[] {
       if (!file.endsWith('.ts')) continue
       const source = readFileSync(resolve(directory, file), 'utf8')
       for (const match of source.matchAll(pattern)) {
-        const relative = match[1].replace(/^(\.\.\/)+/, '')
+        const relative = at(match, 1).replace(/^(\.\.\/)+/, '')
         const segments = relative.split('/')
         if (relative.startsWith('supabase/')) {
           // One tree, and every parity suite reads migrations from it.

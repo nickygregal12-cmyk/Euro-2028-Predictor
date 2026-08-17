@@ -77,7 +77,11 @@ export function TieResolver({
       const next = [...previous]
       const target = index + delta
       if (target < 0 || target >= next.length) return previous
-      ;[next[index], next[target]] = [next[target], next[index]]
+      const a = next[index]
+      const b = next[target]
+      if (a === undefined || b === undefined) return previous
+      next[index] = b
+      next[target] = a
       return next
     })
   }

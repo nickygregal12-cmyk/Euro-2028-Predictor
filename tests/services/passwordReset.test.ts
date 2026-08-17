@@ -16,6 +16,7 @@ vi.mock('../../src/services/supabase/client', () => ({
 }))
 
 import { sendPasswordReset, updatePassword } from '../../src/services/supabase/auth'
+import { at } from '../support/indexed'
 
 describe('sendPasswordReset', () => {
   beforeEach(() => resetMock.mockReset())
@@ -24,7 +25,7 @@ describe('sendPasswordReset', () => {
     resetMock.mockResolvedValue({ error: null })
     await sendPasswordReset('a@b.co')
     expect(resetMock).toHaveBeenCalledTimes(1)
-    const [email, opts] = resetMock.mock.calls[0]
+    const [email, opts] = at(resetMock.mock.calls, 0)
     expect(email).toBe('a@b.co')
     expect(String(opts.redirectTo)).toContain('/auth/update-password')
     expect(opts.captchaToken).toBeUndefined()
@@ -33,7 +34,7 @@ describe('sendPasswordReset', () => {
   it('threads a captchaToken when Turnstile supplies one', async () => {
     resetMock.mockResolvedValue({ error: null })
     await sendPasswordReset('a@b.co', 'tok')
-    expect(resetMock.mock.calls[0][1].captchaToken).toBe('tok')
+    expect(at(resetMock.mock.calls, 0)[1]?.captchaToken).toBe('tok')
   })
 
   it('propagates a real error', async () => {

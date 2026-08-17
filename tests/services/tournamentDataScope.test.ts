@@ -7,6 +7,7 @@ vi.mock('../../src/services/supabase/client', () => ({
 }))
 
 import { fetchTournamentData } from '../../src/services/supabase/tournamentData'
+import { at } from '../support/indexed'
 
 const EURO = '40000000-0000-0000-0000-000000000001'
 const OTHER = '40000000-0000-0000-0000-000000000002'
@@ -138,7 +139,7 @@ function installClient({
             lockAtFails && selected === 'lock_at'
               ? { data: null, error: { message: 'column lock_at does not exist' } }
               : {
-                  data: data.tournaments.find((r) => r.id === filters.id) ?? null,
+                  data: (data.tournaments ?? []).find((r) => r.id === filters.id) ?? null,
                   error: null,
                 },
           )
@@ -186,8 +187,8 @@ describe('tournament reference data is scoped to one tournament', () => {
 
   it('falls back only when a pre-Stage-C schema has no kind column', async () => {
     const legacyTournaments = [
-      { ...DATASET.tournaments[1] },
-      { ...DATASET.tournaments[0] },
+      { ...at(at(DATASET, 'tournaments'), 1) },
+      { ...at(at(DATASET, 'tournaments'), 0) },
     ]
     const queries = installClient({ kindColumnFails: true, tournaments: legacyTournaments })
 

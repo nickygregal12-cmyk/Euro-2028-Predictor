@@ -65,7 +65,7 @@ describe('abandoned — the partial score does not stand', () => {
     const result = resolveMatchweekSettlement([
       fixture({ state: 'abandoned', score: { home: 3, away: 0 } }),
     ])
-    expect(result.ok && result.settlement.fixtures[0].disposition).toEqual({
+    expect(result.ok && result.settlement.fixtures[0]?.disposition).toEqual({
       kind: 'awaiting_replay',
     })
   })

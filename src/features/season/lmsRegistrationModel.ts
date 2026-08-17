@@ -115,7 +115,7 @@ export function presentLmsRegistration(
       ...base,
       state: 'finished',
       headline: 'This competition has finished',
-      explanation: `${copy.gameName[0].toUpperCase()}${copy.gameName.slice(1)} is over for this season. A new one can start later.`,
+      explanation: `${(copy.gameName[0] ?? '').toUpperCase()}${copy.gameName.slice(1)} is over for this season. A new one can start later.`,
       canJoin: false,
     }
   }

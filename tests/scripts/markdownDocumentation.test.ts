@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const ignoredDirectories = new Set(['.git', 'dist', 'node_modules'])
@@ -123,10 +124,10 @@ describe('Markdown documentation integrity', () => {
     expect(liveBaseline).toContain('## New identifier register')
     expect(liveBaseline).not.toContain('`DOC-005`, open')
 
-    const compactBaseline = liveBaseline.split(
-      '## Identifier continuity and archived dispositions',
-      1,
-    )[0]
+    const compactBaseline = at(
+      liveBaseline.split('## Identifier continuity and archived dispositions', 1),
+      0,
+    )
     const compactTableRows = compactBaseline
       .split('\n')
       .filter(

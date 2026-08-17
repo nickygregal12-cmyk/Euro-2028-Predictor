@@ -237,7 +237,12 @@ function mapGoals(value: unknown): GoalsSpread {
     },
   )
   for (let index = 1; index < distribution.length; index += 1) {
-    if (distribution[index - 1].totalGoals >= distribution[index].totalGoals) {
+    const previous = distribution[index - 1]
+    const current = distribution[index]
+    if (previous === undefined || current === undefined) {
+      throw new Error('Goals distribution ordering was malformed.')
+    }
+    if (previous.totalGoals >= current.totalGoals) {
       throw new Error('Goals distribution ordering was malformed.')
     }
   }

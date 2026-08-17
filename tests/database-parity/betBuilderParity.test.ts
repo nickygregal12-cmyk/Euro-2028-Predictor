@@ -3,6 +3,7 @@ import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 import {
   buildAccumulators,
   defaultRequest,
@@ -62,7 +63,7 @@ function pool(): Leg[] {
     for (const book of books) {
       legs.push({
         fixtureId: `f${i}`,
-        league: leagues[i % leagues.length],
+        league: at(leagues, i % leagues.length),
         home: `Home ${i}`,
         away: `Away ${i}`,
         kickoffAt: `2026-08-1${(i % 5) + 1}T15:00:00Z`,
@@ -83,8 +84,8 @@ function pool(): Leg[] {
   }
   // The same club on a second fixture, and a second selection on one fixture:
   // both must be refused by the combination rules on both sides.
-  legs.push({ ...legs[0], fixtureId: 'f0', selection: 'D', odds: 3.4, probability: 0.26 })
-  legs.push({ ...legs[4], fixtureId: 'fx', home: 'Home 0', away: 'Other', odds: 2.5, probability: 0.5 })
+  legs.push({ ...at(legs, 0), fixtureId: 'f0', selection: 'D', odds: 3.4, probability: 0.26 })
+  legs.push({ ...at(legs, 4), fixtureId: 'fx', home: 'Home 0', away: 'Other', odds: 2.5, probability: 0.5 })
   return legs
 }
 

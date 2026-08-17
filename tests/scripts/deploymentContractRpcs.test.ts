@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const repositoryRoot = process.cwd()
 const scriptPath = resolve(
@@ -54,19 +55,19 @@ function migrationSignatures(): Set<string> {
     for (const match of sql.matchAll(
       /on\s+function\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)/gi,
     )) {
-      const args = match[2].split(',').map(normaliseType).filter(Boolean)
+      const args = at(match, 2).split(',').map(normaliseType).filter(Boolean)
       signatures.add(`public.${match[1]}(${args.join(',')})`)
     }
 
     for (const match of sql.matchAll(
       /create\s+(?:or\s+replace\s+)?function\s+public\.([a-z0-9_]+)\s*\(([^)]*)\)/gi,
     )) {
-      const args = match[2]
+      const args = at(match, 2)
         .split(',')
         .map((arg) => {
           const parts = normaliseType(arg).split(' ')
           // `p_name uuid` → uuid; a bare `uuid` keeps itself.
-          return (parts.slice(1).join(' ') || parts[0]).replace(/ default.*$/, '')
+          return (parts.slice(1).join(' ') || at(parts, 0)).replace(/ default.*$/, '')
         })
         .filter(Boolean)
       signatures.add(`public.${match[1]}(${args.join(',')})`)
@@ -89,7 +90,7 @@ function calledRpcNames(): Set<string> {
       for (const match of readFileSync(entryPath, 'utf8').matchAll(
         /\.rpc\(\s*'([a-z0-9_]+)'/g,
       )) {
-        names.add(match[1])
+        names.add(at(match, 1))
       }
     }
   }

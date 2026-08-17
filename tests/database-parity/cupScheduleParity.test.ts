@@ -2,6 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { generateCupLeagueSchedule } from '../../src/domain/season/cupSchedule'
+import { at } from '../support/indexed'
 
 /**
  * The season Cup's league-phase schedule, in both languages.
@@ -93,16 +94,16 @@ describe('a double round robin is an exact mirror', () => {
 
     const roundsPerMeeting = single.rounds.length
     for (let index = 0; index < roundsPerMeeting; index += 1) {
-      const first = single.rounds[index].ties
-      const second = double.rounds[roundsPerMeeting + index].ties
+      const first = at(single.rounds, index).ties
+      const second = at(double.rounds, roundsPerMeeting + index).ties
       expect(second.length).toBe(first.length)
       for (let tie = 0; tie < first.length; tie += 1) {
         // Same pairing, opposite orientation. A repeat rather than a mirror
         // would give one entrant the same home fixture twice.
-        expect([second[tie].home, second[tie].away].sort()).toEqual(
-          [first[tie].home, first[tie].away].sort(),
+        expect([second[tie]?.home, second[tie]?.away].sort()).toEqual(
+          [at(first, tie).home, at(first, tie).away].sort(),
         )
-        expect(second[tie].home).toBe(first[tie].away)
+        expect(second[tie]?.home).toBe(first[tie]?.away)
       }
     }
   })

@@ -47,7 +47,7 @@ describe('the declared cast', () => {
     const players = SEED_IDENTITIES.filter((identity) => identity.adminCapabilities.length === 0)
 
     expect(admins).toHaveLength(1)
-    expect(admins[0].key).toBe('admin')
+    expect(admins[0]?.key).toBe('admin')
     expect(players.length).toBeGreaterThanOrEqual(2)
   })
 

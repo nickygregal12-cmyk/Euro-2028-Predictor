@@ -56,15 +56,17 @@ async function insertLocalPlayers(tournamentId: string): Promise<void> {
     throw new Error('Locked-state browser E2E requires at least two seeded teams.')
   }
 
+  const [firstTeam, secondTeam] = teams
+  if (!firstTeam || !secondTeam) throw new Error('Locked-state seed needs two teams.')
   const { error: playersError } = await admin.from('players').insert([
     {
       tournament_id: tournamentId,
-      team_id: teams[0].id,
+      team_id: firstTeam.id,
       name: LOCKED_E2E_PLAYER,
     },
     {
       tournament_id: tournamentId,
-      team_id: teams[1].id,
+      team_id: secondTeam.id,
       name: LOCKED_E2E_ALTERNATE_PLAYER,
     },
   ])

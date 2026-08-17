@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 import {
   RATE_LIMITS,
   RATE_LIMIT_WINDOW_MS,
@@ -35,7 +36,7 @@ function sqlRateLimitCalls(): { action: string; max: number; file: string }[] {
     for (const match of sql.matchAll(
       /enforce_rate_limit\(\s*'([a-z_]+)'\s*,\s*(\d+)\s*\)/gi,
     )) {
-      calls.push({ action: match[1], max: Number(match[2]), file })
+      calls.push({ action: at(match, 1), max: Number(match[2]), file })
     }
   }
   return calls
@@ -74,7 +75,7 @@ describe('rate-limit rule parity between TypeScript and PostgreSQL', () => {
           /created_at\s*>\s*now\(\)\s*-\s*interval\s*'(\d+)\s+(second|minute|hour)s?'/gi,
         ),
       ])
-      .map((match) => Number(match[1]) * INTERVAL_MS[match[2].toLowerCase()])
+      .map((match) => Number(match[1]) * at(INTERVAL_MS, at(match, 2).toLowerCase()))
 
     expect(countingWindow.length).toBeGreaterThan(0)
     for (const windowMs of countingWindow) {
@@ -115,7 +116,7 @@ describe('rate-limit rule parity between TypeScript and PostgreSQL', () => {
     // count-then-insert sequence it is removing. Reading the whole file finds
     // the defect's own description before the fix and reports it as the fix
     // being in the wrong place.
-    const source = definitions[definitions.length - 1].sql
+    const source = at(definitions, definitions.length - 1).sql
     const body = source.slice(
       source.search(/create\s+or\s+replace\s+function\s+enforce_rate_limit\b/i),
     )

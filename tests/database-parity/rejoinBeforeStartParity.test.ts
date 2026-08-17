@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 /**
  * Contract 126's rejoin gate, against the authority it enforces.
@@ -38,7 +39,7 @@ function definition(text: string, name: string, schema = 'public'): string {
 
   const rest = text.slice(start)
   const opening = /\bas\s+(\$[a-z_]*\$)/.exec(rest)
-  const tag = (opening as RegExpExecArray)[1]
+  const tag = at((opening as RegExpExecArray), 1)
   const bodyStart = (opening as RegExpExecArray).index + (opening as RegExpExecArray)[0].length
   const bodyEnd = rest.indexOf(tag, bodyStart)
   expect(bodyEnd).toBeGreaterThan(-1)

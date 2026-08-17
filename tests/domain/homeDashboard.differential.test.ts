@@ -9,6 +9,7 @@ import {
 } from '../../src/domain/tournament/homeDashboard'
 import { resolveHomeCompetitionContext } from '../../src/features/home/homeCompetitionContext'
 import type { TournamentData } from '../../src/services/supabase/tournamentData'
+import { at } from '../support/indexed'
 
 type LegacyPhaseInput = Parameters<typeof homePhase>[0]
 
@@ -236,7 +237,7 @@ describe('homeDashboard legacy differential fixtures', () => {
 
   it('preserves the legacy partial-result phase edge case', () => {
     const data = tournamentData(false)
-    data.matches[0].homeScore = 1
+    at(data.matches, 0).homeScore = 1
 
     const migrated = resolveHomeCompetitionContext({
       data,

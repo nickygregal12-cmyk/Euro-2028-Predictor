@@ -23,18 +23,18 @@ describe('advanceBracket', () => {
 
     expect(Object.keys(qf).sort()).toEqual(['QF-1', 'QF-2', 'QF-3', 'QF-4'])
     // QF-1: Winner R16-3 v Winner R16-1
-    expect(qf['QF-1'].home).toEqual({ fromRef: 'R16-3', teamId: 'w3' })
-    expect(qf['QF-1'].away).toEqual({ fromRef: 'R16-1', teamId: 'w1' })
+    expect(qf['QF-1']?.home).toEqual({ fromRef: 'R16-3', teamId: 'w3' })
+    expect(qf['QF-1']?.away).toEqual({ fromRef: 'R16-1', teamId: 'w1' })
     // QF-2: Winner R16-5 v Winner R16-6
-    expect(qf['QF-2'].home).toEqual({ fromRef: 'R16-5', teamId: 'w5' })
-    expect(qf['QF-2'].away).toEqual({ fromRef: 'R16-6', teamId: 'w6' })
+    expect(qf['QF-2']?.home).toEqual({ fromRef: 'R16-5', teamId: 'w5' })
+    expect(qf['QF-2']?.away).toEqual({ fromRef: 'R16-6', teamId: 'w6' })
     // QF-3: Winner R16-4 v Winner R16-2
-    expect(qf['QF-3'].home).toEqual({ fromRef: 'R16-4', teamId: 'w4' })
-    expect(qf['QF-3'].away).toEqual({ fromRef: 'R16-2', teamId: 'w2' })
+    expect(qf['QF-3']?.home).toEqual({ fromRef: 'R16-4', teamId: 'w4' })
+    expect(qf['QF-3']?.away).toEqual({ fromRef: 'R16-2', teamId: 'w2' })
     // QF-4: Winner R16-7 v Winner R16-8
-    expect(qf['QF-4'].home).toEqual({ fromRef: 'R16-7', teamId: 'w7' })
-    expect(qf['QF-4'].away).toEqual({ fromRef: 'R16-8', teamId: 'w8' })
-    expect(qf['QF-1'].round).toBe('QF')
+    expect(qf['QF-4']?.home).toEqual({ fromRef: 'R16-7', teamId: 'w7' })
+    expect(qf['QF-4']?.away).toEqual({ fromRef: 'R16-8', teamId: 'w8' })
+    expect(qf['QF-1']?.round).toBe('QF')
   })
 
   it('does not produce a fixture until both feeders are decided', () => {
@@ -72,24 +72,24 @@ describe('advanceBracket', () => {
     expect(qf.map((f) => f.ref)).toEqual(['QF-1', 'QF-2', 'QF-3', 'QF-4'])
     // QF-1 = Winner R16-3 (W-B, home of R16-3) v Winner R16-1 (W-A).
     const qfByRef = byRef(qf)
-    expect(qfByRef['QF-1'].home.teamId).toBe('W-B')
-    expect(qfByRef['QF-1'].away.teamId).toBe('W-A')
+    expect(qfByRef['QF-1']?.home.teamId).toBe('W-B')
+    expect(qfByRef['QF-1']?.away.teamId).toBe('W-A')
     recordHomeWinners(qf)
 
     const sf = advanceBracket(results)
     expect(sf.map((f) => f.ref)).toEqual(['SF-1', 'SF-2'])
     const sfByRef = byRef(sf)
     // SF-1 = Winner QF-1 v Winner QF-2; SF-2 = Winner QF-4 v Winner QF-3.
-    expect(sfByRef['SF-1'].home.fromRef).toBe('QF-1')
-    expect(sfByRef['SF-1'].away.fromRef).toBe('QF-2')
-    expect(sfByRef['SF-2'].home.fromRef).toBe('QF-4')
-    expect(sfByRef['SF-2'].away.fromRef).toBe('QF-3')
+    expect(sfByRef['SF-1']?.home.fromRef).toBe('QF-1')
+    expect(sfByRef['SF-1']?.away.fromRef).toBe('QF-2')
+    expect(sfByRef['SF-2']?.home.fromRef).toBe('QF-4')
+    expect(sfByRef['SF-2']?.away.fromRef).toBe('QF-3')
     recordHomeWinners(sf)
 
     const finalRound = advanceBracket(results)
     expect(finalRound.map((f) => f.ref)).toEqual(['FINAL'])
-    expect(finalRound[0].home.fromRef).toBe('SF-1')
-    expect(finalRound[0].away.fromRef).toBe('SF-2')
+    expect(finalRound[0]?.home.fromRef).toBe('SF-1')
+    expect(finalRound[0]?.away.fromRef).toBe('SF-2')
     recordHomeWinners(finalRound)
 
     // Nothing left to play — tournament complete, champion is the final winner.

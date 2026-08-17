@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ALLOWED_SENTRY_INGEST_SUFFIXES } from '../../src/services/observability/sentryReporter'
 import { PWNED_PASSWORDS_ORIGIN } from '../../src/services/auth/pwnedPassword'
+import { at } from '../support/indexed'
 
 /**
  * Parity between the committed Content-Security-Policy and what the application
@@ -30,7 +31,7 @@ const netlifyConfig = readFileSync(resolve(repositoryRoot, 'netlify.toml'), 'utf
 function contentSecurityPolicy(): string {
   const match = netlifyConfig.match(/Content-Security-Policy\s*=\s*"([^"]+)"/)
   if (!match) throw new Error('netlify.toml declares no Content-Security-Policy.')
-  return match[1]
+  return at(match, 1)
 }
 
 /** The policy as directive name → source list. */
@@ -142,7 +143,7 @@ describe('Content-Security-Policy parity with application requirements', () => {
     // and Sentry are covered above; everything else must appear in src/.
     const externalHosts = [...new Set(
       [...contentSecurityPolicy().matchAll(/https:\/\/([a-z0-9.*-]+)/g)].map(
-        (match) => match[1],
+        (match) => at(match, 1),
       ),
     )].filter(
       (host) => !host.endsWith('supabase.co') && !host.endsWith('sentry.io'),
