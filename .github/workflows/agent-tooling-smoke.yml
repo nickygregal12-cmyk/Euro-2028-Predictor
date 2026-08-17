@@ -41,7 +41,7 @@ jobs:
           echo "omniroute=$(node -p "require('./config/agent-tools.json').omniroute.version")" >> "${GITHUB_OUTPUT}"
 
       - name: Set up repository Node version
-        uses: actions/setup-node@1e60f620b9541d28c5407b88132d438dcf59e022 # v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ steps.versions.outputs.node }}
 
