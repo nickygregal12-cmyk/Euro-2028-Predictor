@@ -33,9 +33,9 @@ export async function fetchProviderProposals(
 ): Promise<ProviderProposalPage> {
   const { data, error } = await db.rpc('admin_provider_proposal_detail', {
     p_tournament_id: tournamentId,
-    p_provider: options.provider,
-    p_limit: options.limit,
-    p_offset: options.offset,
+    ...(options.provider === undefined ? {} : { p_provider: options.provider }),
+    ...(options.limit === undefined ? {} : { p_limit: options.limit }),
+    ...(options.offset === undefined ? {} : { p_offset: options.offset }),
   })
   if (error) throw error
   return mapProviderProposalPage(data)
@@ -48,8 +48,8 @@ export async function fetchAdminEntrants(
 ): Promise<AdminEntrantsPage | null> {
   const { data, error } = await db.rpc('admin_competition_entrants', {
     p_competition_id: competitionId,
-    p_limit: options.limit,
-    p_offset: options.offset,
+    ...(options.limit === undefined ? {} : { p_limit: options.limit }),
+    ...(options.offset === undefined ? {} : { p_offset: options.offset }),
   })
   if (error) throw error
   return mapAdminEntrantsPage(data)

@@ -37,7 +37,7 @@ export async function fetchSeasonCupGroupStage(
 ): Promise<SeasonCupGroupStage> {
   const { data, error } = await db.rpc('get_season_cup_group_stage', {
     p_competition_id: competitionId,
-    p_group_ordinal: groupOrdinal,
+    ...(groupOrdinal === undefined ? {} : { p_group_ordinal: groupOrdinal }),
   })
   if (error) throw error
   return mapSeasonCupGroupStage(data)

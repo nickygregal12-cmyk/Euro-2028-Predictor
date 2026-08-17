@@ -135,7 +135,7 @@ export function trackedMarkdown() {
  *
  * @param {Manifest} manifest
  * @param {string} path
- * @returns {{state: 'authority'|'evidence'|'out-of-scope'|'unclassified', kind?: string, allow?: number[], by: string}}
+ * @returns {{state: 'authority'|'evidence'|'out-of-scope'|'unclassified', kind?: string | undefined, allow?: number[] | undefined, by: string}}
  */
 export function classify(manifest, path) {
   const named = (manifest.authorities ?? []).find((entry) => entry.path === path)

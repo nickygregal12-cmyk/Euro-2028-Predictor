@@ -347,7 +347,7 @@ function MatchCentreComposition({
   leagues: readonly { id: string; name: string }[]
   consensusLoad: ((matchweek: number) => Promise<SeasonConsensus>) | null
   playerHref: (playerId: string) => string
-  predictHref?: (matchweek: number) => string
+  predictHref?: ((matchweek: number) => string) | undefined
 }) {
   const card = useSeasonMatchCentre(readCard, fixture)
   const pages = useSeasonLeagueMatchweekPages(

@@ -43,7 +43,7 @@ export type SeasonFixturePreviewProps = {
   /** Opens the full Matches section. */
   onSeeAll: () => void
   /** How many rows to show. Overview's card, not a rule. */
-  limit?: number
+  limit?: number | undefined
 }
 
 const DEFAULT_LIMIT = 4

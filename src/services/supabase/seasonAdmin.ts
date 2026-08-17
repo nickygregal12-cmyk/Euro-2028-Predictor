@@ -127,8 +127,8 @@ function decodeResultOutcome(value: unknown, action: SeasonResultAction): Season
 export async function recordSeasonFixtureResult(input: {
   fixtureId: string
   action: SeasonResultAction
-  home?: number
-  away?: number
+  home?: number | undefined
+  away?: number | undefined
   reason?: string | null
 }): Promise<SeasonResultOutcome> {
   const reason = input.reason?.trim() ? input.reason.trim() : null

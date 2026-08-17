@@ -7,12 +7,14 @@ export type TextInputProps = {
   // real <label>, so the whole thing is presentational and accessible.
   label: string
   // When set, the field shows its error state: red border, message, and
-  // aria-invalid wired to the input.
-  error?: string
+  // aria-invalid wired to the input. `undefined` is how a valid field says it
+  // has no error, so it is admitted explicitly rather than only by absence —
+  // every caller writes `error={errors.email}` off a partial error map.
+  error?: string | undefined
   // Optional helper text shown below the field when there's no error.
-  hint?: ReactNode
+  hint?: ReactNode | undefined
   // 'password' adds a show/hide toggle.
-  type?: 'text' | 'email' | 'password'
+  type?: 'text' | 'email' | 'password' | undefined
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'className' | 'type' | 'id'>
 
 /**

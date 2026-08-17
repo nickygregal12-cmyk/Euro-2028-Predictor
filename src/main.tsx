@@ -24,7 +24,7 @@ initDevAuth()
     const rootElement = document.getElementById('root')!
     const reportReactError = (
       error: unknown,
-      errorInfo: { componentStack?: string | null },
+      errorInfo: { componentStack?: string | null | undefined },
     ) => {
       reportClientError(
         error,

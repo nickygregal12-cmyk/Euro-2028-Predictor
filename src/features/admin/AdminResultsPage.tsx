@@ -268,7 +268,12 @@ export function AdminResultsPage() {
 
   function updateValue(field: keyof AdminResultFormValues, value: string) {
     setValues((current) => ({ ...current, [field]: value }))
-    setErrors((current) => ({ ...current, [field]: undefined, form: undefined }))
+    setErrors((current) => {
+      const next = { ...current }
+      delete next[field]
+      delete next.form
+      return next
+    })
   }
 
   function changeMethod(event: ChangeEvent<HTMLSelectElement>) {

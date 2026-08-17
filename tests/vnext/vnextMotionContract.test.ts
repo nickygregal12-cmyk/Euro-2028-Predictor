@@ -265,7 +265,7 @@ describe('MatchCard press feedback', () => {
     // Hover depth on a card with nothing to do is the same false promise in a
     // quieter form.
     expect(source.slice(articleAt, buttonAt)).toContain(
-      "whileHover={action ? 'hover' : undefined}",
+      "{...(action ? { whileHover: 'hover' } : {})}",
     )
   })
 })

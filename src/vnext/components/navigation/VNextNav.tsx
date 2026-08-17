@@ -22,7 +22,7 @@ export type VNextNavItem = {
 export type VNextNavProps = {
   items?: readonly VNextNavItem[]
   activeId: string
-  onSelect?: (id: string) => void
+  onSelect?: ((id: string) => void) | undefined
   /** `bar` is the mobile bottom bar; `band` is the desktop masthead row. */
   variant?: 'bar' | 'band'
 }
@@ -122,12 +122,12 @@ export function VNextNav({
                 {isActive ? (
                   <motion.span
                     className={styles.indicator}
-                    layoutId={reduced ? undefined : `${instanceId}-indicator`}
                     transition={indicatorTravel}
                     variants={indicator}
                     initial="hidden"
                     animate="current"
                     aria-hidden="true"
+                    {...(reduced ? {} : { layoutId: `${instanceId}-indicator` })}
                   />
                 ) : null}
                 <span className={styles.iconWrap}>

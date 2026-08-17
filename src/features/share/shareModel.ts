@@ -11,7 +11,7 @@ export type ShareSurvivorStage = { stage: 'R16' | 'QF' | 'SF' | 'FINAL'; teams: 
 
 export type ShareCardModel = {
   header: { playerName: string; locked: boolean; leagueName?: string | null }
-  champion: (ShareTeam & { eliminated?: boolean }) | null
+  champion: (ShareTeam & { eliminated?: boolean | undefined }) | null
   finalists: [ShareTeam, ShareTeam] | null
   venue: string | null
   dateLabel: string | null

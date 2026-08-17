@@ -5,7 +5,7 @@ export type ScoreInputProps = {
   value: number | null
   // Accessible label, per team — e.g. "Scotland score" (design-system §7).
   ariaLabel: string
-  onChange?: (value: number | null) => void
+  onChange?: ((value: number | null) => void) | undefined
   // Locked variant: a static, non-focusable chip (entry deadline passed).
   locked?: boolean
   name?: string
@@ -13,7 +13,7 @@ export type ScoreInputProps = {
   // owns the pairing: `inputRef` lets it focus/blur this box, and `onAdvance` fires
   // when a digit is entered into an EMPTY box (home → away → done) so a whole card
   // is typeable with no manual focus moves. Two-digit scores re-focus and type on.
-  onAdvance?: () => void
+  onAdvance?: (() => void) | undefined
   inputRef?: Ref<HTMLInputElement>
   /**
    * Tap-to-step controls above and below the box. On by default for the

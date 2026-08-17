@@ -164,7 +164,7 @@ export async function fetchLeagueMembersPage(
   const { data, error } = await db.rpc('get_league_members', {
     p_league_id: leagueId,
     p_limit: options.limit ?? 50,
-    p_after: options.after ?? undefined,
+    ...(options.after == null ? {} : { p_after: options.after }),
   })
   if (error) throw error
   return mapLeagueMemberPage(data)

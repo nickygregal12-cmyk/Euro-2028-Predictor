@@ -42,7 +42,7 @@ export type SeasonLeagueStandingsProps = {
    * that resolved the play context. With no reader supplied, rows carry no
    * compare control at all rather than one that refuses.
    */
-  headToHead?: { matchweek: number; load: (opponentId: string) => Promise<HeadToHead> }
+  headToHead?: { matchweek: number; load: (opponentId: string) => Promise<HeadToHead> } | undefined
 }
 
 const SKELETON_ROWS = 4
@@ -54,7 +54,7 @@ function Row({
 }: {
   row: LeagueStandingsRow
   pinned?: boolean
-  onCompare?: (row: LeagueStandingsRow) => void
+  onCompare?: ((row: LeagueStandingsRow) => void) | undefined
 }) {
   return (
     <li

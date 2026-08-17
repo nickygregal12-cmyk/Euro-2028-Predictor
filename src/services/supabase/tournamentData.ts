@@ -60,7 +60,7 @@ export type Match = {
   // optional in the TypeScript shape so older isolated fixtures and visual
   // previews can still construct a minimal Match while repository reads always
   // populate the authoritative result lifecycle.
-  resultState?: MatchResultState
+  resultState?: MatchResultState | undefined
   resultMethod?: MatchResultMethod | null
   homeScore90?: number | null
   awayScore90?: number | null

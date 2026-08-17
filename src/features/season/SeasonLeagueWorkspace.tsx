@@ -72,15 +72,15 @@ export type SeasonLeagueWorkspaceProps = {
   leagueId: string
   leagueName: string
   standings: SeasonLeagueStandingsGateway
-  headToHead?: SeasonLeagueStandingsProps['headToHead']
+  headToHead?: SeasonLeagueStandingsProps['headToHead'] | undefined
   /** The matchweek the Matchweek tab opens at, as a competition round id. */
   competitionRoundId: string | null
   loadMatchweek: (
     leagueId: string,
     competitionRoundId: string,
   ) => Promise<SeasonLeagueMatchweekPredictions>
-  loadMovement?: (leagueId: string) => Promise<SeasonLeagueMovement>
-  playerHref?: (playerId: string) => string
+  loadMovement?: ((leagueId: string) => Promise<SeasonLeagueMovement>) | undefined
+  playerHref?: ((playerId: string) => string) | undefined
   /** The open tab, and how to change it. Held by the route so Back restores it. */
   tab: SeasonLeagueTab
   onTabChange: (tab: SeasonLeagueTab) => void

@@ -22,7 +22,7 @@ export type LockScope = {
   fixtureData: FixtureDataSnapshot | null
   bufferMinutes: number
   previouslyLocked: boolean
-  matchGuard?: MatchKickoffGuard
+  matchGuard?: MatchKickoffGuard | undefined
 }
 
 export type LockStateReason =

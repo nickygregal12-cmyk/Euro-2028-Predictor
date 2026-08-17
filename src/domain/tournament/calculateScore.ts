@@ -98,11 +98,11 @@ export type KnockoutScore = {
   points: number
 }
 export type BonusScore = {
-  goldenBoot: { predicted?: string; correct: boolean; points: number }
+  goldenBoot: { predicted?: string | undefined; correct: boolean; points: number }
   totalGoals: {
-    predicted?: number
-    actual?: number
-    diff?: number
+    predicted?: number | undefined
+    actual?: number | undefined
+    diff?: number | undefined
     band: TotalGoalsBand
     points: number
   }

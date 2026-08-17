@@ -66,7 +66,7 @@ async function drawFlag(
   cx: number,
   cy: number,
   h: number,
-  opts: { ring?: boolean; dim?: boolean } = {},
+  opts: { ring?: boolean | undefined; dim?: boolean | undefined } = {},
 ) {
   const w = h * 1.5
   const x = cx - w / 2

@@ -31,7 +31,7 @@ export type SeasonLeagueMembersProps = {
   leagueId: string
   leagueName: string
   /** Where a member's name links. Omitted renders plain text. */
-  playerHref?: (playerId: string) => string
+  playerHref?: ((playerId: string) => string) | undefined
 }
 
 const SKELETON_ROWS = 4

@@ -101,7 +101,7 @@ export function MatchCard({
       aria-labelledby={headingId}
       variants={lift}
       initial="rest"
-      whileHover={action ? 'hover' : undefined}
+      {...(action ? { whileHover: 'hover' } : {})}
     >
       <h3 id={headingId} className={typography.srOnly}>
         {heading}

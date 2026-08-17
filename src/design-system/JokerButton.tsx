@@ -8,7 +8,7 @@ export type JokerButtonState = 'available' | 'on'
 
 export type JokerButtonProps = {
   state: JokerButtonState
-  onToggle?: () => void
+  onToggle?: (() => void) | undefined
   disabled?: boolean
 }
 

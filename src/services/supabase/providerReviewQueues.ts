@@ -59,7 +59,7 @@ export async function acknowledgeReviewItems(
   const { data, error } = await db.rpc('acknowledge_provider_review_items', {
     p_kind: kind,
     p_ids: [...ids],
-    p_note: note?.trim() ? note.trim() : undefined,
+    ...(note?.trim() ? { p_note: note.trim() } : {}),
   })
   if (error) throw error
 

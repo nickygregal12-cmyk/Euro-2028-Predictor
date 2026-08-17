@@ -392,7 +392,7 @@ describe('predicted group-order fixture structure', () => {
   })
 })
 
-for (const fixture of fixtures as Fixture[]) {
+for (const fixture of fixtures as unknown as Fixture[]) {
   describe(`fixture: ${fixture.name}`, () => {
     it('matches the production resolver contract', () => {
       const matches = toMatchScores(fixture.matches)
@@ -416,7 +416,7 @@ for (const fixture of fixtures as Fixture[]) {
 }
 
 describe('Batch 2 input-order independence', () => {
-  for (const fixture of fixtures as Fixture[]) {
+  for (const fixture of fixtures as unknown as Fixture[]) {
     if (!batch2FixtureNames.has(fixture.name)) continue
 
     it(fixture.name, () => {
@@ -446,7 +446,7 @@ describe('Batch 2 input-order independence', () => {
   }
 
   it('keeps all-draws unresolved without an input-order fallback', () => {
-    const fixture = (fixtures as Fixture[]).find(
+    const fixture = (fixtures as unknown as Fixture[]).find(
       (candidate) => candidate.name === 'all-draws-unresolved',
     )
     if (!fixture) throw new Error('Missing all-draws-unresolved fixture')

@@ -37,8 +37,8 @@ export function LiveIndicator({ status, clock }: LiveIndicatorProps) {
       <motion.span
         className={styles.dot}
         variants={pulse}
-        animate={isInterval ? undefined : 'rest'}
         aria-hidden="true"
+        {...(isInterval ? {} : { animate: 'rest' })}
       />
       <span className={styles.word}>{isInterval ? 'Half time' : 'Live'}</span>
       {clock ? <span className={styles.clock}>{clock.label}</span> : null}

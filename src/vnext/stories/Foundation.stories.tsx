@@ -232,12 +232,12 @@ function MotionSamples() {
             {label === active ? (
               <motion.span
                 className={styles.navIndicator}
-                layoutId={reduced ? undefined : `${indicatorId}-indicator`}
                 transition={indicatorTravel}
                 variants={indicator}
                 initial="hidden"
                 animate="current"
                 aria-hidden="true"
+                {...(reduced ? {} : { layoutId: `${indicatorId}-indicator` })}
               />
             ) : null}
             <span className={`${typography.micro} ${styles.navLabel}`}>
