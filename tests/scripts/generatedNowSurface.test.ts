@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -288,6 +288,100 @@ describe('production is stated once, in production’s own record', () => {
     expect(expectFailure(root, ['--check'])).toContain('out of date')
     generate(root, [])
     expect(readFileSync(resolve(root, 'NOW.md'), 'utf8')).toContain('| Production | **9** |')
+
+    // "No other file touched" was in this test's name and in none of its
+    // assertions. It matters now that the generator also manages a region in
+    // `current-status.md`: this fixture holds no such document, and the
+    // generator must leave it that way rather than inventing one.
+    expect(existsSync(resolve(root, 'docs/quality/current-status.md'))).toBe(false)
+  })
+
+  describe('the hosted-state region in current-status.md', () => {
+    const BEGIN = '<!-- BEGIN GENERATED hosted-state -->'
+    const END = '<!-- END GENERATED hosted-state -->'
+    const statusPath = 'docs/quality/current-status.md'
+
+    function withStatusDocument(root: string, body: string): string {
+      const path = resolve(root, statusPath)
+      writeFileSync(path, `# Fixture status\n\n${body}\n\nHand-written evidence below.\n`)
+      return path
+    }
+
+    it('writes the three contracts into the region, derived from the records', () => {
+      const root = writeFixture({
+        repositoryContract: 7,
+        developmentContract: 5,
+        productionContract: 6,
+      })
+      const path = withStatusDocument(root, `${BEGIN}\n${END}`)
+      generate(root, [])
+
+      const status = readFileSync(path, 'utf8')
+      expect(status).toContain('The repository is at **contract 7**')
+      expect(status).toContain('Development Supabase is hosted at **5**')
+      expect(status).toContain('Production Supabase is hosted at **6**')
+      // Nothing outside the markers is rewritten.
+      expect(status).toContain('# Fixture status')
+      expect(status).toContain('Hand-written evidence below.')
+    })
+
+    it('reports promotion authorisation from the record rather than from the numbers', () => {
+      // Level contracts are not authorisation. The record says so or it does not.
+      const authorised = writeFixture({
+        repositoryContract: 4,
+        productionContract: 4,
+        productionPromotionAuthorised: true,
+      })
+      const authorisedPath = withStatusDocument(authorised, `${BEGIN}\n${END}`)
+      generate(authorised, [])
+      expect(readFileSync(authorisedPath, 'utf8')).toContain('further promotion is **authorised**')
+
+      const refused = writeFixture({ repositoryContract: 4, productionContract: 4 })
+      const refusedPath = withStatusDocument(refused, `${BEGIN}\n${END}`)
+      generate(refused, [])
+      expect(readFileSync(refusedPath, 'utf8')).toContain(
+        'further promotion is **not authorised**',
+      )
+    })
+
+    it('moves the region when a record moves, and --check fails until it does', () => {
+      const root = writeFixture({ repositoryContract: 9, productionContract: 4 })
+      const path = withStatusDocument(root, `${BEGIN}\n${END}`)
+      generate(root, [])
+      expect(readFileSync(path, 'utf8')).toContain('Production Supabase is hosted at **4**')
+
+      writeProductionFixture(root, { requiredMigrationCount: 9, promotionAuthorised: false })
+
+      expect(expectFailure(root, ['--check'])).toMatch(/out of date|disagrees with the machine records/)
+      generate(root, [])
+      expect(readFileSync(path, 'utf8')).toContain('Production Supabase is hosted at **9**')
+    })
+
+    it('fails --check when the region is hand-edited away from the records', () => {
+      const root = writeFixture({ repositoryContract: 8, productionContract: 8 })
+      const path = withStatusDocument(root, `${BEGIN}\n${END}`)
+      generate(root, [])
+
+      writeFileSync(
+        path,
+        readFileSync(path, 'utf8').replace(
+          'Production Supabase is hosted at **8**',
+          'Production Supabase is hosted at **7**',
+        ),
+      )
+
+      expect(expectFailure(root, ['--check'])).toContain('disagrees with the machine records')
+    })
+
+    it('fails closed when the document exists without the markers', () => {
+      // Not the same as absent. A status document that has lost its markers is
+      // one where the numbers have gone back to being stated by hand, so
+      // appending a second copy would recreate the original defect.
+      const root = writeFixture({})
+      withStatusDocument(root, 'Production Supabase is hosted at **99** by hand.')
+
+      expect(expectFailure(root, [])).toContain('missing the generated hosted-state markers')
+    })
   })
 
   it('fails closed rather than choosing, if a second copy is reintroduced', () => {

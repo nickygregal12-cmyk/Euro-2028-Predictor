@@ -227,12 +227,101 @@ export function collect(root) {
     developmentVerifiedAt: hosted.verifiedAt ?? null,
     developmentRunId: hosted.evidence?.workflowRunId ?? null,
     productionContract: production.requiredMigrationCount,
+    productionVerifiedAt: production.verifiedAt ?? null,
     productionPromotionAuthorised: production.promotionAuthorised,
     pending,
     nextFreeContract: deployment.requiredMigrationCount + 1,
     flags: journeyFlags(root),
     requirements: acceptedRequirements(root),
   }
+}
+
+export const HOSTED_STATE_BEGIN = '<!-- BEGIN GENERATED hosted-state -->'
+export const HOSTED_STATE_END = '<!-- END GENERATED hosted-state -->'
+export const HOSTED_STATE_TARGET = 'docs/quality/current-status.md'
+
+/**
+ * The three contract numbers, derived, for `current-status.md`.
+ *
+ * WHY THIS IS GENERATED AND THE PROSE AROUND IT IS NOT. On 17 August 2026
+ * `current-status.md` — which calls itself the only live implementation and
+ * hosted-status authority — said hosted Production was at 189 while
+ * `config/production-hosted-contract.json` recorded 190, verified three days
+ * earlier. Its own header already claimed the file "reads them rather than
+ * competing with them". It did not; it restated them by hand. This region is how
+ * that sentence becomes true.
+ *
+ * ONLY THE VALUES THAT MOVE BELONG HERE. Which rollout run, from which head,
+ * gated on which backup — that is evidence, it is written once and it does not
+ * drift, so it stays hand-written outside the markers. A number that changes
+ * every time an environment moves is the thing a human should never be
+ * retyping.
+ *
+ * AND IT IS RENDERED FROM THE RECORDS, NEVER FROM THE DOCUMENT. That distinction
+ * is the whole reason `--check` can catch anything: an earlier version of this
+ * generator read production's contract from a copy kept in the *development*
+ * record, so `--check` regenerated from the same copy the error lived in and
+ * agreed with it by construction. `tests/scripts/generatedNowSurface.test.ts`
+ * opens with that story. Every value below comes from `collect`, which reads the
+ * three machine records and fails closed when they disagree.
+ *
+ * @param {ReturnType<typeof collect>} f
+ */
+export function renderHostedState(f) {
+  const developmentVerified = f.developmentVerifiedAt
+    ? `, verified \`${f.developmentVerifiedAt}\``
+    : ''
+  const productionVerified = f.productionVerifiedAt
+    ? `, verified \`${f.productionVerifiedAt}\``
+    : ''
+  const promotion = f.productionPromotionAuthorised
+    ? 'further promotion is **authorised**'
+    : 'further promotion is **not authorised**'
+
+  return [
+    HOSTED_STATE_BEGIN,
+    '<!-- Written by scripts/generate-now.mjs from config/deployment-contract.json,',
+    '     config/development-hosted-contract.json and config/production-hosted-contract.json.',
+    '     Do not edit between these markers — run `npm run generate:now`.',
+    '     `npm run check:now` fails in CI when this region disagrees with those records. -->',
+    '',
+    // The NUMBER carries the emphasis, not the sentence. Existing freshness
+    // assertions match `hosted at **N**`, and bolding the phrase instead left
+    // them finding nothing and passing vacuously on an undefined value — the
+    // failure mode this whole region exists to remove.
+    `The repository is at **contract ${f.repositoryContract}**, through \`${f.latestMigration}\`.`,
+    `Development Supabase is hosted at **${f.developmentContract}**${developmentVerified}.`,
+    `Production Supabase is hosted at **${f.productionContract}**${productionVerified}; ${promotion}.`,
+    '',
+    'These three values are derived, not restated. The evidence for how each',
+    'environment reached its contract — the rollout run, the exact head, the backup',
+    'and rehearsal it was gated on — is written by hand below, because evidence does',
+    'not drift once recorded and a contract number does.',
+    HOSTED_STATE_END,
+  ].join('\n')
+}
+
+/**
+ * Replace the managed region in `source`, failing closed if it is not there.
+ *
+ * A missing marker is a hard failure rather than an append: appending would put
+ * a second hosted-state claim in a document whose whole problem was carrying two
+ * answers to one question.
+ *
+ * @param {string} source
+ * @param {string} region
+ */
+export function applyHostedState(source, region) {
+  const start = source.indexOf(HOSTED_STATE_BEGIN)
+  const end = source.indexOf(HOSTED_STATE_END)
+  if (start === -1 || end === -1 || end < start) {
+    fail(
+      `${HOSTED_STATE_TARGET} is missing the generated hosted-state markers. ` +
+        `Restore \`${HOSTED_STATE_BEGIN}\` and \`${HOSTED_STATE_END}\` around the ` +
+        'derived contract values rather than letting the document state them by hand.',
+    )
+  }
+  return source.slice(0, start) + region + source.slice(end + HOSTED_STATE_END.length)
 }
 
 /** @param {ReturnType<typeof collect>} f */
@@ -344,6 +433,21 @@ const root = rootFlag === -1 ? process.cwd() : resolve(args[rootFlag + 1] ?? '.'
 const output = render(collect(root))
 const target = resolve(root, 'NOW.md')
 
+const facts = collect(root)
+const statusTarget = resolve(root, HOSTED_STATE_TARGET)
+// ABSENT IS NOT THE SAME AS UNMARKED. The generator's own contract is NOW.md, and
+// it must stay runnable against a tree that holds only the contract records —
+// which is exactly how `generatedNowSurface.test.ts` proves it derives its values
+// instead of hard-coding them. So a missing status document means there is no
+// region to manage. A status document that exists WITHOUT the markers is the
+// different case, and `applyHostedState` fails closed on it, because that is
+// someone having removed the managed region from the file that needs it.
+const statusManaged = existsSync(statusTarget)
+const statusSource = statusManaged ? readFileSync(statusTarget, 'utf8') : ''
+const statusOutput = statusManaged
+  ? applyHostedState(statusSource, renderHostedState(facts))
+  : statusSource
+
 if (args.includes('--stdout')) {
   process.stdout.write(output)
 } else if (args.includes('--check')) {
@@ -351,8 +455,23 @@ if (args.includes('--stdout')) {
   if (current !== output) {
     fail('NOW.md is out of date. Run `npm run generate:now`.')
   }
-  console.log(`NOW.md is current: repository ${collect(root).repositoryContract}.`)
+  if (statusSource !== statusOutput) {
+    fail(
+      `${HOSTED_STATE_TARGET}'s hosted-state region disagrees with the machine records. ` +
+        'Run `npm run generate:now`. If the records are the thing that is wrong, fix ' +
+        'them — the document is downstream of them and cannot be the place this is settled.',
+    )
+  }
+  console.log(
+    `NOW.md and ${HOSTED_STATE_TARGET} are current: repository ${facts.repositoryContract}, ` +
+      `development ${facts.developmentContract}, production ${facts.productionContract}.`,
+  )
 } else {
   writeFileSync(target, output)
-  console.log(`NOW.md written: repository ${collect(root).repositoryContract}.`)
+  if (statusSource !== statusOutput) writeFileSync(statusTarget, statusOutput)
+  console.log(
+    `NOW.md written: repository ${facts.repositoryContract}. ` +
+      `${HOSTED_STATE_TARGET} hosted-state region: development ${facts.developmentContract}, ` +
+      `production ${facts.productionContract}.`,
+  )
 }
