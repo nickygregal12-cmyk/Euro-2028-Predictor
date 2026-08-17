@@ -224,6 +224,60 @@ Nothing here changes production, and only the closed item ships code.
   grants belong to whoever owns the extension, and where the platform owns it the
   project role can neither revoke them nor pretend to.
 
+## Correction record — 17 August 2026, external repository audit
+
+A fresh audit read current `main`, open pull requests, source, tests, CI, operational
+documentation and configuration, deliberately without using project history as evidence.
+Its finding was not "there are no tests" but something narrower and more useful: **some
+safeguards looked stronger than what they actually proved.** Each of its five findings was
+reverified against the repository before anything was recorded here, and the verification
+changed one of them.
+
+**Four are resolved and are deliberately NOT opened as entries**, per this register's own
+rule against retaining a finding after the concrete defect is fixed. They are recorded here
+so they are not re-raised from the audit text, and so the evidence of the check survives:
+
+- **The hosted-status authority was wrong and the freshness gate could not fail.**
+  [`current-status.md`](current-status.md) stated a hosted Production contract behind the
+  one `config/production-hosted-contract.json` records, while
+  [`ops-pending-migrations.md`](../ops/ops-pending-migrations.md) agreed with the record —
+  and `tests/scripts/documentationContractFreshness.test.ts` was green throughout. The
+  audit attributed this to Production lacking protection; **verification found the
+  mechanism to be different, which matters for the fix.** The Production record *was* used,
+  but only to check the Netlify declaration did not *lead* it, through a helper returning
+  `declared <= hosted` that permits trailing by design. No pattern compared the prose to
+  the record, and no `PRODUCTION_CONTRACT` pattern existed at all while the repository and
+  Development ones did. Fixed in pull request #817: both hosted claims are now checked
+  against their records, the Development claim included — it had only ever been checked for
+  self-consistency, which a document uniformly stating a wrong number passes. Proven by
+  reverting the value in the document and watching two assertions fail.
+- **A development-credential guard matched by substring.** `isDevProjectUrl` tested
+  `url.includes(DEV_PROJECT_REF)`, so the project ref merely had to appear somewhere in the
+  string: a hostile subdomain, path, query or fragment all passed, as did the correct host
+  over plaintext. `isLocalSupabaseUrl` eight lines below had always parsed the URL properly.
+  Fixed in pull request #818 by requiring the exact HTTPS origin. **Never reachable from a
+  production build** — the path needs a development build *and* the opt-in flag — so this
+  was a guard that did not hold in the one situation it exists for, not a production
+  exposure. The old test could not have caught it: it rejected a *different* project ref,
+  which a substring test rejects anyway.
+- **Telemetry URL sanitisation kept the path verbatim.** Query strings, hashes, emails,
+  bearer material and database errors were stripped; `origin + pathname` was not, and the
+  path is where invite codes and player identifiers live. Fixed in pull request #819 by
+  reusing the existing route categoriser, whose vocabulary is a closed set and therefore
+  cannot carry a value. An invite code cannot be recognised structurally — it is
+  indistinguishable from an ordinary path word — which is why an allowlist was the only
+  sound approach for this application's own routes. `sentryReporter` was checked and was
+  already correct.
+- **The duplication guard could not see a file repeating itself.** It recorded each path
+  once, so its `carriers.length < 2` sweep deleted intra-file repeats before they reached
+  an assertion; [`current-status.md`](current-status.md) carried an identical seven-line run
+  twice. Fixed in pull request #820, **open at the time of writing rather than landed** — it
+  is listed here because the defect and its cause are verified, not because the change has
+  merged. No baseline entry was added, because that ratchet is deliberately empty.
+
+**One is new and is opened below: `TYPE-002`.** It is the audit's only P3 and the only
+finding whose closure is not a single change.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.
@@ -342,6 +396,7 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 | `DATA-008` | Scores have no practical database maximum | **Open** |
 | `DOC-002` | Package version remains `0.0.0` | **Open** |
 | `DOC-003` | Component gallery large/partly historical | **Open; development-only** |
+| `TYPE-002` | Two compiler checks that catch AI-shaped mistakes are off, so absent-versus-undefined and unchecked index access are unproven | **Open; reduced 17 August 2026 — thirty declarations made honest, the flag still off.** `tsconfig.app.json` declares `strict`, `noUnusedLocals`, `noUnusedParameters`, `erasableSyntaxOnly` and `noFallthroughCasesInSwitch`, and **not** `exactOptionalPropertyTypes` or `noUncheckedIndexedAccess`. Without the first, `{ a: undefined }` satisfies `{ a?: string }`, so spreading a partial object over a complete one can erase a field while the types say it cannot. **Both costs are measured rather than estimated.** `exactOptionalPropertyTypes` reports **113** errors and `noUncheckedIndexedAccess` **158**, of which 77 are in the `import.meta.env.DEV`-gated `src/dev` harnesses that no production bundle contains — so its real surface is 81, including 37 in `src/domain`, where an unchecked `array[i]` is a scoring or elimination question rather than a cosmetic one. Pull request #821 — **open at the time of writing, not landed** — takes the first from 113 to **86** by widening thirty declarations that said `prop?: T` while every caller legitimately passed `T \| undefined`; until it merges the count on `main` is still 113. **That reduction buys no enforcement and is not claimed to:** with the flag off the two forms are identical to the compiler, so the change is inert by construction and was verified inert, and nothing prevents the count rising again until the flag is on. **The residue is not more of the same, which is the finding's real shape.** Only three of the 86 have a named target type left to widen; the other 83 are anonymous inline types across 55 files — `useState` updaters and call-site object literals with no declaration to fix — so each is a decision about whether to omit a key or admit undefined. A mechanical pass over them is the wrong tool and there is evidence for that: the scripted first pass on the tractable thirty produced `result?: { home: number \| undefined; away: number }`, placing the union *inside* the object, which compiles and is wrong. It was corrected by hand, the other twenty-nine were audited for the same mistake and all thirty lines were read individually. **Required closure:** carry `exactOptionalPropertyTypes` to zero and turn it on, then the same for `noUncheckedIndexedAccess`, one flag per change, with `src/domain` taken deliberately rather than swept and a genuinely-safe access asserted with a real guard instead of a non-null assertion — a silenced check that reads as a proven one is the exact defect class this audit was hunting. Suppression by `@ts-expect-error`, `as any` or a widened model does not count as closure. |
 | `REPO-001` | Licence/changelog policy absent | **Partial** |
 
 ## Register rules
