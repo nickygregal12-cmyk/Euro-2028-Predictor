@@ -1,0 +1,233 @@
+name: Strix dynamic security assessment
+
+# MANUAL ONLY, AND DELIBERATELY SO.
+#
+# There is no `pull_request`, no `push` and no `schedule` trigger here, and
+# adding one is a decision rather than a tidy-up. Strix drives an agentic
+# pentester that sends real, potentially destructive traffic at a running
+# application. Wiring that to every commit would mean:
+#
+#   * an unreviewed, non-deterministic gate on every merge;
+#   * LLM spend proportional to commit volume rather than to risk;
+#   * an attack surface hit continuously rather than deliberately.
+#
+# #809 established the pattern for new security tooling: arrive report-only,
+# prove signal quality and runtime, and become blocking only on evidence. This
+# starts further back still — it does not run at all unless a human asks.
+#
+# `tests/scripts/strixSecurityWorkflow.test.ts` fails if an automatic trigger
+# is added, so this comment is enforced rather than merely believed.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Target to assess. Production is not offered.'
+        required: true
+        type: choice
+        options:
+          - local-preview
+          - staging
+      target_url:
+        description: >-
+          Full URL when target is `staging`. Must be an approved
+          non-production host; leave blank for `local-preview`.
+        required: false
+        type: string
+      confirm:
+        description: >-
+          Type ASSESS to confirm you are authorised to test this target.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # One assessment at a time. Two agentic pentesters against one target
+  # produce findings neither can attribute, and double the traffic.
+  group: strix-assessment
+  cancel-in-progress: false
+
+jobs:
+  assess:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Report-only. A finding is evidence for a human, not a merge gate, until
+    # the signal quality and runtime have been observed over several real runs.
+    continue-on-error: true
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Confirm the operator typed the confirmation
+        shell: bash
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRM" != 'ASSESS' ]; then
+            echo 'STOP: confirmation not given. Re-run and type ASSESS.' >&2
+            exit 1
+          fi
+
+      - name: Resolve and refuse a production target
+        id: scope
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+          TARGET_URL: ${{ inputs.target_url }}
+        run: |
+          set -euo pipefail
+
+          # The allowlist is here rather than in the dispatch input alone.
+          # A choice list constrains the UI; it does not constrain a
+          # workflow_dispatch API call, which can supply any string.
+          case "$TARGET" in
+            local-preview)
+              if [ -n "$TARGET_URL" ]; then
+                echo 'STOP: local-preview takes no target_url.' >&2
+                exit 1
+              fi
+              resolved='http://127.0.0.1:4173'
+              ;;
+            staging)
+              if [ -z "$TARGET_URL" ]; then
+                echo 'STOP: staging requires target_url.' >&2
+                exit 1
+              fi
+              resolved="$TARGET_URL"
+              ;;
+            *)
+              echo "STOP: unknown target '$TARGET'." >&2
+              exit 1
+              ;;
+          esac
+
+          # Refuse anything that looks like Production, by host, whatever the
+          # operator selected. This is the control that matters: every other
+          # guard here is about intent, and this one is about consequence.
+          host="$(printf '%s' "$resolved" | sed -E 's#^[a-z]+://##I; s#[:/].*$##')"
+          case "$host" in
+            euro28predictor.com|www.euro28predictor.com| \
+            predictorhub.com|www.predictorhub.com| \
+            *.supabase.co|*.supabase.in)
+              echo "STOP: '$host' is a production or hosted-platform host." >&2
+              echo 'Strix may not be pointed at Production from this workflow.' >&2
+              exit 1
+              ;;
+          esac
+
+          # Deploy previews carry real Supabase configuration and are not a
+          # safe pentest target either.
+          case "$resolved" in
+            *deploy-preview*|*netlify.app*)
+              echo 'STOP: deploy previews are not an approved target.' >&2
+              exit 1
+              ;;
+          esac
+
+          echo "target_url=$resolved" >> "$GITHUB_OUTPUT"
+          echo "Assessment target: $resolved"
+
+      - name: Require the assessment credential
+        shell: bash
+        env:
+          STRIX_LLM_API_KEY: ${{ secrets.STRIX_LLM_API_KEY }}
+        run: |
+          set -euo pipefail
+          # Fail closed. Without a credential Strix cannot run, and a job that
+          # silently degrades to "scanned nothing, found nothing" is worse than
+          # one that stops: the green tick would be read as a clean result.
+          if [ -z "${STRIX_LLM_API_KEY:-}" ]; then
+            echo 'STOP: STRIX_LLM_API_KEY is not configured for this repository.' >&2
+            echo 'This capability is deliberately inert until an owner provisions it.' >&2
+            echo 'See docs/ops/strix-security-assessment.md.' >&2
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Build and serve a disposable local preview
+        if: inputs.target == 'local-preview'
+        shell: bash
+        env:
+          # A build with no Supabase credentials. The preview must not be able
+          # to reach any real project, so an agent probing it cannot reach one
+          # either — and no paid football or odds provider is configured, so
+          # the assessment cannot consume a quota.
+          VITE_SUPABASE_URL: http://127.0.0.1:54321
+          VITE_SUPABASE_ANON_KEY: local-disposable-anon-key
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+          npx vite preview --port 4173 --host 127.0.0.1 &
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173 >/dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://127.0.0.1:4173 >/dev/null
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+
+      - name: Install pinned Strix
+        run: python -m pip install 'strix-agent==0.1.31'
+
+      - name: Run the assessment
+        shell: bash
+        env:
+          STRIX_LLM_API_KEY: ${{ secrets.STRIX_LLM_API_KEY }}
+          LLM_API_KEY: ${{ secrets.STRIX_LLM_API_KEY }}
+          TARGET_URL: ${{ steps.scope.outputs.target_url }}
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/strix
+          # Scope is passed explicitly on every invocation. Strix must never
+          # be handed a bare instruction to "find things" with no boundary.
+          strix \
+            --target "$TARGET_URL" \
+            --output .artifacts/strix \
+            --non-interactive \
+            2>&1 | tee .artifacts/strix/run.log
+
+      - name: Redact anything credential-shaped from the report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -d .artifacts/strix ] || exit 0
+          # A pentest log quotes request and response bodies, which is exactly
+          # where a token ends up. The artefact is retained for humans, so it
+          # is scrubbed before it is uploaded.
+          find .artifacts/strix -type f \( -name '*.log' -o -name '*.json' -o -name '*.md' \) -print0 |
+            xargs -0 --no-run-if-empty sed -i -E \
+              -e 's/(eyJ[A-Za-z0-9_-]{6})[A-Za-z0-9._-]+/\1<redacted-jwt>/g' \
+              -e 's/([Bb]earer )[A-Za-z0-9._~+\/=-]+/\1<redacted>/g' \
+              -e 's/(sk-[A-Za-z0-9]{4})[A-Za-z0-9]+/\1<redacted-key>/g' \
+              -e 's/([Aa]pi[-_]?[Kk]ey["'"'"': =]+)[A-Za-z0-9._-]{8,}/\1<redacted>/g'
+
+      - name: Upload the assessment as an artefact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: strix-assessment
+          path: .artifacts/strix
+          # Findings are evidence for a human to triage, not something to
+          # commit. Nothing here is written back to the repository.
+          retention-days: 14
+          if-no-files-found: warn
