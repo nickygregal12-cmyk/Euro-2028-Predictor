@@ -35,6 +35,69 @@ describe('client observability redaction', () => {
     expect(safe.message).toContain('[redacted-email]')
   })
 
+  /*
+   * THE PATH IS WHERE THIS APPLICATION KEEPS ITS SECRETS, and the sanitiser used
+   * to return `origin + pathname` verbatim. An invite code IS the invitation —
+   * contract 152 hardened the generator because possession of a code is what
+   * gets someone into a private league — so a code quoted in an error message
+   * reached Sentry intact. These use a realistic six-character upper-case code
+   * and a real-shaped UUID, because the point is that neither can be told apart
+   * from an ordinary path word by inspection.
+   */
+  const INVITE_CODE = 'K7QM2X'
+  const PLAYER_UUID = '3f2504e0-4f89-11d3-9a0c-0305e82c3301'
+
+  it('never transmits an invite code from a /join URL', () => {
+    const error = new Error(`Join failed at https://predictorhub.netlify.app/join/${INVITE_CODE}`)
+    const safe = normaliseClientError(error)
+
+    expect(safe.message).not.toContain(INVITE_CODE)
+    expect(safe.message).toContain('/[invite]')
+  })
+
+  it('never transmits a league or player identifier from a path', () => {
+    const error = new Error(
+      `Render failed at https://predictorhub.netlify.app/league/${PLAYER_UUID} and ` +
+        `https://predictorhub.netlify.app/h2h/${PLAYER_UUID}`,
+    )
+    error.stack = `Error\n    at https://predictorhub.netlify.app/tournament/profile/${PLAYER_UUID}:1:1`
+
+    const safe = normaliseClientError(error)
+
+    expect(safe.message).not.toContain(PLAYER_UUID)
+    expect(safe.message).toContain('/[league]')
+    expect(safe.message).toContain('/[head-to-head]')
+    // `/tournament/profile/:playerId` is not a category `routeCategory` names, so
+    // it falls to structural redaction rather than passing through.
+    expect(safe.stack).not.toContain(PLAYER_UUID)
+    expect(safe.stack).toContain('[id]')
+  })
+
+  it('redacts an identifier in a stack line as well as a message', () => {
+    const error = new Error('boom')
+    error.stack = `Error: boom\n    at https://predictorhub.netlify.app/join/${INVITE_CODE}:12:5`
+
+    const safe = normaliseClientError(error)
+
+    expect(safe.stack).not.toContain(INVITE_CODE)
+    expect(safe.stack).toContain('/[invite]')
+  })
+
+  it('keeps a foreign endpoint readable while redacting its identifiers', () => {
+    // Losing the RPC name would make a Supabase failure much harder to read and
+    // would gain nothing: the name is not a value belonging to anyone.
+    const error = new Error(
+      `Request failed: https://iouzoutneyjpugbbtdem.supabase.co/rest/v1/rpc/admin_ai_dashboard ` +
+        `and https://iouzoutneyjpugbbtdem.supabase.co/storage/v1/object/${PLAYER_UUID}`,
+    )
+
+    const safe = normaliseClientError(error)
+
+    expect(safe.message).toContain('/rest/v1/rpc/admin_ai_dashboard')
+    expect(safe.message).not.toContain(PLAYER_UUID)
+    expect(safe.message).toContain('/storage/v1/object/[id]')
+  })
+
   it('does not transmit raw database errors or their stack detail', () => {
     const error = new Error(
       'duplicate key value violates unique constraint profiles_pkey',
