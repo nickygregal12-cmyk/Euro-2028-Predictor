@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { NotificationEvent } from '../../../src/services/notifications/notificationEvents'
+import type { NotificationEvent } from '../../../supabase/functions/_shared/notifications/notificationEvents'
 import {
   DEFAULT_NOVU_API_ORIGIN,
   createDisabledNotificationService,
   createNotificationService,
   resolveNotificationConfiguration,
-} from '../../../src/services/notifications/notificationService'
+} from '../../../supabase/functions/_shared/notifications/notificationService'
 
 /**
  * The boundary's contract: fail closed, never throw, and say which door shut.

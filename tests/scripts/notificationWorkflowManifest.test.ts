@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_EVENT_KINDS,
-} from '../../src/services/notifications/notificationEvents'
+} from '../../supabase/functions/_shared/notifications/notificationEvents'
 
 /**
  * The workflow manifest an operator creates the Novu environment from.
