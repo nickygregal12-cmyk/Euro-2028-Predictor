@@ -176,3 +176,5 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** does not alter competition structure, scoring, entry, or ownership. Its scope is limited to private AI betting-evidence actionability.
+
+> **Contract 191:** does not alter competition structure, scoring, entry, ranking or ownership. It adds a season-scoped player reference to two standings reads and one bounded resolver, and consolidates an existing disclosure rule.

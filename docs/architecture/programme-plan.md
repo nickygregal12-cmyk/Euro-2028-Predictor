@@ -257,3 +257,5 @@ the point: a reader can tell at a glance whether the mapping has kept up, which 
 blockquotes could never show without being read end to end.
 
 > **Contract 190 programme effect:** the AI Lab Production-activation prerequisite for actionable bookmaker evidence is closed in repository code; hosted rollout remains the next programme gate.
+
+> **Contract 191 programme effect:** the vNext Profiles/H2H stage gains its missing prerequisite — a global weekly standings row that can be addressed as a player — without a programme reordering and without widening disclosure.

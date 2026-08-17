@@ -29,6 +29,12 @@ function row(over: Partial<SeasonLeaderboardRow> = {}): SeasonLeaderboardRow {
     tied: false,
     position: 1,
     isYou: false,
+    // Contract 191's identity. Present on every row the server produces, so a
+    // builder that omitted it would let the model be exercised against a shape
+    // the database cannot return.
+    playerRef: 'entry-ada',
+    reach: 'compare',
+    playerId: null,
     ...over,
   }
 }
@@ -107,6 +113,9 @@ describe('the season standings model', () => {
           matchweeksPlayed: 4,
           tied: false,
           position: 399,
+          playerRef: 'entry-zoe',
+          reach: 'self',
+          playerId: 'user-zoe',
         },
       }),
       rows,
@@ -129,6 +138,9 @@ describe('the season standings model', () => {
           matchweeksPlayed: 22,
           tied: false,
           position: 1,
+          playerRef: 'entry-ada',
+          reach: 'self',
+          playerId: 'user-ada',
         },
       }),
       rows,
@@ -152,6 +164,9 @@ describe('the season standings model', () => {
         matchweeksPlayed: 22,
         tied: false,
         position: 1,
+        playerRef: 'entry-ada',
+        reach: 'self',
+        playerId: 'user-ada',
       },
     })
     expect(presentStandings(secondPage, loaded).pinnedYou).toBeNull()

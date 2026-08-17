@@ -228,6 +228,7 @@ These names may remain but their semantics must support both kinds safely:
 - `get_season_matchweek_card`
 - `get_season_period_standings`
 - `get_season_player_profile`
+- `resolve_season_player`
 - `create_private_season_lms`
 - `create_private_season_cup`
 - `get_season_wrapped`

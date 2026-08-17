@@ -346,3 +346,5 @@ the point: a reader can tell at a glance whether the mapping has kept up, which 
 blockquotes could never show without being read end to end.
 
 > **Contract 190 stage effect:** the private AI Lab now has a database gate separating reference prices from actionable bookmaker evidence; no hub build-stage scope changes.
+
+> **Contract 191 stage effect:** the season standings reads now carry a server-decided player address, so a hub surface can link a name without deriving identity from it. No hub build-stage scope changes.

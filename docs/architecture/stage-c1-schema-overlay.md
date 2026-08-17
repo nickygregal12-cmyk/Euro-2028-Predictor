@@ -246,6 +246,16 @@ it, and neither confers game entry.
 - `set_competition_follow`
 - `set_pinned_rival`
 
+Contract 191 adds one more taking `p_tournament_id`, with the same
+season-scoped disposition and one property worth recording explicitly:
+`resolve_season_player` addresses a player by their `entries.id` within the
+named season rather than by their auth identifier, so it creates no
+cross-season handle and adds no profile ownership dependency. It reads only
+that competition season's own rows, writes nothing, and answers about one
+reference at a time.
+
+- `resolve_season_player`
+
 Contracts 175 to 178 add five more taking `p_tournament_id`, and their
 disposition is the same season-scoped one with one distinction worth recording.
 Three are ordinary season-scoped reads or writes: the projection and the DNA

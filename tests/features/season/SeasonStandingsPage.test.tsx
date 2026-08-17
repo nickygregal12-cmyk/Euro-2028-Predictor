@@ -17,6 +17,10 @@ function row(overrides: Record<string, unknown> = {}) {
     points: 40,
     matchweeksPlayed: 3,
     isYou: false,
+    // Contract 191's identity, present on every row the server produces.
+    playerRef: 'entry-someone',
+    reach: 'compare' as const,
+    playerId: null,
     ...overrides,
   }
 }

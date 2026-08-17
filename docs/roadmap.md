@@ -299,3 +299,21 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** adds the database actionability gate required before Production selected-model activation. The roadmap order outside that AI Lab prerequisite is unchanged.
+
+> **Contract 191 — the weekly-season player address.** **Reorders nothing.** It
+> closes the Stage 7.5 finding that a global weekly standings row cannot be
+> opened: `get_season_leaderboard` and `get_season_leaderboard_neighbourhood`
+> returned no identifier of any kind, so the one standings surface every entrant
+> shares was also the only one whose names led nowhere. Every row now carries a
+> season-scoped `playerRef` (`entries.id`), a server-decided `reach`, and the
+> auth identifier ONLY where a profile will answer — which is the set that could
+> already read it from `get_season_league_standings`. **No visibility rule
+> moves.** Contract 151 keeps profile disclosure at a shared private league and
+> contract 129 keeps its own per-matchweek reveal boundary; what changes is that
+> contract 129's accepted rule is now reachable, which it never was for anyone
+> outside a private league. The rule was found in THREE implementations —
+> contracts 151, 157 and 176 — and all three are consolidated onto
+> `predictor_internal.season_player_reach`, with a catalogue guard refusing a
+> fourth. **The one product decision it does not take** is whether a same-season
+> participant should also read another participant's PROFILE; that is registered
+> as `PROF-001` rather than settled by a migration.

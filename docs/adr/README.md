@@ -99,3 +99,5 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** implements bookmaker-actionability hardening under the existing AI Lab decisions; no ADR changes status because of this contract.
+
+> **Contract 191:** implements the existing profile and comparison boundaries — ADR 0025 § 4 and the `MIG-UI-02` disclosure recommendation — behind one function. No ADR changes status because of this contract. Whether a same-season participant should also read another participant’s profile is registered as `PROF-001` and is the ADR-shaped decision this contract refuses to take in a migration.

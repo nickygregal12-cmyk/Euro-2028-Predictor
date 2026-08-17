@@ -415,6 +415,14 @@ insert into expected_authenticated_functions (signature) values
   -- auth.uid() and the call refuses every time.
   ('get_season_league_standings(uuid,integer,text)');
 
+-- Contract 191: one season-scoped player reference in, the permitted
+-- destination or an explicit refusal out. It carries contract 95's boundary and
+-- reads auth.uid(), so like every season read above it stays out of
+-- expected_service_functions — service_role has no auth.uid() and the call
+-- refuses every time.
+insert into expected_authenticated_functions (signature) values
+  ('resolve_season_player(uuid,uuid)');
+
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),
   ('register_bonus_competition(uuid)'),

@@ -325,3 +325,5 @@ Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovatio
 Twelve further rows did not ship, each for a stated reason, and the reasons are recorded in the register's own delivery record rather than restated here. **None of them is rendered as a disabled or decorative control**: where a feature needs a server authority that does not exist, no surface exists either.
 
 > **Contract 190:** records a backend safeguard: valid AI betting evidence and new bet writes require a real non-aggregate bookmaker registry venue. No frontend feature baseline changes.
+
+> **Contract 191:** records a backend capability rather than a feature change: a global weekly-season standings row can now be addressed as a player, subject to the same disclosure boundaries as before. No frontend feature baseline changes, and no visibility rule is widened.
