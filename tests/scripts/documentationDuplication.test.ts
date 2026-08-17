@@ -161,6 +161,78 @@ describe('one fact, one home', () => {
     ).toEqual([])
   })
 
+  /**
+   * Every long paragraph a SINGLE authority carries more than once.
+   *
+   * WHY `duplicated()` COULD NOT SEE THIS. It records carriers with
+   * `if (!entry.carriers.includes(path)) entry.carriers.push(path)`, so one file
+   * counts once however many times it repeats a block, and the
+   * `carriers.length < 2` sweep then deletes it. Repetition inside one document
+   * was invisible by construction — not tolerated, not baselined, just unseen.
+   *
+   * On 17 August 2026 `docs/quality/current-status.md` — the document that calls
+   * itself the only live implementation and hosted-status authority — carried an
+   * identical seven-line run twice: the Contract 187, 186 and 185 paragraphs,
+   * 4,099 characters, pasted in full a second time seven lines below the first.
+   *
+   * IT IS THE SAME DEFECT AS THE CROSS-FILE ONE and it arrives the same way. An
+   * agent appends a status block that is individually correct, the file grows,
+   * and eventually the old and new statements sit side by side with nothing
+   * saying which is current. A single file is the easier place for that to hide,
+   * because there is no second filename in the diff to make it obvious.
+   */
+  function repeatedWithinOneFile(): Map<string, { path: string; count: number; excerpt: string }> {
+    const offenders = new Map<string, { path: string; count: number; excerpt: string }>()
+
+    for (const path of authorityDocuments()) {
+      const counts = new Map<string, { count: number; excerpt: string }>()
+      for (const block of paragraphs(path)) {
+        const key = fingerprint(block)
+        const seen = counts.get(key)
+        counts.set(key, { count: (seen?.count ?? 0) + 1, excerpt: seen?.excerpt ?? block.slice(0, 110) })
+      }
+      for (const [key, { count, excerpt }] of counts) {
+        if (count > 1) offenders.set(`${path}:${key}`, { path, count, excerpt })
+      }
+    }
+
+    return offenders
+  }
+
+  it('carries no long paragraph twice inside one authority', () => {
+    const offenders = [...repeatedWithinOneFile().values()].map(
+      ({ path, count, excerpt }) => `${path} carries it ${count}× \n      "${excerpt}…"`,
+    )
+
+    expect(
+      offenders,
+      'An authority repeats one of its own long paragraphs verbatim. Delete the ' +
+        'copy that is no longer current: two statements of the same fact in one ' +
+        'file is the same failure as two files stating it, and worse to spot, ' +
+        'because a reader cannot tell which one the document means now. If both ' +
+        'are meant to stand, one of them is history and should say so in its own ' +
+        'words rather than repeat the other verbatim.',
+    ).toEqual([])
+  })
+
+  it('would have caught the run that shipped, and is not vacuous', () => {
+    // Mutation coverage for the checker itself. The cross-file rule was green
+    // through the whole time that run existed, so a rule claiming to catch
+    // intra-file repetition has to be shown rejecting one.
+    const block = `${'Contract 187 implements CUP-002 and this sentence exists to exceed the four-hundred character threshold the checker uses. '.repeat(4)}`
+    const repeated = [block, 'A paragraph in between that is entirely its own.', block]
+
+    const counts = new Map<string, number>()
+    for (const candidate of repeated.filter((entry) => entry.length >= LONG)) {
+      const key = fingerprint(candidate.replace(/\s+/g, ' ').trim())
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+
+    expect([...counts.values()].some((count) => count > 1)).toBe(true)
+    // And the short paragraph between them is not counted at all.
+    expect(counts.size).toBe(1)
+  })
+
   it('keeps the baseline honest: no entry outlives the duplication it records', () => {
     // Without this the list would become an exemption. A duplication that is
     // fixed must have its line deleted, so the count can only fall.
