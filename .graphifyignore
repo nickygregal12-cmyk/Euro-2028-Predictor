@@ -1,0 +1,18 @@
+# Graphify-specific exclusions. .gitignore remains in force too.
+# Keep stale historical evidence out of semantic navigation by default.
+docs/history/
+
+# Never inspect local credentials or environment files, even if a caller changes
+# normal git-ignore behaviour.
+.env
+.env.*
+*.pem
+*.key
+
+# Generated or disposable outputs.
+graphify-out/
+coverage/
+dist/
+playwright-report/
+test-results/
+node_modules/

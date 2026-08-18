@@ -1,6 +1,6 @@
 ---
 name: predictor-graph-navigation
-description: Use for broad cross-file architecture, dependency, call-flow and ownership questions in the Predictor repository. Prefer a fresh Graphify code graph when available, but verify every important conclusion against repository source and authorities.
+description: Use for broad cross-file architecture, dependency, call-flow and ownership questions in the Predictor repository. Prefer the current Graphify code graph when available, but verify every important conclusion against repository source and authorities.
 ---
 
 # Predictor graph navigation
@@ -18,37 +18,61 @@ Use this skill when a task asks questions such as:
 A generated graph is a navigation/indexing aid, not repository truth.
 
 - `NOW.md`, current-status, ADRs, design authorities, accepted requirements, migrations, machine contracts and executable tests keep their existing authority.
-- `graphify-out/graph.json`, `GRAPH_REPORT.md`, inferred edges and community labels must never be cited as proof that a product rule, hosted state, database contract or release claim is true.
+- `graph.json`, `GRAPH_REPORT.md`, inferred edges and community labels from Graphify must never be cited as proof that a product rule, hosted state, database contract or release claim is true.
 - An `INFERRED` Graphify edge is a hypothesis to inspect in source. An `EXTRACTED` edge is still only an index of source and must be checked at the relevant file/line before making a high-impact change.
 - For database/security/Production/model-promotion work, verify the real SQL, functions, tests and hosted evidence directly.
 
 ## Preferred workflow
 
 1. Read the current repository entrypoint/authority for the task first.
-2. If a current local Graphify graph exists, query it before opening a large number of files.
-3. Use `graphify query`, `graphify path` or `graphify explain` to narrow the likely implementation path.
-4. Open the returned source files and verify the actual control/data flow.
-5. Use native search/tests to look for negative cases the graph may not surface.
-6. Record only source-backed findings in issues, PRs and durable documentation.
+2. For merged code, prefer the latest snapshot on the `graphify-navigation` branch. For pull-request-specific work, prefer that PR's **Graphify navigation graph** Actions artifact because the snapshot branch follows `main`.
+3. Check snapshot freshness before relying on it: `graphify-navigation/README.md` records the exact source SHA used to build the graph.
+4. In an environment with the Graphify CLI, use `graphify query`, `graphify path` or `graphify explain` to narrow the likely implementation path. A repository Codespace provisions the supported CLI automatically. In an online environment without the CLI, use portable `graph.json` as an architecture index and follow its source references.
+5. Open the returned/referenced source files and verify the actual control/data flow.
+6. Use native repository search and tests to look for negative cases the graph may not surface.
+7. Record only source-backed findings in issues, PRs and durable documentation.
 
-If Graphify is unavailable, continue with normal repository search. Do not block a task on installation.
+If Graphify or a current graph is unavailable, continue with normal repository search. Do not block a task on installation or graph generation.
+
+## Graph freshness
+
+`.github/workflows/graphify-navigation.yml` is the default graph builder. It runs a code-only structural scan on relevant PRs and pushes to `main`, and it can be started manually with `workflow_dispatch`.
+
+- A PR Actions artifact represents that PR commit and is the best graph for branch-specific impact work.
+- The `graphify-navigation` branch is a replace-in-place snapshot of the latest successful relevant build from `main`.
+- Its `README.md` names the source SHA. If that SHA predates the code being discussed, treat the graph as stale and fall back to source/search until it is refreshed.
+
+The workflow is intentionally non-blocking; graph freshness is never a release or product-CI gate.
 
 ## Scope Graphify carefully
 
-For this repository, prefer structural/code scans of the implementation surfaces that matter to the task rather than automatically sending the entire documentation corpus through a semantic pass. Typical code roots include `src/`, `ai/`, `supabase/`, `scripts/`, `tests/` and relevant `config/` files.
+The automated graph is structural/code-only. It covers implementation surfaces such as `src/`, `ai/`, `supabase/`, `scripts/`, tests and relevant configuration without automatically semantically indexing the repository's documentation history.
 
-The repository's documentation authority system already gives agents a safer way to read current decisions. A semantic graph over all historical audits and evidence can surface useful connections, but it can also mix current authority with dated evidence. Only build/use that broader graph deliberately.
+The documentation authority system already gives agents a safer way to read current decisions. A semantic graph can surface useful connections, but it can also flatten current authority with dated evidence. Only build one deliberately.
+
+The repository's explicit deep lane is `scripts/agent-tools/graphify-deep-via-omniroute.sh`. It routes headless semantic extraction through an operator-configured OmniRoute Endpoint and is opt-in because it may consume model quota and transmit repository content to the selected provider. `.graphifyignore` excludes historical evidence and credential/output paths by default. Read `docs/ops/omniroute-agent-routing.md` before using it.
+
+A semantic/deep graph has **no additional authority**. Treat its inferred relationships as hypotheses and verify them in the same way as any other graph result.
 
 ## Generated output
 
-`graphify-out/` is disposable local cache/output. Do not commit it and do not make CI depend on it.
+Normal application branches keep `graphify-out/` gitignored. The dedicated `graphify-navigation` branch may publish only portable navigation files:
 
-Incremental rebuilds are preferred after the first graph. If the graph may predate the branch or relevant edits, refresh it before relying on it for navigation.
+- `graph.json` — primary machine-readable graph;
+- `graph.html` — optional interactive export;
+- `GRAPH_REPORT.md` — optional richer-run report;
+- `README.md` — source-SHA/tool-version freshness marker for the snapshot.
+
+Caches, manifests, interpreter paths and detection sidecars stay disposable and are not published.
 
 ## Security/privacy
 
-Graphify contains its own sensitive-file filtering, but that is defence in depth, not permission to scan arbitrary secret stores. Never point it at `.env` files, Production backups, credential exports or unrelated local directories. Keep provider keys and hosted secrets outside the graph.
+Graphify contains its own sensitive-file filtering, and this repo adds `.graphifyignore`, but those are defence in depth, not permission to scan arbitrary secret stores. Never point it at `.env` files, Production backups, credential exports or unrelated directories. Keep provider keys, OmniRoute keys and hosted secrets outside the graph.
+
+The repository GitHub workflow performs a code-only structural scan and does not receive Supabase, provider, OmniRoute or Production secrets.
+
+Do not run Graphify's project installer to replace/add generic repository authority. The Predictor-specific skill and existing `AGENTS.md` chain remain the integration point.
 
 ## What success looks like
 
-Graphify should reduce context load and shorten architecture discovery. It should not change implementation behaviour, add a runtime dependency, replace tests, or create another project-memory authority.
+Graphify should reduce context load and shorten architecture discovery for online and local agents. It should not change implementation behaviour, add a runtime dependency, replace tests, become a release gate, or create another project-memory authority.
