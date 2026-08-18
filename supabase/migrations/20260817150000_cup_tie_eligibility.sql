@@ -100,6 +100,22 @@
 -- Unchanged, and by refusal rather than by no-op: the already-settled guard
 -- fires on the second run. A settled legitimate winner is never revisited,
 -- because the driver never reaches the loop.
+--
+-- ---------------------------------------------------------------------------
+-- THE BASE IS THE CATALOGUE, NOT A MIGRATION FILE
+-- ---------------------------------------------------------------------------
+--
+-- The first draft of this contract restated the function from the committed
+-- text of contract 149, the last migration whose FILE holds a full body for it.
+-- That text is not the installed definition: contract 102 later patched the
+-- installed function in place, and restating the older body silently reverted
+-- that patch. Suite 153 caught it -- "no authority treats every non-group stage
+-- as knockout" -- which is exactly the regression contract 102 exists to stop.
+--
+-- "Extract programmatically rather than retype" was not enough on its own. A
+-- function that has been patched in place has no file holding its current body,
+-- so this contract patches `pg_get_functiondef` instead, guards each anchor,
+-- and asserts afterwards that contract 102's split-safety survived.
 
 begin;
 
@@ -145,379 +161,175 @@ revoke all on function predictor_internal.cup_entrant_eligibility(uuid, uuid)
   from public, anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- The settlement driver, redefined from its committed text with the
--- eligibility branch inserted above the submission ladder.
+-- The settlement driver, patched IN PLACE from its installed definition.
 --
--- EXTRACTED PROGRAMMATICALLY rather than retyped, which is the method contracts
--- 118, 128 and 191 established after contract 114 silently reverted contract
--- 104 by restating a function from an older migration. Everything below the
--- eligibility branch is contract 98's text unchanged, and
--- `cupTieEligibilityParity.test.ts` proves that by diffing the two.
+-- WHY THIS IS A `pg_get_functiondef` PATCH RATHER THAN A RESTATED FUNCTION.
+-- The first draft of this contract restated the function from the committed
+-- text of contract 149 (`20260804263000_cup_neutral_window_match_facts.sql`),
+-- which is the last migration whose FILE contains a full body for it. That
+-- text is not the installed definition. Contract 102
+-- (`20260804323000_cup_split_stage_persistence.sql`) later patched the
+-- installed function in exactly this way, replacing `fixture.stage <> 'group'`
+-- with `fixture.stage in ('playoff', 'knockout')` so that a stored `split`
+-- fixture cannot enter the knockout settler, and pinning the member roster to
+-- `phase_kind = 'initial'`. Restating the older body silently reverted both,
+-- and suite 153 caught it: "no authority treats every non-group stage as
+-- knockout" failed, which is precisely the regression contract 102 exists to
+-- prevent.
+--
+-- Reading committed text is therefore not enough on its own. A function that
+-- has been patched in place has no file that holds its current body, so the
+-- only honest base is the CATALOGUE. Every replacement below is anchored on
+-- text contract 102 does not touch, each one refuses if its anchor has moved,
+-- and the block asserts afterwards that contract 102's split-safety survived.
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION public.admin_settle_predictor_cup_round(p_competition_id uuid, p_window_id uuid)
- RETURNS jsonb
- LANGUAGE plpgsql
- SECURITY DEFINER
- SET search_path TO ''
-AS $function$
+do $patch$
 declare
-  v_competition public.bonus_competitions%rowtype;
-  v_window public.bonus_competition_windows%rowtype;
-  -- Contract 194 / `CUP-004`.
-  v_home_eligible boolean;
-  v_away_eligible boolean;
-  v_blocked text;
-  v_stage text;
-  v_round_size integer;
-  v_actual_total integer;
-  v_fixture record;
-  v_home record;
-  v_away record;
-  v_home_seed integer;
-  v_away_seed integer;
-  v_home_penalty smallint;
-  v_away_penalty smallint;
-  v_winner uuid;
-  v_decided text;
-  v_decisions jsonb := '[]'::jsonb;
-  v_q integer;
-  v_p integer := 1;
-  v_byes integer;
-  v_next_window uuid;
-  v_layout integer[];
-  v_champion uuid;
+  v_definition text;
+  v_original text;
 begin
-  select * into v_competition
-    from public.bonus_competitions competition
-    where competition.id = p_competition_id
-    for update;
+  select pg_get_functiondef(
+    'public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure
+  ) into v_definition;
 
-  if not found or v_competition.game_key <> 'predictor_cup' then
-    raise exception 'Predictor Cup competition not found'
-      using errcode = 'no_data_found';
+  -- 1. Three locals for the eligibility branch.
+  v_original := v_definition;
+  v_definition := replace(
+    v_definition,
+    '  v_window public.bonus_competition_windows%rowtype;',
+    '  v_window public.bonus_competition_windows%rowtype;' || chr(10) ||
+    '  -- Contract 194 / `CUP-004`.' || chr(10) ||
+    '  v_home_eligible boolean;' || chr(10) ||
+    '  v_away_eligible boolean;' || chr(10) ||
+    '  v_blocked text;'
+  );
+  if v_definition = v_original then
+    raise exception 'Expected Cup settlement declaration block was not found';
   end if;
 
-  select * into v_window
-    from public.bonus_competition_windows win
-    where win.id = p_window_id and win.competition_id = p_competition_id;
-
-  if not found then
-    raise exception 'Cup window not found'
-      using errcode = 'no_data_found';
-  end if;
-
-  select min(fixture.stage), min(fixture.round_size)
-    into v_stage, v_round_size
-    from public.bonus_cup_fixtures fixture
-    where fixture.competition_id = p_competition_id
-      and fixture.window_id = p_window_id
-      and fixture.stage <> 'group';
-
-  if v_stage is null then
-    raise exception 'This window has no Cup knockout ties'
-      using errcode = 'no_data_found';
-  end if;
-
-  if exists (
-    select 1 from public.bonus_cup_fixtures fixture
-    where fixture.competition_id = p_competition_id
-      and fixture.window_id = p_window_id
-      and fixture.winner_user_id is not null
-  ) then
-    raise exception 'This Cup round has already been settled'
-      using errcode = '55000';
-  end if;
-
-  -- Contract 194 / `CUP-004`. ADR 0028 section 8: if NEITHER entrant may
-  -- legally contest a tie, resolution goes through an explicit rule or admin
-  -- path rather than a winner fabricated from ordinary scoring.
+  -- 2. The whole-window refusal, immediately after the already-settled guard.
+  --
+  -- ADR 0028 section 8: if NEITHER entrant may legally contest a tie,
+  -- resolution goes through an explicit rule or admin path rather than a winner
+  -- fabricated from ordinary scoring.
   --
   -- The refusal is for the WHOLE WINDOW rather than for the one tie, and that
-  -- is forced by the guard directly above: a window that settled some of its
+  -- is forced by the guard it sits under: a window that settled some of its
   -- ties and left one open could never be re-driven, because the second run
   -- would find a settled tie and refuse. Settling a window is all-or-nothing
   -- here, so a tie nobody may contest stops the window and names itself.
   --
-  -- Nothing is written on this path. The message carries the bracket slot so
-  -- an administrator can act on it without reading the table.
-  select string_agg(fixture.bracket_slot::text, ', ' order by fixture.bracket_slot)
-    into v_blocked
-    from public.bonus_cup_fixtures fixture
-   where fixture.competition_id = p_competition_id
-     and fixture.window_id = p_window_id
-     and fixture.stage <> 'group'
-     and predictor_internal.cup_entrant_eligibility(
-           p_competition_id, fixture.home_user_id) <> 'eligible'
-     and predictor_internal.cup_entrant_eligibility(
-           p_competition_id, fixture.away_user_id) <> 'eligible';
-
-  if v_blocked is not null then
-    raise exception
-      'Neither entrant may contest tie(s) %; this needs an explicit decision rather than an automatic winner',
-      v_blocked
-      using errcode = '55000';
-  end if;
-
-  if not predictor_internal.cup_window_settled(p_window_id) then
-    raise exception 'The round''s designated real fixtures are not all officially confirmed'
-      using errcode = '55000';
-  end if;
-
-  -- The Penalty Number target: total regulation-time goals across the
-  -- round's designated real matches (§8.3).
-  v_actual_total := predictor_internal.cup_window_goal_total(p_window_id);
-
-  for v_fixture in
-    select * from public.bonus_cup_fixtures fixture
-    where fixture.competition_id = p_competition_id
-      and fixture.window_id = p_window_id
-      and fixture.stage <> 'group'
-    order by fixture.bracket_slot
-  loop
-    select * into v_home
-      from predictor_internal.cup_window_scores(p_competition_id, p_window_id) s
-      where s.user_id = v_fixture.home_user_id;
-    select * into v_away
-      from predictor_internal.cup_window_scores(p_competition_id, p_window_id) s
-      where s.user_id = v_fixture.away_user_id;
-
-    select member.seed into v_home_seed
-      from public.bonus_cup_members member
-      where member.competition_id = p_competition_id
-        and member.user_id = v_fixture.home_user_id;
-    select member.seed into v_away_seed
-      from public.bonus_cup_members member
-      where member.competition_id = p_competition_id
-        and member.user_id = v_fixture.away_user_id;
-
-    -- Contract 194 / `CUP-004`. Eligibility is decided BEFORE the submission
-    -- ladder and is a different question from it: "did they predict" and "may
-    -- they contest this tie" are unrelated, and until now only the first was
-    -- asked. A disqualified entrant who had submitted before being removed
-    -- still won on points.
-    --
-    -- No football score and no prediction points are invented. The eligible
-    -- opponent simply advances, `decided_by` stays inside the existing
-    -- vocabulary, and the REASON goes to audit evidence, which is where ADR
-    -- 0028 section 8 puts it.
-    v_home_eligible := predictor_internal.cup_entrant_eligibility(
-      p_competition_id, v_fixture.home_user_id) = 'eligible';
-    v_away_eligible := predictor_internal.cup_entrant_eligibility(
-      p_competition_id, v_fixture.away_user_id) = 'eligible';
-
-    if v_home_eligible <> v_away_eligible then
-      v_decided := 'walkover';
-      v_winner := case when v_home_eligible
-        then v_fixture.home_user_id else v_fixture.away_user_id end;
-
-      insert into public.bonus_competition_audit
-        (competition_id, action, detail, actor_id)
-      values (
-        p_competition_id,
-        'cup_tie_walkover_ineligible',
-        jsonb_build_object(
-          'window_id', p_window_id,
-          'bracket_slot', v_fixture.bracket_slot,
-          'advanced_user_id', v_winner,
-          'ineligible_user_id', case when v_home_eligible
-            then v_fixture.away_user_id else v_fixture.home_user_id end,
-          -- The stored membership state, not a paraphrase of it, so the record
-          -- says whether they withdrew or were disqualified.
-          'ineligible_state', predictor_internal.cup_entrant_eligibility(
-            p_competition_id, case when v_home_eligible
-              then v_fixture.away_user_id else v_fixture.home_user_id end),
-          'invented_score', false,
-          'invented_points', false),
-        (select auth.uid()));
-
-    elsif v_home.submitted and v_away.submitted then
-      if v_home.points <> v_away.points then
-        v_decided := 'points';
-        v_winner := case when v_home.points > v_away.points
-          then v_fixture.home_user_id else v_fixture.away_user_id end;
-      elsif v_home.scoreline_error <> v_away.scoreline_error then
-        v_decided := 'extra_time';
-        v_winner := case when v_home.scoreline_error < v_away.scoreline_error
-          then v_fixture.home_user_id else v_fixture.away_user_id end;
-      else
-        select pn.value into v_home_penalty
-          from public.bonus_cup_penalty_numbers pn
-          where pn.window_id = p_window_id
-            and pn.user_id = v_fixture.home_user_id;
-        select pn.value into v_away_penalty
-          from public.bonus_cup_penalty_numbers pn
-          where pn.window_id = p_window_id
-            and pn.user_id = v_fixture.away_user_id;
-
-        if v_home_penalty is not null and v_away_penalty is not null then
-          -- Opposite parity lanes: equidistance is impossible (§8.3).
-          v_decided := 'penalty_number';
-          v_winner := case
-            when abs(v_home_penalty - v_actual_total)
-              < abs(v_away_penalty - v_actual_total)
-            then v_fixture.home_user_id else v_fixture.away_user_id end;
-        elsif v_home_penalty is not null or v_away_penalty is not null then
-          v_decided := 'walkover';
-          v_winner := case when v_home_penalty is not null
-            then v_fixture.home_user_id else v_fixture.away_user_id end;
-        else
-          v_decided := 'admin_walkover';
-          v_winner := case when v_home_seed < v_away_seed
-            then v_fixture.home_user_id else v_fixture.away_user_id end;
-        end if;
-      end if;
-    elsif v_home.submitted or v_away.submitted then
-      v_decided := 'walkover';
-      v_winner := case when v_home.submitted
-        then v_fixture.home_user_id else v_fixture.away_user_id end;
-    else
-      v_decided := 'admin_walkover';
-      v_winner := case when v_home_seed < v_away_seed
-        then v_fixture.home_user_id else v_fixture.away_user_id end;
-    end if;
-
-    update public.bonus_cup_fixtures fixture
-      set winner_user_id = v_winner,
-          decided_by = v_decided,
-          settled_at = now()
-      where fixture.id = v_fixture.id;
-
-    update public.bonus_competition_entrants entrant
-      set outcome = 'eliminated'
-      where entrant.competition_id = p_competition_id
-        and entrant.user_id = case when v_winner = v_fixture.home_user_id
-          then v_fixture.away_user_id else v_fixture.home_user_id end;
-
-    v_decisions := v_decisions || jsonb_build_object(
-      'slot', v_fixture.bracket_slot,
-      'decided_by', v_decided
-    );
-  end loop;
-
-  -- Progression (§10.1: the settled round activates the next stage).
-  if v_stage = 'playoff' then
-    select count(*) into v_q
-      from public.bonus_cup_members member
-      where member.competition_id = p_competition_id and member.seed is not null;
-    while v_p * 2 <= v_q loop
-      v_p := v_p * 2;
-    end loop;
-    v_byes := 2 * v_p - v_q;
-
-    select win.id into v_next_window
-      from public.bonus_competition_windows win
-      where win.competition_id = p_competition_id
-        and win.sequence = v_window.sequence + 1;
-    if v_next_window is null then
-      raise exception 'The next Cup knockout window (sequence %) is not configured',
-        v_window.sequence + 1
-        using errcode = '55000';
-    end if;
-
-    -- Seats: byes keep their seed's seat; the winner of playoff tie t takes
-    -- seat 2P − Q + t. The bracket is fixed from here (§7.3). Keep the seat set
-    -- inside the statement so static database analysis can resolve every
-    -- relation without changing the deterministic layout.
-    v_layout := predictor_internal.cup_bracket_order(v_p);
-    for v_slot in 1..(v_p / 2) loop
-      insert into public.bonus_cup_fixtures
-        (competition_id, stage, window_id, round_size, bracket_slot,
-         home_user_id, away_user_id)
-      with cup_round_seats as (
-        select member.seed as seat, member.user_id
-        from public.bonus_cup_members member
-        where member.competition_id = p_competition_id
-          and member.seed between 1 and v_byes
-        union all
-        select v_byes + fixture.bracket_slot, fixture.winner_user_id
-        from public.bonus_cup_fixtures fixture
-        where fixture.competition_id = p_competition_id
-          and fixture.window_id = p_window_id
-          and fixture.stage = 'playoff'
-      )
-      select p_competition_id, 'knockout', v_next_window, v_p, v_slot,
-             home_seat.user_id, away_seat.user_id
-      from cup_round_seats home_seat
-      cross join cup_round_seats away_seat
-      where home_seat.seat = v_layout[2 * v_slot - 1]
-        and away_seat.seat = v_layout[2 * v_slot];
-    end loop;
-  elsif v_round_size > 2 then
-    select win.id into v_next_window
-      from public.bonus_competition_windows win
-      where win.competition_id = p_competition_id
-        and win.sequence = v_window.sequence + 1;
-    if v_next_window is null then
-      raise exception 'The next Cup knockout window (sequence %) is not configured',
-        v_window.sequence + 1
-        using errcode = '55000';
-    end if;
-
-    insert into public.bonus_cup_fixtures
-      (competition_id, stage, window_id, round_size, bracket_slot,
-       home_user_id, away_user_id)
-    select
-      p_competition_id, 'knockout', v_next_window, v_round_size / 2,
-      (higher.bracket_slot + 1) / 2,
-      higher.winner_user_id, lower.winner_user_id
-    from public.bonus_cup_fixtures higher
-    join public.bonus_cup_fixtures lower
-      on lower.competition_id = p_competition_id
-      and lower.window_id = p_window_id
-      and lower.stage = 'knockout'
-      and lower.bracket_slot = higher.bracket_slot + 1
-    where higher.competition_id = p_competition_id
-      and higher.window_id = p_window_id
-      and higher.stage = 'knockout'
-      and higher.bracket_slot % 2 = 1;
-  else
-    -- The final: crown the champion (§11.3) and complete the competition.
-    select fixture.winner_user_id into v_champion
-      from public.bonus_cup_fixtures fixture
-      where fixture.competition_id = p_competition_id
-        and fixture.window_id = p_window_id
-        and fixture.stage = 'knockout';
-
-    update public.bonus_competition_entrants entrant
-      set outcome = 'champion'
-      where entrant.competition_id = p_competition_id
-        and entrant.user_id = v_champion;
-
-    update public.bonus_competitions competition
-      set completed_at = now(), updated_at = now()
-      where competition.id = p_competition_id;
-
-    insert into public.bonus_competition_audit (competition_id, action, detail)
-    values (
-      p_competition_id,
-      'cup_champion',
-      jsonb_build_object('user_id', v_champion)
-    );
-  end if;
-
-  insert into public.bonus_competition_audit (competition_id, action, detail)
-  values (
-    p_competition_id,
-    'cup_round_settled',
-    jsonb_build_object(
-      'window_sequence', v_window.sequence,
-      'stage', v_stage,
-      'round_size', v_round_size,
-      'actual_total_goals', v_actual_total,
-      'decisions', v_decisions
-    )
+  -- Nothing is written on this path. The message carries the bracket slot so an
+  -- administrator can act on it without reading the table.
+  v_original := v_definition;
+  v_definition := replace(
+    v_definition,
+    '    raise exception ''This Cup round has already been settled''' || chr(10) ||
+    '      using errcode = ''55000'';' || chr(10) ||
+    '  end if;',
+    '    raise exception ''This Cup round has already been settled''' || chr(10) ||
+    '      using errcode = ''55000'';' || chr(10) ||
+    '  end if;' || chr(10) ||
+    '' || chr(10) ||
+    '  -- Contract 194 / `CUP-004`. A tie neither entrant may contest is not' || chr(10) ||
+    '  -- decided here; see ADR 0028 section 8. Nothing is written.' || chr(10) ||
+    '  select string_agg(fixture.bracket_slot::text, '', '' order by fixture.bracket_slot)' || chr(10) ||
+    '    into v_blocked' || chr(10) ||
+    '    from public.bonus_cup_fixtures fixture' || chr(10) ||
+    '   where fixture.competition_id = p_competition_id' || chr(10) ||
+    '     and fixture.window_id = p_window_id' || chr(10) ||
+    '     and fixture.stage in (''playoff'', ''knockout'')' || chr(10) ||
+    '     and predictor_internal.cup_entrant_eligibility(' || chr(10) ||
+    '           p_competition_id, fixture.home_user_id) <> ''eligible''' || chr(10) ||
+    '     and predictor_internal.cup_entrant_eligibility(' || chr(10) ||
+    '           p_competition_id, fixture.away_user_id) <> ''eligible'';' || chr(10) ||
+    '' || chr(10) ||
+    '  if v_blocked is not null then' || chr(10) ||
+    '    raise exception' || chr(10) ||
+    '      ''Neither entrant may contest tie(s) %; this needs an explicit decision rather than an automatic winner'',' || chr(10) ||
+    '      v_blocked' || chr(10) ||
+    '      using errcode = ''55000'';' || chr(10) ||
+    '  end if;'
   );
+  if v_definition = v_original then
+    raise exception 'Expected Cup already-settled guard was not found';
+  end if;
 
-  return jsonb_build_object(
-    'competition_id', p_competition_id,
-    'window_sequence', v_window.sequence,
-    'stage', v_stage,
-    'ties_settled', jsonb_array_length(v_decisions),
-    'champion', v_champion
+  -- 3. The eligibility branch, ABOVE the submission ladder.
+  --
+  -- The two questions are unrelated, and keeping them apart is what makes this
+  -- safe. "Neither entrant SUBMITTED" is an existing rule with an existing
+  -- answer -- `admin_walkover`, resolved by the better seed -- and ADR 0022
+  -- forbids altering it while rescoping this machinery. The ladder below is
+  -- carried through unedited; it is only demoted to `elsif`.
+  --
+  -- No football score and no prediction points are invented. The eligible
+  -- opponent simply advances, `decided_by` stays inside the existing
+  -- vocabulary, and the REASON goes to audit evidence, which is where ADR 0028
+  -- section 8 puts it.
+  v_original := v_definition;
+  v_definition := replace(
+    v_definition,
+    '    if v_home.submitted and v_away.submitted then',
+    '    -- Contract 194 / `CUP-004`. Eligibility is decided BEFORE the' || chr(10) ||
+    '    -- submission ladder and is a different question from it: "did they' || chr(10) ||
+    '    -- predict" and "may they contest this tie" are unrelated, and until now' || chr(10) ||
+    '    -- only the first was asked. A disqualified entrant who had submitted' || chr(10) ||
+    '    -- before being removed still won on points.' || chr(10) ||
+    '    v_home_eligible := predictor_internal.cup_entrant_eligibility(' || chr(10) ||
+    '      p_competition_id, v_fixture.home_user_id) = ''eligible'';' || chr(10) ||
+    '    v_away_eligible := predictor_internal.cup_entrant_eligibility(' || chr(10) ||
+    '      p_competition_id, v_fixture.away_user_id) = ''eligible'';' || chr(10) ||
+    '' || chr(10) ||
+    '    if v_home_eligible <> v_away_eligible then' || chr(10) ||
+    '      v_decided := ''walkover'';' || chr(10) ||
+    '      v_winner := case when v_home_eligible' || chr(10) ||
+    '        then v_fixture.home_user_id else v_fixture.away_user_id end;' || chr(10) ||
+    '' || chr(10) ||
+    '      insert into public.bonus_competition_audit' || chr(10) ||
+    '        (competition_id, action, detail, actor_id)' || chr(10) ||
+    '      values (' || chr(10) ||
+    '        p_competition_id,' || chr(10) ||
+    '        ''cup_tie_walkover_ineligible'',' || chr(10) ||
+    '        jsonb_build_object(' || chr(10) ||
+    '          ''window_id'', p_window_id,' || chr(10) ||
+    '          ''bracket_slot'', v_fixture.bracket_slot,' || chr(10) ||
+    '          ''advanced_user_id'', v_winner,' || chr(10) ||
+    '          ''ineligible_user_id'', case when v_home_eligible' || chr(10) ||
+    '            then v_fixture.away_user_id else v_fixture.home_user_id end,' || chr(10) ||
+    '          -- The stored membership state, not a paraphrase of it, so the' || chr(10) ||
+    '          -- record says whether they withdrew or were disqualified.' || chr(10) ||
+    '          ''ineligible_state'', predictor_internal.cup_entrant_eligibility(' || chr(10) ||
+    '            p_competition_id, case when v_home_eligible' || chr(10) ||
+    '              then v_fixture.away_user_id else v_fixture.home_user_id end),' || chr(10) ||
+    '          ''invented_score'', false,' || chr(10) ||
+    '          ''invented_points'', false),' || chr(10) ||
+    '        (select auth.uid()));' || chr(10) ||
+    '' || chr(10) ||
+    '    elsif v_home.submitted and v_away.submitted then'
   );
+  if v_definition = v_original then
+    raise exception 'Expected Cup submission ladder was not found';
+  end if;
+
+  -- Contract 102 must still hold. This is the assertion the first draft of this
+  -- contract would have failed: a restated body reintroduced `stage <> 'group'`
+  -- and dropped `stage in ('playoff', 'knockout')`, so a stored `split` fixture
+  -- would have entered the knockout settler again.
+  if position('stage <> ''group''' in v_definition) > 0
+    or position('stage in (''playoff'', ''knockout'')' in v_definition) = 0 then
+    raise exception 'Cup round settlement lost contract 102 split-safety';
+  end if;
+
+  -- And the roster pin contract 102 added.
+  if position('member.phase_kind = ''initial''' in v_definition) = 0 then
+    raise exception 'Cup round settlement lost contract 102 initial-roster pinning';
+  end if;
+
+  execute v_definition;
 end;
-$function$;
+$patch$;
 
 -- ---------------------------------------------------------------------------
 -- Prove the shape, in the same transaction.

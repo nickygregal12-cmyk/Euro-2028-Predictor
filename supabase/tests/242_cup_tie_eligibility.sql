@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(13);
+select plan(14);
 
 -- ---------------------------------------------------------------------------
 -- The eligibility authority, on its own.
@@ -30,12 +30,16 @@ declare
   v_t uuid;
   v_home uuid;
   v_away uuid;
-  v_round uuid;
   v_comp uuid;
   v_win uuid;
   v_match uuid;
   v_group uuid;
 begin
+  -- Seeding a confirmed result needs the protected-lifecycle capability, which
+  -- contract 50 gates on `predictor.match_result_write`. It is set LOCAL and
+  -- this whole file runs inside a transaction the harness rolls back.
+  set local predictor.match_result_write = 'on';
+
   select competition_id into v_competition
     from public.tournaments where kind = 'tournament' order by name limit 1;
 
@@ -45,8 +49,6 @@ begin
     returning id into v_t;
 
   insert into public.groups (tournament_id, letter) values (v_t, 'A') returning id into v_group;
-  insert into public.competition_rounds (tournament_id, round_key, ordinal, kind, label)
-    values (v_t, 'qf', 1, 'knockout_round', 'QF') returning id into v_round;
   insert into public.teams (tournament_id, name) values (v_t, 'EH') returning id into v_home;
   insert into public.teams (tournament_id, name) values (v_t, 'EA') returning id into v_away;
 
@@ -78,13 +80,19 @@ begin
             now() - interval '2 days', now() - interval '1 day')
     returning id into v_win;
 
+  -- `round_id` is left null on purpose. `prepare_match_season_scope` derives the
+  -- competition round from `round` and `matchday` and creates it if absent, so a
+  -- hand-built round is both redundant and a way to contradict the trigger: the
+  -- first draft of this file paired a `knockout_round` row with a `group`
+  -- fixture, and the whole suite aborted on
+  -- "Tournament fixture round is incompatible with the season kind".
   insert into public.matches (
-      tournament_id, round_id, match_ref, round, home_source, away_source,
+      tournament_id, match_ref, round, home_source, away_source,
       home_team_id, away_team_id, group_id, matchday, match_date, kickoff_at, venue,
       result_state, result_method, result_version, confirmed_at,
       home_score, away_score, home_score_90, away_score_90, winner_team_id)
     values (
-      v_t, v_round, 'EL-1', 'group', 'A', 'B', v_home, v_away, v_group, 1,
+      v_t, 'EL-1', 'group', 'A', 'B', v_home, v_away, v_group, 1,
       date '2044-06-10', now() - interval '3 days', 'V',
       'confirmed', 'regulation', 1, now(), 2, 1, 2, 1, v_home)
     returning id into v_match;
@@ -107,24 +115,31 @@ begin
             'knockout', 2, 1, md5('el-user-1')::uuid, md5('el-user-2')::uuid);
 end $$;
 
+-- User 3 was created but never entered, so no `game_memberships` row exists for
+-- them. That matters: entering a competition WRITES one, so asking about an
+-- entrant would answer `eligible` from a stored `active` row and prove nothing
+-- about the absent-row branch. The first draft of this file asked about user 1
+-- and passed for the wrong reason.
 select is(
-  predictor_internal.cup_entrant_eligibility(md5('el-cup')::uuid, md5('el-user-1')::uuid),
+  (select count(*)::integer from public.game_memberships
+    where game_competition_id = md5('el-cup')::uuid and user_id = md5('el-user-3')::uuid),
+  0,
+  'the absent-row case really has no membership row');
+
+select is(
+  predictor_internal.cup_entrant_eligibility(md5('el-cup')::uuid, md5('el-user-3')::uuid),
   'eligible',
   'an entrant with no membership row reports eligible, because a gap in the data must not decide a tie');
-
--- `game_memberships_state_shape` pairs each status with its timestamps:
--- `active` needs `active_since` and neither of the others, `left` needs
--- `left_at`, `disqualified` needs `disqualified_at`. Writing a bare status
--- fails the constraint, so every transition below carries its own instants.
-insert into public.game_memberships
-    (tournament_id, game_competition_id, user_id, status, active_since)
-select tournament_id, md5('el-cup')::uuid, md5('el-user-1')::uuid, 'active', now()
-  from public.bonus_competitions where id = md5('el-cup')::uuid;
 
 select is(
   predictor_internal.cup_entrant_eligibility(md5('el-cup')::uuid, md5('el-user-1')::uuid),
   'eligible',
   'an active membership reports eligible');
+
+-- `game_memberships_state_shape` pairs each status with its timestamps:
+-- `active` needs `active_since` and neither of the others, `left` needs
+-- `left_at`, `disqualified` needs `disqualified_at`. Writing a bare status
+-- fails the constraint, so every transition below carries its own instants.
 
 update public.game_memberships
    set status = 'left', left_at = now(), disqualified_at = null
@@ -148,10 +163,9 @@ select is(
 -- NEITHER may contest: nothing is settled and nothing is written.
 -- ---------------------------------------------------------------------------
 
-insert into public.game_memberships
-    (tournament_id, game_competition_id, user_id, status, active_since, left_at)
-select tournament_id, md5('el-cup')::uuid, md5('el-user-2')::uuid, 'left', now(), now()
-  from public.bonus_competitions where id = md5('el-cup')::uuid;
+update public.game_memberships
+   set status = 'left', left_at = now(), disqualified_at = null
+ where game_competition_id = md5('el-cup')::uuid and user_id = md5('el-user-2')::uuid;
 
 select throws_ok(
   format('select public.admin_settle_predictor_cup_round(%L::uuid, %L::uuid)',
