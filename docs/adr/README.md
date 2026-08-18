@@ -121,3 +121,5 @@ same paragraph existed in seven places at once.
 > **Contract 200:** adds no rule and changes no ADR. ADR 0029's price-freshness and value-gate thresholds are unchanged; only how often prices are collected to feed them moves.
 
 > **Contract 201:** adds no rule and changes no ADR. It is read-only reporting over the evidence ADR 0029 already defines, behind the existing competition-admin boundary, and a test asserts against the installed definition that it re-derives no BET or PASS.
+
+> **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged — the second weekly training pass runs the same `train_selected_challengers.py` through the same verified gates.

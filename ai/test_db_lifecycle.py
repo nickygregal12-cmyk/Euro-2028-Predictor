@@ -1617,7 +1617,10 @@ def test_coverage_answers_why_every_fixture_is_or_is_not_actionable():
     decided = by_fixture[str(priced)]
     assert decided["decision"]["decision"] == "PASS"
     assert decided["prediction"]["forecasts_collapsed"] == 3
-    assert decided["prediction"]["model_version"] == "cov-2", "the newest forecast"
+    assert decided["prediction"]["model_version"] == "cov-2", (
+        "the three forecasts share a created_at to the microsecond, so the "
+        "canonical one must be decided by the current model status rather than "
+        "by whichever UUID sorted highest")
     assert decided["market"]["real_book_count"] == 1
     assert decided["market"]["aggregate_reference_available"] is True
     assert decided["market"]["best_real_price"]["bookmaker"] == "B365"
@@ -1783,3 +1786,96 @@ def test_the_ai_lab_reads_stay_behind_the_competition_admin_gate():
                     "select has_table_privilege(%s, %s, 'select') as ok",
                     (role, f"ai.{view}")).fetchone()["ok"] is False, (
                         f"ai.{view} must not be readable by {role}")
+
+
+def test_a_fixture_is_re_forecast_as_new_results_arrive():
+    """Contract 202. ai/README.md's invariant, executed rather than asserted.
+
+    "the artefact that ships is then fitted fresh on every eligible completed
+    match, so last Saturday reaches next Saturday's forecast." Production on
+    18 August 2026 imported fifty-seven results at 05:55, ran predict at 09:23
+    with team state rebuilt from the full history, scored 52 fixtures across
+    five leagues and wrote NOTHING — `{"written": 0, "fixtures": 12}` in every
+    one — because `scheduled` covered everything beyond forty-eight hours, so
+    the row made on the 17th owned the fixture and every better forecast
+    collided with it.
+    """
+    import predict
+
+    # The clock buckets have to reach as far as the lab forecasts, or the far
+    # bucket becomes a single slot that the first run of the week claims.
+    assert predict.horizon_for(200.0) == "scheduled"
+    assert predict.horizon_for(168.0) == "t168"
+    assert predict.horizon_for(150.0) == "t168"
+    assert predict.horizon_for(120.0) == "t120"
+    assert predict.horizon_for(90.0) == "t120"
+    assert predict.horizon_for(72.0) == "t72"
+    assert predict.horizon_for(55.0) == "t72"
+    assert predict.horizon_for(48.0) == "t48"
+    assert predict.horizon_for(24.0) == "t24"
+    assert predict.horizon_for(6.0) == "t6"
+
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=6)
+    with db.connect() as conn:
+        payload = b"horizons"
+        sha = hashlib.sha256(payload).hexdigest()
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','horizons','poisson',100,%s) returning id""",
+            (sha,)).fetchone()["id"]
+        conn.execute(
+            "insert into ai.model_artifacts(model_id,payload,sha256) values(%s,%s,%s)",
+            (model, payload, sha))
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        conn.commit()
+
+    def forecast(horizon: str, p_home: float) -> int:
+        return db.insert_predictions([{
+            "model_id": model, "league": "EPL", "fixture_id": fixture,
+            "season_fixture_id": None, "raw_match_id": None,
+            "kickoff_at": kickoff, "home_canonical": "Arsenal",
+            "away_canonical": "Leeds",
+            "p_home": p_home, "p_draw": round(1 - p_home - 0.2, 5), "p_away": 0.2,
+            "exp_home_goals": 1.6, "exp_away_goals": 1.1,
+            "predicted_result": "H", "predicted_score": "2-1",
+            "scoreline_grid": {}, "features": {}, "market_probabilities": None,
+            "horizon": horizon, "hours_to_kickoff": 100.0,
+            "data_snapshot_at": datetime.now(timezone.utc),
+            "features_version": "f2", "uses_market": False,
+            "p_home_raw": None, "p_draw_raw": None, "p_away_raw": None,
+            "model_views": None, "agreement": None,
+            "data_confidence": {"score": 0.8, "state": "sufficient"},
+            "uncertainty": None, "explanation": None,
+        }])
+
+    # The same horizon twice is still one forecast: immutability is untouched.
+    assert forecast("t168", 0.55) == 1
+    assert forecast("t168", 0.61) == 0, (
+        "a prediction is immutable; a second run at the same horizon must not "
+        "overwrite or duplicate it")
+
+    # A later run, closer to kickoff and on more completed football, is a new
+    # forecast rather than a silently discarded one.
+    assert forecast("t120", 0.61) == 1
+    assert forecast("t72", 0.64) == 1
+
+    with db.connect() as conn:
+        rows = conn.execute(
+            "select horizon, p_home from ai.predictions order by p_home").fetchall()
+        assert [row["horizon"] for row in rows] == ["t168", "t120", "t72"]
+
+        # And contract 201 still reports the fixture ONCE, as its newest.
+        canonical = conn.execute(
+            """select horizon, forecasts_for_fixture
+                 from ai.canonical_fixture_predictions where fixture_id = %s""",
+            (fixture,)).fetchall()
+        assert len(canonical) == 1
+        assert canonical[0]["horizon"] == "t72"
+        assert canonical[0]["forecasts_for_fixture"] == 3

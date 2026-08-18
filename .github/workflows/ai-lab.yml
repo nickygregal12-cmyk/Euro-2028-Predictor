@@ -23,7 +23,19 @@ on:
   schedule:
     - cron: '30 5 * * *'
     - cron: '0 23 * * *'
+    # TWO training passes a week, not one, and the second is the one that keeps
+    # the invariant. Football-Data publishes a weekend's results on the FOLLOWING
+    # morning, so the Monday 07:00 pass runs before them: the artefact trained at
+    # 08:04 on Monday 17 August 2026 ended at 8 August for most leagues and at
+    # 2 May for ECH and EL1, whose own divisions had not started, and the next
+    # training was the following Monday — after the weekend it was meant to
+    # inform. The Tuesday pass runs once the morning import has landed, so the
+    # deployment artefact carries last weekend before this weekend is priced.
+    # Both go through train_selected_challengers.py and the same verified
+    # artefact, provenance and selected-policy gates; the model family and window
+    # per league are unchanged, only the data window advances.
     - cron: '0 7 * * 1'
+    - cron: '30 8 * * 2'
     # The Production database dispatches the paid odds poll at :30. Run the
     # repository reconciliation fifteen minutes later so it consumes retained
     # responses rather than racing the provider poll.
@@ -256,6 +268,8 @@ jobs:
           elif [ "${{ github.event.schedule }}" = '0 23 * * *' ]; then
             echo 'name=evening' >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = '0 7 * * 1' ]; then
+            echo 'name=train' >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = '30 8 * * 2' ]; then
             echo 'name=train' >> "$GITHUB_OUTPUT"
           else
             echo 'name=free-odds' >> "$GITHUB_OUTPUT"

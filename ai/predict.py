@@ -48,7 +48,27 @@ PLATFORM_TO_CANONICAL = {platform: canon for platform, canon, _, _ in LIVE_CLUBS
 # stores. A 48-hour forecast and a post-team-sheet forecast are different
 # predictions of the same match, and the unique index is on
 # (model_id, fixture, horizon) precisely so both can exist.
-HORIZON_BOUNDS = (("t6", 6.0), ("t24", 24.0), ("t48", 48.0))
+#
+# THE BUCKETS REACH PAST 48 HOURS BECAUSE THE UNIQUENESS KEY USES THEM. With
+# `scheduled` covering everything beyond two days, a fixture eight days out was
+# forecast once and every later run on better data collided with that row and was
+# discarded by `on conflict do nothing`. Measured on Production on 18 August
+# 2026: fifty-seven results imported at 05:55, this job ran at 09:23 with team
+# state rebuilt from the full history, scored 52 fixtures across five leagues and
+# wrote NOTHING — `{"written": 0, "fixtures": 12}` in every league — so this
+# weekend's stored forecasts were still the ones made on the 17th, before last
+# weekend had been played. ai/README.md says last Saturday reaches next
+# Saturday's forecast; it did not.
+#
+# Six buckets across a week means roughly six forecasts of a fixture, each on
+# strictly more completed football than the last, each an immutable row. It
+# cannot produce a second paper bet — contract 199's advice guard keys on the
+# fixture — and it cannot make a match count twice in a review, because contract
+# 201's ai.canonical_fixture_predictions reduces a fixture to its newest
+# forecast. It is also what finally gives contract 185's per-horizon performance
+# report more than one horizon to report on.
+HORIZON_BOUNDS = (("t6", 6.0), ("t24", 24.0), ("t48", 48.0),
+                  ("t72", 72.0), ("t120", 120.0), ("t168", 168.0))
 
 
 def horizon_for(hours_to_kickoff: float) -> str:
@@ -69,7 +89,8 @@ def main() -> int:
     ap.add_argument("--league", choices=sorted(LEAGUES), required=True)
     ap.add_argument("--days-ahead", type=int, default=10)
     ap.add_argument("--horizon", default=None,
-                    choices=["scheduled", "t48", "t24", "t6", "lineup"],
+                    choices=["scheduled", "t168", "t120", "t72", "t48", "t24", "t6",
+                             "lineup"],
                     help="Override the horizon derived from time to kickoff.")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()

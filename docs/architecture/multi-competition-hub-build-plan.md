@@ -368,3 +368,5 @@ blockquotes could never show without being read end to end.
 > **Contract 200 stage effect:** the private AI Lab's paid odds cadence is stated and tested. No hub build-stage scope changes.
 
 > **Contract 201 stage effect:** three bounded admin reads make the private AI Lab legible. No hub build-stage scope changes.
+
+> **Contract 202 stage effect:** a private AI Lab forecast is refreshed as results arrive instead of being frozen at the first run of the week. No hub build-stage scope changes.

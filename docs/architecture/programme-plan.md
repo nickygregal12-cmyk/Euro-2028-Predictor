@@ -279,3 +279,5 @@ blockquotes could never show without being read end to end.
 > **Contract 200 programme effect:** the private AI Lab collects paid prices often enough for its own freshness gate, so a weekend's fixtures can be assessed on the days before it. No programme reordering.
 
 > **Contract 201 programme effect:** the private AI Lab can be operated without a database console — every relevant fixture, why it is or is not actionable, whether each stage of the pipeline is current, and what happened last weekend one row per fixture. No programme reordering.
+
+> **Contract 202 programme effect:** the private AI Lab's stated invariant — last Saturday reaches next Saturday's forecast — becomes true in practice rather than only in the README. No programme reordering.

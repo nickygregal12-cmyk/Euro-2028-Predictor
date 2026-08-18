@@ -347,3 +347,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 200:** records a backend operational fix: the paid odds collector's cadence is stated as a function and asserted to stay inside the price-freshness allowance it feeds. No threshold is weakened and no frontend feature baseline changes.
 
 > **Contract 201:** records a backend capability for the private admin AI Lab only: coverage, operational health and a fixture-level results review, each behind the competition-admin capability and executable by no anonymous role. No public surface, no player-facing feature, no publication boundary and no threshold moves; the reads report decisions and make none.
+
+> **Contract 202:** records a backend correctness fix: a private AI Lab forecast for a fixture more than two days away was frozen at the first run of the week, so results imported afterwards never reached it. Predictions remain immutable — the fix is more horizon buckets, not an overwrite. No frontend feature baseline changes.

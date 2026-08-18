@@ -198,3 +198,5 @@ same paragraph existed in seven places at once.
 > **Contract 200:** does not alter competition structure. It states how often the private AI Lab may poll for paid odds prices, and touches no competition, scoring or player relation.
 
 > **Contract 201:** does not alter competition structure. It adds three read-only competition-admin views of the private AI Lab and reports the decisions already recorded there; it evaluates no gate and touches no competition, scoring or player relation.
+
+> **Contract 202:** does not alter competition structure. It widens the private AI Lab's forecast-horizon vocabulary so a fixture is re-forecast as new completed matches arrive, and touches no competition, scoring or player relation.

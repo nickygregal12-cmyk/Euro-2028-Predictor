@@ -377,6 +377,12 @@ same paragraph existed in seven places at once.
 > answer every relevant fixture, why each one is or is not actionable, whether
 > each stage of the pipeline is current, and what happened one row per fixture
 > rather than once per model version that forecast it.
+> Contract 202 closes the loop: a fixture more than two days away was forecast
+> once and never again, so results imported afterwards never reached it and the
+> README's own invariant was not being met. Predictions stay immutable — the
+> vocabulary gains more horizon buckets so a better forecast is a new row rather
+> than a discarded one — and a second weekly training pass runs after the
+> weekend's results are published rather than before.
 
 > **Contract 197 — one chronological calendar across the player's competitions.**
 > **Advances the Stage 8 Matches work and reorders nothing else.** Counted over

@@ -95,8 +95,20 @@ create or replace view ai.canonical_fixture_predictions as
          (select count(*) from ai.valid_predictions o where o.fixture_id = p.fixture_id)
            as forecasts_for_fixture
     from ai.valid_predictions p
+    left join ai.models m on m.id = p.model_id
    where p.fixture_id is not null
-   order by p.fixture_id, p.created_at desc, p.id desc;
+   -- Newest wins, and the tie-breaks are meaning rather than luck. Two forecasts
+   -- can share a created_at to the microsecond — a retrain writes a league in one
+   -- transaction — and `id desc` alone would then pick a random UUID, so a read
+   -- could name a RETIRED model's forecast as the current one and change its
+   -- answer between calls. The current model outranks a retired one, and a
+   -- forecast built on a later data snapshot outranks an earlier one, before the
+   -- id is ever consulted.
+   order by p.fixture_id,
+            p.created_at desc,
+            (m.status = 'current') desc nulls last,
+            p.data_snapshot_at desc nulls last,
+            p.id desc;
 
 comment on view ai.canonical_fixture_predictions is
   'One forecast per fixture: the newest non-quarantined prediction, whichever '
