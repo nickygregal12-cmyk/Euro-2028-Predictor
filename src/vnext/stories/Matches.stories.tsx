@@ -115,6 +115,18 @@ function MatchesHarness({
   // world, which is how a reviewer can see that the combined mode is reachable
   // and that it names its competitions.
   const [scope, setScope] = useState<MatchesScope>(base.scope.active)
+  /**
+   * WHAT THE PAGE LAST ASKED THE HOST FOR — the harness's own record, and the
+   * only way a browser can observe an intent at all.
+   *
+   * `VNextMatches` is route-agnostic: it emits an intent and a host decides
+   * what it means. In Storybook there is no router, so "opening a fixture
+   * reaches its canonical Match Centre" was previously asserted by reading the
+   * id back off the element the test had just selected BY that id — a
+   * tautology that could not fail. This is the host, minimal and visible, so
+   * the browser suite can press a row and check what actually came out.
+   */
+  const [lastIntent, setLastIntent] = useState<string>('')
 
   const model: MatchesModel =
     scope === base.scope.active
@@ -125,12 +137,21 @@ function MatchesHarness({
 
   return (
     <VNextShellProvider model={shellScenarios[shellWorld]}>
-      <VNextMatches
-        model={model}
-        onIntent={(intent) => {
-          if (intent.kind === 'scope') setScope(intent.scope)
-        }}
-      />
+      <div data-vnext-matches-host="" data-vnext-last-intent={lastIntent}>
+        <VNextMatches
+          model={model}
+          onIntent={(intent) => {
+            if (intent.kind === 'scope') setScope(intent.scope)
+            setLastIntent(
+              intent.kind === 'openMatch'
+                ? `openMatch:${intent.matchId}`
+                : intent.kind === 'filter'
+                  ? `filter:${intent.filter}`
+                  : `scope:${intent.scope}`,
+            )
+          }}
+        />
+      </div>
     </VNextShellProvider>
   )
 }
@@ -296,6 +317,16 @@ export const MatchCentreLiveWithoutMinute: Story = centreBoard(
   0.42,
 )
 
+/**
+ * LIVE, AND NO SCORE AT ALL. The hero shows the kickoff because there is
+ * nothing else to show; the line beneath must say "No score reported yet"
+ * rather than announcing a provisional score that does not exist.
+ */
+export const MatchCentreLiveWithoutScore: Story = centreBoard('liveWithoutScore', [
+  'phone-375',
+  'laptop-1440',
+])
+
 export const MatchCentreHalfTime: Story = centreBoard('halfTime', ['phone-375', 'laptop-1440'])
 
 export const MatchCentreFullTime: Story = centreBoard('fullTime', ALL_WIDTHS, 0.42)
@@ -418,6 +449,9 @@ export const CentreLiveNoMinute375: Story = centreFrame('liveWithoutMinute', 'ph
 export const CentreLiveNoMinute1440: Story = centreFrame('liveWithoutMinute', 'laptop-1440')
 
 export const CentreHalfTime1440: Story = centreFrame('halfTime', 'laptop-1440')
+
+export const CentreNoScore375: Story = centreFrame('liveWithoutScore', 'phone-375')
+export const CentreNoScore1440: Story = centreFrame('liveWithoutScore', 'laptop-1440')
 
 export const CentreFullTime375: Story = centreFrame('fullTime', 'phone-375')
 export const CentreFullTime1440: Story = centreFrame('fullTime', 'laptop-1440')

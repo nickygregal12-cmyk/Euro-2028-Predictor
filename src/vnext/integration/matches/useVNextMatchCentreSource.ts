@@ -67,8 +67,37 @@ export type VNextMatchCentreSourceInput = {
 
 type RequestIdentity = string
 
-function requestIdentity(userId: string, fixtureId: string): RequestIdentity {
-  return JSON.stringify([userId, fixtureId])
+/**
+ * WHICH REQUEST A PAYLOAD ANSWERS — every input that ADDRESSES one of the reads.
+ *
+ * The fixture id addresses contract 148, the two slugs address the play context
+ * that supplies the season label, and `predictorReachable` decides whether the
+ * Match Predictor link is produced. It used to key on the user and the fixture
+ * alone, so a competition-context change left the stored payload's identity
+ * still matching: for exactly one render the memo returned `ready` with the
+ * PREVIOUS season label and predictor link. An effect cannot help — it runs
+ * after the render that changed the inputs — and one render is enough to paint.
+ *
+ * `useVNextMatchesSource` states the same rule at length and follows it; this
+ * one now does too.
+ *
+ * JSON rather than a joined string, because a slug is user-visible text and a
+ * separator can appear inside one: `a|b` and `a` + `|b` must not collide.
+ */
+function requestIdentity(input: {
+  userId: string
+  fixtureId: string
+  competitionSlug: string | undefined
+  seasonSlug: string | undefined
+  predictorReachable: boolean
+}): RequestIdentity {
+  return JSON.stringify([
+    input.userId,
+    input.fixtureId,
+    input.competitionSlug ?? null,
+    input.seasonSlug ?? null,
+    input.predictorReachable,
+  ])
 }
 
 type InternalState =
@@ -99,7 +128,13 @@ export function useVNextMatchCentreSource(
       return
     }
 
-    const identity = requestIdentity(userId, fixtureId)
+    const identity = requestIdentity({
+      userId,
+      fixtureId,
+      competitionSlug,
+      seasonSlug,
+      predictorReachable,
+    })
     let active = true
     setState((current) => (current.status === 'idle' ? current : IDLE))
 
@@ -208,11 +243,26 @@ export function useVNextMatchCentreSource(
     if (!userId) return { status: 'signedOut' }
     if (!fixtureId) return { status: 'notFound' }
 
-    const identity = requestIdentity(userId, fixtureId)
+    const identity = requestIdentity({
+      userId,
+      fixtureId,
+      competitionSlug,
+      seasonSlug,
+      predictorReachable,
+    })
     if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
     if (state.status === 'failed') return { status: 'failed', retry }
     if (state.status === 'notFound') return { status: 'notFound' }
 
     return { status: 'ready', source: state.payload, retry }
-  }, [state, authLoading, userId, fixtureId, retry])
+  }, [
+    state,
+    authLoading,
+    userId,
+    fixtureId,
+    competitionSlug,
+    seasonSlug,
+    predictorReachable,
+    retry,
+  ])
 }

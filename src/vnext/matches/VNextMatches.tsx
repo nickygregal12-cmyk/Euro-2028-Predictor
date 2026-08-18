@@ -230,9 +230,7 @@ function MatchesEmpty({
       </p>
       <p className={`${text.body} ${styles.emptyBody}`}>
         {filtered
-          ? `There are ${model.counts.all} matches in this window, but none of them are ${
-              filter === 'live' ? 'live' : filter
-            }.`
+          ? `There are ${model.counts.all} matches in this window, but none of them are ${filter}.`
           : model.windowLabel
             ? `${model.competition.name} has no fixtures between ${model.windowLabel}.`
             : `${model.competition.name} has no fixtures in this window.`}

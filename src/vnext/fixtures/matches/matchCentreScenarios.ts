@@ -32,6 +32,24 @@ const MATCH_CENTRE_NOW = '2027-08-21T15:52:00.000Z'
 
 const T = workshopTeams
 
+/**
+ * An observation instant as a time of day.
+ *
+ * PINNED, WHERE THE MAPPER'S IS THE VIEWER'S — see the note on the same helper
+ * in `scenarios.ts`. A world must be the same picture in every time zone; a
+ * connected page must be the reader's own.
+ */
+const observedFormatter = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'Europe/London',
+})
+
+function observedTime(iso: string): string {
+  return observedFormatter.format(new Date(iso))
+}
+
 const premiership: MatchCompetitionRef = {
   id: 'competition-workshop-premiership',
   name: 'Caledonian Premiership',
@@ -249,6 +267,7 @@ const liveWithMinuteCentre: MatchCentreModel = centre({
     kickoff: '2027-08-21T14:00:00.000Z',
     observation: {
       observedAt: '2027-08-21T15:51:10.000Z',
+      observedAtLabel: observedTime('2027-08-21T15:51:10.000Z'),
       score: { home: 2, away: 1 },
       clock: { label: "67'", minute: 67, addedMinutes: null },
       phaseLabel: 'Live',
@@ -278,7 +297,44 @@ const liveWithoutMinuteCentre: MatchCentreModel = centre({
     kickoff: '2027-08-21T14:00:00.000Z',
     observation: {
       observedAt: '2027-08-21T15:51:10.000Z',
+      observedAtLabel: observedTime('2027-08-21T15:51:10.000Z'),
       score: { home: 2, away: 1 },
+      clock: null,
+      phaseLabel: 'Live',
+    },
+  },
+  prediction: { kind: 'locked', score: { home: 2, away: 1 } },
+})
+
+/* ==========================================================================
+   15b. LIVE, AND NO SCORE REPORTED AT ALL
+   ========================================================================== */
+
+/**
+ * IN PLAY, AND THE PROVIDER HAS SENT NO NUMBERS.
+ *
+ * A real and reachable state: contract 135's block carries a `kind` and two
+ * OPTIONAL scores, so a feed reporting a match in play before a goal has a
+ * state and no scoreline — which `seasonFixtureListModel` documents as
+ * information rather than as a gap.
+ *
+ * IT IS THE WORLD A DEFECT HID BEHIND. Every other live world here carries a
+ * score, so nothing exercised the branch where the hero prints the KICKOFF TIME
+ * (there being no score to print) while the line beneath it announced
+ * "Provisional score observed at 15:41" — a score claimed where none exists,
+ * directly under a number that is not one. The page now says "No score reported
+ * yet · provider last reported at 15:41", and this world is what keeps it true.
+ */
+const liveWithoutScoreCentre: MatchCentreModel = centre({
+  id: 'fixture-centre-live-no-score',
+  ...rich,
+  state: {
+    kind: 'live',
+    kickoff: '2027-08-21T14:00:00.000Z',
+    observation: {
+      observedAt: '2027-08-21T15:51:10.000Z',
+      observedAtLabel: observedTime('2027-08-21T15:51:10.000Z'),
+      score: null,
       clock: null,
       phaseLabel: 'Live',
     },
@@ -304,6 +360,7 @@ const halfTimeCentre: MatchCentreModel = centre({
     kickoff: '2027-08-21T14:00:00.000Z',
     observation: {
       observedAt: '2027-08-21T14:47:00.000Z',
+      observedAtLabel: observedTime('2027-08-21T14:47:00.000Z'),
       score: { home: 1, away: 0 },
       clock: { label: 'HT', minute: 45, addedMinutes: null },
       phaseLabel: 'Half-time',
@@ -356,6 +413,7 @@ const awaitingResultCentre: MatchCentreModel = centre({
     kickoff: '2027-08-21T14:00:00.000Z',
     observation: {
       observedAt: '2027-08-21T15:50:00.000Z',
+      observedAtLabel: observedTime('2027-08-21T15:50:00.000Z'),
       score: { home: 2, away: 1 },
       clock: null,
       phaseLabel: 'Full time',
@@ -449,7 +507,6 @@ const richContextCentre: MatchCentreModel = centre({
   prediction: { kind: 'entered', score: { home: 2, away: 1 } },
   links: [
     { kind: 'match-predictor', label: 'Enter your prediction in the Match Predictor' },
-    { kind: 'competition-table', label: 'Full Caledonian Premiership table' },
     { kind: 'competition-matches', label: 'All Caledonian Premiership matches' },
   ],
 })
@@ -498,6 +555,7 @@ const staleProviderCentre: MatchCentreModel = centre({
     kickoff: '2027-08-21T14:00:00.000Z',
     observation: {
       observedAt: '2027-08-21T14:41:00.000Z',
+      observedAtLabel: observedTime('2027-08-21T14:41:00.000Z'),
       score: { home: 1, away: 0 },
       clock: null,
       phaseLabel: 'Live',
@@ -515,6 +573,7 @@ export const matchCentreScenarios = {
   scheduled: scheduledCentre,
   liveWithMinute: liveWithMinuteCentre,
   liveWithoutMinute: liveWithoutMinuteCentre,
+  liveWithoutScore: liveWithoutScoreCentre,
   halfTime: halfTimeCentre,
   fullTime: fullTimeCentre,
   awaitingResult: awaitingResultCentre,
@@ -538,6 +597,7 @@ export const matchCentreScenarioPremises: Readonly<
   scheduled: 'Not kicked off. No score anywhere, and a clear path to the Match Predictor.',
   liveWithMinute: 'Live with a minute — the state a richer provider would allow. Nothing here can currently produce it.',
   liveWithoutMinute: 'Live WITHOUT a minute — the state every connected live match actually lands in. Compare it with the one above.',
+  liveWithoutScore: 'Live, and the provider has sent NO score. The hero shows the kickoff because there is nothing else to show, and the page must not announce a provisional score that does not exist.',
   halfTime: 'Half-time. Also unprovable today: contract 135’s in_play does not distinguish the interval.',
   fullTime: 'The platform settled a result. The score is official and the page says so.',
   awaitingResult: 'A provider says the match is over; the platform has not settled it. The score is still provisional.',

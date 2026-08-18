@@ -167,6 +167,18 @@ export type MatchClockPresentation = {
  */
 export type MatchObservation = {
   readonly observedAt: string
+  /**
+   * That instant as a time of day, IN THE VIEWER'S OWN ZONE.
+   *
+   * IT IS THE MAPPER'S, NOT A COMPONENT'S. A component formatting `observedAt`
+   * itself has to pick a zone, and the one it picks will be wrong: the owner's
+   * 10 August 2026 direction makes the VIEWER's zone the authority and
+   * `src/shared/time/kickoff.ts` says so in terms — "Both rules are defensible;
+   * having two of them in one product is not." Every other instant on these
+   * surfaces already resolves that way, and this one now does too, so a hero
+   * cannot show a kickoff on one clock and an observation on another.
+   */
+  readonly observedAtLabel: string | null
   readonly score: MatchScore | null
   /** Null wherever the provider proves the state but not the minute. */
   readonly clock: MatchClockPresentation | null
@@ -489,10 +501,15 @@ export function filterMatchDays(
 ): readonly MatchDayGroup[] {
   if (filter === 'all') return model.days
   return model.days
-    .map((day) => ({
-      ...day,
-      matches: day.matches.filter((match) => matchPhase(match.state) === filter),
-    }))
+    .map((day) => {
+      const matches = day.matches.filter((match) => matchPhase(match.state) === filter)
+      // RECOMPUTED, NOT CARRIED. `mixedStages` answers "does THIS day, as shown,
+      // carry more than one stage" — and filtering to Live can leave one stage
+      // behind out of three. Spreading the day would keep the pre-filter answer
+      // and quietly make the flag describe a list nobody is looking at.
+      const stages = new Set(matches.map((match) => match.stage.id))
+      return { ...day, matches, mixedStages: stages.size > 1 }
+    })
     .filter((day) => day.matches.length > 0)
 }
 
@@ -610,7 +627,15 @@ export type MatchEventPresentation = {
  * second submission authority.
  */
 export type MatchCentreLink = {
-  readonly kind: 'match-predictor' | 'competition-matches' | 'competition-table'
+  /**
+   * TWO KINDS, AND BOTH ARE PRODUCED.
+   *
+   * A third — `competition-table` — was declared here and produced by nothing,
+   * which is a destination the model offers a host and the mapper can never
+   * fill. A union member with no producer is a promise, and the Match Centre
+   * already shows the table window it has.
+   */
+  readonly kind: 'match-predictor' | 'competition-matches'
   readonly label: string
 }
 

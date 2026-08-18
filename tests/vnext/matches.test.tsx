@@ -81,6 +81,22 @@ async function scan(ui: ReactElement) {
  * the page's own shell through the provider, exactly as the connected
  * integration does.
  */
+/**
+ * WHAT A SCREEN READER ACTUALLY RECEIVES FOR A ROW.
+ *
+ * Every visible node in a row is inside an `aria-hidden` subtree, so the row's
+ * accessible name is the one sentence outside it. `textContent` reads the
+ * hidden text too, which is why asserting on it proved nothing about what is
+ * announced — the defect this helper exists to make visible.
+ */
+function accessibleNameOf(row: HTMLElement): string {
+  return [...row.querySelectorAll('span')]
+    .filter((node) => node.closest('[aria-hidden="true"]') === null)
+    .map((node) => node.textContent ?? '')
+    .join(' ')
+    .trim()
+}
+
 function renderMatches(
   model: MatchesModel,
   onIntent?: (intent: { kind: string }) => void,
@@ -132,12 +148,19 @@ describe('football and prediction games stay apart', () => {
   it('shows a prediction status as text and never as a control', () => {
     renderMatches(matchesScenarios.upcomingMatchweek)
 
-    // The badge is inside the row's button, so it is not separately focusable —
-    // one row, one target, one destination.
+    // THE DOM, NOT THE ACCESSIBILITY TREE — and that distinction is the whole
+    // assertion. `queryByRole` defaults to `hidden: false`, and the row's body
+    // is `aria-hidden` so its accessible name can be one sentence; a nested
+    // `<button>` inside it is therefore invisible to a role query, and the
+    // guard passed with the defect present. `querySelectorAll` sees it.
     const rows = screen.getAllByRole('button').filter((node) => node.hasAttribute('data-vnext-match-row'))
     expect(rows.length).toBeGreaterThan(0)
     for (const row of rows) {
-      expect(within(row).queryByRole('button')).toBeNull()
+      expect(
+        row.querySelectorAll('button, a[href], input, select, textarea, [tabindex]'),
+        'a fixture row must be ONE target — a nested control is a second tab ' +
+          'stop to reach one destination, and on a phone a way to miss',
+      ).toHaveLength(0)
     }
   })
 })
@@ -240,14 +263,28 @@ describe('the competition is the root', () => {
 
     expect(rows.length).toBe(4)
     // The condition the mode exists under: a reader always knows which
-    // competition a match is in.
+    // competition a match is in — INCLUDING a reader who cannot see the row.
+    //
+    // The visible line is `aria-hidden`, because the row's name has to be one
+    // sentence rather than a pile of nodes. So checking `textContent` alone
+    // proved nothing about what is announced: it reads hidden text too. The
+    // accessible NAME is what a screen-reader user receives, and it is asserted
+    // separately here.
     for (const row of rows) {
-      const named = [
+      const competitions = [
         'Caledonian Premiership',
         'Northern Isles Champions Trophy',
         'Caledonian Cup',
-      ].some((name) => row.textContent?.includes(name))
-      expect(named, `a combined row did not name its competition: ${row.textContent}`).toBe(true)
+      ]
+      expect(
+        competitions.some((name) => row.textContent?.includes(name)),
+        `a combined row did not show its competition: ${row.textContent}`,
+      ).toBe(true)
+
+      expect(
+        competitions.some((name) => accessibleNameOf(row).includes(name)),
+        `a combined row did not ANNOUNCE its competition: ${accessibleNameOf(row)}`,
+      ).toBe(true)
     }
   })
 
@@ -301,16 +338,30 @@ describe('browsing', () => {
   })
 
   it('tells an empty FILTER apart from an empty WINDOW', async () => {
-    // `allFinished` has three matches and none of them upcoming, so the
-    // Upcoming tab is disabled and cannot be pressed. `mixedMatchday` has one
-    // of each, so the filter that empties is a real interaction.
-    renderMatches(matchesScenarios.allFinished)
+    // THE FILTER-EMPTY BRANCH, ACTUALLY RENDERED — reached the way a real
+    // player reaches it. A filter whose count is zero is disabled, so it cannot
+    // be pressed into this state; it arrives when a HOST restores a stale
+    // browsing state, which is exactly what `initialView` is for.
+    const filtered = render(
+      <VNextRoot>
+        <VNextShellProvider model={shellScenarios.oneCompetition}>
+          <VNextMatches
+            model={matchesScenarios.allFinished}
+            initialView={{ filter: 'live' }}
+          />
+        </VNextShellProvider>
+      </VNextRoot>,
+    )
+    expect(
+      filtered.container.querySelector('[data-vnext-matches-empty="filter"]'),
+    ).toBeTruthy()
+    // It says the window HAS football and that this control is hiding it —
+    // never that the competition has no fixtures.
+    expect(within(filtered.container).getByText(/there are 3 matches in this window/i)).toBeTruthy()
+    expect(within(filtered.container).queryByText(/no matches in this window/i)).toBeNull()
+    filtered.unmount()
 
-    // Both are empty states and they are different sentences. A window with
-    // three matches in it must never say the competition has none.
-    expect(screen.getByRole('button', { name: /^Upcoming/ })).toBeDisabled()
-    expect(screen.queryByText(/no matches in this window/i)).toBeNull()
-
+    // The other sentence, for the state that really is empty.
     const empty = render(
       <VNextRoot>
         <VNextShellProvider model={shellScenarios.oneCompetition}>
@@ -318,11 +369,7 @@ describe('browsing', () => {
         </VNextShellProvider>
       </VNextRoot>,
     )
-    // The window really is empty here, and the sentence is about the
-    // competition rather than about a control the player pressed.
-    expect(
-      within(empty.container).getByText(/no matches in this window/i),
-    ).toBeTruthy()
+    expect(within(empty.container).getByText(/no matches in this window/i)).toBeTruthy()
     expect(
       empty.container.querySelector('[data-vnext-matches-empty="window"]'),
     ).toBeTruthy()
@@ -478,8 +525,10 @@ describe('the Match Centre', () => {
 
     expect(container.textContent).toContain('Live')
     expect(container.textContent).not.toMatch(/\d+['′]/)
-    // The freshness a surface may report is the SERVER's observation instant.
-    expect(container.textContent).toContain('observed at')
+    // The freshness a surface may report is the SERVER's observation instant,
+    // formatted by the mapper in the viewer's own zone.
+    expect(container.textContent).toContain('provider last reported at')
+    expect(container.textContent).toContain('Provisional score')
   })
 
   it('draws no live affordance and no score in the hero of a postponed match', () => {

@@ -25,8 +25,11 @@ import { expect, test } from '@playwright/test'
  *   6. THE LIVE MINUTE IS NEVER INVENTED. A live row with no provider clock
  *      must contain no minute-shaped text — measured on the rendered page,
  *      after the entrance, with a real clock running.
- *   7. OPENING A FIXTURE REACHES THE CORRECT CANONICAL MATCH CENTRE, and back
- *      returns to the browsing context it came from.
+ *   7. PRESSING A FIXTURE HANDS THE HOST THAT ROW'S CANONICAL ID — observed
+ *      from the story's own host, by click and by keyboard. Where the host then
+ *      SENDS the player is the host's business and is not a claim this suite
+ *      can make: Storybook has no router. Restoring a prior browsing context is
+ *      `initialView`, and `tests/vnext/matches.test.tsx` owns it.
  *   8. THE ONE-COMPETITION PLAYER SEES NO CATALOGUE, anywhere on the page.
  *   9. COMBINED MODE NAMES THE COMPETITION ON EVERY FIXTURE.
  *
@@ -89,6 +92,8 @@ const CENTRE_WORLDS = [
   { story: 'centre-live-no-minute-375', label: 'live with NO minute at 375', width: 375 },
   { story: 'centre-live-no-minute-1440', label: 'live with NO minute at 1440', width: 1440 },
   { story: 'centre-half-time-1440', label: 'half-time at 1440', width: 1440 },
+  { story: 'centre-no-score-375', label: 'live with NO score at 375', width: 375 },
+  { story: 'centre-no-score-1440', label: 'live with NO score at 1440', width: 1440 },
   { story: 'centre-full-time-375', label: 'full time at 375', width: 375 },
   { story: 'centre-full-time-1440', label: 'full time at 1440', width: 1440 },
   { story: 'centre-awaiting-1440', label: 'awaiting a result at 1440', width: 1440 },
@@ -439,6 +444,17 @@ test.describe('the live minute is never invented', () => {
     expect(postponed ?? '').not.toMatch(/\d+['′]/)
   })
 
+  test('a live match with no score claims no score', async ({ page }) => {
+    await open(page, 'centre-no-score-1440')
+    const reading = await read(page)
+
+    expect(reading.pageText).toContain('Live')
+    expect(reading.pageText).toContain('No score reported yet')
+    // The claim that must not be made: there is no provisional score to observe.
+    expect(reading.pageText).not.toContain('Provisional score ·')
+    expect(reading.pageText).not.toMatch(/\d+['′]/)
+  })
+
   test('a finished match offers no live affordance', async ({ page }) => {
     await open(page, 'centre-full-time-1440')
     const reading = await read(page)
@@ -560,30 +576,40 @@ test.describe('filtering', () => {
  * ========================================================================== */
 
 test.describe('opening a fixture', () => {
-  test('a row is one target and reaches its canonical id', async ({ page }) => {
+  test('pressing a row hands the host that row’s canonical id', async ({ page }) => {
     await open(page, 'upcoming-1440')
 
     // The whole row is ONE button. A row with a crest link, a name link and a
     // "match centre" link is three tab stops to reach one destination.
-    const row = page.locator('[data-vnext-match-row="fixture-upc-1"]')
+    const row = page.locator('[data-vnext-match-row="fixture-upc-2"]')
     await expect(row).toHaveCount(1)
     await expect(row).toHaveJSProperty('tagName', 'BUTTON')
 
-    const intent = await page.evaluate(() => {
-      return new Promise<string | null>((resolve) => {
-        const node = document.querySelector(
-          '[data-vnext-match-row="fixture-upc-1"]',
-        ) as HTMLElement | null
-        if (!node) {
-          resolve(null)
-          return
-        }
-        // The id the row carries IS the canonical fixture id the host is handed
-        // — §29, and there is nothing else on the element to hand over.
-        resolve(node.getAttribute('data-vnext-match-row'))
-      })
-    })
-    expect(intent).toBe('fixture-upc-1')
+    const host = page.locator('[data-vnext-matches-host]')
+    await expect(host).toHaveAttribute('data-vnext-last-intent', '')
+
+    await row.click()
+
+    // WHAT ACTUALLY CAME OUT OF THE PAGE, observed from the host — not the id
+    // read back off the element the test selected by that id, which is what
+    // this assertion used to be and could not fail. The canonical fixture id
+    // is the ONLY thing that crosses the boundary: not the clubs, not the
+    // date, not a position in a list.
+    await expect(host).toHaveAttribute('data-vnext-last-intent', 'openMatch:fixture-upc-2')
+  })
+
+  test('a keyboard press opens the same fixture as a click', async ({ page }) => {
+    await open(page, 'upcoming-1440')
+
+    const row = page.locator('[data-vnext-match-row="fixture-upc-3"]')
+    await row.focus()
+    await expect(row).toBeFocused()
+    await page.keyboard.press('Enter')
+
+    await expect(page.locator('[data-vnext-matches-host]')).toHaveAttribute(
+      'data-vnext-last-intent',
+      'openMatch:fixture-upc-3',
+    )
   })
 
   test('every rendered row carries a canonical id', async ({ page }) => {

@@ -10,7 +10,8 @@ guard or alters Netlify behaviour. **No backend change of any kind is implied.**
 Deck architecture, which is settled and is not reopened here.
 **Last verified:** 2026-08-18, against `src/vnext/`, `src/services/supabase/` and
 `supabase/migrations/` at the commit this document was written on, and re-verified
-after reconciling with `origin/main` at `04ebee6` (contract 198).
+after reconciling with `origin/main` at `3751dc1` (repository 198, development
+hosted 198).
 
 ---
 
@@ -82,7 +83,7 @@ promise.
 | **Retained** | Yes — as a **scope inside the Matches destination**. |
 | **Placement** | A two-option control at the top of Matches: *In {competition}* / *Across your N competitions*. |
 | **Never** | A fifth primary destination. Never the landing state. Never a global `/matches` dashboard. |
-| **Offered when** | The player is in more than one competition **and** the host can actually answer a cross-competition calendar. Otherwise the control does not render at all. |
+| **Offered when** | The player is in more than one competition **and** the host can actually answer a cross-competition calendar. Both conditions, not either — `buildMatchesModel` uses `&&` and a test pins it. Otherwise the control does not render at all. |
 
 ### Why it earned its existence
 
@@ -111,31 +112,59 @@ Competition Deck because:
 > **EVERY FIXTURE IN COMBINED SCOPE NAMES ITS COMPETITION.**
 
 The moment a reader cannot tell which competition a match is in, the combined view
-has erased the architecture it is a layer over. It is enforced three ways:
-`MatchCompetitionRef` is **non-optional** on `MatchListItem` (a row without one does
-not compile), `buildMatchesModel` puts the competition first in `contextLabel` in
-combined scope, and both the unit suite and the browser suite check every rendered
-row for a competition name.
+has erased the architecture it is a layer over. It is enforced four ways:
+
+1. `MatchCompetitionRef` is **non-optional** on `MatchListItem` — a row without one
+   does not compile;
+2. `buildMatchesModel` puts the competition first in `contextLabel` in combined
+   scope;
+3. the competition travels into `accessibleSummary`, because **everything visible
+   on a row is `aria-hidden`** so that the row announces as one sentence rather
+   than as a pile of nodes. Checking the visible text alone proved nothing about
+   what a screen-reader user receives, and four rows spanning three competitions
+   announced identically;
+4. **a fixture whose competition cannot be resolved is DROPPED, and the drop is
+   reported.** Falling back to the active competition was the worst available
+   answer: the row would not fail to name a competition, it would confidently name
+   the **wrong** one, in that competition's colours, and every "names its
+   competition" check would still pass.
+
+The same reasoning applies to the stage, which was invisible to assistive
+technology in every scope for the same reason. It is in the sentence now, on both
+surfaces — `buildMatchCentreModel` passes its own round label so that "a fixture
+describes itself identically whether it was reached from the calendar or from a
+link" is true of the sentence as well as of the state.
 
 ### What is not built yet, and exactly why
 
 `MatchesSource.combined` is `null` on every connected path today, and that is a
 **recorded backend position rather than a design decision**:
 
-- contract 197 is one of **eight migrations pending on hosted development**
-  (`NOW.md` at the reconciled head: repository 198, development hosted 190);
-- it is therefore **absent from `src/services/supabase/database.types.ts`**, which
-  is regenerated from the hosted schema.
+- contract 197 is **applied to hosted development** — `NOW.md` at the reconciled
+  head reads repository 198, development hosted 198, no pending migrations, so the
+  RPC genuinely exists on the database this lane talks to;
+- but it is **still absent from `src/services/supabase/database.types.ts`**, which
+  is generated from the hosted schema and has not been regenerated since contracts
+  191–198 landed.
 
 Consuming it today would need either an untyped RPC call or a cast, and both would
-be this lane asserting a capability the running database does not have — the same
+be this lane reaching past the types that describe the database — the same
 trade Stage 7.6 refused for the shell's attention layer. The **type exists**
 (`MatchesCombinedSource`, shaped for contract 197 exactly), the **presentation is
 finished**, and the deterministic `combinedTonight` world is the design. The day 197
 is applied and the types are regenerated, this is a source change and not a redesign.
 
-**Minimum contract to close it:** apply `20260818020000_my_football_calendar.sql` to
-hosted development and run `npm run generate:types`. No new server work.
+**Minimum contract to close it: `npm run generate:types`. No server work at all —
+the read exists and is applied.**
+
+**Why that is not done here.** Regenerating the types rewrites a single generated
+file to reflect **every** contract from 191 to 198 — season player identity, rank
+history, the cup bracket read, tie eligibility, penalty-number actions, consequence
+actions, the calendar and the knockout reservation. That is a repository-wide
+change with a repository-wide blast radius, and burying it inside a Matches feature
+branch would make this PR's diff dishonest about what it touches. It belongs to a
+change of its own — and Stage 9 needs the same regeneration for the player-identity
+contracts, so it is the natural first move there rather than a Stage 8 afterthought.
 
 ## 5. The match-state model
 
@@ -204,9 +233,24 @@ and asserts the clockless live row contains **no minute-shaped text** while stil
 saying "Live".
 
 **Freshness** is the **server's** `observed_at`, never a component's mount time and
-never a model's build time. The Match Centre says "observed at 15:41", which is
-checkable; it never says "34 seconds ago", which would need a clock this lane does
-not have.
+never a model's build time. The Match Centre says "provider last reported at
+15:41", which is checkable; it never says "34 seconds ago", which would need a
+clock this lane does not have.
+
+Two things that line must get right, both learned the hard way:
+
+- **it is formatted by the MAPPER, in the viewer's own zone.** A component
+  formatting the instant itself has to choose a zone, and a hard-coded one meant an
+  Auckland reader saw a kickoff on one clock and an observation on another —
+  against `src/shared/time/kickoff.ts`, which says in terms that *"Both rules are
+  defensible; having two of them in one product is not."* `MatchObservation`
+  carries `observedAtLabel` and no component formats an instant.
+- **it does not claim a score that does not exist.** A provider reporting a match
+  in play before a goal has a state and no numbers. The page said "Provisional
+  score observed at 15:41" there, directly beneath a hero printing the *kickoff
+  time* because there was no score to print. It says "No score reported yet ·
+  provider last reported at 15:41" now, and the `liveWithoutScore` world keeps it
+  true.
 
 ## 8. Date versus matchweek — the browsing hierarchy
 
@@ -246,7 +290,7 @@ order); two columns at ≥1120px, with the football and the player's own side in
 | --- | --- | --- | --- |
 | 1 | identity, clubs, kickoff, state, score, stage, competition | **REAL** | contract 148 |
 | 2 | recent form (both sides) | **REAL** | contract 141 `get_season_club_form` |
-| 2 | league table window | **REAL** | contract 160 `get_competition_table` |
+| 2 | league table window | **REAL** | contract 160 `get_competition_table` — **rendered only where at least one of the two clubs can be located in it.** Falling back to the top of the table drew five rows containing neither club under a caption reading "table around {home} and {away}": screen-reader-only text asserting a relationship that was not there. |
 | 2 | this season's meetings | **REAL** | contract 141 `get_season_club_head_to_head` |
 | 3 | event timeline | **DEFERRED** | no canonical event source exists |
 | 3 | lineups | **DEFERRED** | no lineup source exists |
@@ -257,7 +301,11 @@ order); two columns at ≥1120px, with the football and the player's own side in
 | 3 | referee | **DEFERRED** | no official is stored |
 
 `matchCentreModules(model)` is the **single** answer to what renders, so no section
-decides for itself and **no empty card can appear**. The `coreOnly` world is the
+decides for itself and **no empty card can appear**. `unavailable` reports what
+actually **rendered** rather than what was read — a table that answered but held
+neither club, and a form read that carried only one of the two clubs, are both
+absences to a reader, and a one-sided form miss used to render one real run beside
+"No settled matches yet" while saying nothing. The `coreOnly` world is the
 review surface for the floor: two clubs, a kickoff and a stage, with every optional
 module **absent rather than empty** — no heading over nothing, no zeroed possession
 bar, no "coming soon".
@@ -305,7 +353,7 @@ as contract 139. **Exact consumer:** `MatchesSource`, a new nullable field mappe
 
 | # | Gap | Exact consumer | Current read | Missing server truth | Minimum contract |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Cross-competition calendar not reachable** | `MatchesSource.combined` | contract 197 exists in the repo | it is pending on hosted development, so it is absent from the generated types | apply `20260818020000_my_football_calendar.sql` to development and run `npm run generate:types`. **No new server work.** |
+| 1 | **Cross-competition calendar not reachable** | `MatchesSource.combined` | contract 197 is **applied to hosted development** (198, no pending migrations) | the generated types have not been regenerated since 191–198 landed, so the RPC does not typecheck | `npm run generate:types`, in a change of its own. **No server work.** |
 | 2 | **Per-window prediction status** | `MatchListItem.prediction` | `get_season_matchweek_card`, one matchweek | prediction state across a date window | see §10 |
 | 3 | **Round kind is not projected** | `MatchStageRef.kind` | contracts 139 and 148 send `{id, ordinal, label}` | `competition_rounds.kind` (`league_matchweek` / `group_matchday` / `knockout_round`) genuinely exists in the schema and is not in either payload | add `'kind', round.kind` to both round objects. One line each. |
 | 4 | **No live clock** | `MatchObservation.clock` | contract 135's live projection | minute, period, added time | a provider ingestion decision, not a frontend one. **Out of Stage 8's scope by §41.** |

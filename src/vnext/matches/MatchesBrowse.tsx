@@ -88,7 +88,11 @@ export function MatchesBrowse({ model, filter, onFilter, onScope }: MatchesBrows
               key={option}
               type="button"
               className={styles.filter}
-              aria-pressed={filter === option}
+              // A TAB THAT HAS GONE INERT IS NOT THE CHOSEN ONE. A model rebuilt
+              // while `Live` was selected can take that count to zero, and a
+              // control that is both `disabled` and `aria-pressed="true"`
+              // announces as the current choice while refusing to be one.
+              aria-pressed={!empty && filter === option}
               // A tab with nothing behind it is inert rather than absent, so the
               // control row does not change shape while the player is using it.
               disabled={empty}

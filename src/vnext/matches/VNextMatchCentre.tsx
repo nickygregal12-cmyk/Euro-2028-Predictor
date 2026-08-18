@@ -328,12 +328,14 @@ function FormSide({ side }: { readonly side: MatchCentreSide }) {
  * platform, so this block carries the kickoff, the stage and — for a live or
  * recently-observed match — WHEN THE PROVIDER LAST REPORTED. That last one is
  * the freshness contract: the instant comes from the server's own observation
- * record and never from when this component rendered.
+ * record, never from when this component rendered, and it is FORMATTED BY THE
+ * MAPPER in the viewer's own zone so this page cannot show a kickoff on one
+ * clock and an observation on another.
  */
 function MatchWhen({ model }: { readonly model: MatchCentreModel }) {
-  const observed =
+  const observation =
     model.state.kind === 'live' || model.state.kind === 'awaitingResult'
-      ? model.state.observation.observedAt
+      ? model.state.observation
       : null
 
   const note =
@@ -365,9 +367,21 @@ function MatchWhen({ model }: { readonly model: MatchCentreModel }) {
           ? [when ? `Was due ${when}` : null, model.stage.label].filter(Boolean).join(' · ')
           : [model.dayLabel, model.kickoffLabel, model.stage.label].filter(Boolean).join(' · ')}
       </p>
-      {observed ? (
+      {/* IT SAYS WHAT THE PROVIDER ACTUALLY SENT.
+          A provider reporting a match in play before a goal has a state and no
+          numbers — real information, and `score: null` is how the read carries
+          it. Announcing "provisional score observed at 15:41" there would claim
+          a score that does not exist, directly under a hero that is printing
+          the KICKOFF TIME because there is nothing else to print. Two different
+          sentences, because they are two different facts. */}
+      {observation ? (
         <p className={`${text.micro} ${styles.whenLine}`}>
-          Provisional score observed at {timeOf(observed)}
+          {observation.score === null
+            ? 'No score reported yet'
+            : 'Provisional score'}
+          {observation.observedAtLabel === null
+            ? null
+            : ` · provider last reported at ${observation.observedAtLabel}`}
         </p>
       ) : null}
       {note ? <p className={`${text.micro} ${styles.whenNote}`}>{note}</p> : null}
@@ -419,20 +433,3 @@ function ordinalSuffix(value: number): string {
   }
 }
 
-/**
- * The observation instant as a time of day.
- *
- * It formats an instant the SERVER supplied and reads no clock of its own — the
- * difference between "observed at 15:41", which is checkable, and "34 seconds
- * ago", which would need a clock this lane is not allowed to have.
- */
-function timeOf(iso: string): string {
-  const parsed = new Date(iso)
-  if (Number.isNaN(parsed.getTime())) return iso
-  return new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Europe/London',
-  }).format(parsed)
-}

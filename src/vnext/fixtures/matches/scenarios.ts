@@ -117,6 +117,26 @@ const semiFinalSecondLeg: MatchStageRef = {
    STATE BUILDERS — the only place a world states a match state
    ========================================================================== */
 
+/**
+ * An observation instant as a time of day.
+ *
+ * PINNED, WHERE THE MAPPER'S IS THE VIEWER'S. The connected mapper resolves the
+ * reader's own zone, which is the product rule; a WORLD may not, or the same
+ * story would be a different picture in two time zones and a screenshot could
+ * not be compared with yesterday's. That difference is deliberate and is the
+ * only one: the field, its meaning and its position are identical.
+ */
+const observedFormatter = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: 'Europe/London',
+})
+
+function observedTime(iso: string): string {
+  return observedFormatter.format(new Date(iso))
+}
+
 const scheduled = (kickoff: string | null): MatchState => ({ kind: 'scheduled', kickoff })
 
 /** Live, WITH a minute — the state a richer provider would allow. */
@@ -131,6 +151,7 @@ const liveWithMinute = (
   kickoff,
   observation: {
     observedAt,
+    observedAtLabel: observedTime(observedAt),
     score: { home, away },
     clock: { label: `${minute}'`, minute, addedMinutes: null },
     phaseLabel: 'Live',
@@ -154,7 +175,13 @@ const liveWithoutMinute = (
 ): MatchState => ({
   kind: 'live',
   kickoff,
-  observation: { observedAt, score, clock: null, phaseLabel: 'Live' },
+  observation: {
+    observedAt,
+    observedAtLabel: observedTime(observedAt),
+    score,
+    clock: null,
+    phaseLabel: 'Live',
+  },
 })
 
 const halfTime = (kickoff: string, home: number, away: number, observedAt: string): MatchState => ({
@@ -162,6 +189,7 @@ const halfTime = (kickoff: string, home: number, away: number, observedAt: strin
   kickoff,
   observation: {
     observedAt,
+    observedAtLabel: observedTime(observedAt),
     score: { home, away },
     clock: { label: 'HT', minute: 45, addedMinutes: null },
     phaseLabel: 'Half-time',
@@ -206,34 +234,43 @@ type RowInput = {
  * is that a component assembling it from three spans is exactly how a score
  * ends up announced as two loose numbers.
  */
-function summarise(input: RowInput): string {
+function summarise(input: RowInput, context: string | null): string {
   const { home, away, state } = input
+  // WORD FOR WORD THE MAPPER'S SENTENCE, including the trailing context clause.
+  // A world whose wording drifts from the connected one means the sentence
+  // under review in Storybook is not the sentence that ships — the same "one
+  // state machine, not two" argument this stage makes about state, applied to
+  // the one string a screen-reader user actually receives.
+  const where = context === null ? '' : `, ${context}`
   switch (state.kind) {
     case 'finished':
-      return `${home.name} ${state.result.home}, ${away.name} ${state.result.away}, full time`
+      return `${home.name} ${state.result.home}, ${away.name} ${state.result.away}, full time${where}`
     case 'live':
     case 'awaitingResult': {
       const score = state.observation.score
       const clock = state.observation.clock
-      const where = clock ? `${state.observation.phaseLabel} ${clock.label}` : state.observation.phaseLabel
+      const phase = clock
+        ? `${state.observation.phaseLabel.toLowerCase()}, ${clock.label}`
+        : state.observation.phaseLabel.toLowerCase()
       return score
-        ? `${home.name} ${score.home}, ${away.name} ${score.away}, ${where.toLowerCase()}, provisional score`
-        : `${home.name} against ${away.name}, ${where.toLowerCase()}, no score reported`
+        ? `${home.name} ${score.home}, ${away.name} ${score.away}, ${phase}, provisional score${where}`
+        : `${home.name} against ${away.name}, ${phase}, no score reported${where}`
     }
     case 'postponed':
-      return `${home.name} against ${away.name}, postponed`
+      return `${home.name} against ${away.name}, postponed${where}`
     case 'abandoned':
-      return `${home.name} against ${away.name}, abandoned`
+      return `${home.name} against ${away.name}, abandoned${where}`
     case 'void':
-      return `${home.name} against ${away.name}, void`
+      return `${home.name} against ${away.name}, void${where}`
     default:
       return input.kickoffLabel
-        ? `${home.name} against ${away.name}, kick-off ${input.kickoffLabel}`
-        : `${home.name} against ${away.name}, kick-off to be confirmed`
+        ? `${home.name} against ${away.name}, kick-off ${input.kickoffLabel}${where}`
+        : `${home.name} against ${away.name}, kick-off to be confirmed${where}`
   }
 }
 
 function row(input: RowInput): MatchListItem {
+  const contextLabel = input.contextLabel ?? null
   return {
     id: input.id,
     competition: input.competition ?? premiership,
@@ -242,9 +279,11 @@ function row(input: RowInput): MatchListItem {
     away: input.away,
     state: input.state,
     kickoffLabel: input.kickoffLabel ?? null,
-    contextLabel: input.contextLabel ?? null,
+    contextLabel,
     prediction: input.prediction ?? null,
-    accessibleSummary: summarise(input),
+    // The context travels into the sentence, exactly as the mapper does it:
+    // everything visible on a row is `aria-hidden`, so this IS the row's name.
+    accessibleSummary: summarise(input, contextLabel),
   }
 }
 
@@ -849,7 +888,7 @@ const combinedTonight: MatchesModel = model({
           '2027-08-21T15:50:00.000Z',
         ),
         kickoffLabel: '15:00',
-        contextLabel: 'Caledonian Premiership',
+        contextLabel: 'Caledonian Premiership · Matchweek 4',
       }),
       row({
         id: 'fixture-comb-2',
@@ -880,7 +919,7 @@ const combinedTonight: MatchesModel = model({
         away: T.balmorral,
         state: scheduled('2027-08-22T14:00:00.000Z'),
         kickoffLabel: '15:00',
-        contextLabel: 'Caledonian Premiership',
+        contextLabel: 'Caledonian Premiership · Matchweek 4',
       }),
     ]),
   ],

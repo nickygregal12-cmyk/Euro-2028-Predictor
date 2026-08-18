@@ -119,6 +119,21 @@ describe('the live-data rule', () => {
     expect(state.observation.phaseLabel).toBe('Live')
   })
 
+  it('formats the observation instant itself, so no component picks a zone', () => {
+    const state = matchStateOf(
+      fixture({
+        live: { kind: 'in_play', home: 1, away: 0, observedAt: '2027-08-21T15:41:00.000Z' },
+      }),
+    )
+
+    if (state.kind !== 'live') throw new Error('unreachable')
+    // A component formatting this itself has to choose a zone, and the one it
+    // chose was hard-coded — so a viewer outside that zone saw a kickoff on one
+    // clock and an observation on another. Labels are the mapper's.
+    expect(state.observation.observedAtLabel).not.toBeNull()
+    expect(state.observation.observedAtLabel).toMatch(/^\d{2}:\d{2}$/)
+  })
+
   it('carries the provider’s own observation instant, and never a mount time', () => {
     const state = matchStateOf(
       fixture({
@@ -222,6 +237,23 @@ describe('provider truth and platform truth', () => {
     expect(state.kind).toBe(kind)
     // A postponed fixture that a feed once reported in play must not keep the
     // numbers — that is how a postponed match ends up drawn with a live score.
+    expect(matchScoreClaim(state)).toBeNull()
+  })
+
+  it('does not let a provider refine a fixture the platform already called played', () => {
+    // The schema makes a played fixture with no result impossible, so this is a
+    // payload contradicting its own constraint. It must not become `live` on a
+    // feed's say-so and must not carry a provisional score for a match the
+    // PLATFORM has already ruled on.
+    const state = matchStateOf(
+      fixture({
+        status: 'played',
+        result: null,
+        live: { kind: 'in_play', home: 1, away: 0, observedAt: NOW },
+      }),
+    )
+
+    expect(state.kind).toBe('scheduled')
     expect(matchScoreClaim(state)).toBeNull()
   })
 
@@ -370,7 +402,7 @@ describe('the accessible summary', () => {
 
     // §31's requirement, and its counter-example is "2 1 Porthaven Glenmore".
     expect(first(first(model.days).matches).accessibleSummary).toBe(
-      'Porthaven City 2, Glenmore Athletic 1, full time',
+      'Porthaven City 2, Glenmore Athletic 1, full time, Matchweek 4',
     )
   })
 
@@ -384,15 +416,46 @@ describe('the accessible summary', () => {
     )
 
     expect(first(first(model.days).matches).accessibleSummary).toBe(
-      'Porthaven City 1, Glenmore Athletic 0, live, provisional score',
+      'Porthaven City 1, Glenmore Athletic 0, live, provisional score, Matchweek 4',
     )
+  })
+
+  it('carries the competition and the stage into the sentence a row announces', () => {
+    const model = buildMatchesModel(
+      source({
+        playerCompetitionCount: 2,
+        combined: {
+          competitions: [
+            { id: 'c-2', name: 'Northern Isles Champions Trophy', seasonLabel: '2027/28' },
+          ],
+          fixtures: [{ ...fixture({ id: 'a' }), competitionId: 'c-2' }],
+        },
+      }),
+    )
+
+    // EVERYTHING VISIBLE ON A ROW IS `aria-hidden`, so this sentence IS the
+    // row's accessible name. Without the competition in it, four combined rows
+    // spanning three competitions announced identically.
+    const announced = first(first(model.days).matches).accessibleSummary
+    expect(announced).toContain('Porthaven City against Glenmore Athletic')
+    // ASSERTED AS A SUFFIX RATHER THAN A WHOLE STRING, because the kickoff
+    // label resolves in the reader's own zone and this assertion is about the
+    // context clause, not about which zone the test happens to run in.
+    expect(announced).toContain('Northern Isles Champions Trophy · Matchweek 4')
+    expect(announced.endsWith('Northern Isles Champions Trophy · Matchweek 4')).toBe(true)
+  })
+
+  it('names the stage in the sentence even in competition scope', () => {
+    const model = buildMatchesModel(source())
+
+    expect(first(first(model.days).matches).accessibleSummary).toContain('Matchweek 4')
   })
 
   it('names a postponement rather than describing a kick-off that will not happen', () => {
     const model = buildMatchesModel(source({ fixtures: [fixture({ status: 'postponed' })] }))
 
     expect(first(first(model.days).matches).accessibleSummary).toBe(
-      'Porthaven City against Glenmore Athletic, postponed',
+      'Porthaven City against Glenmore Athletic, postponed, Matchweek 4',
     )
   })
 })
@@ -411,6 +474,48 @@ describe('the combined scope', () => {
     expect(model.scope.active).toBe('competition')
   })
 
+  it('offers nothing where the host knows the count but cannot answer a calendar', () => {
+    // BOTH CONDITIONS, NOT EITHER. This was an `||`, so a host that knew the
+    // player had three competitions got a rendered "Across your 3 competitions"
+    // button whose intent nothing could act on — and every connected path sets
+    // `combined: null`, so that was every host that supplied a count.
+    const model = buildMatchesModel(source({ playerCompetitionCount: 3, combined: null }))
+
+    expect(model.scope.combinedAvailable).toBe(false)
+  })
+
+  it('drops a combined fixture it cannot attribute, rather than naming the wrong competition', () => {
+    const model = buildMatchesModel(
+      source({
+        playerCompetitionCount: 2,
+        competition: {
+          tournamentId: 'c-1',
+          name: 'Caledonian Premiership',
+          seasonLabel: '2027/28',
+          colours: { primary: '#0B2B5B', accent: '#4FA3FF' },
+        },
+        combined: {
+          competitions: [{ id: 'c-1', name: 'Caledonian Premiership', seasonLabel: '2027/28' }],
+          fixtures: [
+            { ...fixture({ id: 'known' }), competitionId: 'c-1' },
+            { ...fixture({ id: 'stranger' }), competitionId: 'c-9-not-in-list' },
+          ],
+        },
+      }),
+    )
+
+    // THE WORST AVAILABLE FALLBACK WAS THE ACTIVE COMPETITION. The row would
+    // not have failed to name a competition — it would confidently have named
+    // the WRONG one, in that competition's colours, and every "names its
+    // competition" check would still have passed.
+    const ids = model.days.flatMap((day) => day.matches).map((match) => match.id)
+    expect(ids).toEqual(['known'])
+    // And the drop is REPORTED. A silent one reads as "we covered everything".
+    expect(model.unavailable).toEqual([
+      '1 match from a competition this page could not name',
+    ])
+  })
+
   it('offers no scope control where the host cannot say how many there are', () => {
     // `null` is "this host cannot answer", and it is treated exactly as one. A
     // control offered on a guess promises a mode the application may not enter.
@@ -418,9 +523,18 @@ describe('the combined scope', () => {
       .toBe(false)
   })
 
-  it('offers it once the player is in more than one competition', () => {
-    expect(buildMatchesModel(source({ playerCompetitionCount: 3 })).scope.combinedAvailable)
-      .toBe(true)
+  it('offers it once the player is in more than one competition AND a calendar exists', () => {
+    const model = buildMatchesModel(
+      source({
+        playerCompetitionCount: 3,
+        combined: {
+          competitions: [{ id: 'c-1', name: 'Caledonian Premiership', seasonLabel: '2027/28' }],
+          fixtures: [{ ...fixture({ id: 'a' }), competitionId: 'c-1' }],
+        },
+      }),
+    )
+
+    expect(model.scope.combinedAvailable).toBe(true)
   })
 
   it('names the competition on every fixture in combined scope', () => {
@@ -700,6 +814,32 @@ describe('the Match Centre mapping', () => {
     // Distinct from `null`, which is a read that did not respond.
     expect(model.headToHead).not.toBeNull()
     expect(model.headToHead?.meetings).toEqual([])
+  })
+
+  it('reports missing form when only ONE side is missing', () => {
+    const oneSided: SeasonClubFormTable = {
+      ...formTable(),
+      // The away club is absent from the form answer — a rename, a reference
+      // join difference, or a club outside the read's window.
+      clubs: formTable().clubs.slice(0, 1),
+    }
+    const model = buildMatchCentreModel(centreSource({ clubForm: oneSided }))
+
+    // The module would otherwise render one real run beside "No settled matches
+    // yet" and say nothing — a reader concluding the club has not played when
+    // the truth is that we could not read it.
+    expect(model.unavailable).toContain('recent form')
+  })
+
+  it('renders no table window when neither club can be found in the table', () => {
+    // No form read, so no team ids, so no way to locate either club. The old
+    // fallback drew the top of the table under a caption reading "table around
+    // {home} and {away}" — screen-reader-only text asserting a relationship
+    // that is not there.
+    const model = buildMatchCentreModel(centreSource({ clubForm: null, table: table() }))
+
+    expect(model.table).toBeNull()
+    expect(model.unavailable).toContain('the table')
   })
 
   it('names what it could not read, and never apologises for what the platform lacks', () => {

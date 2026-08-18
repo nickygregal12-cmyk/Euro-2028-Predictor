@@ -27,6 +27,15 @@ import type { MatchesSource } from './matchesSource'
  *
  * ============================ THE ONE THAT MATTERS ========================
  *
+ * ONE AMBIENT INPUT, NAMED. "Pure" here means no network, no storage, no clock
+ * and no React — it does NOT mean environment-independent. `formatKickoffTime`,
+ * `formatMatchDay` and `matchDayKey` are called without a zone, so they resolve
+ * the VIEWER's, which is the repository's timezone authority since the owner's
+ * 10 August 2026 direction. The consequence is real and is the intended one:
+ * the same source produces different day groupings on two devices, because a
+ * 22:45 kickoff genuinely falls on different days for different readers. It is
+ * still deterministic for a given zone, which is what the tests pin.
+ *
  * NO CLOCK. Not `Date.now()`, not `new Date()`, not a comparison of a kickoff
  * against anything. Every state below is read from `fixture.status` and
  * `fixture.live.kind` — two fields the SERVER decided — and the only instants
@@ -34,7 +43,7 @@ import type { MatchesSource } from './matchesSource'
  *
  * That is what makes "the live minute is never browser-inferred" testable
  * rather than promised: `tests/vnext/matchesIntegration.test.ts` maps a fixture
- * that kicked off three hours ago with no live block and requires the answer to
+ * that kicked off four hours ago with no live block and requires the answer to
  * be `scheduled` with no observation, which is exactly what a clock-reading
  * mapper would get wrong.
  *
@@ -58,10 +67,10 @@ export function buildMatchesModel(source: MatchesSource): MatchesModel {
   const scope: MatchesScope = source.combined === null ? 'competition' : 'combined'
   const competition = competitionRefOf(source)
 
-  const items =
-    source.combined === null
-      ? source.fixtures.map((fixture) => itemOf(fixture, competition, false))
-      : combinedItems(source)
+  const combined = source.combined === null ? null : combinedItems(source)
+  const items = combined === null
+    ? source.fixtures.map((fixture) => itemOf(fixture, competition, false))
+    : combined.items
 
   const days = groupByDay(items)
 
@@ -73,18 +82,28 @@ export function buildMatchesModel(source: MatchesSource): MatchesModel {
       // OFFERED ONLY WHERE THE APPLICATION COULD ACTUALLY ENTER IT. A host that
       // cannot answer a cross-competition calendar gets no control rather than
       // one that refuses — the same rule the shell applies to Explore.
+      // BOTH CONDITIONS, NOT EITHER — the authority says "and", and the
+      // difference is a control that refuses. A host that knows the player has
+      // three competitions but cannot answer a cross-competition calendar would,
+      // under an `||`, render "Across your 3 competitions" and emit an intent
+      // nothing can act on. That is the same defect `matchCentreSource.ts`
+      // names for the Match Predictor link: a control that exists and refuses
+      // teaches a player the product is broken.
       combinedAvailable:
-        source.combined !== null ||
-        (source.playerCompetitionCount !== null && source.playerCompetitionCount > 1),
+        source.combined !== null &&
+        source.playerCompetitionCount !== null &&
+        source.playerCompetitionCount > 1,
       competitionCount: source.playerCompetitionCount ?? 1,
     },
     windowLabel: windowLabelOf(source.window),
     days,
     stages: stagesOf(items),
     counts: countsOf(items),
-    // Absences are named by the acquisition hook, which is the only layer that
-    // knows which read did not answer.
-    unavailable: [],
+    // NAMED RATHER THAN SILENTLY DROPPED. Today the only thing the mapper can
+    // discover is a combined fixture it could not attribute to a competition;
+    // which READS failed is the acquisition hook's knowledge and reaches the
+    // model through the screen.
+    unavailable: combined?.unavailable ?? [],
   }
 }
 
@@ -114,11 +133,17 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
       return { kind: 'void', kickoff, note: null }
 
     case 'played':
-      // The schema guarantees a score exactly when the status is `played`, so
-      // the null branch below is a payload contradicting its own constraint.
-      // It falls back to the provider's view rather than inventing a result.
+      // The schema guarantees a score exactly when the status is `played`
+      // (`season_fixtures_scores_match_status`), so a null result here is a
+      // payload contradicting its own constraint.
+      //
+      // IT FALLS BACK TO `scheduled`, NOT TO THE PROVIDER. Refining it would
+      // let a feed decide the state of a fixture the PLATFORM has already
+      // ruled on — the one thing this function exists to prevent — and would
+      // put a provisional score on a match the platform calls played. There is
+      // no state to show, so the honest answer is the one that shows none.
       return fixture.result === null
-        ? providerRefined(kickoff, fixture)
+        ? { kind: 'scheduled', kickoff }
         : {
             kind: 'finished',
             kickoff,
@@ -174,6 +199,9 @@ function observationOf(
 ): MatchObservation {
   return {
     observedAt: live.observedAt,
+    // Formatted HERE, in the viewer's own zone, so no component has to choose
+    // one. See `MatchObservation.observedAtLabel`.
+    observedAtLabel: formatKickoffTime(live.observedAt),
     // A one-sided score is not a scoreline. The read sends both or neither for
     // a reported goal, and a half-pair means the payload disagrees with itself.
     score:
@@ -198,6 +226,12 @@ function itemOf(
   const home = teamOf(fixture.home)
   const away = teamOf(fixture.away)
 
+  // In combined scope the competition LEADS the line, because knowing which
+  // competition a match is in is the condition that mode exists under. In
+  // competition scope the page already says it once and the stage is the
+  // useful half.
+  const contextLabel = nameCompetition ? `${competition.name} · ${stage.label}` : stage.label
+
   return {
     id: fixture.id,
     competition,
@@ -206,22 +240,46 @@ function itemOf(
     away,
     state,
     kickoffLabel,
-    // In combined scope the competition LEADS the line, because knowing which
-    // competition a match is in is the condition that mode exists under. In
-    // competition scope the page already says it once and the stage is the
-    // useful half.
-    contextLabel: nameCompetition ? `${competition.name} · ${stage.label}` : stage.label,
+    contextLabel,
     // See `matchesSource.ts`: no bounded read answers prediction status across a
     // multi-matchweek window, and a badge on some rows reads as "nothing needed"
     // on the rest.
     prediction: null,
-    accessibleSummary: summarise(home.name, away.name, state, kickoffLabel),
+    // THE CONTEXT TRAVELS INTO THE SENTENCE, and that is not a nicety.
+    //
+    // Everything visible on a row is `aria-hidden`, because a row assembled
+    // from separate nodes announces as "Glenmore Athletic2Strathkelvin
+    // United1". So the accessible name IS this sentence — and a sentence
+    // without the competition made the combined mode's binding rule
+    // unenforceable for anyone using a screen reader: four rows spanning three
+    // competitions all announced as "X against Y, kick-off 19:45", with nothing
+    // to tell them apart. The stage was invisible the same way, in every scope.
+    accessibleSummary: summarise(home.name, away.name, state, kickoffLabel, contextLabel),
   }
 }
 
-function combinedItems(source: MatchesSource): readonly MatchListItem[] {
+/**
+ * THE PLAYER'S WHOLE CALENDAR — and an unattributable fixture is DROPPED.
+ *
+ * The mode's binding rule is that every fixture names its competition. A
+ * fixture whose `competitionId` is not in the payload's own competition list
+ * cannot satisfy it, and the tempting fallback — use the ACTIVE competition —
+ * is the worst available answer: the row would not fail to name a competition,
+ * it would confidently name the WRONG one, in that competition's colours, and
+ * every "names its competition" check would still pass because the row does
+ * contain a competition name.
+ *
+ * So it is excluded, and the exclusion is REPORTED. A silent drop reads as "we
+ * covered everything", which is the failure the repository names by hand
+ * elsewhere; a named one lets a reader see that a competition is missing and
+ * lets the backend lane see that the payload's two halves disagree.
+ */
+function combinedItems(source: MatchesSource): {
+  readonly items: readonly MatchListItem[]
+  readonly unavailable: readonly string[]
+} {
   const combined = source.combined
-  if (combined === null) return []
+  if (combined === null) return { items: [], unavailable: [] }
 
   const byId = new Map(
     combined.competitions.map((entry): [string, MatchCompetitionRef] => [
@@ -239,9 +297,26 @@ function combinedItems(source: MatchesSource): readonly MatchListItem[] {
     ]),
   )
 
-  return combined.fixtures.map((fixture) =>
-    itemOf(fixture, byId.get(fixture.competitionId) ?? competitionRefOf(source), true),
-  )
+  const items: MatchListItem[] = []
+  let unattributed = 0
+  for (const fixture of combined.fixtures) {
+    const ref = byId.get(fixture.competitionId)
+    if (ref === undefined) {
+      unattributed += 1
+      continue
+    }
+    items.push(itemOf(fixture, ref, true))
+  }
+
+  return {
+    items,
+    unavailable:
+      unattributed === 0
+        ? []
+        : [
+            `${unattributed} ${unattributed === 1 ? 'match' : 'matches'} from a competition this page could not name`,
+          ],
+  }
 }
 
 /**
@@ -336,10 +411,12 @@ export function summarise(
   away: string,
   state: MatchState,
   kickoffLabel: string | null,
+  context: string | null = null,
 ): string {
+  const where = context === null ? '' : `, ${context}`
   switch (state.kind) {
     case 'finished':
-      return `${home} ${state.result.home}, ${away} ${state.result.away}, full time`
+      return `${home} ${state.result.home}, ${away} ${state.result.away}, full time${where}`
     case 'live':
     case 'awaitingResult': {
       const score = state.observation.score
@@ -347,19 +424,19 @@ export function summarise(
         ? `${state.observation.phaseLabel.toLowerCase()}, ${state.observation.clock.label}`
         : state.observation.phaseLabel.toLowerCase()
       return score === null
-        ? `${home} against ${away}, ${phase}, no score reported`
-        : `${home} ${score.home}, ${away} ${score.away}, ${phase}, provisional score`
+        ? `${home} against ${away}, ${phase}, no score reported${where}`
+        : `${home} ${score.home}, ${away} ${score.away}, ${phase}, provisional score${where}`
     }
     case 'postponed':
-      return `${home} against ${away}, postponed`
+      return `${home} against ${away}, postponed${where}`
     case 'abandoned':
-      return `${home} against ${away}, abandoned`
+      return `${home} against ${away}, abandoned${where}`
     case 'void':
-      return `${home} against ${away}, void`
+      return `${home} against ${away}, void${where}`
     default:
       return kickoffLabel
-        ? `${home} against ${away}, kick-off ${kickoffLabel}`
-        : `${home} against ${away}, kick-off to be confirmed`
+        ? `${home} against ${away}, kick-off ${kickoffLabel}${where}`
+        : `${home} against ${away}, kick-off to be confirmed${where}`
   }
 }
 

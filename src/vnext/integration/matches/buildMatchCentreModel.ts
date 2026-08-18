@@ -96,7 +96,17 @@ export function buildMatchCentreModel(source: MatchCentreSource): MatchCentreMod
     state,
     dayLabel: formatMatchDay(fixture.kickoffAt),
     kickoffLabel,
-    accessibleSummary: summarise(homeTeam.name, awayTeam.name, state, kickoffLabel),
+    // THE SAME SENTENCE THE LIST PRODUCES, stage clause and all. "A fixture
+    // describes itself identically whether it was reached from the calendar or
+    // from a link" is the contract, and it is only true if the context travels
+    // on both paths.
+    accessibleSummary: summarise(
+      homeTeam.name,
+      awayTeam.name,
+      state,
+      kickoffLabel,
+      fixture.round.label,
+    ),
     // See `matchesSource.ts`: no bounded read answers this fixture's prediction
     // status without the whole matchweek card, which this page does not read.
     prediction: null,
@@ -124,7 +134,7 @@ export function buildMatchCentreModel(source: MatchCentreSource): MatchCentreMod
     lineups: null,
 
     links: linksOf(source, competition),
-    unavailable: unavailableOf(source, homeForm, awayForm),
+    unavailable: unavailableOf(source, homeForm, awayForm, table),
   }
 }
 
@@ -188,16 +198,22 @@ function tableOf(
 
   const involved = new Set([homeTeamId, awayTeamId].filter((id): id is string => id !== null))
 
-  // The window around the two clubs. Where neither is identifiable — the form
-  // read did not answer, so there are no team ids to match on — the top of the
-  // table is the honest fallback: it is the competition's own context, and it
-  // claims nothing about these two.
   const indices = table.rows
     .map((row, index) => (involved.has(row.teamId) ? index : -1))
     .filter((index) => index >= 0)
 
-  const first = indices.length > 0 ? Math.min(...indices) : 0
-  const last = indices.length > 0 ? Math.max(...indices) : Math.min(4, table.rows.length - 1)
+  // NEITHER CLUB IS IN THE TABLE, SO THERE IS NO WINDOW TO DRAW.
+  //
+  // This happens when the form read did not answer and there are therefore no
+  // team ids to match on. Falling back to the top of the table looked harmless
+  // and was not: the section renders under a caption reading "table around
+  // {home} and {away}" over five rows containing neither of them and
+  // highlighting nothing — screen-reader-only text asserting a relationship
+  // that is not there. A module appears only where its data exists.
+  if (indices.length === 0) return null
+
+  const first = Math.min(...indices)
+  const last = Math.max(...indices)
 
   // One row of air either side, so a club's neighbours are visible — which is
   // what makes a position mean something — bounded so a mid-table pair against
@@ -296,12 +312,25 @@ function unavailableOf(
   source: MatchCentreSource,
   homeForm: SeasonClubForm | null,
   awayForm: SeasonClubForm | null,
+  table: MatchCentreTable | null,
 ): readonly string[] {
   const missing: string[] = []
-  if (source.clubForm === null || (homeForm === null && awayForm === null)) {
+  // EITHER SIDE MISSING IS A MISSING FORM RUN, and requiring BOTH was the bug.
+  //
+  // `MatchCentreSide.form` is an array with no way to say "unknown", so a club
+  // the form read did not carry and a club that has genuinely played nothing
+  // both arrive as `[]` and both draw "No settled matches yet". When only one
+  // side missed, the module rendered one real run beside that sentence while
+  // `unavailable` said nothing — which is exactly the conclusion this file's
+  // own header forbids: a reader deciding the clubs have not played when the
+  // truth is that we could not read it.
+  if (source.clubForm === null || homeForm === null || awayForm === null) {
     missing.push('recent form')
   }
-  if (source.table === null) missing.push('the table')
+  // IT REPORTS WHAT RENDERED, NOT WHAT WAS READ. A table that answered but in
+  // which neither club could be located produces no window — and to a reader
+  // that is the same absence as a read that failed.
+  if (table === null) missing.push('the table')
   if (source.headToHead === null) missing.push('previous meetings')
   return missing
 }
