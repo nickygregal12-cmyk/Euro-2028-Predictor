@@ -7,11 +7,21 @@ is_paper=true until you deliberately say otherwise — and writes an
 ai.recommendations row for EVERY candidate, including the ones it refused.
 
 Recommendations are deliberately re-evaluated whenever fresher prices arrive,
-even after a paper bet has already been recorded for that prediction/market.
-The original ai.bets advice remains immutable: a later run may publish a fresh
+even after a paper bet has already been recorded for that fixture/market. The
+original ai.bets advice remains immutable: a later run may publish a fresh
 BET/PASS recommendation for Bet Builder, but it never creates a second advised
-bet for the same prediction/market merely because the best venue or outcome
-moved.
+bet for the same fixture/market merely because the best venue or outcome moved.
+
+THE ADVICE IDENTITY IS THE FIXTURE, NOT THE PREDICTION ROW. It was the
+prediction row, and that is not the same thing: ai.predictions is unique on
+(model_id, fixture, horizon), so every retrain mints a NEW prediction for a
+fixture already advised, the guard saw no existing bet for that new id, and the
+lab recorded a second paper bet on the same match. Production carried 226 bets
+over 125 fixture/market pairs by 18 August 2026 — 38 fixtures held two bets on
+the same selection at the same bookmaker — and every one of those repeats
+inflated the bet count, the exposure, the win rate, the ROI and the CLV sample
+by counting one opinion about one match more than once. One fixture, one market,
+one advised paper bet.
 
 The refusals are the point. "Edge exceeds 3%, therefore selection" fires on a
 four-day-old price, on a club with four matches of history, and on a fixture
@@ -60,7 +70,8 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
     Existing paper/advised bets do NOT remove a prediction from this read. A
     fresh price must be allowed to produce a fresh recommendation so Bet Builder
     never has to rely on yesterday's BET decision. `has_existing_bet` travels
-    with the row and is used only to suppress a second ai.bets insert.
+    with the row and is used only to suppress a second ai.bets insert, and it
+    asks about the FIXTURE rather than about this prediction row.
     """
     return query_df(
         """
@@ -96,8 +107,12 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
                p.kickoff_at, p.home_canonical, p.away_canonical,
                p.p_home, p.p_draw, p.p_away,
                p.data_confidence, p.agreement, p.uncertainty,
+               -- Keyed on the FIXTURE, not on p.id. A retrain produces a new
+               -- prediction row for a match that has already been advised, and
+               -- keying this on the prediction id let that new row record a
+               -- second paper bet on the same match.
                exists (select 1 from ai.bets x
-                        where x.prediction_id = p.id and x.market = '1X2')
+                        where x.fixture_id = p.fixture_id and x.market = '1X2')
                  as has_existing_bet,
                a.bookmaker as action_book,
                a.odds_h as action_h, a.odds_d as action_d, a.odds_a as action_a,
@@ -132,7 +147,11 @@ def _float_or_none(value) -> float | None:
 
 
 def _should_record_new_bet(is_bet: bool, has_existing_bet: bool) -> bool:
-    """A fresh recommendation may change; the original advised bet may not."""
+    """A fresh recommendation may change; the original advised bet may not.
+
+    `has_existing_bet` is true when THIS FIXTURE already carries advice on this
+    market, from any prediction row and any model version.
+    """
     return bool(is_bet and not has_existing_bet)
 
 

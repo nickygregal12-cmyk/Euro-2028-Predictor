@@ -110,9 +110,18 @@ def _bootstrap() -> None:
         # `20260812060000_ai_lab_operational_loop.sql`, the file landed at
         # 20260812070000 after a rebase, and the suite silently guarded
         # nothing. A glob cannot go stale when the next contract lands.
+        #
+        # The glob is `*_ai_*`, not `*_ai_lab_*`. The narrower one matched two
+        # of the five AI Lab contracts: 20260813215920_ai_quarantined_evidence_
+        # reads, 20260814005000_ai_actionable_bet_evidence and
+        # 20260818040000_ai_canonical_bet_evidence all name the subsystem
+        # without the word "lab", so contracts 189, 190 and 199 — which are
+        # precisely the three that decide what ai.valid_bets counts as evidence
+        # — were applied to no test database at all. The suite went green on a
+        # schema three contracts behind the one it claims to prove.
         migrations = sorted(
             (Path(__file__).parents[1] / "supabase" / "migrations")
-            .glob("*_ai_lab_*.sql"))
+            .glob("*_ai_*.sql"))
         assert migrations, "no AI Lab migrations found to apply"
         for migration in migrations:
             conn.execute(migration.read_text())
@@ -335,8 +344,22 @@ def test_complete_database_lifecycles(monkeypatch) -> None:
     db.settle_fixtures_from_history()
     assert _run_main(monkeypatch, settle_bets, "--league", "EPL") == 0
     with db.connect() as conn:
-        before = conn.execute("select status from ai.bets where league='EPL'").fetchone()
-        assert before["status"] == "advised"
+        # The result is authoritative, so the OUTCOME settles now. The closing
+        # benchmark has not been published, so the CLV columns stay null rather
+        # than holding the bet unsettled: an unavailable benchmark is a missing
+        # measurement, not an unresolved bet.
+        before = conn.execute(
+            """select b.status, r.settlement_outcome, r.pnl_units, r.clv,
+                      r.clv_benchmark, r.odds_closing
+                 from ai.bets b join ai.bet_results r on r.bet_id = b.id
+                where b.league='EPL'"""
+        ).fetchone()
+        assert before["status"] == "settled"
+        assert before["settlement_outcome"] == "win"
+        assert before["pnl_units"] is not None
+        assert before["clv"] is None
+        assert before["clv_benchmark"] is None
+        assert before["odds_closing"] is None
 
     raw_id = _raw_result("E0", epl_ko.date(), "Arsenal", "Chelsea", 1, 0)
     db.settle_fixtures_from_history()
@@ -347,10 +370,21 @@ def test_complete_database_lifecycles(monkeypatch) -> None:
         assert str(attached["raw_match_id"]) == raw_id
     assert _run_main(monkeypatch, settle_bets, "--league", "EPL") == 0
     with db.connect() as conn:
-        assert conn.execute(
-            """select r.clv from ai.bet_results r join ai.bets b on b.id=r.bet_id
-                 where b.league='EPL'"""
-        ).fetchone()["clv"] is not None
+        # The benchmark has arrived, so the second pass fills the CLV columns
+        # of a row that was already settled — WITHOUT touching the outcome or
+        # the profit that were recorded when the result was known.
+        filled = conn.execute(
+            """select r.clv, r.clv_benchmark, r.odds_closing, r.beat_closing_price,
+                      r.settlement_outcome, r.pnl_units
+                 from ai.bet_results r join ai.bets b on b.id=r.bet_id
+                where b.league='EPL'"""
+        ).fetchone()
+        assert filled["clv"] is not None
+        assert filled["clv_benchmark"] in ("PS", "AVG")
+        assert filled["odds_closing"] is not None
+        assert filled["beat_closing_price"] is not None
+        assert filled["settlement_outcome"] == "win"
+        assert filled["pnl_units"] is not None
 
         # Stored artefact bytes cannot be replaced under the same model id.
         with pytest.raises(psycopg.Error):
@@ -1132,3 +1166,260 @@ def test_the_sql_alias_authority_answers_exactly_as_the_python_one():
         assert conn.execute(
             "select canonical from ai.canonical_from_odds_api(%s)",
             ("Obscure Town",)).fetchone()["canonical"] == "Obscure Town"
+
+
+def test_one_fixture_and_market_yields_one_piece_of_betting_evidence():
+    """Contract 199. A retrain must not advise the same match a second time.
+
+    `find_value` asked whether the PREDICTION already carried a bet, and
+    `ai.predictions` is unique on (model_id, fixture, horizon), so the Monday
+    retrain produced a fresh prediction row for a fixture that had already been
+    advised, the guard found nothing against the new id, and a second paper bet
+    was recorded on the same match. Production held 226 ai.bets rows over 125
+    fixture/market pairs when this was measured.
+
+    Both halves are asserted here: the historical rows survive in ai.bets, and
+    exactly one of them is evidence.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        models = [
+            conn.execute(
+                """insert into ai.models (league,version,family,training_matches,
+                                          artifact_sha256)
+                   values ('EPL',%s,'poisson',10,%s) returning id""",
+                (f"v{index}", hashlib.sha256(f"v{index}".encode()).hexdigest()),
+            ).fetchone()["id"]
+            for index in range(2)
+        ]
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+
+        # Two model versions, two forecasts of the same match, two pieces of
+        # advice — recorded a day apart so "earliest" is unambiguous.
+        for index, model in enumerate(models):
+            prediction = conn.execute(
+                """insert into ai.predictions
+                     (model_id,league,fixture_id,kickoff_at,home_canonical,
+                      away_canonical,p_home,p_draw,p_away,predicted_result,
+                      features,horizon,hours_to_kickoff,features_version)
+                   values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','{}',
+                           'scheduled',48,'f2') returning id""",
+                (model, fixture, kickoff)).fetchone()["id"]
+            conn.execute(
+                """insert into ai.bets
+                     (prediction_id,model_id,league,fixture_id,selection,
+                      kickoff_at,bookmaker,odds_taken,model_prob,edge,
+                      stake_fraction,stake_units,is_paper,status,market,
+                      advised_at)
+                   values (%s,%s,'EPL',%s,'H',%s,'B365',%s,.55,.155,.01,1,
+                           true,'advised','1X2',%s)""",
+                (prediction, model, fixture, kickoff, 2.1 + index,
+                 datetime.now(timezone.utc) - timedelta(days=2 - index)))
+        conn.commit()
+
+    with db.connect() as conn:
+        assert conn.execute(
+            "select count(*) as n from ai.bets").fetchone()["n"] == 2, \
+            "the immutable record of what the lab advised must survive"
+
+        evidence = conn.execute(
+            "select id, odds_taken from ai.valid_bets").fetchall()
+        assert len(evidence) == 1, (
+            "two bets on one fixture and market are two counts of one opinion "
+            "in the bet count, the exposure, the hit rate, the ROI and the CLV "
+            "sample")
+        # EARLIEST, not best. The later repeat carries the friendlier price and
+        # is exactly the row a "keep the best" rule would have chosen.
+        assert float(evidence[0]["odds_taken"]) == 2.1
+
+        identity = conn.execute(
+            """select bet_id, advice_rank, is_canonical, canonical_bet_id,
+                      advice_rows
+                 from ai.bet_advice_identity order by advice_rank"""
+        ).fetchall()
+        assert [row["advice_rank"] for row in identity] == [1, 2]
+        assert [row["is_canonical"] for row in identity] == [True, False]
+        assert identity[1]["canonical_bet_id"] == identity[0]["bet_id"], \
+            "an excluded row must name the row that superseded it"
+        assert identity[0]["advice_rows"] == 2
+
+    # And the guard that stops a THIRD one being written. A price at a real
+    # venue makes this fixture a live candidate again; the read must report
+    # that the FIXTURE is already advised, whichever prediction row is asked.
+    with db.connect() as conn:
+        conn.execute(
+            "insert into ai.fixture_odds "
+            "(fixture_id,division,match_date,home_canonical,away_canonical,"
+            " bookmaker,odds_h,odds_d,odds_a,captured_at) "
+            "values (%s,'E0',%s,'Arsenal','Leeds','B365',2.4,3.4,3.0,now())",
+            (fixture, kickoff.date()))
+        conn.commit()
+
+    candidates = find_value.load_candidates("EPL", "B365")
+    assert len(candidates) == 2, "both forecasts of the fixture are still priced"
+    assert candidates["has_existing_bet"].all(), (
+        "a retrain's fresh prediction row must not look like an unadvised "
+        "fixture to the advice guard")
+    assert not find_value._should_record_new_bet(True, True)
+
+
+def test_a_played_bet_settles_before_its_closing_benchmark_arrives():
+    """Section 7 of #854: CLV availability must not gate outcome settlement.
+
+    Whether a bet won is decided by the score. Whether it beat the close depends
+    on a third party publishing a price, which may never happen. The old job
+    `continue`d past a played bet with no benchmark, so it stayed `advised`
+    forever and an operator could not tell a missing closing line from a broken
+    settler.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    played = datetime.now(timezone.utc) - timedelta(days=1)
+    with db.connect() as conn:
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','clv','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"clv").hexdigest(),)).fetchone()["id"]
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        prediction = conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  features,horizon,hours_to_kickoff,features_version)
+               values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','{}',
+                       'scheduled',48,'f2') returning id""",
+            (model, fixture, kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.bets
+                 (prediction_id,model_id,league,fixture_id,selection,
+                  kickoff_at,bookmaker,odds_taken,model_prob,edge,
+                  stake_fraction,stake_units,is_paper,status,market)
+               values (%s,%s,'EPL',%s,'H',%s,'B365',2.5,.55,.375,.01,1,
+                       true,'advised','1X2')""",
+            (prediction, model, fixture, kickoff))
+        conn.execute(
+            """update ai.fixtures
+                  set status='played', home_goals=2, away_goals=1, result='H',
+                      kickoff_at=%s, match_date=%s
+                where id=%s""", (played, played.date(), fixture))
+        conn.commit()
+
+    # No ai.raw_matches row exists, so there is no closing benchmark at all.
+    assert len(settle_bets.load_unsettled("EPL")) == 1
+    assert settle_bets.main.__module__ == "settle_bets"
+    sys.argv = ["settle_bets.py", "--league", "EPL"]
+    assert settle_bets.main() == 0
+
+    with db.connect() as conn:
+        row = conn.execute(
+            """select b.status, r.settlement_outcome, r.won, r.pnl_units,
+                      r.return_per_unit, r.clv, r.clv_benchmark, r.odds_closing,
+                      r.beat_closing_price
+                 from ai.bets b join ai.bet_results r on r.bet_id = b.id"""
+        ).fetchone()
+        assert row["status"] == "settled"
+        assert row["settlement_outcome"] == "win" and row["won"] is True
+        assert float(row["return_per_unit"]) == 1.5
+        # UNAVAILABLE, not zero. A CLV of 0.0 would say the price matched the
+        # close, which is a measurement nobody made.
+        assert row["clv"] is None
+        assert row["clv_benchmark"] is None
+        assert row["odds_closing"] is None
+        assert row["beat_closing_price"] is None
+
+    # Rerunning settles nothing twice.
+    sys.argv = ["settle_bets.py", "--league", "EPL"]
+    assert settle_bets.main() == 0
+    with db.connect() as conn:
+        assert conn.execute(
+            "select count(*) as n from ai.bet_results").fetchone()["n"] == 1
+
+    # The benchmark is published later. The second pass fills the CLV columns
+    # and leaves the outcome and the profit exactly as they were.
+    with db.connect() as conn:
+        conn.execute(
+            """insert into ai.raw_matches
+                 (source,division,season,match_date,home_canonical,away_canonical,
+                  home_goals,away_goals,result,close_avg_h,close_avg_d,close_avg_a)
+               values ('football-data','E0','2627',%s,'Arsenal','Leeds',2,1,'H',
+                       2.2,3.4,3.3) returning id""", (played.date(),))
+        conn.commit()
+    assert db.settle_fixtures_from_history() >= 0
+    sys.argv = ["settle_bets.py", "--league", "EPL"]
+    assert settle_bets.main() == 0
+
+    with db.connect() as conn:
+        row = conn.execute(
+            """select r.clv, r.clv_benchmark, r.odds_closing,
+                      r.beat_closing_price, r.settlement_outcome, r.pnl_units
+                 from ai.bet_results r"""
+        ).fetchone()
+        assert row["clv"] is not None
+        assert row["clv_benchmark"] == "AVG"
+        assert float(row["odds_closing"]) == 2.2
+        assert row["beat_closing_price"] is True
+        assert row["settlement_outcome"] == "win"
+        assert float(row["pnl_units"]) == 1.5
+
+
+def test_a_void_settlement_needs_no_scoreline():
+    """Contract 199's other half. A returned stake is an outcome, not a gap."""
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','void','poisson',10,%s) returning id""",
+            (hashlib.sha256(b"void").hexdigest(),)).fetchone()["id"]
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        prediction = conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  features,horizon,hours_to_kickoff,features_version)
+               values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','{}',
+                       'scheduled',48,'f2') returning id""",
+            (model, fixture, kickoff)).fetchone()["id"]
+        bet = conn.execute(
+            """insert into ai.bets
+                 (prediction_id,model_id,league,fixture_id,selection,
+                  kickoff_at,bookmaker,odds_taken,model_prob,edge,
+                  stake_fraction,stake_units,is_paper,status,market)
+               values (%s,%s,'EPL',%s,'H',%s,'B365',2.5,.55,.375,.01,1,
+                       true,'advised','1X2') returning id""",
+            (prediction, model, fixture, kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.bet_results
+                 (bet_id,actual_result,settlement_outcome,commission_rate,
+                  pnl_units,return_per_unit)
+               values (%s,null,'void',0,0,0)""", (bet,))
+        conn.commit()
+
+    with db.connect() as conn:
+        assert conn.execute(
+            "select settlement_outcome from ai.bet_results"
+        ).fetchone()["settlement_outcome"] == "void"
+        # Every other outcome still has to name a result.
+        with pytest.raises(psycopg.Error):
+            conn.execute(
+                "update ai.bet_results set settlement_outcome='loss' "
+                "where bet_id=%s", (bet,))
+        conn.rollback()

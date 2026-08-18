@@ -343,7 +343,7 @@ jobs:
           ./run_leagues.sh predict.py
           ./run_leagues.sh find_value.py
 
-      - name: Import history and predict
+      - name: Import history, predict and settle
         if: steps.task.outputs.name == 'morning' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         run: |
@@ -352,6 +352,16 @@ jobs:
           python reconcile_paid_fixture_evidence.py
           status=0
           ./run_leagues.sh evaluate.py || status=1
+          # Settle HERE, not only in the evening pass. Football-Data publishes a
+          # weekend's results on the following morning, so ai.fixtures only turns
+          # `played` inside this job — on 18 August 2026 that happened at 09:23,
+          # nearly ten hours after the 23:31 settle run of the 17th had correctly
+          # reported nothing to settle. Every settle job in the ledger therefore
+          # read {"settled": 0} while 87 played bets waited, and the record looked
+          # like a broken settler rather than a slow provider. Settling in the
+          # same pass that imports the results closes that window; the job is
+          # idempotent, so the evening pass remains a harmless second chance.
+          ./run_leagues.sh settle_bets.py || status=1
           ./run_leagues.sh predict.py || status=1
           exit "$status"
 
