@@ -361,6 +361,20 @@ same paragraph existed in seven places at once.
 > the system. The per-fixture card is contract 111's, and the suite proves that
 > by running both reads over the same window and requiring identical objects
 > rather than asserting the copy was faithful.
+>
+> **Measured while doing it, and deliberately not taken.** The addressable
+> Match Centre (`get_season_fixture`, contract 148) returns the fixture card and
+> its competition and nothing else: no prediction of the caller's, no consensus,
+> no league picks. The per-fixture reads it would compose are matchweek-scoped
+> (`get_season_prediction_consensus(tournament, matchweek)`,
+> `get_season_league_matchweek_predictions(league, round)`) or tournament-only
+> (`get_league_match_picks(league, match_id)`, which takes a `matches` id and so
+> cannot answer for a season fixture). A Match Centre therefore fetches a whole
+> matchweek to render one match. That is a payload cost rather than a browser
+> loop, and WHAT belongs in a Match Centre is a Stage 8 design decision that
+> section 15 of the IA lab explicitly did not take — so composing a read for it
+> now would be writing against a shape nobody has decided, which is the mistake
+> contract 170 refused to make and this records rather than repeats.
 
 > **Contract 196 — a player is told what happened to them in a game.**
 > **Advances the cross-competition attention work and reorders nothing else.**
