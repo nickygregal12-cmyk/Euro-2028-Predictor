@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -1423,3 +1424,74 @@ def test_a_void_settlement_needs_no_scoreline():
                 "update ai.bet_results set settlement_outcome='loss' "
                 "where bet_id=%s", (bet,))
         conn.rollback()
+
+
+def test_the_odds_cadence_is_always_inside_the_price_freshness_limit():
+    """Contract 200. Collecting slower than the gate allows guarantees staleness.
+
+    The heartbeat used to ask for a paid-covered fixture inside twenty-four
+    hours and do nothing when there was none, while the lab forecasts ten days
+    ahead. Production on 18 August 2026 had 52 scheduled fixtures, its nearest
+    kickoff fifty-seven hours away, no dispatch for fifteen hours and all 120
+    current recommendations PASS with PASS_STALE_PRICE dominating — from the
+    same gate that had produced BET decisions on fresh prices the day before.
+
+    The invariant is not "poll often". It is that the maximum gap between polls
+    at a given distance from kickoff is strictly smaller than the price age the
+    value gate will accept at that same distance. Anything else means prices are
+    stale for part of every cycle whatever the gate says.
+    """
+    _bootstrap()
+    import value_engine
+
+    boundaries = (0.25, 1.0, 2.0, 2.001, 4.0, 8.0, 8.001, 12.0, 24.0,
+                  24.001, 96.0, 180.0)
+    with db.connect() as conn:
+        for hours in boundaries:
+            gap = conn.execute(
+                "select ai.odds_poll_max_gap_seconds(%s::double precision) as s",
+                (hours,)).fetchone()["s"]
+            limit = value_engine.FreshnessPolicy().limit_for(hours).total_seconds()
+            assert gap is not None, f"no cadence tier covers {hours}h to kickoff"
+            assert gap < limit, (
+                f"at {hours}h the collector may wait {gap}s but the gate only "
+                f"accepts a price {limit}s old")
+
+        # Beyond seven and a half days, and with no upcoming fixture at all,
+        # the answer is "do not spend a credit" rather than a long interval.
+        for absent in (180.001, 1000.0, None):
+            assert conn.execute(
+                "select ai.odds_poll_max_gap_seconds(%s::double precision) as s",
+                (absent,)).fetchone()["s"] is None
+
+
+def test_the_hosted_heartbeat_inlines_exactly_the_cadence_function():
+    """One cadence, two places it is written, held together here.
+
+    The cron command inlines the seconds instead of calling
+    `ai.odds_poll_max_gap_seconds`, deliberately: the hosted reconciliation runs
+    daily and must not depend on a migration having reached that database first.
+    The cost of inlining is drift, and this is what pays it.
+    """
+    _bootstrap()
+    reconcile = (Path(__file__).parents[1] / "scripts" / "database-rollout"
+                 / "ai-odds-scheduler-reconcile.sql").read_text()
+
+    window = re.search(r"kickoff_at <= now\(\) \+ interval '(\d+) hours'", reconcile)
+    assert window, "the heartbeat must state its fixture window"
+    window_hours = float(window.group(1))
+
+    tiers = re.findall(r"when nearest_hours <= ([\d.]+)\s+then (\d+)", reconcile)
+    assert tiers, "the heartbeat must state its cadence tiers"
+    assert float(tiers[-1][0]) == window_hours, (
+        "the last cadence tier and the fixture window must be the same "
+        "distance, or the heartbeat selects fixtures it has no cadence for")
+
+    with db.connect() as conn:
+        for hours_text, seconds_text in tiers:
+            hours = float(hours_text)
+            assert conn.execute(
+                "select ai.odds_poll_max_gap_seconds(%s::double precision) as s",
+                (hours,)).fetchone()["s"] == int(seconds_text), (
+                    f"the cron command polls every {seconds_text}s at {hours}h "
+                    "and the tested function disagrees")
