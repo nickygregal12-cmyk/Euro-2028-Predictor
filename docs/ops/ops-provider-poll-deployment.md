@@ -61,9 +61,21 @@ writing a row:
 curl -sS -w '\nHTTP %{http_code}\n' \
   -X POST https://iouzoutneyjpugbbtdem.supabase.co/functions/v1/provider-poll \
   -H 'content-type: application/json' \
-  -H 'apikey: deliberately-not-the-key' \
+  -H 'apikey: <any-wrong-value>' \
   --data '{}'
 ```
+
+> **Leave the `apikey` value in angle brackets.** It read
+> `deliberately-not-the-key` — a literal, and `betterleaks` flags any literal
+> after `apikey:` on shape alone, whatever the value says about itself. That
+> finding is only reported by the whole-tree scan, which runs on `main` and not
+> on a pull request, so it turned `main` red without any pull request going red
+> first. An angle-bracketed placeholder is skipped by the same rule, so this
+> needs no scanner allowlist — and an allowlist is the thing to avoid, because
+> one drawn wide enough to cover this would also hide a real `apikey:` leak
+> somewhere else. The command still works if pasted verbatim: that literal is
+> itself a wrong key, which is all the probe requires. Do not substitute a
+> realistic-looking value.
 
 It was **not** run from the agent environment: that environment's network policy
 denies `CONNECT` to `iouzoutneyjpugbbtdem.supabase.co` (gateway 403), and
