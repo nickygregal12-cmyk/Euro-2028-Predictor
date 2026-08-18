@@ -8,11 +8,23 @@
 # gap is what this closes; the audit step stays exactly as it is.
 #
 # The `github-actions` ecosystem is here for a second reason. Third-party
-# actions are currently referenced by moving tags (`@v4`), so the code they run
-# can change without any commit in this repository. Pinning to immutable commit
-# SHAs is the fix, and once pinned a pin goes stale silently — Dependabot is
-# what keeps a pinned SHA current, which is what makes pinning sustainable
-# rather than a one-off that rots.
+# actions were once referenced by moving tags (`@v4`), so the code they ran
+# could change without any commit in this repository. That is no longer true —
+# every external reference is now a full commit SHA, gated by
+# `scripts/check-workflow-action-pins.mjs` — which makes this ecosystem MORE
+# necessary, not less: a pin goes stale silently, and Dependabot is what keeps
+# a pinned SHA current, which is what makes pinning sustainable rather than a
+# one-off that rots.
+#
+# COOLDOWN. Both ecosystems hold new releases before proposing them. The
+# supply-chain compromises this repository's own hardening is aimed at share a
+# shape: a malicious version is published, and the window before it is caught
+# and yanked is short. Adopting a release the day it appears puts this
+# repository inside that window; waiting puts the rest of the ecosystem in
+# front of it. Seven days for npm, where compromised packages are found in
+# hours to days. Three for actions, which are pinned to SHAs anyway, so the
+# cooldown is a second line rather than the only one, and a longer hold would
+# mostly delay the security bumps that make pinning worth having.
 version: 2
 
 updates:
@@ -21,6 +33,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     # Enough to be useful, few enough to be read. An update flood is ignored,
     # and an ignored queue is the same as no queue.
     open-pull-requests-limit: 5
@@ -51,6 +65,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 3
     open-pull-requests-limit: 5
     labels:
       - dependencies

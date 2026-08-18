@@ -76,7 +76,7 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@988661ebb5e81487b3fb31b2185d2856c0a10679 # v4
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           languages: ${{ matrix.language }}
           # `security-extended` over the default set: the default is tuned for
@@ -95,6 +95,6 @@ jobs:
       # are all analysed from source, so `autobuild` would add dependency
       # installation without improving extraction.
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@988661ebb5e81487b3fb31b2185d2856c0a10679 # v4
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           category: /language:${{ matrix.language }}
