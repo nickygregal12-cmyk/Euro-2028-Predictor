@@ -145,6 +145,37 @@ jobs:
             echo "available: $spec"
           done < "${RUNNER_TEMP}/on-demand-packages.txt"
 
+      - name: Verify optional upstream releases exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > "${RUNNER_TEMP}/git-release-tags.txt"
+          const tools = require('./config/agent-tools.json')
+          for (const key of ['agentMail', 'weave']) {
+            console.log(`${tools[key].repository} ${tools[key].version}`)
+          }
+          NODE
+          while read -r repository version; do
+            git ls-remote --exit-code --tags \
+              "https://github.com/${repository}.git" \
+              "refs/tags/v${version}" >/dev/null
+            echo "available: ${repository}@v${version}"
+          done < "${RUNNER_TEMP}/git-release-tags.txt"
+
+          mergiraf_version="$(node -p "require('./config/agent-tools.json').mergiraf.version")"
+          curl --fail --silent --show-error --location \
+            "https://crates.io/api/v1/crates/mergiraf/${mergiraf_version}" \
+            -o "${RUNNER_TEMP}/mergiraf-release.json"
+          node - "${RUNNER_TEMP}/mergiraf-release.json" "$mergiraf_version" <<'NODE'
+          const fs = require('node:fs')
+          const [file, expected] = process.argv.slice(2)
+          const data = JSON.parse(fs.readFileSync(file, 'utf8'))
+          if (data.version?.num !== expected || data.version?.yanked) {
+            throw new Error(`Mergiraf ${expected} is unavailable or yanked`)
+          }
+          console.log(`available: mergiraf@${expected}`)
+          NODE
+
       - name: Summary
         if: ${{ always() }}
         shell: bash
@@ -153,9 +184,9 @@ jobs:
             echo '## Developer tooling smoke'
             echo
             echo '- Baseline bootstrap executed from the canonical registry.'
-            echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and Beads CLIs were invoked.'
+            echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
             echo '- Serena loaded the tracked project configuration and passed its language-server health check.'
             echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
-            echo '- Agent Mail and semantic merge engines remain intentionally optional/heavy and were not installed.'
+            echo '- Agent Mail, Weave and Mergiraf exact upstream releases were resolved without auto-starting/installing their heavier optional services or merge engines.'
             echo '- No service was started, no provider credential was configured and no model/provider request was made.'
           } >> "${GITHUB_STEP_SUMMARY}"
