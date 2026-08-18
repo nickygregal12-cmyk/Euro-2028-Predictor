@@ -41,6 +41,11 @@ export default defineConfig({
     // rather than in a browser suite that would then need a database — and,
     // here, real people in a real league.
     'vnext-leagues.spec.ts',
+    // Stage 10, the player profile. Same terms again — and here the browser is
+    // doing something the other suites are not: it reads the plotted
+    // coordinates out of the rendered SVG. A rank chart drawn upside down is
+    // invisible to every assertion that cannot see geometry.
+    'vnext-player-profile.spec.ts',
     // Stage 7.5, the three information-architecture concepts. Registered on
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic

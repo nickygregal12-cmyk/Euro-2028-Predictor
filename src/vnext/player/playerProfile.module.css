@@ -28,7 +28,13 @@
  *
  * THE CHART IS AN ILLUSTRATION. Its `<svg>` is `aria-hidden` and the same
  * series is a real table underneath, so nothing in this file is load-bearing
- * for comprehension. */
+ * for comprehension.
+ *
+ * THERE IS NO VISUALLY-HIDDEN UTILITY HERE. `typography.module.css` owns
+ * `.srOnly` and a second copy in this file would be a second authority for one
+ * rule — which is how one of them ends up missing the `clip-path` that the
+ * browser suite uses to tell "deliberately invisible" from "accidentally cut
+ * off". */
 
 .page {
   display: flex;
@@ -364,10 +370,18 @@
   color: var(--vnext-text);
 }
 
-/* The word is always present; the colour is an addition to it, never the fact. */
+/* The word is always present; the colour is an addition to it, never the fact.
+ *
+ * IT MUST BE ABLE TO WRAP. The sentence contains the other player's DISPLAY
+ * NAME — "Bartholomew Fitzgerald-Macpherson of Auchtermuchty won" — and
+ * `white-space: nowrap` made that 315 unbreakable pixels inside a 375 column,
+ * which pushed the whole page sideways by 29. `e2e/vnext-player-profile.spec.ts`
+ * measured it at 375 with the long-name world; no shorter name would have
+ * shown it. Keeping a two-word verdict on one line is not worth a page that
+ * scrolls, and a name is never the thing that gives way. */
 .recentOutcome {
   color: var(--vnext-rank-flat);
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .recentOutcome[data-outcome='you'] {
@@ -376,18 +390,6 @@
 
 .recentOutcome[data-outcome='them'] {
   color: var(--vnext-rank-down);
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
-  border: 0;
 }
 
 /* ---- regular ---------------------------------------------------------------- */

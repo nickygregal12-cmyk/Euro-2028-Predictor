@@ -72,13 +72,13 @@ export function RivalryTable({ detail }: RivalryTableProps) {
       <p className={`${text.micro} ${styles.rivalryGap}`}>{pointsGapLabel(detail.pointsGap)}</p>
 
       <table className={styles.compare}>
-        <caption className={styles.visuallyHidden}>
+        <caption className={text.srOnly}>
           Your season compared with {theirName}, over {compared}
         </caption>
         <thead>
           <tr>
             <th scope="col">
-              <span className={styles.visuallyHidden}>Measure</span>
+              <span className={text.srOnly}>Measure</span>
             </th>
             {/* "You" ALWAYS, so two identical display names still give two
                 different column headings. See the header. */}

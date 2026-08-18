@@ -1,9 +1,9 @@
-import { useId } from 'react'
-import type { RankPoint } from '../models/playerProfile'
-import { rankBounds, rankPlot } from '../models/playerProfile'
-import { formatNumber, formatOrdinal } from '../foundations/format'
-import text from '../foundations/typography.module.css'
-import styles from './playerProfile.module.css'
+import { useId } from "react";
+import type { RankPoint } from "../models/playerProfile";
+import { rankBounds, rankPlot } from "../models/playerProfile";
+import { formatNumber, formatOrdinal } from "../foundations/format";
+import text from "../foundations/typography.module.css";
+import styles from "./playerProfile.module.css";
 
 /**
  * WHERE THIS PLAYER STOOD, WEEK BY WEEK.
@@ -43,21 +43,21 @@ import styles from './playerProfile.module.css'
  * line is the illustration.
  */
 
-const VIEW_WIDTH = 320
-const VIEW_HEIGHT = 132
+const VIEW_WIDTH = 320;
+const VIEW_HEIGHT = 132;
 /** Room for the markers and the stroke, so an endpoint is never half-clipped. */
-const PAD = 10
+const PAD = 10;
 
 export type RankChartProps = {
-  readonly series: readonly RankPoint[]
+  readonly series: readonly RankPoint[];
   /** Names the chart for assistive technology. The player, in words. */
-  readonly caption: string
-}
+  readonly caption: string;
+};
 
 export function RankChart({ series, caption }: RankChartProps) {
-  const bounds = rankBounds(series)
-  const plotted = rankPlot(series)
-  const tableId = useId()
+  const bounds = rankBounds(series);
+  const plotted = rankPlot(series);
+  const tableId = useId();
 
   if (bounds === null) {
     // NOT AN ERROR. A season before its first settlement has no positions yet,
@@ -66,18 +66,18 @@ export function RankChart({ series, caption }: RankChartProps) {
       <p className={`${text.body} ${styles.chartEmpty}`}>
         No matchweek has settled yet, so there is no position to plot.
       </p>
-    )
+    );
   }
 
   const path = plotted
     .map((entry, index) => {
-      const x = PAD + entry.x * (VIEW_WIDTH - PAD * 2)
-      const y = PAD + entry.y * (VIEW_HEIGHT - PAD * 2)
-      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
+      const x = PAD + entry.x * (VIEW_WIDTH - PAD * 2);
+      const y = PAD + entry.y * (VIEW_HEIGHT - PAD * 2);
+      return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
     })
-    .join(' ')
+    .join(" ");
 
-  const last = plotted[plotted.length - 1]
+  const last = plotted[plotted.length - 1];
 
   return (
     <figure className={styles.chart} data-vnext-zone="rank-chart">
@@ -96,12 +96,16 @@ export function RankChart({ series, caption }: RankChartProps) {
           aria-hidden="true"
           focusable="false"
         >
-          {plotted.length > 1 ? <path className={styles.chartLine} d={path} /> : null}
+          {plotted.length > 1 ? (
+            <path className={styles.chartLine} d={path} />
+          ) : null}
           {plotted.map((entry) => (
             <circle
               key={entry.point.matchweekId}
               className={
-                entry === last ? `${styles.chartDot} ${styles.chartDotLast}` : styles.chartDot
+                entry === last
+                  ? `${styles.chartDot} ${styles.chartDotLast}`
+                  : styles.chartDot
               }
               cx={PAD + entry.x * (VIEW_WIDTH - PAD * 2)}
               cy={PAD + entry.y * (VIEW_HEIGHT - PAD * 2)}
@@ -121,28 +125,39 @@ export function RankChart({ series, caption }: RankChartProps) {
       </figcaption>
 
       {/* THE SAME SERIES, AS A TABLE. Not a summary of the chart — the chart is
-          an illustration of this. Visually hidden, fully navigable. */}
-      <table className={styles.visuallyHidden} id={tableId}>
-        <caption>{caption}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Matchweek</th>
-            <th scope="col">Position</th>
-            <th scope="col">Points that matchweek</th>
-          </tr>
-        </thead>
-        <tbody>
-          {series.map((point) => (
-            <tr key={point.matchweekId}>
-              <th scope="row">{point.label}</th>
-              <td>
-                {formatOrdinal(point.rank)} of {formatNumber(point.fieldSize)}
-              </td>
-              <td>{formatNumber(point.points)}</td>
+          an illustration of this. Visually hidden, fully navigable.
+
+          THE HIDING GOES ON A WRAPPING DIV AND NOT ON THE TABLE. `width: 1px`
+          is only a MINIMUM for a table, which then sizes to its content, so
+          `.srOnly` applied to a `<table>` leaves a 364-pixel absolutely
+          positioned box — clipped and invisible, but contributing its width to
+          the scrollable overflow of whatever positioned ancestor it happens to
+          land in. A block honours the 1px. (It was NOT the cause of the 375
+          overflow this suite caught; that was `.recentOutcome`. This is the
+          latent version of the same class of fault.) */}
+      <div className={text.srOnly}>
+        <table id={tableId}>
+          <caption>{caption}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Matchweek</th>
+              <th scope="col">Position</th>
+              <th scope="col">Points that matchweek</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {series.map((point) => (
+              <tr key={point.matchweekId}>
+                <th scope="row">{point.label}</th>
+                <td>
+                  {formatOrdinal(point.rank)} of {formatNumber(point.fieldSize)}
+                </td>
+                <td>{formatNumber(point.points)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
-  )
+  );
 }
