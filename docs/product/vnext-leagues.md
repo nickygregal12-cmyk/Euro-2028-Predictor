@@ -201,7 +201,10 @@ paired with an sr-only **"no movement recorded"**: without it that cell is
 completely silent to a screen reader, and a silent cell is indistinguishable
 from a broken one.
 
-**The flag and the map come from one predicate.** A surface reads
+**The flag and the map come from one predicate**, and it requires a labelled
+settled matchweek **that named somebody**. `settled: true` with an empty member
+list is constructible and would otherwise draw a "Moved" column in which every
+row is a dash. The rest of the reason: A surface reads
 `movementSettled` to decide whether to *draw* the column and the map to *fill*
 it, so they must agree — a payload saying `settled: true` with a matchweek
 carrying no label maps to no movement at all, and a flag that disagreed would
@@ -293,7 +296,8 @@ Two rules hold everywhere in this lane:
 2. **A partial page stays a page**, and it is the ACQUISITION that guarantees
    it, not the presentation. Only a failed **play context** takes the whole
    surface down, because without it there is no id to address anything with.
-   Every read below it resolves to `null` and is named in the strip:
+   Every read below it resolves to `null` instead; each read the strip names is
+   named there:
 
    - league list fails, table answers → the table is drawn in full;
    - chosen league's table fails, list answers → **the chooser stays usable**;

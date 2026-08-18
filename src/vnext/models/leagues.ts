@@ -202,7 +202,16 @@ export type LeaguesPrivateRow = {
 export type LeaguesPrivateTable = {
   readonly leagueId: string
   readonly name: string
-  readonly memberCount: number
+  /**
+   * NO `memberCount` HERE, AND THAT IS THE POINT.
+   *
+   * The league LIST carries one (`LeagueChoice.memberCount`) and contract 128
+   * carries `totalCount`. They are two reads and can disagree, and a table
+   * holding both is a table that will eventually print "8 members" directly
+   * above "5 members" on one screen. The chooser chip states the list's count
+   * because it IS the list's control; everything the table says about its own
+   * size comes from `totalCount`, and there is no second field to reach for.
+   */
   readonly rows: readonly LeaguesPrivateRow[]
   readonly totalCount: number
   readonly you: LeaguesPrivateRow | null

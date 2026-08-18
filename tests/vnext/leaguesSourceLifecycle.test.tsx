@@ -71,6 +71,7 @@ const server = vi.hoisted(() => {
     leaguesFail: false,
     leaderboardFails: false,
     movementFails: false,
+    movementNamesNobody: false,
   }
 
   return {
@@ -162,7 +163,23 @@ const server = vi.hoisted(() => {
         matchweek: { id: 'mw-12', ordinal: 12, label: 'Matchweek 12' },
         settled: true,
         serverNow: null,
-        members: [],
+        members: state.movementNamesNobody
+          ? []
+          : [
+              {
+                userId: `user-of-${leagueId}`,
+                displayName: `Member of ${leagueId}`,
+                isSelf: false,
+                pointsBefore: 90,
+                pointsAfter: 100,
+                pointsThisMatchweek: 10,
+                rankBefore: 3,
+                rankAfter: 1,
+                movement: 2,
+                gapToLeaderBefore: 12,
+                gapToLeaderAfter: 0,
+              },
+            ],
       }
     },
   }
@@ -291,12 +308,26 @@ describe('a request the player has moved on from', () => {
     server.standings.get('league-a')?.resolve(server.page('league-a'))
     await waitFor(() => expect(last(probe.seen).status).toBe('ready'))
 
+    const before = probe.seen.length
     probe.rerender({ ...BASE, selectedLeagueId: 'league-b' })
 
-    // ONE LEAGUE'S TABLE IS NEVER SHOWN UNDER ANOTHER LEAGUE'S NAME. The
-    // selected league is part of the request identity precisely so a stored
-    // payload from the previous league reads as loading rather than as ready.
-    expect(last(probe.seen).status).toBe('loading')
+    // ONE LEAGUE'S TABLE IS NEVER SHOWN UNDER ANOTHER LEAGUE'S NAME.
+    //
+    // ASSERTED OVER EVERY RENDER AFTER THE SWITCH, not just the last one. The
+    // render the request identity actually protects is the one BETWEEN the prop
+    // change and the effect that reacts to it — and reading only the final
+    // state passes even with `selectedLeagueId` removed from the identity,
+    // because the effect's own synchronous reset produces `loading` a moment
+    // later. That is the window a stale table would be painted in.
+    const after = probe.seen.slice(before)
+    expect(after.length).toBeGreaterThan(0)
+    for (const state of after) {
+      if (state.status !== 'ready') continue
+      expect(
+        state.source.selectedLeagueId,
+        'league A`s table was returned as ready under league B`s request',
+      ).toBe('league-b')
+    }
 
     probe.unmount()
   })
@@ -354,6 +385,27 @@ describe('a table that did not answer', () => {
 
     expect(final.source.movement).toBeNull()
     expect(final.source.league).not.toBeNull()
+
+    probe.unmount()
+  })
+
+  it('draws no movement column for a settled matchweek that named nobody', async () => {
+    reset()
+    server.state.movementNamesNobody = true
+    const probe = mount({ ...BASE, selectedLeagueId: 'league-a' })
+    await waitFor(() => expect(server.standings.has('league-a')).toBe(true))
+    server.standings.get('league-a')?.resolve(server.page('league-a'))
+
+    await waitFor(() => expect(last(probe.seen).status).toBe('ready'))
+    const final = last(probe.seen)
+    if (final.status !== 'ready') throw new Error('unreachable')
+
+    // `settled: true`, a labelled matchweek, and no members. A column drawn
+    // from this is a column in which every row is a dash.
+    const { buildLeaguesModel } = await import(
+      '../../src/vnext/integration/leagues/buildLeaguesModel'
+    )
+    expect(buildLeaguesModel(final.source).private?.movementSettled).toBe(false)
 
     probe.unmount()
   })

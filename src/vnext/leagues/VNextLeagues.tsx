@@ -144,13 +144,18 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
         ) : null}
 
         {model.unavailable.length > 0 ? (
-          /* NOT A LIVE REGION. It is mounted together with its text — the
-           * loading state swaps the whole subtree — so `role="status"` would
-           * announce nothing and would put a control inside a live region for
-           * no benefit. It is an ordinary notice, in the reading order, at the
-           * top of the page it is about. */
+          /* THE MESSAGE IS THE LIVE REGION, AND THE CONTROL IS OUTSIDE IT.
+           *
+           * Pressing "Try again" swaps the whole subtree to the skeleton and
+           * back, so a SECOND failure re-mounts this sentence — and without a
+           * live region a reader who cannot see it is told nothing at all,
+           * having just asked for exactly this answer. `role="status"` on the
+           * paragraph announces it; keeping the button outside means the
+           * control is not inside a region that re-announces itself. It is the
+           * same choice `VNextLeaguesStates` makes for the whole-page notice,
+           * so the two retry paths behave alike. */
           <div className={styles.unavailable}>
-            <p className={text.micro}>
+            <p className={text.micro} role="status">
               We could not load {listSentence(model.unavailable)} just now.
             </p>
             {onRetry ? (

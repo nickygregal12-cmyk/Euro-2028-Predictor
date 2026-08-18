@@ -456,16 +456,34 @@ describe('every world is one page', () => {
     })
   }
 
-  it('states one member count, not two', () => {
-    // The league LIST and contract 128 are two reads and can disagree. Printing
-    // the list's figure under the heading and the table's in the foot puts two
-    // different member counts on one screen.
-    renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
+  it('states one member count across the chooser, the heading and the foot', () => {
+    // THE LIST AND CONTRACT 128 ARE TWO READS AND CAN DISAGREE. This has to
+    // compare the CHIP against the table, because the heading and the foot now
+    // both read `totalCount` and would agree with each other whatever went
+    // wrong — an earlier version of this test regexed the flattened page text
+    // and could not fail at all.
+    for (const name of leaguesScenarioNames) {
+      const model = leaguesScenarios[name]
+      if (model.scope.kind !== 'private' || model.private === null) continue
 
-    const counts = screen
-      .getByRole('main')
-      .textContent?.match(/(\d+) members?\b/g)
-    expect(new Set(counts ?? []).size, `page states ${JSON.stringify(counts)}`).toBe(1)
+      const { unmount } = renderLeagues(model, vi.fn())
+      try {
+        const chip = screen.queryAllByRole('button').find(
+          (node) =>
+            node.getAttribute('aria-pressed') === 'true' &&
+            node.closest('[data-vnext-zone="chooser"]') !== null,
+        )
+        if (chip === undefined) continue
+
+        const chipCount = (chip.textContent ?? '').match(/(\d[\d,]*)\s*members?\b/)?.[1]
+        expect(
+          chipCount,
+          `${name}: the chooser chip states ${chipCount} and the table ${model.private?.totalCount}`,
+        ).toBe(String(model.private?.totalCount))
+      } finally {
+        unmount()
+      }
+    }
   })
 
   it('names the competition and the game without merging them', () => {
@@ -493,6 +511,21 @@ describe('every world is one page', () => {
       expect(
         within(table).getAllByRole('columnheader').map((cell) => cell.textContent),
       ).toEqual(['Rank', 'Player', 'Points'])
+    }
+  })
+
+  it('gives a pinned PRIVATE row the same headers, movement column included', () => {
+    // The private pinned table is the half with logic — its "Moved" column is
+    // conditional — so it is the half worth asserting. A version of this test
+    // that only covered the season table left it free to be deleted.
+    renderLeagues(leaguesScenarios.largeLeague, vi.fn())
+
+    const tables = screen.getAllByRole('table')
+    expect(tables.length).toBe(2)
+    for (const table of tables) {
+      expect(
+        within(table).getAllByRole('columnheader').map((cell) => cell.textContent),
+      ).toEqual(['Rank', 'Player', 'Moved', 'Points'])
     }
   })
 })

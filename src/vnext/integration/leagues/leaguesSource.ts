@@ -70,11 +70,22 @@ export type LeaguesSource = {
   readonly context: LeaguesSourceContext
   /** Which table was asked for. The source answers the one that was. */
   readonly selectedLeagueId: string | null
-  /** Contract 191's season table. Null when a private league was asked for. */
+  /**
+   * Contract 191's season table.
+   *
+   * NULL MEANS EITHER "not asked for" OR "asked for and did not answer", and
+   * `buildLeaguesModel` tells them apart from `selectedLeagueId`. Only the
+   * second is reported to the reader.
+   */
   readonly global: SeasonLeaderboardPage | null
   /** The caller's private leagues. Empty is ordinary; null is unread. */
   readonly leagues: readonly GameLeague[] | null
-  /** Contract 128's table for `selectedLeagueId`. Null when global was asked for. */
+  /**
+   * Contract 128's table for `selectedLeagueId`.
+   *
+   * Null when global was asked for — OR when this table was asked for and did
+   * not answer. See `global` above; a failed table is not a failed page.
+   */
   readonly league: SeasonLeagueStandingsPage | null
   /**
    * Contract 150's movement for the selected league.

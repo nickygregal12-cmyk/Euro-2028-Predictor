@@ -59,7 +59,17 @@ import type { LeaguesSource } from './leaguesSource'
  * exists to prevent.
  */
 function movementAnswered(movement: SeasonLeagueMovement | null): boolean {
-  return movement !== null && movement.settled && (movement.matchweek?.label ?? null) !== null
+  return (
+    movement !== null &&
+    movement.settled &&
+    (movement.matchweek?.label ?? null) !== null &&
+    // AND IT NAMED SOMEBODY. `settled: true` with a labelled matchweek and no
+    // members is constructible, and it would draw a "Moved" column in which
+    // every single row is a dash — the column of em-dashes this whole rule
+    // exists to prevent, arriving through an empty payload instead of an
+    // unsettled one. A column nobody is in is not a column.
+    movement.members.length > 0
+  )
 }
 
 export function buildLeaguesModel(source: LeaguesSource): LeaguesModel {
@@ -242,7 +252,6 @@ function privateTableOf(
     // answers the table. A missing name is a list that did not answer, and the
     // honest label for a league we cannot name is not a made-up one.
     name: chosen?.name ?? 'This league',
-    memberCount: chosen?.memberCount ?? page.totalCount,
     rows: page.rows.map((row) => privateRow(row, movement)),
     totalCount: page.totalCount,
     you:
