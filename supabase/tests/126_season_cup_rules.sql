@@ -149,16 +149,17 @@ select is(
 select is(
   predictor_internal.select_season_cup_format(8, 14),
   '{"kind": "single_group", "meetings": 2, "leagueRounds": 14,
-    "tail": {"kind": "none"}, "leftoverRounds": 0}'::jsonb,
+    "tail": {"kind": "none"}, "knockout": null, "leftoverRounds": 0}'::jsonb,
   'an exact fit plays home and away with no tail at all'
 );
 
 select is(
   predictor_internal.select_season_cup_format(6, 24),
   '{"kind": "single_group", "meetings": 4, "leagueRounds": 20,
-    "tail": {"kind": "seeded_playoff_window", "rounds": 4},
-    "leftoverRounds": 0}'::jsonb,
-  'an even meeting count leaves the remainder as the playoff window'
+    "tail": {"kind": "none"},
+    "knockout": {"rounds": 2, "qualifiers": 4},
+    "leftoverRounds": 2}'::jsonb,
+  'contract 198: an even meeting count RESERVES the bracket it can afford, and reports the rest as spare'
 );
 
 select is(
@@ -166,6 +167,7 @@ select is(
   '{"kind": "single_group", "meetings": 3, "leagueRounds": 15,
     "tail": {"kind": "split", "topHalfSize": 3, "bottomHalfSize": 3,
              "splitRounds": 3},
+    "knockout": null,
     "leftoverRounds": 0}'::jsonb,
   'an odd meeting count is balanced by a post-split round-robin'
 );
@@ -173,20 +175,21 @@ select is(
 select is(
   predictor_internal.select_season_cup_format(10, 30),
   '{"kind": "single_group", "meetings": 2, "leagueRounds": 18,
-    "tail": {"kind": "seeded_playoff_window", "rounds": 12},
-    "leftoverRounds": 0}'::jsonb,
-  'when the balancing split will not fit, it plays one meeting fewer rather than shortening the split'
+    "tail": {"kind": "none"},
+    "knockout": {"rounds": 3, "qualifiers": 7},
+    "leftoverRounds": 9}'::jsonb,
+  'when the balancing split will not fit, it plays one meeting fewer rather than shortening the split, then reserves'
 );
 
 select is(
   predictor_internal.select_season_cup_format(30, 38),
-  '{"kind": "groups", "groupCount": 2, "groupSizes": [15, 15]}'::jsonb,
+  '{"kind": "groups", "knockout": {"rounds": 5, "qualifiers": 20}, "groupCount": 2, "groupSizes": [15, 15]}'::jsonb,
   'thirty entrants is two groups of fifteen, never a twenty and a ten'
 );
 
 select is(
   predictor_internal.select_season_cup_format(25, 38),
-  '{"kind": "groups", "groupCount": 2, "groupSizes": [13, 12]}'::jsonb,
+  '{"kind": "groups", "knockout": {"rounds": 5, "qualifiers": 17}, "groupCount": 2, "groupSizes": [13, 12]}'::jsonb,
   'an odd field balances with the larger group first'
 );
 

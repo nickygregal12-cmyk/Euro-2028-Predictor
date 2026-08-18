@@ -1,0 +1,35 @@
+project_name: Euro-2028-Predictor
+languages:
+  - typescript
+ignore_all_files_in_gitignore: true
+ignored_paths:
+  - "docs/history/**"
+  - "docs/quality/evidence/**"
+  - "supabase/.temp/**"
+  - "creative-source/**"
+  - "production-backups/**"
+  - ".production-backups/**"
+read_only: false
+excluded_tools: []
+included_optional_tools: []
+initial_prompt: |
+  This repository has its own authority model. Before changing code, read root
+  AGENTS.md, NOW.md, the task-scoped authority it routes to, and the exact tests
+  for the path being changed. Serena is a symbol/navigation/editing mechanism;
+  its output and memories never override repository authorities, executable
+  tests, database contracts or current hosted evidence. Preserve one fact in one
+  canonical home rather than creating duplicate summaries.
+encoding: utf-8
+default_modes:
+added_modes:
+fixed_tools: []
+symbol_info_budget: 10
+language_backend: LSP
+read_only_memory_patterns: []
+ignored_memory_patterns:
+  - ".*"
+line_ending: lf
+ls_specific_settings: {}
+ls_workspace_folders:
+  - "."
+ls_additional_workspace_folders: []

@@ -113,3 +113,5 @@ same paragraph existed in seven places at once.
 > **Contract 196:** adds no rule. It dates outcome writes the Championship authorities already performed, which ADR 0022 does not govern because no qualification, seeding, bye, pairing or Penalty Number rule moves, and turns three stored outcomes into news. No ADR changes status.
 
 > **Contract 197:** adds no rule and changes no ADR. It reuses contract 111’s fixture projection and bounds and the `entries` scope every season read already applies.
+
+> **Contract 198:** implements ADR 0028 § 20 and CORRECTS ADR 0014 in place — its worked table reported leftover rounds as the tail rather than the depth a bracket needs. ADR 0022 is not engaged: no qualification, seeding, bye, playoff-pairing or Penalty Number rule moves.

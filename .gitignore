@@ -73,3 +73,10 @@ graphify-out/
 .artifacts/
 .stryker-tmp/
 reports/mutation/
+
+# Developer operating-system state. The configuration is versioned; indexes,
+# local execution memory and optional visual-engine output are not authorities.
+.serena/*
+!.serena/project.yml
+.beads/
+lost-pixel/

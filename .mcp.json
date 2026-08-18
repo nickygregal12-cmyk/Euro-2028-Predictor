@@ -12,6 +12,23 @@
         "--usageStatistics=false",
         "--performanceCrux=false"
       ]
+    },
+    "serena": {
+      "command": "serena",
+      "args": [
+        "start-mcp-server",
+        "--project-from-cwd",
+        "--context=ide",
+        "--open-web-dashboard=false"
+      ]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp@2.0.2"]
+    },
+    "repomix": {
+      "command": "npx",
+      "args": ["-y", "repomix@1.17.0", "--mcp"]
     }
   }
 }

@@ -360,3 +360,5 @@ blockquotes could never show without being read end to end.
 > **Contract 196 stage effect:** five of the six declared action types now have generators. No hub build-stage scope changes.
 
 > **Contract 197 stage effect:** a hub surface can list a player’s football in kickoff order across competitions in one request. No hub build-stage scope changes.
+
+> **Contract 198 stage effect:** a Championship the launcher accepts can always be finished inside its own calendar. No hub build-stage scope changes.

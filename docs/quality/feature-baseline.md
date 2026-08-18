@@ -339,3 +339,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 196:** records a backend capability and a backend correctness fix: a player is told when they are knocked out of, qualify from or win a competition, and a Championship outcome now carries the date it happened. No frontend feature baseline changes; the item tells a player only about themselves.
 
 > **Contract 197:** records a backend capability: a player’s football can be listed in kickoff order across their competitions in one read. No frontend feature baseline changes, no Matches surface is designed or built, and no disclosure boundary moves — it is a fixture read with no prediction, score, standing or other player in it.
+
+> **Contract 198:** records a backend correctness fix and a rule clarification: a Championship can no longer be launched into a shape it cannot finish, and the shortfall no longer surfaces months later at qualification. No frontend feature baseline changes.

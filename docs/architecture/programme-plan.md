@@ -271,3 +271,5 @@ blockquotes could never show without being read end to end.
 > **Contract 196 programme effect:** the cross-competition attention surface gains its consequence source, leaving only the private-league invitation — which is blocked on an invitation event rather than on a generator. No programme reordering.
 
 > **Contract 197 programme effect:** the Stage 8 Matches system gains the cross-competition read it would otherwise have had to assemble in the browser. It designs none of that system. No programme reordering.
+
+> **Contract 198 programme effect:** the last Championship blocker is cleared, so Workstream B is complete. No programme reordering.

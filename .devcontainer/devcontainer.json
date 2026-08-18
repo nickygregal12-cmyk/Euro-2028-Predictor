@@ -7,13 +7,18 @@
     },
     "ghcr.io/devcontainers/features/python:1": {
       "version": "3.12"
+    },
+    "ghcr.io/devcontainers/features/rust:1": {
+      "version": "stable"
     }
   },
   "postCreateCommand": "bash scripts/agent-tools/bootstrap.sh",
   "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin",
+    "BD_DISABLE_METRICS": "1",
+    "DOLT_DISABLE_EVENT_FLUSH": "1"
   },
-  "forwardPorts": [5173, 6006, 20128],
+  "forwardPorts": [5173, 6006, 20128, 8765],
   "portsAttributes": {
     "5173": {
       "label": "Predictor Vite",
@@ -26,6 +31,10 @@
     "20128": {
       "label": "OmniRoute dashboard/API",
       "onAutoForward": "notify"
+    },
+    "8765": {
+      "label": "MCP Agent Mail (optional/private)",
+      "onAutoForward": "silent"
     }
   }
 }

@@ -62,12 +62,22 @@ describe('one public Cup at a time', () => {
 })
 
 describe('the threshold is chosen against the format arithmetic', () => {
-  it('produces five balanced groups at the cap for a field of exactly 100', () => {
+  it('produces seven balanced groups and a finishable knockout for a field of exactly 100', () => {
+    // CONTRACT 198. The threshold used to land on five groups at the cap. The
+    // knockout is now reserved before the groups are sized: seventy qualifiers
+    // need seven rounds, seven off 38 leaves 31, and 31 caps a group at 16 —
+    // so the same field settles at seven groups of fifteen and fourteen. The
+    // cap still binds; the calendar simply binds first.
     expect(selectCupFormat(PUBLIC_CUP_ENTRANT_THRESHOLD, 38)).toEqual({
       kind: 'groups',
-      groupCount: 5,
-      groupSizes: [CUP_GROUP_CAP, CUP_GROUP_CAP, CUP_GROUP_CAP, CUP_GROUP_CAP, CUP_GROUP_CAP],
+      groupCount: 7,
+      groupSizes: [15, 15, 14, 14, 14, 14, 14],
+      knockout: { rounds: 7, qualifiers: 70 },
     })
+    const decision = selectCupFormat(PUBLIC_CUP_ENTRANT_THRESHOLD, 38)
+    expect(decision.kind === 'groups' && Math.max(...decision.groupSizes)).toBeLessThanOrEqual(
+      CUP_GROUP_CAP,
+    )
   })
 
   it('is a launch rule, not a format rule — structure still follows the real field', () => {
@@ -75,7 +85,7 @@ describe('the threshold is chosen against the format arithmetic', () => {
     // selector, not the threshold's.
     const larger = selectCupFormat(140, 38)
     expect(larger.kind).toBe('groups')
-    expect(larger.kind === 'groups' && larger.groupCount).toBe(7)
+    expect(larger.kind === 'groups' && larger.groupCount).toBe(9)
   })
 })
 

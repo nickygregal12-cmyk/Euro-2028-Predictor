@@ -207,6 +207,34 @@ If `INNOV-017` is extended beyond the existing immutable audit trail:
 
 The narrower ordinary server confirmation instant/reference (`INNOV-017a`) may still exist for operational traceability, but it should not become a prominent user-facing receipt experience.
 
+### 20. A knockout is what happens when the field is too big for one league
+
+**Decided 18 August 2026.** `CUP-006` asked whether `select_season_cup_format`
+must RESERVE calendar for the knockout it implies rather than reporting whatever
+happens to be left over. It was blocked because the answer changes what shape a
+competition takes, and because ADR 0014's worked table and contract 186
+contradicted each other on whether a single group ends in a knockout or a split.
+
+**The contradiction is resolved in contract 186's favour, and ADR 0014's table
+is corrected.** A single group IS a league and finishes as one. The league is
+**never shortened** to make room for a bracket; a knockout is added only when the
+rounds left after the full league happen to be enough for the qualifier count,
+and otherwise the table decides it. The split remains what it always was — the
+balance for an odd meeting count — and is not a knockout trigger.
+
+**A multi-group competition always ends in a knockout**, because its field
+cannot be one league, and its calendar is **reserved by arithmetic working
+backwards** before the groups are sized.
+
+**The consequence, shown and accepted:** whether a single group ends in a
+knockout depends on how the league rounds divide the calendar, so neighbouring
+field sizes end differently. Over 38 matchweeks 18 entrants reach a knockout and
+19 do not; 11 do and 12 do not.
+
+Implemented by contract 198. No qualification, seeding, bye, playoff-pairing or
+Penalty Number rule moves, so ADR 0022 is not engaged. No competition is
+affected on any hosted environment, because none has been launched.
+
 ## Requirements no longer blocked on an owner decision
 
 This ADR removes the named **owner** blocker from the following work, while leaving engineering dependencies and acceptance evidence intact:

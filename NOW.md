@@ -13,8 +13,8 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **197** | latest `20260818020000_my_football_calendar.sql` |
-| Development hosted | **189** | at `20260813215920_ai_quarantined_evidence_reads.sql`, verified `2026-08-13T22:57:00.000Z`, fast-lane run `31751114401` |
+| Repository | **198** | latest `20260818030000_cup_knockout_reservation.sql` |
+| Development hosted | **190** | at `20260814005000_ai_actionable_bet_evidence.sql`, verified `2026-08-18T08:30:00.000Z` |
 | Production | **190** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 8 — `20260814005000_ai_actionable_bet_evidence.sql`, `20260817120000_season_player_identity.sql`, `20260817130000_season_rank_history_and_rivalry.sql`, `20260817140000_season_cup_bracket_read.sql`, `20260817150000_cup_tie_eligibility.sql`, `20260818000000_cup_penalty_number_actions.sql`, `20260818010000_game_consequence_actions.sql`, `20260818020000_my_football_calendar.sql`
+**Pending development migrations:** 8 — `20260817120000_season_player_identity.sql`, `20260817130000_season_rank_history_and_rivalry.sql`, `20260817140000_season_cup_bracket_read.sql`, `20260817150000_cup_tie_eligibility.sql`, `20260818000000_cup_penalty_number_actions.sql`, `20260818010000_game_consequence_actions.sql`, `20260818020000_my_football_calendar.sql`, `20260818030000_cup_knockout_reservation.sql`
 
-**Next free contract number:** 198. Check open pull requests
+**Next free contract number:** 199. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

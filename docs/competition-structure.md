@@ -190,3 +190,5 @@ same paragraph existed in seven places at once.
 > **Contract 196:** does not alter any competition outcome, only the date recorded beside it. `survived` is excluded from the consequence feed because it is written every Last Man Standing round for every survivor.
 
 > **Contract 197:** does not alter competition structure. It lists existing season fixtures across the seasons one player has entered, excluding the tournament shape exactly as `get_season_fixtures` refuses it.
+
+> **Contract 198:** a single group is a league and finishes as one; its league is never shortened to fit a bracket, and a knockout follows only when the rounds left after it can hold one. A multi-group competition always ends in a knockout and reserves its calendar first, which shrinks the groups.

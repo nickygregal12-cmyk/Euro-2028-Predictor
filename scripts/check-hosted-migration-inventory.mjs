@@ -22,6 +22,23 @@ if (hosted.requiredMigrationCount > repository.requiredMigrationCount) {
   )
 }
 
+// ADR 0024's ordering rule, as a property of the RECORDS rather than of a
+// workflow. Production must never be the first hosted environment to see a
+// migration, and nothing here checked it: the pair sat at development 189 and
+// production 190 -- Production a contract AHEAD -- and this script passed,
+// because the only comparison it made was against the repository. Measurement
+// on 18 August 2026 then found hosted Development actually holding 190, so the
+// records had been wrong rather than the ordering broken; the gate is added so
+// that the next time the two disagree, something says so before a promotion
+// reads a stale number and believes it.
+if (production.requiredMigrationCount > hosted.requiredMigrationCount) {
+  fail(
+    `Production is recorded at ${production.requiredMigrationCount}, ahead of development ` +
+      `${hosted.requiredMigrationCount}. Production must not be the first hosted environment ` +
+      'to see a migration. Apply it to development, reconcile that record, and try again.',
+  )
+}
+
 if (production.promotionAuthorised !== false) {
   fail('Production promotion must remain fail-closed in the hosted contract record.')
 }

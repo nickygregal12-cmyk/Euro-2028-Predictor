@@ -15,13 +15,19 @@
  *   half first when the field is odd) each play a post-split round-robin,
  *   and points carry through — the split follows the arithmetic, never the
  *   host league;
- * - even meetings → the remainder of the calendar is the seeded playoff and
- *   knockout window; an exact fit (N = 20 over 38) has no tail at all;
+ * - even meetings → no split; an exact fit (N = 20 over 38) has no tail at all;
+ * - contract 198: whatever the calendar has left after the league RESERVES a
+ *   knockout only when it can hold the whole bracket the qualifier count
+ *   implies. A single group is a league and finishes as one — it is never
+ *   shortened to make room, so a short remainder means no knockout, not a
+ *   truncated one;
  * - a Cup need not fill the season — leftover rounds are reported, never
  *   padded away;
  * - above the cap, or mid-season when two meetings no longer fit a single
  *   group, the field is drawn into BALANCED groups of at most twenty —
- *   thirty entrants is two groups of fifteen, never a twenty and a ten.
+ *   thirty entrants is two groups of fifteen, never a twenty and a ten. A
+ *   multi-group field cannot be one league, so it ALWAYS ends in a knockout
+ *   and contract 198 takes that calendar off the end BEFORE sizing the groups.
  *
  * The selector decides shape only. Draw, schedule generation, qualification,
  * seeding and the knockout bracket remain with their existing authorities,
@@ -43,8 +49,17 @@ export type CupSingleGroupTail =
       /** Post-split round-robin rounds, sized by the larger half. */
       splitRounds: number
     }
-  | { kind: 'seeded_playoff_window'; rounds: number }
   | { kind: 'none' }
+
+/**
+ * Contract 198. The knockout a competition RESERVES calendar for, or null.
+ *
+ * `seeded_playoff_window` used to sit in the tail above and reported whatever
+ * rounds happened to be left over, whether or not they could hold the bracket
+ * the qualifier count implies. The reservation is a different claim and gets
+ * its own field.
+ */
+export type CupKnockoutReservation = { rounds: number; qualifiers: number }
 
 export type CupFormatDecision =
   | { kind: 'declined_head_to_head' }
@@ -53,6 +68,13 @@ export type CupFormatDecision =
       meetings: number
       leagueRounds: number
       tail: CupSingleGroupTail
+      /**
+       * Contract 198. A single group is a LEAGUE and finishes as one. The
+       * league is never shortened to make room, so a knockout appears only
+       * when the rounds left after it can hold the whole bracket; otherwise
+       * the table decides and this is null.
+       */
+      knockout: CupKnockoutReservation | null
       /** Calendar the competition leaves unused. Real competitions finish early. */
       leftoverRounds: number
     }
@@ -61,6 +83,12 @@ export type CupFormatDecision =
       groupCount: number
       /** Balanced sizes, largest first; smaller groups take byes. */
       groupSizes: readonly number[]
+      /**
+       * Contract 198. A multi-group field cannot be one league, so it ALWAYS
+       * ends in a knockout and the calendar for it is reserved before the
+       * groups are sized.
+       */
+      knockout: CupKnockoutReservation
     }
   | { kind: 'refused'; reason: 'invalid_input' | 'insufficient_rounds' }
 
@@ -75,34 +103,63 @@ function balancedGroups(fieldSize: number, groupCount: number): number[] {
   return Array.from({ length: groupCount }, (_, index) => (index < larger ? base + 1 : base))
 }
 
+/**
+ * Qualifiers a group of this size sends on: section 6.1's two-thirds line,
+ * rounded UP, in integer arithmetic so it cannot depend on rounding mode.
+ * Mirrors `predictor_internal.cup_group_qualifying_limit`.
+ */
+export function cupQualifyingLimit(groupSize: number): number {
+  const size = Math.max(0, groupSize)
+  return Math.min(Math.max(1, Math.floor((2 * size + 2) / 3)), Math.max(1, size))
+}
+
+/**
+ * Rounds a knockout bracket needs for a qualifier count: log2 of the largest
+ * power of two at or below it, plus one preliminary playoff round when there is
+ * a surplus. Mirrors `predictor_internal.cup_knockout_rounds`, which contract
+ * 198 extracted from `admin_finalise_predictor_cup_groups` so the launcher that
+ * RESERVES the calendar and the gate that CREATES the windows read one answer.
+ */
+export function cupKnockoutRounds(qualifiers: number): number {
+  if (!Number.isInteger(qualifiers) || qualifiers < 2) return 0
+  const power = 2 ** Math.floor(Math.log2(qualifiers))
+  return Math.log2(power) + (qualifiers > power ? 1 : 0)
+}
+
 function singleGroup(fieldSize: number, remainingRounds: number, meetings: number): CupFormatDecision {
   const leagueRounds = meetings * (fieldSize - 1)
+  let tail: CupSingleGroupTail = { kind: 'none' }
+  let used = leagueRounds
 
   if (meetings % 2 === 1) {
     const topHalfSize = Math.ceil(fieldSize / 2)
     const bottomHalfSize = Math.floor(fieldSize / 2)
     const splitRounds = roundRobinRounds(topHalfSize)
-    if (leagueRounds + splitRounds <= remainingRounds) {
-      return {
-        kind: 'single_group',
-        meetings,
-        leagueRounds,
-        tail: { kind: 'split', topHalfSize, bottomHalfSize, splitRounds },
-        leftoverRounds: remainingRounds - leagueRounds - splitRounds,
-      }
+    if (leagueRounds + splitRounds > remainingRounds) {
+      // The odd meeting count fits but its balancing split does not: play one
+      // meeting fewer, which is even and needs no split.
+      return singleGroup(fieldSize, remainingRounds, meetings - 1)
     }
-    // The odd meeting count fits but its balancing split does not: play one
-    // meeting fewer, which is even and needs no split.
-    return singleGroup(fieldSize, remainingRounds, meetings - 1)
+    tail = { kind: 'split', topHalfSize, bottomHalfSize, splitRounds }
+    used = leagueRounds + splitRounds
   }
 
-  const window = remainingRounds - leagueRounds
+  // CONTRACT 198. The league is never shortened to make room. Whatever is left
+  // after it becomes a knockout only if it can hold the whole bracket the
+  // qualifier count implies; otherwise the table decides the competition and
+  // the rounds are simply unused, which ADR 0014 already permits.
+  const free = remainingRounds - used
+  const qualifiers = cupQualifyingLimit(fieldSize)
+  const knockoutRounds = cupKnockoutRounds(qualifiers)
+  const reserves = knockoutRounds > 0 && free >= knockoutRounds
+
   return {
     kind: 'single_group',
     meetings,
     leagueRounds,
-    tail: window > 0 ? { kind: 'seeded_playoff_window', rounds: window } : { kind: 'none' },
-    leftoverRounds: 0,
+    tail,
+    knockout: reserves ? { rounds: knockoutRounds, qualifiers } : null,
+    leftoverRounds: reserves ? free - knockoutRounds : free,
   }
 }
 
@@ -128,20 +185,36 @@ export function selectCupFormat(fieldSize: number, remainingRounds: number): Cup
     return singleGroup(fieldSize, remainingRounds, meetings)
   }
 
-  // Groups: the cap bounds every group, and mid-season the calendar bounds
-  // it further — each group must still fit two meetings in what remains.
-  const largestViableGroup = Math.min(
-    CUP_GROUP_CAP,
-    Math.floor(remainingRounds / CUP_MINIMUM_MEETINGS) + 1,
-  )
-  if (largestViableGroup < CUP_MINIMUM_FIELD) {
-    return { kind: 'refused', reason: 'insufficient_rounds' }
+  // CONTRACT 198. A multi-group field cannot be one league, so it MUST end in a
+  // knockout, and the calendar for it is taken off the end BEFORE the groups
+  // are sized. Reserving shrinks the groups, which changes how many qualify,
+  // which changes the depth — so this settles to a fixed point rather than
+  // reserving once. A field that will not settle is one the calendar genuinely
+  // cannot hold, and is refused rather than approximated.
+  let reserve = 0
+  for (let pass = 0; pass < 8; pass += 1) {
+    // The cap bounds every group, and the calendar bounds it further — each
+    // group must still fit two meetings in what remains after the reservation.
+    const largestViableGroup = Math.min(
+      CUP_GROUP_CAP,
+      Math.floor((remainingRounds - reserve) / CUP_MINIMUM_MEETINGS) + 1,
+    )
+    if (largestViableGroup < CUP_MINIMUM_FIELD) {
+      return { kind: 'refused', reason: 'insufficient_rounds' }
+    }
+    const groupCount = Math.ceil(fieldSize / largestViableGroup)
+    const groupSizes = balancedGroups(fieldSize, groupCount)
+    const smallestGroupSize = groupSizes.at(-1)
+    if (smallestGroupSize === undefined || smallestGroupSize < CUP_MINIMUM_FIELD) {
+      return { kind: 'refused', reason: 'insufficient_rounds' }
+    }
+
+    const qualifiers = groupSizes.reduce((total, size) => total + cupQualifyingLimit(size), 0)
+    const knockoutRounds = cupKnockoutRounds(qualifiers)
+    if (knockoutRounds === reserve) {
+      return { kind: 'groups', groupCount, groupSizes, knockout: { rounds: knockoutRounds, qualifiers } }
+    }
+    reserve = knockoutRounds
   }
-  const groupCount = Math.ceil(fieldSize / largestViableGroup)
-  const groupSizes = balancedGroups(fieldSize, groupCount)
-  const smallestGroupSize = groupSizes.at(-1)
-  if (smallestGroupSize === undefined || smallestGroupSize < CUP_MINIMUM_FIELD) {
-    return { kind: 'refused', reason: 'insufficient_rounds' }
-  }
-  return { kind: 'groups', groupCount, groupSizes }
+  return { kind: 'refused', reason: 'insufficient_rounds' }
 }
