@@ -25,6 +25,7 @@ interface ProgrammeState {
 }
 
 const state = JSON.parse(read('config/vnext-programme.json')) as ProgrammeState
+const rootAgents = read('AGENTS.md')
 const controller = read('docs/product/vnext-programme-controller.md')
 const contracts = read('docs/product/vnext-stage-contracts.md')
 const runner = read('.agents/skills/vnext-programme-runner/SKILL.md')
@@ -67,6 +68,13 @@ describe('vNext programme controller', () => {
     }
 
     expect(state.stages[currentIndex]?.status).not.toBe('merged')
+  })
+
+  it('makes the programme runner discoverable from the root agent router', () => {
+    expect(rootAgents).toContain('vNext multi-stage programme / resume Stages 8–15')
+    expect(rootAgents).toContain('.agents/skills/vnext-programme-runner/SKILL.md')
+    expect(rootAgents).toContain('docs/product/vnext-programme-controller.md')
+    expect(rootAgents).toContain('config/vnext-programme.json')
   })
 
   it('binds stages 9-15 to stable mission, boundary and completion contracts', () => {
