@@ -4,12 +4,34 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+# THE ANALYSIS PARSER IS NOT THE REPOSITORY COMPILER, AND PINNING THEM TOGETHER
+# BROKE THIS CHECK SILENTLY.
+#
+# dependency-cruiser needs a TypeScript parser to RESOLVE THE MODULE GRAPH. It
+# is not, and must not become, this repository's type authority — `npx tsc -b`
+# is, and it runs on whatever `package.json` declares.
+#
+# This line used to read the compiler out of `package.json`, which tied the two
+# together. When the repository moved to TypeScript 7,
+# dependency-cruiser — which supports `typescript >=2.0.0 <7.0.0` and says so —
+# found no compatible transpiler, silently cruised ZERO modules, and reported
+# "no dependency violations found". A boundary checker that analyses nothing
+# passes everything.
+#
+# So the parser is pinned BESIDE the dependency-cruiser version, in the same
+# object, because the two are ONE TOOLCHAIN PAIR: the parser may only move when
+# dependency-cruiser's supported range moves. Renovate manages the cruiser and
+# deliberately does not manage this — a bot bumping the parser past the range
+# would reintroduce exactly the silent-zero-modules defect.
+#
+# The fail-closed guard below is what caught this and is unchanged. It is the
+# reason the failure was loud instead of a permanently green no-op.
 version="$(node -p "require('./config/agent-tools.json').dependencyCruiser.version")"
-typescript_version="$(node -p "require('./package.json').devDependencies.typescript.replace(/^[~^]/, '')")"
+typescript_version="$(node -p "require('./config/agent-tools.json').dependencyCruiser.analysisTypescript")"
 report="$(mktemp)"
 trap 'rm -f "$report"' EXIT
 
-printf 'Checking application dependency contracts with dependency-cruiser %s + TypeScript %s...\n' \
+printf 'Checking application dependency contracts with dependency-cruiser %s + analysis TypeScript %s...\n' \
   "$version" "$typescript_version"
 
 set +e
