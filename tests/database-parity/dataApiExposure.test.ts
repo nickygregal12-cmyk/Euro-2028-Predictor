@@ -71,6 +71,9 @@ describe('views are not reachable by browser roles', () => {
     expect(views).toEqual([
       // Contract 199's audit trail for which repeated advice counts as evidence.
       'ai.bet_advice_identity',
+      // Contract 201's two fixture-first reductions, behind the same boundary.
+      'ai.canonical_fixture_predictions',
+      'ai.current_fixture_recommendations',
       'ai.valid_bets',
       'ai.valid_predictions',
       'public.entry_totals',

@@ -373,6 +373,10 @@ same paragraph existed in seven places at once.
 > while the lab forecasts ten days, so prices aged past their own freshness
 > limit between matchdays and every recommendation became `PASS_STALE_PRICE`.
 > No freshness, edge, confidence, agreement or uncertainty threshold moves.
+> Contract 201 then makes the lab legible: three bounded admin reads that
+> answer every relevant fixture, why each one is or is not actionable, whether
+> each stage of the pipeline is current, and what happened one row per fixture
+> rather than once per model version that forecast it.
 
 > **Contract 197 — one chronological calendar across the player's competitions.**
 > **Advances the Stage 8 Matches work and reorders nothing else.** Counted over

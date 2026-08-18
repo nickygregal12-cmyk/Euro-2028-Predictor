@@ -119,3 +119,5 @@ same paragraph existed in seven places at once.
 > **Contract 199:** adds no rule and changes no ADR. It extends ADR 0029's existing betting-evidence authority — `ai.valid_bets`, already carrying contract 189's forecast-validity limb and contract 190's real-venue limb — with a third limb, and preserves every historical row. ADR 0030's model lifecycle is untouched.
 
 > **Contract 200:** adds no rule and changes no ADR. ADR 0029's price-freshness and value-gate thresholds are unchanged; only how often prices are collected to feed them moves.
+
+> **Contract 201:** adds no rule and changes no ADR. It is read-only reporting over the evidence ADR 0029 already defines, behind the existing competition-admin boundary, and a test asserts against the installed definition that it re-derives no BET or PASS.

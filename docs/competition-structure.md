@@ -196,3 +196,5 @@ same paragraph existed in seven places at once.
 > **Contract 199:** does not alter competition structure, scoring, entry, ownership or any player-facing rule. Its scope is the private AI Lab's betting evidence: which of several repeated paper-bet rows counts as evidence for one fixture and market, and whether a settlement may exist without a scoreline.
 
 > **Contract 200:** does not alter competition structure. It states how often the private AI Lab may poll for paid odds prices, and touches no competition, scoring or player relation.
+
+> **Contract 201:** does not alter competition structure. It adds three read-only competition-admin views of the private AI Lab and reports the decisions already recorded there; it evaluates no gate and touches no competition, scoring or player relation.

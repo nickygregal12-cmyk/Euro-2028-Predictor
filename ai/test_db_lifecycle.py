@@ -1495,3 +1495,291 @@ def test_the_hosted_heartbeat_inlines_exactly_the_cadence_function():
                 (hours,)).fetchone()["s"] == int(seconds_text), (
                     f"the cron command polls every {seconds_text}s at {hours}h "
                     "and the tested function disagrees")
+
+
+def _coverage_world():
+    """Two fixtures in one league: one priced and decided, one with nothing.
+
+    Deliberately built with THREE forecasts of the priced fixture, from three
+    model versions, because that is what Production looks like and it is the
+    shape every fixture-level read has to collapse.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    with db.connect() as conn:
+        models = []
+        for index in range(3):
+            payload = f"cov-{index}".encode()
+            sha = hashlib.sha256(payload).hexdigest()
+            # The artefact goes in first: ai.require_artifact_before_current
+            # refuses to make a model current without verified stored bytes, and
+            # that gate is exactly what this suite must not work around.
+            model = conn.execute(
+                """insert into ai.models (league,version,family,training_matches,
+                                          artifact_sha256,final_trained_through)
+                   values ('EPL',%s,'poisson',100,%s,%s) returning id""",
+                (f"cov-{index}", sha, date(2026, 8, 8))).fetchone()["id"]
+            conn.execute(
+                "insert into ai.model_artifacts(model_id,payload,sha256) values(%s,%s,%s)",
+                (model, payload, sha))
+            conn.execute("update ai.models set status=%s where id=%s",
+                         ('current' if index == 2 else 'retired', model))
+            models.append(model)
+        priced = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        bare = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Everton','Fulham') returning id""",
+            (kickoff.date(), kickoff + timedelta(hours=2))).fetchone()["id"]
+
+        predictions = []
+        for model in models:
+            predictions.append(conn.execute(
+                """insert into ai.predictions
+                     (model_id,league,fixture_id,kickoff_at,home_canonical,
+                      away_canonical,p_home,p_draw,p_away,predicted_result,
+                      predicted_score,features,horizon,hours_to_kickoff,
+                      features_version,data_confidence,agreement,uncertainty)
+                   values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','1-0','{}',
+                           'scheduled',48,'f2',
+                           '{"score":0.82,"state":"sufficient","missing_inputs":[]}',
+                           '{"score":0.91}','{"width":0.11}') returning id""",
+                (model, priced, kickoff)).fetchone()["id"])
+
+        # A price at a real venue and an aggregate reference beside it.
+        for book, prices in (("B365", (2.1, 3.4, 3.6)), ("AVG", (2.0, 3.3, 3.5))):
+            conn.execute(
+                "insert into ai.fixture_odds "
+                "(fixture_id,division,match_date,home_canonical,away_canonical,"
+                " bookmaker,odds_h,odds_d,odds_a,captured_at) "
+                "values (%s,'E0',%s,'Arsenal','Leeds',%s,%s,%s,%s,now())",
+                (priced, kickoff.date(), book, *prices))
+
+        # An older BET on the first forecast, then a newer PASS on the third.
+        conn.execute(
+            """insert into ai.recommendations
+                 (prediction_id,model_id,league,market,selection,decision,
+                  reason_codes,bookmaker,odds_offered,calibrated_prob,fair_odds,
+                  expected_value,kickoff_at,hours_to_kickoff,decided_at,
+                  odds_captured_at,odds_age_seconds,evidence)
+               values (%s,%s,'EPL','1X2','H','BET',array[]::text[],'B365',2.1,.55,
+                       1.82,.155,%s,48,now() - interval '2 days',
+                       now() - interval '2 days',120,'{}')""",
+            (predictions[0], models[0], kickoff))
+        conn.execute(
+            """insert into ai.recommendations
+                 (prediction_id,model_id,league,market,selection,decision,
+                  reason_codes,bookmaker,odds_offered,calibrated_prob,fair_odds,
+                  expected_value,kickoff_at,hours_to_kickoff,decided_at,
+                  odds_captured_at,odds_age_seconds,evidence)
+               values (%s,%s,'EPL','1X2','H','PASS',
+                       array['PASS_STALE_PRICE','PASS_LOW_EDGE'],'B365',2.1,.55,
+                       1.82,.005,%s,48,now(),now() - interval '3 days',259200,
+                       '{"market_fair_prob":0.52}')""",
+            (predictions[2], models[2], kickoff))
+        conn.commit()
+    return priced, bare, predictions
+
+
+def test_coverage_answers_why_every_fixture_is_or_is_not_actionable():
+    """Contract 201. The read an operator needed a database console for.
+
+    An empty Bet Builder looks identical whether the model found no value or the
+    pipeline is broken, and telling them apart needed five queries against a
+    schema no browser role can read.
+    """
+    priced, bare, _ = _coverage_world()
+
+    with db.connect() as conn:
+        body = conn.execute(
+            "select public.admin_ai_fixture_coverage(now(), now() + interval '7 days') as b"
+        ).fetchone()["b"]
+
+    totals = body["totals"]
+    assert totals["fixtures"] == 2, "every scheduled fixture in the window is listed"
+    assert totals["with_forecast"] == 1 and totals["without_forecast"] == 1
+    assert totals["with_real_bookmaker_price"] == 1
+    assert totals["actionable_bets"] == 0
+    assert totals["passed"] == 1
+    assert body["pass_reason_counts"] == {"PASS_STALE_PRICE": 1, "PASS_LOW_EDGE": 1}
+
+    by_fixture = {row["fixture_id"]: row for row in body["fixtures"]}
+    assert set(by_fixture) == {str(priced), str(bare)}
+
+    # THE NEWER PASS SUPERSEDES THE OLDER BET, and the fixture is reported once
+    # rather than three times because three model versions forecast it.
+    decided = by_fixture[str(priced)]
+    assert decided["decision"]["decision"] == "PASS"
+    assert decided["prediction"]["forecasts_collapsed"] == 3
+    assert decided["prediction"]["model_version"] == "cov-2", "the newest forecast"
+    assert decided["market"]["real_book_count"] == 1
+    assert decided["market"]["aggregate_reference_available"] is True
+    assert decided["market"]["best_real_price"]["bookmaker"] == "B365"
+    assert decided["quality"]["data_confidence_state"] == "sufficient"
+
+    # Every refusal carries its own sentence, from one authority.
+    codes = [reason["code"] for reason in decided["decision"]["reasons"]]
+    assert codes == ["PASS_STALE_PRICE", "PASS_LOW_EDGE"]
+    for reason in decided["decision"]["reasons"]:
+        assert len(reason["explanation"]) > 20
+        assert "No explanation is recorded" not in reason["explanation"]
+
+    # The price age is reported beside the limit it is being judged against,
+    # which is the whole content of PASS_STALE_PRICE.
+    assert decided["decision"]["price_age_seconds"] == 259200
+    assert decided["decision"]["price_age_limit_seconds"] == 43200
+
+    # A fixture nothing has touched is present and honest about it, rather than
+    # being absent and looking like it does not exist.
+    missing = by_fixture[str(bare)]
+    assert missing["prediction"] is None
+    assert missing["decision"] is None
+    assert missing["market"]["real_book_count"] == 0
+
+
+def test_coverage_never_re_evaluates_a_gate():
+    """It reports what find_value decided. It does not decide."""
+    _coverage_world()
+    with db.connect() as conn:
+        definition = conn.execute(
+            """select pg_get_functiondef(p.oid) as d
+                 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                where n.nspname = 'public'
+                  and p.proname = 'admin_ai_fixture_coverage'"""
+        ).fetchone()["d"]
+    # The decision fields are read from ai.recommendations. Nothing in the read
+    # compares an edge to a threshold or writes the word BET as a conclusion.
+    assert "ai.current_fixture_recommendations" in definition
+    assert "min_edge" not in definition
+    assert "expected_value >" not in definition
+    assert "expected_value >=" not in definition
+
+
+def test_the_results_review_is_one_row_per_fixture():
+    """Contract 201. Five forecasts of one match are one match.
+
+    A read-only audit reported ECH 17 August as "5 graded, 0 result correct"
+    for what was one fixture forecast five times, and the pair
+    result_correct=false with exact_score_correct=true was read as a grading
+    defect. It is not one: predicted_result is the argmax OUTCOME and
+    predicted_score is the modal SCORELINE, and a fixture whose most likely
+    scoreline is a draw can still have a home win as its most likely outcome.
+    """
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    played = datetime.now(timezone.utc) - timedelta(days=1)
+    with db.connect() as conn:
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E1','2627','ECH',%s,%s,'Cardiff','Wrexham') returning id""",
+            (kickoff.date(), kickoff)).fetchone()["id"]
+        for index in range(5):
+            model = conn.execute(
+                """insert into ai.models (league,version,family,training_matches,
+                                          artifact_sha256)
+                   values ('ECH',%s,'poisson',100,%s) returning id""",
+                (f"rev-{index}", hashlib.sha256(f"rev-{index}".encode()).hexdigest()),
+            ).fetchone()["id"]
+            prediction = conn.execute(
+                """insert into ai.predictions
+                     (model_id,league,fixture_id,kickoff_at,home_canonical,
+                      away_canonical,p_home,p_draw,p_away,predicted_result,
+                      predicted_score,features,horizon,hours_to_kickoff,
+                      features_version,data_confidence)
+                   values (%s,'ECH',%s,%s,'Cardiff','Wrexham',.403,.272,.325,'H',
+                           '1-1','{}','scheduled',48,'f2',
+                           '{"score":0.7,"state":"sufficient"}') returning id""",
+                (model, fixture, kickoff)).fetchone()["id"]
+            conn.execute(
+                """insert into ai.prediction_results
+                     (prediction_id,actual_home_goals,actual_away_goals,actual_result,
+                      result_correct,exact_score_correct,log_loss,brier,rps)
+                   values (%s,1,1,'D',false,true,1.3186,0.8115,0.1376)""",
+                (prediction,))
+        conn.execute(
+            """update ai.fixtures
+                  set status='played', home_goals=1, away_goals=1, result='D',
+                      kickoff_at=%s, match_date=%s
+                where id=%s""", (played, played.date(), fixture))
+        conn.commit()
+
+    with db.connect() as conn:
+        body = conn.execute(
+            """select public.admin_ai_results_review(
+                        now() - interval '7 days', now()) as b"""
+        ).fetchone()["b"]
+
+    assert body["totals"]["graded_fixtures"] == 1, (
+        "five forecasts of one match are one match, not a five-match sample")
+    assert body["totals"]["result_correct"] == 0
+    assert body["totals"]["exact_scores"] == 1
+    assert body["duplicate_graded_rows_excluded"] == 4, (
+        "how many rows were collapsed must be visible, not silently dropped")
+    assert body["sample_sufficiency"] == "EARLY_SAMPLE"
+    assert "variance" in body["sample_note"]
+
+    fixture_row = body["fixtures"][0]
+    assert fixture_row["result_correct"] is False
+    assert fixture_row["exact_score_correct"] is True
+    assert fixture_row["modal_scoreline_beat_modal_outcome"] is True, (
+        "the surface must say the two grades disagree on purpose rather than "
+        "leave a reader to report it as corruption")
+    assert fixture_row["forecasts_collapsed"] == 5
+
+
+def test_operational_health_separates_a_quiet_pipeline_from_a_broken_one():
+    """Contract 201. Every stage says when it last ran and what it holds."""
+    _coverage_world()
+    with db.connect() as conn:
+        body = conn.execute("select public.admin_ai_operational_health() as b").fetchone()["b"]
+
+    assert body["fixtures"]["upcoming_7d"] == 2
+    assert body["predictions"]["upcoming_fixtures"] == 2
+    assert body["predictions"]["with_current_forecast"] == 1
+    assert body["predictions"]["without_forecast"] == 1
+    assert body["value_loop"]["current_bets"] == 0
+    assert body["value_loop"]["current_passes"] == 1
+    assert body["models"]["expected"] == 9
+    assert body["models"]["current"] == 1
+    assert body["odds_api"]["collection_enabled"] in (True, False)
+    assert "credits_used_this_month" in body["odds_api"]
+    assert body["settlement"]["played_and_unsettled"] == 0
+    assert body["prices"]["last_real_capture_at"] is not None
+
+
+def test_the_ai_lab_reads_stay_behind_the_competition_admin_gate():
+    """Three new reads, three definer functions, no browser role near schema ai."""
+    _coverage_world()
+    with db.connect() as conn:
+        for name, args in (
+            ('admin_ai_fixture_coverage', 'timestamptz,timestamptz,text[]'),
+            ('admin_ai_operational_health', ''),
+            ('admin_ai_results_review', 'timestamptz,timestamptz,text[]'),
+        ):
+            row = conn.execute(
+                """select p.prosecdef, p.provolatile,
+                          has_function_privilege('authenticated', p.oid, 'execute') as auth,
+                          has_function_privilege('anon', p.oid, 'execute') as anon
+                     from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+                    where n.nspname = 'public' and p.proname = %s""",
+                (name,)).fetchone()
+            assert row["prosecdef"] is True, f"{name} must be SECURITY DEFINER"
+            assert row["provolatile"] == 's', f"{name} must be STABLE, and must not write"
+            assert row["auth"] is True, f"{name} must be callable by authenticated"
+            assert row["anon"] is False, f"{name} must not be callable by anon"
+            assert args is not None
+
+        for view in ('canonical_fixture_predictions', 'current_fixture_recommendations'):
+            for role in ('anon', 'authenticated'):
+                assert conn.execute(
+                    "select has_table_privilege(%s, %s, 'select') as ok",
+                    (role, f"ai.{view}")).fetchone()["ok"] is False, (
+                        f"ai.{view} must not be readable by {role}")

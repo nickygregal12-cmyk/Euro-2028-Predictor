@@ -277,3 +277,5 @@ blockquotes could never show without being read end to end.
 > **Contract 199 programme effect:** the private AI Lab's paper-betting record becomes countable — one advised bet per fixture and market — and a played bet no longer waits on a closing line to settle. No programme reordering.
 
 > **Contract 200 programme effect:** the private AI Lab collects paid prices often enough for its own freshness gate, so a weekend's fixtures can be assessed on the days before it. No programme reordering.
+
+> **Contract 201 programme effect:** the private AI Lab can be operated without a database console — every relevant fixture, why it is or is not actionable, whether each stage of the pipeline is current, and what happened last weekend one row per fixture. No programme reordering.
