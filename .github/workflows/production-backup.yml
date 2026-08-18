@@ -101,7 +101,7 @@ jobs:
           echo 'Restore rehearsal expectations derived from the deployment contract:'
           node scripts/deployment-contract-expectations.mjs --json
 
-      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+      - uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v2
         with:
           # Includes GoTrue v2.192.0, whose local auth schema contains
           # auth.custom_oauth_providers.custom_claims_allowlist. Keep the
