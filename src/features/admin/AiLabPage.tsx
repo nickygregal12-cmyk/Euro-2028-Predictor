@@ -11,11 +11,34 @@ import {
   type AiRecentResult,
 } from '../../services/supabase/aiLabModel'
 import { fetchAiLabSnapshot, promoteAiModel } from '../../services/supabase/aiLab'
+import {
+  fetchAiCoverage,
+  fetchAiOperationalHealth,
+  fetchAiResultsReview,
+} from '../../services/supabase/aiLabCoverage'
+import type {
+  AiCoverage,
+  AiHealth,
+  AiResultsReview,
+} from '../../services/supabase/aiLabCoverageModel'
 import { BetBuilderPanel } from './BetBuilderPanel'
+import {
+  CoverageFixtures,
+  CoverageSummary,
+  OperationalHealth,
+  ResultsReview,
+} from './AiLabCoverageViews'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import styles from './AiLabPage.module.css'
 
-type View = 'overview' | 'predictions' | 'betting' | 'betBuilder' | 'operations'
+type View =
+  | 'overview'
+  | 'coverage'
+  | 'results'
+  | 'predictions'
+  | 'betting'
+  | 'betBuilder'
+  | 'operations'
 type State =
   | { kind: 'loading' }
   | { kind: 'failed'; message: string }
@@ -23,11 +46,31 @@ type State =
 
 const VIEW_LABELS: readonly { key: View; label: string }[] = [
   { key: 'overview', label: 'Overview' },
+  { key: 'coverage', label: 'This weekend' },
+  { key: 'results', label: 'Recent results' },
   { key: 'predictions', label: 'Predictions' },
   { key: 'betting', label: 'Betting evidence' },
   { key: 'betBuilder', label: 'Bet Builder' },
   { key: 'operations', label: 'Operations' },
 ]
+
+/**
+ * Contract 201's three reads, kept in their own request rather than folded into
+ * `fetchAiLabSnapshot`. They are windowed and the snapshot is not, and an
+ * operator changing the window should not re-read nine other RPCs to do it.
+ */
+type LabContext =
+  | { kind: 'loading' }
+  | { kind: 'failed'; message: string }
+  | {
+      kind: 'ready'
+      health: AiHealth
+      coverage: AiCoverage
+      review: AiResultsReview
+    }
+
+const COVERAGE_DAYS_AHEAD = 7
+const REVIEW_DAYS_BACK = 7
 
 function percent(value: number | null, digits = 1): string {
   return value === null ? '—' : `${(value * 100).toFixed(digits)}%`
@@ -61,6 +104,9 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
   const [state, setState] = useState<State>(
     previewSnapshot ? { kind: 'ready', snapshot: previewSnapshot } : { kind: 'loading' },
   )
+  const [context, setContext] = useState<LabContext>(
+    previewSnapshot ? { kind: 'failed', message: 'Preview snapshot' } : { kind: 'loading' },
+  )
   const [promotion, setPromotion] = useState<AiModel | null>(null)
   const [promotionReason, setPromotionReason] = useState('')
   const [promotionBusy, setPromotionBusy] = useState(false)
@@ -82,6 +128,45 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
           setState({
             kind: 'failed',
             message: userFacingError(error, 'The AI Lab could not be loaded.'),
+          })
+        }
+      })
+    return () => {
+      active = false
+    }
+  }, [league, reload, previewSnapshot])
+
+  useEffect(() => {
+    if (previewSnapshot) return
+    let active = true
+    setContext({ kind: 'loading' })
+    const now = new Date()
+    const coverageWindow = {
+      from: now,
+      to: new Date(now.getTime() + COVERAGE_DAYS_AHEAD * 86400000),
+      leagues: league ? [league] : null,
+    }
+    const reviewWindow = {
+      from: new Date(now.getTime() - REVIEW_DAYS_BACK * 86400000),
+      to: now,
+      leagues: league ? [league] : null,
+    }
+    Promise.all([
+      fetchAiOperationalHealth(),
+      fetchAiCoverage(coverageWindow),
+      fetchAiResultsReview(reviewWindow),
+    ])
+      .then(([health, coverage, review]) => {
+        if (active) setContext({ kind: 'ready', health, coverage, review })
+      })
+      .catch((error: unknown) => {
+        if (active) {
+          setContext({
+            kind: 'failed',
+            message: userFacingError(
+              error,
+              'Coverage, health and the results review could not be read.',
+            ),
           })
         }
       })
@@ -177,12 +262,46 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
             </div>
           </Alert>
         ) : null}
+        {view === 'overview' && context.kind === 'ready' ? (
+          <OperationalHealth health={context.health} />
+        ) : null}
+        {view === 'overview' && context.kind === 'failed' && !previewSnapshot ? (
+          <Alert variant="warning" title="Pipeline health unavailable">{context.message}</Alert>
+        ) : null}
         {snapshot && view === 'overview' ? (
           <Overview snapshot={snapshot} modelTarget={league ? 1 : AI_LAB_LEAGUES.length} onPromote={setPromotion} />
         ) : null}
+        {view === 'coverage' ? (
+          context.kind === 'ready' ? (
+            <div className={styles.stack}>
+              <CoverageSummary coverage={context.coverage} />
+              <CoverageFixtures coverage={context.coverage} />
+            </div>
+          ) : context.kind === 'failed' ? (
+            <Alert variant="warning" title="Coverage unavailable">{context.message}</Alert>
+          ) : (
+            <LoadingDashboard />
+          )
+        ) : null}
+        {view === 'results' ? (
+          context.kind === 'ready' ? (
+            <ResultsReview review={context.review} />
+          ) : context.kind === 'failed' ? (
+            <Alert variant="warning" title="Results review unavailable">{context.message}</Alert>
+          ) : (
+            <LoadingDashboard />
+          )
+        ) : null}
         {snapshot && view === 'predictions' ? <Predictions snapshot={snapshot} /> : null}
         {snapshot && view === 'betting' ? <Betting snapshot={snapshot} /> : null}
-        {view === 'betBuilder' ? <BetBuilderPanel /> : null}
+        {view === 'betBuilder' ? (
+          <div className={styles.stack}>
+            {context.kind === 'ready' ? (
+              <CoverageSummary coverage={context.coverage} />
+            ) : null}
+            <BetBuilderPanel />
+          </div>
+        ) : null}
         {snapshot && view === 'operations' ? <Operations snapshot={snapshot} /> : null}
 
         <Modal

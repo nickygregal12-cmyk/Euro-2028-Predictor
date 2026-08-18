@@ -1,9 +1,9 @@
-name: Production 198 to 202 rollout
+name: Production 198 to 203 rollout
 
-# One-shot guarded promotion of Contracts 199 to 202: the private AI Lab's
+# One-shot guarded promotion of Contracts 199 to 203: the private AI Lab's
 # operational boundary.
 #
-# This span is FOUR migrations. The boundary proof below establishes the exact
+# This span is FIVE migrations. The boundary proof below establishes the exact
 # SET and every member of it is proven additive before anything is applied,
 # which is the method the 190-to-198 rollout introduced for a multi-migration
 # span and which this one keeps.
@@ -30,6 +30,11 @@ name: Production 198 to 202 rollout
 #   202  A wider `ai.predictions.horizon` vocabulary, so a fixture more than two
 #        days out is re-forecast as new completed matches arrive instead of being
 #        frozen at the first run of the week. Predictions stay immutable.
+#   203  Bet Builder asks the database for the CURRENT decision instead of the
+#        newest BET, so a superseded BET cannot leave the database and the
+#        browser stops keeping a second definition of "current". Both reads are
+#        redefined at their existing signatures; `ai.recommendations` stays
+#        append-only and the refused BET remains readable in the decision log.
 #
 # Everything here lives in schema `ai` or in a definer read over it. No scoring
 # rule, reveal rule, membership rule or settled result is redefined; nothing
@@ -51,13 +56,13 @@ on:
         description: Exact Production project ref confirmation
         required: true
       confirmation:
-        description: Type APPLY-PRODUCTION-198-TO-202 to proceed
+        description: Type APPLY-PRODUCTION-198-TO-203 to proceed
         required: true
       backup_run_id:
         description: Run id of the successful fresh Production backup
         required: true
       rehearsal_run_id:
-        description: Run id of the successful 198-to-202 rehearsal
+        description: Run id of the successful 198-to-203 rehearsal
         required: true
 
 permissions:
@@ -71,14 +76,14 @@ concurrency:
 env:
   EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
   FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
-  CONFIRMATION_PHRASE: APPLY-PRODUCTION-198-TO-202
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-198-TO-203
   SOURCE_CONTRACT: '198'
   SOURCE_VERSION: '20260818030000'
   SOURCE_NAME: ai_actionable_bet_evidence
-  TARGET_CONTRACT: '202'
-  TARGET_VERSION: '20260818070000'
-  TARGET_NAME: ai_forecast_horizons
-  WORK_DIR: /tmp/production-198-to-202
+  TARGET_CONTRACT: '203'
+  TARGET_VERSION: '20260818080000'
+  TARGET_NAME: ai_bet_builder_current_decision
+  WORK_DIR: /tmp/production-198-to-203
 
 jobs:
   rollout:
@@ -123,7 +128,7 @@ jobs:
             printf '%s' "${json}"
           }
           backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
-          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-198-to-202-rehearsal.yml' Rehearsal)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-198-to-203-rehearsal.yml' Rehearsal)"
           rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
           [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
           backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
@@ -161,7 +166,7 @@ jobs:
           fi
           echo "Development is recorded at contract ${dev_contract}, at or beyond this boundary's ${TARGET_CONTRACT}."
 
-      - name: Prove the repository boundary is exactly 198 to 202
+      - name: Prove the repository boundary is exactly 198 to 203
         shell: bash
         run: |
           set -euo pipefail
@@ -180,7 +185,7 @@ jobs:
             fi
           done
           count="$(wc -l < "${WORK_DIR}/boundary.txt" | tr -d ' ')"
-          [ "${count}" = 4 ] || { echo "ERROR: boundary holds ${count} migrations, expected 4."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
+          [ "${count}" = 5 ] || { echo "ERROR: boundary holds ${count} migrations, expected 5."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
           cat "${WORK_DIR}/boundary.txt"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -260,7 +265,7 @@ jobs:
           }
           NODE
 
-      - name: Dry run and refuse anything except the four approved migrations
+      - name: Dry run and refuse anything except the five approved migrations
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -271,9 +276,9 @@ jobs:
           cat "${WORK_DIR}/dry-run.txt"
           grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
           sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
-          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contracts 199 to 202.'; exit 1; }
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contracts 199 to 203.'; exit 1; }
 
-      - name: Apply exactly Contracts 199 to 202
+      - name: Apply exactly Contracts 199 to 203
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -292,7 +297,7 @@ jobs:
             'migration_count',(select count(*) from supabase_migrations.schema_migrations),
             'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
             'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
-            'target_row_present',(select count(*) from supabase_migrations.schema_migrations where version='20260818070000' and name='ai_forecast_horizons'),
+            'target_row_present',(select count(*) from supabase_migrations.schema_migrations where version='20260818080000' and name='ai_bet_builder_current_decision'),
             'auth_users',(select count(*) from auth.users),
             'profiles',(select count(*) from public.profiles),
             'entries',(select count(*) from public.entries),
@@ -349,7 +354,9 @@ jobs:
             -- CONTRACT 202. The forecast horizon vocabulary is widened and still
             -- closed, and the uniqueness key it works through is untouched.
             'horizon_vocabulary_widened',((select count(*) from pg_constraint where conrelid='ai.predictions'::regclass and conname='predictions_horizon_check' and pg_get_constraintdef(oid) like '%t168%' and pg_get_constraintdef(oid) like '%t120%' and pg_get_constraintdef(oid) like '%t72%')=1),
-            'horizon_uniqueness_intact',((select count(*) from pg_indexes where schemaname='ai' and indexname='predictions_one_per_model_fixture_horizon')=1));
+            'horizon_uniqueness_intact',((select count(*) from pg_indexes where schemaname='ai' and indexname='predictions_one_per_model_fixture_horizon')=1),
+            'bet_builder_uses_current_decision',(position('current_fixture_recommendations' in pg_get_functiondef('public.admin_ai_bet_builder_candidates(text,text[],timestamptz,timestamptz,integer)'::regprocedure))>0),
+            'bet_builder_books_use_current_decision',(position('current_fixture_recommendations' in pg_get_functiondef('public.admin_ai_bet_builder_books()'::regprocedure))>0));
           SQL
           cat "${WORK_DIR}/after.json"
           BEFORE_FILE="${WORK_DIR}/before.json" AFTER_FILE="${WORK_DIR}/after.json" node --input-type=module <<'NODE'
@@ -418,6 +425,12 @@ jobs:
           eq('horizon_vocabulary_widened', 't')
           eq('horizon_uniqueness_intact', 't')
 
+          // CONTRACT 203. Both Bet Builder reads take their currency rule from
+          // the one place that defines it, rather than from a filter applied
+          // before the newest decision is chosen.
+          eq('bet_builder_uses_current_decision', 't')
+          eq('bet_builder_books_use_current_decision', 't')
+
           // The AI Lab's own evidence must not shrink. These are written by
           // scheduled jobs, so they may GROW while the rollout runs; falling
           // would mean a migration deleted analytical history.
@@ -441,18 +454,18 @@ jobs:
         shell: bash
         run: |
           cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
-          ## Production is at Contract 202
+          ## Production is at Contract 203
 
-          - Exactly four migrations applied, each proven additive before the apply.
+          - Exactly five migrations applied, each proven additive before the apply.
           - Auth users, profiles, entries, predictions, entrants, score events, leagues, members, Cup launches, Cup fixtures and season fixtures are all unchanged.
           - Euro publication state and paid collection are unchanged. The cron fingerprint is unchanged over every job EXCEPT the AI odds heartbeat, which `ai-odds-scheduler-reconcile.yml` owns and rewrites from repository SQL; the heartbeat is asserted present and active rather than byte-identical.
           - Contract 199: `ai.valid_bets` now holds at most one row per fixture and market, every `ai.bets` row is classified exactly once by `ai.bet_advice_identity`, and the `ai.bets` row count is UNCHANGED — the repeats were reclassified, not deleted.
           - Contract 200: every cadence tier sits strictly inside the price-freshness allowance at the same distance from kickoff, and the collector stops rather than polls beyond seven and a half days.
           - Contract 201: the three admin reads are STABLE SECURITY DEFINER, executable by `authenticated` and by no anonymous role; the three AI Lab views are readable by no browser role; all eleven refusal codes carry an explanation.
-          - Contract 202: the forecast horizon vocabulary is wider and the per-model uniqueness key it works through is intact.
+          - Contract 203: the forecast horizon vocabulary is wider and the per-model uniqueness key it works through is intact.
           - Forecasts, recommendations and settled results did not fall, and the nine current models are unchanged.
 
           This promotion is schema only. It published no Euro 2028, launched no competition, drew no Championship, opened no Last Man Standing, scheduled no job, promoted no model and imported no football. Nothing it applied deletes, settles, voids or rewrites a historical bet, forecast or grade.
 
-          Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 202 ledger row. `promotionAuthorised` stays `false`.
+          Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 203 ledger row. `promotionAuthorised` stays `false`.
           SUMMARY

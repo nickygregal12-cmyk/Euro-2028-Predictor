@@ -370,3 +370,5 @@ blockquotes could never show without being read end to end.
 > **Contract 201 stage effect:** three bounded admin reads make the private AI Lab legible. No hub build-stage scope changes.
 
 > **Contract 202 stage effect:** a private AI Lab forecast is refreshed as results arrive instead of being frozen at the first run of the week. No hub build-stage scope changes.
+
+> **Contract 203 stage effect:** the Bet Builder reads one authority instead of nine paged logs. No hub build-stage scope changes.

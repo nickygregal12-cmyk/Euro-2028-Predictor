@@ -3558,7 +3558,12 @@ export type Database = {
       admin_ai_betting_gate_status: { Args: never; Returns: Json }
       admin_ai_dashboard: { Args: { p_league?: string }; Returns: Json }
       admin_ai_evidence_by_market: { Args: never; Returns: Json }
+      admin_ai_fixture_coverage: {
+        Args: { p_from?: string; p_leagues?: string[]; p_to?: string }
+        Returns: Json
+      }
       admin_ai_odds_api_status: { Args: never; Returns: Json }
+      admin_ai_operational_health: { Args: never; Returns: Json }
       admin_ai_performance_breakdown: {
         Args: { p_league?: string }
         Returns: Json
@@ -3577,6 +3582,10 @@ export type Database = {
       }
       admin_ai_recommendation_log: {
         Args: { p_league?: string; p_limit?: number }
+        Returns: Json
+      }
+      admin_ai_results_review: {
+        Args: { p_from?: string; p_leagues?: string[]; p_to?: string }
         Returns: Json
       }
       admin_ai_upcoming_predictions: {

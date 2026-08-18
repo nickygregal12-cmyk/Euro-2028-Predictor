@@ -49,7 +49,6 @@
     "exports\tsrc/services/supabase/autoLoginPolicy.ts\tDEV_SUPABASE_HOST",
     "exports\tsrc/services/supabase/autoLoginPolicy.ts\tLOCAL_SUPABASE_PORT",
     "exports\tsrc/services/supabase/autoLoginPolicy.ts\tisApprovedAutoLoginUrl",
-    "exports\tsrc/services/supabase/betBuilder.ts\tmapCandidates",
     "exports\tsrc/services/supabase/database.types.ts\tConstants",
     "exports\tsrc/services/supabase/devAutoLogin.ts\tAutoLoginProductionError",
     "exports\tsrc/services/supabase/euroPublication.ts\tEURO_PUBLICATION_STATES",

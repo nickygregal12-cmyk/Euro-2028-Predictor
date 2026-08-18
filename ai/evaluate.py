@@ -19,7 +19,10 @@ import metrics
 from config import LEAGUES
 from db import (insert_prediction_results, job,
                 load_finished_fixtures_needing_grading,
-                load_predictions_needing_diagnosis, update_prediction_diagnosis)
+                load_graded_rows_needing_market_comparison,
+                load_predictions_needing_diagnosis,
+                update_prediction_diagnosis,
+                update_prediction_market_comparison)
 
 
 def main() -> int:
@@ -36,7 +39,12 @@ def main() -> int:
         pending = load_finished_fixtures_needing_grading(args.league)
         if pending.empty:
             print("Nothing to grade.")
-            state["detail"] = {"graded": 0} | _diagnose(args)
+            # The backfill still runs. A quiet grading pass is the ORDINARY
+            # state on the days that matter here: the fixtures were graded when
+            # they finished, and Football-Data published their closing line
+            # afterwards.
+            backfilled = _backfill_market_comparison(args)
+            state["detail"] = ({"graded": 0} | backfilled | _diagnose(args))
             return 0
 
         probs = pending[["p_home", "p_draw", "p_away"]].astype(float).values
@@ -69,8 +77,9 @@ def main() -> int:
 
         written = insert_prediction_results(rows)
         summary = metrics.summarise(probs, actual)
+        backfilled = _backfill_market_comparison(args)
         state["rows"] = written
-        state["detail"] = summary | _diagnose(args)
+        state["detail"] = summary | backfilled | _diagnose(args)
         print(f"graded {written} predictions")
         print(f"  accuracy  {summary['accuracy']:.3f}")
         print(f"  log loss  {summary['log_loss']:.4f}")
@@ -132,6 +141,53 @@ def _market_comparison(record: dict, probs, actual: str, model_log_loss: float,
         "log_loss_vs_market": round(model_log_loss - market_ll, 5),
         "market_moved_toward_model": moved,
     }
+
+
+def _backfill_market_comparison(args) -> dict:
+    """Second pass: give an already-graded row the benchmark it was missing.
+
+    THE OUTCOME IS GRADED WITHOUT THE MARKET AND THE MARKET IS ADDED LATER,
+    which is the same separation settle_bets makes between settling a bet and
+    recording its CLV. The reason is the same too: the two facts arrive at
+    different times from different sources, and making one wait for the other
+    means the lab has neither.
+
+    This pass cannot revise a comparison. It writes only where
+    `market_log_loss` is still null, and it selects only rows where a closing
+    price exists, so a fixture the feed never priced keeps six honest nulls
+    rather than a number nobody published.
+    """
+    pending = load_graded_rows_needing_market_comparison(args.league)
+    if pending.empty:
+        return {"market_comparison_backfilled": 0,
+                "awaiting_closing_benchmark": _awaiting_benchmark(args)}
+
+    probs = pending[["p_home", "p_draw", "p_away"]].astype(float).values
+    records = pending.to_dict("records")
+    rows = []
+    for i, record in enumerate(records):
+        comparison = _market_comparison(record, probs[i],
+                                        str(record["actual_result"]),
+                                        float(record["log_loss"]), args.devig)
+        if comparison["market_log_loss"] is None:
+            continue
+        rows.append({"prediction_id": record["prediction_id"]} | comparison)
+
+    written = update_prediction_market_comparison(rows)
+    if written:
+        print(f"backfilled market comparison on {written} graded predictions")
+    return {"market_comparison_backfilled": written,
+            "awaiting_closing_benchmark": _awaiting_benchmark(args)}
+
+
+def _awaiting_benchmark(args) -> int:
+    """Graded rows still without a comparison AFTER the backfill ran.
+
+    Reported rather than inferred from silence: a non-zero count here means the
+    closing line has not been published for those fixtures yet, which is a
+    normal state and a different one from the columns never being written.
+    """
+    return int(len(load_graded_rows_needing_market_comparison(args.league)))
 
 
 def _diagnose(args) -> dict:
