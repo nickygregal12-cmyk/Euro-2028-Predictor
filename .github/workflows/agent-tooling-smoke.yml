@@ -155,7 +155,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node - <<'NODE' > "${RUNNER_TEMP}/git-release-tags.txt"
+          node - <<'NODE' > "${RUNNER_TEMP}/github-release-tags.txt"
           const tools = require('./config/agent-tools.json')
           for (const key of ['agentMail', 'weave']) {
             console.log(`${tools[key].repository} ${tools[key].version}`)
@@ -166,21 +166,16 @@ jobs:
               "https://github.com/${repository}.git" \
               "refs/tags/v${version}" >/dev/null
             echo "available: ${repository}@v${version}"
-          done < "${RUNNER_TEMP}/git-release-tags.txt"
+          done < "${RUNNER_TEMP}/github-release-tags.txt"
 
+          # Mergiraf's canonical repository is Codeberg rather than GitHub.
+          # Verify the exact upstream release tag directly instead of using the
+          # crates.io REST endpoint, which rejects GitHub-hosted runners with 403.
           mergiraf_version="$(node -p "require('./config/agent-tools.json').mergiraf.version")"
-          curl --fail --silent --show-error --location \
-            "https://crates.io/api/v1/crates/mergiraf/${mergiraf_version}" \
-            -o "${RUNNER_TEMP}/mergiraf-release.json"
-          node - "${RUNNER_TEMP}/mergiraf-release.json" "$mergiraf_version" <<'NODE'
-          const fs = require('node:fs')
-          const [file, expected] = process.argv.slice(2)
-          const data = JSON.parse(fs.readFileSync(file, 'utf8'))
-          if (data.version?.num !== expected || data.version?.yanked) {
-            throw new Error(`Mergiraf ${expected} is unavailable or yanked`)
-          }
-          console.log(`available: mergiraf@${expected}`)
-          NODE
+          git ls-remote --exit-code --tags \
+            "https://codeberg.org/mergiraf/mergiraf.git" \
+            "refs/tags/v${mergiraf_version}" >/dev/null
+          echo "available: codeberg.org/mergiraf/mergiraf@v${mergiraf_version}"
 
       - name: Summary
         if: ${{ always() }}
@@ -194,7 +189,7 @@ jobs:
             echo '- Beads command metrics and Dolt event flushing were disabled for the whole smoke job.'
             echo '- Serena loaded the shared IDE context, tracked project configuration and passed its language-server health check.'
             echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
-            echo '- Agent Mail, Weave and Mergiraf exact upstream releases were resolved without auto-starting/installing their heavier optional services or merge engines.'
+            echo '- Agent Mail and Weave exact GitHub tags plus Mergiraf exact Codeberg tag were resolved without auto-starting/installing their heavier optional services or merge engines.'
             echo '- Every registry entry carries Renovate update metadata; developer-tool updates are review-only after the configured soak period.'
             echo '- No service was started, no provider credential was configured and no model/provider request was made.'
           } >> "${GITHUB_STEP_SUMMARY}"
