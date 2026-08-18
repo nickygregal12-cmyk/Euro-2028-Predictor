@@ -162,6 +162,8 @@ describe('Predictor developer operating system', () => {
     expect(bootstrap).toContain('github.com/gastownhall/beads/releases/download/v${version}')
     expect(bootstrap).toContain('checksums.txt')
     expect(bootstrap).toContain('Checksum mismatch for Beads')
+    expect(bootstrap).toContain('export BD_DISABLE_METRICS=1')
+    expect(bootstrap).toContain('export DOLT_DISABLE_EVENT_FLUSH=1')
     expect(bootstrap).not.toContain('@beads/bd@')
 
     expect(bootstrap).not.toContain('mcp_agent_mail')
@@ -184,8 +186,11 @@ describe('Predictor developer operating system', () => {
     expect(repomixArgs).toContain('--mcp')
   })
 
-  it('bounds Serena to repository authority and disables persistent memories', () => {
+  it('bounds Serena to the pinned project schema and disables persistent memories', () => {
     const project = read('.serena/project.yml')
+    expect(project).toContain('languages:')
+    expect(project).toContain('- typescript')
+    expect(project).not.toContain('language_servers:')
     expect(project).toContain('AGENTS.md')
     expect(project).toContain('NOW.md')
     expect(project).toContain('docs/history/**')
@@ -194,8 +199,10 @@ describe('Predictor developer operating system', () => {
     expect(project).toContain('- ".*"')
   })
 
-  it('keeps Beads local and Agent Mail explicitly opt-in', () => {
+  it('keeps Beads local, telemetry-disabled and Agent Mail explicitly opt-in', () => {
     const beads = read('scripts/agent-tools/beads-init.sh')
+    expect(beads).toContain('export BD_DISABLE_METRICS=1')
+    expect(beads).toContain('export DOLT_DISABLE_EVENT_FLUSH=1')
     expect(beads).toContain('bd init --stealth')
 
     const installAgentMail = read('scripts/agent-tools/install-agent-mail.sh')
@@ -228,9 +235,10 @@ describe('Predictor developer operating system', () => {
     expect(lostPixel).toContain('failOnDifference: false')
   })
 
-  it('makes the online environment bounded rather than auto-starting services', () => {
+  it('makes the online environment bounded and telemetry-safe rather than auto-starting services', () => {
     const devcontainer = readJson<{
       postCreateCommand?: string
+      remoteEnv?: Record<string, string>
       forwardPorts?: number[]
       features?: Record<string, { version?: string }>
       portsAttributes?: Record<string, { label?: string; onAutoForward?: string }>
@@ -238,6 +246,8 @@ describe('Predictor developer operating system', () => {
 
     expect(devcontainer.postCreateCommand).toBe('bash scripts/agent-tools/bootstrap.sh')
     expect(devcontainer.features?.['ghcr.io/devcontainers/features/rust:1']).toBeDefined()
+    expect(devcontainer.remoteEnv?.BD_DISABLE_METRICS).toBe('1')
+    expect(devcontainer.remoteEnv?.DOLT_DISABLE_EVENT_FLUSH).toBe('1')
     expect(devcontainer.forwardPorts).toEqual(expect.arrayContaining([20128, 8765]))
     expect(devcontainer.portsAttributes?.['20128']?.label).toContain('OmniRoute')
     expect(devcontainer.portsAttributes?.['8765']?.label).toContain('Agent Mail')
