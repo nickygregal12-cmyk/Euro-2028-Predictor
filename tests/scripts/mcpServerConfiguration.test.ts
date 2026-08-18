@@ -96,7 +96,7 @@ describe('MCP server configuration', () => {
     expect(servers.repomix?.args).toContain('--mcp')
   })
 
-  it('runs Serena from the centrally pinned bootstrap rather than npx', () => {
+  it('runs Serena from the centrally pinned bootstrap with a shared coding-agent context', () => {
     const serena = mcpConfiguration().mcpServers.serena
     const bootstrap = readFileSync(
       resolve(repositoryRoot, 'scripts/agent-tools/bootstrap.sh'),
@@ -108,7 +108,7 @@ describe('MCP server configuration', () => {
       expect.arrayContaining([
         'start-mcp-server',
         '--project-from-cwd',
-        '--context=codex',
+        '--context=ide',
         '--open-web-dashboard=false',
       ]),
     )
