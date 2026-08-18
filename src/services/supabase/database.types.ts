@@ -3969,6 +3969,10 @@ export type Database = {
         Returns: Json
       }
       get_my_cup: { Args: { p_tournament_id: string }; Returns: Json }
+      get_my_football_calendar: {
+        Args: { p_from?: string; p_to?: string }
+        Returns: Json
+      }
       get_my_game_leagues: {
         Args: { p_game_competition_id: string }
         Returns: {
@@ -4064,6 +4068,10 @@ export type Database = {
         Returns: Json
       }
       get_season_clubs: { Args: { p_tournament_id: string }; Returns: Json }
+      get_season_cup_bracket: {
+        Args: { p_competition_id: string }
+        Returns: Json
+      }
       get_season_cup_group_stage: {
         Args: { p_competition_id: string; p_group_ordinal?: number }
         Returns: Json
@@ -4161,6 +4169,18 @@ export type Database = {
       }
       get_season_prediction_dna: {
         Args: { p_player_id: string; p_tournament_id: string }
+        Returns: Json
+      }
+      get_season_rank_history: {
+        Args: { p_player_ref?: string; p_tournament_id: string }
+        Returns: Json
+      }
+      get_season_rivalry: {
+        Args: {
+          p_opponent_ref: string
+          p_recent?: number
+          p_tournament_id: string
+        }
         Returns: Json
       }
       get_season_wrapped: { Args: { p_tournament_id: string }; Returns: Json }
@@ -4262,6 +4282,10 @@ export type Database = {
         }[]
       }
       resolve_invite_code: { Args: { p_code: string }; Returns: Json }
+      resolve_season_player: {
+        Args: { p_player_ref: string; p_tournament_id: string }
+        Returns: Json
+      }
       rotate_league_invite_code: {
         Args: { p_league_id: string }
         Returns: string
