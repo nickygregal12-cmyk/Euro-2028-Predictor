@@ -136,7 +136,10 @@ function LeaguesHarness({
               setLastIntent(`scope:${key}`)
               return
             }
-            setLastIntent(`openPlayer:${intent.playerId}`)
+            // BOTH ADDRESSES ARE RECORDED, so a browser test can prove the
+            // doorway hands Stage 10 the pair it needs — and, in the
+            // duplicate-name world, that the two Sams carry two references.
+            setLastIntent(`openPlayer:${intent.playerId}@${intent.playerRef ?? 'no-ref'}`)
           }}
         />
       </div>

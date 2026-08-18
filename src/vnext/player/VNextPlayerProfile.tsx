@@ -72,7 +72,10 @@ export function VNextPlayerProfile({ model, onRetry }: VNextPlayerProfileProps) 
       destination="leagues"
       header={
         <VNextPageHeader
-          title={heading.displayName}
+          /* NO READ ANSWERED, SO THE PAGE DOES NOT KNOW WHO THIS IS. "Player"
+             is the honest placeholder; a remembered or guessed name would be
+             the one thing on the page nobody read. */
+          title={heading.displayName ?? 'Player'}
           competition={
             context.seasonLabel
               ? `${context.competitionName} · ${context.seasonLabel}`
@@ -95,19 +98,11 @@ export function VNextPlayerProfile({ model, onRetry }: VNextPlayerProfileProps) 
           </Panel>
 
           <Panel title="Position over the season" zone="rank">
-            <RankBody
-              panel={model.rankHistory}
-              name={heading.displayName}
-              onRetry={onRetry}
-            />
+            <RankBody panel={model.rankHistory} onRetry={onRetry} />
           </Panel>
 
           <Panel title="How you compare" zone="compare">
-            <RivalryBody
-              panel={model.rivalry}
-              theirName={heading.displayName}
-              onRetry={onRetry}
-            />
+            <RivalryBody panel={model.rivalry} onRetry={onRetry} />
           </Panel>
         </motion.div>
       </div>
@@ -271,11 +266,9 @@ function Stat({ label, value }: { readonly label: string; readonly value: string
 
 function RankBody({
   panel,
-  name,
   onRetry,
 }: {
   readonly panel: RankHistoryPanel
-  readonly name: string
   readonly onRetry?: (() => void) | undefined
 }) {
   switch (panel.kind) {
@@ -298,17 +291,18 @@ function RankBody({
         </p>
       )
     default:
-      return <RankChart series={panel.series} caption={`${name}: position after each settled matchweek`} />
+      /* THE CAPTION NAMES NO ONE. The heading above already names the player,
+         and repeating a name here would be a second place a heading could be
+         wrong. */
+      return <RankChart series={panel.series} caption="Position after each settled matchweek" />
   }
 }
 
 function RivalryBody({
   panel,
-  theirName,
   onRetry,
 }: {
   readonly panel: RivalryPanel
-  readonly theirName: string
   readonly onRetry?: (() => void) | undefined
 }) {
   switch (panel.kind) {
@@ -342,6 +336,10 @@ function RivalryBody({
         </p>
       )
     default:
-      return <RivalryTable detail={panel.detail} theirName={theirName} />
+      /* THE COMPARISON NAMES ITSELF, from the side the server sent with it,
+         rather than borrowing the page's heading. The two agree; taking the
+         name from the payload that produced the columns is the one that stays
+         true if they ever do not. */
+      return <RivalryTable detail={panel.detail} />
   }
 }

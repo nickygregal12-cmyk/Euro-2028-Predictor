@@ -176,7 +176,9 @@ function EmptyStandings({ children }: { readonly children: string }) {
 export type GlobalStandingsTableProps = {
   readonly table: LeaguesGlobalTable
   readonly caption: string
-  readonly onOpenPlayer?: ((playerId: string) => void) | undefined
+  readonly onOpenPlayer?:
+    | ((playerId: string, playerRef: string | null) => void)
+    | undefined
 }
 
 /**
@@ -282,7 +284,9 @@ function GlobalRow({
   onOpenPlayer,
 }: {
   readonly row: LeaguesGlobalRow
-  readonly onOpenPlayer?: ((playerId: string) => void) | undefined
+  readonly onOpenPlayer?:
+    | ((playerId: string, playerRef: string | null) => void)
+    | undefined
 }) {
   return (
     <tr
@@ -309,7 +313,9 @@ function GlobalRow({
 
 export type PrivateStandingsTableProps = {
   readonly table: LeaguesPrivateTable
-  readonly onOpenPlayer?: ((playerId: string) => void) | undefined
+  readonly onOpenPlayer?:
+    | ((playerId: string, playerRef: string | null) => void)
+    | undefined
 }
 
 /**
@@ -430,7 +436,9 @@ function PrivateRow({
 }: {
   readonly row: LeaguesPrivateRow
   readonly showMovement: boolean
-  readonly onOpenPlayer?: ((playerId: string) => void) | undefined
+  readonly onOpenPlayer?:
+    | ((playerId: string, playerRef: string | null) => void)
+    | undefined
 }) {
   return (
     <tr

@@ -43,6 +43,7 @@ const competition = {
   gameName: 'Match Predictor',
 } as const
 
+const LONG_NAME = 'Bartholomew Fitzgerald-Macpherson of Auchtermuchty'
 const THEIR_REF = 'entry-callum'
 const THEIR_ID = 'user-callum'
 const YOUR_REF = 'entry-rhona'
@@ -197,6 +198,8 @@ const notEntered = world({
 
 const unaddressable = world({
   heading: {
+    // Contract 151 answered, so the page has a name even though both
+    // contract-192 reads have no address.
     displayName: 'Callum Aitken',
     address: { ref: null, playerId: THEIR_ID },
     isYou: false,
@@ -208,6 +211,14 @@ const unaddressable = world({
 const profileUnavailable = world({ profile: { kind: 'unavailable' } })
 
 const allUnavailable = world({
+  // NO READ ANSWERED, SO THERE IS NO NAME. The page is named by the server and
+  // nothing else, so when all three reads fail it genuinely does not know who
+  // this is — and must say so rather than remember a label from somewhere.
+  heading: {
+    displayName: null,
+    address: { ref: THEIR_REF, playerId: THEIR_ID },
+    isYou: false,
+  },
   profile: { kind: 'unavailable' },
   rankHistory: { kind: 'unavailable' },
   rivalry: { kind: 'unavailable' },
@@ -360,9 +371,19 @@ const noStandingYet = world({
 
 const longName = world({
   heading: {
-    displayName: 'Bartholomew Fitzgerald-Macpherson of Auchtermuchty',
+    displayName: LONG_NAME,
     address: { ref: THEIR_REF, playerId: THEIR_ID },
     isYou: false,
+  },
+  // THE COMPARISON NAMES ITSELF from its own payload, so the long name has to
+  // be there too — otherwise this world would test the heading and quietly
+  // leave the column that is hardest to fit reading "Callum Aitken".
+  rivalry: {
+    kind: 'rivalry',
+    detail: {
+      ...ordinaryRivalry,
+      them: rivalrySide(THEIR_REF, LONG_NAME, 161, 12, 2, 412, accuracy(96, 11, 54)),
+    },
   },
 })
 

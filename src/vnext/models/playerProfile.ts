@@ -123,13 +123,29 @@ export type PlayerProfileContext = {
 }
 
 /**
- * THE HEADING. Present whatever the three panels answered, because the caller
- * arrived here holding a name and an address and the page must not go blank.
+ * THE HEADING.
  *
- * `displayName` IS A LABEL, NOT AN IDENTITY. See the header.
+ * `displayName` IS THE SERVER'S AND IS NULLABLE, and both halves of that are
+ * deliberate.
+ *
+ * IT IS THE SERVER'S BECAUSE THE DOORWAY HAS NO NAME TO GIVE. Stage 9's
+ * `openPlayer` intent carries two identifiers and no name field — that is the
+ * type-level half of the social identity rule — so a host routing here
+ * literally cannot pass one. The page is therefore named by whichever read
+ * answered, in a stated priority, rather than by its caller. A page that
+ * accepted a name from the URL would be a page whose heading an attacker
+ * writes.
+ *
+ * IT IS NULLABLE BECAUSE ALL THREE READS CAN FAIL. When they do, this page does
+ * not know who it is about, and saying so is the only honest option — a
+ * remembered or guessed name would be the one thing on the page nobody read.
+ *
+ * `address` IS THE IDENTITY. Two players may share a name; the two identifiers
+ * tell them apart, and only they ever address anything.
  */
 export type PlayerHeading = {
-  readonly displayName: string
+  /** Whichever read answered, by the mapper's stated priority. Null if none. */
+  readonly displayName: string | null
   readonly address: PlayerAddress
   /** The caller looking at their own profile. Drawn differently, not linked. */
   readonly isYou: boolean

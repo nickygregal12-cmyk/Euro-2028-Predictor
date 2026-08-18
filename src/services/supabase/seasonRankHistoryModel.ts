@@ -45,6 +45,23 @@
  * substitutes one for the other.
  */
 
+/** Contract 129's refusal, reused: one fact, one class. */
+export { OpponentNotEnteredError } from './seasonHeadToHeadModel'
+
+/**
+ * Contract 191 said `none`: this caller may not read that player's positions.
+ *
+ * A state, not an error. It is about PERMISSION, and a surface that reported it
+ * as a failure would offer a retry for something that will answer identically
+ * every time.
+ */
+export class RankHistoryNotPermittedError extends Error {
+  constructor() {
+    super('You may not view that player')
+    this.name = 'RankHistoryNotPermittedError'
+  }
+}
+
 export type SeasonRankHistoryReach = 'self' | 'profile' | 'compare' | 'name-only'
 
 const REACHES: readonly SeasonRankHistoryReach[] = [

@@ -19,18 +19,35 @@
 
 import { db } from './client'
 import {
+  OpponentNotEnteredError,
+  RankHistoryNotPermittedError,
   mapSeasonRankHistory,
   type SeasonRankHistory,
 } from './seasonRankHistoryModel'
 
+export {
+  OpponentNotEnteredError,
+  RankHistoryNotPermittedError,
+} from './seasonRankHistoryModel'
 export type {
   SeasonRankHistory,
   SeasonRankHistoryPoint,
   SeasonRankHistoryReach,
 } from './seasonRankHistoryModel'
 
+function codeOf(error: unknown): string {
+  const code = (error as { code?: unknown } | null)?.code
+  return typeof code === 'string' ? code : ''
+}
+
 /**
  * Fetch one player's position over a season.
+ *
+ * IT REFUSES IN TWO WAYS AND THEY MEAN DIFFERENT THINGS: 42501 is contract
+ * 191's `none`, or a caller holding no entry — about PERMISSION; no_data_found
+ * is a player who holds no entry in this season — about THEM. A surface that
+ * reported the second as the first would accuse the reader of lacking a
+ * permission that was never the problem.
  *
  * @param playerRef contract 191's season-scoped entry reference. Omit — or pass
  * `null` — for the caller's own history.
@@ -43,6 +60,17 @@ export async function fetchSeasonRankHistory(
     p_tournament_id: tournamentId,
     ...(playerRef === null ? {} : { p_player_ref: playerRef }),
   })
-  if (error) throw error
+
+  if (error) {
+    const code = codeOf(error)
+    if (code === '42501' || code === 'insufficient_privilege') {
+      throw new RankHistoryNotPermittedError()
+    }
+    if (code === 'no_data_found' || code === '02000') {
+      throw new OpponentNotEnteredError()
+    }
+    throw error
+  }
+
   return mapSeasonRankHistory(data)
 }

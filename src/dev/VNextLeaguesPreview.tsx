@@ -28,9 +28,15 @@ import styles from './VNextHomePreview.module.css'
  * A fixture can assert anything. A real leaderboard read is the only thing that
  * can show whether the permission the design rests on is really there.
  *
- * IT DOES NOT OPEN A PROFILE, and it could not: Stage 10 owns that surface.
- * Pressing a player REPORTS the id the page emitted, which is what proves the
- * emission carries an id and no display name.
+ * PRESSING A PLAYER NOW OPENS STAGE 10'S PROFILE HARNESS, carrying the two
+ * SERVER-ISSUED identifiers the doorway emitted — the account id for contract
+ * 151 and the season entry reference for contract 192's two reads. That makes
+ * the "permitted player opened from a real competition context" the Stage 10
+ * predicate asks for a thing a reviewer can actually do, against real data.
+ *
+ * NO NAME TRAVELS AT ALL — the intent has no field for one, so this harness
+ * has nothing to send even if it wanted to. Stage 10's page names itself from
+ * whichever read answers, which is the property in its strongest form.
  *
  * ============================ IT IS `/dev` AND NOT A ROUTE ================
  *
@@ -89,6 +95,29 @@ function PreviewBody() {
   const [selectedLeagueId, setSelectedLeagueId] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const onShellIntent = useShellIntentHost(setNote)
+  const navigate = useNavigate()
+
+  /**
+   * OPEN STAGE 10'S HARNESS FOR WHOEVER THE PAGE ASKED FOR.
+   *
+   * BOTH IDENTIFIERS TRAVEL, because they address different reads and neither
+   * substitutes for the other. A missing reference is carried as ABSENT rather
+   * than as an empty parameter, so the far end draws "not available from here"
+   * instead of asking a read with nothing to ask about.
+   */
+  const openProfile = useCallback(
+    (playerId: string, playerRef: string | null) => {
+      if (applied === null) return
+      const query = new URLSearchParams({
+        competition: applied.competitionSlug,
+        season: applied.seasonSlug,
+        playerId,
+      })
+      if (playerRef !== null) query.set('playerRef', playerRef)
+      navigate(`/dev/vnext-player?${query.toString()}`)
+    },
+    [applied, navigate],
+  )
 
   return (
     <div className={styles.page}>
@@ -179,10 +208,13 @@ function PreviewBody() {
                 )
                 return
               }
-              // STAGE 10 OWNS THE PROFILE. What this proves is that the page
-              // emitted an ID and nothing that could be a display name — which
-              // is the whole social-identity rule, observable.
-              setNote(`Leagues asked to open player id "${intent.playerId}".`)
+              // THE DOORWAY, EXERCISED. The page emitted two identifiers and
+              // nothing that could be a display name; the harness carries them
+              // to Stage 10's surface rather than describing them.
+              setNote(
+                `Leagues asked to open player id "${intent.playerId}" (ref "${intent.playerRef ?? 'none'}").`,
+              )
+              openProfile(intent.playerId, intent.playerRef)
             }}
           />
         ) : (

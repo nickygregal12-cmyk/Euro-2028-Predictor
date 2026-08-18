@@ -13,13 +13,29 @@ import styles from './leagues.module.css'
 /**
  * WHAT THE PLAYER ASKED THIS SURFACE FOR.
  *
- * ONE INTENT TYPE, as every vNext page uses. `openPlayer` CARRIES AN ID AND
- * HAS NO NAME FIELD, which is the type-level half of the social identity rule:
- * a host wiring this to a router literally cannot receive a display name to
- * route by, because none is sent.
+ * ONE INTENT TYPE, as every vNext page uses. `openPlayer` CARRIES TWO
+ * SERVER-ISSUED IDENTIFIERS AND NO NAME FIELD, which is the type-level half of
+ * the social identity rule: a host wiring this to a router literally cannot
+ * receive a display name to route by, because none is sent.
+ *
+ * WHY BOTH IDENTIFIERS. They address different reads, and Stage 10's profile
+ * needs both: `playerId` is the ACCOUNT id that opens contract 151's profile,
+ * and `playerRef` is contract 191's SEASON-SCOPED entry id that opens contract
+ * 192's rank history and rivalry. Neither is substitutable for the other, and a
+ * doorway that carried only one would leave a panel unaddressable.
+ *
+ * `playerRef` IS NULLABLE AND THE ID IS NOT. The id comes from the destination
+ * union, which has exactly one openable case and requires it; the reference
+ * comes from the row and is absent below contract 191. Carrying a null ref is
+ * honest — Stage 10 draws "not available from here" rather than a refusal —
+ * whereas carrying a null id would mean opening a profile with no address.
  */
 export type LeaguesIntent =
-  | { readonly kind: 'openPlayer'; readonly playerId: string }
+  | {
+      readonly kind: 'openPlayer'
+      readonly playerId: string
+      readonly playerRef: string | null
+    }
   | { readonly kind: 'scope'; readonly scope: LeaguesScope }
 
 /**
@@ -102,8 +118,8 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
     onIntent?.({ kind: 'scope', scope })
   }
 
-  function openPlayer(playerId: string) {
-    onIntent?.({ kind: 'openPlayer', playerId })
+  function openPlayer(playerId: string, playerRef: string | null) {
+    onIntent?.({ kind: 'openPlayer', playerId, playerRef })
   }
 
   return (

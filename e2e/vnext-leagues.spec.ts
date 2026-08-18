@@ -375,7 +375,7 @@ test.describe('pressing a player hands the host an id and never a name', () => {
 
     // THE ID, AND ONLY THE ID. The harness records what the page emitted, so
     // this is the emission rather than a re-reading of the element pressed.
-    expect(reading.lastIntent).toBe('openPlayer:player-sam-a')
+    expect(reading.lastIntent).toBe('openPlayer:player-sam-a@ref-sam-a')
     expect(reading.lastIntent).not.toContain('Sam')
   })
 
@@ -388,7 +388,7 @@ test.describe('pressing a player hands the host an id and never a name', () => {
     await button.focus()
     await page.keyboard.press('Enter')
 
-    expect((await read(page)).lastIntent).toBe('openPlayer:player-sam-a')
+    expect((await read(page)).lastIntent).toBe('openPlayer:player-sam-a@ref-sam-a')
   })
 
   test('and the three rows stay three rows', async ({ page }) => {

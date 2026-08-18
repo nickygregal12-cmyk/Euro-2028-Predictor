@@ -212,6 +212,28 @@ function rivalryPanel(source: PlayerProfileSource): RivalryPanel {
   }
 }
 
+/**
+ * WHO THE SERVER SAYS THIS IS, BY A STATED PRIORITY.
+ *
+ * The doorway carries no display name — Stage 9's intent has no field for one —
+ * so the heading has to come from a read. Three reads carry a name and they can
+ * disagree only if the server is inconsistent; picking in a FIXED ORDER rather
+ * than "whichever landed" makes the heading deterministic, which matters
+ * because two of the three can refuse independently and a page whose title
+ * depended on load order would rename the player between renders.
+ *
+ * Contract 151 first because it is the narrowest boundary and therefore the
+ * most authoritative answer available; then the rivalry's opponent side; then
+ * the rank history. `null` where none answered, because a page that does not
+ * know who it is about must say so rather than invent a label.
+ */
+function headingName(source: PlayerProfileSource): string | null {
+  if (source.profile.kind === 'ok') return source.profile.profile.player.displayName
+  if (source.rivalry.kind === 'ok') return source.rivalry.rivalry.opponent.displayName
+  if (source.rankHistory.kind === 'ok') return source.rankHistory.history.displayName
+  return null
+}
+
 export function buildPlayerProfileModel(source: PlayerProfileSource): PlayerProfileModel {
   const { target } = source
 
@@ -223,11 +245,9 @@ export function buildPlayerProfileModel(source: PlayerProfileSource): PlayerProf
       gameName: source.context.gameName,
     },
     heading: {
-      // THE NAME THE DOORWAY ALREADY HAD, not one taken from whichever read
-      // happened to answer. Three payloads carry a display name and they are
-      // three reads that can disagree; picking one at render time would make
-      // the heading change depending on which panel loaded.
-      displayName: target.displayName,
+      // THE SERVER'S NAME, BY A FIXED PRIORITY. Never the caller's — the
+      // doorway has none to give. See `headingName`.
+      displayName: headingName(source),
       address: { ref: target.ref, playerId: target.playerId },
       isYou: target.isYou,
     },

@@ -55,10 +55,17 @@ type PlayerProfileSourceContext = {
 export type PlayerProfileTarget = {
   readonly playerId: string
   readonly ref: string | null
-  /** The name the doorway already had. A label; it addresses nothing. */
-  readonly displayName: string
   readonly isYou: boolean
 }
+
+/*
+ * THERE IS NO `displayName` ON THE TARGET, AND THAT IS THE POINT.
+ *
+ * Stage 9's `openPlayer` intent carries two identifiers and no name field, so a
+ * host routing here has none to pass. The page is named by whichever read
+ * answered — see `buildPlayerProfileModel` — which means no caller, no route
+ * and no query string can decide what this player is called.
+ */
 
 /** Contract 151. `refused` is "you share no private league with this player". */
 export type ProfileRead =

@@ -38,11 +38,13 @@ import styles from './playerProfile.module.css'
 
 export type RivalryTableProps = {
   readonly detail: RivalryDetail
-  /** The other player's name, as the doorway had it. */
-  readonly theirName: string
 }
 
-export function RivalryTable({ detail, theirName }: RivalryTableProps) {
+export function RivalryTable({ detail }: RivalryTableProps) {
+  // NAMED FROM THE PAYLOAD THAT PRODUCED THE COLUMNS, not from the page's
+  // heading. They agree; this is the one that stays true if they ever do not.
+  const theirName = detail.them.displayName
+
   if (!rivalryComparable(detail)) {
     return (
       <p className={`${text.body} ${styles.panelEmpty}`}>

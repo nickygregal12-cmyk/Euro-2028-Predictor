@@ -176,7 +176,14 @@ describe('two players with one display name stay two players', () => {
     expect(buttons).toHaveLength(1)
 
     await userEvent.click(first(buttons))
-    expect(onIntent).toHaveBeenCalledWith({ kind: 'openPlayer', playerId: 'player-sam-a' })
+    // BOTH SERVER-ISSUED ADDRESSES, because Stage 10's profile is assembled
+    // from reads keyed by each: the account id opens contract 151's profile and
+    // the season reference opens contract 192's history and rivalry.
+    expect(onIntent).toHaveBeenCalledWith({
+      kind: 'openPlayer',
+      playerId: 'player-sam-a',
+      playerRef: 'ref-sam-a',
+    })
 
     // The intent carries an id and nothing that could be a display name.
     const intent = onIntent.mock.calls[0]?.[0] as LeaguesIntent
