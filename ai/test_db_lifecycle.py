@@ -1987,6 +1987,176 @@ def test_grading_records_the_market_comparison_where_a_close_exists():
     assert without_close["mkt_home_closing"] is None
 
 
+def test_a_late_closing_line_reaches_a_row_that_was_already_graded():
+    """The grade does not wait for the market, so the market has to catch up.
+
+    Grading skips a prediction that already has a results row -- which is what
+    makes it idempotent and stops a settled outcome being rewritten. The cost is
+    that a fixture graded BEFORE Football-Data published its closing line could
+    never acquire the comparison, and that is precisely the shape of Production's
+    107 graded rows: outcome present, benchmark absent, and no path from one to
+    the other. The second pass is that path, and it mirrors the CLV backfill in
+    settle_bets exactly.
+    """
+    import evaluate
+
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    played = datetime.now(timezone.utc) - timedelta(days=1)
+    with db.connect() as conn:
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','late-close','poisson',100,%s) returning id""",
+            (hashlib.sha256(b"late-close").hexdigest(),)).fetchone()["id"]
+        # Forecast BEFORE kickoff, because ai.reject_late_prediction refuses
+        # anything else -- then move the fixture into the past, which is the
+        # order the world happens in.
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Arsenal','Leeds')
+               returning id""", (kickoff.date(), kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  predicted_score,features,horizon,hours_to_kickoff,
+                  features_version,mkt_home_at_prediction,mkt_draw_at_prediction,
+                  mkt_away_at_prediction)
+               values (%s,'EPL',%s,%s,'Arsenal','Leeds',.55,.25,.20,'H','2-1','{}',
+                       'scheduled',48,'f2',2.30,3.40,3.30)""",
+            (model, fixture, kickoff))
+        # The raw match exists with the RESULT but no closing line yet, which is
+        # the ordinary Tuesday state: results land before the price file.
+        raw = conn.execute(
+            """insert into ai.raw_matches
+                 (source,division,season,match_date,home_canonical,away_canonical,
+                  home_goals,away_goals,result)
+               values ('football-data','E0','2627',%s,'Arsenal','Leeds',2,1,'H')
+               returning id""", (played.date(),)).fetchone()["id"]
+        conn.execute(
+            """update ai.fixtures
+                  set raw_match_id=%s, status='played', home_goals=2,
+                      away_goals=1, result='H', kickoff_at=%s, match_date=%s
+                where id=%s""", (raw, played, played.date(), fixture))
+        conn.commit()
+
+    sys.argv = ["evaluate.py", "--league", "EPL", "--no-diagnosis"]
+    assert evaluate.main() == 0
+
+    with db.connect() as conn:
+        row = conn.execute(
+            "select log_loss, market_log_loss from ai.prediction_results").fetchone()
+    assert row["log_loss"] is not None, "the outcome is graded without the market"
+    assert row["market_log_loss"] is None, "and honestly carries no comparison yet"
+
+    # Now the feed publishes the closing line, days after the grade.
+    with db.connect() as conn:
+        conn.execute(
+            """update ai.raw_matches
+                  set close_avg_h=1.95, close_avg_d=3.60, close_avg_a=4.00
+                where id=%s""", (raw,))
+        conn.commit()
+
+    sys.argv = ["evaluate.py", "--league", "EPL", "--no-diagnosis"]
+    assert evaluate.main() == 0
+
+    with db.connect() as conn:
+        row = conn.execute(
+            """select log_loss, market_log_loss, log_loss_vs_market,
+                      mkt_home_closing, market_moved_toward_model,
+                      actual_result, result_correct
+                 from ai.prediction_results""").fetchone()
+
+    assert row["market_log_loss"] is not None, "the second pass filled it in"
+    assert float(row["mkt_home_closing"]) == 1.95
+    assert float(row["log_loss_vs_market"]) == pytest.approx(
+        float(row["log_loss"]) - float(row["market_log_loss"]), abs=1e-4)
+    assert row["market_moved_toward_model"] is True
+    # NOTHING ELSE WAS TOUCHED. The backfill writes six columns and the outcome
+    # is not one of them.
+    assert row["actual_result"] == "H" and row["result_correct"] is True
+
+    # And it cannot revise what it wrote. A third run with a DIFFERENT closing
+    # line leaves the recorded comparison exactly as it stands, because the
+    # update is guarded on the column still being null.
+    recorded = float(row["market_log_loss"])
+    with db.connect() as conn:
+        conn.execute("update ai.raw_matches set close_avg_h=1.10 where id=%s", (raw,))
+        conn.commit()
+    sys.argv = ["evaluate.py", "--league", "EPL", "--no-diagnosis"]
+    assert evaluate.main() == 0
+    with db.connect() as conn:
+        again = conn.execute(
+            "select market_log_loss, mkt_home_closing from ai.prediction_results"
+        ).fetchone()
+    assert float(again["market_log_loss"]) == pytest.approx(recorded, abs=1e-9)
+    assert float(again["mkt_home_closing"]) == 1.95
+
+
+def test_the_backfill_never_invents_a_benchmark_nobody_published():
+    """A fixture the feed never priced keeps six honest nulls forever.
+
+    The failure this guards against is the tempting one: a backfill that reaches
+    for the price captured at prediction time when no closing price exists. That
+    would compare the model against the number it was already shown and report
+    it as beating the close.
+    """
+    import evaluate
+
+    _bootstrap()
+    kickoff = datetime.now(timezone.utc) + timedelta(days=2)
+    played = datetime.now(timezone.utc) - timedelta(days=1)
+    with db.connect() as conn:
+        model = conn.execute(
+            """insert into ai.models (league,version,family,training_matches,
+                                      artifact_sha256)
+               values ('EPL','never-priced','poisson',100,%s) returning id""",
+            (hashlib.sha256(b"never-priced").hexdigest(),)).fetchone()["id"]
+        fixture = conn.execute(
+            """insert into ai.fixtures
+                 (division,season,league_key,match_date,kickoff_at,
+                  home_canonical,away_canonical)
+               values ('E0','2627','EPL',%s,%s,'Everton','Leeds')
+               returning id""", (kickoff.date(), kickoff)).fetchone()["id"]
+        conn.execute(
+            """insert into ai.predictions
+                 (model_id,league,fixture_id,kickoff_at,home_canonical,
+                  away_canonical,p_home,p_draw,p_away,predicted_result,
+                  predicted_score,features,horizon,hours_to_kickoff,
+                  features_version,mkt_home_at_prediction,mkt_draw_at_prediction,
+                  mkt_away_at_prediction)
+               values (%s,'EPL',%s,%s,'Everton','Leeds',.55,.25,.20,'H','2-1','{}',
+                       'scheduled',48,'f2',2.30,3.40,3.30)""",
+            (model, fixture, kickoff))
+        conn.execute(
+            """update ai.fixtures
+                  set status='played', home_goals=2, away_goals=1, result='H',
+                      kickoff_at=%s, match_date=%s
+                where id=%s""", (played, played.date(), fixture))
+        conn.commit()
+
+    sys.argv = ["evaluate.py", "--league", "EPL", "--no-diagnosis"]
+    assert evaluate.main() == 0
+    sys.argv = ["evaluate.py", "--league", "EPL", "--no-diagnosis"]
+    assert evaluate.main() == 0
+
+    with db.connect() as conn:
+        row = conn.execute(
+            """select log_loss, market_log_loss, mkt_home_closing,
+                      log_loss_vs_market, market_moved_toward_model
+                 from ai.prediction_results""").fetchone()
+
+    assert row["log_loss"] is not None, "graded on the result alone"
+    assert row["market_log_loss"] is None
+    assert row["mkt_home_closing"] is None, (
+        "2.30 was the price at prediction time and is NOT a closing benchmark")
+    assert row["log_loss_vs_market"] is None
+    assert row["market_moved_toward_model"] is None
+
+
 def test_a_closing_price_still_cannot_become_a_feature():
     """The market comparison reads a closing line AFTER the match, into the
     results table, and the guard on the other side of that line is untouched."""

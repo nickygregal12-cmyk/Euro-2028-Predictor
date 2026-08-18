@@ -167,6 +167,73 @@ def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
     )
 
 
+def load_graded_rows_needing_market_comparison(league_key: str) -> pd.DataFrame:
+    """Already-graded forecasts whose market comparison is still missing.
+
+    `load_finished_fixtures_needing_grading` deliberately skips a prediction
+    that already has a `ai.prediction_results` row, which is what keeps grading
+    idempotent and stops a settled outcome being rewritten. The cost is that a
+    row graded BEFORE anything populated the contract 185 columns can never
+    acquire them from the ordinary loop, and Football-Data publishes its closing
+    line on its own schedule — often after the fixture was graded.
+
+    So the comparison gets a SECOND PASS, exactly as CLV does in settle_bets:
+    outcome first and unconditionally, benchmark afterwards when it exists. Only
+    rows still missing the comparison are returned, and only where a closing
+    benchmark is actually present, so a fixture the feed never priced is never
+    selected and never has a number invented for it.
+    """
+    return query_df(
+        """
+        select p.id as prediction_id, p.p_home, p.p_draw, p.p_away,
+               p.mkt_home_at_prediction, p.mkt_draw_at_prediction,
+               p.mkt_away_at_prediction,
+               r.actual_result, r.log_loss,
+               rm.close_avg_h, rm.close_avg_d, rm.close_avg_a,
+               rm.close_ps_h,  rm.close_ps_d,  rm.close_ps_a
+          from ai.prediction_results r
+          join ai.valid_predictions p on p.id = r.prediction_id
+          join ai.fixtures f          on f.id = p.fixture_id
+          join ai.raw_matches rm      on rm.id = f.raw_match_id
+         where p.league = %s
+           and r.market_log_loss is null
+           and r.actual_result is not null
+           and (rm.close_ps_h is not null or rm.close_avg_h is not null)
+        """,
+        (league_key,),
+    )
+
+
+def update_prediction_market_comparison(rows: list[dict]) -> int:
+    """Fill the six market-comparison columns on an already-graded row.
+
+    `where market_log_loss is null` makes the pass idempotent and makes it
+    incapable of revising a comparison already recorded. Nothing else on the row
+    is touched: the outcome, the model's own scores and the diagnosis are what
+    they were.
+    """
+    if not rows:
+        return 0
+    written = 0
+    with connect() as conn:
+        with conn.cursor() as cur:
+            for r in rows:
+                cur.execute(
+                    "update ai.prediction_results"
+                    "   set mkt_home_closing=%s, mkt_draw_closing=%s,"
+                    "       mkt_away_closing=%s, market_log_loss=%s,"
+                    "       log_loss_vs_market=%s, market_moved_toward_model=%s"
+                    " where prediction_id=%s and market_log_loss is null",
+                    (r["mkt_home_closing"], r["mkt_draw_closing"],
+                     r["mkt_away_closing"], r["market_log_loss"],
+                     r["log_loss_vs_market"], r["market_moved_toward_model"],
+                     r["prediction_id"]),
+                )
+                written += cur.rowcount
+        conn.commit()
+    return written
+
+
 def supported_horizons() -> frozenset[str]:
     """The horizon vocabulary the TARGET DATABASE actually accepts.
 

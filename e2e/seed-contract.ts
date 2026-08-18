@@ -75,8 +75,23 @@
  * holding all 202 migrations. The database-parity run also carries the six
  * behavioural pgTAP suites for this boundary -- 236 and 237 among them, because
  * contract 199 redefines the object both of those are about.
+ *
+ * Contract 203 redefines two competition-admin definer reads,
+ * `admin_ai_bet_builder_candidates` and `admin_ai_bet_builder_books`, so that
+ * each takes its rows from `ai.current_fixture_recommendations` and admits only
+ * a leg whose CURRENT decision is BET. Both were already behind
+ * `predictor_internal.require_competition_admin()` and both remain so; the
+ * change is which rows they return, not who may ask. No `authenticated` read is
+ * added, removed or redefined, schema `ai` stays unreachable from the browser,
+ * and no seeded journey touches the AI Lab at all.
+ *
+ * The marker is raised on the runs, not on that paragraph. Both jobs passed at
+ * the exact head `ecf8883`: Database parity (`local-supabase`) run 32146227554
+ * and Browser E2E (`authenticated-browser`) run 32146227736, against a database
+ * holding all 203 migrations. The database-parity run carries pgTAP suite 251
+ * beside the six from the previous boundary.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 202
+export const SEED_REVIEWED_AT_CONTRACT = 203
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
