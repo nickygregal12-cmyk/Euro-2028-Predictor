@@ -24,6 +24,8 @@ That performs `npm ci` and provisions the **baseline developer CLIs** without st
 
 The devcontainer also provides Node, Python and Rust so the optional semantic merge tools can be built when needed. Ports are forwarded for Vite, Storybook, OmniRoute and optional Agent Mail; forwarding a port does not start the process.
 
+The supported environment sets `BD_DISABLE_METRICS=1` and `DOLT_DISABLE_EVENT_FLUSH=1`. Beads command metrics and its underlying Dolt event flush are therefore disabled by default in a Predictor Codespace and in the repository Beads/bootstrap helpers. Local task memory should not create an implicit outbound telemetry path.
+
 For an existing Codespace created before this toolchain landed, rebuild/recreate it so the devcontainer features and bootstrap run from current `main`.
 
 Verify the environment at any time:
@@ -78,7 +80,7 @@ To verify the tracked Serena project and TypeScript language-server path:
 serena project health-check .
 ```
 
-The dedicated tooling smoke workflow runs that health check as part of integration validation.
+The dedicated tooling smoke workflow runs that health check as part of integration validation. The tracked project schema is also guarded in tests so a future Serena update cannot silently revive an obsolete configuration key.
 
 ### Current external library docs — Context7
 
@@ -120,7 +122,7 @@ Treat Spec Kit as a way to execute clarify/specify/plan/tasks/analyze/implement,
 
 ### Beads local execution memory
 
-The CLI is provisioned but no Beads database is created automatically.
+The CLI is provisioned but no Beads database is created automatically. Its release archive is downloaded from the exact supported GitHub release and verified against the release SHA-256 checksum before `bd` is installed.
 
 Initialise only when a longer task genuinely benefits from local dependency-aware memory:
 
@@ -128,7 +130,7 @@ Initialise only when a longer task genuinely benefits from local dependency-awar
 bash scripts/agent-tools/beads-init.sh
 ```
 
-The script uses Beads stealth mode. `.beads/` remains ignored; it does not modify the repository authority tree.
+The script uses Beads stealth mode. `.beads/` remains ignored; it does not modify the repository authority tree. The helper also explicitly exports the Beads/Dolt telemetry opt-outs, so the local-memory path stays local even outside a Codespace whose `remoteEnv` already supplies them.
 
 Typical local use:
 
