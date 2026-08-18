@@ -36,14 +36,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          echo "node=$(node -p "require('./package.json').engines.node")" >> "${GITHUB_OUTPUT}"
-          echo "graphify=$(node -p "require('./config/agent-tools.json').graphify.version")" >> "${GITHUB_OUTPUT}"
-          echo "omniroute=$(node -p "require('./config/agent-tools.json').omniroute.version")" >> "${GITHUB_OUTPUT}"
+          {
+            echo "node=$(node -p "require('./package.json').engines.node")"
+            echo "graphify=$(node -p "require('./config/agent-tools.json').graphify.version")"
+            echo "omniroute=$(node -p "require('./config/agent-tools.json').omniroute.version")"
+          } >> "${GITHUB_OUTPUT}"
 
       - name: Set up repository Node version
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: ${{ steps.versions.outputs.node }}
+          package-manager-cache: false
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
