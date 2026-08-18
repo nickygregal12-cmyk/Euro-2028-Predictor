@@ -222,11 +222,17 @@ select is(
 select throws_ok(
   $$select public.get_my_football_calendar(now(), now() - interval '1 day')$$,
   '22023',
+  -- pgTAP's THREE-argument form takes the expected MESSAGE here, not the
+  -- description. Passing the description made CI compare it against the real
+  -- message and fail; the four-argument form with a null message is what the
+  -- rest of this repository's suites use.
+  null,
   'a window that ends before it starts is refused rather than returned empty');
 
 select throws_ok(
   $$select public.get_my_football_calendar(now(), now() + interval '200 days')$$,
   '22023',
+  null,
   'and a window wider than the season read allows is refused by the same limit');
 
 reset role;
@@ -235,6 +241,7 @@ select set_config('request.jwt.claims', '', true);
 select throws_ok(
   $$select public.get_my_football_calendar()$$,
   '42501',
+  null,
   'an unauthenticated caller has no calendar');
 
 select is(

@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(21);
+select plan(26);
 
 do $$
 declare
@@ -291,6 +291,53 @@ select is(
 select ok(
   (select public.process_player_action_items()) ? 'cup_penalty_number_actions_written',
   'and the driver reports what it wrote, so an operator sees the generator ran');
+
+-- ---------------------------------------------------------------------------
+-- It joins the attention system it belongs to.
+--
+-- `process_reminder_schedule` is TYPE-AGNOSTIC: it queues any open item with a
+-- `deadline_at`. So a new action type either composes with the reminder path
+-- for free or breaks it, and nothing tested which until now. This drives it.
+-- ---------------------------------------------------------------------------
+
+select cmp_ok(
+  (public.process_reminder_schedule(interval '24 hours', true) ->> 'scheduled')::integer,
+  '>=',
+  1,
+  'a Penalty Number that is due reaches the reminder scheduler without it being taught the type');
+
+select is(
+  (select max(delivery.reminder_kind) from public.reminder_deliveries delivery
+    where delivery.user_id = md5('pn-user-2')::uuid),
+  'deadline',
+  'as a deadline reminder, which is what it is');
+
+select is(
+  (select max(delivery.deadline_at) from public.reminder_deliveries delivery
+    where delivery.user_id = md5('pn-user-2')::uuid),
+  predictor_internal.cup_window_first_kickoff(md5('pn-win')::uuid),
+  'carrying the first kickoff rather than the window lock, all the way through');
+
+-- And it is WITHDRAWN when the player acts, rather than sent about something
+-- they have already done.
+insert into public.bonus_cup_penalty_numbers (competition_id, window_id, user_id, value)
+values (md5('pn-cup')::uuid, md5('pn-win')::uuid, md5('pn-user-2')::uuid, 8);
+
+select is(
+  predictor_internal.generate_cup_penalty_number_actions(now()),
+  1,
+  'submitting completes the item');
+
+-- The scheduler runs as its own STATEMENT. Calling it inside the assertion's
+-- `where` left the outer query reading the pre-update snapshot and the status
+-- came back `pending` against a working sweep.
+do $$ begin perform public.process_reminder_schedule(interval '24 hours', true); end $$;
+
+select is(
+  (select max(delivery.status) from public.reminder_deliveries delivery
+     where delivery.user_id = md5('pn-user-2')::uuid),
+  'skipped',
+  'and the scheduler withdraws the pending reminder rather than sending about something already done');
 
 select * from finish();
 rollback;

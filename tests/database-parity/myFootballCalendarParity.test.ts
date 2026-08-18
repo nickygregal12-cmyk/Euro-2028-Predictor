@@ -121,6 +121,15 @@ describe('it is bounded exactly as the read it copies', () => {
     }
   })
 
+  it('states the expected message slot explicitly on every throws_ok', () => {
+    // pgTAP's THREE-argument `throws_ok` takes the expected MESSAGE, not the
+    // description. Passing the description compiles, runs, and fails in CI
+    // against a correct implementation -- which it did here. Every call in this
+    // suite uses the four-argument form with a null message.
+    const threeArg = suite.match(/throws_ok\(\s*\$\$[^$]*\$\$,\s*'[^']+',\s*'/g) ?? []
+    expect(threeArg).toEqual([])
+  })
+
   it('refuses an inverted or oversized window rather than returning empty', () => {
     expect(calendar).toContain("raise exception 'The window must end after it starts'")
     expect(calendar).toContain('A fixture window may not exceed 120 days')

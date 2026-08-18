@@ -155,6 +155,28 @@ describe('it writes one relation, and it is the inbox', () => {
   })
 })
 
+describe('it joins the attention system it belongs to', () => {
+  it('reaches the reminder scheduler without the scheduler being taught the type', () => {
+    // `process_reminder_schedule` queues any open item with a `deadline_at`, so
+    // a new action type either composes for free or breaks it. Nothing tested
+    // that a new type does, until this suite drove it.
+    expect(suite).toContain('public.process_reminder_schedule(')
+    expect(suite).toContain(
+      'a Penalty Number that is due reaches the reminder scheduler without it being taught the type',
+    )
+  })
+
+  it('carries the first kickoff all the way into the reminder', () => {
+    // The buffer defect again, one layer out: a reminder queued against the
+    // window lock would be about a deadline that has not arrived.
+    expect(suite).toContain('carrying the first kickoff rather than the window lock, all the way through')
+  })
+
+  it('withdraws the reminder when the player acts', () => {
+    expect(suite).toContain('the scheduler withdraws the pending reminder')
+  })
+})
+
 describe('the driver and the sweep are patched in place, never restated', () => {
   it('takes both bases from the catalogue', () => {
     expect(code).toContain(
