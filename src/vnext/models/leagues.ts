@@ -305,7 +305,16 @@ export function leagueRowKey(player: LeaguePlayer, position: number): string {
  * counts as one, so a player with a single private league has two.
  */
 export function leaguesSwitchable(model: LeaguesModel): boolean {
-  return model.leagues.length > 0
+  // A LEAGUE SCOPE IS ALWAYS SWITCHABLE, whatever the list said.
+  //
+  // The rule above is the shell's — below two choices there is no choice — and
+  // it has one exception this page must make. When the league LIST fails while
+  // a league's own table answers, `leagues` is empty and the chooser would not
+  // be drawn at all: no "Season" control, and the reader is stranded inside a
+  // league with no way back to anything. Standing in a private league IS the
+  // second choice, so "Season" is a real one and not a control that spends a
+  // press proving there is no decision.
+  return model.leagues.length > 0 || model.scope.kind === 'private'
 }
 
 /**

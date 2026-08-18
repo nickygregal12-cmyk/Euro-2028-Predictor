@@ -111,7 +111,13 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
         onRetry={state.retry}
       />
     ) : model ? (
-      <VNextLeagues model={model} onIntent={props.onIntent} />
+      <VNextLeagues
+        model={model}
+        onIntent={props.onIntent}
+        // A partial page is a READY page, so the retry travels with it. Only a
+        // failed play context takes the whole surface down now.
+        onRetry={state.status === 'ready' ? state.retry : undefined}
+      />
     ) : (
       <VNextLeaguesLoading />
     )

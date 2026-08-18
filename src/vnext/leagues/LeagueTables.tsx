@@ -113,7 +113,18 @@ function PointsCell({
  */
 function MovementCell({ movement }: { readonly movement: LeagueMovement | null }) {
   if (movement === null) {
-    return <span className={`${text.micro} ${styles.movementFlat}`} aria-hidden="true">—</span>
+    // A GAP INSIDE A SETTLED TABLE STILL GETS A WORD. The column is only drawn
+    // once something has settled, so a null here is a member the movement read
+    // did not mention — someone who joined after the matchweek. The dash is the
+    // visible half; without the sentence the cell is completely silent to a
+    // screen reader, and "no movement recorded" is indistinguishable from a
+    // broken cell. Every other state on this page says its word.
+    return (
+      <span className={`${text.micro} ${styles.movementFlat}`}>
+        <span aria-hidden="true">—</span>
+        <span className={text.srOnly}>no movement recorded</span>
+      </span>
+    )
   }
 
   const direction = movement.places > 0 ? 'up' : movement.places < 0 ? 'down' : 'none'
@@ -233,6 +244,24 @@ export function GlobalStandingsTable({
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <caption className={text.srOnly}>Your place in {caption}</caption>
+              {/* IT CARRIES ITS OWN HEADERS. A one-row data table with no
+                  `<thead>` reads its rank as a bare "318" with nothing to
+                  associate it to in table-navigation mode — and axe does not
+                  flag a header-less data table, so only reading it catches
+                  this. The points cell describes itself; the rank does not. */}
+              <thead>
+                <tr>
+                  <th scope="col" className={styles.colRank}>
+                    Rank
+                  </th>
+                  <th scope="col" className={styles.colPlayer}>
+                    Player
+                  </th>
+                  <th scope="col" className={styles.colPoints}>
+                    Points
+                  </th>
+                </tr>
+              </thead>
               <tbody>
                 <GlobalRow row={table.you} onOpenPlayer={onOpenPlayer} />
               </tbody>
@@ -354,6 +383,26 @@ export function PrivateStandingsTable({ table, onOpenPlayer }: PrivateStandingsT
           <div className={styles.tableScroll}>
             <table className={styles.table}>
               <caption className={text.srOnly}>Your place in {table.name}</caption>
+              {/* See `GlobalStandingsTable` — a one-row data table still owes
+                  its rank a header to be associated with. */}
+              <thead>
+                <tr>
+                  <th scope="col" className={styles.colRank}>
+                    Rank
+                  </th>
+                  <th scope="col" className={styles.colPlayer}>
+                    Player
+                  </th>
+                  {showMovement ? (
+                    <th scope="col" className={styles.colMovement}>
+                      Moved
+                    </th>
+                  ) : null}
+                  <th scope="col" className={styles.colPoints}>
+                    Points
+                  </th>
+                </tr>
+              </thead>
               <tbody>
                 <PrivateRow
                   row={table.you}

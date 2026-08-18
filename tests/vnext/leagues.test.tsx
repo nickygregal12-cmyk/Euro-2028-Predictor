@@ -255,6 +255,35 @@ describe('movement', () => {
     expect(screen.getByText(/no change since Matchweek 12/)).toBeTruthy()
   })
 
+  it('gives a member with no movement recorded a word, not a silent cell', () => {
+    // The column is only drawn once something settled, so a null here is a
+    // member the movement read did not mention. The dash is `aria-hidden`; with
+    // nothing beside it the cell is completely silent to a screen reader and
+    // "no movement recorded" is indistinguishable from a broken cell.
+    renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
+    expect(screen.getByText('no movement recorded')).toBeTruthy()
+  })
+
+  it('offers a retry beside whatever could not be read', async () => {
+    const onRetry = vi.fn()
+    render(
+      <VNextRoot>
+        <VNextShellProvider model={shellScenarios.oneCompetition}>
+          <VNextLeagues
+            model={leaguesScenarios.leagueTableUnavailable}
+            onIntent={vi.fn()}
+            onRetry={onRetry}
+          />
+        </VNextShellProvider>
+      </VNextRoot>,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(onRetry).toHaveBeenCalledTimes(1)
+    // AND THE CHOOSER IS STILL THERE. A retry is not a substitute for a way out.
+    expect(screen.getByRole('button', { name: 'Season' })).toBeTruthy()
+  })
+
   it('names the matchweek a movement is over', () => {
     renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
     // "up 2" with no answer to "since when" is a number a reader assumes is
@@ -363,6 +392,16 @@ describe('the scope chooser', () => {
     expect(screen.queryByText(/not in a private league/)).toBeNull()
   })
 
+  it('never strands a reader inside a league the list could not name', () => {
+    // The mirror of the case above: the LIST failed while a league's own table
+    // answered. `leagues` is empty, so a chooser gated purely on its length
+    // would not be drawn — leaving no "Season" control and no way out of a
+    // league the page cannot even name.
+    renderLeagues(leaguesScenarios.leagueUnnamed, vi.fn())
+
+    expect(screen.getByRole('button', { name: 'Season' })).toBeTruthy()
+  })
+
   it('highlights the table the model is actually showing', async () => {
     renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
 
@@ -417,6 +456,18 @@ describe('every world is one page', () => {
     })
   }
 
+  it('states one member count, not two', () => {
+    // The league LIST and contract 128 are two reads and can disagree. Printing
+    // the list's figure under the heading and the table's in the foot puts two
+    // different member counts on one screen.
+    renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
+
+    const counts = screen
+      .getByRole('main')
+      .textContent?.match(/(\d+) members?\b/g)
+    expect(new Set(counts ?? []).size, `page states ${JSON.stringify(counts)}`).toBe(1)
+  })
+
   it('names the competition and the game without merging them', () => {
     renderLeagues(leaguesScenarios.seasonTable, vi.fn())
     expect(screen.getByText('Caledonian Premiership · 2027/28')).toBeTruthy()
@@ -427,6 +478,21 @@ describe('every world is one page', () => {
     renderLeagues(leaguesScenarios.leagueSettled, vi.fn())
     for (const table of screen.getAllByRole('table')) {
       expect((table.querySelector('caption')?.textContent ?? '').length).toBeGreaterThan(0)
+    }
+  })
+
+  it('gives every standings table its column headers, pinned rows included', () => {
+    // A one-row data table with no `<thead>` reads its rank as a bare number
+    // with nothing to associate it to. axe does not flag a header-less data
+    // table, so only an assertion catches it.
+    renderLeagues(leaguesScenarios.seasonYouOffPage, vi.fn())
+
+    const tables = screen.getAllByRole('table')
+    expect(tables.length).toBe(2)
+    for (const table of tables) {
+      expect(
+        within(table).getAllByRole('columnheader').map((cell) => cell.textContent),
+      ).toEqual(['Rank', 'Player', 'Points'])
     }
   })
 })

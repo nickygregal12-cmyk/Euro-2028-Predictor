@@ -624,11 +624,11 @@ const emptySeason = seasonModel({
  */
 const leagueUnsettled = leagueModel({
   leagueId: sundayClub.id,
-  leagues: [sundayClub],
+  leagues: [{ ...sundayClub, memberCount: 4 }],
   table: privateTable({
     leagueId: sundayClub.id,
     name: sundayClub.name,
-    memberCount: 8,
+    memberCount: 4,
     movementSettled: false,
     rows: [
       privateRow({
@@ -671,11 +671,11 @@ const leagueUnsettled = leagueModel({
  */
 const leagueSettled = leagueModel({
   leagueId: sundayClub.id,
-  leagues: [sundayClub, office],
+  leagues: [{ ...sundayClub, memberCount: 5 }, office],
   table: privateTable({
     leagueId: sundayClub.id,
     name: sundayClub.name,
-    memberCount: 8,
+    memberCount: 5,
     movementSettled: true,
     rows: [
       privateRow({
@@ -736,11 +736,11 @@ const leagueSettled = leagueModel({
  */
 const leagueWithNonEntrants = leagueModel({
   leagueId: family.id,
-  leagues: [family, sundayClub],
+  leagues: [{ ...family, memberCount: 4 }, sundayClub],
   table: privateTable({
     leagueId: family.id,
     name: family.name,
-    memberCount: 5,
+    memberCount: 4,
     movementSettled: true,
     rows: [
       privateRow({
@@ -883,14 +883,14 @@ const longNames = leagueModel({
     {
       id: 'league-long',
       name: 'The Thursday Night Extremely Competitive Prediction Society',
-      memberCount: 6,
+      memberCount: 3,
     },
     oldSchool,
   ],
   table: privateTable({
     leagueId: 'league-long',
     name: 'The Thursday Night Extremely Competitive Prediction Society',
-    memberCount: 6,
+    memberCount: 3,
     movementSettled: true,
     rows: [
       privateRow({
@@ -937,11 +937,11 @@ const longNames = leagueModel({
  */
 const severalLeagues = leagueModel({
   leagueId: oldSchool.id,
-  leagues: [sundayClub, office, family, oldSchool],
+  leagues: [sundayClub, office, family, { ...oldSchool, memberCount: 3 }],
   table: privateTable({
     leagueId: oldSchool.id,
     name: oldSchool.name,
-    memberCount: 12,
+    memberCount: 3,
     movementSettled: true,
     rows: [
       privateRow({
@@ -983,11 +983,11 @@ const severalLeagues = leagueModel({
  */
 const leagueTied = leagueModel({
   leagueId: sundayClub.id,
-  leagues: [sundayClub],
+  leagues: [{ ...sundayClub, memberCount: 3 }],
   table: privateTable({
     leagueId: sundayClub.id,
     name: sundayClub.name,
-    memberCount: 8,
+    memberCount: 3,
     rows: [
       privateRow({
         player: you('Nicky Gregal', 'ref-you'),
@@ -1071,11 +1071,11 @@ const leagueUnnamed = leagueModel({
 /** AN EMPTY LEAGUE TABLE. Members exist; none has an entry the read returned. */
 const leagueEmpty = leagueModel({
   leagueId: sundayClub.id,
-  leagues: [sundayClub],
+  leagues: [{ ...sundayClub, memberCount: 0 }],
   table: privateTable({
     leagueId: sundayClub.id,
     name: sundayClub.name,
-    memberCount: 8,
+    memberCount: 0,
     rows: [],
     totalCount: 0,
   }),

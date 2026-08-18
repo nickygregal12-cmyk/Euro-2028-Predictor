@@ -64,9 +64,19 @@ export type LeaguesIntent =
 export type VNextLeaguesProps = {
   readonly model: LeaguesModel
   readonly onIntent?: ((intent: LeaguesIntent) => void) | undefined
+  /**
+   * Ask the host to read again, offered beside whatever could not be read.
+   *
+   * IT BELONGS IN THE READY STATE AND NOT ONLY IN THE FAILURE ONE. A table that
+   * did not answer no longer takes the whole page down — the chooser has to
+   * survive it, or the player is stranded in the league that failed — so the
+   * page a partial read produces is a READY page, and the only place a retry
+   * could live is next to the sentence that admits the gap.
+   */
+  readonly onRetry?: (() => void) | undefined
 }
 
-export function VNextLeagues({ model, onIntent }: VNextLeaguesProps) {
+export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
 
   /**
@@ -134,9 +144,21 @@ export function VNextLeagues({ model, onIntent }: VNextLeaguesProps) {
         ) : null}
 
         {model.unavailable.length > 0 ? (
-          <p className={`${text.micro} ${styles.unavailable}`} role="status">
-            We could not load {listSentence(model.unavailable)} just now.
-          </p>
+          /* NOT A LIVE REGION. It is mounted together with its text — the
+           * loading state swaps the whole subtree — so `role="status"` would
+           * announce nothing and would put a control inside a live region for
+           * no benefit. It is an ordinary notice, in the reading order, at the
+           * top of the page it is about. */
+          <div className={styles.unavailable}>
+            <p className={text.micro}>
+              We could not load {listSentence(model.unavailable)} just now.
+            </p>
+            {onRetry ? (
+              <button type="button" className={styles.retry} onClick={onRetry}>
+                Try again
+              </button>
+            ) : null}
+          </div>
         ) : null}
 
         <motion.div
@@ -247,7 +269,14 @@ function contextSentence(model: LeaguesModel): string {
   }
   const table = model.private
   if (table === null) return model.context.gameName
-  const members = table.memberCount === 1 ? '1 member' : `${formatNumber(table.memberCount)} members`
+  // THE TABLE'S OWN COUNT, NOT THE LIST'S. `memberCount` comes from
+  // `get_my_game_leagues` and `totalCount` from contract 128 — two reads, which
+  // can and do disagree. Printing the list's figure here and the table's in the
+  // foot puts "8 members" directly above "5 members" on one screen, which is
+  // the page arguing with itself. The chooser chip is where the list's own
+  // count belongs, because that is the list's own control.
+  const members =
+    table.totalCount === 1 ? '1 member' : `${formatNumber(table.totalCount)} members`
   return `${members} · ranked inside this league`
 }
 

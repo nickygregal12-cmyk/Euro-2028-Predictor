@@ -439,6 +439,11 @@ describe('movement', () => {
       movement: movement({ matchweek: null }),
     })
     expect(first(privateRows(model)).movement).toBeNull()
+    // AND THE FLAG AGREES WITH THE MAP. A surface reads the flag to decide
+    // whether to DRAW the column and the map to fill it, so a disagreement here
+    // produces a "Moved" column in which every row is a dash — literally the
+    // column of em-dashes standing in for "nothing has settled yet".
+    expect(model.private?.movementSettled).toBe(false)
   })
 
   it('copies the server`s sign rather than recomputing it from the two ranks', () => {
@@ -574,6 +579,22 @@ describe('the league list', () => {
 
   it('leaves the page unswitchable when the player is in no league', () => {
     expect(leaguesSwitchable(buildLeaguesModel(source({ leagues: [] })))).toBe(false)
+  })
+
+  it('stays switchable inside a league even when the list did not answer', () => {
+    // Otherwise the reader is standing in a league the page cannot name, with
+    // no control to leave it by. Standing in a private league IS the second
+    // choice, so "Season" is a real one.
+    const stranded = buildLeaguesModel(
+      source({
+        selectedLeagueId: 'league-sunday-club',
+        global: null,
+        leagues: null,
+        league: standings(),
+      }),
+    )
+    expect(stranded.leagues).toEqual([])
+    expect(leaguesSwitchable(stranded)).toBe(true)
   })
 
   it('tells an empty list apart from an unread one', () => {

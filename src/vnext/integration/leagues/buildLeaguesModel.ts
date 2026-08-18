@@ -47,6 +47,21 @@ import type { LeaguesSource } from './leaguesSource'
  * a permission rule in the browser. A row the caller may not open therefore has
  * no id anywhere in its model, so a surface cannot build a link to it.
  */
+/**
+ * WHETHER MOVEMENT WAS ASKED FOR AND ANSWERED — ONE PREDICATE, USED TWICE.
+ *
+ * `movementSettled` and the movement map have to agree, because a surface reads
+ * the first to decide whether to DRAW the column and the second to fill it. A
+ * payload that says `settled: true` and carries a matchweek with no label maps
+ * to no movement at all, and if the flag disagreed the table would draw a
+ * "Moved" column in which every row is a dash — literally the "column of
+ * em-dashes standing in for nothing has settled yet" that contract 150's rule
+ * exists to prevent.
+ */
+function movementAnswered(movement: SeasonLeagueMovement | null): boolean {
+  return movement !== null && movement.settled && (movement.matchweek?.label ?? null) !== null
+}
+
 export function buildLeaguesModel(source: LeaguesSource): LeaguesModel {
   const scope: LeaguesScope =
     source.selectedLeagueId === null
@@ -246,7 +261,7 @@ function privateTableOf(
             movement: movement.get(page.you.userId) ?? null,
           },
     hasMore: page.hasMore,
-    movementSettled: source.movement?.settled === true,
+    movementSettled: movementAnswered(source.movement),
   }
 }
 
@@ -267,10 +282,9 @@ function privateTableOf(
 function movementByPlayer(
   movement: SeasonLeagueMovement | null,
 ): ReadonlyMap<string, LeagueMovement> {
-  if (movement === null || !movement.settled) return new Map()
+  if (!movementAnswered(movement) || movement === null) return new Map()
 
-  const label = movement.matchweek?.label ?? null
-  if (label === null) return new Map()
+  const label = movement.matchweek?.label ?? ''
 
   return new Map(
     movement.members.map((row) => [row.userId, { matchweekLabel: label, places: row.movement }]),

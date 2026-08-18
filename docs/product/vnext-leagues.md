@@ -196,8 +196,18 @@ payload produces an **empty map**, so a component cannot draw movement it was
 never given, even if it tried.
 
 `movementSettled: true` with `movement: null` on a row is a third, real state —
-a member who joined after the matchweek — and reads as a dash meaning "no
-movement recorded".
+a member who joined after the matchweek. The dash is `aria-hidden`, so it is
+paired with an sr-only **"no movement recorded"**: without it that cell is
+completely silent to a screen reader, and a silent cell is indistinguishable
+from a broken one.
+
+**The flag and the map come from one predicate.** A surface reads
+`movementSettled` to decide whether to *draw* the column and the map to *fill*
+it, so they must agree — a payload saying `settled: true` with a matchweek
+carrying no label maps to no movement at all, and a flag that disagreed would
+draw a "Moved" column in which every row is a dash. That is exactly the column
+of em-dashes this section forbids, arriving through a mismatch instead of a
+decision.
 
 **The sign is the server's.** `movement` is `rankBefore - rankAfter`, positive
 for a climb, copied rather than recomputed from the two ranks beside it: two
@@ -280,11 +290,31 @@ Two rules hold everywhere in this lane:
    could not load these standings" and never "you are not in any league" or
    "there is nobody here". Only the server can say the second, and when it does
    the page draws an ordinary empty table instead.
-2. **A partial page stays a page.** When the league list fails and the table
-   does not, the table is drawn in full and the strip names what is missing.
-   When the chosen league's table fails and the list does not, **the chooser
-   stays usable** — a page that dropped it too would strand the player in a
-   league they cannot navigate out of.
+2. **A partial page stays a page**, and it is the ACQUISITION that guarantees
+   it, not the presentation. Only a failed **play context** takes the whole
+   surface down, because without it there is no id to address anything with.
+   Every read below it resolves to `null` and is named in the strip:
+
+   - league list fails, table answers → the table is drawn in full;
+   - chosen league's table fails, list answers → **the chooser stays usable**;
+   - list fails while a league's table answers → **`leaguesSwitchable` is still
+     true**, because `scope.kind === 'private'` is itself the second choice.
+     Without that exception the reader stands in a league the page cannot name
+     with no control to leave it by — the same stranding, arriving through the
+     mirror case;
+   - movement fails → the table loses its arrows and nothing else.
+
+   The **retry lives in the ready state**, beside the sentence that admits the
+   gap, precisely because a partial read now produces a ready page. A whole-page
+   failure notice would take away the only control that could get the reader out
+   of the league that failed.
+
+   `tests/vnext/leaguesSourceLifecycle.test.tsx` holds all of this, and holds one
+   thing no other test could see: **a superseded request never writes.** Switch
+   from league A to league B, let B answer and A then reject, and a stale write
+   would store `failed` under A's identity — which the hook's memo reads as
+   `loading` forever, with unchanged effect deps and nothing left to refetch. A
+   skeleton with no chooser and no retry until a reload.
 
 An unnamed league is called **"This league"**. Inventing a name from the id
 would be worse than admitting the list did not answer.
@@ -333,6 +363,20 @@ rather than as a note.
 and its movement, never both — the page shows one table, and the unused one is
 not a useful fallback for the other.
 
+### The one precondition this lane does not enforce
+
+`tournamentId` (from the play context) and `gameCompetitionId` (from the host)
+arrive as **independent inputs**. A host pairing a `gameCompetitionId` from one
+competition with a competition/season slug from another would produce private
+rows marked openable whose ids contract 191's `season_player_reach` would answer
+`compare` for in the tournament actually being viewed.
+
+So the openability guarantee is structural **given a well-formed host pair**, and
+nothing here asserts that pair. It is not exploitable from the surface — the
+server refuses the profile read regardless, which is where the boundary actually
+lives — but it is a precondition rather than a proof, and the cutover stage owns
+making the host supply both from one place.
+
 ---
 
 ## 11. WHAT IS NOT HERE, AND WHY
@@ -353,7 +397,11 @@ not a useful fallback for the other.
 ## 12. ACCESSIBILITY AND PRESENTATION
 
 - **They are real `<table>`s** — `<th scope="col">`, a rank in `<th
-  scope="row">`, a visually hidden `<caption>` as the accessible name. A
+  scope="row">`, a visually hidden `<caption>` as the accessible name. **The
+  pinned "your standing" table carries its own headers too**: a one-row data
+  table without them reads its rank as a bare "318" with nothing to associate it
+  to, and axe does not flag a header-less data table, so only an assertion
+  catches it. A
   standings table IS tabular; `LeagueLadder` on Home uses an `<ol>` because it
   shows a five-row window around one person. The markup follows the content
   rather than the house style.
@@ -414,6 +462,7 @@ directly.
 | `src/vnext/fixtures/leagues/scenarios.ts` | twenty-one deterministic worlds |
 | `src/vnext/stories/Leagues.stories.tsx` | the review surface |
 | `tests/vnext/leaguesIntegration.test.ts` | the mapping, as truth |
+| `tests/vnext/leaguesSourceLifecycle.test.tsx` | acquisition: superseded requests, and which failures are partial |
 | `tests/vnext/leagues.test.tsx` | the promises, plus the accessibility floor |
 | `e2e/vnext-leagues.spec.ts` | the picture, and the two real interactions |
 | `src/dev/VNextLeaguesPreview.tsx` | the connected proof, dev-only |

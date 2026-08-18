@@ -35,12 +35,28 @@ import type { LeaguesSource } from './leaguesSource'
  * exist on the global table too, or a player looking at the season standings
  * has no way to reach their own league.
  *
- * ============================ EVERY ENRICHMENT FAILS ALONE ===============
+ * ============================ EVERY READ BELOW WAVE ONE FAILS ALONE ======
  *
- * `Promise.allSettled`, so a failed movement read costs the table its arrows
- * and nothing else. The chosen TABLE is the core: without it there is nothing
- * to show, and a Leagues page drawn with no rows would tell a player they have
- * no standing rather than that we could not read one.
+ * ONLY THE PLAY CONTEXT CAN FAIL THE WHOLE PAGE. Without it there is no
+ * competition name, no season and no id to address anything with, so there is
+ * genuinely nothing to draw. Everything after it resolves to `null` instead,
+ * and `buildLeaguesModel` names what is missing.
+ *
+ * A FAILED TABLE IS NOT A FAILED PAGE, and getting that wrong is how a player
+ * gets stranded: `docs/product/vnext-leagues.md` §9 requires the chooser to
+ * survive a table that did not answer, because a whole-page notice takes away
+ * the only control that could have got them out of the league that failed. An
+ * earlier revision of this hook returned `failed` here and made that promise
+ * false — and made two of the mapper's `unavailable` sentences unreachable.
+ *
+ * IT ALSO MEANT A SUPERSEDED REQUEST COULD HANG THE PAGE. That `setState` was
+ * the one write in this file with no `active` guard: switch from league A to
+ * league B, let B resolve and A then reject, and the stale closure stored
+ * `failed` under A's identity. The memo below reads an identity that is no
+ * longer current as `loading`, the effect deps have not changed, and nothing
+ * refetches — a skeleton with no chooser and no retry until a reload. Every
+ * write in this file is now behind the same guard, which is the property that
+ * makes that class of bug impossible rather than absent.
  *
  * ============================ A PAYLOAD BELONGS TO ITS REQUEST ===========
  *
@@ -167,9 +183,9 @@ export function useVNextLeaguesSource(
         let movement: LeaguesSource['movement'] = null
 
         if (selectedLeagueId === null) {
-          global = await import('../../../services/supabase/seasonLeaderboard').then((module) =>
-            module.fetchSeasonLeaderboardPage(context.tournamentId),
-          )
+          global = await import('../../../services/supabase/seasonLeaderboard')
+            .then((module) => module.fetchSeasonLeaderboardPage(context.tournamentId))
+            .catch(() => null)
         } else {
           const [standings, moved] = await Promise.allSettled([
             import('../../../services/supabase/seasonLeagueStandings').then((module) =>
@@ -179,13 +195,7 @@ export function useVNextLeaguesSource(
               module.fetchSeasonLeagueMovement(selectedLeagueId),
             ),
           ])
-          // The table is the core: no table, no page. Movement is an extra and
-          // its failure costs the table its arrows and nothing else.
-          if (standings.status === 'rejected') {
-            setState({ status: 'failed', identity })
-            return
-          }
-          league = standings.value
+          league = settled(standings)
           movement = settled(moved)
         }
         if (!active) return

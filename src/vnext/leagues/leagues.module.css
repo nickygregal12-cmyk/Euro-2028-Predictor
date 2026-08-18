@@ -108,11 +108,31 @@
 /* ---- the honest strip ---------------------------------------------------- */
 
 .unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
   padding: var(--vnext-space-3) var(--vnext-space-4);
   border: 1px solid var(--vnext-hairline);
   border-radius: var(--vnext-radius-sm);
   background-color: var(--vnext-surface-sunken);
   color: var(--vnext-text-secondary);
+}
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
 }
 
 /* ---- the table region ---------------------------------------------------- */
