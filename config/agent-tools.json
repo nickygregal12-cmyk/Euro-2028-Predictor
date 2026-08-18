@@ -1,12 +1,83 @@
 {
+  "uv": {
+    "package": "uv",
+    "version": "0.12.0",
+    "mode": "bootstrap"
+  },
   "graphify": {
     "package": "graphifyy",
     "version": "0.9.46",
-    "extras": ["sql", "openai"]
+    "extras": ["sql", "openai"],
+    "mode": "bootstrap"
   },
   "omniroute": {
     "package": "omniroute",
     "version": "3.8.49",
-    "port": 20128
+    "port": 20128,
+    "mode": "bootstrap-manual-service"
+  },
+  "serena": {
+    "package": "serena-agent",
+    "version": "1.6.1",
+    "python": "3.13",
+    "mode": "bootstrap-mcp"
+  },
+  "context7": {
+    "package": "@upstash/context7-mcp",
+    "version": "2.0.2",
+    "mode": "on-demand-mcp"
+  },
+  "dependencyCruiser": {
+    "package": "dependency-cruiser",
+    "version": "18.1.0",
+    "mode": "ci-and-on-demand"
+  },
+  "repomix": {
+    "package": "repomix",
+    "version": "1.17.0",
+    "mode": "on-demand-mcp"
+  },
+  "lostPixel": {
+    "package": "lost-pixel",
+    "version": "3.22.0",
+    "mode": "optional-visual-adapter"
+  },
+  "reactScan": {
+    "package": "react-scan",
+    "version": "0.5.7",
+    "mode": "manual-diagnostics"
+  },
+  "astGrep": {
+    "package": "@ast-grep/cli",
+    "version": "0.45.0",
+    "mode": "bootstrap"
+  },
+  "agentMail": {
+    "repository": "Dicklesworthstone/mcp_agent_mail",
+    "version": "0.2.1",
+    "python": "3.14",
+    "port": 8765,
+    "mode": "optional-service"
+  },
+  "specKit": {
+    "package": "specify-cli",
+    "version": "0.12.11",
+    "python": "3.12",
+    "mode": "bootstrap-adapter"
+  },
+  "weave": {
+    "repository": "Ataraxy-Labs/weave",
+    "version": "0.3.6",
+    "mode": "optional-merge-driver"
+  },
+  "mergiraf": {
+    "package": "mergiraf",
+    "version": "0.18.0",
+    "mode": "optional-merge-driver"
+  },
+  "beads": {
+    "package": "@beads/bd",
+    "version": "1.1.2",
+    "mode": "bootstrap-local-memory"
   }
 }
