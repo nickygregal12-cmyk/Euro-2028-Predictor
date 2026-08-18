@@ -12,6 +12,17 @@ on:
       - 'config/agent-tools.json'
       - 'scripts/agent-tools/architecture-check.sh'
       - '.github/workflows/architecture-contracts.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.dependency-cruiser.cjs'
+      - 'config/agent-tools.json'
+      - 'scripts/agent-tools/architecture-check.sh'
+      - '.github/workflows/architecture-contracts.yml'
 
 permissions:
   contents: read
