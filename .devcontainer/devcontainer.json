@@ -1,0 +1,31 @@
+{
+  "name": "Predictor online development",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22.22.2"
+    },
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    }
+  },
+  "postCreateCommand": "bash scripts/agent-tools/bootstrap.sh",
+  "remoteEnv": {
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+  },
+  "forwardPorts": [5173, 6006, 20128],
+  "portsAttributes": {
+    "5173": {
+      "label": "Predictor Vite",
+      "onAutoForward": "notify"
+    },
+    "6006": {
+      "label": "Predictor Storybook",
+      "onAutoForward": "silent"
+    },
+    "20128": {
+      "label": "OmniRoute dashboard/API",
+      "onAutoForward": "notify"
+    }
+  }
+}
