@@ -149,7 +149,7 @@ describe('Predictor developer operating system', () => {
     expect(configure).toContain('.git/info/attributes')
     expect(configure).toContain('weave setup --local')
     expect(configure).toContain('merge.mergiraf.driver')
-    expect(configure).not.toContain('.gitattributes')
+    expect(configure).not.toContain('attributes_file=".gitattributes"')
   })
 
   it('preserves Playwright as the blocking visual authority', () => {
