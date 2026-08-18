@@ -5,7 +5,8 @@
   "status": "in_progress",
   "lastMergedStage": "7.6",
   "productionCutoverAuthorized": false,
-  "completionPredicate": "stages_8_through_15_merged_and_final_programme_audit_green",
+  "completionPredicate": "stages_8_through_15_merged_both_products_live_and_final_programme_audit_green",
+  "completionContract": "docs/product/vnext-final-programme-completion.md",
   "stages": [
     { "id": "8", "name": "Matches + Match Centre", "status": "in_progress", "pr": null, "contract": "current-stage-8-authority" },
     { "id": "9", "name": "Leagues", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-9--leagues" },
