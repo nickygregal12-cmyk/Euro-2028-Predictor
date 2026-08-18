@@ -18,7 +18,7 @@
       "args": [
         "start-mcp-server",
         "--project-from-cwd",
-        "--context=codex",
+        "--context=ide",
         "--open-web-dashboard=false"
       ]
     },
