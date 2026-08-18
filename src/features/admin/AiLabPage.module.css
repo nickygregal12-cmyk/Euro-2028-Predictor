@@ -15,7 +15,7 @@
 .selectLabel { display: grid; gap: .35rem; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
 .selectLabel select { min-width: min(19rem, 70vw); min-height: var(--tap-min); padding-inline: .8rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; }
 .scope { flex: 1; color: var(--tx3); font-size: var(--fs-1); }
-.tabs { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--input-bg); }
+.tabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--input-bg); }
 .tabs button { min-height: var(--tap-min); padding: .5rem; border: 0; border-radius: var(--radius-input); background: transparent; color: var(--tx2); font: inherit; font-weight: 750; cursor: pointer; }
 .tabs button[aria-pressed='true'] { background: var(--card); color: var(--tx); box-shadow: 0 2px 8px rgb(0 0 0 / .09); }
 .tabs button:focus-visible, .textAction:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
@@ -40,7 +40,7 @@
 .table tbody tr:last-child td { border-bottom: 0; }
 .table td:first-child strong, .table td:first-child span { display: block; }
 .table td:first-child span { margin-top: .2rem; color: var(--tx3); }
-.textAction { padding: .35rem; border: 0; background: transparent; color: var(--acc); font: inherit; font-weight: 800; cursor: pointer; }
+.textAction { display: inline-flex; align-items: center; min-height: var(--tap-min); padding: .35rem; border: 0; background: transparent; color: var(--acc); font: inherit; font-weight: 800; cursor: pointer; }
 .statePill { padding: .3rem .55rem; background: var(--input-bg); color: var(--tx2); white-space: nowrap; }
 .statePill[data-tone='positive'] { background: color-mix(in srgb, var(--acc) 14%, var(--card)); color: var(--acc); }
 .statePill[data-tone='negative'] { background: color-mix(in srgb, var(--red) 13%, var(--card)); color: var(--red); }
@@ -90,6 +90,22 @@
 .reasonLabel { display: grid; gap: .45rem; color: var(--tx2); font-size: var(--fs-1); font-weight: 750; }
 .reasonLabel textarea { width: 100%; resize: vertical; padding: .75rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; }
 .srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Contract 201's coverage surface.
+   `.tabs` is a fixed five-column strip for the page's own sections. A filter row
+   has a different number of options and a different job, so it wraps instead of
+   dividing the width by a number that happens to be five today. */
+.filterTabs { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .35rem; padding: .35rem; border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--input-bg); }
+.filterTabs button { min-height: var(--tap-min); padding: .5rem; border: 0; border-radius: var(--radius-input); background: transparent; color: var(--tx2); font: inherit; font-weight: 750; cursor: pointer; }
+.filterTabs button[aria-pressed='true'] { background: var(--card); color: var(--tx); box-shadow: 0 2px 8px rgb(0 0 0 / .09); }
+.filterTabs button:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+
+/* The expandable per-fixture detail. A definition list because each line IS a
+   term and its value, and a reader on a screen reader should hear it that way. */
+.fixtureDetail { display: grid; grid-template-columns: minmax(6rem, auto) 1fr; gap: .3rem var(--sp-2); margin: 0; color: var(--tx3); font-size: var(--fs-1); }
+.fixtureDetail dt { color: var(--tx2); font-weight: 750; }
+.fixtureDetail dd { margin: 0; }
+@media (max-width: 42rem) { .fixtureDetail { grid-template-columns: 1fr; } .fixtureDetail dd { margin-bottom: .35rem; } }
 
 @media (max-width: 78rem) { .metricGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 58rem) { .hero { align-items: flex-start; flex-direction: column; } .heroStatus { justify-items: start; } .twoColumn { grid-template-columns: 1fr; } .breakdownGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

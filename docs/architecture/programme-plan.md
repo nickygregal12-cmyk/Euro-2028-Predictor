@@ -281,3 +281,5 @@ blockquotes could never show without being read end to end.
 > **Contract 201 programme effect:** the private AI Lab can be operated without a database console — every relevant fixture, why it is or is not actionable, whether each stage of the pipeline is current, and what happened last weekend one row per fixture. No programme reordering.
 
 > **Contract 202 programme effect:** the private AI Lab's stated invariant — last Saturday reaches next Saturday's forecast — becomes true in practice rather than only in the README. No programme reordering.
+
+> **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.

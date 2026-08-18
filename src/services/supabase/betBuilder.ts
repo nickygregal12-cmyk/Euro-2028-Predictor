@@ -1,18 +1,27 @@
 import type { Bookmaker, Leg } from '../../domain/ai/betBuilder'
-import { AI_LAB_LEAGUES } from './aiLabModel'
 import { db } from './client'
 
 /**
  * Bet Builder reads only bounded competition-admin RPCs; the browser never
  * queries schema `ai` directly.
  *
- * `admin_ai_bet_builder_candidates` is intentionally conservative but its SQL
- * selects from historical rows where decision=BET. That means an older BET can
- * still be returned after a newer price pass has changed the fixture to PASS.
- * Recommendations are append-only audit evidence, so mutating the old row would
- * be worse. We therefore intersect the candidate RPC with the existing bounded
- * recommendation log: only the newest decision for a fixture/market may feed
- * Bet Builder, and that newest decision must still be BET.
+ * THE CURRENCY RULE MOVED TO THE DATABASE, AND IT IS THE SAME RULE.
+ * `admin_ai_bet_builder_candidates` used to filter `where decision = 'BET'`
+ * before its `distinct on (prediction_id)`, so it returned the newest BET for a
+ * prediction rather than the newest DECISION, and a fixture whose price had gone
+ * stale still offered its two-day-old BET as a leg. This module compensated by
+ * fetching `admin_ai_recommendation_log` for all nine leagues, 500 rows each,
+ * keeping the newest row per fixture and intersecting — nine extra round trips
+ * to re-derive something the database could answer in one, and a second
+ * definition of "current" living in TypeScript beside the SQL one.
+ *
+ * Contract 201 gave that rule one home in `ai.current_fixture_recommendations`
+ * and contract 203 made the candidate read use it, so a superseded BET cannot
+ * leave the database in the first place. `ai.recommendations` stays append-only:
+ * nothing is rewritten and the older BET remains readable in the decision log as
+ * the record of what the lab said at the time. The protection is not weaker for
+ * being in one place — `ai/test_db_lifecycle.py` and `supabase/tests/251` both
+ * prove a newer PASS supersedes an older BET, in both directions.
  */
 
 type RawBook = {
@@ -50,24 +59,6 @@ type RawLeg = {
   uses_market: boolean | null
 }
 
-type RawDecision = {
-  id: string
-  league: string
-  market: string
-  decision: string
-  decided_at: string
-  kickoff_at: string
-  bookmaker: string | null
-  home_canonical: string
-  away_canonical: string
-  prediction_quarantined: boolean
-}
-
-type DecisionSnapshot = {
-  readonly currentBetRecommendationIds: ReadonlySet<string>
-  readonly currentBetCountsByBook: ReadonlyMap<string, number>
-}
-
 export type BookmakerSummary = Bookmaker & {
   readonly legs: number
   readonly lastDecidedAt: string | null
@@ -94,46 +85,7 @@ function kind(value: string): Bookmaker['kind'] {
     : 'unknown'
 }
 
-function decisionKey(row: RawDecision): string {
-  return [row.league, row.market, row.kickoff_at, row.home_canonical, row.away_canonical].join('\u001f')
-}
-
-/**
- * `admin_ai_recommendation_log` returns newest rows first. Keep exactly the
- * first row per fixture/market and admit its id only when it is a future,
- * non-quarantined BET. A newer PASS therefore supersedes an older BET without
- * deleting or rewriting either audit row.
- */
-export function currentBetDecisionSnapshot(
-  payload: unknown,
-  nowMs: number = Date.now(),
-): DecisionSnapshot {
-  const body = (payload ?? {}) as { recommendations?: RawDecision[] }
-  const seen = new Set<string>()
-  const ids = new Set<string>()
-  const counts = new Map<string, number>()
-
-  for (const row of body.recommendations ?? []) {
-    const key = decisionKey(row)
-    if (seen.has(key)) continue
-    seen.add(key)
-
-    const kickoffMs = Date.parse(row.kickoff_at)
-    if (!Number.isFinite(kickoffMs) || kickoffMs <= nowMs) continue
-    if (row.prediction_quarantined || row.decision !== 'BET' || !row.bookmaker) continue
-
-    ids.add(row.id)
-    const code = row.bookmaker.toUpperCase()
-    counts.set(code, (counts.get(code) ?? 0) + 1)
-  }
-
-  return { currentBetRecommendationIds: ids, currentBetCountsByBook: counts }
-}
-
-export function mapBookmakers(
-  payload: unknown,
-  currentCounts?: ReadonlyMap<string, number>,
-): readonly BookmakerSummary[] {
+export function mapBookmakers(payload: unknown): readonly BookmakerSummary[] {
   const body = (payload ?? {}) as { bookmakers?: RawBook[] }
   return (body.bookmakers ?? []).map((row) => ({
     code: row.code,
@@ -141,22 +93,9 @@ export function mapBookmakers(
     kind: kind(row.kind),
     isRealPrice: Boolean(row.is_real_price),
     exchangeCommission: num(row.exchange_commission),
-    legs: currentCounts?.get(row.code.toUpperCase()) ?? num(row.legs) ?? 0,
+    legs: num(row.legs) ?? 0,
     lastDecidedAt: row.last_decided_at,
   }))
-}
-
-export function filterCandidatePayloadToCurrentDecisions(
-  payload: unknown,
-  currentBetRecommendationIds: ReadonlySet<string>,
-): unknown {
-  const body = (payload ?? {}) as {
-    legs?: RawLeg[]
-    leg_count?: number
-    [key: string]: unknown
-  }
-  const legs = (body.legs ?? []).filter((row) => currentBetRecommendationIds.has(row.recommendation_id))
-  return { ...body, legs, leg_count: legs.length }
 }
 
 export function mapCandidates(payload: unknown): BetBuilderCandidates {
@@ -205,34 +144,13 @@ export function mapCandidates(payload: unknown): BetBuilderCandidates {
   }
 }
 
-async function fetchCurrentDecisionSnapshot(): Promise<DecisionSnapshot> {
-  // Fetch per league rather than using one global 500-row page. The value loop
-  // can refresh frequently near kickoff; a global page could otherwise be
-  // consumed by newer rows from other leagues and hide an upcoming fixture's
-  // latest decision. Each per-league response remains newest-first.
-  const responses = await Promise.all(
-    AI_LAB_LEAGUES.map(({ key }) => db.rpc('admin_ai_recommendation_log', {
-      p_league: key,
-      p_limit: 500,
-    })),
-  )
-
-  const recommendations: RawDecision[] = []
-  for (const { data, error } of responses) {
-    if (error) throw error
-    const body = (data ?? {}) as { recommendations?: RawDecision[] }
-    recommendations.push(...(body.recommendations ?? []))
-  }
-  return currentBetDecisionSnapshot({ recommendations })
-}
-
 export async function fetchBetBuilderBookmakers(): Promise<readonly BookmakerSummary[]> {
-  const [{ data, error }, decisions] = await Promise.all([
-    db.rpc('admin_ai_bet_builder_books'),
-    fetchCurrentDecisionSnapshot(),
-  ])
+  // Contract 203: `legs` is the number of CURRENT BET decisions naming this
+  // venue, so the count on the picker is the number of legs selecting it
+  // returns rather than a historical total that promises more than it delivers.
+  const { data, error } = await db.rpc('admin_ai_bet_builder_books')
   if (error) throw error
-  return mapBookmakers(data, decisions.currentBetCountsByBook)
+  return mapBookmakers(data)
 }
 
 export async function fetchBetBuilderCandidates(options: {
@@ -241,20 +159,13 @@ export async function fetchBetBuilderCandidates(options: {
   from: Date
   to: Date
 }): Promise<BetBuilderCandidates> {
-  const [{ data, error }, decisions] = await Promise.all([
-    db.rpc('admin_ai_bet_builder_candidates', {
-      p_bookmaker: options.bookmaker,
-      ...(options.leagues && options.leagues.length ? { p_leagues: [...options.leagues] } : {}),
-      p_from: options.from.toISOString(),
-      p_to: options.to.toISOString(),
-      p_limit: 200,
-    }),
-    fetchCurrentDecisionSnapshot(),
-  ])
+  const { data, error } = await db.rpc('admin_ai_bet_builder_candidates', {
+    p_bookmaker: options.bookmaker,
+    ...(options.leagues && options.leagues.length ? { p_leagues: [...options.leagues] } : {}),
+    p_from: options.from.toISOString(),
+    p_to: options.to.toISOString(),
+    p_limit: 200,
+  })
   if (error) throw error
-  const current = filterCandidatePayloadToCurrentDecisions(
-    data,
-    decisions.currentBetRecommendationIds,
-  )
-  return mapCandidates(current)
+  return mapCandidates(data)
 }

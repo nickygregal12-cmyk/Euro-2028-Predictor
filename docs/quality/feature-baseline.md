@@ -349,3 +349,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 201:** records a backend capability for the private admin AI Lab only: coverage, operational health and a fixture-level results review, each behind the competition-admin capability and executable by no anonymous role. No public surface, no player-facing feature, no publication boundary and no threshold moves; the reads report decisions and make none.
 
 > **Contract 202:** records a backend correctness fix: a private AI Lab forecast for a fixture more than two days away was frozen at the first run of the week, so results imported afterwards never reached it. Predictions remain immutable — the fix is more horizon buckets, not an overwrite. No frontend feature baseline changes.
+
+> **Contract 203:** records a backend correctness fix in the private admin Bet Builder: a superseded BET could be offered as an actionable leg, and the browser was re-deriving currency across nine paged reads to compensate. The rule moves to the database rather than disappearing, and is proved in both directions. No public surface and no threshold moves.

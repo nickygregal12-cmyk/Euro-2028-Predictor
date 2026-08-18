@@ -9,6 +9,56 @@ vi.mock('../../../src/services/supabase/aiLab', () => ({
   promoteAiModel: vi.fn(),
 }))
 
+// Contract 201's three windowed reads, mocked at the same boundary. Their own
+// decoding is covered by `aiLabCoverageModel.test.ts`; this suite is about the
+// page, and importing the real module would pull in the configured client.
+vi.mock('../../../src/services/supabase/aiLabCoverage', () => ({
+  fetchAiCoverage: vi.fn(async () => ({
+    window: { from: null, to: null },
+    totals: {
+      fixtures: 0, withForecast: 0, withoutForecast: 0,
+      withRealBookmakerPrice: 0, withoutRealBookmakerPrice: 0,
+      withCurrentDecision: 0, withoutCurrentDecision: 0,
+      actionableBets: 0, passed: 0, priceWithinFreshnessLimit: 0,
+    },
+    passReasonCounts: [], byLeague: [], fixtures: [], generatedAt: null,
+  })),
+  fetchAiOperationalHealth: vi.fn(async () => ({
+    fixtures: { upcoming7d: 0, leaguesWithUpcoming: 0, playedAwaitingResult: 0, lastSyncAt: null },
+    predictions: {
+      upcomingFixtures: 0, withCurrentForecast: 0, withoutForecast: 0,
+      oldestForecastAt: null, lastPredictAt: null,
+    },
+    prices: { lastRealCaptureAt: null, lastReferenceCaptureAt: null, realBooksSeen7d: [] },
+    valueLoop: { lastRunAt: null, currentBets: 0, currentPasses: 0 },
+    settlement: {
+      advised: 0, settled: 0, playedAndUnsettled: 0,
+      awaitingClosingBenchmark: 0, lastRunAt: null,
+    },
+    oddsApi: {
+      collectionEnabled: false, monthlyCredits: null, softCap: null,
+      creditsUsedThisMonth: null, lastDispatchAt: null, lastSuccessfulCallAt: null,
+      lastCallStatus: null, eventsSeen: 0, eventsMatchedToFixture: 0,
+    },
+    models: {
+      current: 0, expected: 9, versions: [], oldestTrainedThrough: null,
+      newestTrainedThrough: null, lastTrainAt: null,
+    },
+    generatedAt: null,
+  })),
+  fetchAiResultsReview: vi.fn(async () => ({
+    window: { from: null, to: null },
+    totals: {
+      gradedFixtures: 0, resultCorrect: 0, resultAccuracy: null, exactScores: 0,
+      meanLogLoss: null, meanRps: null, meanBrier: null,
+      meanMarketLogLoss: null, marketComparisons: 0,
+    },
+    byLeague: [], byPredictedResult: [], byDataConfidence: [], fixtures: [],
+    duplicateGradedRowsExcluded: 0, sampleSufficiency: 'NO_SAMPLE',
+    sampleNote: '', generatedAt: null,
+  })),
+}))
+
 // The Bet Builder tab reaches its own two bounded RPCs. Mocked at the service
 // boundary, like the snapshot above it, so this suite stays about the page.
 vi.mock('../../../src/services/supabase/betBuilder', () => ({
