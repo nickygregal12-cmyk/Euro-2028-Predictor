@@ -65,23 +65,25 @@ function lastDefinition(name: string): string {
 
 const format = lastDefinition('select_season_cup_format')
 
+const tie = lastDefinition('settle_season_cup_tie')
+const launch = lastDefinition('resolve_public_cup_launch')
+
 /**
- * A FINDING, recorded rather than fixed here.
+ * Contract 96 EXTRACTED the four per-entrant checks.
  *
- * `tie` and `launch` still read the FIRST definition, which is what this suite
- * has always done. For `select_season_cup_format` that was corrected above
- * because contract 198 had to be. For `settle_season_cup_tie` it is a latent
- * hole: pointing it at the last definition fails three assertions, which means
- * the function WAS redefined after contract 94 (contract 96, per this file's
- * own header) and these assertions have been checking superseded text ever
- * since. They are not wrong about contract 94; they simply are not about the
- * installed function any more.
+ * This suite used to read the first definition of every function, and for
+ * `settle_season_cup_tie` that meant contract 94's body — which still had the
+ * raw-scale, unconfirmed-fixture and missing-points checks written inline.
+ * Contract 96 moved them into `cup_tie_entrant_total`, because it had found by
+ * differential sweep that two inline copies interleaved by fixture reported the
+ * wrong entrant's fault; the extraction is the fix, not an accident of style.
  *
- * Fixing it means re-deriving what contract 96 changed about refusal order,
- * which is a different subject from CUP-006 and is not folded in here.
+ * So those assertions were not wrong about the rules, and they are not wrong
+ * now — they were pointed at a body that had stopped containing them. They move
+ * to the helper, and the settler is separately required to CALL it, so proving
+ * something about the helper still proves something about what settles a tie.
  */
-const tie = /settle_season_cup_tie\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
-const launch = /resolve_public_cup_launch\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
+const tieEntrant = lastDefinition('cup_tie_entrant_total')
 
 const card = [
   { fixtureId: 'f1', confirmedByCutoff: true },
@@ -89,10 +91,35 @@ const card = [
 ]
 
 describe('the SQL counterparts exist', () => {
-  it('finds all three bodies', () => {
+  it('finds all four bodies', () => {
     expect(tie, 'settle_season_cup_tie body not found').not.toBe('')
+    expect(tieEntrant, 'cup_tie_entrant_total body not found').not.toBe('')
     expect(format, 'select_season_cup_format body not found').not.toBe('')
     expect(launch, 'resolve_public_cup_launch body not found').not.toBe('')
+  })
+
+  it('reads the INSTALLED definition, not a superseded one', () => {
+    // The assertion about the assertions. `settle_season_cup_tie` is defined
+    // twice — contract 94 wrote it inline, contract 96 rewrote it around the
+    // helper — and a first-match read returns contract 94's, which is not what
+    // any database holds. If this ever fails, every `tie` assertion below has
+    // quietly stopped describing the installed function.
+    expect(tie).toContain('cup_tie_entrant_total')
+    expect(tie, 'the inline per-entrant checks belong to the helper now').not.toContain(
+      'points_off_raw_scale',
+    )
+  })
+
+  it('settles home completely before away, which is what contract 96 fixed', () => {
+    // The defect was an interleaved walk: home and away checked within each
+    // fixture iteration, so a tie wrong at a later fixture for home and an
+    // earlier one for away reported away's fault. Two sequential calls are the
+    // fix, and their ORDER is the rule — the first must be p_home.
+    const homeCall = tie.indexOf('cup_tie_entrant_total(p_home')
+    const awayCall = tie.indexOf('cup_tie_entrant_total(p_away')
+    expect(homeCall, 'the home total is not computed by the shared helper').toBeGreaterThan(-1)
+    expect(awayCall, 'the away total is not computed by the shared helper').toBeGreaterThan(-1)
+    expect(homeCall, 'away is evaluated before home, so a doubly-wrong tie reports the wrong fault').toBeLessThan(awayCall)
   })
 })
 
@@ -110,11 +137,11 @@ describe('a Cup tie settles on raw points only', () => {
   })
 
   it('permits exactly the raw scale in SQL', () => {
-    expect(tie).toMatch(/not in \(0, 3, 5\)/)
-    expect(tie).toContain('points_off_raw_scale')
+    expect(tieEntrant).toMatch(/not in \(0, 3, 5\)/)
+    expect(tieEntrant).toContain('points_off_raw_scale')
     // The doubled values must not appear as accepted members of the scale.
-    expect(tie).not.toMatch(/in \(0, 3, 5, 6\b/)
-    expect(tie).not.toMatch(/in \(0, 3, 5, 10\b/)
+    expect(tieEntrant).not.toMatch(/in \(0, 3, 5, 6\b/)
+    expect(tieEntrant).not.toMatch(/in \(0, 3, 5, 10\b/)
   })
 
   it('agrees on the match points awarded', () => {
@@ -149,7 +176,7 @@ describe('a tie reports what it was settled on', () => {
         { entryId: 'away', fixturePoints: { f1: 3 } },
       ),
     ).toEqual({ ok: false, reason: 'points_for_unconfirmed_fixture' })
-    expect(tie).toContain('points_for_unconfirmed_fixture')
+    expect(tieEntrant).toContain('points_for_unconfirmed_fixture')
   })
 
   it('refuses a confirmed fixture with no points', () => {
@@ -160,7 +187,7 @@ describe('a tie reports what it was settled on', () => {
         { entryId: 'away', fixturePoints: { f1: 3, f2: 3 } },
       ),
     ).toEqual({ ok: false, reason: 'points_missing_for_confirmed_fixture' })
-    expect(tie).toContain('points_missing_for_confirmed_fixture')
+    expect(tieEntrant).toContain('points_missing_for_confirmed_fixture')
   })
 
   it('refuses a tie with nothing confirmed rather than calling it a draw', () => {

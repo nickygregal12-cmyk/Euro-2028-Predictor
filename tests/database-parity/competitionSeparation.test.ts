@@ -202,14 +202,25 @@ describe('no standings surface returns an unscoped total', () => {
     ).toEqual([])
   })
 
-  it('constrains the leaderboard by the scope it was handed', () => {
+  it('constrains the leaderboard by the scope it was handed, in every definition of it', () => {
     // Accepting the parameter is not the same as using it.
-    const body = /create or replace function get_leaderboard\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(
-      allSql,
-    )?.[1]
+    //
+    // EVERY definition, not the first. A non-global `exec` returns whichever
+    // body was written earliest, which stops being the installed one the moment
+    // a later contract redefines the function -- and `get_leaderboard` is
+    // redefined four times. Competition separation is not a property of one
+    // revision: it has to hold at every point the function was rewritten, or a
+    // rollout that stopped part-way would leave a leaderboard that spans
+    // competitions. So all four are required to carry the filter.
+    const pattern = /create or replace function [\w.]*get_leaderboard\([\s\S]*?\$\$([\s\S]*?)\$\$;/gi
+    const bodies = [...allSql.matchAll(pattern)].map((match) => match[1] ?? '')
 
-    expect(body, 'get_leaderboard body not found').toBeTruthy()
-    expect(body).toMatch(/tournament_id = p_tournament_id/)
+    expect(bodies.length, 'no get_leaderboard definition found').toBeGreaterThan(0)
+    for (const [index, body] of bodies.entries()) {
+      expect(body, `get_leaderboard definition ${index} does not filter by its scope`).toMatch(
+        /tournament_id = p_tournament_id/,
+      )
+    }
   })
 })
 
