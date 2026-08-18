@@ -57,6 +57,40 @@ describe('a promotion workflow names migrations that exist', () => {
   for (const workflow of workflows) {
     const source = readFileSync(resolve(workflowDir, workflow), 'utf8')
 
+    const sourceContract = envValue(source, 'SOURCE_CONTRACT')
+    const targetContract = envValue(source, 'TARGET_CONTRACT')
+    if (sourceContract !== null && targetContract !== null) {
+      it(`${workflow} has no step named after a contract outside its own span`, () => {
+        // The same copy-forward that mis-named SOURCE_NAME also left a step
+        // called "Confirm Production is exactly 190 before dumping it" on a
+        // workflow whose boundary is 198 to 204. The check under that heading
+        // reads SOURCE_CONTRACT and was correct; only the words a human reads
+        // while approving a Production apply were wrong, which is the half
+        // nothing else verifies.
+        //
+        // Three digits, because contract numbers here are three digits and
+        // "PostgreSQL 17 client tools" is a version of something else. Any
+        // contract INSIDE the span is fine: "Apply exactly Contracts 199 to
+        // 204" names the first migration applied, not a boundary.
+        const low = Number(sourceContract)
+        const high = Number(targetContract)
+        const offenders: string[] = []
+        for (const match of source.matchAll(/^\s*- name:\s*(.+)$/gm)) {
+          const stepName = match[1]!.trim()
+          for (const digits of stepName.match(/\b\d{3}\b/g) ?? []) {
+            const value = Number(digits)
+            if (value < low || value > high) offenders.push(`${stepName} (${digits})`)
+          }
+        }
+        expect(
+          offenders,
+          `${workflow} spans contracts ${low} to ${high}, but a step is named ` +
+            'after a contract outside that span. An approver reads the step ' +
+            'names, not the env block.',
+        ).toEqual([])
+      })
+    }
+
     for (const edge of ['SOURCE', 'TARGET'] as const) {
       const version = envValue(source, `${edge}_VERSION`)
       const name = envValue(source, `${edge}_NAME`)

@@ -157,7 +157,7 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
 
-      - name: Confirm Production is exactly 190 before dumping it
+      - name: Confirm Production is exactly 198 before dumping it
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
