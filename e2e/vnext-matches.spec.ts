@@ -430,8 +430,10 @@ test.describe('the live minute is never invented', () => {
 
     expect(reading.pageText).toContain('Live')
     expect(reading.pageText, 'a minute was invented on the Match Centre').not.toMatch(/\d+['′]/)
-    // The one honest freshness claim: the SERVER's observation instant.
-    expect(reading.pageText).toContain('observed at')
+    // The one honest freshness claim: the SERVER's observation instant,
+    // formatted by the mapper in the viewer's own zone.
+    expect(reading.pageText).toContain('provider last reported at')
+    expect(reading.pageText).toContain('Provisional score')
   })
 
   test('a postponed fixture draws no live state', async ({ page }) => {
@@ -460,9 +462,12 @@ test.describe('the live minute is never invented', () => {
     const reading = await read(page)
 
     expect(reading.pageText).toContain('Full time')
-    // No pulse, no minute, no "follow live" anywhere on a settled match.
+    // No pulse, no minute, no "follow live" anywhere on a settled match — and
+    // no provider freshness line either, because a settled result is the
+    // PLATFORM's and does not depend on when a feed last spoke.
     expect(reading.pageText).not.toMatch(/\d+['′]/)
-    expect(reading.pageText).not.toContain('observed at')
+    expect(reading.pageText).not.toContain('provider last reported at')
+    expect(reading.pageText).not.toContain('Provisional score')
   })
 })
 
