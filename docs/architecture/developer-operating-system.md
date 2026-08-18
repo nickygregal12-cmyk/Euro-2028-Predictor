@@ -104,15 +104,17 @@ A single agent gains little from another daemon. It becomes useful when two or m
 
 Documentation can explain why a boundary exists; CI should hold the boundary where it can be expressed mechanically.
 
-The initial contract in [`../../.dependency-cruiser.cjs`](../../.dependency-cruiser.cjs) protects rules that already exist in code/repository authority:
+The contract in [`../../.dependency-cruiser.cjs`](../../.dependency-cruiser.cjs) protects rules that are both intentional and verified against the current source graph:
 
-- production source cannot depend on the dev harness;
+- only `App.tsx` may register `src/dev` previews, where the existing routes are lazy and guarded by `import.meta.env.DEV`; every other shipped source surface stays independent of the dev harness;
 - domain logic stays free of UI/query/hosted-data frameworks;
 - vNext presentation cannot reach application services/features except through `vnext/integration`;
 - vNext does not inherit the legacy visual design system;
 - source cannot import the test suites;
-- unresolved source dependencies fail;
-- dependency cycles are surfaced and should be blocking once the current tree is proven cycle-free or an explicit baseline has been recorded.
+- unresolved **relative source imports** fail, while npm/package availability remains owned by `npm ci` and the application build;
+- dependency cycles are blocking; the source graph was verified cycle-free before that rule was promoted from observation to enforcement.
+
+The wrapper also fails closed if dependency-cruiser analyses zero modules or reports any error-severity violation, so a missing compiler/resolver cannot produce a trustworthy-looking green gate.
 
 Do not encode speculative architecture just because dependency-cruiser makes it easy to write a rule. A new restriction needs a real repository decision first.
 
