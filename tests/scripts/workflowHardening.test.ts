@@ -127,6 +127,27 @@ describe('workflow supply-chain hardening', () => {
     expect(config).not.toMatch(/^\s*unpinned-uses:\s*false\s*$/m)
   })
 
+  it('holds version updates long enough to reduce supply-chain exposure', () => {
+    const dependabot = parse(
+      readFileSync(resolve(repositoryRoot, '.github/dependabot.yml'), 'utf8'),
+    ) as {
+      updates?: Array<{
+        'package-ecosystem'?: string
+        cooldown?: { 'default-days'?: number }
+      }>
+    }
+
+    expect(
+      dependabot.updates?.map((update) => update['package-ecosystem']),
+    ).toEqual(expect.arrayContaining(['npm', 'github-actions']))
+    for (const update of dependabot.updates ?? []) {
+      expect(
+        update.cooldown?.['default-days'],
+        update['package-ecosystem'],
+      ).toBeGreaterThanOrEqual(7)
+    }
+  })
+
   it('keeps ShellCheck active inside Actionlint', () => {
     const workflow = readFileSync(
       resolve(repositoryRoot, '.github/workflows/security-tooling.yml'),

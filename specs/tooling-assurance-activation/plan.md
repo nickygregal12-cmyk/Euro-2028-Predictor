@@ -65,7 +65,9 @@ Repository-complete work:
 - trusted-build-only Sentry source-map upload, offline internal/anchor Lychee
   checking, expanded mutation testing and a 90% measured Stryker floor;
 - duplicate workflow removal, selected Harden Runner expansion and a zero-
-  baseline full-SHA policy across all external GitHub Actions.
+  baseline full-SHA policy across all external GitHub Actions;
+- an explicit seven-day Dependabot cooldown for npm and GitHub Actions version
+  updates, while GitHub security updates remain immediate.
 
 External activation still required:
 
