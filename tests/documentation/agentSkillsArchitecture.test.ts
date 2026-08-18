@@ -37,7 +37,24 @@ describe('project-specific agent skills', () => {
     expect(ai).toContain('Do not reintroduce a routine browser/admin click as a second model-selection authority')
     expect(ai).toContain('an arbitrary/newest challenger being mistaken for the evidence-selected policy winner')
     expect(ai).toContain('ai/train_verified.py')
-    expect(graph).toMatch(/navigation(?:\/indexing aid, |—)not repository truth/i)
+    // The INVARIANT, not one phrasing of it.
+    //
+    // This assertion named the exact sentence 'navigation/indexing aid, not
+    // repository truth'. #845 reworded the skill to 'navigation-not repository
+    // truth' without touching the test, and main went red on a documentation
+    // rewrite that changed nothing the test exists to protect.
+    //
+    // #852 repaired that independently with
+    // /navigation(?:\/indexing aid, |—)not repository truth/i, which enumerates
+    // the two wordings seen so far -- so a third rewording breaks it a third
+    // time, and it says nothing about the rest of the authority boundary.
+    //
+    // Two anchors replace it: the subordination claim itself, and the rule that
+    // generated output must never be cited as proof. Deleting either is a real
+    // regression; rewording the sentence around them is not. Mutation-tested
+    // both ways round.
+    expect(plain(graph)).toContain('not repository truth')
+    expect(graph).toContain('must never be cited as proof')
   })
 
   it('keeps Graphify optional and generated output disposable', () => {
