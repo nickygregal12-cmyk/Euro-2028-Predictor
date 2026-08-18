@@ -44,12 +44,19 @@ if (modules.length === 0) {
   console.log(`Analysed ${modules.length} modules and ${dependencyCount} dependencies.`)
 }
 
+let errorCount = 0
 for (const violation of violations) {
   const severity = String(violation.rule?.severity ?? violation.severity ?? 'error').toUpperCase()
   const rule = violation.rule?.name ?? violation.rule ?? 'unknown-rule'
   const from = violation.from ?? '<unknown>'
   const to = violation.to ?? '<unknown>'
   console.error(`${severity} ${rule}: ${from} -> ${to}`)
+  if (severity === 'ERROR') errorCount += 1
+}
+
+if (errorCount > 0) {
+  console.error(`Architecture check found ${errorCount} error-severity violation(s).`)
+  process.exitCode = 1
 }
 NODE
 report_status=$?
