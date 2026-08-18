@@ -58,17 +58,27 @@ Full details: [`graphify-navigation.md`](graphify-navigation.md) and [`omniroute
 
 ### Symbol-level navigation/editing — Serena
 
-The repository MCP configuration starts Serena for compatible MCP clients from the repository working directory. The tracked project file is `.serena/project.yml`.
+The repository MCP configuration starts Serena for compatible coding clients from the repository working directory. The tracked project file is `.serena/project.yml`.
 
-Manual server start when needed:
+The shared repository MCP entry deliberately uses Serena's generic coding/IDE context rather than assuming every agent is Codex or Claude Code:
 
 ```bash
-serena start-mcp-server --project-from-cwd --context=codex --open-web-dashboard=false
+serena start-mcp-server --project-from-cwd --context=ide --open-web-dashboard=false
 ```
+
+A client can use its own Serena-specific setup locally without editing the repository-wide MCP configuration—for example `serena setup codex` for Codex, or Serena's `claude-code` context when configuring Claude Code. The repository config stays client-neutral.
 
 Serena memories are intentionally disabled for this repo. Use repository authorities/specs for durable facts and Beads only for optional local execution memory.
 
 Useful Serena questions are symbol-oriented: find a definition, find referencing symbols, inspect a class/function body or change a bounded symbol. Use Graphify first when the question is broad architecture rather than a symbol.
+
+To verify the tracked Serena project and TypeScript language-server path:
+
+```bash
+serena project health-check .
+```
+
+The dedicated tooling smoke workflow runs that health check as part of integration validation.
 
 ### Current external library docs — Context7
 
@@ -176,7 +186,7 @@ bash scripts/agent-tools/architecture-check.sh
 
 CI runs the same central-versioned command through `.github/workflows/architecture-contracts.yml` for relevant source/config changes.
 
-The config is `.dependency-cruiser.cjs`. Add a new blocking rule only after the repository architecture actually decides that boundary.
+The config is `.dependency-cruiser.cjs`. It is fail-closed: analysing zero modules or reporting an error-severity architecture violation fails the command. Circular dependencies are blocking. Add a new blocking rule only after the repository architecture actually decides that boundary.
 
 ### Weave and Mergiraf
 
@@ -296,6 +306,6 @@ Then re-run the bounded bootstrap if a baseline CLI is missing:
 bash scripts/agent-tools/bootstrap.sh
 ```
 
-For an MCP tool, verify the client is reading repository `.mcp.json` and that `${HOME}/.local/bin` is on `PATH`. For Codespaces created before this configuration, rebuild the container rather than manually reproducing its features one by one.
+For an MCP tool, verify the client is reading repository `.mcp.json` and that `${HOME}/.local/bin` is on `PATH`. For Serena specifically, `serena project health-check .` verifies the tracked project configuration and language-server path. For Codespaces created before this configuration, rebuild the container rather than manually reproducing its features one by one.
 
 Do not “fix” a missing developer tool by adding it to production `dependencies`. The supported lifecycle is part of the architecture.
