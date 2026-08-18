@@ -21,11 +21,17 @@ This is a usage guide, not a current-state authority. Hosted truth remains in th
 
 ### Python observability extras
 
-The normal `ai/requirements.txt` intentionally stays lean. Install the optional layer only where it is needed:
+The normal locked AI environment intentionally stays lean. Install the
+optional layer only where it is needed:
 
 ```bash
-pip install -r ai/requirements.txt -r ai/requirements-observability.txt
+bash scripts/agent-tools/ai-sync.sh observability
+source ai/.venv/bin/activate
 ```
+
+`ai/pyproject.toml` keeps the optional group separate, while `ai/uv.lock`
+still pins it so an observability run is reproducible rather than freshly
+resolved.
 
 No Evidently Cloud, DVC remote, or other external destination is configured by this repository. Reports and DVC metadata are local unless an operator deliberately adds a remote/service later.
 
@@ -52,7 +58,7 @@ python ai/observability.py drift \
   --output ai/reports/evidently/feature-drift.html
 ```
 
-Run the DVC reproducibility stage after installing the optional requirements:
+Run the DVC reproducibility stage after installing the optional group:
 
 ```bash
 dvc repro ai-offline-guardrails

@@ -47,25 +47,34 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_lab_test
       AI_ENV: test
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: ai/requirements.txt
-      - name: Install Python dependencies
-        working-directory: ai
-        # requirements-analytics.txt carries the offline DuckDB layer. It is a
-        # separate file so the training pipeline does not depend on it, and it
-        # is installed here so `ai/analytics` is genuinely exercised rather
-        # than skipped: its suite calls importorskip, which would turn a
-        # missing dependency into a silent pass.
-        run: pip install -r requirements.txt -r requirements-analytics.txt pytest
-      - name: Compile and run unit plus database lifecycle tests
+      - name: Install the locked test and analytics environment
+        # ai/uv.lock includes DuckDB deliberately: analytics tests use
+        # importorskip, so omitting the group would turn missing coverage green.
+        run: bash scripts/agent-tools/ai-sync.sh test
+      - name: Compile, lint and prove the package write boundary
         working-directory: ai
         run: |
           python -m compileall -q .
+          ruff check .
           # The same guard the job workflow runs before it resolves a hosted
           # credential. Here it is a review gate; there it is a runtime one.
           python check_write_scope.py
-          pytest -q
+      - name: Run unit plus database lifecycle tests with branch coverage
+        working-directory: ai
+        run: pytest --cov=. --cov-branch --cov-report=term-missing -q
+      - name: Audit the resolved Python lock
+        working-directory: ai
+        run: |
+          uv export --locked --no-dev --format requirements-txt \
+            --output-file /tmp/ai-locked-requirements.txt >/dev/null
+          pip-audit --require-hashes -r /tmp/ai-locked-requirements.txt

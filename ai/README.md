@@ -81,9 +81,10 @@ ai/
 ## First run
 
 ```bash
+git clone YOUR_REPOSITORY && cd Euro-2028-Predictor
+bash scripts/agent-tools/ai-sync.sh test
+source ai/.venv/bin/activate
 cd ai
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 cp .env.example .env      # then fill in DATABASE_URL
 
 python test_pipeline.py                            # no database needed
@@ -101,6 +102,13 @@ python train.py --league EPL --family baseline --version v0.1
 python train.py --league EPL --family logistic --version v0.2
 python train.py --league EPL --family poisson  --version v0.3 --walk-forward
 ```
+
+`pyproject.toml` declares the core and optional dependency groups; `uv.lock`
+pins the complete Python 3.12 environment. Hosted jobs always use the `core`
+profile, tests add the `test` and `analytics` groups, and the optional local
+observability lane uses the `observability` profile. Update dependencies with
+the centrally pinned uv version and commit the resulting lock; never replace a
+locked hosted install with an ad-hoc `pip install`.
 
 A hosted project does the same thing in one action: run the **AI Lab jobs**
 workflow with task `bootstrap`, choosing `development` or `production` as the

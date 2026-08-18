@@ -39,7 +39,7 @@ def build_drift_report(reference: pd.DataFrame, current: pd.DataFrame,
         from evidently.presets import DataDriftPreset  # type: ignore
     except ImportError as exc:  # pragma: no cover - exercised by operator path
         raise RuntimeError(
-            "Evidently is optional. Install ai/requirements-observability.txt first."
+            "Evidently is optional. Run scripts/agent-tools/ai-sync.sh observability first."
         ) from exc
 
     reference, current = _select_columns(reference, current, columns)

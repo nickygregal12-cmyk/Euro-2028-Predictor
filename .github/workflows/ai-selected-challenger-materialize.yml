@@ -37,12 +37,16 @@ jobs:
       DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
       PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: ai/requirements.txt
 
       - name: Resolve target and fail closed
         shell: bash
@@ -69,8 +73,8 @@ jobs:
           echo "Materialising $version in $target ($ref)"
 
       - name: Install
-        working-directory: ai
-        run: pip install -r requirements.txt
+        # Resolves nothing: materialisation consumes the committed ai/uv.lock.
+        run: bash scripts/agent-tools/ai-sync.sh core
 
       - name: Prove the package write surface
         working-directory: ai

@@ -152,7 +152,7 @@ describe('Production Batch A rehearsal', () => {
 
   it('encrypts and uploads the fresh backup before surfacing rehearsal failure', () => {
     const encrypt = workflow.indexOf('age -r')
-    const upload = workflow.indexOf('actions/upload-artifact@v7')
+    const upload = workflow.search(/actions\/upload-artifact@[0-9a-f]{40}/)
     const failClosed = workflow.indexOf(
       'Fail closed if the requested Batch A forward rehearsal failed',
     )

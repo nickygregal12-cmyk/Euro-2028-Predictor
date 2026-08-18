@@ -25,5 +25,5 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vite.analyze.config.ts"]
+  "include": ["vite.config.ts", "vite.analyze.config.ts", "vitest.storybook.config.ts"]
 }

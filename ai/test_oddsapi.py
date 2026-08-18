@@ -12,7 +12,6 @@ Run:  python test_oddsapi.py
 """
 from __future__ import annotations
 
-import sys
 from unittest import mock
 
 import oddsapi as api

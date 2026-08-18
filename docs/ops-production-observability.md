@@ -21,7 +21,7 @@ Implemented controls:
 
 Production Netlify currently provides a build-scoped public Sentry DSN and `VITE_SENTRY_ENABLED=true`. Production page-load tracing was manually verified through the approved privacy boundary. The synthetic verification-event flag is not configured for production.
 
-Replay, logging, profiling, automatic user context, automatic breadcrumbs, fetch/XHR tracing, distributed trace propagation, resource child spans and source-map upload remain disabled.
+Replay, logging, profiling, automatic user context, automatic breadcrumbs, fetch/XHR tracing, distributed trace propagation and resource child spans remain disabled. An optional trusted-build source-map upload path is implemented but remains off until the build-only Sentry variables in `docs/ops-sentry.md` are configured and verified.
 
 ## Release identity
 
@@ -97,6 +97,15 @@ npm run smoke:production
 Use the same variables with `npm run smoke:production:browser`. Never use final-target Supabase for a preview. Never use the legacy `euro28-predictor-dev` site.
 
 ## Automated workflows
+
+### Scheduled anonymous perimeter
+
+`.github/workflows/production-anonymous-smoke.yml` runs every six hours and on
+manual dispatch with no secret, session, checkout or application dependency. It
+checks `/`, `/auth/login` and `/release.json` on both production origins and
+requires the current password perimeter's exact `401` response. This proves DNS,
+TLS, edge routing and the anonymous refusal are alive; it cannot prove release
+identity through the protected boundary and never logs in or mutates data.
 
 ### Deploy preview
 

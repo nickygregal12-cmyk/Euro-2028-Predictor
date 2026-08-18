@@ -5,14 +5,22 @@ This document records the intentionally layered adoption of the final engineerin
 ## Active in this rollout
 
 - **Betterleaks** — blocking secret scan of pull-request additions; current main tree scan on push/manual runs. Live secret validation is not enabled.
-- **StepSecurity Harden-Runner** — audit-mode egress/process protection on every new workflow introduced here. Existing privileged workflows should move across after the audit destinations are reviewed rather than through a blind bulk edit.
+- **StepSecurity Harden-Runner** — audit-mode egress/process protection on every new workflow introduced here and the active AI, browser, backup, smoke, CodeQL and security families. Remaining historical/manual rollout families move across after their audit destinations are reviewed.
 - **Squawk** — blocking lint of only added/modified Supabase migrations, preserving the historical migration baseline.
 - **GitHub Dependency Review** — blocks newly introduced high-severity vulnerable dependency changes.
 - **zizmor** — GitHub Actions security audit, report-only while the existing workflow estate is baselined; Advanced Security upload/annotations stay disabled until that baseline is intentionally promoted.
 - **actionlint** — blocking static analysis for workflow files added or changed by a pull request; full-repository lint remains report-only outside PRs so historical shellcheck noise does not normalize red CI.
+- **Full-SHA action policy** — every external action reference in the tracked
+  workflow estate is pinned to a 40-character commit, and the blocking security
+  workflow scans the complete tree so floating references cannot return.
 - **k6** — scheduled/manual load smoke against a local Vite production preview only. It must not call paid football or odds providers.
+- **Playwright cross-engine smoke** — the critical weekly navigation floor runs
+  in Firefox and WebKit as well as the existing Chromium desktop/mobile suite;
+  the extra engines do not multiply every browser or screenshot test.
 - **Agent Skills reference validator** — validates `.agents/skills/*`, initially report-only because the reference CLI is installed from a pinned upstream commit rather than a stable package registry release.
-- **Renovate configuration** — committed and ready for the Renovate GitHub App. Dependabot remains active until a Renovate onboarding/update run proves the replacement is operational.
+- **Renovate configuration** — committed and ready for the Renovate GitHub App,
+  including full-SHA GitHub Action updates and the Python `uv.lock`. The hosted
+  app is still an external activation, not something `renovate.json` can prove.
 - **Supabase Index Advisor** — operator runbook only. Recommendations never bypass migration or hosted-contract authority.
 
 ## NPM-backed second layer
@@ -22,10 +30,11 @@ The same branch adds these after the repository/CI layer is established, using a
 - MSW for real HTTP-boundary tests;
 - fast-check for property testing of scoring invariants;
 - Zod Mini in the private AI Lab boundary contract tests, wrapping the same exact-key predicate used by the production guard so schema validation adds no production bundle weight;
-- StrykerJS for targeted mutation testing of critical pure domain logic;
+- StrykerJS for a blocking, path-scoped mutation baseline over critical pure
+  scoring and standings authorities;
 - rollup-plugin-visualizer for opt-in bundle composition reports.
 
-The first Stryker run against `calculateScore.ts` exercised 150 mutants and produced an 87.33% mutation score (130 killed, 17 survived, 1 timed out, 2 without coverage), above the configured 60% break threshold. Because that representative run takes several minutes, mutation testing is scheduled/manual rather than part of the ordinary pull-request merge path.
+The first Stryker run against `calculateScore.ts` exercised 150 mutants and produced an 87.33% mutation score. The maintained scope now also includes the pure scoring-configuration and season-standings authorities. The measured 18 August 2026 baseline is 90.58% across 329 mutants (297 killed, 1 timed out, 29 survived, 2 without coverage), completing in 6 minutes 9 seconds. A 90% break threshold is enforced on pull requests that touch those authorities or their focused tests, as well as on the scheduled/manual run; unrelated changes do not pay the mutation-test cost.
 
 ## Promotion from report-only to blocking
 

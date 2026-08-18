@@ -71,3 +71,14 @@ def test_a_write_inside_a_subpackage_is_caught(tmp_path, monkeypatch) -> None:
     assert "public.predictions" in found[0]
     # Named by its path within the package, so the offending file is findable.
     assert "analytics/deeper/planted.py" in found[0].replace("\\", "/")
+
+
+def test_the_locked_virtual_environment_is_not_treated_as_package_source(
+        tmp_path, monkeypatch) -> None:
+    """Dependency source under ai/.venv is installed input, not AI Lab code."""
+    dependency = tmp_path / ".venv" / "lib" / "site-packages" / "dependency.py"
+    dependency.parent.mkdir(parents=True)
+    dependency.write_text('SQL = "update public.anything set value = 1"\n')
+    monkeypatch.setattr(guard, "ROOT", tmp_path)
+
+    assert guard.violations() == []

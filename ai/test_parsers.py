@@ -14,11 +14,8 @@ Run:  python test_parsers.py
 """
 from __future__ import annotations
 
-import io
-import sys
 from unittest import mock
 
-import pandas as pd
 
 # --- real fixtures.csv header (football-data.co.uk, 12 Aug 2026) ------------
 FIXTURES_HEADER = (
@@ -157,13 +154,13 @@ def test_history_parser() -> None:
     assert (a["home_shots"], a["away_shots_ot"], a["home_corners"]) == (14, 3, 7)
     assert (a["home_yellows"], a["away_reds"]) == (2, 1)
     assert a["referee"] == "M Oliver"
-    print(f"  results, stats, cards and referee all parsed")
+    print("  results, stats, cards and referee all parsed")
 
     # Odds, per book, pre-match and closing, kept apart
     assert (a["odds_avg_h"], a["odds_avg_d"], a["odds_avg_a"]) == (2.11, 3.50, 3.60)
     assert (a["odds_max_h"], a["odds_ps_h"], a["odds_bfe_h"]) == (2.20, 2.15, 2.24)
     assert (a["close_avg_h"], a["close_ps_h"], a["close_max_h"]) == (2.06, 2.08, 2.12)
-    print(f"  Avg/Max/Pinnacle/Betfair extracted separately, pre-match and closing")
+    print("  Avg/Max/Pinnacle/Betfair extracted separately, pre-match and closing")
 
     free_markets = a["_market_prices"]
     assert len(free_markets) == 8

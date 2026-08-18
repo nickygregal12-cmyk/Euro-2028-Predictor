@@ -47,6 +47,7 @@ ALLOWED_SCHEMA = "ai"
 # the migration references. They never touch a hosted project: the lifecycle
 # suite refuses to run at all unless TEST_DATABASE_URL is set.
 EXCLUDED = {"check_write_scope.py"}
+EXCLUDED_DIRECTORIES = {".venv", "__pycache__"}
 
 
 def _string_literals(path: Path) -> list[str]:
@@ -68,7 +69,12 @@ def violations() -> list[str]:
     # down, and the failure is silent: code in `ai/anything/` would simply not
     # be read.
     for path in sorted(ROOT.rglob("*.py")):
-        if path.name in EXCLUDED or path.name.startswith("test_"):
+        relative = path.relative_to(ROOT)
+        if (
+            path.name in EXCLUDED
+            or path.name.startswith("test_")
+            or any(part in EXCLUDED_DIRECTORIES for part in relative.parts)
+        ):
             continue
         for literal in _string_literals(path):
             collapsed = " ".join(literal.split())
@@ -79,11 +85,11 @@ def violations() -> list[str]:
                     continue
                 if "." not in target:
                     found.append(
-                        f"{path.relative_to(ROOT)}: `{verb} {target}` names no schema — "
+                        f"{relative}: `{verb} {target}` names no schema — "
                         f"say `{ALLOWED_SCHEMA}.{target}` so the target cannot "
                         f"depend on a search_path")
                 elif target.split(".", 1)[0].lower() != ALLOWED_SCHEMA:
-                    found.append(f"{path.relative_to(ROOT)}: `{verb} {target}` writes "
+                    found.append(f"{relative}: `{verb} {target}` writes "
                                  f"outside schema {ALLOWED_SCHEMA}")
     return found
 

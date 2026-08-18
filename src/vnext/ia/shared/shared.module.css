@@ -96,12 +96,12 @@
   block-size: 24px;
   border-radius: var(--vnext-radius-xs);
   background: var(--mark-primary, var(--vnext-surface-interactive));
-  box-shadow: inset 0 0 0 1px var(--vnext-hairline-strong);
+  box-shadow: inset 0 0 0 2px var(--mark-accent, var(--vnext-hairline-strong));
   font-family: var(--vnext-font-display);
   font-size: var(--vnext-size-micro);
   font-weight: var(--vnext-weight-display);
   line-height: 1;
-  color: var(--mark-accent, var(--vnext-text));
+  color: var(--vnext-text);
 }
 
 .markMd {

@@ -37,7 +37,10 @@ Use the narrowest specialist rather than asking one tool to do everything:
 1. Read the current repository entrypoint/authority for the task first.
 2. For merged code, prefer the latest snapshot on the `graphify-navigation` branch. For pull-request-specific work, prefer that PR's Graphify Actions artifact because the snapshot branch follows `main`.
 3. Check snapshot freshness: `graphify-navigation/README.md` records the exact source SHA used to build the graph.
-4. Use Graphify to narrow the likely implementation path.
+4. Use `bash scripts/agent-tools/graphify-query.sh query "QUESTION"` so the
+   snapshot freshness, non-empty graph and pinned CLI are checked before
+   Graphify narrows the likely implementation path. For a PR artifact, pass
+   `--graph PATH --source-sha PR_COMMIT_SHA`.
 5. If the question becomes symbol-specific, switch to Serena instead of repeatedly opening whole files.
 6. Open the returned/referenced source and verify the actual control/data flow; inspect exact tests and negative cases.
 7. For a refactor that can violate dependency direction, run `bash scripts/agent-tools/architecture-check.sh` before completion.

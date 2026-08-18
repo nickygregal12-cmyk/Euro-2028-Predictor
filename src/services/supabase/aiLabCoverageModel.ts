@@ -33,7 +33,7 @@ function list(value: unknown): readonly unknown[] {
   return Array.isArray(value) ? value : []
 }
 
-export type CoveragePrediction = {
+type CoveragePrediction = {
   readonly predictionId: string
   readonly modelVersion: string | null
   readonly modelFamily: string | null
@@ -53,7 +53,7 @@ export type CoveragePrediction = {
   readonly usesMarket: boolean
 }
 
-export type CoverageQuality = {
+type CoverageQuality = {
   readonly dataConfidence: number | null
   readonly dataConfidenceState: string | null
   readonly missingInputs: readonly string[]
@@ -61,7 +61,7 @@ export type CoverageQuality = {
   readonly uncertaintyWidth: number | null
 }
 
-export type CoverageMarket = {
+type CoverageMarket = {
   readonly realBooks: readonly string[]
   readonly realBookCount: number
   readonly latestRealCaptureAt: string | null
@@ -75,9 +75,9 @@ export type CoverageMarket = {
   readonly aggregateReferenceAvailable: boolean
 }
 
-export type CoverageReason = { readonly code: string; readonly explanation: string }
+type CoverageReason = { readonly code: string; readonly explanation: string }
 
-export type CoverageDecision = {
+type CoverageDecision = {
   readonly decision: 'BET' | 'PASS'
   readonly selection: string | null
   readonly market: string | null
@@ -111,7 +111,7 @@ export type CoverageFixture = {
   readonly decision: CoverageDecision | null
 }
 
-export type CoverageTotals = {
+type CoverageTotals = {
   readonly fixtures: number
   readonly withForecast: number
   readonly withoutForecast: number
@@ -124,7 +124,7 @@ export type CoverageTotals = {
   readonly priceWithinFreshnessLimit: number
 }
 
-export type CoverageLeague = {
+type CoverageLeague = {
   readonly league: string
   readonly fixtures: number
   readonly withForecast: number
@@ -407,7 +407,7 @@ export function mapAiHealth(payload: unknown): AiHealth {
   }
 }
 
-export type ReviewFixture = {
+type ReviewFixture = {
   readonly fixtureId: string
   readonly league: string
   readonly kickoffAt: string
@@ -441,7 +441,7 @@ export type ReviewFixture = {
   readonly forecastsCollapsed: number | null
 }
 
-export type ReviewSlice = {
+type ReviewSlice = {
   readonly label: string
   readonly gradedFixtures: number
   readonly resultCorrect: number
@@ -451,7 +451,7 @@ export type ReviewSlice = {
   readonly meanBrier: number | null
 }
 
-export type SampleSufficiency = 'NO_SAMPLE' | 'EARLY_SAMPLE' | 'INDICATIVE_ONLY' | 'USABLE'
+type SampleSufficiency = 'NO_SAMPLE' | 'EARLY_SAMPLE' | 'INDICATIVE_ONLY' | 'USABLE'
 
 export type AiResultsReview = {
   readonly window: { readonly from: string | null; readonly to: string | null }

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import type {} from 'vitest/config'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 import { configDefaults } from 'vitest/config'
@@ -47,6 +48,31 @@ export default defineConfig(({ command, mode }) => {
   }
 
   const releaseMetadata = createReleaseMetadata(env, command)
+  const sentrySourceMapsEnabled =
+    command === 'build' &&
+    readEnvironmentValue(env, 'SENTRY_SOURCEMAPS_ENABLED') === 'true'
+  const sentrySourceMapPlugins = sentrySourceMapsEnabled
+    ? [
+        sentryVitePlugin({
+          authToken: requireBuildEnvironmentValue(env, 'SENTRY_AUTH_TOKEN'),
+          org: requireBuildEnvironmentValue(env, 'SENTRY_ORG'),
+          project: requireBuildEnvironmentValue(env, 'SENTRY_PROJECT'),
+          release: {
+            // This must match src/services/observability/sentryReporter.ts.
+            // A differently named upload succeeds but never de-minifies the
+            // browser events, which is a particularly expensive false green.
+            name: `euro28@${releaseMetadata.commit}`,
+          },
+          sourcemaps: {
+            assets: './dist/**',
+            filesToDeleteAfterUpload: ['./dist/**/*.map'],
+          },
+          // Build tooling need not emit its own usage telemetry in order to
+          // upload application debugging artifacts.
+          telemetry: false,
+        }),
+      ]
+    : []
 
   // ADR 0026's two deployments, resolved once per build. Fails closed to the
   // Hub: an unset or misspelled variable must never build the Euro site, which
@@ -90,11 +116,19 @@ export default defineConfig(({ command, mode }) => {
           })
         },
       },
+      // Last, as required by Sentry's bundler integration. Ordinary and local
+      // builds omit the plugin entirely; possessing a token is not consent to
+      // upload without the explicit SENTRY_SOURCEMAPS_ENABLED switch.
+      ...sentrySourceMapPlugins,
     ],
     define: {
       __EURO28_RELEASE__: JSON.stringify(releaseMetadata),
     },
     build: {
+      // A trusted upload build produces hidden maps and the plugin deletes
+      // them after upload, so Netlify never serves source files publicly.
+      // All other builds produce no source maps at all.
+      sourcemap: sentrySourceMapsEnabled ? 'hidden' : false,
       // ONE STYLESHEET, BECAUSE SPLITTING IT COST MORE THAN IT SAVED.
       //
       // Vite splits CSS per lazy chunk by default, which is the right instinct
@@ -206,6 +240,19 @@ function readEnvironmentValue(
   name: string,
 ): string {
   return (process.env[name] ?? env[name] ?? '').trim()
+}
+
+function requireBuildEnvironmentValue(
+  env: Record<string, string>,
+  name: 'SENTRY_AUTH_TOKEN' | 'SENTRY_ORG' | 'SENTRY_PROJECT',
+): string {
+  const value = readEnvironmentValue(env, name)
+  if (!value) {
+    throw new Error(
+      `SENTRY_SOURCEMAPS_ENABLED=true requires the build-only ${name} value.`,
+    )
+  }
+  return value
 }
 
 function projectRefFromUrl(value: string): string | null {

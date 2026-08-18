@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
  * The premium prototype stays a reference, not a production architecture.
  *
  * `src/premium/` is a parallel mock application — its own router, mock store,
- * mock data, modal system and Lenis scroll loop — built to show what the
+ * mock data and modal system — built to show what the
  * finished product should feel like. `docs/design/ui-modernisation-execution.md`
  * classifies it as a visual reference from which patterns are EXTRACTED into
  * the production design system, and records why wiring it in wholesale is
@@ -19,10 +19,9 @@ import { describe, expect, it } from 'vitest'
  * the second router and the deferred brand into the real bundle. So the
  * boundary is pinned here rather than trusted.
  *
- * Lenis gets its own assertion because it is the one prototype dependency that
- * ships in `package.json` dependencies: a whole-page scroll hijack is a named
- * suspect in the design preview's Lighthouse performance collapse, and it must
- * not reach a production surface without route-level performance evidence.
+ * The discarded Lenis experiment gets its own assertion because whole-page
+ * scroll hijacking is prohibited by the design authority. It must not return
+ * through either production code or the parked prototype.
  */
 
 const srcRoot = resolve(__dirname, '../../src')
@@ -51,8 +50,8 @@ describe('premium prototype boundary', () => {
     expect(importers).toEqual([])
   })
 
-  it('no production source imports lenis', () => {
-    const importers = productionFiles.filter((path) =>
+  it('no source imports the discarded lenis scroll hijack', () => {
+    const importers = walk(srcRoot).filter((path) =>
       /from\s+['"]lenis['"]/.test(readFileSync(path, 'utf8')),
     )
     expect(importers).toEqual([])

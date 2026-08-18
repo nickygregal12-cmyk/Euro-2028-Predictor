@@ -219,7 +219,6 @@ class PoissonModel:
 
     def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         grid = self.scoreline_grid(X)
-        idx = np.arange(MAX_GOALS + 1)
         home_win = np.triu(np.ones((MAX_GOALS + 1, MAX_GOALS + 1)), 1).T  # h > a
         draw = np.eye(MAX_GOALS + 1)
         away_win = np.triu(np.ones((MAX_GOALS + 1, MAX_GOALS + 1)), 1)    # a > h
@@ -353,8 +352,8 @@ class GradientBoostedModel:
 
     scikit-learn's `HistGradientBoostingClassifier` rather than CatBoost or
     LightGBM, and that is a deliberate choice rather than a convenience. It is
-    already installed — `requirements.txt` pins scikit-learn and the CI job
-    installs exactly that file — so the lab gains a nonlinear learner without
+    already installed — `pyproject.toml` declares scikit-learn and `uv.lock`
+    pins the exact resolved build used by CI — so the lab gains a nonlinear learner without
     gaining a compiled dependency that has to be present on every runner, in
     every rehearsal and in whatever environment a future rollout uses. It also
     gives the one property that actually matters for this data:

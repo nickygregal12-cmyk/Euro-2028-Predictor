@@ -1,0 +1,72 @@
+name: Documentation link integrity
+
+on:
+  pull_request:
+    paths:
+      - '**/*.md'
+      - '.github/workflows/link-integrity.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '**/*.md'
+      - '.github/workflows/link-integrity.yml'
+  schedule:
+    - cron: '31 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: link-integrity-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  links:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout without persisted credentials
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install verified Lychee v0.24.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="${RUNNER_TEMP}/lychee.tar.gz"
+          destination="${RUNNER_TEMP}/lychee"
+          curl --fail --location --silent --show-error \
+            'https://github.com/lycheeverse/lychee/releases/download/lychee-v0.24.2/lychee-x86_64-unknown-linux-gnu.tar.gz' \
+            --output "$archive"
+          printf '%s  %s\n' \
+            '1f4e0ef7f6554a6ed33dd7ac144fb2e1bbed98598e7af973042fc5cd43951c9a' \
+            "$archive" \
+            | sha256sum --check --strict
+          mkdir -p "$destination"
+          tar --no-same-owner -xzf "$archive" -C "$destination"
+          install -m 0755 \
+            "$destination/lychee-x86_64-unknown-linux-gnu/lychee" \
+            /usr/local/bin/lychee
+          lychee --version
+
+      - name: Check tracked Markdown files and anchors offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          inputs="${RUNNER_TEMP}/lychee-markdown-inputs"
+          git ls-files '*.md' > "$inputs"
+          test -s "$inputs"
+          lychee \
+            --offline \
+            --include-fragments=anchor-only \
+            --root-dir . \
+            --no-progress \
+            --files-from "$inputs"
