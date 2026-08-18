@@ -18,5 +18,4 @@ printf 'Historical evidence and local/generated/secret paths are excluded by .gr
 exec graphify extract . \
   --backend openai \
   --mode deep \
-  --max-concurrency "${GRAPHIFY_MAX_CONCURRENCY:-2}" \
-  --api-timeout "${GRAPHIFY_API_TIMEOUT_SECONDS:-900}"
+  --max-concurrency "${GRAPHIFY_MAX_CONCURRENCY:-2}"
