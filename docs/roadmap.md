@@ -350,6 +350,21 @@ same paragraph existed in seven places at once.
 > Penalty Number is never returned**, matching `get_my_cup` exactly, and
 > neither is whether they have submitted one. The Penalty Number WRITE
 > authority is untouched and was already season-capable through contract 98.
+> **Contract 195 — the action centre learns about the Championship tie.**
+> **Advances the cross-competition attention work and reorders nothing else.**
+> `player_action_items_type_allowed` has admitted `cup_penalty_number_due`
+> since contract 162 and no generator ever wrote one; contract 170 said why,
+> and said it honestly — a season had no bracket to act on. Contracts 187 and
+> 193 gave it one, so the reason is gone. Every condition is read from
+> `submit_cup_penalty_number`'s own authorities rather than restated, and the
+> deadline is the window's FIRST KICKOFF, which is not the window's lock: a
+> season Cup round locks a buffer earlier, so an item keyed on `window_id`
+> would be swept away while the write authority was still accepting a number.
+> The item carries its own key and the expiry sweep gains a third re-read.
+> Every deadline-shaped action type now has a generator; `game_consequence`
+> and `league_invitation` remain declared and unwritten, which is the next
+> attention-system gap rather than a claim about this contract.
+
 > **`CUP-004` and `CUP-006` remain the Championship work.**
 
 > **Contract 194 — `CUP-004`, eligibility at tie settlement.**

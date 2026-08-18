@@ -265,3 +265,5 @@ blockquotes could never show without being read end to end.
 > **Contract 193 programme effect:** the vNext Predictor Championship stage gains the entrant-facing bracket read it had none of. No programme reordering.
 
 > **Contract 194 programme effect:** closes a settlement correctness defect ahead of any Championship launch. No programme reordering.
+
+> **Contract 195 programme effect:** the cross-competition attention surface gains its Championship source, so a qualified entrant is no longer silently responsible for remembering a deadline the platform knows. No programme reordering.

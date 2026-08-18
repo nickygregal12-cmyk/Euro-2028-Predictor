@@ -184,3 +184,5 @@ same paragraph existed in seven places at once.
 > **Contract 193:** does not alter Championship structure, qualification, seeding, pairing or settlement. It reads the rows the canonical drivers wrote and adds one bounded entrant read.
 
 > **Contract 194:** does not alter Championship qualification, seeding, pairing or scoring. It adds an eligibility question above the existing settlement ladder and leaves that ladder unedited.
+
+> **Contract 195:** does not alter Championship qualification, seeding, pairing, Penalty Number or settlement rules. It reads the conditions `submit_cup_penalty_number` already enforces and turns them into one action item per contestable side.

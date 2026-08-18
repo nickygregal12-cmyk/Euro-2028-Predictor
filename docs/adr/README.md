@@ -106,4 +106,6 @@ same paragraph existed in seven places at once.
 
 > **Contract 193:** implements ADR 0014’s existing bracket and § 8.3 Penalty Number rules as a READ. No ADR changes status, no rule is added, and the sealed-bid property is reproduced exactly as `get_my_cup` enforces it.
 
-> **Contract 194:** implements ADR 0028 § 8 and preserves ADR 0022 § "no rule may be altered while rescoping" by leaving the submission ladder byte-identical, proved by round trip. No ADR changes status.
+> **Contract 194:** implements ADR 0028 § 8 and preserves ADR 0022 § "no rule may be altered while rescoping" by patching the INSTALLED settlement definition in place rather than restating it, so contract 102’s split-safety survives. No ADR changes status.
+
+> **Contract 195:** implements ADR 0014 § 8.3’s existing lane and deadline rules as an ACTION rather than adding one, and composes ADR 0028 § 8 by not asking an entrant who may not contest the tie. No ADR changes status.

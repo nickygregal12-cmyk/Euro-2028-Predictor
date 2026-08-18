@@ -333,3 +333,5 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 193:** records a backend capability: a season Predictor Championship entrant can now see their knockout tie and bracket. No frontend feature baseline changes, and no Championship rule moves.
 
 > **Contract 194:** records a backend correctness fix rather than a feature: a removed player can no longer win a Championship knockout tie. No frontend feature baseline changes.
+
+> **Contract 195:** records a backend capability: a Championship entrant with an open playoff or knockout tie is now told their Penalty Number is due, with their own lane and the real deadline. No frontend feature baseline changes and no disclosure boundary moves — the item carries no opponent identity, value or submission state.
