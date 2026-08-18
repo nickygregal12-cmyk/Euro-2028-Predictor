@@ -207,7 +207,15 @@ jobs:
           retention-days: 7
 
   merge-gate:
-    name: Required merge gate
+    # The name is load-bearing, not cosmetic. `Protect Main` requires the status
+    # check `CI / Required merge gate` by that exact string, and a GitHub ruleset
+    # matches the CHECK-RUN NAME -- which is this `name:`, with no workflow prefix
+    # added for it. Naming the job `Required merge gate` left the ruleset waiting
+    # for a check that never appeared, so every pull request reported "expected"
+    # forever and `main` took no merges at all until the two strings agreed.
+    # `specs/tooling-assurance-activation/plan.md` states the intended context, so
+    # the string there is the authority and this is what was made to match it.
+    name: CI / Required merge gate
     if: ${{ always() }}
     needs: ci
     runs-on: ubuntu-latest
