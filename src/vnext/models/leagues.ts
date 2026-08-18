@@ -76,7 +76,7 @@
  * twenty competitions, which is exactly why `ShellLeague` has carried its game
  * since Stage 7.6 — the same discipline, one layer down.
  */
-export type LeaguesContext = {
+type LeaguesContext = {
   readonly competitionName: string
   readonly seasonLabel: string | null
   /** The game these standings rank. Never merged with the competition. */

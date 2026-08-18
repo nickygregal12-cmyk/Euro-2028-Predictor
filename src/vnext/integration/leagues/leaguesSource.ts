@@ -48,7 +48,7 @@ import type { GameLeague } from '../../../services/supabase/gameLeagues'
  */
 
 /** The competition season and the game these standings rank. */
-export type LeaguesSourceContext = {
+type LeaguesSourceContext = {
   readonly tournamentId: string
   readonly competitionName: string
   readonly seasonLabel: string
