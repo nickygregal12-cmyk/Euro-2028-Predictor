@@ -19,6 +19,7 @@ initial_prompt: |
   its output and memories never override repository authorities, executable
   tests, database contracts or current hosted evidence. Preserve one fact in one
   canonical home rather than creating duplicate summaries.
+encoding: utf-8
 default_modes:
 added_modes:
 fixed_tools: []
