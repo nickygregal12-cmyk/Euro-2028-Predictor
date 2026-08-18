@@ -140,13 +140,18 @@ jobs:
         if: success()
         shell: bash
         run: |
+          # No backticks in these strings. shellcheck reads a backtick inside a
+          # single-quoted echo as command substitution and raises SC2016, which
+          # actionlint promotes to a failure — and actionlint only lints CHANGED
+          # workflows, so two of these lines had carried the warning silently
+          # since they were written and surfaced the moment this file moved.
           {
             echo '## AI odds scheduler reconciled'
             echo
-            echo '- Production holds one active `ai-odds-window-heartbeat` job.'
+            echo '- Production holds one active ai-odds-window-heartbeat job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
-            echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep `ai_odds_budget_check` and fail closed when collection is denied.'
-            echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
-            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h).'
+            echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep ai_odds_budget_check and fail closed when collection is denied.'
+            echo '- The heartbeat runs every five minutes and dispatches when a paid-covered fixture is inside 180 hours (seven and a half days) and the freshness-aware cadence is due.'
+            echo '- Cadence is at most 8h (24-180h to kickoff), 6h (8-24h), 50m (2-8h), and 10m (2h or less) - every tier strictly inside the price-freshness allowance at the same distance.'
           } >> "$GITHUB_STEP_SUMMARY"
