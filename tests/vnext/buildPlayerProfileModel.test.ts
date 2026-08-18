@@ -183,13 +183,16 @@ describe('refusal, absence and failure stay three sentences', () => {
   })
 
   it('keeps `not entered` as a fact about the player rather than a refusal', () => {
+    // All three reads can say it, and each panel says it in its own words.
     const model = buildPlayerProfileModel(
       source({
         profile: { kind: 'ok', profile: profilePayload({ entered: false }) },
+        rankHistory: { kind: 'not-entered' },
         rivalry: { kind: 'not-entered' },
       }),
     )
     expect(model.profile.kind).toBe('not-entered')
+    expect(model.rankHistory.kind).toBe('not-entered')
     expect(model.rivalry.kind).toBe('not-entered')
   })
 

@@ -119,7 +119,10 @@ type PanelProps = {
 function Panel({ title, zone, children }: PanelProps) {
   return (
     <section className={styles.panel} data-vnext-zone={zone}>
-      <h3 className={`${text.title} ${styles.panelTitle}`}>{title}</h3>
+      {/* `h2`, BECAUSE THE SHELL OWNS THE `h1`. A panel title at `h3` skips a
+          level, and a skipped level is a reader arriving at a section they
+          cannot place. */}
+      <h2 className={`${text.title} ${styles.panelTitle}`}>{title}</h2>
       {children}
     </section>
   )
@@ -216,12 +219,12 @@ function ProfileBody({
         </dl>
       )}
 
-      <h4 className={`${text.micro} ${styles.panelSubheading}`}>
+      <h3 className={`${text.micro} ${styles.panelSubheading}`}>
         {/* IT COUNTS WHAT IS SHOWN AND SAYS SO. Not "of the season" — the gaps
             are the reveal boundary and are not a denominator. */}
         {formatNumber(detail.history.length)}{' '}
         {detail.history.length === 1 ? 'matchweek' : 'matchweeks'} you can see
-      </h4>
+      </h3>
       <PredictionHistory history={detail.history} isYou={isYou} />
     </div>
   )
@@ -278,6 +281,13 @@ function RankBody({
       return (
         <p className={`${text.body} ${styles.panelRefused}`}>
           This player&apos;s season positions are not visible to you.
+        </p>
+      )
+    case 'not-entered':
+      return (
+        <p className={`${text.body} ${styles.panelEmpty}`}>
+          This player has not entered this season&apos;s game, so there is no
+          position to plot.
         </p>
       )
     case 'unaddressable':

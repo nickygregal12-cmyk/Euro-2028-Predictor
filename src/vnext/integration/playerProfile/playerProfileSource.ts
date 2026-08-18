@@ -73,10 +73,19 @@ export type ProfileRead =
   | { readonly kind: 'refused' }
   | { readonly kind: 'failed' }
 
-/** Contract 192's rank history. `refused` is contract 191's `none`. */
+/**
+ * Contract 192's rank history.
+ *
+ * `refused` is contract 191's `none` — about PERMISSION. `not-entered` is the
+ * RPC's `no_data_found`, raised for a reference that names nobody in this
+ * season — about THEM. The read raises both and they are different sentences,
+ * so a surface reporting the second as the first would accuse the reader of
+ * lacking a permission that was never the problem.
+ */
 export type RankHistoryRead =
   | { readonly kind: 'ok'; readonly history: SeasonRankHistory }
   | { readonly kind: 'unaddressable' }
+  | { readonly kind: 'not-entered' }
   | { readonly kind: 'refused' }
   | { readonly kind: 'failed' }
 

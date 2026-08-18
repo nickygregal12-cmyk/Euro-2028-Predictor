@@ -101,7 +101,7 @@
  * contract has none — in which case the rank history and the rivalry cannot be
  * asked at all, and their panels say so rather than pretending to have failed.
  */
-export type PlayerAddress = {
+type PlayerAddress = {
   /** Contract 191's season-scoped entry id. Addresses history and rivalry. */
   readonly ref: string | null
   /** The account id. Addresses the profile. */
@@ -116,7 +116,7 @@ export type PlayerAddress = {
  * a page that dropped the season would be claiming a cross-competition identity
  * Stage 10 explicitly does not own.
  */
-export type PlayerProfileContext = {
+type PlayerProfileContext = {
   readonly competitionName: string
   readonly seasonLabel: string | null
   readonly gameName: string
@@ -143,7 +143,7 @@ export type PlayerProfileContext = {
  * `address` IS THE IDENTITY. Two players may share a name; the two identifiers
  * tell them apart, and only they ever address anything.
  */
-export type PlayerHeading = {
+type PlayerHeading = {
   /** Whichever read answered, by the mapper's stated priority. Null if none. */
   readonly displayName: string | null
   readonly address: PlayerAddress
@@ -178,7 +178,7 @@ export type PlayerAccuracy = {
   readonly correctOutcomes: number
 }
 
-export type PlayerJokers = {
+type PlayerJokers = {
   readonly played: number
   readonly pointsFromJokerMatchweeks: number
 }
@@ -275,6 +275,8 @@ export type RankHistoryPanel =
   | { readonly kind: 'history'; readonly series: readonly RankPoint[] }
   /** The player holds no entry reference — the read cannot be addressed. */
   | { readonly kind: 'unaddressable' }
+  /** They hold no entry in this season. About them, not about permission. */
+  | { readonly kind: 'not-entered' }
   | { readonly kind: 'refused' }
   | { readonly kind: 'unavailable' }
 
@@ -282,7 +284,7 @@ export type RankHistoryPanel =
    PANEL THREE — HOW WE COMPARE (contract 192's rivalry)
    ========================================================================== */
 
-export type RivalryStanding = {
+type RivalryStanding = {
   readonly rank: number
   readonly fieldSize: number
 }

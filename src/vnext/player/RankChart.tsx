@@ -1,9 +1,9 @@
-import { useId } from "react";
-import type { RankPoint } from "../models/playerProfile";
-import { rankBounds, rankPlot } from "../models/playerProfile";
-import { formatNumber, formatOrdinal } from "../foundations/format";
-import text from "../foundations/typography.module.css";
-import styles from "./playerProfile.module.css";
+import { useId } from 'react'
+import type { RankPoint } from '../models/playerProfile'
+import { rankBounds, rankPlot, rankPointKey } from '../models/playerProfile'
+import { formatNumber, formatOrdinal } from '../foundations/format'
+import text from '../foundations/typography.module.css'
+import styles from './playerProfile.module.css'
 
 /**
  * WHERE THIS PLAYER STOOD, WEEK BY WEEK.
@@ -43,21 +43,21 @@ import styles from "./playerProfile.module.css";
  * line is the illustration.
  */
 
-const VIEW_WIDTH = 320;
-const VIEW_HEIGHT = 132;
+const VIEW_WIDTH = 320
+const VIEW_HEIGHT = 132
 /** Room for the markers and the stroke, so an endpoint is never half-clipped. */
-const PAD = 10;
+const PAD = 10
 
 export type RankChartProps = {
-  readonly series: readonly RankPoint[];
+  readonly series: readonly RankPoint[]
   /** Names the chart for assistive technology. The player, in words. */
-  readonly caption: string;
-};
+  readonly caption: string
+}
 
 export function RankChart({ series, caption }: RankChartProps) {
-  const bounds = rankBounds(series);
-  const plotted = rankPlot(series);
-  const tableId = useId();
+  const bounds = rankBounds(series)
+  const plotted = rankPlot(series)
+  const tableId = useId()
 
   if (bounds === null) {
     // NOT AN ERROR. A season before its first settlement has no positions yet,
@@ -66,18 +66,18 @@ export function RankChart({ series, caption }: RankChartProps) {
       <p className={`${text.body} ${styles.chartEmpty}`}>
         No matchweek has settled yet, so there is no position to plot.
       </p>
-    );
+    )
   }
 
   const path = plotted
     .map((entry, index) => {
-      const x = PAD + entry.x * (VIEW_WIDTH - PAD * 2);
-      const y = PAD + entry.y * (VIEW_HEIGHT - PAD * 2);
-      return `${index === 0 ? "M" : "L"}${x.toFixed(2)} ${y.toFixed(2)}`;
+      const x = PAD + entry.x * (VIEW_WIDTH - PAD * 2)
+      const y = PAD + entry.y * (VIEW_HEIGHT - PAD * 2)
+      return `${index === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`
     })
-    .join(" ");
+    .join(' ')
 
-  const last = plotted[plotted.length - 1];
+  const last = plotted[plotted.length - 1]
 
   return (
     <figure className={styles.chart} data-vnext-zone="rank-chart">
@@ -101,7 +101,7 @@ export function RankChart({ series, caption }: RankChartProps) {
           ) : null}
           {plotted.map((entry) => (
             <circle
-              key={entry.point.matchweekId}
+              key={rankPointKey(entry.point)}
               className={
                 entry === last
                   ? `${styles.chartDot} ${styles.chartDotLast}`
@@ -147,7 +147,7 @@ export function RankChart({ series, caption }: RankChartProps) {
           </thead>
           <tbody>
             {series.map((point) => (
-              <tr key={point.matchweekId}>
+              <tr key={rankPointKey(point)}>
                 <th scope="row">{point.label}</th>
                 <td>
                   {formatOrdinal(point.rank)} of {formatNumber(point.fieldSize)}
@@ -159,5 +159,5 @@ export function RankChart({ series, caption }: RankChartProps) {
         </table>
       </div>
     </figure>
-  );
+  )
 }

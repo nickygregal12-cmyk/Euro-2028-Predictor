@@ -191,8 +191,11 @@ const profileRefused = world({ profile: { kind: 'refused' } })
 const rankOnly = world({ profile: { kind: 'refused' }, rivalry: { kind: 'refused' } })
 
 const notEntered = world({
+  // ALL THREE READS AGREE, AND EACH SAYS IT IN ITS OWN WORDS. A player who
+  // never entered has no profile, no position and nothing to compare — and
+  // none of those three is a refusal.
   profile: { kind: 'not-entered' },
-  rankHistory: { kind: 'history', series: [] },
+  rankHistory: { kind: 'not-entered' },
   rivalry: { kind: 'not-entered' },
 })
 

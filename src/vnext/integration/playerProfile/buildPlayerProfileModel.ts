@@ -157,6 +157,8 @@ function rankHistoryPanel(source: PlayerProfileSource): RankHistoryPanel {
   switch (read.kind) {
     case 'unaddressable':
       return { kind: 'unaddressable' }
+    case 'not-entered':
+      return { kind: 'not-entered' }
     case 'refused':
       return { kind: 'refused' }
     case 'failed':

@@ -71,18 +71,25 @@ const server = vi.hoisted(() => {
     rivalryMode: 'ok' as 'ok' | 'refused' | 'not-entered' | 'failed',
   }
 
-  function named(name: string, message: string): Error {
-    const error = new Error(message)
-    error.name = name
-    return error
-  }
+  /*
+   * THE REAL CLASSES' SHAPE, because the hook now checks with `instanceof`
+   * against the module's own exports — the convention `SeasonHeadToHead.tsx`
+   * already uses for contract 129's two refusals. A mock that only set
+   * `error.name` would let a name-matching implementation pass and an
+   * `instanceof` one fail, which is the wrong way round.
+   */
+  class RankHistoryNotPermittedError extends Error {}
+  class RivalryNotPermittedError extends Error {}
+  class OpponentNotEnteredError extends Error {}
 
   return {
     state,
     calls,
     profiles,
     defer,
-    named,
+    RankHistoryNotPermittedError,
+    RivalryNotPermittedError,
+    OpponentNotEnteredError,
 
     profileFor(playerId: string) {
       const pending = profiles.get(playerId) ?? defer<SeasonPlayerProfile>()
@@ -169,28 +176,24 @@ vi.mock('../../src/services/supabase/seasonPlayerProfile', () => ({
 }))
 
 vi.mock('../../src/services/supabase/seasonRankHistory', () => ({
+  RankHistoryNotPermittedError: server.RankHistoryNotPermittedError,
+  OpponentNotEnteredError: server.OpponentNotEnteredError,
   fetchSeasonRankHistory: async (_tournamentId: string, playerRef: string) => {
     server.calls.rankHistory += 1
-    if (server.state.rankMode === 'refused') {
-      throw server.named('RankHistoryNotPermittedError', 'no')
-    }
-    if (server.state.rankMode === 'not-entered') {
-      throw server.named('OpponentNotEnteredError', 'no')
-    }
+    if (server.state.rankMode === 'refused') throw new server.RankHistoryNotPermittedError('no')
+    if (server.state.rankMode === 'not-entered') throw new server.OpponentNotEnteredError('no')
     if (server.state.rankMode === 'failed') throw new Error('read failed')
     return server.history(playerRef)
   },
 }))
 
 vi.mock('../../src/services/supabase/seasonRivalry', () => ({
+  RivalryNotPermittedError: server.RivalryNotPermittedError,
+  OpponentNotEnteredError: server.OpponentNotEnteredError,
   fetchSeasonRivalry: async (_tournamentId: string, playerRef: string) => {
     server.calls.rivalry += 1
-    if (server.state.rivalryMode === 'refused') {
-      throw server.named('RivalryNotPermittedError', 'no')
-    }
-    if (server.state.rivalryMode === 'not-entered') {
-      throw server.named('OpponentNotEnteredError', 'no')
-    }
+    if (server.state.rivalryMode === 'refused') throw new server.RivalryNotPermittedError('no')
+    if (server.state.rivalryMode === 'not-entered') throw new server.OpponentNotEnteredError('no')
     if (server.state.rivalryMode === 'failed') throw new Error('read failed')
     return server.rivalry(playerRef)
   },
@@ -325,6 +328,23 @@ describe('a refusal and a fault are told apart', () => {
     reset()
     server.state.rivalryMode = 'failed'
     expect((await ready(mount(BASE))).rivalry.kind).toBe('failed')
+  })
+
+  it('tells the rank history`s two refusals apart as well', async () => {
+    // The read raises both, and a stale link is enough to reach the second: a
+    // reference that names nobody in this season is about THEM, not about a
+    // permission the reader lacks.
+    reset()
+    server.state.rankMode = 'refused'
+    expect((await ready(mount(BASE))).rankHistory.kind).toBe('refused')
+
+    reset()
+    server.state.rankMode = 'not-entered'
+    expect((await ready(mount(BASE))).rankHistory.kind).toBe('not-entered')
+
+    reset()
+    server.state.rankMode = 'failed'
+    expect((await ready(mount(BASE))).rankHistory.kind).toBe('failed')
   })
 
   it('never reports the page as failed when only a panel did', async () => {

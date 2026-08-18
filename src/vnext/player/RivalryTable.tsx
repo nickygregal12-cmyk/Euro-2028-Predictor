@@ -1,4 +1,4 @@
-import type { RivalryDetail, RivalrySide } from '../models/playerProfile'
+import type { RivalryDetail, RivalryOutcome, RivalrySide } from '../models/playerProfile'
 import { accuracyRate, pointsGapLabel, rivalryComparable } from '../models/playerProfile'
 import { formatNumber, formatOrdinal, formatShare } from '../foundations/format'
 import text from '../foundations/typography.module.css'
@@ -95,10 +95,15 @@ export function RivalryTable({ detail }: RivalryTableProps) {
         </tbody>
       </table>
 
-      <h4 className={`${text.micro} ${styles.recentHeading}`}>
+      <h3 className={`${text.micro} ${styles.recentHeading}`}>
         Recent matchweeks, most recent first
-      </h4>
-      <ul className={styles.recent}>
+      </h3>
+      {/* THE STRIP SCROLLS SIDEWAYS AT 640 AND UP, AND IT CONTAINS NO CONTROL.
+          A scrollable region with nothing focusable inside it is unreachable by
+          keyboard, so the list itself takes focus and carries a name — the
+          chooser in Leagues escapes the same rule only because it is made of
+          buttons. */}
+      <ul className={styles.recent} tabIndex={0} aria-label={`Recent matchweeks against ${theirName}`}>
         {detail.recent.map((matchweek) => (
           <li key={matchweek.matchweekId} className={styles.recentItem}>
             <span className={`${text.micro} ${styles.recentLabel}`}>{matchweek.label}</span>
@@ -120,7 +125,7 @@ export function RivalryTable({ detail }: RivalryTableProps) {
   )
 }
 
-function outcomeWord(outcome: 'you' | 'them' | 'level', theirName: string): string {
+function outcomeWord(outcome: RivalryOutcome, theirName: string): string {
   if (outcome === 'you') return 'You won'
   if (outcome === 'them') return `${theirName} won`
   return 'Level'

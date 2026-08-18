@@ -66,7 +66,7 @@ export type SeasonRivalryReach = 'self' | 'profile' | 'compare' | 'name-only'
 const REACHES: readonly SeasonRivalryReach[] = ['self', 'profile', 'compare', 'name-only']
 
 /** A rank and the field it is out of. Never one without the other. */
-export type SeasonRivalryStanding = {
+type SeasonRivalryStanding = {
   rank: number
   fieldSize: number
 }
@@ -75,7 +75,7 @@ export type SeasonRivalryStanding = {
  * Counts over the compared matchweeks. Facts about predictions, not points:
  * no point value appears here and nothing may turn one into points.
  */
-export type SeasonRivalryAccuracy = {
+type SeasonRivalryAccuracy = {
   fixturesCompared: number
   exactScores: number
   correctOutcomes: number
@@ -95,9 +95,9 @@ export type SeasonRivalrySide = {
   accuracy: SeasonRivalryAccuracy
 }
 
-export type SeasonRivalryOutcome = 'you' | 'them' | 'level'
+type SeasonRivalryOutcome = 'you' | 'them' | 'level'
 
-export type SeasonRivalryMatchweek = {
+type SeasonRivalryMatchweek = {
   matchweekId: string
   ordinal: number
   label: string
@@ -107,7 +107,7 @@ export type SeasonRivalryMatchweek = {
   outcome: SeasonRivalryOutcome
 }
 
-export type SeasonRivalryRecord = {
+type SeasonRivalryRecord = {
   yourWins: number
   theirWins: number
   draws: number

@@ -42,21 +42,8 @@ import {
   type SeasonRivalry,
 } from './seasonRivalryModel'
 
-export {
-  OpponentNotEnteredError,
-  RivalryNotPermittedError,
-  rivalryComparable,
-} from './seasonRivalryModel'
-export type {
-  SeasonRivalry,
-  SeasonRivalryAccuracy,
-  SeasonRivalryMatchweek,
-  SeasonRivalryOutcome,
-  SeasonRivalryReach,
-  SeasonRivalryRecord,
-  SeasonRivalrySide,
-  SeasonRivalryStanding,
-} from './seasonRivalryModel'
+export { OpponentNotEnteredError, RivalryNotPermittedError } from './seasonRivalryModel'
+export type { SeasonRivalry } from './seasonRivalryModel'
 
 function codeOf(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code

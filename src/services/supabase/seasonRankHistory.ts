@@ -29,11 +29,7 @@ export {
   OpponentNotEnteredError,
   RankHistoryNotPermittedError,
 } from './seasonRankHistoryModel'
-export type {
-  SeasonRankHistory,
-  SeasonRankHistoryPoint,
-  SeasonRankHistoryReach,
-} from './seasonRankHistoryModel'
+export type { SeasonRankHistory } from './seasonRankHistoryModel'
 
 function codeOf(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code

@@ -77,7 +77,7 @@ const REACHES: readonly SeasonRankHistoryReach[] = [
  * `points` is that matchweek's own banked figure, not a running total — the
  * cumulative reading is the RANK, which is what the series is for.
  */
-export type SeasonRankHistoryPoint = {
+type SeasonRankHistoryPoint = {
   matchweekId: string
   ordinal: number
   label: string

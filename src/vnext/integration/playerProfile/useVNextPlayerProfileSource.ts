@@ -109,10 +109,6 @@ type InternalState =
 
 const IDLE: InternalState = { status: 'idle' }
 
-function named(error: unknown, name: string): boolean {
-  return error instanceof Error && error.name === name
-}
-
 export function useVNextPlayerProfileSource(
   input: VNextPlayerProfileSourceInput,
 ): VNextPlayerProfileSourceState {
@@ -266,7 +262,18 @@ async function readRankHistory(
       history: await services.fetchSeasonRankHistory(tournamentId, playerRef),
     }
   } catch (error) {
-    return named(error, 'RankHistoryNotPermittedError') ? { kind: 'refused' } : { kind: 'failed' }
+    // `instanceof` AGAINST THE MODULE'S OWN CLASSES, which is what
+    // `SeasonHeadToHead.tsx` does with contract 129's two refusals. Matching on
+    // `error.name` instead would pass for any error that happened to carry the
+    // same string, and a refusal is the one classification that must not be
+    // reachable by coincidence.
+    //
+    // THIS READ REFUSES IN TWO WAYS TOO. A reference that names nobody in the
+    // season is about THEM, not about permission — the same distinction the
+    // rivalry makes, and it is reachable here by exactly the same stale link.
+    if (error instanceof services.RankHistoryNotPermittedError) return { kind: 'refused' }
+    if (error instanceof services.OpponentNotEnteredError) return { kind: 'not-entered' }
+    return { kind: 'failed' }
   }
 }
 
@@ -285,8 +292,8 @@ async function readRivalry(
   try {
     return { kind: 'ok', rivalry: await services.fetchSeasonRivalry(tournamentId, playerRef) }
   } catch (error) {
-    if (named(error, 'RivalryNotPermittedError')) return { kind: 'refused' }
-    if (named(error, 'OpponentNotEnteredError')) return { kind: 'not-entered' }
+    if (error instanceof services.RivalryNotPermittedError) return { kind: 'refused' }
+    if (error instanceof services.OpponentNotEnteredError) return { kind: 'not-entered' }
     return { kind: 'failed' }
   }
 }
