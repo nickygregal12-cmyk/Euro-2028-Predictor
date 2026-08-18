@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 202,
-  "latestMigrationVersion": "20260818070000",
-  "latestMigrationName": "ai_forecast_horizons",
-  "verifiedAt": "2026-08-18T13:20:00.000Z",
+  "requiredMigrationCount": 203,
+  "latestMigrationVersion": "20260818080000",
+  "latestMigrationName": "ai_bet_builder_current_decision",
+  "verifiedAt": "2026-08-18T19:10:16.167Z",
   "evidence": {
-    "source": "Contracts 199 to 202 applied to Development on 18 August 2026 through the ADR 0024 fast lane, run 32141009659, from exact main 42f778f6be38ac71ae12c50fd25d4e086f6295b3. All four were proven additive by scripts/check-migration-additive.mjs before the apply; the two `drop constraint if exists` statements are reported as structural, remove a guarantee and no row, and are replaced in the same statement by a stricter constraint. CONFIRMED BY AN INDEPENDENT READ-ONLY QUERY RATHER THAN FROM THE JOB OUTPUT, naming the ledger row: 202 rows with newest 20260818070000 ai_forecast_horizons. EVERY PLAYER-OWNED COUNT IS UNCHANGED: 24 auth users, 24 profiles, 34 entries, 64 season predictions, 756 match predictions, 8 settled matchweek scores, 20 competition entrants, 0 bonus score events, 5 leagues, 39 league members, 1 Cup launch, 112 Cup fixtures and 578 season fixtures. Euro publication is still hidden, cron holds 14 jobs and PAID COLLECTION REMAINS DISABLED with ai.api_usage still 0. CUSTODY WAS VERIFIED ON THE INSTALLED DEFINITIONS. All three new reads - admin_ai_fixture_coverage, admin_ai_operational_health and admin_ai_results_review - are executable by authenticated and by NO anonymous role, and the three new views - ai.bet_advice_identity, ai.canonical_fixture_predictions and ai.current_fixture_recommendations - are readable by no browser role at all. THE FOUR CONTRACTS ANSWER ON THE LIVE DATABASE: contract 199's ai.bet_results.actual_result is nullable, so a void settlement is expressible; contract 200's cadence sits strictly inside the price-freshness allowance at all twelve horizons tested, with ZERO outside; contract 201's ai.pass_reason_explanation returns a sentence for all eleven refusal codes; and contract 202's horizon CHECK admits t168 with predictions_fixture_idx installed beside it. Development holds no AI Lab data - 0 bets, 0 predictions, 0 api_usage - because the lab runs against Production, so these are structural answers rather than answers over rows. src/services/supabase/database.types.ts was regenerated against this database at this contract and is byte-identical to the generator's output.",
-    "workflowRunId": 32141009659,
-    "repositoryHead": "42f778f6be38ac71ae12c50fd25d4e086f6295b3"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 32174280080,
+    "repositoryHead": "628842026e2996c4107c01ffbcbeb362803d98e9"
   }
 }
