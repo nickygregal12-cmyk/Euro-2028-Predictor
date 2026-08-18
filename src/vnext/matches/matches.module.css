@@ -1,0 +1,543 @@
+/* vNEXT MATCHES — the competition's football.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * sticky masthead, both navigations, the `<main>` landmark and the mobile
+ * bottom spacing are the shell's and were since Stage 5. What is here is what
+ * only a fixture list needs.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY. `vnext-page` is the shell's content region
+ * and `vnext-match-row` is a row's own body. A row asks its OWN container, not
+ * the page: at 1920 the fixture column is roughly half the workspace, so a row
+ * that queried the page would put a single-line desktop layout into a column
+ * that cannot hold one. That is Stage 7's rule and it is load-bearing here.
+ *
+ * THE THREE COMPOSITIONS.
+ *
+ *   compact  (< 760px)   one column; a two-line row with the clubs stacked.
+ *   regular  (>= 760px)  the same column with more room; day counts appear.
+ *   expanded (>= 1120px) two columns — fixtures keep the working column and the
+ *                        browsing controls move beside them. A row that is wide
+ *                        enough becomes single-line.
+ *
+ * COLOUR DISCIPLINE. Club colour arrives only as `--vnext-fixture-*` and paints
+ * a hairline spine on a row and nothing else. Every STATE — live, provisional,
+ * official, postponed — uses a semantic token and is ALWAYS paired with a word,
+ * so the list is readable in greyscale.
+ *
+ * NO CLUB NAME IS CLIPPED ANYWHERE IN THIS FILE. There is no `text-overflow`,
+ * no line clamp and no `overflow: hidden` over a name. `overflow-wrap: anywhere`
+ * stops one long word widening a row; the row grows instead.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+/* ---- browsing controls -------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.browse {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.scope {
+  display: flex;
+  gap: var(--vnext-space-1);
+  padding: 3px;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+}
+
+.scopeOption {
+  flex: 1 1 auto;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 0;
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.scopeOption[aria-pressed='true'] {
+  background-color: var(--vnext-surface-raised);
+  color: var(--vnext-text);
+  box-shadow: var(--vnext-shadow-sm);
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}
+
+.filter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.filter[aria-pressed='true'] {
+  background-color: var(--vnext-accent-veil);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text);
+}
+
+/* A tab with nothing behind it stays in place and stops being pressable, so
+ * the control row does not change shape while football happens. */
+.filter:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.filterCount {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+.filter[aria-pressed='true'] .filterCount {
+  color: var(--vnext-text-secondary);
+}
+
+.stages {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-3);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.stagesTitle {
+  color: var(--vnext-text-muted);
+}
+
+.stageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stageRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}
+
+.stageLabel {
+  overflow-wrap: anywhere;
+}
+
+.stageCount {
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+}
+
+.unavailable {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- days --------------------------------------------------------------- */
+
+.fixtures {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  min-width: 0;
+}
+
+.day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.dayHeading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  color: var(--vnext-text-secondary);
+  /* Sticky, because a long Saturday scrolls past its own heading and a reader
+   * loses which day they are in. It sits under the shell's masthead layer. */
+  position: sticky;
+  top: 0;
+  z-index: var(--vnext-layer-raised);
+  padding-block: var(--vnext-space-2);
+  background: linear-gradient(
+    to bottom,
+    var(--vnext-canvas) 0%,
+    var(--vnext-canvas) 72%,
+    transparent 100%
+  );
+}
+
+.dayCount {
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+}
+
+.dayList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- one fixture -------------------------------------------------------- */
+
+.row {
+  container-name: vnext-match-row;
+  container-type: inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  width: 100%;
+  /* THE WHOLE ROW IS ONE TARGET, and it clears 44px by construction rather
+   * than by hoping the content is tall enough. */
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3);
+  text-align: start;
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline);
+  /* The club colours as a spine, at the inline start. Atmosphere, never state:
+   * a club playing in red does not borrow the meaning of "live". */
+  border-inline-start: 3px solid var(--vnext-fixture-home, var(--vnext-hairline));
+  border-radius: var(--vnext-radius-lg);
+  box-shadow: var(--vnext-shadow-sm);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .row:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    border-color: var(--vnext-hairline-strong);
+  }
+}
+
+.row[data-live='true'] {
+  border-color: var(--vnext-live-veil);
+  box-shadow: var(--vnext-glow-live);
+}
+
+.rowBody {
+  display: grid;
+  grid-template-columns: minmax(56px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.rowLead {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.rowClubs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.clubName {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+  /* NO CLAMP AND NO ELLIPSIS. A long club name wraps and the row grows. */
+  overflow-wrap: anywhere;
+}
+
+.rowTail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--vnext-space-1);
+  flex: 0 0 auto;
+}
+
+.rowContext {
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+/* ---- score -------------------------------------------------------------- */
+
+.score {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-title);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  white-space: nowrap;
+}
+
+.scoreOfficial {
+  color: var(--vnext-text);
+}
+
+/* A provider's number is visibly a different claim from a settled result — and
+ * the word "provisional" is in the accessible name, so colour is never the only
+ * thing carrying it. */
+.scoreProvisional {
+  color: var(--vnext-live);
+}
+
+.scoreEmpty {
+  font-family: var(--vnext-font-text);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text-secondary);
+  letter-spacing: normal;
+}
+
+/* ---- state marks -------------------------------------------------------- */
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-1);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.markLive {
+  color: var(--vnext-live);
+}
+
+.markAwaiting {
+  color: var(--vnext-warn);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.markFinished {
+  color: var(--vnext-text-muted);
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.markOff {
+  color: var(--vnext-warn);
+}
+
+.markWord {
+  white-space: nowrap;
+}
+
+.markClock {
+  color: var(--vnext-live);
+}
+
+.markNote {
+  color: var(--vnext-text-muted);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--vnext-weight-regular);
+}
+
+.liveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--vnext-live);
+  flex: 0 0 auto;
+}
+
+/* ---- prediction status — a badge, never a control ----------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  white-space: nowrap;
+}
+
+.badgeNeeded {
+  background-color: var(--vnext-warn-veil);
+  color: var(--vnext-warn);
+}
+
+.badgeEntered {
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-secondary);
+}
+
+.badgeLocked {
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-muted);
+}
+
+.badgeSettled {
+  background-color: var(--vnext-hit-veil);
+  color: var(--vnext-hit);
+}
+
+/* ---- empty -------------------------------------------------------------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-6) var(--vnext-space-4);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px dashed var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-lg);
+  text-align: center;
+}
+
+.emptyBody {
+  color: var(--vnext-text-secondary);
+  max-width: 46ch;
+  margin-inline: auto;
+}
+
+/* ==========================================================================
+   REGULAR — >= 760px of the shell's content region
+   ========================================================================== */
+
+@container vnext-page (min-width: 760px) {
+  .filters {
+    flex-wrap: nowrap;
+  }
+}
+
+/* ==========================================================================
+   EXPANDED — >= 1120px. Two columns, and the controls move beside the football.
+   ========================================================================== */
+
+@container vnext-page (min-width: 1120px) {
+  .page {
+    display: grid;
+    /* The fixtures take the working column. The controls take a fixed side
+     * column rather than a fraction, so the football does not narrow as the
+     * window widens — the extra width goes to the clubs, which is what §12
+     * asks for. */
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-areas: 'fixtures controls';
+    gap: var(--vnext-space-6);
+    align-items: start;
+  }
+
+  .controls {
+    grid-area: controls;
+    position: sticky;
+    top: var(--vnext-space-4);
+  }
+
+  .fixtures {
+    grid-area: fixtures;
+  }
+}
+
+/* ==========================================================================
+   THE ROW'S OWN COMPOSITION — answered by the ROW, not by the page
+   ========================================================================== */
+
+/* Wide enough for the clubs, the score and the state on ONE line. Below this
+ * the row keeps its two-line phone shape, which is what makes a row in a
+ * narrow column at 1920 still compose correctly. */
+@container vnext-match-row (min-width: 520px) {
+  .rowBody {
+    grid-template-columns: minmax(0, 1fr) minmax(64px, auto) minmax(0, 1fr) auto;
+    grid-template-areas: 'home score away tail';
+    gap: var(--vnext-space-4);
+  }
+
+  .rowLead {
+    grid-area: score;
+    justify-content: center;
+  }
+
+  .rowClubs {
+    display: contents;
+  }
+
+  .club:first-child {
+    grid-area: home;
+    justify-content: flex-end;
+    flex-direction: row-reverse;
+    text-align: end;
+  }
+
+  .club:last-child {
+    grid-area: away;
+  }
+
+  .rowTail {
+    grid-area: tail;
+  }
+}
+
+/* The club-colour carrier. It adds no box: `display: contents` removes the
+ * element from layout entirely and leaves only inheritance, which is all it is
+ * for. See `MatchRow.tsx` for why the properties cannot live on the button. */
+.rowFrame {
+  display: contents;
+}

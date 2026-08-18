@@ -3,6 +3,10 @@
 **Status:** Stage 7.5 deliverable — an accounting device, not a design.
 **Scope:** every user-facing route registered in `src/App.tsx`, plus the two compatibility redirects and the dev-only harnesses.
 **Does not govern:** any route in production. Nothing here repoints a route, changes a guard or alters Netlify behaviour.
+**Updated 2026-08-18 (Stage 8).** The Matches *system* question §7 left open is
+now SETTLED — see [`vnext-matches.md`](vnext-matches.md), which is the product
+authority for it. Four rows below carry the decision. **Every one is a TARGET IA
+decision and not one repoints a route.**
 **Updated 2026-08-17 (Stage 7.6).** The information architecture has been SELECTED — Concept A, the Competition Deck; see [`vnext-shell-ia.md`](vnext-shell-ia.md). The three concept-dependent rows below are resolved, and the `PROPOSED vNEXT DESTINATION` column is now read against the selected architecture rather than concept-neutrally. **A resolved row is a TARGET IA decision and not a routing change**; see "Visible destination versus technical URL" below.
 **Last verified:** 2026-08-17, against `src/App.tsx`, `src/app/shellRoutes.ts` and `src/app/weeklyRoutes.ts` at the commit this document was written on.
 
@@ -65,7 +69,7 @@ implied.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/` | `HubPage` via `HomeDestination` | "What should I care about right now?" | Contract 151/150 recap, `sinceLastVisitModel`, `briefingModel` | **Home, of the ACTIVE COMPETITION** | 6 (done) · cutover later | **REDESIGN + MERGE** | **RESOLVED, Stage 7.6.** Under the Competition Deck, Home is competition-contextual: it is the home of the competition you are in, not of the platform. `/` and `/competitions/:c/:s` are ONE visible destination in the target IA. **The address is untouched** — `/` may keep resolving to whatever the player's active competition is, and deciding how is the cutover stage's work. Gold Standard Home itself is unchanged; only what surrounds it changed. |
 | `/play` | `GlobalPlayPage` | Cross-competition action inbox | `playInboxModel`, `useGlobalPlayInbox` | **Absorbed: into Home for this competition, and into the attention layer for the others** | 8+ | **HIDE / ABSORB** | **RESOLVED, Stage 7.6.** The job splits in two and both halves have a home: what needs doing HERE is Home's, and what needs doing ELSEWHERE is the shell's secondary attention layer. Neither is a destination. **The word `Play` therefore leaves the navigation entirely**, which is one of the reasons the game catalogue is not renamed to it. The address can remain. |
-| `/matches` | `GlobalMatchesPage` | One chronological calendar across the player's competitions | `combinedFixturesModel` | Concept A: a competition section. Concept B: the "Football" anchor. Concept C: reached from the spine and the command surface | 8 | **REDESIGN** | Part of the Matches *system* question — see §7. |
+| `/matches` | `GlobalMatchesPage` | One chronological calendar across the player's competitions | `combinedFixturesModel` | **ABSORBED into the competition's Matches destination, as a SECONDARY SCOPE.** Not a destination of its own | 8 | **HIDE / ABSORB** | **Settled by Stage 8.** The job is real and is kept — a player in three competitions may want tonight's football across them, and contract 197 was written for exactly that — but it is a two-option control *inside* Matches, never a fifth primary destination and never the landing state. Every fixture in that mode names its competition. See [`vnext-matches.md`](vnext-matches.md) §4. *Technical consequence: none.* The address keeps resolving as it does today. |
 | `/leagues` | `GlobalLeaguesPage` | All private play across every competition and game | `privatePlayModel`, `gameLeaguesModel` | The people dimension: Concept A "Leagues", Concept B "People", Concept C the command surface | 9+ | **REDESIGN** | Naming a league's game and competition on its card is a requirement in all three concepts, not a nicety. |
 | `/more` | `MorePage` | Account/help/settings directory | — | Absorbed into the account surface | 9+ | **ABSORB** | A directory page is a symptom of a navigation that ran out of slots. None of the three concepts has a "More". |
 | `/competitions` | `ExploreCompetitionsPage` | Deliberate discovery over the whole published catalogue | Contract 147 `get_published_weekly_seasons`, contract 157 follow | Discovery: a sheet (A), a filter overflow (B), the command surface (C) | 7.5 (prototyped) | **RETAIN + HIDE** | Already correctly outside permanent navigation. All three concepts keep the address and change how it is reached. |
@@ -76,8 +80,8 @@ implied.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/competitions/:c/:s` | `CompetitionDashboardPage` | The competition's own front door | `useHubCompetition`, `competitionWeekModel` | **This IS Home** | 8+ | **MERGE** | **RESOLVED, Stage 7.6.** The concept-defining row, and Concept A won it: this and `/` are the same surface with a different competition in context. A competition dashboard that is separate from Home is the old structure — two front doors, one per scope. **No redirect is added in this stage**; both addresses keep working and the merge is a visible-destination decision. |
 | `/competitions/:c/:s/play` | `SeasonPlayRoute` | Competition-scoped action list | `seasonPlayContextModel` | Absorbed into Home or the queue | 8+ | **ABSORB** | Same argument as `/play`, one level down. Two "what needs doing" surfaces at two scopes is one too many. |
-| `/competitions/:c/:s/matches` | `SeasonMatchesRoute` | The competition's football | `fixtureListModel`, `useSeasonFixtureWindow` | Matches | 8 | **REDESIGN** | §7. |
-| `/competitions/:c/:s/matches/:fixtureId` | `SeasonMatchCentreRoute` | One fixture in full | Contract 148 `get_season_fixture`, `matchCentreModel` | Match Centre | 8 | **RETAIN + REDESIGN** | Self-contained since contract 148; the addressability is a strength and must be kept. |
+| `/competitions/:c/:s/matches` | `SeasonMatchesRoute` | The competition's football | `fixtureListModel`, `useSeasonFixtureWindow` | **Matches** — one of the four competition-scoped destinations | 8 | **REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatches.tsx`, on contracts 121 and 139. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-matches` harness until the cutover stage. |
+| `/competitions/:c/:s/matches/:fixtureId` | `SeasonMatchCentreRoute` | One fixture in full | Contract 148 `get_season_fixture`, `matchCentreModel` | **Match Centre**, reached from Matches | 8 | **RETAIN + REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatchCentre.tsx`. The address shape is KEPT unchanged, because the addressability is the strength: contract 148 resolves the fixture from its id alone, so a deep refresh and a shared link both work with no date hint and no window. *Technical consequence: none.* |
 | `/competitions/:c/:s/games` | `CompetitionGamesPage` | The game catalogue and the player's memberships | `get_competition_games` | **`Games` — a first-class permanent destination** | 9+ | **REDESIGN** | **RESOLVED, Stage 7.6: it survives, and it is one of the four.** The only surface where Match Predictor, Last Man Standing and the Predictor Championship are PEERS, which is the thing that stopped LMS being "another little tab". Labelled `Games` and not `Play` — see [`vnext-shell-ia.md`](vnext-shell-ia.md) §3. Stage 7.6 builds no page here beyond a Storybook navigation stub. |
 | `/competitions/:c/:s/games/match-predictor` | `SeasonMatchPredictorRoute` | Predict the matchweek | Contract 113 card, `useSeasonMatchPredictor` | Match Predictor | 7 (done) | **REDESIGN** | Accepted and unchanged by Stage 7.5. Used here as a real arrival test for each concept. |
 | `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. See the identity gap in §5 — this is the surface that cannot link a player. |
@@ -85,7 +89,7 @@ implied.
 | `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | **11 (to be scheduled)** | **REDESIGN** | A nested system, not a page — index, instance, table and fixtures. §8. |
 | `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | `gameLeaguesModel`, `leagueStandingsModel` | The people dimension | 9+ | **MERGE** | Merges with `/leagues`: one people surface, scoped or unscoped, rather than two that differ only by filter. |
 | `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile` | Player profile | 9+ | **RETAIN + REDESIGN** | Competition-scoped for a real reason: points, rank and prediction history are facts about a player IN a season. Do not flatten to `/profile/:id`. |
-| `/competitions/:c/:s/tv` | `SeasonTvModeRoute` | A matchday screen on a wall | `tvModeModel` (`INNOV-006`) | Unchanged, outside the shell | — | **RETAIN** | Already outside the signed-in frame by design. No concept touches it, and none should. |
+| `/competitions/:c/:s/tv` | `SeasonTvModeRoute` | A matchday screen on a wall | `tvModeModel` (`INNOV-006`) | Unchanged, outside the shell | later | **RETAIN** | Already outside the signed-in frame by design. **Stage 8 audited it and decided its relationship rather than rebuilding it:** SHARED DATA CONTRACT eventually (it should consume `MatchState` rather than grow a second one), SEPARATE PRESENTATION MODE, and the redesign DEFERRED to a stage of its own. It must stay shell-less — a room display with a bottom navigation bar is the wrong product. See [`vnext-matches.md`](vnext-matches.md) §12. **Nothing about it changed in Stage 8.** |
 
 ## 3. Cross-cutting player and social routes
 
@@ -125,12 +129,18 @@ implied.
 | Fate | Count |
 | --- | ---: |
 | RETAIN | 19 |
-| REDESIGN | 11 |
-| ABSORB | 5 |
+| REDESIGN | 10 |
+| ABSORB | 6 |
 | MERGE | 4 |
 | REDIRECT | 4 |
-| HIDE | 2 |
+| HIDE | 3 |
 | RETIRE | 0 |
+
+**Stage 8 moved one row and built two.** `/matches` went from `REDESIGN` to
+`HIDE / ABSORB` — it is not redesigned as a page, its job is absorbed into a
+secondary scope inside Matches — so `REDESIGN` falls by one while `HIDE` and
+`ABSORB` each gain one. The two competition-scoped rows keep their fates and are
+now BUILT rather than planned.
 
 Rows carrying two fates (`RETAIN + REDESIGN`, `RETAIN + HIDE`, `HIDE / ABSORB`,
 `REDESIGN / MERGE`) are counted under each, so the totals exceed the row count.
@@ -166,3 +176,21 @@ elsewhere). Neither is a destination.
 
 The rationale for all three is in [`vnext-shell-ia.md`](vnext-shell-ia.md); the
 lab that produced the options is [`vnext-ia-lab.md`](vnext-ia-lab.md).
+
+## 7. Resolved by Stage 8
+
+The Matches *system* question — which the rows above deferred to "§7" — is settled.
+**Every one is a TARGET IA decision; not one repoints a route.**
+
+1. **`/matches` — HIDE / ABSORB.** A cross-competition calendar is a real job and
+   contract 197 was written for it, but it is a **secondary scope inside the
+   competition's Matches destination**, never a fifth primary destination and never
+   the landing state. *Technical consequence: none yet.*
+2. **`/competitions/:c/:s/matches` — REDESIGN, built.** The competition's football,
+   competition-scoped first, on contracts 121 and 139.
+3. **`/competitions/:c/:s/matches/:fixtureId` — RETAIN + REDESIGN, built.** The
+   address shape is kept exactly, because contract 148's fixture-id-alone
+   resolution is what makes a Match Centre linkable and refreshable.
+4. **`/competitions/:c/:s/tv` — RETAIN, relationship decided, redesign deferred.**
+
+The rationale for all four is in [`vnext-matches.md`](vnext-matches.md).

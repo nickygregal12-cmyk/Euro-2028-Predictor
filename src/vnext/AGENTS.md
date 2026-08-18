@@ -2,7 +2,7 @@
 
 These instructions apply to work under `src/vnext/`.
 
-It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **one integration adapter** under `integration/` that connects Home to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapter is the only place that does, and vNext is still not wired into the running product — the connected Home is reachable only from the dev-only `/dev/vnext-home` harness.
+It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **integration adapters** under `integration/` that connect Home, the Match Predictor and Matches to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapters are the only place that does, and vNext is still not wired into the running product — the connected surfaces are reachable only from the dev-only `/dev/vnext-home`, `/dev/vnext-match-predictor` and `/dev/vnext-matches` harnesses.
 
 **`home/` is the Gold Standard surface.** It is the approved vNext Home and the quality bar every later vNext page inherits from. Treat it as the reference for composition, density, motion, team colour and accessibility — and do not propagate it to another page without that page's own brief.
 
@@ -12,6 +12,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 2. [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) — current workshop hypotheses and the questions left open.
 2b. [`../../docs/product/vnext-shell-ia.md`](../../docs/product/vnext-shell-ia.md) — **THE SELECTED INFORMATION ARCHITECTURE (Stage 7.6). Concept A, the Competition Deck, is the accepted vNext IA and the contract `app/VNextShell` implements. Read this before touching navigation, the shell or any destination.**
 2c. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — Stage 7.5's three concepts and the capability audits, now the EVIDENCE for that decision. Concepts B and C are kept and are not primary architectures; do not build on either as though it had won.
+2d. [`../../docs/product/vnext-matches.md`](../../docs/product/vnext-matches.md) — **THE MATCHES SYSTEM (Stage 8). The match-state contract, the live-data honesty rules, the combined-scope decision, which Match Centre modules may exist, and the TV Mode relationship. Read this before touching anything that draws a fixture.**
 3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
 4. The exact domain/service contract for the data the component actually needs.
 
@@ -22,11 +23,12 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `app/` | **the application shell** — `VNextShell`, `VNextPageHeader` |
 | `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
-| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**) |
-| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, and **ten deterministic shell worlds** |
+| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**, **`matches.ts`**) |
+| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, and **twelve Matches worlds plus twelve Match Centre worlds** |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
 | `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
-| `integration/` | **the only application-facing code** — one adapter per connected page |
+| `matches/` | **Matches and the Match Centre** — the fixture list, the row, the state marks, the Match Centre composition |
+| `integration/` | **the only application-facing code** — one adapter per connected page (`home/`, `predictor/`, `matches/`) |
 | `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts and the interaction-feedback prototype. **Historical evidence for why the selected IA exists.** Nothing here is accepted, nothing under `app/` may import it, and it is not deleted |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
@@ -134,9 +136,10 @@ the decision and the rationale; do not re-open it in a component.
 
 `vNext/Shell` stories are the review surface for the ARCHITECTURE — ten
 deterministic worlds from one competition to twenty published, plus the two real
-pages inside it. The destination bodies are stubs and **are not designs**: Stage
-8 builds Matches. Where a stub and `vNext/Home` disagree about type, colour,
-density or motion, Home is right.
+pages inside it. **The `Games` and `Leagues` destination bodies are still stubs and
+are NOT designs**; `Matches` is now a real surface and `vNext/Matches` is its review
+group. Where a stub and `vNext/Home` disagree about type, colour, density or motion,
+Home is right.
 
 Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNext value can reach a legacy screen. Layout responds to its **container**, never the viewport, so a 375px frame inside a wide monitor is an honest review.
 
@@ -238,6 +241,41 @@ parts, because the split is the point:
   to fake a fresh answer.
 - A dense zone sizes itself against its own column — and where a name can still be cut, let it wrap rather than adding another threshold. `e2e/vnext-home.spec.ts` measures clipped text at every width and emphasis.
 - **A ROW MEASURES ITSELF, not the column that placed it.** Stage 7 is where this stopped being a slogan: at 1920 the predictor's working column takes two fixtures across, so a row has ~730px of a ~1480px column, and a row that had queried the column would compose as though it had all of it. A container query is answered by an ANCESTOR, so the row declares `container-name` and its own body asks the question. `e2e/vnext-predictor.spec.ts` measures the outcome per row.
+- **A MATCH CLOCK IS PROVIDER DATA OR IT DOES NOT EXIST.** Nothing in this lane may
+  derive a live minute, a half, injury time, a full-time whistle, a postponement or
+  an abandonment from `Date.now() - kickoff`. The platform's live projection
+  (contract 135) carries a status, two optional scores and an observation instant,
+  and **no minute at all** — so `LIVE` with no minute is a DESIGNED state and not a
+  degradation. `models/matches.ts` puts a clock only inside `MatchObservation`, which
+  exists only on the two states a provider has actually reported on, so a scheduled
+  match has no field that could hold one. `docs/product/vnext-matches.md` §7.
+- **A PROVIDER MAY REFINE A FIXTURE; IT MAY NOT POSTPONE ONE.** `season_fixtures.
+  status` is the platform's administrative state and wins. `live.kind` may only turn
+  a `scheduled` fixture into `live` or `awaitingResult`. A feed's `postponed`,
+  `abandoned` or `cancelled` is discarded, because letting one through would empty a
+  fixture list on a provider's say-so.
+- **A PROVIDER SCORE IS NEVER A RESULT.** `matchScoreClaim()` is the ONE function
+  that answers "is there a score, and what kind of claim is it", so the
+  provisional/official distinction cannot be lost by a component reaching into an
+  observation itself. `awaitingResult` exists precisely because a feed may say a
+  match is over while the platform has not settled it.
+- **A STAGE LABEL IS THE COMPETITION'S OWN WORD.** "Matchweek 7",
+  "Quarter-finals", "Group A · Matchday 2" — printed verbatim from
+  `competition_rounds.label`. Nothing builds a label from an ordinal and nothing
+  reads a date to decide what stage a competition is at. Lists group by the DAY a
+  match is played and label by stage, because a fixture postponed out of matchweek 5
+  keeps its round on purpose.
+- **A FIXTURE LIST MAY NOT CARRY A HEAD-TO-HEAD, A TABLE, A FORM RUN OR A
+  PREDICTION.** `MatchListItem` has a field for none of them, which is how the N+1
+  is prevented by the type rather than by discipline: a list of ten fixtures costs
+  two round trips. Those belong to ONE fixture — `MatchCentreModel` — and the
+  head-to-head read is pair-at-a-time by construction.
+- **A MATCH CENTRE MODULE APPEARS ONLY WHERE ITS DATA EXISTS.** `matchCentreModules()`
+  is the single answer, so no section decides for itself. There are no lineups, no
+  event timeline, no match statistics, no injuries, no venue, no broadcast and no
+  referee anywhere in this platform: every one of those fields is `null` from every
+  mapper, and drawing an empty module or a row of zeroes would make the page look
+  finished and make the product a liar.
 - **Do not truncate a club name.** Home stopped at two lines then ellipsised; the browser suite caught that clipping "Strathallan Caledonian Thistle" in a ~150px scoreboard column. The predictor has no line clamp on a club name at all — the row grows, `overflow-wrap: anywhere` stops a long word widening it, and with nothing hiding overflow the defect cannot reopen.
 
 ## Context budget
