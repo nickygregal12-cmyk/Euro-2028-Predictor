@@ -16,15 +16,20 @@
 # a pinned SHA current, which is what makes pinning sustainable rather than a
 # one-off that rots.
 #
-# COOLDOWN. Both ecosystems hold new releases before proposing them. The
-# supply-chain compromises this repository's own hardening is aimed at share a
-# shape: a malicious version is published, and the window before it is caught
-# and yanked is short. Adopting a release the day it appears puts this
-# repository inside that window; waiting puts the rest of the ecosystem in
-# front of it. Seven days for npm, where compromised packages are found in
-# hours to days. Three for actions, which are pinned to SHAs anyway, so the
-# cooldown is a second line rather than the only one, and a longer hold would
-# mostly delay the security bumps that make pinning worth having.
+# COOLDOWN. Both ecosystems hold new releases for seven days before proposing
+# them. The supply-chain compromises this repository's own hardening is aimed
+# at share a shape: a malicious version is published, and the window before it
+# is caught and yanked is short. Adopting a release the day it appears puts
+# this repository inside that window; waiting puts the rest of the ecosystem
+# in front of it.
+#
+# Actions were first set to three days, reasoning that they are pinned to SHAs
+# anyway so cooldown is a second line rather than the only one. `zizmor`
+# refused it: its `dependabot-cooldown` audit treats anything under seven days
+# as insufficient, and a threshold argued down to taste is not a threshold.
+# Seven for both. The cost is a week's delay on action bumps, which are
+# security-relevant but rarely urgent, and never urgent in the way that
+# adopting a compromised release immediately would be.
 version: 2
 
 updates:
@@ -66,7 +71,7 @@ updates:
       interval: weekly
       day: monday
     cooldown:
-      default-days: 3
+      default-days: 7
     open-pull-requests-limit: 5
     labels:
       - dependencies
