@@ -30,6 +30,23 @@ describe('always-present merge gate', () => {
     expect(ci).toContain('test "$CI_RESULT" = success')
   })
 
+  it('names the gate job exactly as the ruleset requires it', () => {
+    // A ruleset matches a status check by the CHECK-RUN NAME, which for Actions
+    // is the job's `name:` with no workflow prefix supplied for it. `Protect
+    // Main` requires `CI / Required merge gate`; the job was called `Required
+    // merge gate`, so the ruleset waited on a check that was never going to
+    // appear and `main` accepted no merges at all. Nothing failed -- every check
+    // was green and the pull request simply said "expected" forever, which is
+    // why this is asserted rather than left to be noticed.
+    const required = readFileSync(
+      resolve(repositoryRoot, 'specs/tooling-assurance-activation/plan.md'),
+      'utf8',
+    ).match(/require the always-present `([^`]+)` in the GitHub ruleset/)?.[1]
+
+    expect(required).toBe('CI / Required merge gate')
+    expect(ci).toContain(`name: ${required}`)
+  })
+
   it('does not duplicate architecture analysis in a path-scoped workflow', () => {
     expect(
       existsSync(

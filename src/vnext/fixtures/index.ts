@@ -98,3 +98,16 @@ export {
   newSeasonHomeModel,
 } from './home/scenarios'
 export type { HomeScenarioName } from './home/scenarios'
+/**
+ * Stage 9's LEAGUE worlds.
+ *
+ * The registry and its premises, and nothing else. The people, the league lists
+ * and the row builders are inputs to the scenarios rather than things a story
+ * or a test has any business reaching for — a review surface renders a WORLD.
+ */
+export {
+  leaguesScenarioNames,
+  leaguesScenarioPremises,
+  leaguesScenarios,
+} from './leagues/scenarios'
+export type { LeaguesScenarioName } from './leagues/scenarios'

@@ -46,7 +46,25 @@ permissions:
 jobs:
   layout:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    # THE SUITE OUTGREW TWENTY MINUTES, AND THE BUDGET HAS TO SAY SO.
+    #
+    # This runs the whole vNext Playwright suite serially — `workers: 1` and
+    # `fullyParallel: false`, because every spec shares one Storybook server and
+    # measures laid-out geometry. Stage 9 took it from 289 tests to 327, and a
+    # local full run of the 289 already took 21 minutes. At roughly 3.9s per
+    # test the suite cannot fit twenty minutes on any runner; the one green run
+    # at that ceiling finished in 17m24s only because it drew a fast one, and
+    # the next attempt was killed at 20m21s mid-measurement.
+    #
+    # A wall-clock ceiling is a resource budget, not a correctness gate, and
+    # this raise does not relax a single assertion: the gate is still "every
+    # vNext browser check passes". A suite that is killed part-way proves
+    # nothing at all, which is the weaker position of the two.
+    #
+    # 35 minutes is headroom rather than a new target — `browser-e2e` already
+    # allows 40 and `storybook` 25. If this suite ever approaches it, the answer
+    # is to parallelise the runner or split the specs, not to raise it again.
+    timeout-minutes: 35
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

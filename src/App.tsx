@@ -206,6 +206,19 @@ const VNextMatchesPreview = import.meta.env.DEV
     )
   : null
 
+// vNext Stage 9's integration evidence, on the same terms. It proves the one
+// thing no fixture can: that contract 191's `reach` really arrives on a real
+// season table and really varies between rows, so the permission the whole
+// social-identity rule rests on is the server's and not an assumption. The
+// production Leagues surfaces are untouched.
+const VNextLeaguesPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextLeaguesPreview').then((m) => ({
+        default: m.VNextLeaguesPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -262,6 +275,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextMatchesPreview ? (
                   <Route path="/dev/vnext-matches" element={<VNextMatchesPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextLeaguesPreview ? (
+                  <Route path="/dev/vnext-leagues" element={<VNextLeaguesPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

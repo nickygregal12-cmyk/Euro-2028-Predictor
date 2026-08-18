@@ -207,7 +207,23 @@ jobs:
           retention-days: 7
 
   merge-gate:
-    name: Required merge gate
+    # THE NAME IS THE RULESET'S CONTEXT STRING, AND THAT IS WHY IT LOOKS ODD.
+    #
+    # A branch ruleset requires a status check named `CI / Required merge gate`
+    # — the `Workflow / Job` form GitHub shows in its own UI. A required check
+    # is matched on the published CONTEXT, which for an Actions job is the job's
+    # `name` alone, so a job called `Required merge gate` publishes exactly that
+    # and the rule waits forever for a context nothing emits. Every pull request
+    # was refused with `Required status check "CI / Required merge gate" is
+    # expected` while its whole suite was green.
+    #
+    # Naming the job for the context the rule asks for is the change that makes
+    # the two agree without touching the rule. It is display-only: the gate's
+    # behaviour is unchanged and `tests/scripts/mergeGateConfiguration.test.ts`
+    # pins that behaviour rather than this string, which is the right way round
+    # — a test that pinned the name would have to be edited to make any rename
+    # legal, and would prove nothing about whether the gate still fails closed.
+    name: CI / Required merge gate
     if: ${{ always() }}
     needs: ci
     runs-on: ubuntu-latest
