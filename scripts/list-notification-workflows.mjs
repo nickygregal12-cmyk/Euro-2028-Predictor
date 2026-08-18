@@ -26,7 +26,7 @@ function read(relativePath) {
 
 /** `'kind': 'workflow-id',` pairs from the WORKFLOW_IDS map. */
 function workflowIds() {
-  const source = read('src/services/notifications/notificationPayload.ts')
+  const source = read('supabase/functions/_shared/notifications/notificationPayload.ts')
   const block = source.match(
     /const WORKFLOW_IDS: Record<\s*NotificationEventKind,\s*string\s*> = \{([\s\S]*?)\n\}/,
   )
@@ -46,7 +46,7 @@ function workflowIds() {
 
 /** `'kind': 'category',` pairs from NOTIFICATION_CATEGORIES. */
 function categories() {
-  const source = read('src/services/notifications/notificationEvents.ts')
+  const source = read('supabase/functions/_shared/notifications/notificationEvents.ts')
   const block = source.match(
     /export const NOTIFICATION_CATEGORIES: Record<[\s\S]*?> = \{([\s\S]*?)\n\}/,
   )
@@ -67,7 +67,7 @@ function categories() {
 
 /** The fields each event kind carries, so a template author knows what exists. */
 function payloadFields() {
-  const source = read('src/services/notifications/notificationEvents.ts')
+  const source = read('supabase/functions/_shared/notifications/notificationEvents.ts')
   const fields = new Map()
 
   for (const match of source.matchAll(

@@ -3,8 +3,8 @@ import {
   NOTIFICATION_CATEGORIES,
   NOTIFICATION_EVENT_KINDS,
   type NotificationEvent,
-} from '../../../src/services/notifications/notificationEvents'
-import { buildNotificationPayload } from '../../../src/services/notifications/notificationPayload'
+} from '../../../supabase/functions/_shared/notifications/notificationEvents'
+import { buildNotificationPayload } from '../../../supabase/functions/_shared/notifications/notificationPayload'
 
 /**
  * Domain event -> delivery payload.

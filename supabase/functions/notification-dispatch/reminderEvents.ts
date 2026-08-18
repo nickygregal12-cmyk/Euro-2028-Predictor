@@ -18,7 +18,7 @@
 // reminder that did not go out, because the second one gets retried and the
 // first one gets believed.
 
-import type { NotificationEvent } from '../../../src/services/notifications/notificationEvents.ts'
+import type { NotificationEvent } from '../_shared/notifications/notificationEvents.ts'
 
 /** One row of `public.claim_due_reminders`. */
 export interface ClaimedReminder {
