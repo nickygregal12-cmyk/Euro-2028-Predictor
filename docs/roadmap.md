@@ -299,3 +299,126 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** adds the database actionability gate required before Production selected-model activation. The roadmap order outside that AI Lab prerequisite is unchanged.
+
+> **Contract 191 — the weekly-season player address.** **Reorders nothing.** It
+> closes the Stage 7.5 finding that a global weekly standings row cannot be
+> opened: `get_season_leaderboard` and `get_season_leaderboard_neighbourhood`
+> returned no identifier of any kind, so the one standings surface every entrant
+> shares was also the only one whose names led nowhere. Every row now carries a
+> season-scoped `playerRef` (`entries.id`), a server-decided `reach`, and the
+> auth identifier ONLY where a profile will answer — which is the set that could
+> already read it from `get_season_league_standings`. **No visibility rule
+> moves.** Contract 151 keeps profile disclosure at a shared private league and
+> contract 129 keeps its own per-matchweek reveal boundary; what changes is that
+> contract 129's accepted rule is now reachable, which it never was for anyone
+> outside a private league. The rule was found in THREE implementations —
+> contracts 151, 157 and 176 — and all three are consolidated onto
+> `predictor_internal.season_player_reach`, with a catalogue guard refusing a
+> fourth. **The one product decision it does not take** is whether a same-season
+> participant should also read another participant's PROFILE; that is registered
+> as `PROF-001` rather than settled by a migration.
+
+> **Contract 192 — position over time, and one season-long rivalry.**
+> **Reorders nothing.** Two measured gaps, both of which the vNext Profiles/H2H
+> stage reaches: a season could produce POINTS over time and could NOT produce
+> POSITION over time, because `get_season_league_rank_movement` answers one
+> matchweek inside one private league and `get_h2h_rank_history` is the
+> tournament's, keyed on seven hard-coded matchday keys over `entry_totals`
+> that a season never writes; and `get_season_head_to_head` compares two
+> players over ONE named matchweek, so a season-long comparison meant asking it
+> thirty-eight times. `predictor_internal.season_rank_history` derives
+> cumulative points, rank and field size at every settled matchweek, reusing
+> contract 94's ranking expression and contract 94's whole field — and the
+> agreement is DIFFERENTIALLY TESTED rather than asserted, over a fixture built
+> with deliberate ties so that `dense_rank` and `row_number` both fail it.
+> `get_season_rivalry` answers a whole comparison in one request and counts a
+> matchweek only when BOTH players banked it, so a late joiner cannot be handed
+> a walkover record. Both take their permission from contract 191's single
+> visibility authority, neither returns an individual prediction, and the
+> rivalry read speaks only about matchweeks that are settled AND past their own
+> lock. `MIG-UI-04` closes.
+
+> **Contract 193 — `CUP-003`, an entrant can see their own tie.**
+> **Advances item 18 and reorders nothing else.** `get_season_cup_player_view`
+> (contract 133) is group-scoped throughout — it resolves a group id from the
+> phase and lists only that group's members and fixtures — which was harmless
+> while no season Championship could reach a knockout. Contract 187 ended that,
+> so a qualifier had no browser-reachable read of the tie in front of them.
+> `get_season_cup_bracket` returns the caller's live tie, their Penalty Number
+> state, their progression, the bracket and the champion, reading every
+> structural fact from the rows the canonical drivers wrote. **The opponent's
+> Penalty Number is never returned**, matching `get_my_cup` exactly, and
+> neither is whether they have submitted one. The Penalty Number WRITE
+> authority is untouched and was already season-capable through contract 98.
+> **Contract 197 — one chronological calendar across the player's competitions.**
+> **Advances the Stage 8 Matches work and reorders nothing else.** Counted over
+> `public` at contract 196, every fixture read was scoped to one season, one
+> fixture or one matchweek. Nothing answered "what football is on across
+> everything I am in", which `docs/product/vnext-ia-lab.md` section 7 names as
+> the Matches shape Stage 8 settles on -- so that system could only have been
+> built on a browser loop, and the merge is a SORT across competitions, which
+> the client can neither page nor bound. This adds the read and designs none of
+> the system. The per-fixture card is contract 111's, and the suite proves that
+> by running both reads over the same window and requiring identical objects
+> rather than asserting the copy was faithful.
+>
+> **Measured while doing it, and deliberately not taken.** The addressable
+> Match Centre (`get_season_fixture`, contract 148) returns the fixture card and
+> its competition and nothing else: no prediction of the caller's, no consensus,
+> no league picks. The per-fixture reads it would compose are matchweek-scoped
+> (`get_season_prediction_consensus(tournament, matchweek)`,
+> `get_season_league_matchweek_predictions(league, round)`) or tournament-only
+> (`get_league_match_picks(league, match_id)`, which takes a `matches` id and so
+> cannot answer for a season fixture). A Match Centre therefore fetches a whole
+> matchweek to render one match. That is a payload cost rather than a browser
+> loop, and WHAT belongs in a Match Centre is a Stage 8 design decision that
+> section 15 of the IA lab explicitly did not take — so composing a read for it
+> now would be writing against a shape nobody has decided, which is the mistake
+> contract 170 refused to make and this records rather than repeats.
+
+> **Contract 196 — a player is told what happened to them in a game.**
+> **Advances the cross-competition attention work and reorders nothing else.**
+> It does two things, and the second is only possible because of the first.
+> `bonus_competition_entrants.updated_at` was maintained by four of the seven
+> writes to `outcome` and not by the three in the Championship authorities, so
+> the column that dates an entrant's outcome was right for some rows and stale
+> for others -- and nothing reading it could tell which. Both Championship
+> authorities now set it, on the writes they already performed; no outcome
+> changes and no ADR 0022 rule moves. The generator then tells `eliminated`,
+> `champion` and `qualified`, and deliberately not `active` or `survived`,
+> because a per-round survival written for every survivor of every Last Man
+> Standing round is not news. The expiry sweep gains a fourth re-read so a
+> rescore that REVERSES an outcome closes the recap that said otherwise.
+> `league_invitation` is now the only declared action type without a generator,
+> and it needs an invitation event the schema does not have.
+
+> **Contract 195 — the action centre learns about the Championship tie.**
+> **Advances the cross-competition attention work and reorders nothing else.**
+> `player_action_items_type_allowed` has admitted `cup_penalty_number_due`
+> since contract 162 and no generator ever wrote one; contract 170 said why,
+> and said it honestly — a season had no bracket to act on. Contracts 187 and
+> 193 gave it one, so the reason is gone. Every condition is read from
+> `submit_cup_penalty_number`'s own authorities rather than restated, and the
+> deadline is the window's FIRST KICKOFF, which is not the window's lock: a
+> season Cup round locks a buffer earlier, so an item keyed on `window_id`
+> would be swept away while the write authority was still accepting a number.
+> The item carries its own key and the expiry sweep gains a third re-read.
+> Every deadline-shaped action type now has a generator; `game_consequence`
+> and `league_invitation` remain declared and unwritten, which is the next
+> attention-system gap rather than a claim about this contract.
+
+> **`CUP-004` and `CUP-006` remain the Championship work.**
+
+> **Contract 194 — `CUP-004`, eligibility at tie settlement.**
+> **Advances item 18 and reorders nothing else.** Counted over the installed
+> `admin_settle_predictor_cup_round`, the terms `game_memberships`,
+> `disqualif`, `withdraw` and `left_at` appear zero times: the driver decided a
+> knockout tie from submission and points and never asked whether either
+> entrant could legally contest it, so a disqualified or withdrawn entrant who
+> had submitted before being removed still won and advanced. The eligibility
+> branch sits above the existing submission ladder, which is carried through
+> unedited because ADR 0022 forbids altering the "neither submitted" rule and
+> one function serves the tournament too. Exactly one eligible entrant
+> advances, the reason is audit evidence, no score or prediction points are
+> invented, and a tie neither may contest refuses rather than fabricating a
+> winner. **`CUP-006` is the remaining Championship work.**

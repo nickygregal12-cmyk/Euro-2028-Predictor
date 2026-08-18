@@ -134,6 +134,7 @@ insert into expected_authenticated_functions (signature) values
   ('get_provider_review_queues(uuid,integer)'),
   ('acknowledge_provider_review_items(text,uuid[],text)'),
   ('get_season_fixtures(uuid,timestamp with time zone,timestamp with time zone)'),
+  ('get_my_football_calendar(timestamp with time zone,timestamp with time zone)'),
   -- Contract 147 and 148: the published weekly catalogue and one addressed
   -- fixture. Both are player reads, granted to authenticated and to nobody else.
   ('get_published_weekly_seasons()'),
@@ -414,6 +415,27 @@ insert into expected_authenticated_functions (signature) values
   -- expected_service_functions for contract 95's reason — service_role has no
   -- auth.uid() and the call refuses every time.
   ('get_season_league_standings(uuid,integer,text)');
+
+-- Contract 191: one season-scoped player reference in, the permitted
+-- destination or an explicit refusal out. It carries contract 95's boundary and
+-- reads auth.uid(), so like every season read above it stays out of
+-- expected_service_functions — service_role has no auth.uid() and the call
+-- refuses every time.
+insert into expected_authenticated_functions (signature) values
+  ('resolve_season_player(uuid,uuid)');
+
+-- Contract 192: position over time, and one season-long rivalry. Both carry
+-- contract 95's entry boundary and read auth.uid(), so both stay out of
+-- expected_service_functions for the same reason every season read above does.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_rank_history(uuid,uuid)'),
+  ('get_season_rivalry(uuid,uuid,integer)');
+
+-- Contract 193 / CUP-003: one season Championship entrant's own knockout tie.
+-- It reads auth.uid() and refuses a non-entrant, so it stays out of
+-- expected_service_functions like every other season player read.
+insert into expected_authenticated_functions (signature) values
+  ('get_season_cup_bracket(uuid)');
 
 insert into expected_service_functions (signature) values
   ('get_bonus_games(uuid)'),

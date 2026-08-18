@@ -45,11 +45,27 @@ describe('project-specific agent skills', () => {
     const guide = plain(read('docs/ops/graphify-navigation.md'))
     const gitignore = read('.gitignore')
 
-    expect(graph).toContain('If Graphify is unavailable, continue with normal repository search')
+    // Asserted on the PROPERTY rather than one exact sentence. Contract 197's
+    // merge of #844 rewrote this skill and left both literals behind -- "If
+    // Graphify OR A CURRENT GRAPH is unavailable" and "never a release or
+    // product-CI gate" say the same two things in different words, and `main`
+    // was red on this test until the assertions were widened to match.
+    expect(graph).toMatch(
+      /If Graphify[^.]*is unavailable, continue with normal repository search/i,
+    )
     expect(graph).toMatch(/should not[^.]*add a runtime dependency/i)
-    expect(graph).toContain('do not make CI depend on it')
-    expect(guide).toContain('Graphify does not define product behaviour')
-    expect(guide).toContain('Do not promote graph output into the repository authority system')
+    expect(graph).toMatch(
+      /do not make CI depend on it|never a release or product-CI gate/i,
+    )
+    // `\s+` rather than a literal space: #844 reflowed this paragraph and the
+    // phrase now spans a line break, which `toContain` cannot see.
+    expect(guide).toMatch(/Graphify does not define product\s+behaviour/i)
+    // The "do not promote graph output into the authority system" sentence was
+    // replaced by #844 with a positive statement of the same boundary. Asserted
+    // on the boundary rather than on either sentence.
+    expect(guide).toMatch(
+      /not a new documentation or RAG authority|Do not promote graph output into the repository authority system/i,
+    )
     expect(guide).toMatch(/Do not enable Graphify strict\/always-on hooks as a repository default/i)
     expect(gitignore).toMatch(/^graphify-out\/$/m)
   })

@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(21);
+select plan(22);
 
 -- ---------------------------------------------------------------------------
 -- The relation itself
@@ -325,8 +325,42 @@ select is(
     where space.nspname in ('public', 'predictor_internal')
       and proc.prosrc like '%bonus_cup_launches%'
       and proc.proname <> 'cup_group_stage_last_sequence'),
-  'predictor_internal.launch_season_cup, predictor_internal.launch_season_cup_groups',
-  'the launch record has exactly one reader and exactly two writers, and they are the two launchers'
+  'public.get_season_cup_bracket, predictor_internal.launch_season_cup, predictor_internal.launch_season_cup_groups',
+  'every function touching the launch record is a launcher or the player read, and no other'
+);
+
+-- ---------------------------------------------------------------------------
+-- Contract 193 added the third name above, and the distinction it turns on is
+-- worth stating rather than absorbing.
+--
+-- The property this pair of assertions defends is that the SPAN is not
+-- INTERPRETED twice. Two functions each deciding for themselves where the group
+-- stage ends is how it comes to be spelled two ways, which is the whole reason
+-- it stopped being read out of the audit log's two jsonb keys.
+--
+-- `get_season_cup_bracket` REPORTS the record and decides nothing from it. It
+-- returns `format_kind` and `group_stage_last_sequence` verbatim, and the one
+-- value it derives — `produces_knockout` — is `format_kind = 'groups'`, which is
+-- the record's own documented meaning rather than a second reading of it.
+--
+-- So the assertion below is what keeps the original property alive now that the
+-- reader list has grown: the player read may not COMPARE a window sequence
+-- against the stored span. The moment it does, it is deciding where the group
+-- stage ends, and there are two interpretations again.
+select is(
+  (select count(*)::integer
+     from pg_catalog.pg_proc proc
+     join pg_catalog.pg_namespace space on space.oid = proc.pronamespace
+    where space.nspname = 'public'
+      and proc.proname = 'get_season_cup_bracket'
+      and (proc.prosrc like '%group_stage_last_sequence >%'
+        or proc.prosrc like '%group_stage_last_sequence <%'
+        or proc.prosrc like '%> launch.group_stage_last_sequence%'
+        or proc.prosrc like '%< launch.group_stage_last_sequence%'
+        or proc.prosrc like '%sequence > v_launch%'
+        or proc.prosrc like '%sequence <= v_launch%')),
+  0,
+  'the player read reports the stored span and never decides a boundary from it'
 );
 
 select finish();

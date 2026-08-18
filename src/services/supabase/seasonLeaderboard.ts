@@ -15,6 +15,7 @@ export type {
   SeasonLeaderboardPage,
   SeasonLeaderboardRow,
   SeasonLeaderboardYou,
+  SeasonPlayerReach,
 } from './seasonLeaderboardModel'
 
 export type SeasonLeaderboardPageOptions = {

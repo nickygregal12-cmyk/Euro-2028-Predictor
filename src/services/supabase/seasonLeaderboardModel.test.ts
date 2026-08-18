@@ -104,3 +104,73 @@ describe('structurally wrong payloads', () => {
     expect(() => mapSeasonLeaderboardPage(payload)).toThrow(/malformed/)
   })
 })
+
+/**
+ * Contract 191's identity. Three separate lines are defended here, and each one
+ * has a plausible wrong implementation behind it.
+ */
+describe('the server owns player identity', () => {
+  it('carries the reference, the reach and the identifier through unchanged', () => {
+    const result = mapSeasonLeaderboardPage(
+      page({
+        rows: [
+          row({
+            playerRef: 'entry-1',
+            reach: 'profile',
+            playerId: 'user-1',
+          }),
+        ],
+      }),
+    )
+    expect(result.rows[0]).toMatchObject({
+      playerRef: 'entry-1',
+      reach: 'profile',
+      playerId: 'user-1',
+    })
+  })
+
+  it('never reconstructs an identifier the server withheld', () => {
+    // A `compare` row is a same-season entrant who shares no private league.
+    // The server sends a reference and no user id; a model that filled the gap
+    // in — from the reference, from the name, from anywhere — would address a
+    // player the server declined to address.
+    const result = mapSeasonLeaderboardPage(
+      page({ rows: [row({ playerRef: 'entry-9', reach: 'compare', playerId: null })] }),
+    )
+    expect(result.rows[0]?.playerId).toBeNull()
+    expect(result.rows[0]?.playerRef).toBe('entry-9')
+  })
+
+  it('reads a database below contract 191 as an address that does not exist', () => {
+    // Not a malformed payload: it is exactly what contract 190 returns, and
+    // `name-only` is the true statement about it.
+    const result = mapSeasonLeaderboardPage(page())
+    expect(result.rows[0]?.reach).toBe('name-only')
+    expect(result.rows[0]?.playerRef).toBeNull()
+    expect(result.rows[0]?.playerId).toBeNull()
+  })
+
+  it('refuses a reach it does not recognise rather than downgrading it', () => {
+    // Downgrading an unknown reach to `name-only` would render a player as
+    // unreachable, which is indistinguishable on screen from a permission
+    // having been refused. A build that cannot interpret the server must say
+    // so, not guess quietly.
+    expect(() =>
+      mapSeasonLeaderboardPage(page({ rows: [row({ reach: 'friends-only' })] })),
+    ).toThrow(/malformed row/)
+  })
+
+  it('applies the same rules to the caller’s own row', () => {
+    const result = mapSeasonLeaderboardPage(
+      page({
+        you: {
+          ...row({ isYou: undefined }),
+          playerRef: 'entry-me',
+          reach: 'self',
+          playerId: 'user-me',
+        },
+      }),
+    )
+    expect(result.you).toMatchObject({ playerRef: 'entry-me', reach: 'self', playerId: 'user-me' })
+  })
+})

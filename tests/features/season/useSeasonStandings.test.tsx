@@ -34,6 +34,12 @@ function row(over: Partial<SeasonLeaderboardRow> = {}): SeasonLeaderboardRow {
     tied: false,
     position: 1,
     isYou: false,
+    // Contract 191's identity. Present on every row the server produces, so a
+    // builder that omitted it would let the model be exercised against a shape
+    // the database cannot return.
+    playerRef: 'entry-ada',
+    reach: 'compare',
+    playerId: null,
     ...over,
   }
 }
