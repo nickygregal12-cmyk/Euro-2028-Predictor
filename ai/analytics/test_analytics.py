@@ -17,7 +17,10 @@ from pathlib import Path
 
 import pytest
 
-duckdb = pytest.importorskip("duckdb", reason="pip install -r requirements-analytics.txt")
+duckdb = pytest.importorskip(
+    "duckdb",
+    reason="run scripts/agent-tools/ai-sync.sh test to install the locked analytics group",
+)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

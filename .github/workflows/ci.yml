@@ -2,27 +2,42 @@ name: CI
 
 on:
   pull_request:
+  merge_group:
   push:
     branches:
       - main
+
+permissions:
+  contents: read
 
 jobs:
   ci:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           # The documentation sweep compares this change against its base, so
           # it needs history. The default depth of 1 leaves `git diff A...B`
           # with no common ancestor to resolve.
           fetch-depth: 0
-      - uses: actions/setup-node@v7
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.2
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Enforce dependency boundaries
+        # This used to live in a path-scoped workflow. A required path-scoped
+        # check sometimes never exists, so it cannot protect every merge. The
+        # wrapper also refuses dependency-cruiser's historical zero-module
+        # false green.
+        run: bash scripts/agent-tools/architecture-check.sh
       - name: Validate migration timestamps
         run: npm run check:migration-timestamps
       - name: Check the documentation authorities against the contract
@@ -129,7 +144,7 @@ jobs:
           done < "$test_files"
       - name: Upload failure diagnostics
         if: failure()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: ci-failure-logs
           path: |
@@ -151,22 +166,20 @@ jobs:
         # findings at or above the level, and there is no "report but pass" flag.
         continue-on-error: true
         run: npm audit --audit-level=moderate || true
-      - name: Dead code report (knip, report only)
-        # `check:dead-code` and its configuration have existed since 5 August
-        # 2026 and no workflow ran them — the gate was built and never closed.
-        #
-        # Report-only, and it stays that way until the criteria in
-        # docs/quality/knip-baseline.md are met: "it becomes a CI gate once the
-        # report is stable and its intentional ignores are narrow". That baseline
-        # classified 213 findings and found most of them benign — barrel
-        # re-exports and module-local constants carrying a needless `export` —
-        # so a blocking version today would fail every pull request for reasons
-        # its own baseline calls false. The npm script already carries
-        # `--no-exit-code`; `continue-on-error` is belt and braces for the day
-        # somebody removes it without reading the baseline.
-        continue-on-error: true
+      - name: Dead code regression gate (Knip baseline)
+        # The 5 August findings are classified rather than forgiven. Existing
+        # signatures may be removed, but a new unused file/export/type/package
+        # fails until it is fixed or deliberately classified in the baseline.
         run: npm run check:dead-code
-      - name: Lighthouse (report only)
+      - name: Install the Lighthouse browser
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx playwright install --with-deps chromium
+          chrome_path="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
+          test -x "$chrome_path"
+          echo "CHROME_PATH=$chrome_path" >> "$GITHUB_ENV"
+      - name: Lighthouse regression gate
         # Same shape as the step above: lighthouserc.json, scripts/run-lighthouse.mjs
         # and @lhci/cli all existed and no workflow called them.
         #
@@ -179,11 +192,32 @@ jobs:
         # in code that had not changed. The audit recommending "against the
         # deploy preview" did not have that evidence; the repository does.
         #
-        # Report-only for the reason the same baseline gives: nobody has yet
-        # measured how far performance drifts between runs on shared CI
-        # infrastructure, and a floor set before that is a false-alarm generator.
-        # The accessibility assertion inside lighthouserc.json is already `error`
-        # at minScore 1, so when this step is promoted to blocking it arrives
-        # with teeth already fitted.
-        continue-on-error: true
+        # Three runs per route damp shared-runner noise. The blocking floors are
+        # below the measured minimum in docs/quality/lighthouse-baseline.md;
+        # accessibility remains exact at 100. Harness-caused console errors stay
+        # visible as warnings rather than making placeholder credentials fail.
         run: npm run check:lighthouse
+      - name: Upload Lighthouse reports
+        if: ${{ always() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci/
+          if-no-files-found: warn
+          retention-days: 7
+
+  merge-gate:
+    name: Required merge gate
+    if: ${{ always() }}
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      CI_RESULT: ${{ needs.ci.result }}
+    steps:
+      - name: Require the complete CI job
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Complete CI result: ${CI_RESULT}"
+          test "$CI_RESULT" = success

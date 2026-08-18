@@ -64,12 +64,19 @@ jobs:
         language:
           - javascript-typescript
           - actions
+          - python
 
     steps:
-      - uses: actions/checkout@v7
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           languages: ${{ matrix.language }}
           # `security-extended` over the default set: the default is tuned for
@@ -84,10 +91,10 @@ jobs:
           # timeout again.
           queries: security-extended
 
-      # No build step. This project is TypeScript and workflow YAML, both of
-      # which CodeQL analyses from source, so `autobuild` would add a
-      # dependency install for nothing.
+      # No build step. TypeScript, workflow YAML and this repository's Python
+      # are all analysed from source, so `autobuild` would add dependency
+      # installation without improving extraction.
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4.37.7
         with:
           category: /language:${{ matrix.language }}

@@ -50,6 +50,10 @@ jobs:
       LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
     steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
       - name: Preflight required secrets
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
@@ -82,9 +86,11 @@ jobs:
               ;;
           esac
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.2
 
@@ -95,7 +101,7 @@ jobs:
           echo 'Restore rehearsal expectations derived from the deployment contract:'
           node scripts/deployment-contract-expectations.mjs --json
 
-      - uses: supabase/setup-cli@v2
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
         with:
           # Includes GoTrue v2.192.0, whose local auth schema contains
           # auth.custom_oauth_providers.custom_claims_allowlist. Keep the
@@ -321,7 +327,7 @@ jobs:
           fi
 
       - name: Upload encrypted backup artifact (7-day retention)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: production-backup-encrypted
           path: /tmp/production-backup/artifact/*.backup.tar.gz.age

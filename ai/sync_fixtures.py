@@ -25,7 +25,7 @@ import requests
 from aliases import LIVE_CLUBS, canonical_for
 from config import (ALL_DIVISIONS, FOOTBALL_DATA_FIXTURES_URL, LEAGUES,
                     strip_bom)
-from db import connect, job, query_df, settle_fixtures_from_history, upsert_fixtures
+from db import job, query_df, settle_fixtures_from_history, upsert_fixtures
 
 DIVISION_TO_LEAGUE = {lg.top_division: key for key, lg in LEAGUES.items()}
 PLATFORM_TO_CANONICAL = {platform: canon for platform, canon, _, _ in LIVE_CLUBS}

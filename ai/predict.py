@@ -30,6 +30,7 @@ import explain as explain_mod
 import identity as identity_mod
 import market_features
 import markets
+from aliases import LIVE_CLUBS
 from artifacts import MissingFeatureError, ModelBundle
 from config import LEAGUES, season_date_bounds
 from db import (current_model, insert_predictions, job, league_grading_evidence,
@@ -42,7 +43,6 @@ OUTCOMES = ("H", "D", "A")
 
 # Platform team name -> canonical. Built from the same table fetch_history uses,
 # so a club renamed in one place cannot silently stop matching in the other.
-from aliases import LIVE_CLUBS
 PLATFORM_TO_CANONICAL = {platform: canon for platform, canon, _, _ in LIVE_CLUBS}
 
 # How far from kickoff a run is, expressed as the horizon `ai.predictions`
@@ -226,7 +226,6 @@ def main() -> int:
         keep = [i for i, *_ in scoreable]
         rows = [rows[i] for i in keep]
         feature_rows = [feature_rows[i] for i in keep]
-        verdicts = {n: v for n, (_i, _h, _a, _f, v) in enumerate(scoreable)}
 
         frame = pd.DataFrame(feature_rows)
 

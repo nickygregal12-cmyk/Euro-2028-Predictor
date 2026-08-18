@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { AnimatePresence, MotionConfig, motion, useReducedMotion, type MotionStyle } from 'framer-motion'
 import type { LucideIcon } from 'lucide-react'
-import Lenis from 'lenis'
 import {
   Activity,
   ArrowDown,
@@ -47,25 +46,6 @@ import type { Club, Fixture, LeagueId } from './types'
 import './premium.css'
 
 const ease = [0.22, 1, 0.36, 1] as const
-
-function SmoothScroll() {
-  const reduced = useReducedMotion()
-  useEffect(() => {
-    if (reduced) return
-    const lenis = new Lenis({ duration: 1.05, smoothWheel: true })
-    let frame = 0
-    const raf = (time: number) => {
-      lenis.raf(time)
-      frame = requestAnimationFrame(raf)
-    }
-    frame = requestAnimationFrame(raf)
-    return () => {
-      cancelAnimationFrame(frame)
-      lenis.destroy()
-    }
-  }, [reduced])
-  return null
-}
 
 function Brand({ compact = false }: { compact?: boolean }) {
   return (
@@ -576,5 +556,5 @@ function PremiumRoutes() {
 }
 
 export function PremiumApp() {
-  return <PrototypeProvider><BrowserRouter basename="/preview"><MotionConfig reducedMotion="user"><SmoothScroll /><AnimatePresence mode="wait"><PremiumRoutes /></AnimatePresence></MotionConfig></BrowserRouter></PrototypeProvider>
+  return <PrototypeProvider><BrowserRouter basename="/preview"><MotionConfig reducedMotion="user"><AnimatePresence mode="wait"><PremiumRoutes /></AnimatePresence></MotionConfig></BrowserRouter></PrototypeProvider>
 }

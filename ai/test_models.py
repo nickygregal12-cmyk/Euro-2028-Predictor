@@ -40,7 +40,7 @@ from features import (DEFAULT_GROUPS, ELO_START, FEATURE_GROUPS,
 from fitting import fit_family, time_weights
 from model_zoo import (ENSEMBLE_ADMISSION, ENSEMBLE_BASE_FAMILIES,
                        MARKET_FAMILIES, MODEL_FAMILIES, PURE_FOOTBALL_FAMILIES,
-                       EloOrderedLogitModel, PoissonModel)
+                       PoissonModel)
 
 RNG = np.random.default_rng(20280813)
 OUTCOMES = ("H", "D", "A")
@@ -660,7 +660,28 @@ def _candidate(**overrides) -> value_engine.Candidate:
     return value_engine.Candidate(**base)
 
 
-def test_a_good_candidate_becomes_a_bet_with_a_capped_stake():
+@pytest.fixture
+def value_test_bookmakers():
+    """Value-gate examples declare their venue authority without a live DB."""
+    value_engine.set_bookmaker_registry({
+        "B365": {
+            "code": "B365",
+            "kind": "bookmaker",
+            "is_real_price": True,
+            "exchange_commission": None,
+        },
+        "MAX": {
+            "code": "MAX",
+            "kind": "aggregate",
+            "is_real_price": False,
+            "exchange_commission": None,
+        },
+    })
+    yield
+    value_engine.set_bookmaker_registry(None)
+
+
+def test_a_good_candidate_becomes_a_bet_with_a_capped_stake(value_test_bookmakers):
     rec = value_engine.ValueGate().assess(_candidate())
     assert rec.decision == "BET" and rec.reason_codes == []
     assert 0 < rec.stake_fraction <= 0.02
@@ -684,7 +705,7 @@ def test_a_good_candidate_becomes_a_bet_with_a_capped_stake():
     ({"odds": 12.0, "calibrated_prob": 0.2}, "PASS_ODDS_OUT_OF_RANGE"),
     ({"bookmaker": "MAX", "is_paper": False}, "PASS_UNBETTABLE_BOOK"),
 ])
-def test_every_pass_reason_code_can_actually_fire(overrides, expected):
+def test_every_pass_reason_code_can_actually_fire(value_test_bookmakers, overrides, expected):
     rec = value_engine.ValueGate().assess(_candidate(**overrides))
     assert rec.decision == "PASS"
     assert expected in rec.reason_codes, rec.reason_codes
@@ -716,7 +737,7 @@ def test_a_price_stamped_in_the_future_is_refused():
     assert verdict.fresh is False and "clock" in verdict.detail
 
 
-def test_a_pass_always_carries_a_reason_and_a_bet_never_does():
+def test_a_pass_always_carries_a_reason_and_a_bet_never_does(value_test_bookmakers):
     gate = value_engine.ValueGate()
     recs = gate.assess_all([_candidate(), _candidate(odds=1.20),
                             _candidate(data_confidence={"score": 0.1, "state": "insufficient"})])

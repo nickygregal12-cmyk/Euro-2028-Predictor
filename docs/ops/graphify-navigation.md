@@ -140,6 +140,34 @@ If an online coding environment can execute Graphify, use `graphify query`,
 If it cannot execute the CLI, `graph.json` is still a portable architecture
 index whose nodes and edges point back to source files.
 
+Use the repository wrapper so the tool version, graph integrity and snapshot
+freshness are checked before querying:
+
+```bash
+bash scripts/agent-tools/graphify-query.sh query "what connects the UI to this RPC?"
+bash scripts/agent-tools/graphify-query.sh path "ComponentName" "rpc_name"
+bash scripts/agent-tools/graphify-query.sh explain "symbol_name"
+```
+
+The default fetches `origin/main` and `origin/graphify-navigation`, rejects a
+snapshot that is not built from the current `origin/main`, verifies non-empty
+nodes and edges, and invokes the exact Graphify version in
+`config/agent-tools.json`. An older snapshot can be used only with the explicit
+`--allow-stale` flag and only when its source remains an ancestor of main.
+
+For a downloaded PR artifact, preserve its source SHA explicitly:
+
+```bash
+bash scripts/agent-tools/graphify-query.sh \
+  --graph /path/to/graph.json \
+  --source-sha PR_COMMIT_SHA \
+  query "which layers does this change cross?"
+```
+
+Record that source SHA and the useful paths/symbols in the pull request's
+Navigation evidence section. Do not paste generated traversal output as proof;
+open and verify the returned source.
+
 ## Optional deep semantic pass through OmniRoute
 
 The repo also supports a deliberate richer pass using OmniRoute as Graphify's

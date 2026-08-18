@@ -33,6 +33,17 @@ approved milestone. -->
 
 None. Repository-only; no development or production mutation.
 
+## Navigation evidence
+
+<!-- Required for broad/cross-layer changes; "Not needed" for a bounded edit.
+Name the method used: Graphify / Serena / repository search. A generated graph
+narrows inspection but is not implementation or hosted-state evidence. -->
+
+- Method: Not needed.
+- Graph source SHA: Not applicable.
+- Key paths or symbols: Not applicable.
+- Why not used: Bounded change; remove this line when navigation evidence exists.
+
 ## Verification
 
 <!-- What actually ran, with results. Delete lines that do not apply; name any

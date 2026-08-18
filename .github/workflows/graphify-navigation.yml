@@ -114,6 +114,7 @@ jobs:
             echo "- Graphify: \`${GRAPHIFY_VERSION:-unknown}\`"
             echo "- Mode: structural code-only, no semantic model/API"
             echo "- Artifact: \`graphify-navigation-${GITHUB_SHA}\`"
+            echo "- Query after download: \`bash scripts/agent-tools/graphify-query.sh --graph graph.json --source-sha ${GITHUB_SHA} query 'YOUR QUESTION'\`"
             if [ -s graphify-out/graph.json ]; then
               echo "- graph.json: generated ($(du -h graphify-out/graph.json | cut -f1))"
             else

@@ -65,5 +65,15 @@ export default defineConfig({
   projects: [
     { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
+    {
+      name: 'smoke-firefox',
+      testMatch: ['weekly-navigation.spec.ts'],
+      use: { ...devices['Desktop Firefox'] },
+    },
+    {
+      name: 'smoke-webkit',
+      testMatch: ['weekly-navigation.spec.ts'],
+      use: { ...devices['Desktop Safari'] },
+    },
   ],
 })

@@ -15,13 +15,9 @@ import { describe, expect, it } from 'vitest'
  * which is what makes a score attributable to a commit — and that property is
  * asserted here rather than left to a comment nobody re-reads.
  *
- * The assertion levels are the other half. Accessibility blocks because the
- * repository already fails a build on a serious axe violation and a quieter
- * standard sitting beside a louder one is worse than no standard. Performance
- * warns because nobody has yet measured how far it drifts between runners, and
- * a floor set before that is a false-alarm generator — the improvement plan's
- * own rule is that a check becomes blocking only once its false positives are
- * understood.
+ * The assertion levels are the other half. Three runs per route damp shared
+ * runner noise; the committed floors sit below the measured minimum and now
+ * block regressions. Accessibility remains exact at 100.
  *
  * `docs/quality/lighthouse-baseline.md` records the scores and the reasoning.
  */
@@ -30,7 +26,12 @@ const repositoryRoot = resolve(import.meta.dirname, '../..')
 
 const config = JSON.parse(readFileSync(resolve(repositoryRoot, 'lighthouserc.json'), 'utf8')) as {
   ci: {
-    collect: { startServerCommand?: string; url: string[]; staticDistDir?: string }
+    collect: {
+      startServerCommand?: string
+      url: string[]
+      staticDistDir?: string
+      numberOfRuns?: number
+    }
     assert: { assertions: Record<string, unknown> }
   }
 }
@@ -38,6 +39,10 @@ const config = JSON.parse(readFileSync(resolve(repositoryRoot, 'lighthouserc.jso
 const manifest = JSON.parse(
   readFileSync(resolve(repositoryRoot, 'package.json'), 'utf8'),
 ) as { scripts: Record<string, string>; devDependencies: Record<string, string> }
+const ciWorkflow = readFileSync(
+  resolve(repositoryRoot, '.github/workflows/ci.yml'),
+  'utf8',
+)
 
 const { collect, assert: assertions } = config.ci
 
@@ -50,6 +55,14 @@ describe('the Lighthouse configuration measures this repository', () => {
   it('is runnable through a named script', () => {
     expect(manifest.scripts['check:lighthouse']).toBeDefined()
     expect(manifest.devDependencies['@lhci/cli']).toBeDefined()
+  })
+
+  it('installs and identifies the Chromium binary before CI audits', () => {
+    expect(ciWorkflow).toContain('npx playwright install --with-deps chromium')
+    expect(ciWorkflow).toContain('CHROME_PATH=')
+    expect(ciWorkflow.indexOf('CHROME_PATH=')).toBeLessThan(
+      ciWorkflow.indexOf('npm run check:lighthouse'),
+    )
   })
 
   /**
@@ -114,6 +127,10 @@ describe('the Lighthouse configuration measures this repository', () => {
     }
   })
 
+  it('repeats every route enough to absorb a noisy runner', () => {
+    expect(collect.numberOfRuns).toBe(3)
+  })
+
   it('blocks on accessibility at the standard the rest of the repository holds', () => {
     const accessibility = assertions.assertions['categories:accessibility'] as [
       string,
@@ -123,8 +140,9 @@ describe('the Lighthouse configuration measures this repository', () => {
     expect(accessibility[1].minScore).toBe(1)
   })
 
-  it('keeps performance advisory until its drift between runners is known', () => {
-    expect(level('categories:performance')).toBe('warn')
+  it('blocks measured performance and best-practice regressions', () => {
+    expect(level('categories:performance')).toBe('error')
+    expect(level('categories:best-practices')).toBe('error')
   })
 
   it('keeps the harness-caused console error visible without blocking on it', () => {

@@ -15,5 +15,6 @@ stages:
       - model_zoo.py
       - betting.py
       - oddsapi.py
-      - requirements.txt
+      - pyproject.toml
+      - uv.lock
     always_changed: true

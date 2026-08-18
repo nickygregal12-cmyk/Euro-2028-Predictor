@@ -73,7 +73,7 @@ import type { FormResult, Team } from './football'
    ========================================================================== */
 
 /** A scoreline. Two numbers that are always known together or not at all. */
-export type MatchScore = {
+type MatchScore = {
   readonly home: number
   readonly away: number
 }
@@ -119,7 +119,7 @@ export type MatchCompetitionRef = {
  * competition type and lean on `label`. See `docs/product/vnext-matches.md`
  * § "Backend gaps".
  */
-export type MatchStageKind = 'league-matchweek' | 'group-matchday' | 'knockout-round'
+type MatchStageKind = 'league-matchweek' | 'group-matchday' | 'knockout-round'
 
 export type MatchStageRef = {
   readonly id: string
@@ -147,7 +147,7 @@ export type MatchStageRef = {
  * observation from the read or produce `null`; there is no code path from a
  * kickoff instant to this type.
  */
-export type MatchClockPresentation = {
+type MatchClockPresentation = {
   readonly label: string
   readonly minute: number | null
   readonly addedMinutes: number | null
@@ -198,7 +198,7 @@ export type MatchObservation = {
  * backend states it, and `tests/vnext/matchesIntegration.test.ts` asserts that
  * today's mappers never produce one.
  */
-export type MatchDecision =
+type MatchDecision =
   | { readonly kind: 'afterExtraTime' }
   | { readonly kind: 'afterPenalties'; readonly shootout: MatchScore }
 
@@ -206,7 +206,7 @@ export type MatchDecision =
  * A TWO-LEGGED TIE'S RUNNING TOTAL. Null from every current read, for the same
  * reason as `MatchDecision`: no aggregate is stored or projected anywhere.
  */
-export type MatchAggregate = {
+type MatchAggregate = {
   readonly label: string
   readonly score: MatchScore
 }
@@ -291,8 +291,6 @@ export type MatchState =
       readonly kickoff: string | null
       readonly note: string | null
     }
-
-export type MatchStateKind = MatchState['kind']
 
 /**
  * The three groups a browsing filter offers, derived from the state and never
@@ -439,7 +437,7 @@ export type MatchDayGroup = {
 export type MatchesScope = 'competition' | 'combined'
 
 /** A stage a reader can jump to. Built from the labels the server sent. */
-export type MatchStageOption = {
+type MatchStageOption = {
   readonly id: string
   readonly label: string
   readonly ordinal: number
@@ -454,7 +452,7 @@ export type MatchStageOption = {
  * same rule the shell applies to a one-competition switcher. An offered mode
  * that refuses is worse than an absent one.
  */
-export type MatchesScopeOffer = {
+type MatchesScopeOffer = {
   readonly active: MatchesScope
   readonly combinedAvailable: boolean
   /** How many of the player's competitions the combined mode would span. */
@@ -552,7 +550,7 @@ export type MatchCentreSide = {
 }
 
 /** One previous meeting between the two clubs, from contract 141. */
-export type MatchCentreMeeting = {
+type MatchCentreMeeting = {
   readonly fixtureId: string
   readonly label: string
   readonly score: MatchScore
@@ -568,7 +566,7 @@ export type MatchCentreMeeting = {
  * pair-at-a-time shape both say so, and `MatchListItem` has no field for it, so
  * the list cannot start.
  */
-export type MatchCentreHeadToHead = {
+type MatchCentreHeadToHead = {
   readonly played: number
   readonly homeWins: number
   readonly draws: number
@@ -577,7 +575,7 @@ export type MatchCentreHeadToHead = {
 }
 
 /** A few rows of the competition's own table, around the two clubs. */
-export type MatchCentreTableRow = {
+type MatchCentreTableRow = {
   readonly position: number
   readonly teamId: string
   readonly teamName: string
@@ -606,7 +604,7 @@ export type MatchCentreTable = {
  * timeline, so `MatchCentreModel.timeline` is `null` from every mapper today
  * and a test holds that it stays that way.
  */
-export type MatchEventKind =
+type MatchEventKind =
   | 'goal'
   | 'ownGoal'
   | 'penaltyScored'
@@ -617,7 +615,7 @@ export type MatchEventKind =
   | 'substitution'
   | 'varDecision'
 
-export type MatchEventPresentation = {
+type MatchEventPresentation = {
   readonly id: string
   readonly kind: MatchEventKind
   readonly side: 'home' | 'away'
@@ -686,7 +684,7 @@ export type MatchCentreModel = {
 }
 
 /** A single comparable match statistic. Deferred; see `statistics` above. */
-export type MatchCentreStatistic = {
+type MatchCentreStatistic = {
   readonly label: string
   readonly home: number
   readonly away: number
@@ -695,7 +693,7 @@ export type MatchCentreStatistic = {
 }
 
 /** Named elevens. Deferred; see `lineups` above. */
-export type MatchCentreLineups = {
+type MatchCentreLineups = {
   readonly home: readonly string[]
   readonly away: readonly string[]
   readonly formationHome: string | null

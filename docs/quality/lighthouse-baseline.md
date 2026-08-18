@@ -32,16 +32,23 @@ Blocking, because a failure is unambiguous and about the product:
 
 - **accessibility must be 100.** The repository already scans every declared route with axe and treats a serious violation as a build failure; a Lighthouse category that permitted 95 would be a quieter standard sitting beside a louder one.
 - **SEO at least 90.** Cheap to hold, and a public acquisition page is coming.
+- **performance at least 80.** The measured minimum is 89 and every route is
+  collected three times, leaving a nine-point regression budget while damping
+  a single noisy sample.
+- **best practices at least 90.** The measured minimum is 96.
 - **A route that fails to load at all** fails the run by construction — Lighthouse cannot score a page it cannot fetch, which is the broken-route gate the plan asks for.
 
 Warning only, deliberately:
 
-- **performance, floor 80.** Advisory until repeated runs establish how much it moves between runners. A single number that swings with machine load is a false alarm generator, and the improvement plan's own rule is that a check becomes blocking only after its false positives and runtime are understood.
-- **best practices, floor 90.**
 - **`errors-in-console`.** This audit runs against a build configured with placeholder credentials and no reachable backend, so the signup page logs one failed request — `ERR_TUNNEL_CONNECTION_FAILED` — every time. That is the harness, not the product. It stays visible as a warning rather than being switched off, because a *second* console error appearing would be worth looking at, and an assertion turned off tells nobody anything.
 
 Two audits are off outright: `unused-javascript` and `uses-long-cache-ttl` describe a CDN and a bundler configuration that a local preview server does not have, and `csp-xss` duplicates the committed content-security-policy parity check, which reads the real headers.
 
-## Not yet a CI job
+## CI gate
 
-This lands as a local capability with a recorded baseline, not a workflow. Wiring it into CI needs Chrome on the runner and, more importantly, needs to know how far performance drifts between runs on shared infrastructure before a floor can be set without crying wolf. The rule this follows is the improvement plan's third: new checks begin report-only unless their signal is already stable, and this one's stability is exactly what has not been measured yet.
+CI builds the local fixture-backed app and collects each route three times. It
+blocks the floors above and retains `.lighthouseci/` for seven days so a failure
+can be inspected instead of reduced to one score. This does not audit a deploy
+preview or Production and makes no remote writes. CI installs the Chromium
+revision pinned by Playwright and passes its exact executable path to Lighthouse;
+without that step Lighthouse's health check exits before collecting a page.

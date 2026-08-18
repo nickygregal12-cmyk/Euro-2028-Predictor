@@ -90,7 +90,7 @@ The §13.2 phases the reconciliation *moved later* were the public/auth/onboardi
 
 ## The premium prototype is a reference, not a starting point
 
-`src/premium/` (`PremiumApp.tsx`, `premium.css`, `store.tsx`, `data.ts`, `types.ts`) is a parallel mock application: its own router, mock store, mock data, modal system and Lenis smooth-scroll loop. Nothing outside `src/premium/` imports it — `src/main.tsx` mounts the production `App`, so the prototype is unreachable from the real application. `tests/design/premiumPrototypeBoundary.test.ts` pins that boundary.
+`src/premium/` (`PremiumApp.tsx`, `premium.css`, `store.tsx`, `data.ts`, `types.ts`) is a parallel mock application: its own router, mock store, mock data and modal system. Nothing outside `src/premium/` imports it — `src/main.tsx` mounts the production `App`, so the prototype is unreachable from the real application. `tests/design/premiumPrototypeBoundary.test.ts` pins that boundary. The discarded Lenis scroll loop was removed from the prototype and manifest on 18 August 2026; the prototype remains a visual reference without keeping a rejected runtime dependency alive.
 
 It must not be wired into production. Doing so would introduce a second router, a second component language and — because it uses the provisional Touchline brand while brand selection remains deferred under ADR 0019 — an unauthorised brand decision. Its value is as a visual reference from which selected patterns are extracted into the production design system.
 
@@ -104,7 +104,7 @@ It must not be wired into production. Doing so would introduce a second router, 
 | Prototype router, mock store, mock data, modal manager | **Discard** — production journeys use the real application architecture, typed read models and commands |
 | Lenis smooth scrolling | **Discard** — a whole-page scroll hijack fights the browser's own scrolling and the accessibility behaviour that depends on it. (It was also named a suspect in the performance finding below; measurement cleared it, and the disposition stands on its own merits.) No production surface may adopt it without route-level performance evidence |
 
-`lenis` is currently a production dependency imported only by the unreachable prototype; the Knip baseline below is expected to surface it, and it must not ship in the production bundle.
+`lenis` was removed from the unreachable prototype and production dependencies on 18 August 2026. The boundary test now refuses any source import, so the discarded whole-page scroll hijack cannot return silently.
 
 ## The component and state contract harness
 

@@ -92,7 +92,7 @@ describe('Stage C1 development rollout workflow', () => {
     expect(workflow).toContain(
       "run.path === '.github/workflows/stage-c1-development-rollout.yml'",
     )
-    expect(workflow).toContain('actions/download-artifact@v8')
+    expect(workflow).toMatch(/actions\/download-artifact@[0-9a-f]{40}/)
     expect(workflow).toContain('manifest.repository_commit === process.env.GITHUB_SHA')
   })
 
