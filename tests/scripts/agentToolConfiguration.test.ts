@@ -66,6 +66,7 @@ describe('Predictor developer operating system', () => {
     expect(tools.graphify?.extras).toEqual(['sql', 'openai'])
     expect(tools.omniroute?.port).toBe(20128)
     expect(tools.agentMail?.port).toBe(8765)
+    expect(tools.beads?.repository).toBe('gastownhall/beads')
   })
 
   it('keeps every developer package outside application dependencies', () => {
@@ -96,7 +97,11 @@ describe('Predictor developer operating system', () => {
     expect(bootstrap).toContain('serena-agent==${serena_version}')
     expect(bootstrap).toContain('specify-cli==${spec_kit_version}')
     expect(bootstrap).toContain('@ast-grep/cli@${ast_grep_version}')
-    expect(bootstrap).toContain('@beads/bd@${beads_version}')
+
+    expect(bootstrap).toContain('github.com/gastownhall/beads/releases/download/v${version}')
+    expect(bootstrap).toContain('checksums.txt')
+    expect(bootstrap).toContain('Checksum mismatch for Beads')
+    expect(bootstrap).not.toContain('@beads/bd@')
 
     expect(bootstrap).not.toContain('mcp_agent_mail')
     expect(bootstrap).not.toContain('cargo install')
