@@ -4,6 +4,12 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 
+# Beads command metrics and its Dolt dependency's event flush are disabled for
+# the supported Predictor toolchain. Local execution memory must not create an
+# implicit outbound telemetry path simply because a CLI is invoked.
+export BD_DISABLE_METRICS=1
+export DOLT_DISABLE_EVENT_FLUSH=1
+
 read_tool_value() {
   local expression="$1"
   node -e "const c=require('./config/agent-tools.json'); process.stdout.write(String(${expression}))"
