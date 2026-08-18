@@ -36,6 +36,11 @@ export default defineConfig({
     // proof lives at the dev harness rather than in a browser suite that would
     // then need a database.
     'vnext-matches.spec.ts',
+    // Stage 9, Leagues. Same terms: Storybook is the review surface, the worlds
+    // are deterministic, and the connected proof lives at the dev harness
+    // rather than in a browser suite that would then need a database — and,
+    // here, real people in a real league.
+    'vnext-leagues.spec.ts',
     // Stage 7.5, the three information-architecture concepts. Registered on
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic

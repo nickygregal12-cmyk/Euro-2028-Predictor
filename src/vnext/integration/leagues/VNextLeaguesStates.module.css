@@ -1,0 +1,91 @@
+/* The connected Leagues surface when it is not showing a table.
+ *
+ * The skeleton takes the SHAPE the content will take — two chooser pills, a
+ * heading, five table rows inside one bordered block — so the page does not
+ * reflow as it settles.
+ *
+ * IT CARRIES NO DIGITS AND NO NAMES. A standings placeholder showing 1, 2, 3
+ * down the left is a placeholder somebody reads as a rank, and a rank is the
+ * one number on this page a player will act on at a glance.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.barRow {
+  display: flex;
+  gap: var(--vnext-space-2);
+}
+
+.bar {
+  display: block;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.barControl {
+  height: var(--vnext-tap-target);
+  width: 120px;
+  border-radius: var(--vnext-radius-pill);
+}
+
+.barHeading {
+  height: 16px;
+  width: 200px;
+  margin-top: var(--vnext-space-3);
+}
+
+/* The rows sit inside one block because the real table does: a skeleton of
+ * five floating cards would settle into a bordered table and jump. */
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--vnext-space-2);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.barRowItem {
+  height: 44px;
+  width: 100%;
+  border-radius: var(--vnext-radius-sm);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-6) var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.noticeBody {
+  color: var(--vnext-text-secondary);
+  max-width: 56ch;
+}
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  background-color: var(--vnext-accent);
+  border: 0;
+  border-radius: var(--vnext-radius-md);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+}

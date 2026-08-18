@@ -1,0 +1,434 @@
+/* vNEXT LEAGUES — the people layer of the Competition Deck.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * sticky masthead, both navigations, the `<main>` landmark and the mobile
+ * bottom spacing are the shell's. What is here is what only a standings table
+ * needs.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY on `vnext-page`, the shell's content region.
+ * A standings table has no equivalent of a match row's own container: it is one
+ * block that occupies the working column at every width, so the page's own
+ * container is the right thing to ask.
+ *
+ *   compact  (< 640px)   rank, player and points. Movement, where it exists,
+ *                        rides under the name rather than taking a column,
+ *                        because three numeric columns at 375 is where a name
+ *                        starts being abbreviated.
+ *   regular  (>= 640px)  the movement column appears; the scope chooser lays
+ *                        out horizontally and scrolls if it must.
+ *   expanded (>= 1120px) more room per row and a wider name column. NOT two
+ *                        columns: a table does not want a sidebar next to it,
+ *                        and the second column would only ever be filled with
+ *                        something invented to fill it.
+ *
+ * NO DISPLAY NAME IS EVER CLIPPED. There is no `text-overflow` and no line
+ * clamp over a player's name anywhere in this file. `overflow-wrap: anywhere`
+ * stops one long word widening the table; the row grows instead. A truncated
+ * name is exactly the failure contract 191 exists to prevent, arriving through
+ * CSS instead of through code.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. Movement is a colour AND an arrow AND a
+ * word; "you" is an accent AND the word "You" AND `aria-current`; a tie is a
+ * colour-free `=` AND an sr-only "tied". The table is fully readable in
+ * greyscale and fully readable with the stylesheet off.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+/* ---- the scope chooser --------------------------------------------------- */
+
+/* THE CHOOSER SCROLLS INSIDE ITSELF RATHER THAN WIDENING THE PAGE.
+ *
+ * Five options, or one sixty-character league name, exceed 375px. `overflow-x:
+ * auto` is what keeps that inside the control; the page's own scroll container
+ * stays at the column width, which `e2e/vnext-leagues.spec.ts` measures on
+ * `main`. */
+.scope {
+  display: flex;
+  gap: var(--vnext-space-1);
+  padding: 3px;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.scope::-webkit-scrollbar {
+  display: none;
+}
+
+.scopeOption {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  flex: 0 0 auto;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 0;
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.scopeOption[aria-pressed='true'] {
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+}
+
+.scopeOption:hover {
+  color: var(--vnext-text);
+}
+
+.scopeName {
+  overflow-wrap: anywhere;
+}
+
+.scopeCount {
+  color: var(--vnext-text-muted);
+}
+
+.scopeOption[aria-pressed='true'] .scopeCount {
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the honest strip ---------------------------------------------------- */
+
+.unavailable {
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the table region ---------------------------------------------------- */
+
+.tableRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.tableHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.tableContext {
+  color: var(--vnext-text-muted);
+}
+
+.tableBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+/* A long-named league in a narrow column can still exceed the width; the table
+ * scrolls INSIDE this box rather than pushing the page sideways. */
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--vnext-font-text);
+}
+
+.table thead th {
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  text-align: left;
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+  border-bottom: 1px solid var(--vnext-hairline);
+  white-space: nowrap;
+}
+
+.colRank {
+  width: 1%;
+}
+
+.colPlayer {
+  width: auto;
+}
+
+.colPoints,
+.colMovement {
+  text-align: right;
+}
+
+.table thead .colPoints,
+.table thead .colMovement {
+  text-align: right;
+}
+
+.row {
+  border-bottom: 1px solid var(--vnext-hairline);
+}
+
+.table tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.row td,
+.row th {
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  vertical-align: middle;
+}
+
+/* THE CALLER'S ROW, MARKED THREE WAYS. The accent bar is the visible one, the
+ * word "You" in the cell is the readable one, and `aria-current` is the
+ * announced one. Any single one of the three could be missed. */
+.rowYou {
+  background-color: var(--vnext-accent-veil);
+  box-shadow: inset 3px 0 0 0 var(--vnext-accent);
+}
+
+/* A member who never entered the game. Quieter, but NOT hidden and NOT
+ * struck through — they are in the league, they have simply not played. */
+.rowNoEntry .pointsValue,
+.rowNoEntry .rankValue {
+  color: var(--vnext-text-muted);
+}
+
+.cellRank {
+  font-weight: var(--vnext-weight-medium);
+  white-space: nowrap;
+}
+
+.rankValue {
+  font-family: var(--vnext-font-display);
+  font-variant-numeric: tabular-nums;
+  color: var(--vnext-text);
+}
+
+.cellPlayer {
+  min-width: 0;
+}
+
+.playerCell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+}
+
+/* NO TRUNCATION. A long name wraps; it is never cut and never ellipsised. */
+.playerName {
+  overflow-wrap: anywhere;
+  color: var(--vnext-text);
+}
+
+/* THE TARGET IS THE TAP TARGET IN BOTH DIRECTIONS, NOT THE SIZE OF THE WORD.
+ *
+ * An inline text button is about 20px tall, which is a name a finger misses on
+ * a phone. `min-height` fixes that — and `min-width` fixes the half the browser
+ * suite caught afterwards: a three-letter name is a 27px-wide target however
+ * tall it is, and a short display name is not a smaller person.
+ *
+ * The underline stays on the WORD rather than stretching across the box,
+ * because `text-decoration` paints the text and not the flex container, so the
+ * larger target is invisible and only a finger notices it. */
+.playerOpen {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  min-width: var(--vnext-tap-target);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vnext-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--vnext-hairline-strong);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.playerOpen:hover {
+  text-decoration-color: var(--vnext-accent);
+}
+
+.youTag {
+  padding: 2px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+}
+
+.playerTags {
+  display: inline-flex;
+  gap: var(--vnext-space-2);
+  flex-wrap: wrap;
+  margin-inline-start: var(--vnext-space-2);
+}
+
+.tag,
+.tagQuiet {
+  padding: 2px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  font-size: var(--vnext-size-micro);
+  white-space: nowrap;
+}
+
+.tag {
+  border: 1px solid var(--vnext-hairline-strong);
+  color: var(--vnext-text-secondary);
+}
+
+.tagQuiet {
+  border: 1px solid var(--vnext-hairline);
+  color: var(--vnext-text-muted);
+}
+
+.cellPoints {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.pointsCell {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+
+.pointsValue {
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-variant-numeric: tabular-nums;
+  color: var(--vnext-text);
+}
+
+.pointsFrom {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- movement ------------------------------------------------------------ */
+
+.cellMovement {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.movement {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.movementUp {
+  color: var(--vnext-rank-up);
+}
+
+.movementDown {
+  color: var(--vnext-rank-down);
+}
+
+.movementNone,
+.movementFlat {
+  color: var(--vnext-rank-flat);
+}
+
+.movementGlyph {
+  font-size: var(--vnext-size-micro);
+}
+
+/* ---- your standing, pinned when it is not on the page -------------------- */
+
+.yourStanding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.yourStandingLabel {
+  color: var(--vnext-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ---- the foot and the asides --------------------------------------------- */
+
+.tableFoot {
+  color: var(--vnext-text-muted);
+}
+
+.emptyStandings {
+  padding: var(--vnext-space-5);
+  border: 1px dashed var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  color: var(--vnext-text-secondary);
+}
+
+.emptyTable {
+  padding: var(--vnext-space-5);
+  border: 1px dashed var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  color: var(--vnext-text-secondary);
+  text-align: center;
+}
+
+.aside {
+  color: var(--vnext-text-muted);
+  max-width: 60ch;
+}
+
+/* ==========================================================================
+   COMPOSITION
+   ========================================================================== */
+
+@container vnext-page (min-width: 640px) {
+  .row td,
+  .row th {
+    padding: var(--vnext-space-4);
+  }
+
+  .pointsCell {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--vnext-space-2);
+  }
+}
+
+@container vnext-page (min-width: 1120px) {
+  .table thead th {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .row td,
+  .row th {
+    padding-inline: var(--vnext-space-5);
+  }
+
+  .tableRegion {
+    max-width: 960px;
+  }
+}
