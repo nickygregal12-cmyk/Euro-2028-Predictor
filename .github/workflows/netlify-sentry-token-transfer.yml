@@ -5,6 +5,9 @@ name: Transfer Sentry source-map token to Euro Production
 # limits the payload to SENTRY_AUTH_TOKEN and proves the copy with exact-main
 # Production builds before narrowing the source variable.
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -16,7 +19,10 @@ concurrency:
 
 jobs:
   transfer-and-verify:
-    if: github.ref == 'refs/heads/main'
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.head_commit.message, 'Ops: run Sentry token transfer'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
