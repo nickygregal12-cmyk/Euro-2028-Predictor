@@ -48,6 +48,8 @@ jobs:
     timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
@@ -164,6 +166,12 @@ jobs:
       - name: Re-prove exact main before lifecycle write
         if: steps.selected.outputs.should_run == 'true'
         shell: bash
+        # Step outputs are passed as environment values rather than expanded
+        # into the script. Low confidence in zizmor terms -- a step output is
+        # produced by an earlier step here -- but the safe form costs nothing
+        # and removes the class entirely.
+        env:
+          SELECTED_VERSION: ${SELECTED_VERSION}
         run: |
           set -euo pipefail
           remote_sha="$(git ls-remote origin refs/heads/main | cut -f1)"
@@ -177,7 +185,7 @@ jobs:
         working-directory: ai
         run: >-
           python activate_selected_models.py
-          --version "${{ steps.selected.outputs.version }}"
+          --version "${SELECTED_VERSION}"
           --reason "Owner policy: verified evidence-selected winner automatically becomes current; no manual promotion gate."
 
       - name: Regenerate forecasts from the selected current set
@@ -203,7 +211,7 @@ jobs:
         if: steps.selected.outputs.should_run == 'true'
         working-directory: ai
         env:
-          SELECTED_VERSION: ${{ steps.selected.outputs.version }}
+          SELECTED_VERSION: ${SELECTED_VERSION}
         run: |
           python - <<'PY'
           import os

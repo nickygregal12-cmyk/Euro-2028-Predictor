@@ -38,6 +38,8 @@ jobs:
       PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
@@ -46,9 +48,15 @@ jobs:
 
       - name: Resolve target and fail closed
         shell: bash
+        # Environment values, not template expansion: a dispatch input is
+        # attacker-controllable in principle and this job reaches hosted
+        # database URLs.
+        env:
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
-          target="${{ inputs.target }}"
-          version="${{ inputs.version }}"
+          target="${INPUT_TARGET}"
+          version="${INPUT_VERSION}"
           case "$target" in
             development) url="${DEV_DB_URL}"; ref="${DEVELOPMENT_PROJECT_REF}" ;;
             production)
