@@ -2,7 +2,7 @@
 
 These instructions apply to work under `src/vnext/`.
 
-It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **integration adapters** under `integration/` that connect Home, the Match Predictor, Matches and Leagues to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapters are the only place that does, and vNext is still not wired into the running product — the connected surfaces are reachable only from the dev-only `/dev/vnext-home`, `/dev/vnext-match-predictor`, `/dev/vnext-matches` and `/dev/vnext-leagues` harnesses.
+It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **integration adapters** under `integration/` that connect Home, the Match Predictor, Matches, Leagues and player profiles to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapters are the only place that does, and vNext is still not wired into the running product — the connected surfaces are reachable only from the dev-only `/dev/vnext-home`, `/dev/vnext-match-predictor`, `/dev/vnext-matches`, `/dev/vnext-leagues` and `/dev/vnext-player` harnesses.
 
 **`home/` is the Gold Standard surface.** It is the approved vNext Home and the quality bar every later vNext page inherits from. Treat it as the reference for composition, density, motion, team colour and accessibility — and do not propagate it to another page without that page's own brief.
 
@@ -14,6 +14,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 2c. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — Stage 7.5's three concepts and the capability audits, now the EVIDENCE for that decision. Concepts B and C are kept and are not primary architectures; do not build on either as though it had won.
 2d. [`../../docs/product/vnext-matches.md`](../../docs/product/vnext-matches.md) — **THE MATCHES SYSTEM (Stage 8). The match-state contract, the live-data honesty rules, the combined-scope decision, which Match Centre modules may exist, and the TV Mode relationship. Read this before touching anything that draws a fixture.**
 2e. [`../../docs/product/vnext-leagues.md`](../../docs/product/vnext-leagues.md) — **THE LEAGUES SYSTEM (Stage 9). The social identity rule — a row is openable because the SERVER said so, never because a display name matched — the two-tables-two-rank-authorities decision, and what a standings surface may never compute. Read this before touching anything that draws a player.**
+2f. [`../../docs/product/vnext-player-profiles.md`](../../docs/product/vnext-player-profiles.md) — **THE PLAYER SYSTEM (Stage 10). Three reads with THREE DIFFERENT permission boundaries and therefore no page-level permission; the page is named by the server because nothing can pass it a display name; the chart plots a POSITION and its axis is inverted once, in one function; the head-to-head states its denominator because its window is truncated; and the reveal boundary is enforced by ABSENCE, so nothing may be inferred from a gap. Read this before touching anything that draws a person's season.**
 3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
 4. The exact domain/service contract for the data the component actually needs.
 
@@ -24,13 +25,14 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `app/` | **the application shell** — `VNextShell`, `VNextPageHeader` |
 | `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
-| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**, **`matches.ts`**, **`leagues.ts`**) |
-| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, **twelve Matches worlds plus twelve Match Centre worlds**, and **twenty-one Leagues worlds** |
+| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**, **`matches.ts`**, **`leagues.ts`**, **`playerProfile.ts`**) |
+| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, **twelve Matches worlds plus twelve Match Centre worlds**, **twenty-one Leagues worlds** and **twenty-four player-profile worlds** |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
 | `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
 | `matches/` | **Matches and the Match Centre** — the fixture list, the row, the state marks, the Match Centre composition |
 | `leagues/` | **Leagues** — the page, the two standings tables, and the one component that decides whether a player row may be opened |
-| `integration/` | **the only application-facing code** — one adapter per connected page (`home/`, `predictor/`, `matches/`) |
+| `player/` | **the player profile** — the page, the rank chart, the comparison table and the reveal-safe matchweek history |
+| `integration/` | **the only application-facing code** — one adapter per connected page (`home/`, `predictor/`, `matches/`, `leagues/`, `playerProfile/`) |
 | `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts and the interaction-feedback prototype. **Historical evidence for why the selected IA exists.** Nothing here is accepted, nothing under `app/` may import it, and it is not deleted |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
