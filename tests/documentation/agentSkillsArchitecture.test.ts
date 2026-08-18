@@ -37,7 +37,16 @@ describe('project-specific agent skills', () => {
     expect(ai).toContain('Do not reintroduce a routine browser/admin click as a second model-selection authority')
     expect(ai).toContain('an arbitrary/newest challenger being mistaken for the evidence-selected policy winner')
     expect(ai).toContain('ai/train_verified.py')
-    expect(graph).toContain('navigation/indexing aid, not repository truth')
+    // The INVARIANT, not one phrasing of it. This assertion named the exact
+    // sentence 'navigation/indexing aid, not repository truth', and #845
+    // reworded the skill to 'navigation-not repository truth' without touching
+    // the test -- so main went red on a documentation rewrite that changed
+    // nothing this test exists to protect. Two anchors replace it: the
+    // subordination claim itself, and the fact that the skill still names the
+    // authorities it defers to. Either being deleted is a real regression;
+    // rewording the sentence around them is not.
+    expect(plain(graph)).toContain('not repository truth')
+    expect(graph).toContain('must never be cited as proof')
   })
 
   it('keeps Graphify optional and generated output disposable', () => {
