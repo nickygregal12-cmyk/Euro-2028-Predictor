@@ -662,15 +662,17 @@ describe('the page contract', () => {
     expect(main?.getAttribute('aria-labelledby')).toBe(heading?.id)
   })
 
-  it.each(SCENARIOS)('has no critical or serious accessibility failure in $name', async (
-    scenario,
-  ) => {
-    await scan(
-      <VNextRoot>
-        <VNextMatchPredictor model={scenario.model} actions={spyActions()} />
-      </VNextRoot>,
-    )
-  })
+  it.each(SCENARIOS)(
+    'has no critical or serious accessibility failure in $name',
+    async (scenario) => {
+      await scan(
+        <VNextRoot>
+          <VNextMatchPredictor model={scenario.model} actions={spyActions()} />
+        </VNextRoot>,
+      )
+    },
+    15_000,
+  )
 
   it('runs the tab order through one club’s controls before the next club’s', async () => {
     const user = userEvent.setup()

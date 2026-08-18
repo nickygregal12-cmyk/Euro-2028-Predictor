@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd

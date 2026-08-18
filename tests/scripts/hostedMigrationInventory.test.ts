@@ -24,6 +24,8 @@ function fixture(options: {
   development?: number
   production?: number
   promotionAuthorised?: boolean
+  currentHeading?: string
+  currentSummary?: string
 }): string {
   const repository = options.repository ?? 198
   const development = options.development ?? 190
@@ -53,8 +55,14 @@ function fixture(options: {
     join(root, 'docs/ops/ops-pending-migrations.md'),
     [
       'config/development-hosted-contract.json',
+      options.currentHeading ??
+        `## Current state — repository ${repository}, Production ${production}, Development ${development} (18 August 2026)`,
       `| Development Supabase \`iouzoutneyjpugbbtdem\` | **${development}** |`,
       `| Production Supabase | **${production}** |`,
+      options.currentSummary ??
+        (repository === development && development === production
+          ? `**There are no pending hosted migrations: repository, Development and Production are level at Contract ${repository}.**`
+          : 'Hosted environments trail the repository; the exact rows above are authoritative.'),
       'historic Netlify project `euro28-predictor-dev` is out of scope',
     ].join('\n'),
   )
@@ -110,5 +118,35 @@ describe('the hosted migration inventory gate', () => {
     const result = run(fixture({ promotionAuthorised: true }))
     expect(result.ok).toBe(false)
     expect(result.output).toContain('fail-closed')
+  })
+
+  it('refuses a current-state heading that contradicts the machine records', () => {
+    const result = run(
+      fixture({
+        repository: 198,
+        development: 198,
+        production: 198,
+        currentHeading:
+          '## Current state — repository 198, Production 190, Development 189 (18 August 2026)',
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.output).toContain(
+      'current-state heading says repository 198, Production 190, Development 189',
+    )
+  })
+
+  it('refuses the exact contradictory level-state prose that passed in PR #857', () => {
+    const result = run(
+      fixture({
+        repository: 198,
+        development: 198,
+        production: 198,
+        currentSummary:
+          '**Contracts 191 to 198 are applied nowhere; contract 190 is applied to Production; Development remains at Contract 189.**',
+      }),
+    )
+    expect(result.ok).toBe(false)
+    expect(result.output).toContain('There are no pending hosted migrations')
   })
 })

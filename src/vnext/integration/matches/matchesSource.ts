@@ -51,7 +51,7 @@ import type {
  */
 
 /** The competition season the page is about, from `get_season_play_context`. */
-export type MatchesSourceCompetition = {
+type MatchesSourceCompetition = {
   readonly tournamentId: string
   readonly name: string
   readonly seasonLabel: string
@@ -107,7 +107,7 @@ export type MatchesSource = {
  * entered. Shaped for contract 197 exactly: one competition list, one
  * chronological fixture list, and a `competitionId` on every fixture.
  */
-export type MatchesCombinedSource = {
+type MatchesCombinedSource = {
   readonly competitions: readonly {
     readonly id: string
     readonly name: string

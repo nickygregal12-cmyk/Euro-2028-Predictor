@@ -61,9 +61,20 @@ describe('browser E2E project gating', () => {
     expect(specFiles.length).toBeGreaterThan(15)
     expect(authMatch.length).toBeGreaterThan(0)
     expect(defaultIgnore.length).toBeGreaterThan(0)
-    expect(defaultProjects).toEqual(['desktop-chromium', 'mobile-chromium'])
+    expect(defaultProjects).toEqual([
+      'desktop-chromium',
+      'mobile-chromium',
+      'smoke-firefox',
+      'smoke-webkit',
+    ])
     expect(authProjects).toEqual(['auth-desktop-chromium', 'auth-mobile-chromium'])
     expect(euroMatch.length).toBeGreaterThan(0)
+  })
+
+  it('runs only the canonical weekly navigation floor outside Chromium', () => {
+    expect(defaultConfig.match(/testMatch:\s*\['weekly-navigation\.spec\.ts'\]/g)).toHaveLength(2)
+    expect(defaultConfig).toContain("use: { ...devices['Desktop Firefox'] }")
+    expect(defaultConfig).toContain("use: { ...devices['Desktop Safari'] }")
   })
 
   it('gives every parked Euro journey exactly one home', () => {

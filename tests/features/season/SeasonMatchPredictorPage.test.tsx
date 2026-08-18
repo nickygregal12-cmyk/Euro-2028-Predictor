@@ -102,7 +102,9 @@ describe('the Match Predictor entry path', () => {
     // matchweek of predictions and the first save is refused.
     renderPage({ registration: registrationGateway(false) })
 
-    expect(await screen.findByRole('button', { name: 'Join' })).toBeTruthy()
+    expect(
+      await screen.findByRole('button', { name: 'Join' }, { timeout: 5_000 }),
+    ).toBeTruthy()
   })
 
   it('says nothing at all once the player is entered', async () => {

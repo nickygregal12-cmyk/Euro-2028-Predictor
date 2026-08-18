@@ -40,6 +40,7 @@ const COVERED_PREFIXES = [
 const COVERED_FILES = [
   'vite.config.ts',
   'vite.analyze.config.ts',
+  'vitest.storybook.config.ts',
   'playwright.config.ts',
   'playwright.auth.config.ts',
   'playwright.production.config.ts',
@@ -184,7 +185,9 @@ describe('JavaScript under scripts/', () => {
    */
   const CHECKED = [
     'scripts/check-documentation-authorities.mjs',
+    'scripts/check-knip-baseline.mjs',
     'scripts/check-migration-additive.mjs',
+    'scripts/check-workflow-action-pins.mjs',
     'scripts/check-bundle-budget.mjs',
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',

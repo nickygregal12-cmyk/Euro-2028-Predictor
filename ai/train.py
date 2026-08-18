@@ -35,7 +35,6 @@ import argparse
 import hashlib
 import json
 import sys
-from datetime import date
 
 import joblib
 import numpy as np
@@ -335,7 +334,7 @@ def main() -> int:
             frame, args.family, column_map, args.half_life_days,
             args.holdout_seasons, args.walk_forward, base_families, args.meta,
             args.min_train_seasons)
-        holdout_base = report.pop("holdout_base_probabilities")
+        report.pop("holdout_base_probabilities")
         result = report["model"]
         base_result = report["baseline"]
         market = report["market"]

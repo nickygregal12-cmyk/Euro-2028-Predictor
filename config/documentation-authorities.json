@@ -209,6 +209,11 @@
   ],
   "authorityDirectories": [
     {
+      "prefix": "specs/",
+      "kind": "reference",
+      "why": "Task-scoped outcome and delivery specifications; they link to canonical authorities and do not own moving repository or hosted state."
+    },
+    {
       "prefix": ".specify/",
       "kind": "reference",
       "why": "Spec Kit process metadata and engineering constitution; never a second moving product/contract authority."

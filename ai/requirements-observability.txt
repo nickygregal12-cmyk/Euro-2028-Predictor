@@ -1,6 +1,0 @@
-# Optional AI Lab observability / explainability / reproducibility layer.
-# Keep these out of requirements.txt so normal prediction jobs and the core
-# AI test suite do not pay the import/install cost unless the capability is used.
-evidently==0.7.21
-shap==0.52.0
-dvc==3.67.1

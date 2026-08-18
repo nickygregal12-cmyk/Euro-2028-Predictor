@@ -100,10 +100,12 @@ work tracker and not an authority. What moved in **this** register:
   the working environment, and inventing a hash would break CI rather than
   secure it". It still cannot: `api.github.com` answers 403 from the remediation
   environment, so no tag could be resolved to a commit. Nothing was invented.
-  What *did* land is `.github/workflows/workflow-lint.yml`, running `actionlint`
-  and `zizmor` report-only over the workflows — which will itself report the
-  unpinned actions, so the finding becomes visible on every workflow change
-  instead of living only here. The dependency-scanning half is also widened: CI
+  That original duplicate workflow has since been retired. The replacement
+  `.github/workflows/security-tooling.yml` installs checksum-verified actionlint,
+  runs it as a blocking pull-request check, and runs pinned zizmor with hardened
+  runners. New required and scheduled workflows use full action SHAs; the
+  historical floating-action estate remains a family-by-family cleanup rather
+  than an invented bulk rewrite. The dependency-scanning half is also widened: CI
   now runs a second, non-blocking `npm audit --audit-level=moderate` including
   devDependencies. Dependabot **alerts** remain a repository setting and remain
   off.
@@ -277,6 +279,20 @@ so they are not re-raised from the audit text, and so the evidence of the check 
 
 **One is new and is opened below: `TYPE-002`.** It is the audit's only P3 and the only
 finding whose closure is not a single change.
+
+## Correction record — 18 August 2026, tooling assurance activation
+
+- **`ACQ-R19`'s repository pinning gap is closed.** All tracked external GitHub
+  Action references now use full 40-character SHAs, preserving the existing
+  major families (including the three workflows intentionally still on
+  `supabase/setup-cli` v1). `security-tooling.yml` runs a full-tree gate rather
+  than merely refusing newly added floats. Renovate is configured to maintain
+  SHA pins, but its hosted App still has no observed onboarding or dependency
+  PR and is therefore not claimed active.
+- Harden Runner audit mode now covers the active AI, browser, backup, smoke,
+  CodeQL and security families. Historical/manual rollout families remain a
+  measured follow-up because enforcing egress without first observing their
+  destinations would risk disabling a recovery control.
 
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 

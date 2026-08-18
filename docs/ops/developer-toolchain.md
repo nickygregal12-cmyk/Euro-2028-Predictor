@@ -48,6 +48,15 @@ graphify extract . --code-only --no-cluster
 
 For merged code, the dedicated `graphify-navigation` branch contains the latest published structural snapshot. For branch-specific work, prefer the matching Actions artifact.
 
+Query the portable graph through the repository's pinned, freshness-checking
+entrypoint:
+
+```bash
+bash scripts/agent-tools/graphify-query.sh query "which files form this flow?"
+```
+
+Pass a downloaded PR graph with `--graph PATH --source-sha PR_COMMIT_SHA`.
+
 Deep semantic Graphify is deliberately opt-in and can consume model allowance/send indexed content to the configured provider:
 
 ```bash
@@ -186,7 +195,11 @@ Run locally:
 bash scripts/agent-tools/architecture-check.sh
 ```
 
-CI runs the same central-versioned command through `.github/workflows/architecture-contracts.yml` for relevant source/config changes.
+CI runs the same central-versioned command on every pull request and merge-queue
+candidate before the application build. The always-present `CI / Required merge
+gate` job fails unless the complete CI job, including this non-zero graph check,
+succeeds. This makes it suitable for one required branch rule without the
+missing-check ambiguity of the retired path-scoped workflow.
 
 The config is `.dependency-cruiser.cjs`. It is fail-closed: analysing zero modules or reporting an error-severity architecture violation fails the command. Circular dependencies are blocking. Add a new blocking rule only after the repository architecture actually decides that boundary.
 
@@ -253,6 +266,28 @@ bash scripts/agent-tools/react-scan.sh http://127.0.0.1:4173
 ```
 
 React Scan is diagnosis-only and intentionally absent from application dependencies/bundles. Use Chrome DevTools MCP for network, console, trace and browser-level performance questions; use Lighthouse CI for the page-performance gate.
+
+### Cross-engine browser smoke — Playwright
+
+The normal authenticated suite stays Chromium-first. Its canonical
+`weekly-navigation.spec.ts` floor also runs in desktop Firefox and WebKit from
+the same `playwright.config.ts`, against the same disposable local Supabase:
+
+```bash
+npm run test:e2e -- weekly-navigation.spec.ts
+```
+
+This is deliberately a six-test compatibility smoke (three journeys in two
+extra engines), not a second full-suite or visual-baseline authority.
+
+## Documentation link integrity
+
+The scheduled and Markdown-scoped `Documentation link integrity` workflow uses
+checksum-verified Lychee 0.24.2 against only tracked Markdown. It runs offline
+and includes local anchor validation, so a renamed file or heading fails without
+sending the repository's extracted URLs to third-party hosts. External URL
+availability is deliberately not implicit; enabling it is a separate disclosure
+and reliability decision.
 
 ## OmniRoute
 

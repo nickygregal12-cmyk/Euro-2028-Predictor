@@ -14,7 +14,7 @@ sounds, because a Saturday 3pm result would otherwise leak into a Saturday
 """
 from __future__ import annotations
 
-from collections import defaultdict, deque
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import date
 
@@ -335,7 +335,6 @@ class TeamState:
         gf_when_measured = sum(r["gf"] for r in shot_rows)
         ga_when_measured = sum(r["ga"] for r in shot_rows)
         shots_f_tot = sum(r["shots_f"] for r in total_rows)
-        shots_a_tot = sum(r["shots_a"] for r in total_rows)
 
         # Result against performance. A bottom club winning 1-0 having been
         # out-shot 3-24 on target is not the same evidence about future

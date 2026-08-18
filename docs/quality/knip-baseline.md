@@ -34,7 +34,7 @@ Removing one of these entries would not report a defect — it would silently ma
 | --- | --- |
 | `src/premium/PremiumApp.tsx`, `premium.css`'s siblings `store.tsx`, `data.ts`, `types.ts` — reported as 4 unused files | **Expected and confirmed.** Independent confirmation, by a tool with no knowledge of the design decision, that the prototype is unreachable from the application. It stays as a visual reference; `tests/design/premiumPrototypeBoundary.test.ts` keeps it unreachable |
 | `framer-motion`, `lucide-react` — reported as unused dependencies | **Not dead: awaiting adoption.** Both are approved go-forward systems (the only motion and icon systems allowed). They are unreferenced today only because their sole importer is the prototype. Do not remove; they get real importers in the visual-foundations work |
-| `lenis` — reported as an unused dependency | **Confirmed dead.** Prototype-only, and the execution authority discards whole-page scroll hijacking outright. It is a production dependency shipping for nothing, and a named suspect in the landing route's performance finding. Removal belongs with the prototype's disposition, not this baseline |
+| `lenis` — reported as an unused dependency | **Resolved 18 August 2026.** Removed from the parked prototype and manifest. The prototype boundary now refuses any source import, so whole-page scroll hijacking cannot return as an unmeasured dependency |
 
 ## Category 4 — historical evidence (out of scope by classification)
 

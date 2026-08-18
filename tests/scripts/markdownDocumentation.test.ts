@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { at } from '../support/indexed'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
-const ignoredDirectories = new Set(['.git', 'dist', 'node_modules'])
+const ignoredDirectories = new Set(['.git', '.venv', 'dist', 'node_modules'])
 
 function collectMarkdownFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {

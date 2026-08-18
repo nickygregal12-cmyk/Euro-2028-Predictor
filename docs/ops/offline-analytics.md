@@ -33,9 +33,10 @@ AI Lab research / backtesting / analysis
 | `fixtures/` | a small deterministic snapshot the tests run against |
 | `test_analytics.py` | the guardrails below |
 
-Install with `pip install -r ai/requirements-analytics.txt`. It is deliberately
-a separate file: the training and prediction pipeline does not need DuckDB, and
-the research layer must not make the core package heavier to install.
+Install with `bash scripts/agent-tools/ai-sync.sh test`; that profile includes
+the locked `analytics` dependency group. The training and prediction pipeline
+does not install that group, so DuckDB cannot make the hosted core environment
+heavier while still being present for the tests that would otherwise skip it.
 
 ```python
 from analytics import build_analytics_database
