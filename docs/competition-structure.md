@@ -201,4 +201,6 @@ same paragraph existed in seven places at once.
 
 > **Contract 202:** does not alter competition structure. It widens the private AI Lab's forecast-horizon vocabulary so a fixture is re-forecast as new completed matches arrive, and touches no competition, scoring or player relation.
 
+> **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
+
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.

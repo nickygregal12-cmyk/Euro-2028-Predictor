@@ -1,6 +1,6 @@
-name: Production 198 to 203 rehearsal
+name: Production 198 to 204 rehearsal
 
-# Read-only rehearsal of Contracts 199 to 203 — the private AI Lab's operational
+# Read-only rehearsal of Contracts 199 to 204 — the private AI Lab's operational
 # boundary — against a disposable copy of Production. The encrypted backup
 # remains the rollback authority; its private age key stays offline. This
 # workflow independently reads Production only through dumps and applies the five
@@ -22,7 +22,7 @@ on:
         description: Exact Production project ref confirmation
         required: true
       confirmation:
-        description: Type REHEARSE-PRODUCTION-198-TO-203 to proceed
+        description: Type REHEARSE-PRODUCTION-198-TO-204 to proceed
         required: true
       backup_run_id:
         description: Run id of the successful fresh Production backup
@@ -33,20 +33,20 @@ permissions:
   actions: read
 
 concurrency:
-  group: production-198-to-203-rehearsal
+  group: production-198-to-204-rehearsal
   cancel-in-progress: false
 
 env:
   EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
   FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
-  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-198-TO-203
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-198-TO-204
   SOURCE_CONTRACT: '198'
   SOURCE_VERSION: '20260818030000'
   SOURCE_NAME: cup_knockout_reservation
-  TARGET_CONTRACT: '203'
-  TARGET_VERSION: '20260818080000'
-  TARGET_NAME: ai_bet_builder_current_decision
-  WORK_DIR: /tmp/production-198-to-203-rehearsal
+  TARGET_CONTRACT: '204'
+  TARGET_VERSION: '20260818090000'
+  TARGET_NAME: ai_dashboard_league_scoped_quarantine
+  WORK_DIR: /tmp/production-198-to-204-rehearsal
   LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
 jobs:
@@ -119,7 +119,7 @@ jobs:
           fi
           echo "Development is recorded at contract ${dev_contract}, at or beyond this boundary's ${TARGET_CONTRACT}."
 
-      - name: Prove the repository boundary is exactly 198 to 203
+      - name: Prove the repository boundary is exactly 198 to 204
         shell: bash
         run: |
           set -euo pipefail
@@ -157,7 +157,7 @@ jobs:
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get install -y postgresql-client-17
 
-      - name: Confirm Production is exactly 190 before dumping it
+      - name: Confirm Production is exactly 198 before dumping it
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -244,7 +244,7 @@ jobs:
           SQL
           cat "${WORK_DIR}/before.json"
 
-      - name: Apply exactly Contracts 199 to 203 to the disposable copy
+      - name: Apply exactly Contracts 199 to 204 to the disposable copy
         shell: bash
         run: |
           set -euo pipefail
@@ -255,7 +255,7 @@ jobs:
           diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: dry run is not exactly the five approved migrations.'; exit 1; }
           supabase db push --db-url "${LOCAL_DB_URL}"
 
-      - name: Run the behavioural pgTAP suites for Contracts 199 to 203
+      - name: Run the behavioural pgTAP suites for Contracts 199 to 204
         shell: bash
         run: |
           set +e
@@ -379,7 +379,7 @@ jobs:
         shell: bash
         run: |
           cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
-          ## Rehearsal passed — Contracts 199 to 203 applied to a disposable Production copy
+          ## Rehearsal passed — Contracts 199 to 204 applied to a disposable Production copy
 
           - Exactly five migrations were pending, each proven additive.
           - All seven behavioural pgTAP suites (236, 237, 247-251) passed against restored Production data.

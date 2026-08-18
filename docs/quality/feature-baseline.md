@@ -350,4 +350,6 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 
 > **Contract 202:** records a backend correctness fix: a private AI Lab forecast for a fixture more than two days away was frozen at the first run of the week, so results imported afterwards never reached it. Predictions remain immutable — the fix is more horizon buckets, not an overwrite. No frontend feature baseline changes.
 
+> **Contract 204:** records a read-model correctness fix in the private AI Lab: two league-scoped dashboards reported a lab-wide quarantine count beside league-scoped numbers. Scoped through a new custody view, `ai.quarantined_predictions`. No public surface, no threshold moves, and nothing in the browser reads the field today — it is fixed because the next surface to use it would have inherited the defect.
+
 > **Contract 203:** records a backend correctness fix in the private admin Bet Builder: a superseded BET could be offered as an actionable leg, and the browser was re-deriving currency across nine paged reads to compensate. The rule moves to the database rather than disappearing, and is proved in both directions. No public surface and no threshold moves.

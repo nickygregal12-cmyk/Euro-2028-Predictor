@@ -74,6 +74,12 @@ describe('views are not reachable by browser roles', () => {
       // Contract 201's two fixture-first reductions, behind the same boundary.
       'ai.canonical_fixture_predictions',
       'ai.current_fixture_recommendations',
+      // Contract 204's custody for withdrawn forecasts. `ai.valid_predictions`
+      // is what still counts and deliberately excludes these, so a read that
+      // needs to COUNT the exclusions cannot go through it; it goes through
+      // here instead of joining ai.predictions, which
+      // 236_quarantined_evidence_reads.sql forbids admin reads from doing.
+      'ai.quarantined_predictions',
       'ai.valid_bets',
       'ai.valid_predictions',
       'public.entry_totals',

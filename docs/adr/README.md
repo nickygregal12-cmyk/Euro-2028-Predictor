@@ -124,6 +124,8 @@ same paragraph existed in seven places at once.
 
 > **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged.
 
+> **Contract 204:** adds no rule and changes no ADR. It extends the existing custody pattern rather than relaxing it — `ai.valid_predictions` is custody for forecasts that still count, `ai.quarantined_predictions` is custody for those that stopped, and `236_quarantined_evidence_reads.sql`'s rule that no admin read touches `ai.predictions` directly is upheld rather than excepted.
+
 > **Contract 203:** adds no rule and changes no ADR. ADR 0029's actionability boundary is unchanged — aggregates are still refused as venues — and the newer-PASS-supersedes-older-BET rule is not new either; it moves from the browser to the database so there is one definition of it instead of two.
 
 > **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged — the second weekly training pass runs the same `train_selected_challengers.py` through the same verified gates.

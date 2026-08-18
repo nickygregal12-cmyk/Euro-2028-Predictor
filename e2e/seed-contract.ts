@@ -90,8 +90,26 @@
  * and Browser E2E (`authenticated-browser`) run 32146227736, against a database
  * holding all 203 migrations. The database-parity run carries pgTAP suite 251
  * beside the six from the previous boundary.
+ *
+ * Contract 204 scopes one number to the league it is asked about. It adds the
+ * view `ai.quarantined_predictions`, granted to nobody and revoked from both
+ * browser roles besides, and redefines `admin_ai_dashboard` and
+ * `admin_ai_betting_dashboard` at their existing signatures so that their
+ * excluded-forecast count obeys `p_league` like every figure beside it. Both
+ * functions were already behind `predictor_internal.require_competition_admin()`
+ * and both remain so. No `authenticated` read is added, removed or redefined,
+ * schema `ai` stays unreachable from the browser, and no seeded journey reaches
+ * the AI Lab.
+ *
+ * The marker is raised on the runs, not on that paragraph. Both jobs passed at
+ * the exact head `52e8879`: Database parity (`local-supabase`) run 32189217446
+ * and Browser E2E (`authenticated-browser`) run 32189217419, against a database
+ * holding all 204 migrations. That database-parity run also carries the pin in
+ * `dataApiExposure.test.ts`, which had to be told about the new view before it
+ * would pass -- so the run proves the view is unreachable from `anon` and
+ * `authenticated` rather than merely unmentioned.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 203
+export const SEED_REVIEWED_AT_CONTRACT = 204
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

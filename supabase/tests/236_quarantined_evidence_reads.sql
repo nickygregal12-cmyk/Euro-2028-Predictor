@@ -18,7 +18,7 @@
 
 begin;
 
-select plan(33);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- A model, a fixture each, and two forecasts
@@ -234,6 +234,60 @@ select is(
   ((public.admin_ai_dashboard('Q189') ->> 'quarantined_predictions'))::integer,
   1,
   'and the dashboard says how many forecasts it is excluding, so a shrinking graded count is legible'
+);
+
+-- ---------------------------------------------------------------------------
+-- A SECOND LEAGUE'S QUARANTINE, so the count above cannot pass by accident
+--
+-- The assertion directly above passed for the whole life of this suite and was
+-- MEANINGLESS, because the database CI builds holds nothing but this fixture:
+-- with one league seeded, the lab-wide count and the Q189 count are the same
+-- number, and a read returning either would satisfy it.
+--
+-- It failed for the first time in the 198-to-203 Production rehearsal, against
+-- a disposable copy of Production carrying 37 real quarantined forecasts: the
+-- Q189 dashboard answered 38. The test had always been right; contract 204 is
+-- what made the function right.
+--
+-- Seeding a second league here is what stops that regressing quietly. From now
+-- on a lab-wide count fails on an empty database too, without needing a copy of
+-- Production to notice.
+-- ---------------------------------------------------------------------------
+insert into ai.fixtures (id, division, season, league_key, match_date,
+                         kickoff_at, home_canonical, away_canonical, status)
+values
+  (md5('q189-f-other')::uuid, 'Q190', '2627', 'Q190', (now() + interval '5 days')::date,
+   now() + interval '5 days', 'Q190 Elsewhere', 'Q190 Visitors', 'scheduled');
+
+insert into ai.predictions (
+  id, model_id, league, fixture_id, kickoff_at, home_canonical, away_canonical,
+  p_home, p_draw, p_away, predicted_result, predicted_score, features)
+values
+  (md5('q189-p-other')::uuid, md5('q189-model')::uuid, 'Q190', md5('q189-f-other')::uuid,
+   now() + interval '5 days', 'Q190 Elsewhere', 'Q190 Visitors',
+   0.60000, 0.20000, 0.20000, 'H', '2-0',
+   '{"elo_diff": 60, "season_progress": 0.5, "home_is_newcomer": 0, "away_is_newcomer": 0}'::jsonb);
+
+insert into ai.prediction_invalidations (prediction_id, reason_code, note)
+values (md5('q189-p-other')::uuid, 'INVALID_TEAM_IDENTITY',
+        'Contract 204 suite: a quarantine in ANOTHER league, which Q189 must not count.');
+
+select is(
+  ((public.admin_ai_dashboard('Q189') ->> 'quarantined_predictions'))::integer,
+  1,
+  'the Q189 dashboard still excludes ONE — another league''s quarantine is not Q189''s to report'
+);
+
+select is(
+  ((public.admin_ai_betting_dashboard('Q189') ->> 'quarantined_predictions'))::integer,
+  1,
+  'and the betting dashboard scopes it the same way, because it explains the same league''s numbers'
+);
+
+select is(
+  ((public.admin_ai_dashboard(null) ->> 'quarantined_predictions'))::integer,
+  2,
+  'asked about no league in particular it still answers for the whole lab, which is the question that was asked'
 );
 
 select is(

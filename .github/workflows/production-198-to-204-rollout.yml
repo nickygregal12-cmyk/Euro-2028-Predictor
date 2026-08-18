@@ -1,6 +1,6 @@
-name: Production 198 to 203 rollout
+name: Production 198 to 204 rollout
 
-# One-shot guarded promotion of Contracts 199 to 203: the private AI Lab's
+# One-shot guarded promotion of Contracts 199 to 204: the private AI Lab's
 # operational boundary.
 #
 # This span is FIVE migrations. The boundary proof below establishes the exact
@@ -56,13 +56,13 @@ on:
         description: Exact Production project ref confirmation
         required: true
       confirmation:
-        description: Type APPLY-PRODUCTION-198-TO-203 to proceed
+        description: Type APPLY-PRODUCTION-198-TO-204 to proceed
         required: true
       backup_run_id:
         description: Run id of the successful fresh Production backup
         required: true
       rehearsal_run_id:
-        description: Run id of the successful 198-to-203 rehearsal
+        description: Run id of the successful 198-to-204 rehearsal
         required: true
 
 permissions:
@@ -76,14 +76,14 @@ concurrency:
 env:
   EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
   FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
-  CONFIRMATION_PHRASE: APPLY-PRODUCTION-198-TO-203
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-198-TO-204
   SOURCE_CONTRACT: '198'
   SOURCE_VERSION: '20260818030000'
   SOURCE_NAME: cup_knockout_reservation
-  TARGET_CONTRACT: '203'
-  TARGET_VERSION: '20260818080000'
-  TARGET_NAME: ai_bet_builder_current_decision
-  WORK_DIR: /tmp/production-198-to-203
+  TARGET_CONTRACT: '204'
+  TARGET_VERSION: '20260818090000'
+  TARGET_NAME: ai_dashboard_league_scoped_quarantine
+  WORK_DIR: /tmp/production-198-to-204
 
 jobs:
   rollout:
@@ -128,7 +128,7 @@ jobs:
             printf '%s' "${json}"
           }
           backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
-          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-198-to-203-rehearsal.yml' Rehearsal)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-198-to-204-rehearsal.yml' Rehearsal)"
           rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
           [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
           backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
@@ -166,7 +166,7 @@ jobs:
           fi
           echo "Development is recorded at contract ${dev_contract}, at or beyond this boundary's ${TARGET_CONTRACT}."
 
-      - name: Prove the repository boundary is exactly 198 to 203
+      - name: Prove the repository boundary is exactly 198 to 204
         shell: bash
         run: |
           set -euo pipefail
@@ -276,9 +276,9 @@ jobs:
           cat "${WORK_DIR}/dry-run.txt"
           grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
           sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
-          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contracts 199 to 203.'; exit 1; }
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contracts 199 to 204.'; exit 1; }
 
-      - name: Apply exactly Contracts 199 to 203
+      - name: Apply exactly Contracts 199 to 204
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash

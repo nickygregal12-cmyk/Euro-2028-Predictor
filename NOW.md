@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **203** | latest `20260818080000_ai_bet_builder_current_decision.sql` |
+| Repository | **204** | latest `20260818090000_ai_dashboard_league_scoped_quarantine.sql` |
 | Development hosted | **203** | at `20260818080000_ai_bet_builder_current_decision.sql`, verified `2026-08-18T19:10:16.167Z`, fast-lane run `32174280080` |
 | Production | **198** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 1 — `20260818090000_ai_dashboard_league_scoped_quarantine.sql`
 
-**Next free contract number:** 204. Check open pull requests
+**Next free contract number:** 205. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
