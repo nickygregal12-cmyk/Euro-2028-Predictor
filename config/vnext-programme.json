@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "programme": "vnext",
+  "currentStage": "8",
+  "status": "in_progress",
+  "lastMergedStage": "7.6",
+  "productionCutoverAuthorized": false,
+  "completionPredicate": "stages_8_through_15_merged_and_final_programme_audit_green",
+  "stages": [
+    { "id": "8", "name": "Matches + Match Centre", "status": "in_progress", "pr": null, "contract": "current-stage-8-authority" },
+    { "id": "9", "name": "Leagues", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-9--leagues" },
+    { "id": "10", "name": "Player Profiles + H2H", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-10--player-profiles--h2h" },
+    { "id": "11", "name": "Last Man Standing", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-11--last-man-standing" },
+    { "id": "12", "name": "Predictor Championship", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-12--predictor-championship" },
+    { "id": "13", "name": "Supporting Surfaces", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-13--supporting-surfaces" },
+    { "id": "14", "name": "Football Hub Production Cutover", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-14--football-hub-production-cutover" },
+    { "id": "15", "name": "Euro 2028 vNext Adoption", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-15--euro-2028-vnext-adoption" }
+  ]
+}

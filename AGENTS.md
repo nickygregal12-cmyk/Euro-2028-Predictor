@@ -19,6 +19,7 @@ Do **not** preload the whole documentation tree or launch every developer tool. 
 | Task | Read next |
 | --- | --- |
 | vNext UI / frontend | [`docs/product/ui.md`](docs/product/ui.md), then local scoped instructions such as [`src/vnext/AGENTS.md`](src/vnext/AGENTS.md) |
+| vNext multi-stage programme / resume Stages 8–15 | [`.agents/skills/vnext-programme-runner/SKILL.md`](.agents/skills/vnext-programme-runner/SKILL.md), then [`docs/product/vnext-programme-controller.md`](docs/product/vnext-programme-controller.md) and [`config/vnext-programme.json`](config/vnext-programme.json) |
 | Current production UI maintenance | [`docs/design/README.md`](docs/design/README.md), then only the named legacy design authority needed for the surface |
 | Product behaviour / game rules | [`docs/adr/README.md`](docs/adr/README.md) and the governing ADR; use [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) for accepted-but-unbuilt scope |
 | Database / migrations | machine contract records under `config/`, [`docs/ops/ops-pending-migrations.md`](docs/ops/ops-pending-migrations.md), and the relevant migration/database tests; load current hosted status only when the task needs it |
