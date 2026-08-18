@@ -45,10 +45,10 @@ jobs:
           source_account="$(jq -r '.account_slug // empty' <<<"${source_site}")"
           destination_account="$(jq -r '.account_slug // empty' <<<"${destination_site}")"
 
-          [ -n "${source_account}" ] && [ "${source_account}" = "${destination_account}" ] || {
+          if [ -z "${source_account}" ] || [ "${source_account}" != "${destination_account}" ]; then
             echo 'ERROR: the two Netlify sites are not in the same resolved account.'
             exit 1
-          }
+          fi
 
           source_token="$(netlify_get \
             "https://api.netlify.com/api/v1/accounts/${source_account}/env/SENTRY_AUTH_TOKEN?site_id=${HUB_SITE_ID}")"
@@ -116,10 +116,10 @@ jobs:
               "https://api.netlify.com/api/v1/sites/${site_id}/builds?branch=main")"
             build_id="$(jq -r '.id // empty' <<<"${response}")"
             deploy_id="$(jq -r '.deploy_id // empty' <<<"${response}")"
-            [ -n "${build_id}" ] && [ -n "${deploy_id}" ] || {
+            if [ -z "${build_id}" ] || [ -z "${deploy_id}" ]; then
               echo "ERROR: ${label} build trigger returned no build/deploy id."
               return 1
-            }
+            fi
 
             echo "${label}: build ${build_id}, deploy ${deploy_id}."
             for _ in $(seq 1 90); do
