@@ -328,6 +328,17 @@ insert into expected_authenticated_functions (signature) values
   ('admin_ai_bet_builder_candidates(text,text[],timestamp with time zone,timestamp with time zone,integer)'),
   ('admin_ai_prediction_audit(text,integer)');
 
+-- Contract 201. Three read-only competition-admin views of the private AI Lab:
+-- coverage of every scheduled fixture with the recorded BET/PASS and each
+-- refusal explained, pipeline health, and a fixture-level results review. Like
+-- every read above they are definer functions over schema `ai`, which stays
+-- revoked from every browser role, and they REPORT the decisions the value gate
+-- already recorded rather than making one.
+insert into expected_authenticated_functions (signature) values
+  ('admin_ai_fixture_coverage(timestamp with time zone,timestamp with time zone,text[])'),
+  ('admin_ai_operational_health()'),
+  ('admin_ai_results_review(timestamp with time zone,timestamp with time zone,text[])');
+
 -- The Odds API budget preflight and custody writer are Edge jobs. The outbound
 -- dispatcher is owner/pg_cron-only and therefore belongs to neither execution
 -- allowlist. A browser session can neither spend credits nor fabricate evidence.

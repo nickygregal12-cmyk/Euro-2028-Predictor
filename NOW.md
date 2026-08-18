@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **198** | latest `20260818030000_cup_knockout_reservation.sql` |
+| Repository | **202** | latest `20260818070000_ai_forecast_horizons.sql` |
 | Development hosted | **198** | at `20260818030000_cup_knockout_reservation.sql`, verified `2026-08-18T09:06:00.000Z`, fast-lane run `32119101708` |
 | Production | **198** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 4 — `20260818040000_ai_canonical_bet_evidence.sql`, `20260818050000_ai_odds_collection_cadence.sql`, `20260818060000_ai_lab_coverage_and_health.sql`, `20260818070000_ai_forecast_horizons.sql`
 
-**Next free contract number:** 199. Check open pull requests
+**Next free contract number:** 203. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**61** accepted requirements are outstanding, of which **14** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 1, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 4, PRIV 5, PROF 1, SITE 6, TABLE 1. A further 42 are marked implemented and retained in the register.
+**61** accepted requirements are outstanding, of which **13** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 1, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 4, PRIV 5, PROF 1, SITE 6, TABLE 1. A further 42 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

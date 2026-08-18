@@ -1,0 +1,458 @@
+name: Production 198 to 202 rollout
+
+# One-shot guarded promotion of Contracts 199 to 202: the private AI Lab's
+# operational boundary.
+#
+# This span is FOUR migrations. The boundary proof below establishes the exact
+# SET and every member of it is proven additive before anything is applied,
+# which is the method the 190-to-198 rollout introduced for a multi-migration
+# span and which this one keeps.
+#
+# What the four do, and why none of them moves player data:
+#
+#   199  `ai.bet_advice_identity` plus a third limb on `ai.valid_bets`, so one
+#        fixture and market carry ONE piece of betting evidence. Production held
+#        226 `ai.bets` rows describing 125 fixture/market pairs, with 38 fixtures
+#        carrying two bets on the same selection at the same bookmaker, and every
+#        repeat counted one opinion about one match more than once in the bet
+#        count, the exposure, the hit rate, the ROI and the CLV sample. NO ROW IS
+#        DELETED, SETTLED, VOIDED OR REWRITTEN: the repeats are reclassified and
+#        each names the row that superseded it. `ai.bet_results.actual_result`
+#        also becomes nullable on a `void` settlement, so a postponed fixture can
+#        return a stake.
+#   200  `ai.odds_poll_max_gap_seconds`, the paid odds collection cadence, with
+#        every tier asserted to sit strictly inside the price-freshness allowance
+#        at the same distance from kickoff. No threshold moves.
+#   201  Three competition-admin reads — coverage, operational health and a
+#        fixture-level results review — and the two views that reduce a fixture
+#        forecast by several model versions to one canonical forecast and one
+#        current decision. All read-only; none of them evaluates a gate.
+#   202  A wider `ai.predictions.horizon` vocabulary, so a fixture more than two
+#        days out is re-forecast as new completed matches arrive instead of being
+#        frozen at the first run of the week. Predictions stay immutable.
+#
+# Everything here lives in schema `ai` or in a definer read over it. No scoring
+# rule, reveal rule, membership rule or settled result is redefined; nothing
+# publishes Euro 2028, launches a competition, draws a Championship or schedules
+# a job. The verification below asserts the Championship rules are exactly where
+# it found them, because an AI Lab boundary that quietly moved one is precisely
+# what a guarded rollout exists to catch.
+#
+# `promotionAuthorised` in `config/production-hosted-contract.json` stays
+# `false` throughout, as it has through every previous Production rollout. It is
+# a fail-closed property of that record rather than this workflow's gate; the
+# gate is the dispatch below — a fresh encrypted backup, an exact-head
+# rehearsal, and a typed confirmation naming this boundary.
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type APPLY-PRODUCTION-198-TO-202 to proceed
+        required: true
+      backup_run_id:
+        description: Run id of the successful fresh Production backup
+        required: true
+      rehearsal_run_id:
+        description: Run id of the successful 198-to-202 rehearsal
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-198-TO-202
+  SOURCE_CONTRACT: '198'
+  SOURCE_VERSION: '20260818030000'
+  SOURCE_NAME: ai_actionable_bet_evidence
+  TARGET_CONTRACT: '202'
+  TARGET_VERSION: '20260818070000'
+  TARGET_NAME: ai_forecast_horizons
+  WORK_DIR: /tmp/production-198-to-202
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || { echo 'ERROR: confirmation phrase mismatch.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: that is Development.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || { echo 'ERROR: project ref is not Production.'; exit 1; }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rollout runs only from main.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact main.'; exit 1; }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is dirty.'; exit 1; }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove fresh backup then exact-head rehearsal succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          REHEARSAL_RUN_ID: ${{ inputs.rehearsal_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_run() {
+            local id="$1" path="$2" label="$3" json
+            json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}")"
+            [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo "ERROR: ${label} ${id} did not succeed."; exit 1; }
+            [ "$(jq -r '.path' <<<"${json}")" = "${path}" ] || { echo "ERROR: ${label} ${id} has wrong workflow path."; exit 1; }
+            printf '%s' "${json}"
+          }
+          backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-198-to-202-rehearsal.yml' Rehearsal)"
+          rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
+          [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
+          backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
+          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rollout head.'; exit 1; }
+          backup_at="$(jq -r '.created_at' <<<"${backup}")"; rehearsal_at="$(jq -r '.created_at' <<<"${rehearsal}")"
+          [ "${backup_at}" \< "${rehearsal_at}" ] || { echo 'ERROR: backup does not precede rehearsal.'; exit 1; }
+          artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}/artifacts")"
+          [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || { echo 'ERROR: encrypted backup artifact missing.'; exit 1; }
+          echo "Sequence verified: backup ${BACKUP_RUN_ID} -> rehearsal ${REHEARSAL_RUN_ID} -> rollout."
+
+      - name: Refuse to make Production the first hosted environment to see these
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ADR 0024's ordering rule, restored. It was enforced at the 145-to-151
+          # boundary -- where it CAUGHT a stale record and refused before
+          # touching anything -- and has not been present on a rehearsal since.
+          # Eight migrations at once is the worst possible span on which to
+          # discover that Production went first.
+          #
+          # This reads the machine record rather than the Development database:
+          # the record is what CI keeps honest, and a rehearsal holding
+          # Production credentials should not also hold Development's.
+          dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
+          dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || {
+            echo "ERROR: the Development record names ${dev_ref}, not the Development project."
+            exit 1
+          }
+          if [ "${dev_contract}" -lt "${TARGET_CONTRACT}" ]; then
+            echo "ERROR: Development is recorded at contract ${dev_contract} and this boundary ends at ${TARGET_CONTRACT}."
+            echo 'Production must not be the first hosted environment to see a migration.'
+            echo 'Run the Development fast lane first, reconcile that record, and try again.'
+            exit 1
+          fi
+          echo "Development is recorded at contract ${dev_contract}, at or beyond this boundary's ${TARGET_CONTRACT}."
+
+      - name: Prove the repository boundary is exactly 198 to 202
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository has ${committed} migrations."; exit 1; }
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: deployment contract is ${declared}."; exit 1; }
+          [ "${newest}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+          : > "${WORK_DIR}/boundary.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"; version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              basename "${file}" >> "${WORK_DIR}/boundary.txt"
+              node scripts/check-migration-additive.mjs "${file}"
+            fi
+          done
+          count="$(wc -l < "${WORK_DIR}/boundary.txt" | tr -d ' ')"
+          [ "${count}" = 4 ] || { echo "ERROR: boundary holds ${count} migrations, expected 4."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
+          cat "${WORK_DIR}/boundary.txt"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Capture exact pre-apply Production state
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: SUPABASE_PROD_DB_URL missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
+          esac
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/before.json" <<'SQL'
+          select jsonb_build_object(
+            'migration_count',(select count(*) from supabase_migrations.schema_migrations),
+            'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'auth_users',(select count(*) from auth.users),
+            'profiles',(select count(*) from public.profiles),
+            'entries',(select count(*) from public.entries),
+            'season_predictions',(select count(*) from public.season_predictions),
+            'match_predictions',(select count(*) from public.match_predictions),
+            'season_matchweek_scores',(select count(*) from public.season_matchweek_scores),
+            'bonus_entrants',(select count(*) from public.bonus_competition_entrants),
+            'bonus_score_events',(select count(*) from public.bonus_score_events),
+            'leagues',(select count(*) from public.leagues),
+            'league_members',(select count(*) from public.league_members),
+            'cup_launches',(select count(*) from public.bonus_cup_launches),
+            'cup_fixtures',(select count(*) from public.bonus_cup_fixtures),
+            'season_fixtures',(select count(*) from public.season_fixtures),
+            'action_items',(select count(*) from public.player_action_items),
+            'api_usage',(select count(*) from ai.api_usage),
+            'collection_enabled',(select collection_enabled from ai.api_budget limit 1),
+            'euro_publication',(select state from public.euro_publication_state()),
+            'cron_jobs',(select count(*) from cron.job),
+            'cron_fingerprint',(select md5(coalesce(string_agg(jobid::text||'|'||jobname||'|'||schedule||'|'||command||'|'||active::text,E'\n' order by jobid),'')) from cron.job where jobname not like 'ai-odds-%'),
+            -- The odds heartbeat is EXCLUDED from the fingerprint above and
+            -- named separately. `ai-odds-scheduler-reconcile.yml` rewrites its
+            -- command from repository SQL on every push to main and daily at
+            -- 04:20, so a fingerprint over every job would report a change this
+            -- boundary did not make and could not prevent. Excluding it silently
+            -- would be worse, so the command is carried in its own key and the
+            -- assertion is that the heartbeat still exists and is active.
+            'ai_odds_jobs',(select count(*) from cron.job where jobname like 'ai-odds-%'),
+            'ai_odds_heartbeat_active',(select coalesce(bool_and(active),false) from cron.job where jobname like 'ai-odds-%'),
+            'ai_odds_command_md5',(select md5(coalesce(string_agg(command,E'\n' order by jobid),'')) from cron.job where jobname like 'ai-odds-%'));
+          SQL
+          cat "${WORK_DIR}/before.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const x = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const want = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [k, v] of Object.entries(want)) {
+            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
+          }
+          NODE
+
+      - name: Dry run and refuse anything except the four approved migrations
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase migration list --db-url "${SUPABASE_PROD_DB_URL}" | tail -20
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
+          sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contracts 199 to 202.'; exit 1; }
+
+      - name: Apply exactly Contracts 199 to 202
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" 2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Verify installed behaviour and that nothing player-facing moved
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/after.json" <<'SQL'
+          select jsonb_build_object(
+            'migration_count',(select count(*) from supabase_migrations.schema_migrations),
+            'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'target_row_present',(select count(*) from supabase_migrations.schema_migrations where version='20260818070000' and name='ai_forecast_horizons'),
+            'auth_users',(select count(*) from auth.users),
+            'profiles',(select count(*) from public.profiles),
+            'entries',(select count(*) from public.entries),
+            'season_predictions',(select count(*) from public.season_predictions),
+            'match_predictions',(select count(*) from public.match_predictions),
+            'season_matchweek_scores',(select count(*) from public.season_matchweek_scores),
+            'bonus_entrants',(select count(*) from public.bonus_competition_entrants),
+            'bonus_score_events',(select count(*) from public.bonus_score_events),
+            'leagues',(select count(*) from public.leagues),
+            'league_members',(select count(*) from public.league_members),
+            'cup_launches',(select count(*) from public.bonus_cup_launches),
+            'cup_fixtures',(select count(*) from public.bonus_cup_fixtures),
+            'season_fixtures',(select count(*) from public.season_fixtures),
+            'action_items',(select count(*) from public.player_action_items),
+            'api_usage',(select count(*) from ai.api_usage),
+            'collection_enabled',(select collection_enabled from ai.api_budget limit 1),
+            'euro_publication',(select state from public.euro_publication_state()),
+            'cron_jobs',(select count(*) from cron.job),
+            'cron_fingerprint',(select md5(coalesce(string_agg(jobid::text||'|'||jobname||'|'||schedule||'|'||command||'|'||active::text,E'\n' order by jobid),'')) from cron.job where jobname not like 'ai-odds-%'),
+            -- The odds heartbeat is EXCLUDED from the fingerprint above and
+            -- named separately. `ai-odds-scheduler-reconcile.yml` rewrites its
+            -- command from repository SQL on every push to main and daily at
+            -- 04:20, so a fingerprint over every job would report a change this
+            -- boundary did not make and could not prevent. Excluding it silently
+            -- would be worse, so the command is carried in its own key and the
+            -- assertion is that the heartbeat still exists and is active.
+            'ai_odds_jobs',(select count(*) from cron.job where jobname like 'ai-odds-%'),
+            'ai_odds_heartbeat_active',(select coalesce(bool_and(active),false) from cron.job where jobname like 'ai-odds-%'),
+            'ai_odds_command_md5',(select md5(coalesce(string_agg(command,E'\n' order by jobid),'')) from cron.job where jobname like 'ai-odds-%'),
+            'ai_predictions',(select count(*) from ai.predictions),
+            'ai_bets',(select count(*) from ai.bets),
+            'ai_bet_results',(select count(*) from ai.bet_results),
+            'ai_recommendations',(select count(*) from ai.recommendations),
+            'ai_models_current',(select count(*) from ai.models where status='current'),
+            -- CONTRACT 199. One fixture and market carries one piece of evidence,
+            -- every ai.bets row is still classified exactly once, and no row was
+            -- deleted to get there.
+            'valid_bets_rows',(select count(*) from ai.valid_bets),
+            'valid_bets_pairs',(select count(distinct (fixture_id, market)) from ai.valid_bets),
+            'advice_identity_covers_all',((select count(*) from ai.bet_advice_identity)=(select count(*) from ai.bets)),
+            'canonical_equals_pairs',((select count(*) from ai.bet_advice_identity where is_canonical)=(select count(distinct (fixture_id, market)) from ai.bets)),
+            'void_settlement_expressible',(select is_nullable='YES' from information_schema.columns where table_schema='ai' and table_name='bet_results' and column_name='actual_result'),
+            -- CONTRACT 200. The cadence is installed and every tier is strictly
+            -- inside the freshness allowance at the same distance from kickoff.
+            'cadence_tiers_outside_freshness',(select count(*) from (values (0.25),(1.0),(2.0),(2.001),(4.0),(8.0),(8.001),(12.0),(24.0),(24.001),(96.0),(180.0)) as h(hours) where ai.odds_poll_max_gap_seconds(h.hours) is null or ai.odds_poll_max_gap_seconds(h.hours) >= ai.price_age_limit_seconds(h.hours,false)),
+            'cadence_stops_beyond_window',(ai.odds_poll_max_gap_seconds(180.001) is null),
+            -- CONTRACT 201. Three admin reads, authenticated-only, and two views
+            -- no browser role can reach.
+            'ai_reads_authenticated',(select count(distinct routine_name) from information_schema.role_routine_grants where routine_schema='public' and grantee='authenticated' and routine_name in ('admin_ai_fixture_coverage','admin_ai_operational_health','admin_ai_results_review')),
+            'ai_reads_leaked',(select count(*) from information_schema.role_routine_grants where routine_schema='public' and grantee in ('PUBLIC','anon') and routine_name in ('admin_ai_fixture_coverage','admin_ai_operational_health','admin_ai_results_review')),
+            'ai_reads_are_stable_definer',(select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.prosecdef and p.provolatile='s' and p.proname in ('admin_ai_fixture_coverage','admin_ai_operational_health','admin_ai_results_review')),
+            'ai_views_leaked',(select count(*) from information_schema.role_table_grants where table_schema='ai' and table_name in ('bet_advice_identity','canonical_fixture_predictions','current_fixture_recommendations') and grantee in ('PUBLIC','anon','authenticated')),
+            'pass_codes_explained',(select count(*) from unnest(array['PASS_LOW_EDGE','PASS_STALE_PRICE','PASS_LOW_DATA','PASS_HIGH_MODEL_DISAGREEMENT','PASS_WIDE_UNCERTAINTY','PASS_MARKET_DISCREPANCY','PASS_INPUT_PENDING','PASS_LONGSHOT','PASS_ODDS_OUT_OF_RANGE','PASS_UNBETTABLE_BOOK','PASS_NO_MARKET_REFERENCE']) as c where ai.pass_reason_explanation(c) not like 'No explanation%')),
+            -- CONTRACT 202. The forecast horizon vocabulary is widened and still
+            -- closed, and the uniqueness key it works through is untouched.
+            'horizon_vocabulary_widened',((select count(*) from pg_constraint where conrelid='ai.predictions'::regclass and conname='predictions_horizon_check' and pg_get_constraintdef(oid) like '%t168%' and pg_get_constraintdef(oid) like '%t120%' and pg_get_constraintdef(oid) like '%t72%')=1),
+            'horizon_uniqueness_intact',((select count(*) from pg_indexes where schemaname='ai' and indexname='predictions_one_per_model_fixture_horizon')=1));
+          SQL
+          cat "${WORK_DIR}/after.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" AFTER_FILE="${WORK_DIR}/after.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const b = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const a = JSON.parse(fs.readFileSync(process.env.AFTER_FILE, 'utf8'))
+          const problems = []
+          const eq = (k, v) => String(a[k]) === String(v) || problems.push(`${k}=${a[k]}, expected ${v}`)
+
+          eq('migration_count', Number(process.env.TARGET_CONTRACT))
+          eq('latest_version', process.env.TARGET_VERSION)
+          eq('latest_name', process.env.TARGET_NAME)
+          eq('target_row_present', 1)
+
+          // Nothing here writes player data, and no timer can create any of
+          // these without a human, so they must be identical across the apply.
+          for (const k of [
+            'auth_users','profiles','entries','season_predictions','match_predictions',
+            'bonus_entrants','bonus_score_events','leagues','league_members',
+            'cup_launches','cup_fixtures','season_fixtures',
+            'collection_enabled','euro_publication','cron_jobs','cron_fingerprint',
+            'ai_odds_jobs',
+          ]) eq(k, b[k])
+
+          // The odds heartbeat must still be scheduled and active. Its COMMAND is
+          // deliberately not required to be unchanged: the reconciliation
+          // workflow owns it and rewrites it from repository SQL, so pinning it
+          // here would make this boundary fail on somebody else's correct change.
+          eq('ai_odds_heartbeat_active', 't')
+
+          // These two CAN move legitimately while the rollout runs: Production
+          // keeps scheduled jobs, and contract 135's provider path and the
+          // action driver both write on a timer. Requiring exact equality would
+          // report a false alarm after the migrations had already applied, so
+          // the check is that neither went BACKWARDS, with the delta printed.
+          for (const k of ['season_matchweek_scores','api_usage','action_items']) {
+            if (Number(a[k]) < Number(b[k])) problems.push(`${k} fell from ${b[k]} to ${a[k]}`)
+          }
+
+          // CONTRACT 199. ai.valid_bets can now hold at most one row per fixture
+          // and market, every ai.bets row is classified exactly once, and NO ROW
+          // WAS DELETED to achieve either. The row count falling would mean the
+          // contract had rewritten history rather than reclassified it.
+          eq('valid_bets_rows', a.valid_bets_pairs)
+          eq('advice_identity_covers_all', 't')
+          eq('canonical_equals_pairs', 't')
+          eq('void_settlement_expressible', 't')
+          eq('ai_bets', b.ai_bets)
+
+          // CONTRACT 200. Zero tiers outside the freshness allowance, and the
+          // collector stops rather than polls beyond the forecast horizon.
+          eq('cadence_tiers_outside_freshness', 0)
+          eq('cadence_stops_beyond_window', 't')
+
+          // CONTRACT 201. Three reads, all STABLE SECURITY DEFINER, reachable by
+          // a signed-in administrator and by no anonymous role; the three views
+          // reachable by no browser role at all; every refusal code explained.
+          eq('ai_reads_authenticated', 3)
+          eq('ai_reads_leaked', 0)
+          eq('ai_reads_are_stable_definer', 3)
+          eq('ai_views_leaked', 0)
+          eq('pass_codes_explained', 11)
+
+          // CONTRACT 202. The vocabulary is wider and the uniqueness key that
+          // makes the widening mean anything is still there.
+          eq('horizon_vocabulary_widened', 't')
+          eq('horizon_uniqueness_intact', 't')
+
+          // The AI Lab's own evidence must not shrink. These are written by
+          // scheduled jobs, so they may GROW while the rollout runs; falling
+          // would mean a migration deleted analytical history.
+          for (const k of ['ai_predictions','ai_recommendations','ai_bet_results']) {
+            if (Number(a[k]) < Number(b[k])) problems.push(`${k} fell from ${b[k]} to ${a[k]}`)
+          }
+          eq('ai_models_current', b.ai_models_current)
+
+          if (problems.length) {
+            console.error('ROLLOUT VERIFICATION FAILED:\n - ' + problems.join('\n - '))
+            process.exit(1)
+          }
+          console.log(`Production reached Contract ${a.migration_count} (${a.latest_name}).`)
+          console.log(`Player-facing counts unchanged: ${a.auth_users} auth users, ${a.profiles} profiles, ${a.entries} entries, ${a.match_predictions} match predictions, ${a.leagues} leagues, ${a.league_members} members, ${a.season_fixtures} season fixtures.`)
+          console.log(`Timer-driven counters: matchweek scores ${b.season_matchweek_scores} -> ${a.season_matchweek_scores}, provider usage ${b.api_usage} -> ${a.api_usage}, action items ${b.action_items} -> ${a.action_items}.`)
+          console.log(`Euro publication remains ${a.euro_publication}; ${a.cron_jobs} cron jobs with an unchanged fingerprint; paid collection remains ${a.collection_enabled}.`)
+          NODE
+
+      - name: Record the completed safety boundary
+        if: success()
+        shell: bash
+        run: |
+          cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
+          ## Production is at Contract 202
+
+          - Exactly four migrations applied, each proven additive before the apply.
+          - Auth users, profiles, entries, predictions, entrants, score events, leagues, members, Cup launches, Cup fixtures and season fixtures are all unchanged.
+          - Euro publication state and paid collection are unchanged. The cron fingerprint is unchanged over every job EXCEPT the AI odds heartbeat, which `ai-odds-scheduler-reconcile.yml` owns and rewrites from repository SQL; the heartbeat is asserted present and active rather than byte-identical.
+          - Contract 199: `ai.valid_bets` now holds at most one row per fixture and market, every `ai.bets` row is classified exactly once by `ai.bet_advice_identity`, and the `ai.bets` row count is UNCHANGED — the repeats were reclassified, not deleted.
+          - Contract 200: every cadence tier sits strictly inside the price-freshness allowance at the same distance from kickoff, and the collector stops rather than polls beyond seven and a half days.
+          - Contract 201: the three admin reads are STABLE SECURITY DEFINER, executable by `authenticated` and by no anonymous role; the three AI Lab views are readable by no browser role; all eleven refusal codes carry an explanation.
+          - Contract 202: the forecast horizon vocabulary is wider and the per-model uniqueness key it works through is intact.
+          - Forecasts, recommendations and settled results did not fall, and the nine current models are unchanged.
+
+          This promotion is schema only. It published no Euro 2028, launched no competition, drew no Championship, opened no Last Man Standing, scheduled no job, promoted no model and imported no football. Nothing it applied deletes, settles, voids or rewrites a historical bet, forecast or grade.
+
+          Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 202 ledger row. `promotionAuthorised` stays `false`.
+          SUMMARY

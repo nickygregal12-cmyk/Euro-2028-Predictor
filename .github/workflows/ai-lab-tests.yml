@@ -11,7 +11,13 @@ on:
       # rebase, and 20260812060000 is cup_group_qualification. This suite
       # therefore did not run for the contract it exists to guard, and would
       # have run for an unrelated Championship change.
-      - 'supabase/migrations/*_ai_lab_*.sql'
+      #
+      # `*_ai_*` rather than `*_ai_lab_*`: three of the five AI Lab contracts
+      # name the subsystem without the word "lab" — ai_quarantined_evidence_
+      # reads, ai_actionable_bet_evidence and ai_canonical_bet_evidence — and
+      # those are the three that decide what counts as betting evidence. The
+      # narrower pattern did not run this suite for any of them.
+      - 'supabase/migrations/*_ai_*.sql'
       - '.github/workflows/ai-lab*.yml'
       - 'config/deployment-contract.json'
   workflow_dispatch:

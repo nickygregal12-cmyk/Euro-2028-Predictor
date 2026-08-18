@@ -71,7 +71,14 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- One valid future prediction for four historical/current bet rows.
+-- FOUR fixtures, one valid future prediction each, one bet each.
+--
+-- This was one fixture carrying all four bets, which is the shape Production
+-- actually had and is exactly the shape contract 199 exists to stop:
+-- `ai.valid_bets` now admits only the CANONICAL advice for a fixture and market,
+-- so four bets on one fixture would collapse to one and every count below would
+-- be measuring the canonical rule rather than the venue rule this file is about.
+-- Separating them keeps each assertion testing what it was written to test.
 -- ---------------------------------------------------------------------------
 insert into ai.models (id, league, version, family, training_matches, status)
 values (md5('q190-model')::uuid, 'Q190', 'q190-v1', 'poisson', 500, 'challenger');
@@ -79,19 +86,20 @@ values (md5('q190-model')::uuid, 'Q190', 'q190-v1', 'poisson', 500, 'challenger'
 insert into ai.fixtures (
   id, division, season, league_key, match_date, kickoff_at,
   home_canonical, away_canonical, status)
-values (
-  md5('q190-fixture')::uuid, 'Q190', '2627', 'Q190',
-  (now() + interval '3 days')::date, now() + interval '3 days',
-  'Q190 Home', 'Q190 Away', 'scheduled');
+select md5('q190-fixture-' || tag)::uuid, 'Q190', '2627', 'Q190',
+       (now() + interval '3 days')::date, now() + interval '3 days',
+       'Q190 Home ' || tag, 'Q190 Away ' || tag, 'scheduled'
+  from unnest(array['max-settled', 'max-open', 'ps-settled', 'b365-open']) as tag;
 
 insert into ai.predictions (
   id, model_id, league, fixture_id, kickoff_at, home_canonical, away_canonical,
   p_home, p_draw, p_away, predicted_result, predicted_score, features)
-values (
-  md5('q190-prediction')::uuid, md5('q190-model')::uuid, 'Q190',
-  md5('q190-fixture')::uuid, now() + interval '3 days', 'Q190 Home', 'Q190 Away',
-  0.50000, 0.25000, 0.25000, 'H', '2-1',
-  '{"elo_diff":40,"season_progress":0.5,"home_is_newcomer":0,"away_is_newcomer":0}'::jsonb);
+select md5('q190-prediction-' || tag)::uuid, md5('q190-model')::uuid, 'Q190',
+       md5('q190-fixture-' || tag)::uuid, now() + interval '3 days',
+       'Q190 Home ' || tag, 'Q190 Away ' || tag,
+       0.50000, 0.25000, 0.25000, 'H', '2-1',
+       '{"elo_diff":40,"season_progress":0.5,"home_is_newcomer":0,"away_is_newcomer":0}'::jsonb
+  from unnest(array['max-settled', 'max-open', 'ps-settled', 'b365-open']) as tag;
 
 -- Simulate immutable rows that existed before Contract 190. Disabling ONLY the
 -- newly-strengthened trigger is deliberate: every other ai.bets constraint and
@@ -104,11 +112,11 @@ insert into ai.bets (
   kickoff_at, bookmaker, odds_taken, model_prob, edge, stake_fraction,
   stake_units, is_paper, market, status)
 values
-  (md5('q190-max-settled')::uuid, md5('q190-prediction')::uuid, md5('q190-model')::uuid,
-   'Q190', md5('q190-fixture')::uuid, 'H', now(), now() + interval '3 days',
+  (md5('q190-max-settled')::uuid, md5('q190-prediction-max-settled')::uuid, md5('q190-model')::uuid,
+   'Q190', md5('q190-fixture-max-settled')::uuid, 'H', now(), now() + interval '3 days',
    'MAX', 2.500, 0.50000, 0.25000, 0.02000, 2.0000, true, '1X2', 'settled'),
-  (md5('q190-max-open')::uuid, md5('q190-prediction')::uuid, md5('q190-model')::uuid,
-   'Q190', md5('q190-fixture')::uuid, 'D', now(), now() + interval '3 days',
+  (md5('q190-max-open')::uuid, md5('q190-prediction-max-open')::uuid, md5('q190-model')::uuid,
+   'Q190', md5('q190-fixture-max-open')::uuid, 'D', now(), now() + interval '3 days',
    'MAX', 4.000, 0.25000, 0.00000, 0.01000, 1.0000, true, '1X2', 'advised');
 
 alter table ai.bets enable trigger bets_real_price;
@@ -119,11 +127,11 @@ insert into ai.bets (
   kickoff_at, bookmaker, odds_taken, model_prob, edge, stake_fraction,
   stake_units, is_paper, market, status)
 values
-  (md5('q190-ps-settled')::uuid, md5('q190-prediction')::uuid, md5('q190-model')::uuid,
-   'Q190', md5('q190-fixture')::uuid, 'H', now(), now() + interval '3 days',
+  (md5('q190-ps-settled')::uuid, md5('q190-prediction-ps-settled')::uuid, md5('q190-model')::uuid,
+   'Q190', md5('q190-fixture-ps-settled')::uuid, 'H', now(), now() + interval '3 days',
    'PS', 2.400, 0.50000, 0.20000, 0.02000, 2.0000, true, '1X2', 'settled'),
-  (md5('q190-b365-open')::uuid, md5('q190-prediction')::uuid, md5('q190-model')::uuid,
-   'Q190', md5('q190-fixture')::uuid, 'D', now(), now() + interval '3 days',
+  (md5('q190-b365-open')::uuid, md5('q190-prediction-b365-open')::uuid, md5('q190-model')::uuid,
+   'Q190', md5('q190-fixture-b365-open')::uuid, 'D', now(), now() + interval '3 days',
    'B365', 3.900, 0.25000, -0.02500, 0.01000, 1.0000, true, '1X2', 'advised');
 
 insert into ai.bet_results (
@@ -156,8 +164,8 @@ select throws_ok(
       id,prediction_id,model_id,league,fixture_id,selection,kickoff_at,bookmaker,
       odds_taken,model_prob,edge,stake_fraction,stake_units,is_paper,market,status)
     values (
-      md5('q190-new-max')::uuid,md5('q190-prediction')::uuid,md5('q190-model')::uuid,
-      'Q190',md5('q190-fixture')::uuid,'A',now()+interval '3 days','MAX',
+      md5('q190-new-max')::uuid,md5('q190-prediction-max-settled')::uuid,md5('q190-model')::uuid,
+      'Q190',md5('q190-fixture-max-settled')::uuid,'A',now()+interval '3 days','MAX',
       9.0,0.25,1.25,0.01,1.0,true,'1X2','advised')$$,
   '22000', null,
   'future MAX paper bets are rejected'
@@ -168,8 +176,8 @@ select throws_ok(
       id,prediction_id,model_id,league,fixture_id,selection,kickoff_at,bookmaker,
       odds_taken,model_prob,edge,stake_fraction,stake_units,is_paper,market,status)
     values (
-      md5('q190-new-avg')::uuid,md5('q190-prediction')::uuid,md5('q190-model')::uuid,
-      'Q190',md5('q190-fixture')::uuid,'A',now()+interval '3 days','AVG',
+      md5('q190-new-avg')::uuid,md5('q190-prediction-max-settled')::uuid,md5('q190-model')::uuid,
+      'Q190',md5('q190-fixture-max-settled')::uuid,'A',now()+interval '3 days','AVG',
       8.0,0.25,1.00,0.01,1.0,true,'1X2','advised')$$,
   '22000', null,
   'future AVG paper bets are rejected'
@@ -180,8 +188,8 @@ select throws_ok(
       id,prediction_id,model_id,league,fixture_id,selection,kickoff_at,bookmaker,
       odds_taken,model_prob,edge,stake_fraction,stake_units,is_paper,market,status)
     values (
-      md5('q190-new-unknown')::uuid,md5('q190-prediction')::uuid,md5('q190-model')::uuid,
-      'Q190',md5('q190-fixture')::uuid,'A',now()+interval '3 days','NOT-A-BOOK',
+      md5('q190-new-unknown')::uuid,md5('q190-prediction-max-settled')::uuid,md5('q190-model')::uuid,
+      'Q190',md5('q190-fixture-max-settled')::uuid,'A',now()+interval '3 days','NOT-A-BOOK',
       8.0,0.25,1.00,0.01,1.0,true,'1X2','advised')$$,
   '22000', null,
   'future unknown-book paper bets are rejected'

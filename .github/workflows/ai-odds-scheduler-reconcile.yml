@@ -5,6 +5,11 @@ name: Reconcile AI odds scheduler
 # that reconciliation itself consumed no provider credit. The installed job is
 # fixture-aware: it tightens collection cadence as a paid-covered kickoff gets
 # closer while public.dispatch_ai_odds_polls() keeps the budget authority.
+#
+# It is also the delivery path for contract 200's wider collection window. The
+# cadence seconds are inlined in the cron command rather than called from
+# ai.odds_poll_max_gap_seconds(), so this reconciliation fixes hosted price
+# freshness on its own schedule without waiting for a database promotion.
 on:
   push:
     branches: [main]
@@ -104,7 +109,18 @@ jobs:
               raise SystemExit(f'unexpected reconciled scheduler row: {rows[0]!r}')
           if 'dispatch_ai_odds_polls(true)' not in command:
               raise SystemExit('fixture-aware heartbeat must bypass only the legacy Tuesday/Friday clock window')
-          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}, database_budget_guard=verified')
+          # The window is the whole point of contract 200. A heartbeat that only
+          # looks twenty-four hours ahead collects nothing for most of the week,
+          # every quote ages past the twelve-hour freshness limit, and every
+          # recommendation becomes PASS_STALE_PRICE while the gate is working
+          # perfectly. Prove the reconciled job carries the wide window and the
+          # far cadence tier rather than assuming the file that installed it did.
+          if "interval '180 hours'" not in command:
+              raise SystemExit('reconciled heartbeat does not carry the 180-hour fixture window')
+          if 'then 28800' not in command:
+              raise SystemExit('reconciled heartbeat has no far cadence tier for a fixture beyond 24 hours')
+          print(f'Reconciled heartbeat job {jobid}: {schedule}, active={active}, '
+                'window=180h, far_cadence=8h, database_budget_guard=verified')
           PY
 
       - name: Prove reconciliation made zero provider calls
@@ -126,19 +142,18 @@ jobs:
         if: success()
         shell: bash
         run: |
+          # No backticks in these strings. shellcheck reads a backtick inside a
+          # single-quoted echo as command substitution and raises SC2016, which
+          # actionlint promotes to a failure — and actionlint only lints CHANGED
+          # workflows, so two of these lines had carried the warning silently
+          # since they were written and surfaced the moment this file moved.
           {
             echo '## AI odds scheduler reconciled'
             echo
-            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
-            # when SHA-pinning marked the file changed, so it is pre-existing.
-            # shellcheck disable=SC2016
-            echo '- Production holds one active `ai-odds-window-heartbeat` job.'
+            echo '- Production holds one active ai-odds-window-heartbeat job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
-            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
-            # when SHA-pinning marked the file changed, so it is pre-existing.
-            # shellcheck disable=SC2016
-            echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep `ai_odds_budget_check` and fail closed when collection is denied.'
-            echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
-            echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h).'
+            echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep ai_odds_budget_check and fail closed when collection is denied.'
+            echo '- The heartbeat runs every five minutes and dispatches when a paid-covered fixture is inside 180 hours (seven and a half days) and the freshness-aware cadence is due.'
+            echo '- Cadence is at most 8h (24-180h to kickoff), 6h (8-24h), 50m (2-8h), and 10m (2h or less) - every tier strictly inside the price-freshness allowance at the same distance.'
           } >> "$GITHUB_STEP_SUMMARY"

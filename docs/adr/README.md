@@ -115,3 +115,11 @@ same paragraph existed in seven places at once.
 > **Contract 197:** adds no rule and changes no ADR. It reuses contract 111’s fixture projection and bounds and the `entries` scope every season read already applies.
 
 > **Contract 198:** implements ADR 0028 § 20 and CORRECTS ADR 0014 in place — its worked table reported leftover rounds as the tail rather than the depth a bracket needs. ADR 0022 is not engaged: no qualification, seeding, bye, playoff-pairing or Penalty Number rule moves.
+
+> **Contract 199:** adds no rule and changes no ADR. It extends ADR 0029's existing betting-evidence authority — `ai.valid_bets`, already carrying contract 189's forecast-validity limb and contract 190's real-venue limb — with a third limb, and preserves every historical row. ADR 0030's model lifecycle is untouched.
+
+> **Contract 200:** adds no rule and changes no ADR. ADR 0029's price-freshness and value-gate thresholds are unchanged; only how often prices are collected to feed them moves.
+
+> **Contract 201:** adds no rule and changes no ADR. It is read-only reporting over the evidence ADR 0029 already defines, behind the existing competition-admin boundary, and a test asserts against the installed definition that it re-derives no BET or PASS.
+
+> **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged — the second weekly training pass runs the same `train_selected_challengers.py` through the same verified gates.

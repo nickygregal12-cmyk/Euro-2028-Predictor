@@ -8,6 +8,7 @@ from `anon`/`authenticated` by design.
 from __future__ import annotations
 
 import json
+import re
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Any, Iterable
@@ -136,13 +137,25 @@ def load_upcoming_fixtures(tournament_name: str, days_ahead: int = 10) -> pd.Dat
 
 
 def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
+    """Ungraded forecasts of played fixtures, with the closing line beside them.
+
+    `ai.raw_matches` is a LEFT join and supplies the BENCHMARK only. A forecast
+    of a fixture with an authoritative result is graded whether or not
+    Football-Data has published a closing line for it, exactly as a bet is
+    settled without one: the market comparison columns stay null and say so.
+    """
     return query_df(
         """
         select p.id as prediction_id, p.p_home, p.p_draw, p.p_away,
                p.predicted_result, p.predicted_score,
-               f.home_goals as home_score, f.away_goals as away_score
+               p.mkt_home_at_prediction, p.mkt_draw_at_prediction,
+               p.mkt_away_at_prediction,
+               f.home_goals as home_score, f.away_goals as away_score,
+               rm.close_avg_h, rm.close_avg_d, rm.close_avg_a,
+               rm.close_ps_h,  rm.close_ps_d,  rm.close_ps_a
           from ai.valid_predictions p
           join ai.fixtures f             on f.id = p.fixture_id
+     left join ai.raw_matches rm         on rm.id = f.raw_match_id
      left join ai.prediction_results r   on r.prediction_id = p.id
          where p.league = %s
            and f.status = 'played'
@@ -152,6 +165,33 @@ def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
         """,
         (league_key,),
     )
+
+
+def supported_horizons() -> frozenset[str]:
+    """The horizon vocabulary the TARGET DATABASE actually accepts.
+
+    Contract 202 widens `predictions_horizon_check` to admit t72, t120 and t168.
+    Between the moment that code merges and the moment the contract reaches a
+    hosted environment, `predict.py` would compute a horizon the database refuses
+    and every forecast in the window would fail on a check violation — a red job
+    every morning until somebody promotes a migration, which is the shape of
+    noise that gets a red tick ignored. The forecaster asks instead, and falls
+    back to the bucket the database does have.
+
+    Read from the installed constraint rather than from a version number,
+    because the constraint is the thing that will refuse the insert.
+    """
+    with connect() as conn:
+        row = conn.execute(
+            """select pg_get_constraintdef(c.oid) as def
+                 from pg_constraint c
+                where c.conrelid = 'ai.predictions'::regclass
+                  and c.conname = 'predictions_horizon_check'"""
+        ).fetchone()
+    if not row or not row["def"]:
+        return frozenset()
+    return frozenset(re.findall(r"'([a-z0-9]+)'::text", row["def"])
+                     or re.findall(r"'([a-z0-9]+)'", row["def"]))
 
 
 def current_model(league: str) -> dict[str, Any] | None:
@@ -630,6 +670,15 @@ def insert_prediction_results(rows: list[dict]) -> int:
     cols = [
         "prediction_id", "actual_home_goals", "actual_away_goals", "actual_result",
         "result_correct", "exact_score_correct", "log_loss", "brier", "rps",
+        # Contract 185's market comparison columns, which nothing was populating.
+        # Every one of Production's 107 graded rows on 18 August 2026 carried a
+        # null market_log_loss, so "is the model better than the market" — the
+        # only comparison at this sample size that means anything at all — could
+        # not be answered from the lab's own record while the closing prices sat
+        # in ai.raw_matches beside it. They are null only when no benchmark
+        # exists, never because nobody wrote them.
+        "mkt_home_closing", "mkt_draw_closing", "mkt_away_closing",
+        "market_log_loss", "log_loss_vs_market", "market_moved_toward_model",
     ]
     head = f"insert into ai.prediction_results ({','.join(cols)}) values "
     tail = " on conflict (prediction_id) do nothing"

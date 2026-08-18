@@ -362,6 +362,28 @@ same paragraph existed in seven places at once.
 > extracted so the launcher that reserves and the gate that creates the windows
 > share one answer.
 
+> **Contracts 199 and 200 — the private AI Lab becomes operable for a weekend.**
+> **Neither reorders the programme and neither touches a player-facing rule.**
+> Contract 199 fixes what one piece of betting evidence is: the guard against
+> advising a fixture twice asked about the prediction rather than the fixture,
+> so every retrain minted a second paper bet on the same match and every
+> betting metric counted one opinion several times. The historical rows are
+> excluded from evidence rather than deleted. Contract 200 fixes the collector
+> rather than the gate: the odds heartbeat only looked twenty-four hours ahead
+> while the lab forecasts ten days, so prices aged past their own freshness
+> limit between matchdays and every recommendation became `PASS_STALE_PRICE`.
+> No freshness, edge, confidence, agreement or uncertainty threshold moves.
+> Contract 201 then makes the lab legible: three bounded admin reads that
+> answer every relevant fixture, why each one is or is not actionable, whether
+> each stage of the pipeline is current, and what happened one row per fixture
+> rather than once per model version that forecast it.
+> Contract 202 closes the loop: a fixture more than two days away was forecast
+> once and never again, so results imported afterwards never reached it and the
+> README's own invariant was not being met. Predictions stay immutable — the
+> vocabulary gains more horizon buckets so a better forecast is a new row rather
+> than a discarded one — and a second weekly training pass runs after the
+> weekend's results are published rather than before.
+
 > **Contract 197 — one chronological calendar across the player's competitions.**
 > **Advances the Stage 8 Matches work and reorders nothing else.** Counted over
 > `public` at contract 196, every fixture read was scoped to one season, one

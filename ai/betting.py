@@ -163,6 +163,39 @@ def fractional_kelly(model_prob, decimal_odds, fraction: float = 0.25,
     return np.clip(kelly_fraction(model_prob, decimal_odds) * fraction, 0.0, cap)
 
 
+# Benchmark preference for a closing line, sharpest first. MAX IS DELIBERATELY
+# ABSENT.
+#
+# Max H, Max D and Max A are each the best price from whichever bookmaker
+# happened to be top on that outcome, so the triple is a synthetic book that
+# nobody offered. Its overround is frequently below 1 — it is an arbitrage — and
+# de-vigging something whose implied probabilities already sum to less than one
+# is not a meaningful operation. It flatters every comparison in the direction
+# you would most like to be flattered. Max stays useful as "the best price
+# available"; it is never the fair line.
+#
+# This lives here rather than in settle_bets because two jobs now need it and
+# they must not be able to disagree: settlement measures a bet against the close
+# and evaluation measures the FORECAST against it, and a benchmark that differed
+# between them would make the two records incomparable.
+CLOSING_BENCHMARKS = (("PS", "close_ps"), ("AVG", "close_avg"))
+
+
+def closing_triple(row):
+    """The closing (H, D, A) odds, the book they came from, and its overround.
+
+    `row` is any mapping carrying `close_ps_h`-style keys. Returns
+    `(None, None, None)` when no benchmark is complete: a missing closing line
+    is a missing measurement, never a substituted one.
+    """
+    for code, prefix in CLOSING_BENCHMARKS:
+        triple = [row.get(f"{prefix}_{leg}") for leg in ("h", "d", "a")]
+        if all(v is not None and np.isfinite(float(v)) for v in triple):
+            arr = np.array([float(v) for v in triple])
+            return arr, code, float((1.0 / arr).sum())
+    return None, None, None
+
+
 def closing_line_value(odds_taken, closing_fair_prob) -> np.ndarray:
     """EV of the price you took, measured at the closing fair probability.
 
