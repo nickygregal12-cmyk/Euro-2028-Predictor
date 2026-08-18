@@ -111,3 +111,15 @@ export {
   leaguesScenarios,
 } from './leagues/scenarios'
 export type { LeaguesScenarioName } from './leagues/scenarios'
+
+/**
+ * Stage 10's player-profile worlds. Same rule as the leagues group: the row and
+ * side builders stay module-local, because a review surface renders a WORLD
+ * rather than assembling one.
+ */
+export {
+  playerProfileScenarioNames,
+  playerProfileScenarioPremises,
+  playerProfileScenarios,
+} from './player/scenarios'
+export type { PlayerProfileScenarioName } from './player/scenarios'
