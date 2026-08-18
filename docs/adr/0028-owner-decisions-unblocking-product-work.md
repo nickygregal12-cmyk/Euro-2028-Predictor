@@ -21,6 +21,12 @@ Where an existing register row still says "blocked on an owner decision" and thi
 
 ### 1. Weekly umbrella brand remains deferred for now, but must be decided before public beta
 
+> **Superseded in part on 18 August 2026 by [ADR 0031](0031-owner-decisions-clearing-remaining-blockers.md) § 6.** The name is now
+> decided — **Predictor Hub**, as the operational umbrella identity. What
+> survives from this section is the prohibition on inventing a brand to close
+> a technical dependency, and the rule that public launch waits: external
+> clearance and domain registration remain a pre-public gate.
+
 The owner agrees with ADR 0019's current deferral for the immediate build. Core UI and backend work must not wait for the permanent umbrella brand/domain. The permanent weekly-platform brand and domain must, however, be chosen before public beta and before neutral-branded transactional email is treated as complete.
 
 Consequences:
@@ -192,6 +198,11 @@ Before build, verify current WhatsApp Business/platform requirements, costs, web
 ### 18. Wallet Pass is parked
 
 `INNOV-010` is **Parked**. Do not build pass-signing infrastructure, enrolment, device registration or UI during the current programme. Preserve the candidate for possible later reconsideration; reopening requires a new owner decision.
+
+> **Reaffirmed 18 August 2026 by [ADR 0031](0031-owner-decisions-clearing-remaining-blockers.md) § 8: parked, NOT blocked.** Nothing
+> external prevents this work, so it must stop appearing as an active
+> blocker — it is not an obstacle, not an item awaiting a dependency, and not
+> something to pick up because a session mistook a park for a queue.
 
 ### 19. Prediction receipts are internal integrity evidence, not a user-facing product
 
