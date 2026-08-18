@@ -176,3 +176,17 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** does not alter competition structure, scoring, entry, or ownership. Its scope is limited to private AI betting-evidence actionability.
+
+> **Contract 191:** does not alter competition structure, scoring, entry, ranking or ownership. It adds a season-scoped player reference to two standings reads and one bounded resolver, and consolidates an existing disclosure rule.
+
+> **Contract 192:** does not alter competition structure, scoring, entry or ranking rules. It derives cumulative position at settled matchweeks from the banked scores that already exist, and adds two bounded reads.
+
+> **Contract 193:** does not alter Championship structure, qualification, seeding, pairing or settlement. It reads the rows the canonical drivers wrote and adds one bounded entrant read.
+
+> **Contract 194:** does not alter Championship qualification, seeding, pairing or scoring. It adds an eligibility question above the existing settlement ladder and leaves that ladder unedited.
+
+> **Contract 195:** does not alter Championship qualification, seeding, pairing, Penalty Number or settlement rules. It reads the conditions `submit_cup_penalty_number` already enforces and turns them into one action item per contestable side.
+
+> **Contract 196:** does not alter any competition outcome, only the date recorded beside it. `survived` is excluded from the consequence feed because it is written every Last Man Standing round for every survivor.
+
+> **Contract 197:** does not alter competition structure. It lists existing season fixtures across the seasons one player has entered, excluding the tournament shape exactly as `get_season_fixtures` refuses it.

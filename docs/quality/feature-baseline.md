@@ -325,3 +325,17 @@ Twelve `INNOV-*` rows from [`../product/innovation-lab.md`](../product/innovatio
 Twelve further rows did not ship, each for a stated reason, and the reasons are recorded in the register's own delivery record rather than restated here. **None of them is rendered as a disabled or decorative control**: where a feature needs a server authority that does not exist, no surface exists either.
 
 > **Contract 190:** records a backend safeguard: valid AI betting evidence and new bet writes require a real non-aggregate bookmaker registry venue. No frontend feature baseline changes.
+
+> **Contract 191:** records a backend capability rather than a feature change: a global weekly-season standings row can now be addressed as a player, subject to the same disclosure boundaries as before. No frontend feature baseline changes, and no visibility rule is widened.
+
+> **Contract 192:** records a backend capability: a weekly season can now report a player’s POSITION at every settled matchweek, not merely their points, and can answer a season-long head-to-head in one read. No frontend feature baseline changes and no disclosure boundary moves.
+
+> **Contract 193:** records a backend capability: a season Predictor Championship entrant can now see their knockout tie and bracket. No frontend feature baseline changes, and no Championship rule moves.
+
+> **Contract 194:** records a backend correctness fix rather than a feature: a removed player can no longer win a Championship knockout tie. No frontend feature baseline changes.
+
+> **Contract 195:** records a backend capability: a Championship entrant with an open playoff or knockout tie is now told their Penalty Number is due, with their own lane and the real deadline. No frontend feature baseline changes and no disclosure boundary moves — the item carries no opponent identity, value or submission state.
+
+> **Contract 196:** records a backend capability and a backend correctness fix: a player is told when they are knocked out of, qualify from or win a competition, and a Championship outcome now carries the date it happened. No frontend feature baseline changes; the item tells a player only about themselves.
+
+> **Contract 197:** records a backend capability: a player’s football can be listed in kickoff order across their competitions in one read. No frontend feature baseline changes, no Matches surface is designed or built, and no disclosure boundary moves — it is a fixture read with no prediction, score, standing or other player in it.

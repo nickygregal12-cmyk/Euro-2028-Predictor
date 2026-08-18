@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **190** | latest `20260814005000_ai_actionable_bet_evidence.sql` |
+| Repository | **197** | latest `20260818020000_my_football_calendar.sql` |
 | Development hosted | **189** | at `20260813215920_ai_quarantined_evidence_reads.sql`, verified `2026-08-13T22:57:00.000Z`, fast-lane run `31751114401` |
 | Production | **190** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260814005000_ai_actionable_bet_evidence.sql`
+**Pending development migrations:** 8 — `20260814005000_ai_actionable_bet_evidence.sql`, `20260817120000_season_player_identity.sql`, `20260817130000_season_rank_history_and_rivalry.sql`, `20260817140000_season_cup_bracket_read.sql`, `20260817150000_cup_tie_eligibility.sql`, `20260818000000_cup_penalty_number_actions.sql`, `20260818010000_game_consequence_actions.sql`, `20260818020000_my_football_calendar.sql`
 
-**Next free contract number:** 191. Check open pull requests
+**Next free contract number:** 198. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
@@ -38,7 +38,7 @@ An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 
 ## Accepted and not built
 
-**63** accepted requirements are outstanding, of which **13** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 3, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 5, PRIV 5, SITE 6, TABLE 1. A further 37 are marked implemented and retained in the register.
+**61** accepted requirements are outstanding, of which **13** are blocked — ACCOUNT 5, AGE 1, AUTH 1, CAP 4, CUP 1, DFA 10, INGEST 1, INNOV 20, LMS 1, MIG-UI 4, PRIV 5, PROF 1, SITE 6, TABLE 1. A further 42 are marked implemented and retained in the register.
 
 They are listed with their dependencies and acceptance evidence in
 [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md).

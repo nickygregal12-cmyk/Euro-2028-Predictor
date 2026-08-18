@@ -257,3 +257,17 @@ the point: a reader can tell at a glance whether the mapping has kept up, which 
 blockquotes could never show without being read end to end.
 
 > **Contract 190 programme effect:** the AI Lab Production-activation prerequisite for actionable bookmaker evidence is closed in repository code; hosted rollout remains the next programme gate.
+
+> **Contract 191 programme effect:** the vNext Profiles/H2H stage gains its missing prerequisite — a global weekly standings row that can be addressed as a player — without a programme reordering and without widening disclosure.
+
+> **Contract 192 programme effect:** the vNext Profiles/H2H stage gains rank over time and a season-long comparison, so that surface no longer needs a per-matchweek browser loop. No programme reordering.
+
+> **Contract 193 programme effect:** the vNext Predictor Championship stage gains the entrant-facing bracket read it had none of. No programme reordering.
+
+> **Contract 194 programme effect:** closes a settlement correctness defect ahead of any Championship launch. No programme reordering.
+
+> **Contract 195 programme effect:** the cross-competition attention surface gains its Championship source, so a qualified entrant is no longer silently responsible for remembering a deadline the platform knows. No programme reordering.
+
+> **Contract 196 programme effect:** the cross-competition attention surface gains its consequence source, leaving only the private-league invitation — which is blocked on an invitation event rather than on a generator. No programme reordering.
+
+> **Contract 197 programme effect:** the Stage 8 Matches system gains the cross-competition read it would otherwise have had to assemble in the browser. It designs none of that system. No programme reordering.

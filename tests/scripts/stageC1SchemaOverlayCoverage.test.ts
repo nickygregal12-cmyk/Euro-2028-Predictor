@@ -91,7 +91,14 @@ describe('Stage C1 schema overlay coverage', () => {
     // take `p_tournament_id`; both are reads that write nothing, and the
     // neighbourhood takes its whole ranking from `season_standings` rather than
     // computing one, so neither adds a competitive authority to overlay.
-    expect(reviewedFunctions).toHaveLength(89)
+    // Raised 89 → 90 by contract 191's `resolve_season_player` (`MIG-UI-21`).
+    // It takes `p_tournament_id`, writes nothing, and addresses a player by
+    // their `entries.id` within that season rather than by an auth identifier,
+    // so it adds no cross-season handle and no ownership dependency.
+    // Raised 90 → 92 by contract 192's `get_season_rank_history` and
+    // `get_season_rivalry`. Both take `p_tournament_id`, write nothing, and
+    // reuse contract 94's ranking rather than adding a competitive authority.
+    expect(reviewedFunctions).toHaveLength(92)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

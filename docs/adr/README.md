@@ -99,3 +99,17 @@ same paragraph existed in seven places at once.
 *Current to contract 189.*
 
 > **Contract 190:** implements bookmaker-actionability hardening under the existing AI Lab decisions; no ADR changes status because of this contract.
+
+> **Contract 191:** implements the existing profile and comparison boundaries — ADR 0025 § 4 and the `MIG-UI-02` disclosure recommendation — behind one function. No ADR changes status because of this contract. Whether a same-season participant should also read another participant’s profile is registered as `PROF-001` and is the ADR-shaped decision this contract refuses to take in a migration.
+
+> **Contract 192:** implements ADR 0012’s cumulative ranking over time and reuses contract 129’s reveal boundary unchanged. No ADR changes status because of this contract, and no second ranking authority is created — the differential test is what makes that a measured claim rather than an intention.
+
+> **Contract 193:** implements ADR 0014’s existing bracket and § 8.3 Penalty Number rules as a READ. No ADR changes status, no rule is added, and the sealed-bid property is reproduced exactly as `get_my_cup` enforces it.
+
+> **Contract 194:** implements ADR 0028 § 8 and preserves ADR 0022 § "no rule may be altered while rescoping" by patching the INSTALLED settlement definition in place rather than restating it, so contract 102’s split-safety survives. No ADR changes status.
+
+> **Contract 195:** implements ADR 0014 § 8.3’s existing lane and deadline rules as an ACTION rather than adding one, and composes ADR 0028 § 8 by not asking an entrant who may not contest the tie. No ADR changes status.
+
+> **Contract 196:** adds no rule. It dates outcome writes the Championship authorities already performed, which ADR 0022 does not govern because no qualification, seeding, bye, pairing or Penalty Number rule moves, and turns three stored outcomes into news. No ADR changes status.
+
+> **Contract 197:** adds no rule and changes no ADR. It reuses contract 111’s fixture projection and bounds and the `entries` scope every season read already applies.

@@ -1,4 +1,7 @@
-import type { SeasonLeaderboardPage } from '../services/supabase/seasonLeaderboard'
+import type {
+  SeasonLeaderboardPage,
+  SeasonPlayerReach,
+} from '../services/supabase/seasonLeaderboard'
 import type { SeasonStandingsGateway } from '../features/season/standingsModel'
 
 /**
@@ -72,6 +75,14 @@ function build(scenario: StandingsScenario, cursor: string | null): SeasonLeader
       position,
       // In `you_off_page` the caller is 399th and never appears in these rows.
       isYou: scenario !== 'you_off_page' && position === 3,
+      // Contract 191's identity, in the shape the server actually produces: a
+      // season-scoped reference on every row, and the auth identifier ONLY
+      // where the profile destination will answer. Every third row is a
+      // private-league co-member so the preview has both dispositions in it;
+      // the rest are `compare`, which is what a global table is mostly made of.
+      playerRef: `entry-${position}`,
+      reach: reachFor(scenario, position),
+      playerId: reachFor(scenario, position) === 'compare' ? null : `user-${position}`,
     }
   })
 
@@ -95,6 +106,9 @@ function build(scenario: StandingsScenario, cursor: string | null): SeasonLeader
             matchweeksPlayed: 4,
             tied: false,
             position: 399,
+            playerRef: 'entry-399',
+            reach: 'self',
+            playerId: 'user-399',
           }
         : scenario === 'empty'
           ? null
@@ -105,8 +119,23 @@ function build(scenario: StandingsScenario, cursor: string | null): SeasonLeader
               matchweeksPlayed: 22,
               tied: false,
               position: 3,
+              playerRef: 'entry-3',
+              reach: 'self',
+              playerId: 'user-3',
             },
   }
+}
+
+/**
+ * Contract 191's reach, for the preview only. The caller is position 3 in every
+ * scenario but `you_off_page`, so that row is `self`; every third other row is
+ * a private-league co-member, and the rest are same-season entrants who are
+ * comparable and not profile-readable. The server decides this for real — this
+ * function exists so the preview shows all three dispositions rather than one.
+ */
+function reachFor(scenario: StandingsScenario, position: number): SeasonPlayerReach {
+  if (scenario !== 'you_off_page' && position === 3) return 'self'
+  return position % 3 === 0 ? 'profile' : 'compare'
 }
 
 export function createDevSeasonStandingsGateway(

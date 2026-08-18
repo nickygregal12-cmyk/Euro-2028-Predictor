@@ -22,18 +22,36 @@
  * The database contract at which these requirements were last verified.
  *
  * The detailed historical contract-by-contract seed review through Contract
- * 189 remains preserved in Git history. Contract 190 is the AI Lab actionable
- * betting-evidence hardening only: it redefines `ai.reject_unbettable_price`,
- * `ai.valid_bets`, and the competition-admin-gated
- * `public.admin_ai_bet_builder_candidates`. The deterministic seed writes no
- * `ai` relation, the administrator still carries the same `competitions`
- * capability, and no entry, membership, prediction-card or player-facing read
- * is changed. Exact-head Database parity run 31781402733 and Browser E2E run
- * 31781402730 both passed on the Contract-190 pull request before this marker
- * was raised, re-verifying the seeded authenticated journeys rather than merely
- * reasoning about them.
+ * 190 remains preserved in Git history.
+ *
+ * Contracts 191 to 197 were reviewed together, and none of them adds a gate to
+ * an authenticated read the deterministic seed depends on:
+ *
+ *   * 191 and 192 ADD reads (`resolve_season_player`, `get_season_rank_history`,
+ *     `get_season_rivalry`) and consolidate three copies of contract 151's
+ *     private-league visibility rule onto one authority. The rule itself is
+ *     unchanged, so a seeded player sees exactly what they saw at 190; the
+ *     leaderboard rows gain fields rather than losing any.
+ *   * 193 adds one read, `get_season_cup_bracket`, which a seeded player who
+ *     has entered no Championship simply gets `{entered: false}` from.
+ *   * 194 makes Championship tie settlement consult eligibility. It is an
+ *     administrator path; no seeded journey reaches it, and an entrant with no
+ *     `game_memberships` row still reports `eligible`.
+ *   * 195 and 196 add two `predictor_internal` action generators granted to
+ *     nobody, and patch `process_player_action_items` and the expiry sweep --
+ *     all `service_role`, none of it on an authenticated read path. 196 also
+ *     sets `updated_at` on two Championship outcome writes, which changes a
+ *     timestamp and no row selection.
+ *   * 197 adds one `authenticated` read, `get_my_football_calendar`, scoped to
+ *     the caller's own `entries`. Nothing existing is redefined.
+ *
+ * That reasoning is not what raises the marker. Both jobs passed at the exact
+ * head `ff7fc05`: Database parity (`local-supabase`) run 32087139120 and
+ * Browser E2E (`authenticated-browser`) run 32087139124, re-verifying the
+ * seeded authenticated journeys against a database holding all 197 migrations
+ * rather than merely reasoning about them.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 190
+export const SEED_REVIEWED_AT_CONTRACT = 197
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
