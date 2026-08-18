@@ -154,17 +154,25 @@ trade Stage 7.6 refused for the shell's attention layer. The **type exists**
 finished**, and the deterministic `combinedTonight` world is the design. The day 197
 is applied and the types are regenerated, this is a source change and not a redesign.
 
-**Minimum contract to close it: `npm run generate:types`. No server work at all —
-the read exists and is applied.**
+**Minimum contract to close it: regenerate the database types. No server work at
+all — the read exists and is applied.**
 
-**Why that is not done here.** Regenerating the types rewrites a single generated
-file to reflect **every** contract from 191 to 198 — season player identity, rank
-history, the cup bracket read, tie eligibility, penalty-number actions, consequence
-actions, the calendar and the knockout reservation. That is a repository-wide
-change with a repository-wide blast radius, and burying it inside a Matches feature
-branch would make this PR's diff dishonest about what it touches. It belongs to a
-change of its own — and Stage 9 needs the same regeneration for the player-identity
-contracts, so it is the natural first move there rather than a Stage 8 afterthought.
+**Why that is not done here.** The regeneration reads hosted Development and needs
+a credential this lane does not hold, so it runs through
+`regenerate-database-types.yml`, which pushes a BRANCH for review rather than
+editing a feature branch. It is a change to a GENERATED file, produced by a
+workflow, covering contracts 191–198 — it belongs to its own review, not folded
+into a Matches diff where nobody would look for it.
+
+**Measured rather than assumed.** The regeneration was run: the diff is **2 files,
++27/−3**, and it does add `get_my_football_calendar`. Its SIZE is not the reason it
+is separate — its provenance is. An earlier draft of this section claimed a
+"repository-wide blast radius", which the measurement did not support.
+
+Consuming it afterwards is small and self-contained: `MatchesSource.combined`
+already has the shape, `combinedItems` already maps it, and the deterministic
+worlds already prove the presentation. Stage 9 needs the same regeneration for
+contract 191's player identity, so the two share the dependency.
 
 ## 5. The match-state model
 
@@ -360,7 +368,7 @@ as contract 139. **Exact consumer:** `MatchesSource`, a new nullable field mappe
 
 | # | Gap | Exact consumer | Current read | Missing server truth | Minimum contract |
 | --- | --- | --- | --- | --- | --- |
-| 1 | **Cross-competition calendar not reachable** | `MatchesSource.combined` | contract 197 is **applied to hosted development** (198, no pending migrations) | the generated types have not been regenerated since 191–198 landed, so the RPC does not typecheck | `npm run generate:types`, in a change of its own. **No server work.** |
+| 1 | **Cross-competition calendar not reachable** | `MatchesSource.combined` | contract 197 is **applied to hosted development** (198, no pending migrations) | the generated types at this head do not carry it, so the RPC does not typecheck | run `regenerate-database-types.yml` and review the branch it pushes — done, 2 files, +27/−3. **No server work.** |
 | 2 | **Per-window prediction status** | `MatchListItem.prediction` | `get_season_matchweek_card`, one matchweek | prediction state across a date window | see §10 |
 | 3 | **Round kind is not projected** | `MatchStageRef.kind` | contracts 139 and 148 send `{id, ordinal, label}` | `competition_rounds.kind` (`league_matchweek` / `group_matchday` / `knockout_round`) genuinely exists in the schema and is not in either payload | add `'kind', round.kind` to both round objects. One line each. |
 | 4 | **No live clock** | `MatchObservation.clock` | contract 135's live projection | minute, period, added time | a provider ingestion decision, not a frontend one. **Out of Stage 8's scope by §41.** |
