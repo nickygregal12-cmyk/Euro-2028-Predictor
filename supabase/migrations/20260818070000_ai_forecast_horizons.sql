@@ -57,6 +57,17 @@ alter table ai.predictions
   check (horizon in ('scheduled', 't168', 't120', 't72', 't48', 't24', 't6',
                      'lineup', 'backtest'));
 
+-- More horizons means more prediction rows per fixture, which makes the
+-- by-fixture lookup hotter. `predictions_one_per_model_fixture_horizon` cannot
+-- serve it: fixture_id is its SECOND column, so a query keyed on the fixture
+-- alone cannot use it as a prefix. Contract 201's
+-- `ai.canonical_fixture_predictions` counts a fixture's forecasts per row, which
+-- is a sequential scan per row without this — trivial at Production's current
+-- 264 predictions and quadratic by the end of a season.
+create index if not exists predictions_fixture_idx
+  on ai.predictions (fixture_id, created_at desc)
+  where fixture_id is not null;
+
 comment on column ai.predictions.horizon is
   'How far from kickoff the forecast was made, and the third column of the '
   'per-model uniqueness key. t6/t24/t48/t72/t120/t168 are hour bounds, lineup is '
