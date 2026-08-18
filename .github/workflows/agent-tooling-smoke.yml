@@ -4,13 +4,41 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'AGENTS.md'
       - 'config/agent-tools.json'
+      - 'renovate.json'
       - '.devcontainer/**'
       - '.graphifyignore'
+      - '.mcp.json'
+      - '.serena/**'
+      - '.dependency-cruiser.cjs'
+      - 'repomix.config.json'
+      - 'lostpixel.config.js'
       - 'scripts/agent-tools/**'
       - 'tests/scripts/agentToolConfiguration.test.ts'
+      - 'tests/scripts/mcpServerConfiguration.test.ts'
+      - '.agents/skills/predictor-context/**'
+      - '.agents/skills/predictor-graph-navigation/**'
+      - '.agents/skills/predictor-spec-driven-delivery/**'
+      - '.agents/skills/predictor-ui-review/**'
+      - 'docs/architecture/developer-operating-system.md'
+      - 'docs/ops/agent-tooling-map.md'
+      - 'docs/ops/developer-toolchain.md'
       - 'docs/ops/graphify-navigation.md'
       - 'docs/ops/omniroute-agent-routing.md'
+      - '.github/workflows/agent-tooling-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'config/agent-tools.json'
+      - 'renovate.json'
+      - '.devcontainer/**'
+      - '.mcp.json'
+      - '.serena/**'
+      - '.dependency-cruiser.cjs'
+      - 'repomix.config.json'
+      - 'lostpixel.config.js'
+      - 'scripts/agent-tools/**'
       - '.github/workflows/agent-tooling-smoke.yml'
 
 permissions:
@@ -18,9 +46,12 @@ permissions:
 
 jobs:
   smoke:
-    name: Install pinned Graphify and OmniRoute
+    name: Install pinned baseline developer tools
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      BD_DISABLE_METRICS: '1'
+      DOLT_DISABLE_EVENT_FLUSH: '1'
 
     steps:
       - name: Harden runner (audit egress)
@@ -31,16 +62,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Read canonical versions
+      - name: Read repository Node version
         id: versions
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo "node=$(node -p "require('./package.json').engines.node")"
-            echo "graphify=$(node -p "require('./config/agent-tools.json').graphify.version")"
-            echo "omniroute=$(node -p "require('./config/agent-tools.json').omniroute.version")"
-          } >> "${GITHUB_OUTPUT}"
+          echo "node=$(node -p "require('./package.json').engines.node")" >> "${GITHUB_OUTPUT}"
 
       - name: Set up repository Node version
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -48,52 +75,121 @@ jobs:
           node-version: ${{ steps.versions.outputs.node }}
           package-manager-cache: false
 
-      - name: Set up Python
+      - name: Set up bootstrap Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: '3.12'
 
-      - name: Validate helper syntax and configuration
+      - name: Validate helper and configuration syntax
         shell: bash
         run: |
           set -euo pipefail
-          bash -n scripts/agent-tools/bootstrap.sh
-          bash -n scripts/agent-tools/graphify-deep-via-omniroute.sh
-          node -e "JSON.parse(require('fs').readFileSync('.devcontainer/devcontainer.json', 'utf8'))"
-          node -e "JSON.parse(require('fs').readFileSync('config/agent-tools.json', 'utf8'))"
+          for script in scripts/agent-tools/*.sh; do
+            bash -n "$script"
+          done
+          node - <<'NODE'
+          const fs = require('node:fs')
+          for (const file of [
+            '.devcontainer/devcontainer.json',
+            '.mcp.json',
+            'config/agent-tools.json',
+            'renovate.json',
+            'repomix.config.json',
+          ]) JSON.parse(fs.readFileSync(file, 'utf8'))
+          NODE
+          node --check lostpixel.config.js
+          node --check .dependency-cruiser.cjs
 
-      - name: Install and identify Graphify
+      - name: Run configuration guards
         shell: bash
-        env:
-          GRAPHIFY_VERSION: ${{ steps.versions.outputs.graphify }}
         run: |
           set -euo pipefail
-          python -m pip install --disable-pip-version-check "graphifyy[sql,openai]==${GRAPHIFY_VERSION}"
-          python - <<'PY'
-          from importlib.metadata import version
-          print(f"graphifyy {version('graphifyy')}")
-          PY
+          npm ci
+          npx vitest run \
+            tests/scripts/agentToolConfiguration.test.ts \
+            tests/scripts/mcpServerConfiguration.test.ts
+
+      - name: Provision the supported baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash scripts/agent-tools/bootstrap.sh
+          bash scripts/agent-tools/doctor.sh
+
+      - name: Exercise baseline CLIs
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="${HOME}/.local/bin:${PATH}"
           graphify --help >/dev/null
+          omniroute --version
+          serena --help >/dev/null
+          serena print-system-prompt . --context=ide --only-instructions >/dev/null
+          serena project is_ignored_path docs/history/README.md
+          timeout 180s serena project health-check .
+          specify --help >/dev/null
+          ast-grep --version
+          bd version
 
-      - name: Install and identify OmniRoute
+      - name: Verify pinned on-demand packages exist
         shell: bash
-        env:
-          OMNIROUTE_VERSION: ${{ steps.versions.outputs.omniroute }}
         run: |
           set -euo pipefail
-          prefix="${RUNNER_TEMP}/omniroute"
-          npm install --global --prefix "${prefix}" --no-fund --no-audit "omniroute@${OMNIROUTE_VERSION}"
-          "${prefix}/bin/omniroute" --version
-          "${prefix}/bin/omniroute" --help >/dev/null
+          node - <<'NODE' > "${RUNNER_TEMP}/on-demand-packages.txt"
+          const tools = require('./config/agent-tools.json')
+          for (const key of ['context7', 'dependencyCruiser', 'repomix', 'lostPixel', 'reactScan']) {
+            console.log(`${tools[key].package}@${tools[key].version}`)
+          }
+          NODE
+          while IFS= read -r spec; do
+            expected="${spec##*@}"
+            actual="$(npm view "$spec" version)"
+            test "$actual" = "$expected" || {
+              echo "Registry mismatch for $spec: got $actual" >&2
+              exit 1
+            }
+            echo "available: $spec"
+          done < "${RUNNER_TEMP}/on-demand-packages.txt"
+
+      - name: Verify optional upstream releases exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE' > "${RUNNER_TEMP}/github-release-tags.txt"
+          const tools = require('./config/agent-tools.json')
+          for (const key of ['agentMail', 'weave']) {
+            console.log(`${tools[key].repository} ${tools[key].version}`)
+          }
+          NODE
+          while read -r repository version; do
+            git ls-remote --exit-code --tags \
+              "https://github.com/${repository}.git" \
+              "refs/tags/v${version}" >/dev/null
+            echo "available: ${repository}@v${version}"
+          done < "${RUNNER_TEMP}/github-release-tags.txt"
+
+          # Mergiraf's canonical repository is Codeberg rather than GitHub.
+          # Verify the exact upstream release tag directly instead of using the
+          # crates.io REST endpoint, which rejects GitHub-hosted runners with 403.
+          mergiraf_version="$(node -p "require('./config/agent-tools.json').mergiraf.version")"
+          git ls-remote --exit-code --tags \
+            "https://codeberg.org/mergiraf/mergiraf.git" \
+            "refs/tags/v${mergiraf_version}" >/dev/null
+          echo "available: codeberg.org/mergiraf/mergiraf@v${mergiraf_version}"
 
       - name: Summary
+        if: ${{ always() }}
         shell: bash
         run: |
           {
-            echo '## Agent tooling smoke'
+            echo '## Developer tooling smoke'
             echo
-            echo "- Node: \`${{ steps.versions.outputs.node }}\`"
-            echo "- Graphify: \`${{ steps.versions.outputs.graphify }}\` (SQL + OpenAI-compatible extras installed)"
-            echo "- OmniRoute: \`${{ steps.versions.outputs.omniroute }}\`"
-            echo '- No provider credential was configured and no model request was made.'
+            echo '- Baseline bootstrap executed from the canonical registry.'
+            echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
+            echo '- Beads command metrics and Dolt event flushing were disabled for the whole smoke job.'
+            echo '- Serena loaded the shared IDE context, tracked project configuration and passed its language-server health check.'
+            echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
+            echo '- Agent Mail and Weave exact GitHub tags plus Mergiraf exact Codeberg tag were resolved without auto-starting/installing their heavier optional services or merge engines.'
+            echo '- Every registry entry carries Renovate update metadata; developer-tool updates are review-only after the configured soak period.'
+            echo '- No service was started, no provider credential was configured and no model/provider request was made.'
           } >> "${GITHUB_STEP_SUMMARY}"

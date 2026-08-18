@@ -1,12 +1,161 @@
 {
+  "uv": {
+    "package": "uv",
+    "version": "0.12.0",
+    "mode": "bootstrap",
+    "renovate": {
+      "datasource": "pypi",
+      "depName": "uv",
+      "versioning": "pep440"
+    }
+  },
   "graphify": {
     "package": "graphifyy",
     "version": "0.9.46",
-    "extras": ["sql", "openai"]
+    "extras": ["sql", "openai"],
+    "mode": "bootstrap",
+    "renovate": {
+      "datasource": "pypi",
+      "depName": "graphifyy",
+      "versioning": "pep440"
+    }
   },
   "omniroute": {
     "package": "omniroute",
     "version": "3.8.49",
-    "port": 20128
+    "port": 20128,
+    "mode": "bootstrap-manual-service",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "omniroute",
+      "versioning": "npm"
+    }
+  },
+  "serena": {
+    "package": "serena-agent",
+    "version": "1.6.1",
+    "python": "3.13",
+    "mode": "bootstrap-mcp",
+    "renovate": {
+      "datasource": "pypi",
+      "depName": "serena-agent",
+      "versioning": "pep440"
+    }
+  },
+  "context7": {
+    "package": "@upstash/context7-mcp",
+    "version": "2.0.2",
+    "mode": "on-demand-mcp",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "@upstash/context7-mcp",
+      "versioning": "npm"
+    }
+  },
+  "dependencyCruiser": {
+    "package": "dependency-cruiser",
+    "version": "18.1.0",
+    "mode": "ci-and-on-demand",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "dependency-cruiser",
+      "versioning": "npm"
+    }
+  },
+  "repomix": {
+    "package": "repomix",
+    "version": "1.17.0",
+    "mode": "on-demand-mcp",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "repomix",
+      "versioning": "npm"
+    }
+  },
+  "lostPixel": {
+    "package": "lost-pixel",
+    "version": "3.22.0",
+    "mode": "optional-visual-adapter",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "lost-pixel",
+      "versioning": "npm"
+    }
+  },
+  "reactScan": {
+    "package": "react-scan",
+    "version": "0.5.7",
+    "mode": "manual-diagnostics",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "react-scan",
+      "versioning": "npm"
+    }
+  },
+  "astGrep": {
+    "package": "@ast-grep/cli",
+    "version": "0.45.0",
+    "mode": "bootstrap",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "@ast-grep/cli",
+      "versioning": "npm"
+    }
+  },
+  "agentMail": {
+    "repository": "Dicklesworthstone/mcp_agent_mail",
+    "version": "0.2.1",
+    "python": "3.14",
+    "port": 8765,
+    "mode": "optional-service",
+    "renovate": {
+      "datasource": "github-tags",
+      "depName": "Dicklesworthstone/mcp_agent_mail",
+      "versioning": "semver",
+      "extractVersion": "^v(?<version>.+)$"
+    }
+  },
+  "specKit": {
+    "package": "specify-cli",
+    "version": "0.12.11",
+    "python": "3.12",
+    "mode": "bootstrap-adapter",
+    "renovate": {
+      "datasource": "pypi",
+      "depName": "specify-cli",
+      "versioning": "pep440"
+    }
+  },
+  "weave": {
+    "repository": "Ataraxy-Labs/weave",
+    "version": "0.3.6",
+    "mode": "optional-merge-driver",
+    "renovate": {
+      "datasource": "github-tags",
+      "depName": "Ataraxy-Labs/weave",
+      "versioning": "semver",
+      "extractVersion": "^v(?<version>.+)$"
+    }
+  },
+  "mergiraf": {
+    "package": "mergiraf",
+    "version": "0.18.0",
+    "mode": "optional-merge-driver",
+    "renovate": {
+      "datasource": "crate",
+      "depName": "mergiraf",
+      "versioning": "cargo"
+    }
+  },
+  "beads": {
+    "repository": "gastownhall/beads",
+    "version": "1.2.2",
+    "mode": "bootstrap-local-memory",
+    "renovate": {
+      "datasource": "github-tags",
+      "depName": "gastownhall/beads",
+      "versioning": "semver",
+      "extractVersion": "^v(?<version>.+)$"
+    }
   }
 }

@@ -1,32 +1,63 @@
 # Agent tooling map
 
-Which tool answers which question. One row per responsibility, so a future agent
-picks by the question it has rather than by which name it recognises.
+Which tool answers which question. One row per responsibility, so a future agent picks by the question it has rather than by which name it recognises.
 
-This file routes. It owns no product rule, no contract position and no hosted
-state, and it deliberately states no contract number.
+This file **routes only**. The architecture and authority model lives in [`../architecture/developer-operating-system.md`](../architecture/developer-operating-system.md); exact commands live in [`developer-toolchain.md`](developer-toolchain.md). This file owns no product rule, contract position or hosted state.
 
-## The map
+## Development / AI work
 
-| Question | Tool | Lane |
+| Question | Primary tool | Lane |
 | --- | --- | --- |
-| Which code, dependency, call-flow or cross-layer path should I inspect before editing? | **Graphify** | development navigation |
-| Which configured AI model/provider should a compatible coding CLI use, including fallback routing? | **OmniRoute** | developer infrastructure |
-| Does the journey work? Navigation, forms, responsive behaviour, accessibility interaction | **Playwright MCP** / `npm run test:e2e*` | development |
-| Why is it slow, noisy or broken in the browser? Console, network, traces, Core Web Vitals | **Chrome DevTools MCP** | development |
-| Is this research reproducible? | **DVC** | offline research |
-| What does the history actually say? Analytical SQL over snapshots | **DuckDB** | offline research |
-| What are players doing? | **PostHog** | product runtime |
-| What is the business/operational picture? Ad-hoc BI over Supabase | **Metabase** | internal operations |
+| What repository authority should I read? | root **`AGENTS.md` → `NOW.md` → task authority** | authority |
+| Which dependency/call-flow/cross-layer path should I inspect? | **Graphify** | navigation |
+| Which exact symbol/reference/caller should I inspect or edit? | **Serena** | semantic code intelligence |
+| What does the current external library documentation say? | **Context7** | external documentation |
+| How do I package a bounded code/context slice for an AI handoff? | **Repomix** | disposable context transport |
+| How should non-trivial work move from outcome to tasks? | **Predictor spec-driven delivery**, optionally executed with **Spec Kit** | planning |
+| What local work/dependency should this agent remember next? | **Beads**, stealth/local only | execution memory |
+| How do concurrent agents reserve/hand off work? | **MCP Agent Mail**, only when concurrency justifies a service | coordination |
+| How do I search/refactor syntax rather than strings? | **ast-grep** | structural editing |
+| Does the source dependency direction still obey repository architecture? | **dependency-cruiser** | blocking architecture CI |
+| Can a difficult source conflict be syntax-merged? | **Weave** preferred / **Mergiraf** alternative | optional clone-local merge aid |
+| Which configured model/provider should a compatible coding CLI use? | **OmniRoute** | optional developer infrastructure |
+
+Do not chain all of these automatically. Start with authority, then use only the specialist that answers the missing question.
+
+## UI / quality / runtime diagnosis
+
+| Question | Primary tool | Lane |
+| --- | --- | --- |
+| Does the journey work—navigation, forms, responsive behaviour, accessibility interaction? | **Playwright MCP** / `npm run test:e2e*` | development |
+| Did a curated UI surface move visually without approval? | **Playwright visual contracts** | blocking visual CI |
+| Do I want an extra Storybook screenshot/export pass? | **Lost Pixel OSS** | optional review only |
+| Which React component is rendering unnecessarily? | **React Scan** | manual development diagnosis |
+| Why is the browser slow/noisy/broken—console, network, trace, rendering, Core Web Vitals? | **Chrome DevTools MCP** | development diagnosis |
+| Does the page meet the performance budget? | **Lighthouse CI** | CI |
+| Is deterministic behaviour correct? | **Vitest** | CI/development |
+| Do important invariants survive broad input space? | **fast-check** | domain verification |
+| Would a plausible mutation escape the tests? | **Stryker** | test-strength verification |
 | What broke at runtime for a real user? | **Sentry** | product runtime |
-| Is the supply chain, workflow estate or secret hygiene sound? | CodeQL, Betterleaks, Dependency Review, Harden-Runner, Squawk, zizmor, actionlint, Renovate | CI |
-| Can a running deployment actually be attacked? | **Strix** | controlled, manual |
-| Tell a player something happened | **Novu**, behind the notification boundary | product capability |
 
-Each capability's own authority carries its detail; this table only routes.
+Playwright and Chrome DevTools are deliberately different: Playwright proves **what the user can do**; DevTools diagnoses **why the browser behaves as it does**. A trace is not a passing journey test, and a green journey is not evidence that the page is fast.
 
-| Capability | Authority |
+## Data / operations / security
+
+| Question | Primary tool | Lane |
+| --- | --- | --- |
+| Is offline research reproducible? | **DVC** | offline research |
+| What does historical analytical data say? | **DuckDB** | offline analytics |
+| What are players doing? | **PostHog** | product runtime analytics |
+| What is the business/operational picture? | **Metabase** | internal operations |
+| Is the supply chain/workflow estate/secret hygiene sound? | CodeQL, Betterleaks, Dependency Review, Harden-Runner, Squawk, zizmor, actionlint, Renovate | CI |
+| Can a running deployment actually be attacked? | **Strix** | controlled manual security assessment |
+| Deliver a player notification | **Novu**, behind the notification boundary | product capability |
+
+## Canonical detail
+
+| Capability | Authority / runbook |
 | --- | --- |
+| Developer tool architecture and authority boundary | [`../architecture/developer-operating-system.md`](../architecture/developer-operating-system.md) |
+| Install/run/activate developer tools | [`developer-toolchain.md`](developer-toolchain.md) |
 | Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |
 | Coding-model/provider routing | [`omniroute-agent-routing.md`](omniroute-agent-routing.md) |
 | Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
@@ -35,111 +66,44 @@ Each capability's own authority carries its detail; this table only routes.
 | Dynamic security assessment | [`strix-security-assessment.md`](strix-security-assessment.md) |
 | CI and supply-chain tooling | [`final-engineering-tooling.md`](final-engineering-tooling.md) |
 
-## What is configured versus what is running
+## Configured does not mean running
 
-Stated here because "we added Novu" and "notifications send" are different
-claims, and the gap between them is where a reader gets misled.
-
-| Capability | State |
+| Capability | Repository state |
 | --- | --- |
-| Graphify | online structural GitHub workflow + snapshot configured; Codespaces CLI provisioned; optional deep semantic run is manual only |
-| OmniRoute | Codespaces CLI provisioned; **no provider, endpoint key or gateway process is created by the repository** |
-| Playwright MCP, Chrome DevTools MCP | configured; usable now, development-only |
-| DuckDB offline analytics | implemented and tested against a committed snapshot |
-| Novu notification boundary | implemented and tested; **no credential, no emitter, nothing sends** |
-| Metabase | views, role and container config defined; **not applied anywhere, not deployed** |
-| Strix | workflow defined; **inert until an owner provisions `STRIX_LLM_API_KEY`** |
+| Graphify | structural GitHub workflow/snapshot + Codespaces CLI; deep semantic run manual only |
+| Serena | Codespaces CLI + MCP/project config; no persistent memory authority |
+| Context7 | pinned on-demand MCP; optional key is user-owned |
+| Repomix | pinned on-demand MCP + bounded pack scripts; outputs ignored |
+| OmniRoute | CLI provisioned; **no provider, endpoint key or gateway process created automatically** |
+| Spec Kit | CLI provisioned as adapter; no generic project initializer/constitution applied |
+| ast-grep | CLI provisioned; no automatic repository-wide rewrite |
+| Beads | CLI provisioned; database is absent until an operator explicitly initialises stealth mode |
+| dependency-cruiser | configuration + CI architecture contract |
+| MCP Agent Mail | optional installer/launcher; absent and stopped by default |
+| Weave / Mergiraf | optional installer; neither merge driver is enabled by default |
+| Playwright / Chrome DevTools MCP | configured, development-only |
+| Playwright visual contracts | blocking curated baseline workflow |
+| Lost Pixel OSS | optional generate-only adapter; managed service is not a repository dependency |
+| React Scan | manual URL-based diagnosis; not in the product bundle |
+| DuckDB offline analytics | implemented/tested against committed snapshot |
+| Novu notification boundary | implemented/tested; **no credential/emitter, nothing sends by configuration alone** |
+| Metabase | views/role/container config defined; **not deployed by configuration alone** |
+| Strix | workflow defined; inert until its operator secret is provisioned |
 
-Graphify and OmniRoute are deliberately outside the application dependency graph.
-Their supported development-tool versions live in
-[`../../config/agent-tools.json`](../../config/agent-tools.json), and a Codespace
-can provision them through
-[`../../scripts/agent-tools/bootstrap.sh`](../../scripts/agent-tools/bootstrap.sh).
-Neither is evidence about a deployment, database contract, model promotion or
-product rule.
+The exact supported developer-tool versions live in [`../../config/agent-tools.json`](../../config/agent-tools.json). Do not copy those numbers into future prompts or planning documents.
 
-## The two browser MCP servers are not interchangeable
+## Browser MCP privacy boundary
 
-Both are configured in [`../../.mcp.json`](../../.mcp.json) and both are
-development-only. Neither is reachable from application code and neither
-contributes a byte to a production bundle —
-`tests/scripts/mcpServerConfiguration.test.ts` holds that.
+Both browser MCP servers are development-only and live in `.mcp.json`, outside application dependencies.
 
-**Playwright MCP is the journey tool.** It drives the product: navigate, fill,
-click, assert, resize, check focus order and accessible names. It is the one to
-reach for when the question is *does this work*. It also remains the tool the
-committed E2E suites are written against, so anything proven with it can be
-promoted into a spec.
+Chrome DevTools telemetry is disabled in the checked-in configuration because profiling a URL can expose route values such as invite codes or player identifiers to an external telemetry endpoint. When a container has Playwright Chromium but no normal Google Chrome installation, point Chrome DevTools MCP at the available browser explicitly for that environment rather than hard-coding a container path into the repository config.
 
-**Chrome DevTools MCP is the diagnosis tool.** It answers *why*: performance
-traces, network requests and their timing, console messages, source-mapped
-runtime errors, rendering and layout cost, and the browser's own performance
-insights. It is the one to reach for when a journey passes but is slow, or when
-something fails in a way the DOM does not explain.
-
-The failure mode this split exists to prevent is using a journey driver to guess
-at performance, or a profiler to assert product behaviour. A trace is not a
-passing test, and a green journey is not evidence that a page is fast.
-
-Chrome DevTools MCP is pinned rather than floating. A profiler that changes
-under you produces measurements that cannot be compared with last week's, and an
-uncontrolled `@latest` in a checked-in configuration is a dependency nobody
-reviewed.
-
-### It needs a Chrome binary, and will not find one in every environment
-
-The server launches **Google Chrome stable** by default, from the platform's
-usual install location. A container or CI runner that has only Playwright's
-Chromium — which is this repository's normal browser provisioning — fails at the
-first tool call with `Could not find Google Chrome executable for channel
-'stable'`. The MCP server itself starts fine, so the failure arrives later than
-you expect and looks like a tool bug rather than a missing dependency.
-
-Point it at the browser that is actually there:
-
-```bash
-npx chrome-devtools-mcp@1.7.0 \
-  --executablePath "$PLAYWRIGHT_BROWSERS_PATH"/chromium-*/chrome-linux/chrome \
-  --headless --isolated
-```
-
-That override is deliberately **not** in `.mcp.json`: the path is specific to a
-container, and hard-coding it would break the ordinary case of a developer with
-Chrome installed. `--isolated` is worth adding when you do override, so a
-profiling session uses a throwaway profile rather than your own.
-
-### Both of its telemetry defaults are off, on purpose
-
-The server ships with two outbound paths to Google, both **on** by default, and
-`.mcp.json` disables both:
-
-| Flag | Default | What it sends |
-| --- | --- | --- |
-| `--usageStatistics` | on | tool usage data |
-| `--performanceCrux` | on | **the URLs from performance traces**, to the CrUX API |
-
-The second is the one that matters. Profiling a slow page means profiling a real
-URL, and this product's URLs carry invite codes and player identifiers — which
-is precisely the defect *"Stop telemetry URLs carrying invite codes and
-identifiers"* was landed to fix. A profiler transmitting the URL by default
-would reintroduce it through tooling rather than through application code.
-
-Neither default fails anything when left on, which is why
-`tests/scripts/mcpServerConfiguration.test.ts` pins them rather than a comment.
+Neither browser tool should be pointed at Production as an accidental default. Developer tools may not consume a paid football/odds provider merely because a browser can reach a page that would trigger it; the quota/environment rules in root `AGENTS.md` still apply.
 
 ## Boundaries
 
-- Graphify is a navigation/indexing aid. Important conclusions still require the
-  source, tests and governing repository authority.
-- OmniRoute is an optional developer gateway. Provider/model choice through it
-  must not become a hidden application, AI Lab or production dependency.
-- Both MCP browser servers are **development-only**. They are declared in
-  `.mcp.json`, which ships to no deployment, and they are absent from
-  `package.json`, so neither can enter `dist/`.
-- Chrome DevTools MCP drives a **local** browser against a **local** or
-  **preview** origin. Pointing a profiling session at Production is a deliberate
-  operator act, not a default.
-- Developer tools may not be used to reach a paid football or odds provider
-  unless that exact provider call is explicitly authorised. The quota rules in
-  [`../../AGENTS.md`](../../AGENTS.md) apply to automation exactly as they apply
-  to code.
+- Developer-tool output is navigation/evidence, not product, database or hosted authority.
+- Developer packages belong outside application dependencies unless a separate product decision genuinely needs one at runtime.
+- Generated local state—context packs, Serena index state, Beads stealth DB, screenshots/reports—does not become durable documentation by existing.
+- No tool is permission to weaken Production/Supabase/provider safety rules.
+- Concurrent-agent coordination supplements Git branches/PRs; it never bypasses review or merge evidence.
