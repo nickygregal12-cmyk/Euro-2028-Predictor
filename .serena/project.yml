@@ -1,5 +1,5 @@
 project_name: Euro-2028-Predictor
-language_servers:
+languages:
   - typescript
 ignore_all_files_in_gitignore: true
 ignored_paths:
