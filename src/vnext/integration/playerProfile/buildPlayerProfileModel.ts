@@ -148,7 +148,7 @@ function seriesOf(history: SeasonRankHistory): readonly RankPoint[] {
     label: point.label,
     rank: point.rank,
     fieldSize: point.fieldSize,
-    points: point.points,
+    cumulativePoints: point.cumulativePoints,
   }))
 }
 

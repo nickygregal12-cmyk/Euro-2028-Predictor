@@ -11,6 +11,11 @@ import { at, first } from '../support/indexed'
  * Not that fields are copied — the compiler covers that. These are the answers
  * that would be WRONG rather than merely different:
  *
+ *   0. `points` IS A RUNNING TOTAL AND IS DECODED AS `cumulativePoints`. The
+ *      RPC computes it as a window sum over every settled matchweek so far, and
+ *      contract 151's history carries the OTHER figure — that round's own score.
+ *      A page drawing both, which the Stage 10 profile does, would print two
+ *      different numbers for one matchweek if these were confused.
  *   1. RANK IS NEVER SEPARATED FROM ITS FIELD. 4th of six and 4th of six
  *      thousand are different facts, and a point carrying only one of them is
  *      not plottable.
@@ -37,7 +42,7 @@ function point(overrides: Point = {}) {
     matchweekId: 'mw-1',
     ordinal: 1,
     label: 'Matchweek 1',
-    points: 12,
+    points: 112,
     rank: 4,
     fieldSize: 412,
     ...overrides,
@@ -144,10 +149,9 @@ describe('a malformed point is dropped, not patched', () => {
     ['no points', { points: null }],
     ['a fractional rank', { rank: 4.5 }],
     ['a fractional points figure', { points: 12.5 }],
-    ['a non-object row', {}],
   ]
 
-  for (const [what, overrides] of broken.slice(0, 6)) {
+  for (const [what, overrides] of broken) {
     it(`drops a point with ${what}`, () => {
       const history = mapSeasonRankHistory(payload({ matchweeks: [point(overrides)] }))
       expect(history.matchweeks).toEqual([])
@@ -173,10 +177,26 @@ describe('a malformed point is dropped, not patched', () => {
     expect(history.matchweeks.map((entry) => entry.matchweekId)).toEqual(['mw-1', 'mw-3'])
   })
 
-  it('accepts a zero rank field only where both are real integers', () => {
-    // Zero points in a matchweek is an ordinary settled result, not a gap.
+  it('keeps a zero total, which is a real early-season standing', () => {
+    // Nothing banked yet is an ordinary settled state, not a gap.
     const history = mapSeasonRankHistory(payload({ matchweeks: [point({ points: 0 })] }))
-    expect(first(history.matchweeks).points).toBe(0)
+    expect(first(history.matchweeks).cumulativePoints).toBe(0)
+  })
+
+  it('decodes the running total under the name the SQL earns', () => {
+    // `sum(...) over (... rows between unbounded preceding and current row)`.
+    // Naming it `points` invited reading it as this matchweek's score, which is
+    // the figure contract 151 carries and this read does not.
+    const history = mapSeasonRankHistory(
+      payload({
+        matchweeks: [
+          point({ matchweekId: 'mw-1', ordinal: 1, points: 12 }),
+          point({ matchweekId: 'mw-2', ordinal: 2, points: 21 }),
+          point({ matchweekId: 'mw-3', ordinal: 3, points: 36 }),
+        ],
+      }),
+    )
+    expect(history.matchweeks.map((entry) => entry.cumulativePoints)).toEqual([12, 21, 36])
   })
 })
 
@@ -206,11 +226,11 @@ describe('the payload carries no prediction', () => {
     // carry one, this decoder must not silently pass it through.
     const history = mapSeasonRankHistory(payload())
     expect(Object.keys(first(history.matchweeks)).sort()).toEqual([
+      'cumulativePoints',
       'fieldSize',
       'label',
       'matchweekId',
       'ordinal',
-      'points',
       'rank',
     ])
   })

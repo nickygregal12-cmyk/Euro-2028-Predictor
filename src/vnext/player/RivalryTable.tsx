@@ -1,6 +1,7 @@
 import type { RivalryDetail, RivalryOutcome, RivalrySide } from '../models/playerProfile'
 import { accuracyRate, pointsGapLabel, rivalryComparable } from '../models/playerProfile'
-import { formatNumber, formatOrdinal, formatShare } from '../foundations/format'
+import { formatNumber, formatOrdinal } from '../foundations/format'
+import { accuracyValue } from './accuracy'
 import text from '../foundations/typography.module.css'
 import styles from './playerProfile.module.css'
 
@@ -90,6 +91,13 @@ export function RivalryTable({ detail }: RivalryTableProps) {
           <CompareRow label="Season points" you={detail.you} them={detail.them} render={points} />
           <CompareRow label="Matchweeks played" you={detail.you} them={detail.them} render={played} />
           <CompareRow label="Position" you={detail.you} them={detail.them} render={standing} />
+          {/* THE DENOMINATOR, AS ITS OWN ROW, and it is not decoration. The RPC
+              counts each entry's OWN predictions, so two players who both
+              banked a compared matchweek have different totals when one skipped
+              fixtures inside it — "11 of 96" and "11 of 60" are the same rate
+              and different facts. This lane prints no other half-stated figure
+              and must not start here. */}
+          <CompareRow label="Fixtures compared" you={detail.you} them={detail.them} render={fixtures} />
           <CompareRow label="Exact scores" you={detail.you} them={detail.them} render={exact} />
           <CompareRow label="Correct outcomes" you={detail.you} them={detail.them} render={outcomes} />
         </tbody>
@@ -164,21 +172,24 @@ function standing(side: RivalrySide): string {
   return `${formatOrdinal(side.standing.rank)} of ${formatNumber(side.standing.fieldSize)}`
 }
 
+function fixtures(side: RivalrySide): string {
+  return formatNumber(side.accuracy.fixturesPredicted)
+}
+
 /**
  * A COUNT AND ITS RATE, OR JUST THE SENTENCE THAT THERE IS NOTHING TO RATE.
  *
- * `accuracyRate` returns null on a zero denominator rather than 0, because "0%
- * exact" is an accusation against a player who has simply not predicted
- * anything yet.
+ * `accuracyRate` returns null on a zero denominator rather than 0, and
+ * `accuracyValue` refuses to round a real hit down to 0% or a near-miss up to
+ * 100%. Both are the same rule: an accuracy may not claim more or less than it
+ * has.
  */
 function exact(side: RivalrySide): string {
   const rate = accuracyRate(side.accuracy)
-  const count = formatNumber(side.accuracy.exactScores)
-  return rate === null ? '—' : `${count} (${formatShare(rate.exact)})`
+  return rate === null ? '—' : accuracyValue(side.accuracy.exactScores, rate.exact)
 }
 
 function outcomes(side: RivalrySide): string {
   const rate = accuracyRate(side.accuracy)
-  const count = formatNumber(side.accuracy.correctOutcomes)
-  return rate === null ? '—' : `${count} (${formatShare(rate.outcome)})`
+  return rate === null ? '—' : accuracyValue(side.accuracy.correctOutcomes, rate.outcome)
 }

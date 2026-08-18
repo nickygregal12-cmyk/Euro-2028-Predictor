@@ -1,7 +1,7 @@
 /**
  * STAGE 10'S DETERMINISTIC PLAYER-PROFILE WORLDS.
  *
- * Twenty-one worlds, each one a PREMISE rather than a data dump: the reason it
+ * Twenty-four worlds, each one a PREMISE rather than a data dump: the reason it
  * exists is written beside it, and a reviewer reading the Storybook group is
  * reading the reasons.
  *
@@ -72,8 +72,29 @@ function matchweek(
   }
 }
 
-function rankPoint(ordinal: number, rank: number, fieldSize: number, points: number): RankPoint {
-  return { matchweekId: `mw-${ordinal}`, ordinal, label: `Matchweek ${ordinal}`, rank, fieldSize, points }
+/**
+ * `cumulativePoints` IS A RUNNING TOTAL, so every series below MUST increase.
+ *
+ * It is written out that way deliberately. A non-monotonic series models a
+ * per-matchweek figure, which is what the field was mistaken for once — and a
+ * fixture that encodes the misunderstanding is a fixture that can never catch
+ * it. If a series here ever falls, either the fixture is wrong or the server's
+ * contract changed.
+ */
+function rankPoint(
+  ordinal: number,
+  rank: number,
+  fieldSize: number,
+  cumulativePoints: number,
+): RankPoint {
+  return {
+    matchweekId: `mw-${ordinal}`,
+    ordinal,
+    label: `Matchweek ${ordinal}`,
+    rank,
+    fieldSize,
+    cumulativePoints,
+  }
 }
 
 function accuracy(fixturesPredicted: number, exactScores: number, correctOutcomes: number): PlayerAccuracy {
@@ -146,11 +167,11 @@ const ordinaryRivalry: RivalryDetail = {
 }
 
 const ordinarySeries: readonly RankPoint[] = [
-  rankPoint(8, 41, 412, 21),
-  rankPoint(9, 22, 412, 11),
-  rankPoint(10, 14, 412, 14),
-  rankPoint(11, 9, 412, 9),
-  rankPoint(12, 2, 412, 18),
+  rankPoint(8, 41, 412, 99),
+  rankPoint(9, 22, 412, 110),
+  rankPoint(10, 14, 412, 124),
+  rankPoint(11, 9, 412, 133),
+  rankPoint(12, 2, 412, 151),
 ]
 
 /** Every world starts here and overrides exactly what its premise is about. */
@@ -253,10 +274,10 @@ const climbing = world({
     kind: 'history',
     series: [
       rankPoint(1, 301, 412, 4),
-      rankPoint(2, 188, 412, 12),
-      rankPoint(3, 96, 412, 15),
-      rankPoint(4, 44, 412, 13),
-      rankPoint(5, 12, 412, 19),
+      rankPoint(2, 188, 412, 16),
+      rankPoint(3, 96, 412, 31),
+      rankPoint(4, 44, 412, 44),
+      rankPoint(5, 12, 412, 63),
     ],
   },
 })
@@ -266,10 +287,10 @@ const falling = world({
     kind: 'history',
     series: [
       rankPoint(1, 2, 412, 22),
-      rankPoint(2, 9, 412, 6),
-      rankPoint(3, 31, 412, 4),
-      rankPoint(4, 60, 412, 5),
-      rankPoint(5, 88, 412, 3),
+      rankPoint(2, 9, 412, 28),
+      rankPoint(3, 31, 412, 32),
+      rankPoint(4, 60, 412, 37),
+      rankPoint(5, 88, 412, 40),
     ],
   },
 })
@@ -279,9 +300,9 @@ const flatRank = world({
     kind: 'history',
     series: [
       rankPoint(1, 7, 60, 12),
-      rankPoint(2, 7, 60, 11),
-      rankPoint(3, 7, 60, 13),
-      rankPoint(4, 7, 60, 12),
+      rankPoint(2, 7, 60, 23),
+      rankPoint(3, 7, 60, 36),
+      rankPoint(4, 7, 60, 48),
     ],
   },
 })
@@ -295,9 +316,9 @@ const fieldChanged = world({
     kind: 'history',
     series: [
       rankPoint(1, 7, 60, 12),
-      rankPoint(2, 9, 190, 11),
-      rankPoint(3, 12, 341, 13),
-      rankPoint(4, 14, 412, 12),
+      rankPoint(2, 9, 190, 23),
+      rankPoint(3, 12, 341, 36),
+      rankPoint(4, 14, 412, 48),
     ],
   },
 })
@@ -306,10 +327,10 @@ const bigField = world({
   rankHistory: {
     kind: 'history',
     series: [
-      rankPoint(9, 4, 412, 16),
-      rankPoint(10, 6, 412, 11),
-      rankPoint(11, 7, 412, 9),
-      rankPoint(12, 5, 412, 15),
+      rankPoint(9, 4, 412, 116),
+      rankPoint(10, 6, 412, 127),
+      rankPoint(11, 7, 412, 136),
+      rankPoint(12, 5, 412, 151),
     ],
   },
 })
@@ -358,6 +379,21 @@ const noAccuracy = world({
   },
 })
 
+/**
+ * ENTERED, NOTHING BANKED — AND THE COMPARISON IS COHERENT WITH IT.
+ *
+ * An earlier version of this world spread `ordinaryRivalry` and only replaced
+ * the opponent, which produced a state the server cannot send: twelve
+ * matchweeks compared, a 5-6-1 record and a thirteen-point gap against a player
+ * on nothing from nothing. `matchweeksCompared` counts rounds banked BY BOTH,
+ * so a player who has banked none forces it to zero and cannot have won six. A
+ * design-review world that cannot occur teaches the wrong thing.
+ *
+ * The opponent is LAST OF 412 rather than unranked, because
+ * `predictor_internal.season_standings` left-joins the scores and therefore
+ * contains every entry — a player with nothing banked is in the table on 0 from
+ * 0, not absent from it.
+ */
 const noStandingYet = world({
   profile: {
     kind: 'profile',
@@ -366,8 +402,14 @@ const noStandingYet = world({
   rivalry: {
     kind: 'rivalry',
     detail: {
-      ...ordinaryRivalry,
-      them: rivalrySide(THEIR_REF, 'Callum Aitken', 0, 0, null, 412, accuracy(0, 0, 0)),
+      matchweeksCompared: 0,
+      you: rivalrySide(YOUR_REF, 'Rhona Buchanan', 148, 12, 4, 412, accuracy(0, 0, 0)),
+      them: rivalrySide(THEIR_REF, 'Callum Aitken', 0, 0, 412, 412, accuracy(0, 0, 0)),
+      pointsGap: -148,
+      yourWins: 0,
+      theirWins: 0,
+      draws: 0,
+      recent: [],
     },
   },
 })
@@ -490,7 +532,7 @@ export const playerProfileScenarioPremises: Readonly<
   profileUnavailable:
     'The profile read failed. One panel apologises and offers a retry; the other two are unaffected.',
   allUnavailable:
-    'All three reads failed. The page still has a heading, because the doorway held a name and two addresses.',
+    'All three reads failed, so the page does not know who this is — the doorway carries two identifiers and no name. The heading reads "Player", and three separate sentences appear rather than one error screen standing in for three failures.',
   newSeason:
     'The first day. No settled matchweek, nothing to plot, and 0-0-0 out of nothing — which must read as "not yet comparable", never as a draw.',
   climbing:
@@ -511,7 +553,7 @@ export const playerProfileScenarioPremises: Readonly<
   noAccuracy:
     'A player with a standing and no predictions at all. No percentage is printed, because 0% exact is an accusation and not a statistic.',
   noStandingYet:
-    'Entered, nothing banked. "Not yet ranked" rather than a zeroth place, on both the summary and the comparison.',
+    'Entered, nothing banked. The profile says nothing has been banked rather than drawing a zeroth place, and the comparison says there is nothing to compare — because a matchweek only counts once BOTH players have banked it.',
   longName:
     'A fifty-character display name. Nothing is clipped anywhere; the blocks grow instead.',
   levelRivalry:

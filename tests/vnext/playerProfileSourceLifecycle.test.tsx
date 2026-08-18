@@ -117,7 +117,15 @@ const server = vi.hoisted(() => {
         playerId: null,
         serverNow: null,
         matchweeks: [
-          { matchweekId: 'mw-1', ordinal: 1, label: 'Matchweek 1', points: 10, rank: 3, fieldSize: 40 },
+          {
+            matchweekId: 'mw-1',
+            ordinal: 1,
+            label: 'Matchweek 1',
+            // A RUNNING SEASON TOTAL, not this matchweek's score.
+            cumulativePoints: 10,
+            rank: 3,
+            fieldSize: 40,
+          },
         ],
       }
     },
@@ -528,6 +536,32 @@ describe('the states above the reads', () => {
     reset()
     const probe = mount({ ...BASE, authLoading: true, userId: null })
     expect(last(probe.seen).status).toBe('loading')
+  })
+
+  it('keeps the page mounted while a retry re-reads', async () => {
+    // THE PANEL RETRY MUST NOT TAKE THE PAGE DOWN. Three panels each offer one,
+    // and clearing state on every effect run swapped the whole surface for the
+    // skeleton — unmounting the panels that succeeded, the live region the
+    // reader just heard, and the button they were standing on.
+    //
+    // THE REFETCH IS HELD OPEN ON PURPOSE. An earlier version of this test let
+    // the retry resolve and then looked for a `loading` render; React batched
+    // the clear and the reload into one commit, so the intermediate state never
+    // rendered and the test passed against the very defect it names. Holding
+    // the profile read pending freezes the surface in whatever the effect left
+    // it in, which is the thing being asserted.
+    reset()
+    const probe = mount(BASE)
+    await ready(probe)
+
+    const current = last(probe.seen)
+    if (current.status !== 'ready') throw new Error('expected ready')
+
+    server.state.profileMode = 'pending'
+    current.retry()
+    await waitFor(() => expect(server.profiles.has('user-callum')).toBe(true))
+
+    expect(last(probe.seen).status, 'a retry must not drop the page to loading').toBe('ready')
   })
 
   it('re-reads when the retry is taken', async () => {

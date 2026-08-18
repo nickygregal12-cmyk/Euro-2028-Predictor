@@ -234,10 +234,3 @@ export function SeasonPlayerProfileRoute() {
   )
 }
 
-/**
- * The privacy refusal, told apart from every other failure.
- *
- * Matched on the server's own code and message rather than on a status: the
- * function raises `insufficient_privilege` for the co-membership boundary, and
- * PostgREST carries that through as the error's `code`.
- */

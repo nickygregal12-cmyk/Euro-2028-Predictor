@@ -11,7 +11,8 @@ import { accuracyRate } from '../models/playerProfile'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
-import { formatNumber, formatOrdinal, formatShare } from '../foundations/format'
+import { formatNumber, formatOrdinal } from '../foundations/format'
+import { accuracyValue } from './accuracy'
 import { PredictionHistory } from './PredictionHistory'
 import { RankChart } from './RankChart'
 import { RivalryTable } from './RivalryTable'
@@ -36,9 +37,13 @@ import styles from './playerProfile.module.css'
  *
  * ============================ THE PAGE NEVER GOES BLANK ==================
  *
- * The heading is built from what the DOORWAY held — a name and two server-issued
- * addresses — so it is present whatever the three reads did. A refusal is a
+ * The heading is built from whichever read ANSWERED, by a fixed priority, and
+ * the two server-issued addresses come from the doorway. A refusal is a
  * sentence inside a panel, not an empty screen, and not an error page.
+ *
+ * WHEN ALL THREE READS FAIL THERE IS NO NAME, because the doorway carries none
+ * — its intent has no name field. The page says "Player", which is the truth:
+ * it knows where to look and not who it is looking at.
  *
  * ============================ THREE SENTENCES THAT ARE NOT THE SAME
  * SENTENCE =================================================================
@@ -202,17 +207,36 @@ function ProfileBody({
         <Summary summary={detail.summary} />
       )}
 
-      {detail.accuracy === null ? null : (
+      {/* THREE INDEPENDENTLY NULLABLE FACTS, DRAWN INDEPENDENTLY. `summary`,
+          `accuracy` and `jokers` each decode on their own — `mapAccuracy` can
+          return null while `mapJokers` succeeds — so nesting one inside
+          another's branch would make a malformed accuracy payload silently
+          delete a player's jokers from the page. The model decouples them and
+          this must not re-couple them. */}
+      {detail.accuracy === null && detail.jokers === null ? null : (
         <dl className={styles.stats}>
-          <Stat label="Fixtures predicted" value={formatNumber(detail.accuracy.fixturesPredicted)} />
-          <Stat
-            label="Exact scores"
-            value={rateValue(detail.accuracy.exactScores, accuracyRate(detail.accuracy)?.exact)}
-          />
-          <Stat
-            label="Correct outcomes"
-            value={rateValue(detail.accuracy.correctOutcomes, accuracyRate(detail.accuracy)?.outcome)}
-          />
+          {detail.accuracy === null ? null : (
+            <>
+              <Stat
+                label="Fixtures predicted"
+                value={formatNumber(detail.accuracy.fixturesPredicted)}
+              />
+              <Stat
+                label="Exact scores"
+                value={accuracyValue(
+                  detail.accuracy.exactScores,
+                  accuracyRate(detail.accuracy)?.exact,
+                )}
+              />
+              <Stat
+                label="Correct outcomes"
+                value={accuracyValue(
+                  detail.accuracy.correctOutcomes,
+                  accuracyRate(detail.accuracy)?.outcome,
+                )}
+              />
+            </>
+          )}
           {detail.jokers === null ? null : (
             <Stat label="Jokers played" value={formatNumber(detail.jokers.played)} />
           )}
@@ -228,17 +252,6 @@ function ProfileBody({
       <PredictionHistory history={detail.history} isYou={isYou} />
     </div>
   )
-}
-
-/**
- * A count, and its share ONLY where there was something to divide by.
- *
- * `accuracyRate` returns null on a zero denominator, so `rate` is undefined
- * exactly when a percentage would have been invented. "0% exact" against a
- * player who has predicted nothing is an accusation, not a statistic.
- */
-function rateValue(count: number, rate: number | undefined): string {
-  return rate === undefined ? formatNumber(count) : `${formatNumber(count)} (${formatShare(rate)})`
 }
 
 function Summary({ summary }: { readonly summary: PlayerSeasonSummary }) {

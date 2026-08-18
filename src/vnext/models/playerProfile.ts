@@ -253,11 +253,17 @@ export type PlayerProfilePanel =
 /**
  * ONE SETTLED MATCHWEEK'S STANDING.
  *
- * `rank` IS THE PLOTTED VALUE and `points` is context printed beside it. They
- * are named for that difference on purpose: the predicate turns on the chart
- * plotting a position rather than a total, and a series whose two numeric
+ * `rank` IS THE PLOTTED VALUE and `cumulativePoints` is context printed beside
+ * it. They are named for that difference on purpose: the predicate turns on the
+ * chart plotting a position rather than a total, and a series whose two numeric
  * fields were called `value` and `points` would make the wrong one a one-token
  * mistake.
+ *
+ * `cumulativePoints` IS A RUNNING SEASON TOTAL, not this matchweek's score. The
+ * RPC computes it as a window sum and says so. The profile panel on this same
+ * page draws contract 151's PER-MATCHWEEK figure, so the two must never be
+ * given the same name or the same caption — one matchweek would carry two
+ * different numbers, both labelled as what it scored.
  */
 export type RankPoint = {
   readonly matchweekId: string
@@ -267,8 +273,8 @@ export type RankPoint = {
   readonly rank: number
   /** What that rank was out of. Never separated from it. */
   readonly fieldSize: number
-  /** That matchweek's own banked points. Beside the line, never the line. */
-  readonly points: number
+  /** The season total AFTER this matchweek. Beside the line, never the line. */
+  readonly cumulativePoints: number
 }
 
 export type RankHistoryPanel =
@@ -466,6 +472,13 @@ export type RankPlotPoint = {
  * A single-point series, and a season spent entirely at one rank, both have no
  * range to scale across; those plot on the CENTRE LINE rather than dividing by
  * zero or pinning to an edge that would read as a best-or-worst season.
+ *
+ * X IS SPACED BY POSITION IN THE SERIES, NOT BY MATCHWEEK NUMBER. A postponed
+ * matchweek leaves a gap in the ordinals and is drawn here as though it were
+ * adjacent. That is the deliberate choice — the series is "each settled
+ * matchweek" and the caption says so, and spacing by ordinal would open a blank
+ * stretch of chart for a matchweek that simply has not settled. It is written
+ * down because every other geometry decision in this file is.
  *
  * Fractions rather than pixels, so the same series is correct in a phone card
  * and a desktop panel and no component holds a second copy of the geometry.

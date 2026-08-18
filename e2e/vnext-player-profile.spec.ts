@@ -325,17 +325,27 @@ test.describe('the axis is labelled with the bounds the line was drawn between',
     // because these two numbers are on the axis.
     expect(reading.axisLabels).toEqual(['4th', '7th'])
 
-    // The topmost marker is the best rank the axis names, and the lowest is the
-    // worst. If the caption and the scale ever came from two calculations, this
-    // is the assertion that fails.
+    // THE MARKER AT THE TOP MUST BE THE ROW THE AXIS LABELS AS `best`, and the
+    // one at the bottom the row it labels `worst`. The markers and the table
+    // rows are in the same order, so pairing them by index is what ties the
+    // scale to the caption.
+    //
+    // An earlier version asserted only `min(cy) < max(cy)`, which is true of
+    // any non-flat series however it was scaled — it would have passed against
+    // exactly the two-calculations defect it was named for.
     const cys = reading.plotted.map((point) => point.cy)
-    const top = Math.min(...cys)
-    const bottom = Math.max(...cys)
-    const best = reading.chartRows.find((row) => row.position.startsWith('4th'))
-    const worst = reading.chartRows.find((row) => row.position.startsWith('7th'))
-    expect(best, 'the table should state the best position the axis names').toBeTruthy()
-    expect(worst, 'the table should state the worst position the axis names').toBeTruthy()
-    expect(top).toBeLessThan(bottom)
+    const topIndex = cys.indexOf(Math.min(...cys))
+    const bottomIndex = cys.indexOf(Math.max(...cys))
+
+    expect(reading.chartRows).toHaveLength(reading.plotted.length)
+    expect(
+      reading.chartRows[topIndex]?.position,
+      'the highest marker is not the position the axis prints at the top',
+    ).toContain(reading.axisLabels[0] ?? 'unset')
+    expect(
+      reading.chartRows[bottomIndex]?.position,
+      'the lowest marker is not the position the axis prints at the bottom',
+    ).toContain(reading.axisLabels[1] ?? 'unset')
   })
 
   test('the field is named, and named as having changed when it did', async ({ page }) => {

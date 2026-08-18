@@ -395,13 +395,32 @@ describe('the payload carries no prediction', () => {
     expect(JSON.stringify(rivalry)).not.toContain('predictions')
   })
 
-  it('measures both sides over the same compared fixtures', () => {
-    // The RPC computes accuracy over the compared matchweeks only and
-    // identically for both. Carrying two different denominators would make the
-    // columns look comparable when they are not.
-    const rivalry = mapSeasonRivalry(payload())
-    expect(rivalry.you.accuracy.fixturesCompared).toBe(
-      rivalry.opponent.accuracy.fixturesCompared,
+  it('carries two different denominators when the server sends two', () => {
+    // THE RULE IS SHARED, THE DENOMINATOR IS NOT. `count(*) … group by
+    // prediction.entry_id` counts each entry's own prediction rows, so a player
+    // who skipped fixtures inside a compared matchweek has fewer. A decoder
+    // that normalised them — or a test asserting they match — would make the
+    // two columns look comparable when they are not.
+    //
+    // The earlier version of this test read the same default off both sides and
+    // could not fail for any implementation that copied the field.
+    const rivalry = mapSeasonRivalry(
+      payload({
+        you: side({ fixturesCompared: 96, exactScores: 11 }),
+        opponent: side({
+          playerRef: 'entry-them',
+          reach: 'compare',
+          playerId: null,
+          fixturesCompared: 60,
+          exactScores: 11,
+        }),
+      }),
     )
+
+    expect(rivalry.you.accuracy.fixturesCompared).toBe(96)
+    expect(rivalry.opponent.accuracy.fixturesCompared).toBe(60)
+    // Same numerator, same rate, different facts — which is the whole reason a
+    // surface must print the denominator.
+    expect(rivalry.you.accuracy.exactScores).toBe(rivalry.opponent.accuracy.exactScores)
   })
 })

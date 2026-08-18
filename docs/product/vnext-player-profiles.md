@@ -184,6 +184,21 @@ The field size is named beneath the chart, and named as having CHANGED where it
 did: "7th of 60" and "7th of 412" are different facts, so one number under a line
 drawn across both would be wrong for most of it.
 
+### The points beside the line are a RUNNING TOTAL
+
+And they are named for it. Contract 192 computes them as a window sum and its
+own comment says "Cumulative points … at every SETTLED matchweek". Contract 151's
+history — drawn in the profile panel **on this same page** — carries the other
+figure, that round's own score.
+
+Calling both `points` put two different numbers for one matchweek on one screen,
+both captioned as what it scored. The field is `cumulativePoints` through the
+decoder, the model and the chart's table, the column heading reads "Season
+points after", and **every fixture series is monotonically increasing** so a
+future regression is visible: a non-monotonic series models a per-matchweek
+figure, which is the misunderstanding itself, and a fixture that encodes it can
+never catch it.
+
 ### It is readable without seeing it
 
 The `<svg>` is `aria-hidden` and the same series is a real `<table>` beneath it,
@@ -232,12 +247,20 @@ records, opposite meanings, and only the denominator separates them.
 ### Only matchweeks both players banked are compared
 
 The RPC's own rule, via `season_revealed_settled_rounds`: **a matchweek the
-opponent could not play is not a win.** Accuracy is computed over those compared
-matchweeks only and identically for both sides, so the two columns are comparable
-by construction. Nothing in this lane recomputes a count, a rate, a record or a
-ranking from the parts, and the points gap keeps the server's sign — positive
-means the opponent is ahead, and `pointsGapLabel` is the one place it becomes a
-sentence.
+opponent could not play is not a win.**
+
+Accuracy is computed over those compared matchweeks only, by **the same rule for
+both sides — but not over the same denominator.** `count(*) … group by
+prediction.entry_id` counts each entry's own prediction rows, so two players who
+both banked a compared matchweek get different `fixturesCompared` figures when
+one of them skipped fixtures inside it. **That is why the comparison prints the
+denominator as its own row** rather than only a rate: "11 of 96" and "11 of 60"
+are the same percentage and different facts, and this lane does not print half a
+fact anywhere else either.
+
+Nothing in this lane recomputes a count, a rate, a record or a ranking from the
+parts, and the points gap keeps the server's sign — positive means the opponent
+is ahead, and `pointsGapLabel` is the one place it becomes a sentence.
 
 ---
 
@@ -307,6 +330,7 @@ and it is missing from the payload rather than from the code.
 | season points, matchweeks played | REAL + AUTHORITATIVE | banked, from the authority the season and the leagues read |
 | season rank + field size | REAL + AUTHORITATIVE | paired always; absent rather than zeroth |
 | rank per settled matchweek | REAL + AUTHORITATIVE | contract 192's `standing_rank`; the read exists precisely because it is not derivable |
+| points per settled matchweek | REAL + AUTHORITATIVE, **and cumulative** | contract 192 sends a running season total (`sum(...) over (… rows between unbounded preceding and current row)`), NOT that matchweek's score. Carried as `cumulativePoints` and captioned "Season points after" — see §4 |
 | exact scores / correct outcomes | REAL + AUTHORITATIVE | derived by the RPC over settled matchweeks, with its own denominator |
 | accuracy **rate** | DERIVED, AND REFUSED ON ZERO | the one division in the lane; `accuracyRate` returns null rather than 0% |
 | jokers played, joker points | REAL + AUTHORITATIVE | contract 151 |
@@ -374,6 +398,15 @@ rather than one error screen standing in for three different failures.
   `white-space: nowrap` and a fifty-character name made the page scroll sideways
   by 29 pixels at 375. Only the browser suite could see it.
 - Every control clears 44×44.
+- **Three failed reads announce three times, and that is the chosen trade.** A
+  single page-level `role="status"` would be quieter, but it would break the
+  association between a failure and the panel it belongs to — and each panel's
+  retry is a different action. Three short sentences, politely queued, beat one
+  sentence that does not say which read failed.
+- **A panel's retry does not unmount the page.** The hook keeps a loaded payload
+  while re-reading the same player, so the panels that succeeded, the live
+  region the reader just heard and the button they are standing on all survive
+  the press. Only a change of player clears the surface.
 - Reduced motion changes the arrival transition and never the content. The
   chart is a static drawing either way.
 

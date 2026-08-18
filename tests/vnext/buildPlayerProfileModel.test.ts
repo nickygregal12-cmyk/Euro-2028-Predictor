@@ -60,9 +60,10 @@ function historyPayload(overrides: Partial<SeasonRankHistory> = {}): SeasonRankH
     displayName: 'Callum from the history read',
     playerId: null,
     serverNow: NOW,
+    // A RUNNING TOTAL, so it increases. See `seasonRankHistoryModel`.
     matchweeks: [
-      { matchweekId: 'mw-11', ordinal: 11, label: 'Matchweek 11', points: 9, rank: 9, fieldSize: 412 },
-      { matchweekId: 'mw-12', ordinal: 12, label: 'Matchweek 12', points: 18, rank: 2, fieldSize: 412 },
+      { matchweekId: 'mw-11', ordinal: 11, label: 'Matchweek 11', cumulativePoints: 133, rank: 9, fieldSize: 412 },
+      { matchweekId: 'mw-12', ordinal: 12, label: 'Matchweek 12', cumulativePoints: 151, rank: 2, fieldSize: 412 },
     ],
     ...overrides,
   }
@@ -243,11 +244,21 @@ describe('the heading is the server`s, by a fixed priority', () => {
   })
 
   it('does not change its answer with the order the reads landed', () => {
-    // The priority is fixed, so refusing a LOWER-priority read cannot move the
-    // heading. A "whichever answered first" implementation would.
-    const withRivalry = buildPlayerProfileModel(source({}))
-    const withoutRivalry = buildPlayerProfileModel(source({ rivalry: { kind: 'failed' } }))
-    expect(withRivalry.heading.displayName).toBe(withoutRivalry.heading.displayName)
+    // THE THREE READS DISAGREE ON PURPOSE HERE. Each payload carries a
+    // different name, so an implementation that took "whichever answered" — or
+    // that read them in a different order — produces a different heading. An
+    // earlier version of this test compared two sources that both had the
+    // profile answering, so both went down the same branch and it could not
+    // fail; these three go down three.
+    expect(buildPlayerProfileModel(source({})).heading.displayName).toBe('Callum Aitken')
+    expect(
+      buildPlayerProfileModel(source({ profile: { kind: 'refused' } })).heading.displayName,
+    ).toBe('Callum from the rivalry read')
+    expect(
+      buildPlayerProfileModel(
+        source({ profile: { kind: 'refused' }, rivalry: { kind: 'refused' } }),
+      ).heading.displayName,
+    ).toBe('Callum from the history read')
   })
 
   it('carries both addresses and nothing else that could identify a person', () => {
@@ -408,6 +419,15 @@ describe('the chart series is the server`s positions', () => {
     ])
   })
 
+  it('carries the running total as a running total', () => {
+    // NOT this matchweek's score. Contract 151's history carries that one, and
+    // the profile draws both on one page.
+    const model = buildPlayerProfileModel(source({}))
+    const panel = model.rankHistory
+    if (panel.kind !== 'history') throw new Error('expected a history panel')
+    expect(panel.series.map((point) => point.cumulativePoints)).toEqual([133, 151])
+  })
+
   it('keeps the server`s order rather than sorting by rank', () => {
     const model = buildPlayerProfileModel(
       source({
@@ -415,8 +435,8 @@ describe('the chart series is the server`s positions', () => {
           kind: 'ok',
           history: historyPayload({
             matchweeks: [
-              { matchweekId: 'mw-12', ordinal: 12, label: 'Matchweek 12', points: 18, rank: 2, fieldSize: 412 },
-              { matchweekId: 'mw-11', ordinal: 11, label: 'Matchweek 11', points: 9, rank: 9, fieldSize: 412 },
+              { matchweekId: 'mw-12', ordinal: 12, label: 'Matchweek 12', cumulativePoints: 151, rank: 2, fieldSize: 412 },
+              { matchweekId: 'mw-11', ordinal: 11, label: 'Matchweek 11', cumulativePoints: 133, rank: 9, fieldSize: 412 },
             ],
           }),
         },

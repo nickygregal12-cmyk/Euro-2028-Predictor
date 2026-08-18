@@ -32,8 +32,15 @@ import { at, first } from '../support/indexed'
  *      FROM A DRAWN RIVALRY.
  */
 
-function point(ordinal: number, rank: number, fieldSize = 412, points = 10): RankPoint {
-  return { matchweekId: `mw-${ordinal}`, ordinal, label: `Matchweek ${ordinal}`, rank, fieldSize, points }
+function point(ordinal: number, rank: number, fieldSize = 412, cumulativePoints = 10): RankPoint {
+  return {
+    matchweekId: `mw-${ordinal}`,
+    ordinal,
+    label: `Matchweek ${ordinal}`,
+    rank,
+    fieldSize,
+    cumulativePoints,
+  }
 }
 
 describe('rankBounds states what the chart is drawn between', () => {
@@ -125,7 +132,7 @@ describe('the line and its axis come from one calculation', () => {
   })
 
   it('carries each point through so the plot and the table cannot disagree', () => {
-    const series = [point(1, 4, 412, 16), point(2, 6, 412, 11)]
+    const series = [point(1, 4, 412, 116), point(2, 6, 412, 127)]
     expect(rankPlot(series).map((entry) => entry.point)).toEqual(series)
   })
 })

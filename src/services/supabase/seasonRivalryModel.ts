@@ -24,12 +24,20 @@
  * never "level". Nothing here may divide by it; `rivalryComparable` exists so
  * a surface asks rather than infers.
  *
- * ============================ BOTH SIDES ARE MEASURED THE SAME WAY ========
+ * ============================ BOTH SIDES ARE MEASURED BY THE SAME RULE — BUT
+ * NOT OVER THE SAME DENOMINATOR ============================================
  *
- * The RPC computes accuracy over the COMPARED matchweeks only and identically
- * for both players, so the two columns are comparable by construction. That
- * property is the server's; this module carries it and never recomputes a
- * count, a rate or a ranking from the parts.
+ * The RPC applies one rule to both players: their predictions, over the
+ * COMPARED matchweeks only, against played fixtures. What it does NOT do is
+ * give them a shared denominator — `count(*) … group by prediction.entry_id`
+ * counts each entry's OWN prediction rows, so two players who both banked a
+ * compared matchweek get different `fixturesCompared` figures when one of them
+ * skipped fixtures inside it.
+ *
+ * That is the honest answer and this module carries it unchanged. It is also
+ * why a surface must print the denominator beside the counts rather than only
+ * a percentage: "11 of 96" and "11 of 60" are the same rate and different
+ * facts. Nothing here recomputes a count, a rate or a ranking from the parts.
  *
  * ============================ RANK STILL NEVER TRAVELS ALONE ==============
  *
@@ -174,9 +182,18 @@ function reachOrNull(value: unknown): SeasonRivalryReach | null {
 /**
  * A standing, or `null`.
  *
- * The RPC left-joins the season standings, so a player with no banked standing
- * sends both fields null. A payload stating one without the other is not a
- * partial standing to be patched — it is not a standing.
+ * NULL IS DEFENSIVE HERE, NOT ROUTINE, and the distinction is worth stating
+ * because the join looks like it says otherwise. The RPC left-joins
+ * `predictor_internal.season_standings`, which itself LEFT-joins the matchweek
+ * scores — so every entry in the season is already in it, a player who has
+ * banked nothing included, at last place on 0 from 0. Both sides of a rivalry
+ * are verified to be entries before this point, so the join matches and a null
+ * pair is not a shape this read is expected to produce.
+ *
+ * It is still handled rather than assumed away: a payload stating a rank
+ * without its field is not a partial standing to be patched — it is not a
+ * standing — and refusing it is cheaper than discovering later that something
+ * rendered "4th of undefined".
  */
 function standingOf(row: Record<string, unknown>): SeasonRivalryStanding | null {
   const rank = integerOrNull(row.rank)

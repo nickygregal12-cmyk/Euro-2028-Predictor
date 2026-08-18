@@ -1,4 +1,3 @@
-import { useId } from 'react'
 import type { RankPoint } from '../models/playerProfile'
 import { rankBounds, rankPlot, rankPointKey } from '../models/playerProfile'
 import { formatNumber, formatOrdinal } from '../foundations/format'
@@ -57,7 +56,6 @@ export type RankChartProps = {
 export function RankChart({ series, caption }: RankChartProps) {
   const bounds = rankBounds(series)
   const plotted = rankPlot(series)
-  const tableId = useId()
 
   if (bounds === null) {
     // NOT AN ERROR. A season before its first settlement has no positions yet,
@@ -136,13 +134,18 @@ export function RankChart({ series, caption }: RankChartProps) {
           overflow this suite caught; that was `.recentOutcome`. This is the
           latent version of the same class of fault.) */}
       <div className={text.srOnly}>
-        <table id={tableId}>
+        <table>
           <caption>{caption}</caption>
           <thead>
             <tr>
               <th scope="col">Matchweek</th>
               <th scope="col">Position</th>
-              <th scope="col">Points that matchweek</th>
+              {/* THE SEASON TOTAL AFTER THIS MATCHWEEK, and the heading has to
+                  say so. The RPC's figure is a running sum; the profile panel
+                  below draws contract 151's per-matchweek score, and captioning
+                  both as "points that matchweek" would put two different
+                  numbers for one matchweek on one page. */}
+              <th scope="col">Season points after</th>
             </tr>
           </thead>
           <tbody>
@@ -152,7 +155,7 @@ export function RankChart({ series, caption }: RankChartProps) {
                 <td>
                   {formatOrdinal(point.rank)} of {formatNumber(point.fieldSize)}
                 </td>
-                <td>{formatNumber(point.points)}</td>
+                <td>{formatNumber(point.cumulativePoints)}</td>
               </tr>
             ))}
           </tbody>

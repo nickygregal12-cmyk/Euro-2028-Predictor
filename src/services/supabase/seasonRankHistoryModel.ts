@@ -74,14 +74,23 @@ const REACHES: readonly SeasonRankHistoryReach[] = [
 /**
  * One settled matchweek's standing.
  *
- * `points` is that matchweek's own banked figure, not a running total — the
- * cumulative reading is the RANK, which is what the series is for.
+ * `cumulativePoints` IS A RUNNING TOTAL AND IS NAMED FOR IT. The RPC computes
+ * it as a window sum — `sum(...) over (partition by entry order by ordinal rows
+ * between unbounded preceding and current row)` — and its own comment calls it
+ * "Cumulative points … at every SETTLED matchweek". It is the season total so
+ * far, not what was scored in this matchweek.
+ *
+ * THE DISTINCTION IS NOT PEDANTIC HERE, because contract 151's history carries
+ * the OTHER one: `score.points` for that round alone. A surface drawing both —
+ * which the Stage 10 profile does — would otherwise print two different figures
+ * for the same matchweek and caption them identically.
  */
 type SeasonRankHistoryPoint = {
   matchweekId: string
   ordinal: number
   label: string
-  points: number
+  /** The season total AFTER this matchweek. Never this matchweek's own score. */
+  cumulativePoints: number
   /** The server's standing after this matchweek. Never derived from points. */
   rank: number
   /** The field that rank was out of. Never separated from it. */
@@ -138,7 +147,7 @@ function mapPoint(value: unknown): SeasonRankHistoryPoint | null {
   const matchweekId = stringOrNull(row.matchweekId)
   const ordinal = integerOrNull(row.ordinal)
   const label = stringOrNull(row.label)
-  const points = integerOrNull(row.points)
+  const cumulativePoints = integerOrNull(row.points)
   const rank = integerOrNull(row.rank)
   const fieldSize = integerOrNull(row.fieldSize)
 
@@ -146,14 +155,14 @@ function mapPoint(value: unknown): SeasonRankHistoryPoint | null {
     matchweekId === null ||
     ordinal === null ||
     label === null ||
-    points === null ||
+    cumulativePoints === null ||
     rank === null ||
     fieldSize === null
   ) {
     return null
   }
 
-  return { matchweekId, ordinal, label, points, rank, fieldSize }
+  return { matchweekId, ordinal, label, cumulativePoints, rank, fieldSize }
 }
 
 export function mapSeasonRankHistory(value: unknown): SeasonRankHistory {

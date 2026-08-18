@@ -191,7 +191,11 @@ describe('an unsettled matchweek is a sentence, never a nought', () => {
 
     const history = panel('history')
     expect(within(history).getByText('Not settled yet')).toBeTruthy()
-    expect(within(history).queryByText('0')).toBeNull()
+    // NOT `queryByText('0')`. Points render as `{n}<span> pts</span>`, so no
+    // element ever has the text "0" exactly and that query passes against a
+    // version that coalesced `pending` into a zero. This matches what such a
+    // regression would actually put on screen.
+    expect(history.textContent).not.toMatch(/\b0 pts\b/)
   })
 
   it('still prints a genuine nought where one was banked', () => {
@@ -233,10 +237,19 @@ describe('the record appears with the denominator it was counted over', () => {
   })
 
   it('never prints a record whose parts sum to the strip instead', () => {
+    // ASSERTED ON THE RECORD ELEMENT, not on the panel's flattened text. The
+    // earlier version looked for the substrings "14" and "13" anywhere in the
+    // panel — both of which are satisfied by the season-points row (148) and by
+    // a strip scoreline (13–9), so a version that tallied the record off the
+    // five-matchweek window would have printed "3–0–2" and still passed.
     renderProfile(playerProfileScenarios.truncatedWindow)
     const compare = panel('compare')
-    expect(compare.textContent).toContain('14')
-    expect(compare.textContent).toContain('13')
+
+    const record = compare.querySelector('strong')
+    expect(record?.textContent?.replace(/\s+/g, '')).toBe('14–3–13')
+
+    // And the window's own tally must not be what is on screen.
+    expect(record?.textContent).not.toContain('3–0–2')
   })
 })
 
@@ -288,8 +301,33 @@ describe('a position is never printed without the field it was out of', () => {
     expect(within(panel('summary')).getByText(/2nd of 412/)).toBeTruthy()
   })
 
-  it('says "not yet ranked" rather than a zeroth place', () => {
+  it('says nothing has been banked rather than drawing a zeroth place', () => {
+    // The reachable version of "no standing". `season_standings` left-joins the
+    // scores, so every entry is in it — a player who has banked nothing is LAST
+    // of the field, not absent from it — and nothing is comparable until both
+    // players have banked a matchweek.
     renderProfile(playerProfileScenarios.noStandingYet)
+    expect(panel('summary').textContent).toMatch(/nothing has been banked/i)
+    expect(panel('compare').textContent).toMatch(/nothing to compare/i)
+  })
+
+  it('still says "not yet ranked" if a standing ever arrives half-stated', () => {
+    // DEFENSIVE, AND UNREACHABLE FROM THIS RPC — which is why it is asserted
+    // from a hand-built model rather than from a world. The decoder refuses a
+    // rank without its field, and the surface has to say something when it
+    // does; "0th" is the answer nobody wants.
+    const world = playerProfileScenarios.openProfile
+    if (world.rivalry.kind !== 'rivalry') throw new Error('expected a rivalry world')
+    renderProfile({
+      ...world,
+      rivalry: {
+        kind: 'rivalry',
+        detail: {
+          ...world.rivalry.detail,
+          them: { ...world.rivalry.detail.them, standing: null },
+        },
+      },
+    })
     expect(within(panel('compare')).getByText('Not yet ranked')).toBeTruthy()
   })
 
@@ -322,6 +360,25 @@ describe('the chart is readable without seeing it', () => {
     const table = within(panel('rank-chart')).getByRole('table')
     expect(within(table).getByText('301st of 412')).toBeTruthy()
     expect(within(table).getByText('12th of 412')).toBeTruthy()
+  })
+
+  it('labels the points column as the running total the server sends', () => {
+    // THE RPC'S FIGURE IS A WINDOW SUM, not this matchweek's score — and the
+    // profile panel on this same page draws contract 151's per-matchweek one.
+    // Captioning both "points that matchweek" put two different numbers for one
+    // matchweek on one page, which is what this column heading now prevents.
+    renderProfile(playerProfileScenarios.climbing)
+    const table = within(panel('rank-chart')).getByRole('table')
+
+    expect(within(table).getByText('Season points after')).toBeTruthy()
+
+    const totals = within(table)
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => Number(within(row).getAllByRole('cell')[1]?.textContent))
+    // A running total only ever climbs. A per-matchweek series would not.
+    expect(totals).toEqual([...totals].sort((left, right) => left - right))
+    expect(new Set(totals).size).toBe(totals.length)
   })
 
   it('says a season with nothing settled has no position to plot', () => {

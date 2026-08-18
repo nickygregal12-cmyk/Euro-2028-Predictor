@@ -141,7 +141,33 @@ export function useVNextPlayerProfileSource(
     })
 
     let active = true
-    setState((current) => (current.status === 'idle' ? current : IDLE))
+
+    /*
+     * A RETRY MUST NOT UNMOUNT THE PAGE, AND A NEW PLAYER MUST.
+     *
+     * This surface is the first with THREE independent in-page retries, and
+     * clearing state on every effect run made each of them take the whole page
+     * down: the memo reads `idle` as `loading`, the screen swaps in the
+     * skeleton, and the two panels that succeeded — plus the `role="status"`
+     * the reader just heard, plus the button they are standing on — are
+     * unmounted, dropping keyboard focus to the body. That is precisely the
+     * outcome `Unavailable`'s live-region shape was chosen to avoid.
+     *
+     * So a LOADED payload for the identity being asked about again is kept
+     * while the reads run; anything else is cleared.
+     *
+     * WHAT KEEPS ANOTHER PLAYER'S PAYLOAD OFF THE SCREEN IS THE MEMO, not this
+     * write. The memo reads any stored identity that is not the current one as
+     * `loading`, so a stale payload is unrenderable whatever this does.
+     * Clearing here is still worth doing — it stops the hook HOLDING somebody
+     * else's private standing in memory after the reader has moved on — but the
+     * guard a reviewer should check is the identity comparison below.
+     */
+    setState((current) => {
+      if (current.status === 'idle') return current
+      if (current.status === 'loaded' && current.identity === identity) return current
+      return IDLE
+    })
 
     void (async () => {
       try {
