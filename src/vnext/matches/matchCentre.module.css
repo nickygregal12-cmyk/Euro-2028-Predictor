@@ -1,0 +1,352 @@
+/* vNEXT MATCH CENTRE — one fixture, in full.
+ *
+ * THE HERO IS THE MATCH AND NOTHING IS ALLOWED ABOVE IT. §16's requirement,
+ * and the failure it guards against is a page that opens with analytics and
+ * makes the reader scroll to find out who is playing.
+ *
+ * Every query is a CONTAINER query against `vnext-page`, the shell's content
+ * region. The page never measures the viewport.
+ *
+ *   compact  (< 760px)   one column; the hero board is three columns of its own
+ *                        because a scoreboard that stacks is not a scoreboard.
+ *   regular  (>= 760px)  the hero gains room; the crests grow.
+ *   expanded (>= 1120px) two columns — the football and the player's own side
+ *                        keep the main column, the competition context sits
+ *                        beside them.
+ *
+ * COLOUR DISCIPLINE. `--vnext-fixture-*` paints the hero's field at very low
+ * opacity and nothing else. State is semantic and always paired with a word.
+ *
+ * NO CLUB NAME IS CLIPPED. No clamp, no ellipsis, no `overflow: hidden` over a
+ * name anywhere in this file.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+/* ---- the hero ----------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-5) var(--vnext-space-4);
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-xl);
+  box-shadow: var(--vnext-shadow-md);
+  overflow: clip;
+}
+
+/* The two clubs' colours entering from either side, as atmosphere. Very low
+ * opacity, behind everything, and never a state. */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      120% 100% at 0% 0%,
+      color-mix(in oklab, var(--vnext-fixture-home, transparent) 22%, transparent) 0%,
+      transparent 58%
+    ),
+    radial-gradient(
+      120% 100% at 100% 0%,
+      color-mix(in oklab, var(--vnext-fixture-away, transparent) 22%, transparent) 0%,
+      transparent 58%
+    );
+  pointer-events: none;
+}
+
+.heroBoard {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--vnext-space-3);
+}
+
+.heroSide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  text-align: center;
+  min-width: 0;
+}
+
+.heroSideEnd {
+  /* Symmetry rather than mirroring: both sides centre under their own crest,
+   * which is what keeps a long name from pushing the score off centre. */
+  align-items: center;
+}
+
+.heroName {
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.heroMeta {
+  color: var(--vnext-text-muted);
+}
+
+.heroCentre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  padding-inline: var(--vnext-space-2);
+}
+
+.heroScore {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-display);
+  font-size: var(--vnext-size-display);
+  line-height: var(--vnext-leading-tight);
+  letter-spacing: var(--vnext-tracking-tight);
+  white-space: nowrap;
+}
+
+.heroNote {
+  color: var(--vnext-text-muted);
+}
+
+.when {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--vnext-space-3);
+  border-top: 1px solid var(--vnext-hairline);
+  text-align: center;
+}
+
+.whenLine {
+  color: var(--vnext-text-secondary);
+}
+
+.whenNote {
+  color: var(--vnext-warn);
+}
+
+/* ---- body --------------------------------------------------------------- */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  min-width: 0;
+}
+
+.main,
+.aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  min-width: 0;
+}
+
+.module {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.moduleBody {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.moduleNote {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- form --------------------------------------------------------------- */
+
+.formPair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-3);
+}
+
+.formSide {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.formName {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* ---- meetings ----------------------------------------------------------- */
+
+.meetings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.meeting {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  padding-block: var(--vnext-space-1);
+  border-bottom: 1px solid var(--vnext-hairline);
+}
+
+.meeting:last-child {
+  border-bottom: 0;
+}
+
+.meetingLabel {
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.meetingScore {
+  font-family: var(--vnext-font-display);
+  font-weight: var(--vnext-weight-medium);
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+  white-space: nowrap;
+}
+
+/* ---- table -------------------------------------------------------------- */
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+}
+
+.table th,
+.table td {
+  padding: var(--vnext-space-2) var(--vnext-space-1);
+  text-align: end;
+  color: var(--vnext-text-secondary);
+  border-bottom: 1px solid var(--vnext-hairline);
+  font-weight: var(--vnext-weight-regular);
+}
+
+.table thead th {
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+}
+
+.tableClub {
+  text-align: start;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.tableNarrow {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* The two clubs in this match, marked by weight and a rail rather than by
+ * colour alone — the row is still identifiable in greyscale, and the club name
+ * itself is the thing that says which match it belongs to. */
+.tableHighlight th,
+.tableHighlight td {
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-medium);
+  background-color: var(--vnext-surface-sunken);
+}
+
+/* ---- links -------------------------------------------------------------- */
+
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-4);
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@media (any-hover: hover) {
+  .link:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    border-color: var(--vnext-hairline-strong);
+  }
+}
+
+/* ==========================================================================
+   REGULAR — >= 760px
+   ========================================================================== */
+
+@container vnext-page (min-width: 760px) {
+  .hero {
+    padding: var(--vnext-space-6) var(--vnext-space-6);
+  }
+
+  .heroScore {
+    font-size: var(--vnext-size-hero);
+  }
+
+  .formPair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .links {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+
+/* ==========================================================================
+   EXPANDED — >= 1120px. The football keeps the working column.
+   ========================================================================== */
+
+@container vnext-page (min-width: 1120px) {
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    gap: var(--vnext-space-6);
+    align-items: start;
+  }
+
+  .aside {
+    position: sticky;
+    top: var(--vnext-space-4);
+  }
+}

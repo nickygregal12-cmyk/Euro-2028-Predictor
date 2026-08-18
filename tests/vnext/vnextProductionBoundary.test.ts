@@ -130,6 +130,10 @@ describe('the vNext workshop', () => {
         // `PredictorModel` and nothing else, and the adapter beside it is the only
         // thing that knows the application exists.
         file.includes('/src/vnext/predictor/') ||
+        // Stage 8's Matches and Match Centre, on the same terms again. They take
+        // a `MatchesModel` / `MatchCentreModel` and nothing else — which is what
+        // keeps every deterministic world renderable in jsdom with no database.
+        file.includes('/src/vnext/matches/') ||
         file.includes('/src/vnext/app/') ||
         file.includes('/src/vnext/components/'),
     )
@@ -193,6 +197,25 @@ describe('the vNext workshop', () => {
       'a predictor surface or adapter reached the Storybook rehearsal — it is a ' +
         'review harness and must never decide what a command does',
     ).toEqual([])
+  })
+
+  it('keeps Matches and the Match Centre renderable without their adapter', () => {
+    // THE SAME PROPERTY AS HOME'S AND THE PREDICTOR'S, AND FOR THE SAME REASON.
+    // If either page could reach `integration/`, every deterministic story and
+    // every render test would drag the season services — and their Supabase
+    // client — into a jsdom run, and the surfaces would have quietly become
+    // network-dependent. The dependency runs the other way: the adapter imports
+    // the page, never the reverse.
+    for (const page of ['VNextMatches.tsx', 'VNextMatchCentre.tsx']) {
+      const reached = reachableFrom(resolve(repositoryRoot, `src/vnext/matches/${page}`))
+      const leaked = [...reached].filter((file) => file.includes(INTEGRATION))
+
+      expect(
+        leaked.map(fromRoot),
+        `${page} reached the integration layer — the dependency runs the other ` +
+          'way: the adapter imports the page, never the reverse',
+      ).toEqual([])
+    }
   })
 
   it('keeps the approved Home renderable without the adapter', () => {

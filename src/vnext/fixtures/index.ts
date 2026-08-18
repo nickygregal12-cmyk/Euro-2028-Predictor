@@ -69,6 +69,26 @@ export {
   shellScenarios,
 } from './shell/scenarios'
 export type { ShellScenarioName } from './shell/scenarios'
+/**
+ * Stage 8's MATCH worlds.
+ *
+ * Two registries and their premises, and nothing else. A review surface renders
+ * a WORLD; the competitions, the stages and the state builders are inputs to
+ * the scenarios rather than things a story or a test has any business reaching
+ * for.
+ */
+export {
+  matchesScenarioNames,
+  matchesScenarioPremises,
+  matchesScenarios,
+} from './matches/scenarios'
+export type { MatchesScenarioName } from './matches/scenarios'
+export {
+  matchCentreScenarioNames,
+  matchCentreScenarioPremises,
+  matchCentreScenarios,
+} from './matches/matchCentreScenarios'
+export type { MatchCentreScenarioName } from './matches/matchCentreScenarios'
 export {
   COMPETITION_NOW,
   DECISION_NOW,

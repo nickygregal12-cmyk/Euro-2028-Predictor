@@ -31,6 +31,11 @@ export default defineConfig({
     'vnext-home.spec.ts',
     'vnext-shell.spec.ts',
     'vnext-predictor.spec.ts',
+    // Stage 8, Matches and the Match Centre. Same terms as the rest: Storybook
+    // is the review surface, the worlds are deterministic, and the connected
+    // proof lives at the dev harness rather than in a browser suite that would
+    // then need a database.
+    'vnext-matches.spec.ts',
     // Stage 7.5, the three information-architecture concepts. Registered on
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic

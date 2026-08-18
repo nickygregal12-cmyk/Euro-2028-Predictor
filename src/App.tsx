@@ -192,6 +192,19 @@ const VNextMatchPredictorPreview = import.meta.env.DEV
       })),
     )
   : null
+// vNext Stage 8's integration evidence, on exactly the same terms as Stages 6
+// and 7 above: statically eliminated in a production build, absent from the
+// production navigation, and behind no flag. It proves two things the
+// deterministic worlds cannot — a real competition's fixtures, and a real
+// fixture opened by its canonical id through contract 148. The production
+// Matches surface and Match Centre are untouched.
+const VNextMatchesPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextMatchesPreview').then((m) => ({
+        default: m.VNextMatchesPreview,
+      })),
+    )
+  : null
 
 function SessionlessChrome() {
   return (
@@ -246,6 +259,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextMatchPredictorPreview ? (
                   <Route path="/dev/vnext-match-predictor" element={<VNextMatchPredictorPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextMatchesPreview ? (
+                  <Route path="/dev/vnext-matches" element={<VNextMatchesPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

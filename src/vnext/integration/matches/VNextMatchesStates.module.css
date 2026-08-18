@@ -1,0 +1,76 @@
+/* The connected Matches surface when it is not showing football.
+ *
+ * The skeleton takes the SHAPE the content will take — three control pills, a
+ * day heading, three fixture rows — so the page does not reflow as it settles.
+ * It carries no numbers at all: a placeholder that looks like a score is a
+ * placeholder somebody reads as a score.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.barRow {
+  display: flex;
+  gap: var(--vnext-space-2);
+}
+
+.bar {
+  display: block;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.barControl {
+  height: var(--vnext-tap-target);
+  width: 96px;
+  border-radius: var(--vnext-radius-pill);
+}
+
+.barHeading {
+  height: 16px;
+  width: 180px;
+  margin-top: var(--vnext-space-3);
+}
+
+.barRowItem {
+  height: 76px;
+  width: 100%;
+  border-radius: var(--vnext-radius-lg);
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-6) var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.noticeBody {
+  color: var(--vnext-text-secondary);
+  max-width: 56ch;
+}
+
+.retry {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  background-color: var(--vnext-accent);
+  border: 0;
+  border-radius: var(--vnext-radius-md);
+  color: var(--vnext-text-on-accent);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+}
