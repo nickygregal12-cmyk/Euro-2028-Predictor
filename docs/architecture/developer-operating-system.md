@@ -75,7 +75,7 @@ The canonical delivery method is the repository skill [`../../.agents/skills/pre
 | --- | --- | --- |
 | specify/plan/tasks for non-trivial work | **Predictor spec-driven delivery** | canonical repository workflow |
 | command-line spec workflow in a compatible agent | **GitHub Spec Kit** | execution adapter only; do not initialise a competing constitution/authority tree |
-| local task/dependency memory across agent turns | **Beads** | optional local `--stealth` memory; GitHub/specs remain durable collaboration record |
+| local task/dependency memory across agent turns | **Beads** | optional local `--stealth` memory with outbound metrics disabled; GitHub/specs remain durable collaboration record |
 | several coding agents need to avoid collisions | **MCP Agent Mail** | optional coordination service; messages/reservations do not replace branches, commits or review |
 
 ### Why Spec Kit is an adapter, not the root
@@ -86,7 +86,7 @@ Use Spec Kit's useful verbs—clarify, specify, plan, tasks, analyze, implement�
 
 ### Why Beads stays local
 
-Beads is useful for dependency-aware execution memory and “what is ready next?” It is not needed as a second issue tracker or a second accepted-requirements database. The supported setup is stealth/local so `.beads/` is ignored and a clone can throw it away without losing project truth.
+Beads is useful for dependency-aware execution memory and “what is ready next?” It is not needed as a second issue tracker or a second accepted-requirements database. The supported setup is stealth/local so `.beads/` is ignored and a clone can throw it away without losing project truth. The supported Codespace and Beads helpers also disable Beads command metrics and Dolt event flushing, so using local execution memory does not introduce an implicit telemetry path.
 
 ### Why Agent Mail is opt-in
 
@@ -191,6 +191,7 @@ This matters for AI/developer infrastructure because a newly published tool can 
 - Keep `.env`, credential exports, backups and secret material outside Graphify, Serena and Repomix indexes/packs.
 - Context7 needs no key for basic public-doc use; any optional key remains a user/Codespaces secret.
 - OmniRoute provider credentials and Endpoint keys remain outside Git.
+- Beads task memory is local/ignored and the supported environment disables both Beads command metrics and Dolt event flushing.
 - Agent Mail binds to localhost in the repository launcher. A Codespaces forwarded port should remain private; public exposure requires real bearer authentication first.
 - Deep model-backed Graphify may transmit indexed repository content to the selected model provider; it is explicitly opt-in.
 
@@ -214,7 +215,7 @@ A developer-tool integration is complete only when:
 1. its role and authority boundary are unambiguous;
 2. its supported version is pinned centrally **and its update datasource is declared**;
 3. bootstrap/on-demand/optional lifecycle is explicit;
-4. secrets and generated state have a safe location;
+4. secrets, telemetry and generated state have a safe location/default;
 5. a smoke/config test proves the integration shape;
 6. any new architectural restriction is executable in CI where practical;
 7. application/runtime dependency graphs remain clean unless the tool genuinely belongs in the product;
