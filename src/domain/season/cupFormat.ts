@@ -15,13 +15,19 @@
  *   half first when the field is odd) each play a post-split round-robin,
  *   and points carry through — the split follows the arithmetic, never the
  *   host league;
- * - even meetings → the remainder of the calendar is the seeded playoff and
- *   knockout window; an exact fit (N = 20 over 38) has no tail at all;
+ * - even meetings → no split; an exact fit (N = 20 over 38) has no tail at all;
+ * - contract 198: whatever the calendar has left after the league RESERVES a
+ *   knockout only when it can hold the whole bracket the qualifier count
+ *   implies. A single group is a league and finishes as one — it is never
+ *   shortened to make room, so a short remainder means no knockout, not a
+ *   truncated one;
  * - a Cup need not fill the season — leftover rounds are reported, never
  *   padded away;
  * - above the cap, or mid-season when two meetings no longer fit a single
  *   group, the field is drawn into BALANCED groups of at most twenty —
- *   thirty entrants is two groups of fifteen, never a twenty and a ten.
+ *   thirty entrants is two groups of fifteen, never a twenty and a ten. A
+ *   multi-group field cannot be one league, so it ALWAYS ends in a knockout
+ *   and contract 198 takes that calendar off the end BEFORE sizing the groups.
  *
  * The selector decides shape only. Draw, schedule generation, qualification,
  * seeding and the knockout bracket remain with their existing authorities,

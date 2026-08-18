@@ -45,13 +45,21 @@
  *   * 197 adds one `authenticated` read, `get_my_football_calendar`, scoped to
  *     the caller's own `entries`. Nothing existing is redefined.
  *
+ * Contract 198 (CUP-006) reserves the knockout calendar a Championship implies.
+ * It adds `predictor_internal.cup_knockout_rounds`, granted to nobody, and
+ * redefines `predictor_internal.select_season_cup_format` and
+ * `admin_finalise_predictor_cup_groups` -- an internal helper and an
+ * administrator path. No `authenticated` read is added, removed or redefined,
+ * and the seed creates no Championship whose launchability the new arithmetic
+ * could change.
+ *
  * That reasoning is not what raises the marker. Both jobs passed at the exact
- * head `ff7fc05`: Database parity (`local-supabase`) run 32087139120 and
- * Browser E2E (`authenticated-browser`) run 32087139124, re-verifying the
- * seeded authenticated journeys against a database holding all 197 migrations
+ * head `fc56e34`: Database parity (`local-supabase`) run 32113189955 and
+ * Browser E2E (`authenticated-browser`) run 32113190038, re-verifying the
+ * seeded authenticated journeys against a database holding all 198 migrations
  * rather than merely reasoning about them.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 197
+export const SEED_REVIEWED_AT_CONTRACT = 198
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
