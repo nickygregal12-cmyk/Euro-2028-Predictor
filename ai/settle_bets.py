@@ -125,25 +125,12 @@ def load_settled_without_clv(league_key: str):
     )
 
 
-# Benchmark preference, sharpest first. MAX IS DELIBERATELY ABSENT.
-#
-# Max H, Max D and Max A are each the best price from whichever bookmaker
-# happened to be top on that outcome, so the triple is a synthetic book that
-# nobody offered. Its overround is frequently below 1 — it is an arbitrage —
-# and de-vigging something whose implied probabilities already sum to less than
-# one is not a meaningful operation. It flatters CLV, in the direction you
-# would most like to be flattered. Max stays useful as "the best price
-# available"; it is never the fair line.
-BENCHMARKS = (("PS", "close_ps"), ("AVG", "close_avg"))
-
-
-def _closing_triple(row):
-    for code, prefix in BENCHMARKS:
-        triple = [row.get(f"{prefix}_{leg}") for leg in ("h", "d", "a")]
-        if all(v is not None and np.isfinite(float(v)) for v in triple):
-            arr = np.array([float(v) for v in triple])
-            return arr, code, float((1.0 / arr).sum())
-    return None, None, None
+# The benchmark preference now lives in `betting`, because evaluation needs the
+# same one. Settlement measures a BET against the close and evaluation measures
+# the FORECAST against it; a benchmark that differed between them would make the
+# two records incomparable, and two copies of a rule is how that happens.
+BENCHMARKS = betting.CLOSING_BENCHMARKS
+_closing_triple = betting.closing_triple
 
 
 def clv_columns(rec, devig: str) -> dict | None:
