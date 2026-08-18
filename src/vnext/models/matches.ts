@@ -218,6 +218,15 @@ export type MatchAggregate = {
  *
  * The brief's own example — a scheduled match carrying `minute: 73` and
  * `finalScore: 2-1` — is not merely discouraged here, it does not typecheck.
+ *
+ * THE LIMIT OF THAT CLAIM, STATED HONESTLY. Excess-property checking catches a
+ * LITERAL, which is how these states are written everywhere in this lane. A
+ * SPREAD widens: `{ ...liveState, kind: 'finished', result, decision: null,
+ * aggregate: null }` compiles and carries an observation into a finished state.
+ * That is TypeScript's behaviour rather than a hole in the union, and nothing
+ * downstream is harmed — `matchScoreClaim` narrows on `kind` and returns the
+ * official result — but the union is not a proof, and a reader should not treat
+ * it as one.
  * `scheduled` has no observation and no result; `live` has an observation and
  * no result; `finished` has a result; `postponed`, `abandoned` and `void` have
  * neither. A surface asking "is there a score?" narrows the union rather than

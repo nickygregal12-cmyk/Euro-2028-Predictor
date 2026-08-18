@@ -172,6 +172,13 @@ contracts, so it is the natural first move there rather than a Stage 8 afterthou
 — a scheduled match carrying `minute: 73` and `finalScore: 2-1` — does not
 typecheck.
 
+**The limit of that claim, stated honestly.** Excess-property checking catches a
+*literal*, which is how every state in this lane is written. A *spread* widens:
+`{ ...liveState, kind: 'finished', … }` compiles and carries an observation into a
+finished state. That is TypeScript's behaviour rather than a hole in the union, and
+nothing downstream is harmed — `matchScoreClaim` narrows on `kind` — but the union
+is a strong default, not a proof.
+
 | State | What it means | Carries |
 | --- | --- | --- |
 | `scheduled` | the platform says this is on and nothing has happened | kickoff only |
