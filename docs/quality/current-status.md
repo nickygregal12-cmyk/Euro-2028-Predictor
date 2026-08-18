@@ -23,7 +23,7 @@
      `npm run check:now` fails in CI when this region disagrees with those records. -->
 
 The repository is at **contract 203**, through `20260818080000_ai_bet_builder_current_decision.sql`.
-Development Supabase is hosted at **202**, verified `2026-08-18T13:20:00.000Z`.
+Development Supabase is hosted at **203**, verified `2026-08-18T19:10:16.167Z`.
 Production Supabase is hosted at **198**, verified `2026-08-18T10:30:00.000Z`; further promotion is **not authorised**.
 
 These three values are derived, not restated. The evidence for how each
