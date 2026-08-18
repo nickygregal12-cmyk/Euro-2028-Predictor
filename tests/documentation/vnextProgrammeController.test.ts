@@ -21,6 +21,7 @@ interface ProgrammeState {
   lastMergedStage: string
   productionCutoverAuthorized: boolean
   completionPredicate: string
+  completionContract: string
   stages: StageState[]
 }
 
@@ -28,6 +29,7 @@ const state = JSON.parse(read('config/vnext-programme.json')) as ProgrammeState
 const rootAgents = read('AGENTS.md')
 const controller = read('docs/product/vnext-programme-controller.md')
 const contracts = read('docs/product/vnext-stage-contracts.md')
+const finalCompletion = read('docs/product/vnext-final-programme-completion.md')
 const runner = read('.agents/skills/vnext-programme-runner/SKILL.md')
 
 const allowedStatuses = new Set([
@@ -106,11 +108,21 @@ describe('vNext programme controller', () => {
 
   it('makes programme completion larger than one PR or stage', () => {
     expect(state.completionPredicate).toBe(
-      'stages_8_through_15_merged_and_final_programme_audit_green',
+      'stages_8_through_15_merged_both_products_live_and_final_programme_audit_green',
     )
+    expect(state.completionContract).toBe('docs/product/vnext-final-programme-completion.md')
     expect(controller).toContain('Do not stop merely because a PR or stage completes')
     expect(runner).toContain('Do not stop merely because')
     expect(runner).toContain('continue immediately into the next stage')
+  })
+
+  it('requires both products to be live and post-deploy verified before final completion', () => {
+    expect(finalCompletion).toContain('Football Hub')
+    expect(finalCompletion).toContain('Euro 2028')
+    expect(finalCompletion).toContain('both Football Hub and Euro 2028 are actually live in Production and post-deploy verified')
+    expect(finalCompletion).toContain('being ready is not programme completion')
+    expect(finalCompletion).toContain('explicit authority for that exact action and target')
+    expect(finalCompletion).toContain('post-deploy smoke checks')
   })
 
   it('requires exact-head repair, review and merge loops rather than weakened gates', () => {
@@ -135,10 +147,11 @@ describe('vNext programme controller', () => {
     expect(controller).toContain('must **not mutate Production merely because Stage 14 is next**')
     expect(runner).toContain('Never flip it to make the loop continue')
     expect(contracts).toContain('actual production switch **only when explicitly authorised**')
+    expect(finalCompletion).toContain('machine flag')
   })
 
   it('does not create a second moving contract or hosted-state authority', () => {
-    for (const source of [controller, contracts, runner]) {
+    for (const source of [controller, contracts, finalCompletion, runner]) {
       expect(source).not.toMatch(/repository is at contract\s+\d+/i)
       expect(source).not.toMatch(/production (?:is|=|at) contract\s+\d+/i)
       expect(source).not.toMatch(/development (?:is|=|at) contract\s+\d+/i)
