@@ -350,6 +350,22 @@ same paragraph existed in seven places at once.
 > Penalty Number is never returned**, matching `get_my_cup` exactly, and
 > neither is whether they have submitted one. The Penalty Number WRITE
 > authority is untouched and was already season-capable through contract 98.
+> **Contract 196 — a player is told what happened to them in a game.**
+> **Advances the cross-competition attention work and reorders nothing else.**
+> It does two things, and the second is only possible because of the first.
+> `bonus_competition_entrants.updated_at` was maintained by four of the seven
+> writes to `outcome` and not by the three in the Championship authorities, so
+> the column that dates an entrant's outcome was right for some rows and stale
+> for others -- and nothing reading it could tell which. Both Championship
+> authorities now set it, on the writes they already performed; no outcome
+> changes and no ADR 0022 rule moves. The generator then tells `eliminated`,
+> `champion` and `qualified`, and deliberately not `active` or `survived`,
+> because a per-round survival written for every survivor of every Last Man
+> Standing round is not news. The expiry sweep gains a fourth re-read so a
+> rescore that REVERSES an outcome closes the recap that said otherwise.
+> `league_invitation` is now the only declared action type without a generator,
+> and it needs an invitation event the schema does not have.
+
 > **Contract 195 — the action centre learns about the Championship tie.**
 > **Advances the cross-competition attention work and reorders nothing else.**
 > `player_action_items_type_allowed` has admitted `cup_penalty_number_due`

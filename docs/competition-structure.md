@@ -186,3 +186,5 @@ same paragraph existed in seven places at once.
 > **Contract 194:** does not alter Championship qualification, seeding, pairing or scoring. It adds an eligibility question above the existing settlement ladder and leaves that ladder unedited.
 
 > **Contract 195:** does not alter Championship qualification, seeding, pairing, Penalty Number or settlement rules. It reads the conditions `submit_cup_penalty_number` already enforces and turns them into one action item per contestable side.
+
+> **Contract 196:** does not alter any competition outcome, only the date recorded beside it. `survived` is excluded from the consequence feed because it is written every Last Man Standing round for every survivor.

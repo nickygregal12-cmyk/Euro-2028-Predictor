@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **195** | latest `20260818000000_cup_penalty_number_actions.sql` |
+| Repository | **196** | latest `20260818010000_game_consequence_actions.sql` |
 | Development hosted | **189** | at `20260813215920_ai_quarantined_evidence_reads.sql`, verified `2026-08-13T22:57:00.000Z`, fast-lane run `31751114401` |
 | Production | **190** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 6 — `20260814005000_ai_actionable_bet_evidence.sql`, `20260817120000_season_player_identity.sql`, `20260817130000_season_rank_history_and_rivalry.sql`, `20260817140000_season_cup_bracket_read.sql`, `20260817150000_cup_tie_eligibility.sql`, `20260818000000_cup_penalty_number_actions.sql`
+**Pending development migrations:** 7 — `20260814005000_ai_actionable_bet_evidence.sql`, `20260817120000_season_player_identity.sql`, `20260817130000_season_rank_history_and_rivalry.sql`, `20260817140000_season_cup_bracket_read.sql`, `20260817150000_cup_tie_eligibility.sql`, `20260818000000_cup_penalty_number_actions.sql`, `20260818010000_game_consequence_actions.sql`
 
-**Next free contract number:** 196. Check open pull requests
+**Next free contract number:** 197. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

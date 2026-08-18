@@ -356,3 +356,5 @@ blockquotes could never show without being read end to end.
 > **Contract 194 stage effect:** Championship settlement consults entrant eligibility. No hub build-stage scope changes.
 
 > **Contract 195 stage effect:** the action centre now produces every deadline-shaped item its vocabulary declares. No hub build-stage scope changes.
+
+> **Contract 196 stage effect:** five of the six declared action types now have generators. No hub build-stage scope changes.

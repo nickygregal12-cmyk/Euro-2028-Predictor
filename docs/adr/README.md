@@ -109,3 +109,5 @@ same paragraph existed in seven places at once.
 > **Contract 194:** implements ADR 0028 § 8 and preserves ADR 0022 § "no rule may be altered while rescoping" by patching the INSTALLED settlement definition in place rather than restating it, so contract 102’s split-safety survives. No ADR changes status.
 
 > **Contract 195:** implements ADR 0014 § 8.3’s existing lane and deadline rules as an ACTION rather than adding one, and composes ADR 0028 § 8 by not asking an entrant who may not contest the tie. No ADR changes status.
+
+> **Contract 196:** adds no rule. It dates outcome writes the Championship authorities already performed, which ADR 0022 does not govern because no qualification, seeding, bye, pairing or Penalty Number rule moves, and turns three stored outcomes into news. No ADR changes status.
