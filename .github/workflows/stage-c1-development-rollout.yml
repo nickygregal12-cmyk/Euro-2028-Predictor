@@ -67,7 +67,7 @@ jobs:
       AGE_BIN: /usr/bin/age
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -133,12 +133,12 @@ jobs:
             exit 1
           }
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.22.2
           cache: npm
 
-      - uses: supabase/setup-cli@v2
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
         with:
           version: 2.84.2
           github-token: ${{ github.token }}
@@ -343,7 +343,7 @@ jobs:
 
       - name: Prepare — upload encrypted backup (7-day retention)
         if: inputs.mode == 'prepare'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: stage-c1-development-backup-${{ github.run_id }}
           path: /tmp/stage-c1-development-rollout/backups/*.backup.tar.gz.age
@@ -352,7 +352,7 @@ jobs:
 
       - name: Prepare — upload non-sensitive evidence (7-day retention)
         if: inputs.mode == 'prepare'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: stage-c1-development-evidence-${{ github.run_id }}
           path: |
@@ -386,7 +386,7 @@ jobs:
 
       - name: Apply — download preparation evidence
         if: inputs.mode == 'apply'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: stage-c1-development-evidence-${{ inputs.prepare_run_id }}
           path: /tmp/stage-c1-development-rollout/prepared
@@ -395,7 +395,7 @@ jobs:
 
       - name: Apply — download encrypted recovery artifact
         if: inputs.mode == 'apply'
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: stage-c1-development-backup-${{ inputs.prepare_run_id }}
           path: /tmp/stage-c1-development-rollout/prepared
@@ -574,7 +574,7 @@ jobs:
 
       - name: Apply — upload postflight and final manifest (7-day retention)
         if: inputs.mode == 'apply' && steps.apply_migration.outcome == 'success'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: stage-c1-development-rollout-${{ github.run_id }}
           path: |

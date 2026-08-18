@@ -48,7 +48,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -110,11 +110,26 @@ jobs:
             version="$(basename "${file}")"; version="${version:0:14}"
             if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then files="${files} ${file}"; fi
           done
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           [ "$(printf '%s\n' ${files} | grep -c . || true)" = 1 ] || { echo 'ERROR: boundary contains other migrations.'; exit 1; }
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           [ "$(basename ${files})" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo 'ERROR: pending migration is not Contract 190.'; exit 1; }
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.22.2
 
@@ -245,11 +260,31 @@ jobs:
           {
             echo '## Production is at Contract 190'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Historical `ai.bets` rows were preserved.'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- `ai.valid_bets` now admits only valid-prediction bets from real, non-aggregate registry venues.'
             echo '- Future MAX, AVG, unknown and other non-real bookmaker inserts are rejected by the installed trigger function.'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Admin betting dashboard, market evidence and publication gate remain on `ai.valid_bets`.'
             echo '- Bet Builder refuses reference-only bookmaker codes.'
             echo '- Provider usage, paid collection, cron schedules and model statuses were unchanged.'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 190 ledger row.'
           } >> "${GITHUB_STEP_SUMMARY}"

@@ -152,7 +152,12 @@ describe('Production Batch A rehearsal', () => {
 
   it('encrypts and uploads the fresh backup before surfacing rehearsal failure', () => {
     const encrypt = workflow.indexOf('age -r')
-    const upload = workflow.indexOf('actions/upload-artifact@v7')
+    // The ACTION, not one spelling of its reference. This named
+    // `actions/upload-artifact@v7`, and SHA-pinning rewrote it to
+    // `@<sha> # v7`, so indexOf returned -1 and the ORDERING this test exists
+    // to prove -- encrypt, then upload, then fail closed -- went unchecked
+    // while the failure pointed at the version string instead.
+    const upload = workflow.indexOf('actions/upload-artifact@')
     const failClosed = workflow.indexOf(
       'Fail closed if the requested Batch A forward rehearsal failed',
     )

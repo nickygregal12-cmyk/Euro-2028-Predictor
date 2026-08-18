@@ -32,8 +32,8 @@ jobs:
     env:
       PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
 
@@ -127,9 +127,15 @@ jobs:
           {
             echo '## AI odds scheduler reconciled'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Production holds one active `ai-odds-window-heartbeat` job.'
             echo '- Legacy Tuesday/Friday DST-twin jobs are absent.'
             echo '- Reconciliation itself made zero provider calls.'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Fixture-aware cron bypasses only the legacy Tuesday/Friday clock window; the live dispatch function is verified to keep `ai_odds_budget_check` and fail closed when collection is denied.'
             echo '- The heartbeat runs every five minutes but only dispatches when a paid-covered fixture is inside 24 hours and the freshness-aware cadence is due.'
             echo '- Cadence is at most 10h (>8h to kickoff), 50m (2–8h), and 10m (≤2h).'

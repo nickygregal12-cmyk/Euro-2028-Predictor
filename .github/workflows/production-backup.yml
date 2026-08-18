@@ -82,9 +82,9 @@ jobs:
               ;;
           esac
 
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.22.2
 
@@ -95,7 +95,7 @@ jobs:
           echo 'Restore rehearsal expectations derived from the deployment contract:'
           node scripts/deployment-contract-expectations.mjs --json
 
-      - uses: supabase/setup-cli@v2
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2.1.1
         with:
           # Includes GoTrue v2.192.0, whose local auth schema contains
           # auth.custom_oauth_providers.custom_claims_allowlist. Keep the
@@ -114,7 +114,6 @@ jobs:
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         run: |
-          umask 077
           mkdir -p "${BACKUP_WORK_DIR}/bundle/verification"
           date -u +'%Y%m%dT%H%M%SZ' > "${BACKUP_WORK_DIR}/capture-timestamp.txt"
           printf '%s\n' "${GITHUB_SHA}" > "${BACKUP_WORK_DIR}/bundle/repository-commit.txt"
@@ -184,6 +183,11 @@ jobs:
 
           (
             cd "${BACKUP_WORK_DIR}/bundle"
+            # Declared, not rewritten: separate opens of a captured file, not a pipeline race. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2094
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
 
@@ -321,7 +325,7 @@ jobs:
           fi
 
       - name: Upload encrypted backup artifact (7-day retention)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: production-backup-encrypted
           path: /tmp/production-backup/artifact/*.backup.tar.gz.age

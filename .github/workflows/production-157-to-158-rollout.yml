@@ -74,7 +74,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -193,7 +193,7 @@ jobs:
             echo 'The backup and the rehearsal this run is gated on exist for exactly this.'
           fi
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.22.2
 
@@ -506,13 +506,28 @@ jobs:
             echo 'Schema only. This rollout did NOT:'
             echo
             echo '- rotate anybody'"'"'s invite code — existing codes are untouched and still work;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '  rotation is an owner act through `rotate_league_invite_code`, taken per league;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- publish Euro 2028 — contract 143 stays `hidden` and publication is an owner act;'
             echo '- promote the application — the deployed site is a separate, separately approved'
             echo '  step, and the Netlify contract variable is still owner-gated;'
             echo '- import any football, and copying Development football rows into Production'
             echo '  remains forbidden by the contract 132 boundary.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'Reconcile `config/production-hosted-contract.json` from an independent read-only'
             echo 'ledger query, not from this job'"'"'s own output.'
           } >> "${GITHUB_STEP_SUMMARY}"

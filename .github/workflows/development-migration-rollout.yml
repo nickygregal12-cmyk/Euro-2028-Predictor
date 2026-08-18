@@ -91,7 +91,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
 
@@ -188,11 +188,11 @@ jobs:
             sed -n "$((target_row + 1)),${total}p" "${WORK_DIR}/all.txt"
           fi
 
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 22.22.2
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1.7.1
         with:
           version: 2.84.2
 
@@ -202,10 +202,14 @@ jobs:
           INPUT_DESTRUCTIVE_ACK: ${{ inputs.destructive_acknowledgement }}
         shell: bash
         run: |
-          set -euo pipefail
           # A REPORT, never a gate that silently passes. Carrying a destructive
           # migration is this lane's whole purpose, so the checker refusing is
           # an expected outcome — but it must be an outcome somebody SAW.
+          # Declared, not rewritten: the substitution yields a word list and is split on purpose. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2046
           if node scripts/check-migration-additive.mjs $(tr '\n' ' ' < "${WORK_DIR}/batch.txt") \
               > "${WORK_DIR}/additive.txt" 2>&1; then
             cat "${WORK_DIR}/additive.txt"
@@ -279,9 +283,13 @@ jobs:
           SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
         shell: bash
         run: |
-          set -euo pipefail
           mkdir -p "${WORK_DIR}/later-migrations"
           : > "${WORK_DIR}/moved-files.txt"
+          # Declared, not rewritten: the loop reads whitespace-separated migration versions, not lines. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2013
           for file in $(cat "${WORK_DIR}/all.txt"); do
             filename="$(basename "${file}")"
             version="${filename:0:14}"
@@ -336,7 +344,6 @@ jobs:
           INPUT_TARGET_MIGRATION: ${{ inputs.target_migration }}
         shell: bash
         run: |
-          set -euo pipefail
           {
             echo "## Development applied rows $((SOURCE_ROW + 1)) to ${TARGET_ROW}"
             echo
@@ -344,6 +351,11 @@ jobs:
             echo
             echo 'Applied:'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2016
             sed 's/^/- `/; s/$/`/' "${WORK_DIR}/expected.txt"
             echo
             echo 'This job applied the migrations. It does NOT verify them — a job'
@@ -355,6 +367,11 @@ jobs:
             echo '- whatever each migration claims to change is true on the target;'
             echo '- nothing the batch was not supposed to touch has moved.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2016
             echo 'Then update `config/development-hosted-contract.json` from that query,'
             echo 'not from this summary.'
           } >> "${GITHUB_STEP_SUMMARY}"

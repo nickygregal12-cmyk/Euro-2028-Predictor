@@ -43,8 +43,8 @@ jobs:
       PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
       SOURCE_SCHEDULE: ${{ github.event.schedule || '' }}
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-python@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
           cache: pip
@@ -233,6 +233,9 @@ jobs:
             echo '## AI Lab value catch-up'
             echo
             echo "- ${message}"
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Paid dispatches are detected from `ai.odds_api_dispatches`; completion is proven from `ai.api_usage` and `ai.job_runs`.'
             echo '- Decision is based on durable evidence, not runner wall-clock time.'
           } >> "$GITHUB_STEP_SUMMARY"
