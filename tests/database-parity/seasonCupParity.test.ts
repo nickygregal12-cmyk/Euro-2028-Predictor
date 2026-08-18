@@ -38,9 +38,52 @@ const allSql = readdirSync(migrationsDirectory)
   .map((file) => readFileSync(resolve(migrationsDirectory, file), 'utf8'))
   .join('\n')
 
-const tie = /settle_season_cup_tie\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
-const format = /select_season_cup_format\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
-const launch = /resolve_public_cup_launch\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
+/**
+ * The LAST definition, not the first.
+ *
+ * `allSql` is every migration concatenated in order, so a non-greedy `exec`
+ * returns whichever definition was written FIRST — which stops being the
+ * installed one the moment any later contract redefines the function. Contract
+ * 198 redefined `select_season_cup_format`, and this suite went on asserting
+ * against contract 94's superseded text until it was pointed at the end.
+ *
+ * That is the same defect contract 194 hit in a migration: reading committed
+ * text is only sound if it is the LATEST committed text.
+ */
+function lastDefinition(name: string): string {
+  // Anchored on `create or replace function`, not on the bare name: a mere
+  // CALL to the function inside some other body would otherwise match and
+  // capture the CALLER's body instead. That happened while writing this.
+  const pattern = new RegExp(
+    `create or replace function [\\w.]*${name}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$;`,
+    'gi',
+  )
+  let body = ''
+  for (const match of allSql.matchAll(pattern)) body = match[1] ?? body
+  return body
+}
+
+const format = lastDefinition('select_season_cup_format')
+
+const tie = lastDefinition('settle_season_cup_tie')
+const launch = lastDefinition('resolve_public_cup_launch')
+
+/**
+ * Contract 96 EXTRACTED the four per-entrant checks.
+ *
+ * This suite used to read the first definition of every function, and for
+ * `settle_season_cup_tie` that meant contract 94's body — which still had the
+ * raw-scale, unconfirmed-fixture and missing-points checks written inline.
+ * Contract 96 moved them into `cup_tie_entrant_total`, because it had found by
+ * differential sweep that two inline copies interleaved by fixture reported the
+ * wrong entrant's fault; the extraction is the fix, not an accident of style.
+ *
+ * So those assertions were not wrong about the rules, and they are not wrong
+ * now — they were pointed at a body that had stopped containing them. They move
+ * to the helper, and the settler is separately required to CALL it, so proving
+ * something about the helper still proves something about what settles a tie.
+ */
+const tieEntrant = lastDefinition('cup_tie_entrant_total')
 
 const card = [
   { fixtureId: 'f1', confirmedByCutoff: true },
@@ -48,10 +91,35 @@ const card = [
 ]
 
 describe('the SQL counterparts exist', () => {
-  it('finds all three bodies', () => {
+  it('finds all four bodies', () => {
     expect(tie, 'settle_season_cup_tie body not found').not.toBe('')
+    expect(tieEntrant, 'cup_tie_entrant_total body not found').not.toBe('')
     expect(format, 'select_season_cup_format body not found').not.toBe('')
     expect(launch, 'resolve_public_cup_launch body not found').not.toBe('')
+  })
+
+  it('reads the INSTALLED definition, not a superseded one', () => {
+    // The assertion about the assertions. `settle_season_cup_tie` is defined
+    // twice — contract 94 wrote it inline, contract 96 rewrote it around the
+    // helper — and a first-match read returns contract 94's, which is not what
+    // any database holds. If this ever fails, every `tie` assertion below has
+    // quietly stopped describing the installed function.
+    expect(tie).toContain('cup_tie_entrant_total')
+    expect(tie, 'the inline per-entrant checks belong to the helper now').not.toContain(
+      'points_off_raw_scale',
+    )
+  })
+
+  it('settles home completely before away, which is what contract 96 fixed', () => {
+    // The defect was an interleaved walk: home and away checked within each
+    // fixture iteration, so a tie wrong at a later fixture for home and an
+    // earlier one for away reported away's fault. Two sequential calls are the
+    // fix, and their ORDER is the rule — the first must be p_home.
+    const homeCall = tie.indexOf('cup_tie_entrant_total(p_home')
+    const awayCall = tie.indexOf('cup_tie_entrant_total(p_away')
+    expect(homeCall, 'the home total is not computed by the shared helper').toBeGreaterThan(-1)
+    expect(awayCall, 'the away total is not computed by the shared helper').toBeGreaterThan(-1)
+    expect(homeCall, 'away is evaluated before home, so a doubly-wrong tie reports the wrong fault').toBeLessThan(awayCall)
   })
 })
 
@@ -69,11 +137,11 @@ describe('a Cup tie settles on raw points only', () => {
   })
 
   it('permits exactly the raw scale in SQL', () => {
-    expect(tie).toMatch(/not in \(0, 3, 5\)/)
-    expect(tie).toContain('points_off_raw_scale')
+    expect(tieEntrant).toMatch(/not in \(0, 3, 5\)/)
+    expect(tieEntrant).toContain('points_off_raw_scale')
     // The doubled values must not appear as accepted members of the scale.
-    expect(tie).not.toMatch(/in \(0, 3, 5, 6\b/)
-    expect(tie).not.toMatch(/in \(0, 3, 5, 10\b/)
+    expect(tieEntrant).not.toMatch(/in \(0, 3, 5, 6\b/)
+    expect(tieEntrant).not.toMatch(/in \(0, 3, 5, 10\b/)
   })
 
   it('agrees on the match points awarded', () => {
@@ -108,7 +176,7 @@ describe('a tie reports what it was settled on', () => {
         { entryId: 'away', fixturePoints: { f1: 3 } },
       ),
     ).toEqual({ ok: false, reason: 'points_for_unconfirmed_fixture' })
-    expect(tie).toContain('points_for_unconfirmed_fixture')
+    expect(tieEntrant).toContain('points_for_unconfirmed_fixture')
   })
 
   it('refuses a confirmed fixture with no points', () => {
@@ -119,7 +187,7 @@ describe('a tie reports what it was settled on', () => {
         { entryId: 'away', fixturePoints: { f1: 3, f2: 3 } },
       ),
     ).toEqual({ ok: false, reason: 'points_missing_for_confirmed_fixture' })
-    expect(tie).toContain('points_missing_for_confirmed_fixture')
+    expect(tieEntrant).toContain('points_missing_for_confirmed_fixture')
   })
 
   it('refuses a tie with nothing confirmed rather than calling it a draw', () => {
@@ -190,14 +258,23 @@ describe('format selection agrees on every threshold', () => {
       leftoverRounds: 0,
     })
     expect(selectCupFormat(6, 20)).toMatchObject({ meetings: 4, tail: { kind: 'none' } })
+    // CONTRACT 198 changed this one. Six over twenty-four leaves four rounds
+    // after a four-meeting league; four qualifiers need a two-round bracket, so
+    // two are RESERVED and two are genuinely spare. Before contract 198 the
+    // whole remainder was reported as a `seeded_playoff_window` whether or not
+    // it could hold the bracket.
     expect(selectCupFormat(6, 24)).toMatchObject({
       meetings: 4,
       leagueRounds: 20,
-      tail: { kind: 'seeded_playoff_window', rounds: 4 },
+      tail: { kind: 'none' },
+      knockout: { rounds: 2, qualifiers: 4 },
+      leftoverRounds: 2,
     })
-    for (const key of ['leagueRounds', 'leftoverRounds', 'seeded_playoff_window']) {
+    for (const key of ['leagueRounds', 'leftoverRounds', 'knockout']) {
       expect(format).toContain(key)
     }
+    // The unconditional window is gone from both authorities.
+    expect(format).not.toContain('seeded_playoff_window')
   })
 
   it('balances the odd meeting with a split, and steps down when it will not fit', () => {
@@ -210,9 +287,14 @@ describe('format selection agrees on every threshold', () => {
       tail: { kind: 'split', topHalfSize: 3, bottomHalfSize: 3, splitRounds: 3 },
       leftoverRounds: 0,
     })
+    // Ten over thirty steps down to two meetings, and contract 198 then
+    // reserves three of the twelve remaining rounds for the seven qualifiers'
+    // bracket rather than calling all twelve a playoff window.
     expect(selectCupFormat(10, 30)).toMatchObject({
       meetings: 2,
-      tail: { kind: 'seeded_playoff_window', rounds: 12 },
+      tail: { kind: 'none' },
+      knockout: { rounds: 3, qualifiers: 7 },
+      leftoverRounds: 9,
     })
     expect(format).toMatch(/v_meetings % 2 = 1/)
     expect(format).toMatch(/v_meetings := v_meetings - 1/)
@@ -228,8 +310,14 @@ describe('format selection agrees on every threshold', () => {
       kind: 'groups',
       groupCount: 2,
       groupSizes: [15, 15],
+      // CONTRACT 198: a multi-group field cannot be one league, so it always
+      // reserves. Twenty qualifiers need a five-round bracket.
+      knockout: { rounds: 5, qualifiers: 20 },
     })
-    expect(selectCupFormat(25, 38)).toMatchObject({ groupSizes: [13, 12] })
+    expect(selectCupFormat(25, 38)).toMatchObject({
+      groupSizes: [13, 12],
+      knockout: { rounds: 5, qualifiers: 17 },
+    })
     expect(format).toContain('groupSizes')
     expect(format).toMatch(/v_base := p_field_size \/ v_group_count/)
     expect(format).toMatch(/v_remainder := p_field_size % v_group_count/)
