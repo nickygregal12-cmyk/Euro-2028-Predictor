@@ -1,0 +1,49 @@
+{
+  "output": {
+    "style": "xml",
+    "filePath": ".artifacts/context/repomix-output.xml",
+    "removeComments": false,
+    "removeEmptyLines": true,
+    "showLineNumbers": true
+  },
+  "include": [
+    "AGENTS.md",
+    "NOW.md",
+    ".agents/skills/**",
+    "config/**",
+    "docs/adr/**",
+    "docs/architecture/**",
+    "docs/ops/**",
+    "docs/product/**",
+    "src/**",
+    "tests/**",
+    "e2e/**",
+    "scripts/**",
+    "supabase/migrations/**"
+  ],
+  "ignore": {
+    "useGitignore": true,
+    "useDefaultPatterns": true,
+    "customPatterns": [
+      ".env*",
+      "**/*.pem",
+      "**/*.key",
+      "**/*secret*",
+      "docs/history/**",
+      "docs/quality/evidence/**",
+      "graphify-out/**",
+      ".artifacts/**",
+      "coverage/**",
+      "dist/**",
+      "storybook-static/**",
+      "playwright-report*/**",
+      "test-results/**"
+    ]
+  },
+  "security": {
+    "enableSecurityCheck": true
+  },
+  "tokenCount": {
+    "encoding": "o200k_base"
+  }
+}
