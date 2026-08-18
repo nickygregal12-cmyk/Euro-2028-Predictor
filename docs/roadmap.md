@@ -350,6 +350,18 @@ same paragraph existed in seven places at once.
 > Penalty Number is never returned**, matching `get_my_cup` exactly, and
 > neither is whether they have submitted one. The Penalty Number WRITE
 > authority is untouched and was already season-capable through contract 98.
+> **Contract 197 — one chronological calendar across the player's competitions.**
+> **Advances the Stage 8 Matches work and reorders nothing else.** Counted over
+> `public` at contract 196, every fixture read was scoped to one season, one
+> fixture or one matchweek. Nothing answered "what football is on across
+> everything I am in", which `docs/product/vnext-ia-lab.md` section 7 names as
+> the Matches shape Stage 8 settles on -- so that system could only have been
+> built on a browser loop, and the merge is a SORT across competitions, which
+> the client can neither page nor bound. This adds the read and designs none of
+> the system. The per-fixture card is contract 111's, and the suite proves that
+> by running both reads over the same window and requiring identical objects
+> rather than asserting the copy was faithful.
+
 > **Contract 196 — a player is told what happened to them in a game.**
 > **Advances the cross-competition attention work and reorders nothing else.**
 > It does two things, and the second is only possible because of the first.

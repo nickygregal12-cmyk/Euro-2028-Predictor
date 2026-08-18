@@ -188,3 +188,5 @@ same paragraph existed in seven places at once.
 > **Contract 195:** does not alter Championship qualification, seeding, pairing, Penalty Number or settlement rules. It reads the conditions `submit_cup_penalty_number` already enforces and turns them into one action item per contestable side.
 
 > **Contract 196:** does not alter any competition outcome, only the date recorded beside it. `survived` is excluded from the consequence feed because it is written every Last Man Standing round for every survivor.
+
+> **Contract 197:** does not alter competition structure. It lists existing season fixtures across the seasons one player has entered, excluding the tournament shape exactly as `get_season_fixtures` refuses it.
