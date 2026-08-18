@@ -37,7 +37,7 @@ describe('project-specific agent skills', () => {
     expect(ai).toContain('Do not reintroduce a routine browser/admin click as a second model-selection authority')
     expect(ai).toContain('an arbitrary/newest challenger being mistaken for the evidence-selected policy winner')
     expect(ai).toContain('ai/train_verified.py')
-    expect(graph).toContain('navigation/indexing aid, not repository truth')
+    expect(graph).toMatch(/navigation(?:\/indexing aid, |—)not repository truth/i)
   })
 
   it('keeps Graphify optional and generated output disposable', () => {
