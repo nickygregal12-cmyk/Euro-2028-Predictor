@@ -55,6 +55,7 @@
   "dependencyCruiser": {
     "package": "dependency-cruiser",
     "version": "18.1.0",
+    "analysisTypescript": "6.0.3",
     "mode": "ci-and-on-demand",
     "renovate": {
       "datasource": "npm",
