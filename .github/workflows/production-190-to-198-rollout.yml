@@ -209,7 +209,7 @@ jobs:
             'action_items',(select count(*) from public.player_action_items),
             'api_usage',(select count(*) from ai.api_usage),
             'collection_enabled',(select collection_enabled from ai.api_budget limit 1),
-            'euro_publication',(select public.euro_publication_state() ->> 'state'),
+            'euro_publication',(select state from public.euro_publication_state()),
             'cron_jobs',(select count(*) from cron.job),
             'cron_fingerprint',(select md5(coalesce(string_agg(jobid::text||'|'||jobname||'|'||schedule||'|'||command||'|'||active::text,E'\n' order by jobid),'')) from cron.job));
           SQL
@@ -276,7 +276,7 @@ jobs:
             'action_items',(select count(*) from public.player_action_items),
             'api_usage',(select count(*) from ai.api_usage),
             'collection_enabled',(select collection_enabled from ai.api_budget limit 1),
-            'euro_publication',(select public.euro_publication_state() ->> 'state'),
+            'euro_publication',(select state from public.euro_publication_state()),
             'cron_jobs',(select count(*) from cron.job),
             'cron_fingerprint',(select md5(coalesce(string_agg(jobid::text||'|'||jobname||'|'||schedule||'|'||command||'|'||active::text,E'\n' order by jobid),'')) from cron.job),
             'calendar_authenticated',(select count(*) from information_schema.role_routine_grants where routine_schema='public' and routine_name='get_my_football_calendar' and grantee='authenticated'),
@@ -287,7 +287,9 @@ jobs:
             'settler_split_safe',(position('stage <> ''group''' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))=0),
             'settler_initial_roster',(position('member.phase_kind = ''initial''' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
             'settler_eligibility',(position('cup_entrant_eligibility' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
-            'settler_dates',(position('updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'settler_dates_elimination',(position('set outcome = ''eliminated'', updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'settler_dates_champion',(position('set outcome = ''champion'', updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'finalise_dates_outcome',(position('then ''eliminated'' else ''qualified'' end, updated_at = now()' in pg_get_functiondef('public.admin_finalise_predictor_cup_groups(uuid)'::regprocedure))>0),
             'finalise_depth_authority',(position('cup_knockout_rounds' in pg_get_functiondef('public.admin_finalise_predictor_cup_groups(uuid)'::regprocedure))>0),
             'driver_runs_four',( (position('generate_lms_pick_actions' in pg_get_functiondef('public.process_player_action_items()'::regprocedure))>0)
                              and (position('generate_matchweek_prediction_actions' in pg_get_functiondef('public.process_player_action_items()'::regprocedure))>0)
@@ -341,7 +343,8 @@ jobs:
           // Championship functions -- the in-place patching order held.
           for (const k of [
             'settler_split_safe','settler_initial_roster','settler_eligibility',
-            'settler_dates','finalise_depth_authority','driver_runs_four',
+            'settler_dates_elimination','settler_dates_champion','finalise_dates_outcome',
+            'finalise_depth_authority','driver_runs_four',
             'ten_over_thirtyeight_has_no_knockout',
           ]) eq(k, true)
 

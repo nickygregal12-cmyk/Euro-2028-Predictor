@@ -299,7 +299,9 @@ jobs:
             'generators_unreachable',(select count(*) from information_schema.role_routine_grants where routine_schema='predictor_internal' and routine_name in ('generate_cup_penalty_number_actions','generate_game_consequence_actions','cup_knockout_rounds') and grantee in ('PUBLIC','anon','authenticated','service_role')),
             'settler_split_safe',(position('stage <> ''group''' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))=0),
             'settler_eligibility',(position('cup_entrant_eligibility' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
-            'settler_dates',(position('updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'settler_dates_elimination',(position('set outcome = ''eliminated'', updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'settler_dates_champion',(position('set outcome = ''champion'', updated_at = now()' in pg_get_functiondef('public.admin_settle_predictor_cup_round(uuid,uuid)'::regprocedure))>0),
+            'finalise_dates_outcome',(position('then ''eliminated'' else ''qualified'' end, updated_at = now()' in pg_get_functiondef('public.admin_finalise_predictor_cup_groups(uuid)'::regprocedure))>0),
             'finalise_depth_authority',(position('cup_knockout_rounds' in pg_get_functiondef('public.admin_finalise_predictor_cup_groups(uuid)'::regprocedure))>0),
             'driver_runs_four',( (position('generate_lms_pick_actions' in pg_get_functiondef('public.process_player_action_items()'::regprocedure))>0)
                              and (position('generate_matchweek_prediction_actions' in pg_get_functiondef('public.process_player_action_items()'::regprocedure))>0)
@@ -320,7 +322,7 @@ jobs:
           // Every one of the eight contracts is additive: nothing a player owns moves.
           for (const k of ['entries','season_predictions','season_matchweek_scores','bonus_entrants','leagues','league_members','profiles','cup_launches','cup_fixtures','action_items','api_usage','collection_enabled','cron_fingerprint']) eq(k, b[k])
           eq('calendar_authenticated', 1); eq('calendar_leaked', 0); eq('generators_unreachable', 0)
-          for (const k of ['settler_split_safe','settler_eligibility','settler_dates','finalise_depth_authority','driver_runs_four','ten_over_thirtyeight_has_no_knockout']) eq(k, true)
+          for (const k of ['settler_split_safe','settler_eligibility','settler_dates_elimination','settler_dates_champion','finalise_dates_outcome','finalise_depth_authority','driver_runs_four','ten_over_thirtyeight_has_no_knockout']) eq(k, true)
           if (problems.length) { console.error('REHEARSAL VERIFICATION FAILED:\n - ' + problems.join('\n - ')); process.exit(1) }
           console.log(`Disposable copy reached Contract ${a.migration_count}. Player-facing counts unchanged: entries ${a.entries}, predictions ${a.season_predictions}, scores ${a.season_matchweek_scores}, leagues ${a.leagues}.`)
           console.log('Grants correct, Championship rules 102/194/196/198 all present, action driver runs four generators.')
