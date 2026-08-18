@@ -10,6 +10,8 @@ state, and it deliberately states no contract number.
 
 | Question | Tool | Lane |
 | --- | --- | --- |
+| Which code, dependency, call-flow or cross-layer path should I inspect before editing? | **Graphify** | development navigation |
+| Which configured AI model/provider should a compatible coding CLI use, including fallback routing? | **OmniRoute** | developer infrastructure |
 | Does the journey work? Navigation, forms, responsive behaviour, accessibility interaction | **Playwright MCP** / `npm run test:e2e*` | development |
 | Why is it slow, noisy or broken in the browser? Console, network, traces, Core Web Vitals | **Chrome DevTools MCP** | development |
 | Is this research reproducible? | **DVC** | offline research |
@@ -25,6 +27,8 @@ Each capability's own authority carries its detail; this table only routes.
 
 | Capability | Authority |
 | --- | --- |
+| Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |
+| Coding-model/provider routing | [`omniroute-agent-routing.md`](omniroute-agent-routing.md) |
 | Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
 | Notification delivery | [`notification-delivery.md`](notification-delivery.md) |
 | Internal BI | [`metabase-analytics.md`](metabase-analytics.md) |
@@ -38,11 +42,21 @@ claims, and the gap between them is where a reader gets misled.
 
 | Capability | State |
 | --- | --- |
+| Graphify | online structural GitHub workflow + snapshot configured; Codespaces CLI provisioned; optional deep semantic run is manual only |
+| OmniRoute | Codespaces CLI provisioned; **no provider, endpoint key or gateway process is created by the repository** |
 | Playwright MCP, Chrome DevTools MCP | configured; usable now, development-only |
 | DuckDB offline analytics | implemented and tested against a committed snapshot |
 | Novu notification boundary | implemented and tested; **no credential, no emitter, nothing sends** |
 | Metabase | views, role and container config defined; **not applied anywhere, not deployed** |
 | Strix | workflow defined; **inert until an owner provisions `STRIX_LLM_API_KEY`** |
+
+Graphify and OmniRoute are deliberately outside the application dependency graph.
+Their supported development-tool versions live in
+[`../../config/agent-tools.json`](../../config/agent-tools.json), and a Codespace
+can provision them through
+[`../../scripts/agent-tools/bootstrap.sh`](../../scripts/agent-tools/bootstrap.sh).
+Neither is evidence about a deployment, database contract, model promotion or
+product rule.
 
 ## The two browser MCP servers are not interchangeable
 
@@ -115,12 +129,17 @@ Neither default fails anything when left on, which is why
 
 ## Boundaries
 
-- Both MCP servers are **development-only**. They are declared in `.mcp.json`,
-  which ships to no deployment, and they are absent from `package.json`, so
-  neither can enter `dist/`.
+- Graphify is a navigation/indexing aid. Important conclusions still require the
+  source, tests and governing repository authority.
+- OmniRoute is an optional developer gateway. Provider/model choice through it
+  must not become a hidden application, AI Lab or production dependency.
+- Both MCP browser servers are **development-only**. They are declared in
+  `.mcp.json`, which ships to no deployment, and they are absent from
+  `package.json`, so neither can enter `dist/`.
 - Chrome DevTools MCP drives a **local** browser against a **local** or
-  **preview** origin. Pointing a profiling session at Production is a
-  deliberate operator act, not a default.
-- Neither server may be used to reach a paid football or odds provider. The
-  quota rules in [`../../AGENTS.md`](../../AGENTS.md) apply to browser
-  automation exactly as they apply to code.
+  **preview** origin. Pointing a profiling session at Production is a deliberate
+  operator act, not a default.
+- Developer tools may not be used to reach a paid football or odds provider
+  unless that exact provider call is explicitly authorised. The quota rules in
+  [`../../AGENTS.md`](../../AGENTS.md) apply to automation exactly as they apply
+  to code.

@@ -1,0 +1,201 @@
+name: Graphify navigation graph
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'ai/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.graphifyignore'
+      - '.github/workflows/graphify-navigation.yml'
+      - '.agents/skills/predictor-graph-navigation/**'
+      - 'docs/ops/graphify-navigation.md'
+      - '.gitignore'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+      - 'ai/**'
+      - 'supabase/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'e2e/**'
+      - 'config/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig*.json'
+      - '.graphifyignore'
+      - '.github/workflows/graphify-navigation.yml'
+      - '.agents/skills/predictor-graph-navigation/**'
+      - 'docs/ops/graphify-navigation.md'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: graphify-navigation-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-navigation-graph:
+    name: Build Graphify navigation graph
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: true
+
+      - name: Load pinned Graphify version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./config/agent-tools.json').graphify.version")"
+          test -n "${version}"
+          echo "GRAPHIFY_VERSION=${version}" >> "${GITHUB_ENV}"
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned Graphify with SQL support
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "graphifyy[sql]==${GRAPHIFY_VERSION}"
+          python - <<'PY'
+          from importlib.metadata import version
+          print(f"graphifyy {version('graphifyy')}")
+          PY
+
+      - name: Build structural code graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf graphify-out
+          graphify extract . --code-only --no-cluster
+          test -s graphify-out/graph.json
+
+      - name: Export interactive HTML when available
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          graphify export html
+
+      - name: Write online run summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "## Graphify navigation"
+            echo
+            echo "- Source: \`${GITHUB_REPOSITORY}@${GITHUB_SHA}\`"
+            echo "- Graphify: \`${GRAPHIFY_VERSION:-unknown}\`"
+            echo "- Mode: structural code-only, no semantic model/API"
+            echo "- Artifact: \`graphify-navigation-${GITHUB_SHA}\`"
+            if [ -s graphify-out/graph.json ]; then
+              echo "- graph.json: generated ($(du -h graphify-out/graph.json | cut -f1))"
+            else
+              echo "- graph.json: not generated"
+            fi
+            if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+              echo "- Persistent snapshot: eligible to refresh \`graphify-navigation\` after a successful main run"
+            else
+              echo "- Persistent snapshot: unchanged (PR/branch runs use the Actions artifact)"
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          if [ -s graphify-out/graph.json ]; then
+            python - <<'PY' >> "${GITHUB_STEP_SUMMARY}"
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path("graphify-out/graph.json").read_text())
+          nodes = data.get("nodes") if isinstance(data, dict) else None
+          edges = data.get("edges") if isinstance(data, dict) else None
+          if isinstance(nodes, (list, dict)):
+              print(f"- Nodes: {len(nodes)}")
+          if isinstance(edges, (list, dict)):
+              print(f"- Edges: {len(edges)}")
+          PY
+          fi
+
+      - name: Upload shareable navigation outputs
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: graphify-navigation-${{ github.sha }}
+          path: |
+            graphify-out/graph.json
+            graphify-out/graph.html
+            graphify-out/GRAPH_REPORT.md
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publish latest snapshot branch
+        if: >-
+          success() && github.ref == 'refs/heads/main' &&
+          (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          snapshot_dir="$(mktemp -d)"
+          cp graphify-out/graph.json "${snapshot_dir}/graph.json"
+          for optional_output in graphify-out/graph.html graphify-out/GRAPH_REPORT.md; do
+            if [ -f "${optional_output}" ]; then
+              cp "${optional_output}" "${snapshot_dir}/$(basename "${optional_output}")"
+            fi
+          done
+
+          cat > "${snapshot_dir}/README.md" <<EOF
+          # Graphify navigation snapshot
+
+          Generated from \`${GITHUB_REPOSITORY}@${GITHUB_SHA}\` by
+          \`.github/workflows/graphify-navigation.yml\` using Graphify
+          \`${GRAPHIFY_VERSION}\`.
+
+          This branch is a replace-in-place navigation snapshot, not repository
+          authority or release evidence. Verify important conclusions against the
+          source commit above.
+
+          - \`graph.json\` is the portable machine-readable knowledge graph.
+          - \`graph.html\` is present when Graphify's HTML export succeeds.
+          - \`GRAPH_REPORT.md\` is present only when a richer run creates it.
+          EOF
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git checkout --orphan graphify-navigation-publish
+          git rm -rf --ignore-unmatch .
+          git clean -fdx
+          cp -a "${snapshot_dir}/." .
+          git add README.md graph.json
+          for optional_output in graph.html GRAPH_REPORT.md; do
+            if [ -f "${optional_output}" ]; then
+              git add "${optional_output}"
+            fi
+          done
+          git commit -m "chore: refresh Graphify snapshot (${GITHUB_SHA:0:12})"
+          git push --force origin HEAD:refs/heads/graphify-navigation
