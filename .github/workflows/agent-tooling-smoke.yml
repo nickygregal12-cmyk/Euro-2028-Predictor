@@ -6,6 +6,7 @@ on:
     paths:
       - 'AGENTS.md'
       - 'config/agent-tools.json'
+      - 'renovate.json'
       - '.devcontainer/**'
       - '.graphifyignore'
       - '.mcp.json'
@@ -30,6 +31,7 @@ on:
     branches: [main]
     paths:
       - 'config/agent-tools.json'
+      - 'renovate.json'
       - '.devcontainer/**'
       - '.mcp.json'
       - '.serena/**'
@@ -88,6 +90,7 @@ jobs:
             '.devcontainer/devcontainer.json',
             '.mcp.json',
             'config/agent-tools.json',
+            'renovate.json',
             'repomix.config.json',
           ]) JSON.parse(fs.readFileSync(file, 'utf8'))
           NODE
@@ -188,5 +191,6 @@ jobs:
             echo '- Serena loaded the tracked project configuration and passed its language-server health check.'
             echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
             echo '- Agent Mail, Weave and Mergiraf exact upstream releases were resolved without auto-starting/installing their heavier optional services or merge engines.'
+            echo '- Every registry entry carries Renovate update metadata; developer-tool updates are review-only after the configured soak period.'
             echo '- No service was started, no provider credential was configured and no model/provider request was made.'
           } >> "${GITHUB_STEP_SUMMARY}"
