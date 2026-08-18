@@ -58,9 +58,10 @@ jobs:
           {
             echo '## Architecture contracts'
             echo
-            echo '- Runtime/dev-harness direction checked.'
+            echo '- Runtime/dev-harness direction checked, with App.tsx as the deliberate DEV-gated preview registry.'
             echo '- Domain framework boundary checked.'
             echo '- vNext presentation/integration and legacy-design boundaries checked.'
-            echo '- Test-source and unresolved-import boundaries checked.'
-            echo '- Circular dependencies are reported as warnings until the current baseline is proven clean.'
+            echo '- Relative source imports must resolve.'
+            echo '- Circular dependencies are blocking.'
+            echo '- The wrapper fails closed if dependency-cruiser analyses zero modules or reports any error-severity violation.'
           } >> "$GITHUB_STEP_SUMMARY"
