@@ -76,11 +76,11 @@ async function scan(ui: ReactElement) {
  * gives the document two `<main>` landmarks. The world reaches the page's own
  * shell through the provider, exactly as the connected integration does.
  */
-function renderProfile(model: PlayerProfileModel, onRetry?: () => void) {
+function renderProfile(model: PlayerProfileModel, onRetry?: () => void, refreshing = false) {
   return render(
     <VNextRoot>
       <VNextShellProvider model={shellScenarios.oneCompetition}>
-        <VNextPlayerProfile model={model} onRetry={onRetry} />
+        <VNextPlayerProfile model={model} onRetry={onRetry} refreshing={refreshing} />
       </VNextShellProvider>
     </VNextRoot>,
   )
@@ -171,6 +171,31 @@ describe('a retry is offered only where a read failed', () => {
     expect(onRetry).toHaveBeenCalledTimes(1)
   })
 
+  it('says a retry is running, in words a live region will announce', () => {
+    // THE TEXT CHANGE IS THE ANNOUNCEMENT. The page stays mounted across a
+    // retry, so there is no unmount/remount to make a polite region speak — but
+    // a region announces on a content CHANGE too. Swapping to "Trying again…"
+    // and back is both the honest status and the thing a screen reader hears.
+    renderProfile(playerProfileScenarios.profileUnavailable, vi.fn(), true)
+
+    const summary = panel('summary')
+    expect(summary.textContent).toContain('Trying again')
+    expect(summary.textContent).not.toContain('could not load')
+    expect(summary.getAttribute('aria-busy')).toBe('true')
+
+    const button = within(summary).getByRole('button')
+    expect(button.textContent).toBe('Trying…')
+    expect(button).toHaveProperty('disabled', true)
+  })
+
+  it('says nothing is running when nothing is', () => {
+    renderProfile(playerProfileScenarios.profileUnavailable, vi.fn())
+    const summary = panel('summary')
+    expect(summary.textContent).toContain('could not load')
+    expect(summary.getAttribute('aria-busy')).toBeNull()
+    expect(within(summary).getByRole('button').textContent).toBe('Try again')
+  })
+
   it('announces the failure to a reader who cannot see it', () => {
     // The message is the live region and the control sits outside it, so a
     // second failure is announced to somebody who just asked for this answer.
@@ -202,6 +227,56 @@ describe('an unsettled matchweek is a sentence, never a nought', () => {
     renderProfile(playerProfileScenarios.noAccuracy)
     // Zero season points from zero matchweeks is a real, settled figure.
     expect(within(panel('summary')).getAllByText('0').length).toBeGreaterThan(0)
+  })
+})
+
+describe('three independently nullable facts are drawn independently', () => {
+  it('keeps the jokers when the accuracy block did not decode', () => {
+    // `mapAccuracy` returns null on a count it cannot read while `mapJokers`
+    // succeeds beside it. Nesting one inside the other's branch deletes a
+    // player's jokers from the page and nothing else notices.
+    renderProfile(playerProfileScenarios.accuracyMissing)
+
+    const summary = panel('summary')
+    expect(within(summary).getByText('Jokers played')).toBeTruthy()
+    expect(within(summary).getByText('3')).toBeTruthy()
+    // And the accuracy stats are genuinely absent rather than zeroed.
+    expect(within(summary).queryByText('Fixtures predicted')).toBeNull()
+  })
+})
+
+describe('a share never rounds into a claim', () => {
+  it('does not round one exact score in 380 down to nothing', () => {
+    // 1/380 is 0.26%. "0% exact" is the accusation `accuracyRate` refuses on a
+    // zero denominator, arriving the long way round.
+    renderProfile(playerProfileScenarios.roundingEdges)
+    const summary = panel('summary')
+    expect(summary.textContent).toContain('<1%')
+    expect(summary.textContent).not.toMatch(/\(0%\)/)
+  })
+
+  it('does not round 379 of 380 up to a perfect season', () => {
+    renderProfile(playerProfileScenarios.roundingEdges)
+    const summary = panel('summary')
+    expect(summary.textContent).toContain('>99%')
+    expect(summary.textContent).not.toMatch(/\(100%\)/)
+  })
+})
+
+describe('the comparison prints the denominator it counted over', () => {
+  it('states both players` fixture counts when they differ', () => {
+    // Eleven exact scores each, out of 96 and 60. Same rate arithmetic, very
+    // different facts — and the denominator is the only thing that says so.
+    renderProfile(playerProfileScenarios.unevenDenominators)
+
+    const compare = panel('compare')
+    const row = within(compare)
+      .getAllByRole('row')
+      .find((candidate) => within(candidate).queryByText('Fixtures compared') !== null)
+    expect(row, 'the comparison must state its denominator').toBeTruthy()
+
+    const cells = within(row as HTMLElement).getAllByRole('cell')
+    expect(cells.map((cell) => cell.textContent)).toEqual(['96', '60'])
   })
 })
 
@@ -301,13 +376,13 @@ describe('a position is never printed without the field it was out of', () => {
     expect(within(panel('summary')).getByText(/2nd of 412/)).toBeTruthy()
   })
 
-  it('says nothing has been banked rather than drawing a zeroth place', () => {
-    // The reachable version of "no standing". `season_standings` left-joins the
-    // scores, so every entry is in it — a player who has banked nothing is LAST
-    // of the field, not absent from it — and nothing is comparable until both
-    // players have banked a matchweek.
+  it('ranks a player who has banked nothing LAST, rather than absently', () => {
+    // The reachable shape. `season_standings` left-joins the scores, so every
+    // entry is in the table from the moment it exists — a player with nothing
+    // banked is 412th of 412 on nothing, not missing a standing. And nothing is
+    // comparable until BOTH players have banked a matchweek.
     renderProfile(playerProfileScenarios.noStandingYet)
-    expect(panel('summary').textContent).toMatch(/nothing has been banked/i)
+    expect(within(panel('summary')).getByText('412th of 412')).toBeTruthy()
     expect(panel('compare').textContent).toMatch(/nothing to compare/i)
   })
 
@@ -372,13 +447,14 @@ describe('the chart is readable without seeing it', () => {
 
     expect(within(table).getByText('Season points after')).toBeTruthy()
 
+    // THE VALUES, NOT A SHAPE. Asserting only "increasing and distinct" passes
+    // against a column rendering the matchweek ORDINAL, which is also
+    // increasing and also distinct — I checked.
     const totals = within(table)
       .getAllByRole('row')
       .slice(1)
       .map((row) => Number(within(row).getAllByRole('cell')[1]?.textContent))
-    // A running total only ever climbs. A per-matchweek series would not.
-    expect(totals).toEqual([...totals].sort((left, right) => left - right))
-    expect(new Set(totals).size).toBe(totals.length)
+    expect(totals).toEqual([4, 16, 31, 44, 63])
   })
 
   it('says a season with nothing settled has no position to plot', () => {
@@ -423,6 +499,37 @@ describe('no prediction reaches the screen', () => {
 /* ------------------------------------------------------------------------ *
  * 10. Structure and the accessibility floor
  * ------------------------------------------------------------------------ */
+
+describe('every world describes ONE season', () => {
+  // THE INVARIANT THE MIGRATION ASSERTS, checked across every world rather than
+  // remembered in a comment. `season_rank_history`'s figure is a running total,
+  // so at the LAST settled matchweek it IS the season total, out of the same
+  // field. A world where the chart says 151 and the summary says 161 is the
+  // Blocker this stage already fixed once, reappearing in the fixtures.
+  it.each(playerProfileScenarioNames)('%s plots a non-decreasing total', (name) => {
+    const model = playerProfileScenarios[name]
+    if (model.rankHistory.kind !== 'history') return
+
+    const totals = model.rankHistory.series.map((point) => point.cumulativePoints)
+    expect(totals, 'a cumulative total cannot fall').toEqual(
+      [...totals].sort((left, right) => left - right),
+    )
+  })
+
+  it.each(playerProfileScenarioNames)('%s agrees with its own season total', (name) => {
+    const model = playerProfileScenarios[name]
+    if (model.rankHistory.kind !== 'history' || model.profile.kind !== 'profile') return
+
+    const last = model.rankHistory.series[model.rankHistory.series.length - 1]
+    const summary = model.profile.detail.summary
+    if (last === undefined || summary === null) return
+
+    expect(last.cumulativePoints, 'the last plotted total is the season total').toBe(
+      summary.points,
+    )
+    expect(last.fieldSize, 'and it is out of the same field').toBe(summary.fieldSize)
+  })
+})
 
 describe('every world is one page', () => {
   it.each(playerProfileScenarioNames)('%s has one main and one h1', (name) => {

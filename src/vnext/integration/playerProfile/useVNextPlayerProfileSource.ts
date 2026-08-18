@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
   PlayerProfileSource,
   PlayerProfileTarget,
@@ -56,7 +56,22 @@ export type VNextPlayerProfileSourceState =
   | { status: 'noCompetition' }
   | { status: 'noPlayer' }
   | { status: 'failed'; retry: () => void }
-  | { status: 'ready'; source: PlayerProfileSource; retry: () => void }
+  | {
+      status: 'ready'
+      source: PlayerProfileSource
+      retry: () => void
+      /**
+       * A RETRY IS IN FLIGHT OVER THE PAYLOAD ON SCREEN.
+       *
+       * Keeping the page mounted across a retry removed the only signal a
+       * reader had that the press did anything: there was no longer a `loading`
+       * render, so no skeleton, no `aria-busy`, and — because the `role=status`
+       * text never changed — no announcement either, on press OR on a second
+       * failure. This flag is what a surface uses to say "trying" without
+       * throwing the page away to do it.
+       */
+      refreshing: boolean
+    }
 
 export type VNextPlayerProfileSourceInput = {
   readonly userId: string | null
@@ -89,16 +104,24 @@ function requestIdentity(input: {
   seasonSlug: string
   playerId: string
   playerRef: string | null
+  gameName: string
 }): RequestIdentity {
-  // Every input that ADDRESSES a read. Both identifiers are in here because
-  // they address different reads, and a payload gathered under one pair is
-  // about a different question from a payload gathered under another.
+  // EVERYTHING THE STORED PAYLOAD DESCRIBES, not only what addresses a read.
+  // Both identifiers are here because they address different reads and a
+  // payload gathered under one pair answers a different question from one
+  // gathered under another. `gameName` addresses nothing — but it is carried
+  // into the payload's context and drawn in the header, so a payload built
+  // under one game does not describe another. Leaving it out was survivable
+  // only while the page cleared on every effect run; now that a same-identity
+  // payload is KEPT, omitting it would render the previous game's name over the
+  // new game's reads until they landed.
   return JSON.stringify([
     input.userId,
     input.competitionSlug,
     input.seasonSlug,
     input.playerId,
     input.playerRef,
+    input.gameName,
   ])
 }
 
@@ -113,7 +136,20 @@ export function useVNextPlayerProfileSource(
   input: VNextPlayerProfileSourceInput,
 ): VNextPlayerProfileSourceState {
   const [state, setState] = useState<InternalState>(IDLE)
+  const [refreshing, setRefreshing] = useState(false)
   const [nonce, setNonce] = useState(0)
+
+  /**
+   * THE IDENTITY OF THE PAYLOAD CURRENTLY IN STATE, READABLE FROM THE EFFECT.
+   *
+   * A ref rather than the state itself, for two reasons. Reading `state` in the
+   * effect would mean listing it as a dependency, and the effect writes it — a
+   * loop. And a functional `setState` updater cannot answer the question
+   * either: React invokes it during the RENDER phase, not at the call site, so
+   * a flag assigned inside one is still false by the time the effect reads it.
+   * That is not a hypothetical — it is what the first version of this did.
+   */
+  const loadedIdentity = useRef<RequestIdentity | null>(null)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
   const {
@@ -138,6 +174,7 @@ export function useVNextPlayerProfileSource(
       seasonSlug,
       playerId,
       playerRef,
+      gameName,
     })
 
     let active = true
@@ -163,11 +200,16 @@ export function useVNextPlayerProfileSource(
      * else's private standing in memory after the reader has moved on — but the
      * guard a reviewer should check is the identity comparison below.
      */
+    // Only a KEPT payload needs an in-flight flag. Where the page cleared, the
+    // skeleton is already saying it.
+    const kept = loadedIdentity.current === identity
+    if (!kept) loadedIdentity.current = null
     setState((current) => {
       if (current.status === 'idle') return current
       if (current.status === 'loaded' && current.identity === identity) return current
       return IDLE
     })
+    setRefreshing(kept)
 
     void (async () => {
       try {
@@ -191,6 +233,8 @@ export function useVNextPlayerProfileSource(
         if (!active) return
 
         const target: PlayerProfileTarget = { playerId, ref: playerRef, isYou }
+        loadedIdentity.current = identity
+        setRefreshing(false)
 
         setState({
           status: 'loaded',
@@ -212,12 +256,16 @@ export function useVNextPlayerProfileSource(
           },
         })
       } catch {
-        if (active) setState({ status: 'failed', identity })
+        if (!active) return
+        loadedIdentity.current = null
+        setRefreshing(false)
+        setState({ status: 'failed', identity })
       }
     })()
 
     return () => {
       active = false
+      setRefreshing(false)
     }
   }, [
     authLoading,
@@ -248,12 +296,27 @@ export function useVNextPlayerProfileSource(
       seasonSlug,
       playerId,
       playerRef,
+      gameName,
     })
     if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
     if (state.status === 'failed') return { status: 'failed', retry }
 
-    return { status: 'ready', source: state.payload, retry }
-  }, [state, authLoading, userId, competitionSlug, seasonSlug, playerId, playerRef, retry])
+    return { status: 'ready', source: state.payload, retry, refreshing }
+  }, [
+    state,
+    refreshing,
+    authLoading,
+    userId,
+    competitionSlug,
+    seasonSlug,
+    playerId,
+    playerRef,
+    // Listed because `requestIdentity` now reads it. Without this the memo
+    // compares against an identity built from a stale game name and reads a
+    // current payload as loading.
+    gameName,
+    retry,
+  ])
 }
 
 /**

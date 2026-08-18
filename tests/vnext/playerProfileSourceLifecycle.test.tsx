@@ -561,7 +561,45 @@ describe('the states above the reads', () => {
     current.retry()
     await waitFor(() => expect(server.profiles.has('user-callum')).toBe(true))
 
-    expect(last(probe.seen).status, 'a retry must not drop the page to loading').toBe('ready')
+    const during = last(probe.seen)
+    expect(during.status, 'a retry must not drop the page to loading').toBe('ready')
+    // AND IT MUST STILL SAY SOMETHING IS HAPPENING. Keeping the page mounted
+    // removed the only signal the press did anything — no skeleton, and a
+    // `role="status"` whose text never changes never announces.
+    if (during.status !== 'ready') throw new Error('expected ready')
+    expect(during.refreshing, 'a retry in flight must be visible').toBe(true)
+  })
+
+  it('clears the in-flight flag when the retry lands', async () => {
+    reset()
+    const probe = mount(BASE)
+    await ready(probe)
+
+    const current = last(probe.seen)
+    if (current.status !== 'ready') throw new Error('expected ready')
+    current.retry()
+    await waitFor(() => expect(server.calls.profile).toBe(2))
+
+    const settled = last(probe.seen)
+    if (settled.status !== 'ready') throw new Error('expected ready')
+    expect(settled.refreshing).toBe(false)
+  })
+
+  it('does not claim to be refreshing when the page cleared instead', async () => {
+    // A new player clears the surface, so the skeleton is already saying it and
+    // a second "trying" signal on top would be noise.
+    reset()
+    const probe = mount(BASE)
+    await ready(probe)
+
+    probe.rerender({ ...BASE, playerId: 'user-other', playerRef: 'entry-other' })
+    await waitFor(() => expect(server.calls.profile).toBe(2))
+
+    for (const state of probe.seen) {
+      if (state.status === 'ready' && state.source.target.playerId === 'user-other') {
+        expect(state.refreshing).toBe(false)
+      }
+    }
   })
 
   it('re-reads when the retry is taken', async () => {

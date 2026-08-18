@@ -129,6 +129,10 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
         // A partial page is a READY page, so the retry travels with it. Only a
         // failed play context takes the whole surface down.
         onRetry={state.status === 'ready' ? state.retry : undefined}
+        // AND SO DOES THE IN-FLIGHT FLAG. The page is not unmounted while a
+        // retry runs, so without this a reader gets no signal at all that the
+        // press did anything.
+        refreshing={state.status === 'ready' ? state.refreshing : false}
       />
     ) : (
       <VNextPlayerProfileLoading />

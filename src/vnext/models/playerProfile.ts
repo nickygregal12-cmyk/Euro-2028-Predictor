@@ -171,6 +171,16 @@ export type PlayerSeasonSummary = {
  * the only place a division happens and it refuses rather than returning zero
  * or NaN, because "0% exact" and "no fixtures to be exact about" are different
  * sentences and only one of them is true of a player who has not started.
+ *
+ * `fixturesPredicted` IS DENOMINATOR-POLYMORPHIC, AND THE PANELS NAME THE SCOPE.
+ * On the profile it is contract 151's season-wide count; on a rivalry side it is
+ * contract 192's count over the COMPARED matchweeks, which is a different and
+ * usually smaller number for the same player. Both are "fixtures this player
+ * predicted, within the scope the panel is about", so they share a type — but
+ * the two surfaces label them "Fixtures predicted" and "Fixtures compared"
+ * respectively, and neither may be read as the other. Naming a field for one
+ * scope while feeding it another is the mistake `cumulativePoints` was renamed
+ * to prevent, one level up.
  */
 export type PlayerAccuracy = {
   readonly fixturesPredicted: number

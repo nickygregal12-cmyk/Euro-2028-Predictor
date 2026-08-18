@@ -15,8 +15,10 @@ import styles from './playerProfile.module.css'
  * ever climbs, drawn for a player who may have been overtaken every week — it
  * looks like a chart and answers a question nobody asked.
  *
- * The `points` on each `RankPoint` is deliberately NOT plotted here. It appears
- * in the text equivalent beside the rank, where it is context.
+ * The `cumulativePoints` on each `RankPoint` is deliberately NOT plotted here.
+ * It appears in the text equivalent beside the rank, where it is context — and
+ * it is a RUNNING SEASON TOTAL rather than that matchweek's score, which is why
+ * the column is headed "Season points after".
  *
  * ============================ THE GEOMETRY IS THE MODEL'S ================
  *

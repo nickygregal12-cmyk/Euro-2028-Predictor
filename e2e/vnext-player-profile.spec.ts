@@ -338,14 +338,16 @@ test.describe('the axis is labelled with the bounds the line was drawn between',
     const bottomIndex = cys.indexOf(Math.max(...cys))
 
     expect(reading.chartRows).toHaveLength(reading.plotted.length)
+    // `startsWith`, NOT `toContain`: "14th of 412" contains "4th", so a
+    // substring match would accept a marker the axis does not name.
     expect(
-      reading.chartRows[topIndex]?.position,
-      'the highest marker is not the position the axis prints at the top',
-    ).toContain(reading.axisLabels[0] ?? 'unset')
+      reading.chartRows[topIndex]?.position?.startsWith(reading.axisLabels[0] ?? 'unset'),
+      `top marker "${reading.chartRows[topIndex]?.position}" is not the axis's "${reading.axisLabels[0]}"`,
+    ).toBe(true)
     expect(
-      reading.chartRows[bottomIndex]?.position,
-      'the lowest marker is not the position the axis prints at the bottom',
-    ).toContain(reading.axisLabels[1] ?? 'unset')
+      reading.chartRows[bottomIndex]?.position?.startsWith(reading.axisLabels[1] ?? 'unset'),
+      `bottom marker "${reading.chartRows[bottomIndex]?.position}" is not the axis's "${reading.axisLabels[1]}"`,
+    ).toBe(true)
   })
 
   test('the field is named, and named as having changed when it did', async ({ page }) => {

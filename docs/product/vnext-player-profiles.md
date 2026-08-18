@@ -206,9 +206,18 @@ rendered **from the same array**, so the two cannot drift. The table is the
 authority and the line is the illustration.
 
 Every position in that table is printed with the field it was out of. A rank
-never travels alone anywhere in this lane — the decoder drops a point that
-carries only one of the pair, the rivalry reports an unranked player as
-`standing: null` rather than zeroth, and the surface says "Not yet ranked".
+never travels alone anywhere in this lane: the decoder drops a point carrying
+only one of the pair, and a half-stated standing is refused rather than patched.
+
+**A player with nothing banked is LAST, not unranked.**
+`predictor_internal.season_standings` left-joins the matchweek scores, so every
+entry is in the table from the moment it exists — on 0 from 0, at the bottom.
+Both contract 151's season block and contract 192's rivalry read that same
+authority, so `standing: null` and `summary: null` are shapes those reads do not
+produce. They are still handled — "Not yet ranked" beats rendering "0th of
+undefined" — but as a decoder's refusal to invent, not as a routine state. The
+deterministic worlds show the reachable version; the defensive branch is
+exercised from a hand-built model in the render suite and labelled as such.
 
 ---
 
@@ -403,10 +412,16 @@ rather than one error screen standing in for three different failures.
   association between a failure and the panel it belongs to — and each panel's
   retry is a different action. Three short sentences, politely queued, beat one
   sentence that does not say which read failed.
-- **A panel's retry does not unmount the page.** The hook keeps a loaded payload
-  while re-reading the same player, so the panels that succeeded, the live
-  region the reader just heard and the button they are standing on all survive
-  the press. Only a change of player clears the surface.
+- **A panel's retry does not unmount the page — and still says it is running.**
+  The hook keeps a loaded payload while re-reading the same player, so the
+  panels that succeeded and the button the reader is standing on survive the
+  press. That removed the only signal the press did anything, so the hook
+  exposes `refreshing`: the panel takes `aria-busy`, the button reads "Trying…"
+  and is disabled, and the status text swaps to "Trying again…" and back. **The
+  text change IS the announcement** — a polite live region speaks on a content
+  change as well as on insertion, and with fixed text a screen-reader user would
+  hear nothing on press, nothing on a second failure and nothing on success.
+  Only a change of player clears the surface.
 - Reduced motion changes the arrival transition and never the content. The
   chart is a static drawing either way.
 

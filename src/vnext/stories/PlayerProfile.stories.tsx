@@ -16,7 +16,7 @@ import type { PlayerProfileScenarioName } from '../fixtures'
  *
  * ============================ WHAT A REVIEWER IS BEING ASKED ==============
  *
- * Not "does it render". Twenty-four worlds, each with the reason it exists
+ * Not "does it render". Twenty-seven worlds, each with the reason it exists
  * written into its description, and the questions they are here to settle are:
  *
  *   1. does the chart plot a POSITION or a running points total, and is its
@@ -310,6 +310,36 @@ export const PendingMatchweek: Story = board('pendingMatchweek', ALL_WIDTHS, 0.4
 export const NoAccuracy: Story = board('noAccuracy', ALL_WIDTHS, 0.42)
 
 /**
+ * THE ACCURACY BLOCK DID NOT DECODE, AND THE JOKERS DID.
+ *
+ * They are independently nullable and the decoder makes them so — `mapAccuracy`
+ * returns null on a count it cannot read while `mapJokers` succeeds beside it.
+ * A surface that nested one inside the other's branch would silently delete
+ * this player's three jokers, and nothing on the page would look wrong.
+ */
+export const AccuracyMissing: Story = board('accuracyMissing', ALL_WIDTHS, 0.42)
+
+/**
+ * ONE EXACT SCORE IN 380 FIXTURES, AND 379 CORRECT OUTCOMES.
+ *
+ * The two rates rounding lies about. 1/380 is 0.26% and renders "0%" — the same
+ * accusation `accuracyRate` refuses on a zero denominator, arriving the long way
+ * round — while 379/380 renders "100%", claiming a perfect season that did not
+ * happen. Read the two clamped values.
+ */
+export const RoundingEdges: Story = board('roundingEdges', ALL_WIDTHS, 0.42)
+
+/**
+ * ELEVEN EXACT SCORES EACH, OUT OF NINETY-SIX AND SIXTY.
+ *
+ * The server counts each entry's OWN predictions, so two players who both
+ * banked a compared matchweek have different denominators when one skipped
+ * fixtures inside it. Same rule, same numerator, very different rates — and only
+ * the stated denominator says so.
+ */
+export const UnevenDenominators: Story = board('unevenDenominators', ALL_WIDTHS, 0.42)
+
+/**
  * A FIFTY-CHARACTER DISPLAY NAME.
  *
  * In the masthead, in the comparison's column heading and in every sentence
@@ -386,6 +416,10 @@ export const FrameNoStandingPhone: Story = frame('noStandingYet', 'phone-375')
 
 export const FramePendingMatchweekPhone: Story = frame('pendingMatchweek', 'phone-375')
 export const FrameNoAccuracyPhone: Story = frame('noAccuracy', 'phone-375')
+export const FrameAccuracyMissingPhone: Story = frame('accuracyMissing', 'phone-375')
+export const FrameRoundingEdgesPhone: Story = frame('roundingEdges', 'phone-375')
+export const FrameUnevenDenominatorsPhone: Story = frame('unevenDenominators', 'phone-375')
+export const FrameUnevenDenominatorsDesktop: Story = frame('unevenDenominators', 'desktop-1920')
 export const FrameLongNamePhone: Story = frame('longName', 'phone-375')
 export const FrameLongNameTablet: Story = frame('longName', 'tablet-768')
 

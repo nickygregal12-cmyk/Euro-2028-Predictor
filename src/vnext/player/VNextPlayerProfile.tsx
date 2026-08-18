@@ -66,9 +66,19 @@ export type VNextPlayerProfileProps = {
    * see the header.
    */
   readonly onRetry?: (() => void) | undefined
+  /**
+   * A RETRY IS IN FLIGHT. The page stays mounted across one — which removed the
+   * only signal a reader had that the press did anything — so this is what puts
+   * the signal back without throwing the page away to do it.
+   */
+  readonly refreshing?: boolean | undefined
 }
 
-export function VNextPlayerProfile({ model, onRetry }: VNextPlayerProfileProps) {
+export function VNextPlayerProfile({
+  model,
+  onRetry,
+  refreshing = false,
+}: VNextPlayerProfileProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { heading, context } = model
 
@@ -98,16 +108,29 @@ export function VNextPlayerProfile({ model, onRetry }: VNextPlayerProfileProps) 
         ) : null}
 
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.panels}>
-          <Panel title="This season" zone="summary">
-            <ProfileBody panel={model.profile} isYou={heading.isYou} onRetry={onRetry} />
+          <Panel title="This season" zone="summary" busy={refreshing && model.profile.kind === 'unavailable'}>
+            <ProfileBody
+              panel={model.profile}
+              isYou={heading.isYou}
+              onRetry={onRetry}
+              refreshing={refreshing}
+            />
           </Panel>
 
-          <Panel title="Position over the season" zone="rank">
-            <RankBody panel={model.rankHistory} onRetry={onRetry} />
+          <Panel
+            title="Position over the season"
+            zone="rank"
+            busy={refreshing && model.rankHistory.kind === 'unavailable'}
+          >
+            <RankBody panel={model.rankHistory} onRetry={onRetry} refreshing={refreshing} />
           </Panel>
 
-          <Panel title="How you compare" zone="compare">
-            <RivalryBody panel={model.rivalry} onRetry={onRetry} />
+          <Panel
+            title="How you compare"
+            zone="compare"
+            busy={refreshing && model.rivalry.kind === 'unavailable'}
+          >
+            <RivalryBody panel={model.rivalry} onRetry={onRetry} refreshing={refreshing} />
           </Panel>
         </motion.div>
       </div>
@@ -118,12 +141,13 @@ export function VNextPlayerProfile({ model, onRetry }: VNextPlayerProfileProps) 
 type PanelProps = {
   readonly title: string
   readonly zone: string
+  readonly busy?: boolean | undefined
   readonly children: ReactNode
 }
 
-function Panel({ title, zone, children }: PanelProps) {
+function Panel({ title, zone, busy = false, children }: PanelProps) {
   return (
-    <section className={styles.panel} data-vnext-zone={zone}>
+    <section className={styles.panel} data-vnext-zone={zone} aria-busy={busy || undefined}>
       {/* `h2`, BECAUSE THE SHELL OWNS THE `h1`. A panel title at `h3` skips a
           level, and a skipped level is a reader arriving at a section they
           cannot place. */}
@@ -137,20 +161,41 @@ function Panel({ title, zone, children }: PanelProps) {
  * THE SENTENCE FOR A READ THAT DID NOT ANSWER, WITH THE ONE RETRY THAT MEANS
  * ANYTHING.
  *
- * The message is the live region and the control sits outside it, so a second
- * failure is announced to a reader who just asked for exactly this answer
- * without the button re-announcing itself. Stage 9 settled this shape in
- * review; it is the same one here.
+ * The message is the live region and the control sits outside it, so the region
+ * is not re-announced merely because a button re-rendered. Stage 9 settled that
+ * shape in review.
+ *
+ * THE TEXT CHANGES WHILE A RETRY RUNS, AND THAT IS WHAT SPEAKS. Keeping the
+ * page mounted across a retry means there is no `loading` render to unmount and
+ * remount this region — so with fixed text a screen-reader user would hear
+ * NOTHING on press, nothing on a second failure, and nothing on success. A
+ * polite live region announces on a content CHANGE as well as on insertion, so
+ * swapping to "Trying again…" and back is both the honest status and the
+ * announcement. No key hacks, and no page thrown away to make a sentence.
  */
-function Unavailable({ what, onRetry }: { readonly what: string; readonly onRetry?: (() => void) | undefined }) {
+function Unavailable({
+  what,
+  onRetry,
+  refreshing = false,
+}: {
+  readonly what: string
+  readonly onRetry?: (() => void) | undefined
+  readonly refreshing?: boolean | undefined
+}) {
   return (
     <div className={styles.unavailable}>
       <p className={text.body} role="status">
-        We could not load {what} just now.
+        {refreshing ? `Trying again…` : `We could not load ${what} just now.`}
       </p>
       {onRetry ? (
-        <button type="button" className={styles.retry} onClick={onRetry}>
-          Try again
+        <button
+          type="button"
+          className={styles.retry}
+          onClick={onRetry}
+          disabled={refreshing}
+          aria-disabled={refreshing || undefined}
+        >
+          {refreshing ? 'Trying…' : 'Try again'}
         </button>
       ) : null}
     </div>
@@ -161,13 +206,15 @@ function ProfileBody({
   panel,
   isYou,
   onRetry,
+  refreshing,
 }: {
   readonly panel: PlayerProfilePanel
   readonly isYou: boolean
   readonly onRetry?: (() => void) | undefined
+  readonly refreshing?: boolean | undefined
 }) {
   if (panel.kind === 'unavailable') {
-    return <Unavailable what="this player's season" onRetry={onRetry} />
+    return <Unavailable what="this player's season" onRetry={onRetry} refreshing={refreshing} />
   }
 
   if (panel.kind === 'refused') {
@@ -283,13 +330,17 @@ function Stat({ label, value }: { readonly label: string; readonly value: string
 function RankBody({
   panel,
   onRetry,
+  refreshing,
 }: {
   readonly panel: RankHistoryPanel
   readonly onRetry?: (() => void) | undefined
+  readonly refreshing?: boolean | undefined
 }) {
   switch (panel.kind) {
     case 'unavailable':
-      return <Unavailable what="this player's positions" onRetry={onRetry} />
+      return (
+        <Unavailable what="this player's positions" onRetry={onRetry} refreshing={refreshing} />
+      )
     case 'refused':
       return (
         <p className={`${text.body} ${styles.panelRefused}`}>
@@ -324,13 +375,15 @@ function RankBody({
 function RivalryBody({
   panel,
   onRetry,
+  refreshing,
 }: {
   readonly panel: RivalryPanel
   readonly onRetry?: (() => void) | undefined
+  readonly refreshing?: boolean | undefined
 }) {
   switch (panel.kind) {
     case 'unavailable':
-      return <Unavailable what="your comparison" onRetry={onRetry} />
+      return <Unavailable what="your comparison" onRetry={onRetry} refreshing={refreshing} />
     case 'refused':
       return (
         <p className={`${text.body} ${styles.panelRefused}`}>

@@ -26,7 +26,7 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
 | `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**, **`matches.ts`**, **`leagues.ts`**, **`playerProfile.ts`**) |
-| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, **twelve Matches worlds plus twelve Match Centre worlds**, **twenty-one Leagues worlds** and **twenty-four player-profile worlds** |
+| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, **twelve Matches worlds plus twelve Match Centre worlds**, **twenty-one Leagues worlds** and **twenty-seven player-profile worlds** |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
 | `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
 | `matches/` | **Matches and the Match Centre** — the fixture list, the row, the state marks, the Match Centre composition |
