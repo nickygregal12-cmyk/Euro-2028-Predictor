@@ -383,6 +383,11 @@ same paragraph existed in seven places at once.
 > vocabulary gains more horizon buckets so a better forecast is a new row rather
 > than a discarded one — and a second weekly training pass runs after the
 > weekend's results are published rather than before.
+> Contract 204 fixes what the rehearsal found: the AI Lab dashboards answered a
+> league question with a lab-wide quarantine count. The number is scoped now, and
+> the suite that always asserted it seeds a second league so it can never pass
+> vacuously again.
+
 > Contract 203 finishes the loop at the surface: the Bet Builder read takes the
 > current decision from the one place that defines it, so a superseded BET
 > cannot be offered as a leg and the browser stops keeping a second definition
