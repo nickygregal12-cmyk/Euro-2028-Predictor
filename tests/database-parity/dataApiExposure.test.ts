@@ -68,7 +68,13 @@ const views = createdViews()
 
 describe('views are not reachable by browser roles', () => {
   it('finds the views at all', () => {
-    expect(views).toEqual(['ai.valid_bets', 'ai.valid_predictions', 'public.entry_totals'])
+    expect(views).toEqual([
+      // Contract 199's audit trail for which repeated advice counts as evidence.
+      'ai.bet_advice_identity',
+      'ai.valid_bets',
+      'ai.valid_predictions',
+      'public.entry_totals',
+    ])
   })
 
   it('revokes every view from anon and authenticated', () => {

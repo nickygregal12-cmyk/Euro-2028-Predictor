@@ -54,12 +54,42 @@ describe('paid odds scheduling tracks fixture freshness instead of a weekday min
 
   it('dispatches only for paid-covered fixtures and tightens cadence toward kickoff', () => {
     expect(schedulerSql).toMatch(/f\.league_key in \('EPL','ECH','EL1','EL2','SPL'\)/)
-    expect(schedulerSql).toContain("interval '24 hours'")
-    expect(schedulerSql).toContain("interval '10 hours'")
-    expect(schedulerSql).toContain("interval '50 minutes'")
-    expect(schedulerSql).toContain("interval '10 minutes'")
     expect(schedulerSql).toContain('public.dispatch_ai_odds_polls(true)')
     expect(schedulerSql).not.toMatch(/time zone 'Europe\/London'/)
+
+    // Contract 200. The window used to be 24 hours and the lab forecasts ten
+    // days, so between matchday clusters nothing was collected at all and every
+    // quote aged past its own freshness limit. Assert the window, and assert
+    // that the last cadence tier reaches it — a heartbeat that selects fixtures
+    // it has no cadence for silently collects nothing for them.
+    const window = schedulerSql.match(/kickoff_at <= now\(\) \+ interval '(\d+) hours'/)
+    expect(window, 'the heartbeat must state its fixture window').not.toBeNull()
+    expect(Number(window?.[1])).toBe(180)
+
+    const tiers = [...schedulerSql.matchAll(/when nearest_hours <= ([\d.]+)\s+then (\d+)/g)]
+      .map((m) => ({ hours: Number(m[1]), seconds: Number(m[2]) }))
+    expect(tiers.map((t) => [t.hours, t.seconds])).toEqual([
+      [2, 600],
+      [8, 3000],
+      [24, 21600],
+      [180, 28800],
+    ])
+    expect(tiers.at(-1)?.hours).toBe(Number(window?.[1]))
+
+    // THE INVARIANT, rather than the numbers: at every distance from kickoff
+    // the collector must be allowed to wait strictly less than the value gate
+    // will accept as a current price. Anything else guarantees a stale window
+    // in every cycle however the gate is written. This mirrors
+    // ai.price_age_limit_seconds and value_engine.FreshnessPolicy.
+    const freshnessLimitSeconds = (hours: number) =>
+      hours <= 2 ? 1200 : hours <= 8 ? 3600 : 43200
+    for (const tier of tiers) {
+      expect(
+        tier.seconds,
+        `at ${tier.hours}h the collector may wait ${tier.seconds}s but the gate ` +
+          `only accepts a price ${freshnessLimitSeconds(tier.hours)}s old`,
+      ).toBeLessThan(freshnessLimitSeconds(tier.hours))
+    }
   })
 
   it('cannot dispatch again until the current freshness cadence is due', () => {

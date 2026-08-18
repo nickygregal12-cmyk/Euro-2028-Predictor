@@ -1,15 +1,14 @@
 {
   "projectRef": "vkfnsqdyhvtwyqkisxhk",
-  "requiredMigrationCount": 190,
-  "latestMigrationVersion": "20260814005000",
-  "latestMigrationName": "ai_actionable_bet_evidence",
-  "verifiedAt": "2026-08-14T14:09:00.000Z",
+  "requiredMigrationCount": 198,
+  "latestMigrationVersion": "20260818030000",
+  "latestMigrationName": "cup_knockout_reservation",
+  "verifiedAt": "2026-08-18T11:05:00.000Z",
   "evidence": {
-    "source": "Owner-directed Production promotion 189 to 190 on 14 August 2026 from exact repository head c54d5b2550359b21eff3ad1e1b0f64126ddb0013. Guarded rollout run 31807942945 succeeded after validating encrypted backup run 31785056556 and fresh exact-head Production-derived rehearsal run 31807550563. The rehearsal restored a disposable Production copy, applied exactly Contract 190, ran all 14 Contract-190 pgTAP assertions successfully and passed installed-behaviour invariants before Production was touched. The rollout then proved the live source was exactly 189, dry-ran exactly the one Contract-190 migration, applied it, and completed its Production postflight successfully. Independent read-only Production verification immediately afterwards named ledger version 20260814005000 / ai_actionable_bet_evidence beside a total migration count of 190. It measured 49 historical ai.bets rows retained, ai.valid_bets = 0, synthetic actionable evidence = 0 and real actionable evidence = 0 at that instant; ai.api_usage remained 10, paid collection remained enabled, cron.job remained 14 with all four ai-odds schedules active, and the existing nine current model rows were unchanged. No provider request, model promotion or automatic lifecycle change was made by the Contract-190 rehearsal or rollout. The subsequent selected challenger materialisation is a separate operator action and does not alter this database contract record.",
-    "repositoryHead": "c54d5b2550359b21eff3ad1e1b0f64126ddb0013",
-    "backupRunId": 31785056556,
-    "rehearsalRunId": 31807550563,
-    "rolloutRunId": 31807942945,
+    "source": "Owner-directed Production promotion 190 to 198 on 18 August 2026 from exact repository head 3751dc120a75df8cd9bd1967fc258d6d038f8f2f. Guarded rollout run 32126890172 succeeded at 10:28:59Z, gated by its own sequence check on a fresh encrypted Production backup and on exact-head rehearsal run 32126447952, which succeeded at 10:27:16Z from the same head; the rollout refuses unless the backup precedes the rehearsal, the rehearsal head equals the rollout head, the backup head is an ancestor of it, an unexpired production-backup-encrypted artefact exists, and the operator types the confirmation phrase naming this boundary. THIS RECORD PREVIOUSLY CLAIMED 190 AND WAS EIGHT CONTRACTS STALE: the promotion landed at 10:28 and no record-only follow-up reached main, which is the same DOC-001 drift the Development record carried in the movement before it. It is corrected here from hosted evidence rather than from the job's own output. INDEPENDENT READ-ONLY VERIFICATION on 18 August 2026 at 11:05Z names the ledger row: 198 rows with newest 20260818030000 cup_knockout_reservation. Measured beside it, and none of it changed by this record: 1 auth user and 1 profile, 3 entries, 1 league, 578 season fixtures. The private AI Lab holds 179 ai.fixtures, 264 predictions of which 227 are valid and 37 quarantined as INVALID_TEAM_IDENTITY, 107 graded predictions, 5,669 recommendations, 226 ai.bets of which 177 currently pass ai.valid_bets, and ZERO ai.bet_results. Nine current models at version auto-20260817T0754Z with eight challengers beside them, unchanged by the promotion. Paid collection is ENABLED with 744 credits used this month against a 20,000 allowance and an 18,000 soft cap. cron.job holds 11 jobs, of which exactly one is an ai-odds schedule: the fixture-aware ai-odds-window-heartbeat on */5. No provider request, model promotion or lifecycle change was made by the rollout or by this verification.",
+    "repositoryHead": "3751dc120a75df8cd9bd1967fc258d6d038f8f2f",
+    "rehearsalRunId": 32126447952,
+    "rolloutRunId": 32126890172,
     "edgeFunctionVersion": 14,
     "edgeFunctionBundleSha256": "58655828e9ace1494705b218061b0336008a9d82ba8135305062e0e11f0127e7"
   },

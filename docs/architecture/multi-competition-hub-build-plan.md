@@ -362,3 +362,7 @@ blockquotes could never show without being read end to end.
 > **Contract 197 stage effect:** a hub surface can list a player’s football in kickoff order across competitions in one request. No hub build-stage scope changes.
 
 > **Contract 198 stage effect:** a Championship the launcher accepts can always be finished inside its own calendar. No hub build-stage scope changes.
+
+> **Contract 199 stage effect:** the private AI Lab counts one opinion about one match once. No hub build-stage scope changes.
+
+> **Contract 200 stage effect:** the private AI Lab's paid odds cadence is stated and tested. No hub build-stage scope changes.

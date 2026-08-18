@@ -192,3 +192,7 @@ same paragraph existed in seven places at once.
 > **Contract 197:** does not alter competition structure. It lists existing season fixtures across the seasons one player has entered, excluding the tournament shape exactly as `get_season_fixtures` refuses it.
 
 > **Contract 198:** a single group is a league and finishes as one; its league is never shortened to fit a bracket, and a knockout follows only when the rounds left after it can hold one. A multi-group competition always ends in a knockout and reserves its calendar first, which shrinks the groups.
+
+> **Contract 199:** does not alter competition structure, scoring, entry, ownership or any player-facing rule. Its scope is the private AI Lab's betting evidence: which of several repeated paper-bet rows counts as evidence for one fixture and market, and whether a settlement may exist without a scoreline.
+
+> **Contract 200:** does not alter competition structure. It states how often the private AI Lab may poll for paid odds prices, and touches no competition, scoring or player relation.
