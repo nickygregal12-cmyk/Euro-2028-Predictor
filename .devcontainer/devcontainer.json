@@ -14,7 +14,9 @@
   },
   "postCreateCommand": "bash scripts/agent-tools/bootstrap.sh",
   "remoteEnv": {
-    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin"
+    "PATH": "${containerEnv:PATH}:/home/vscode/.local/bin",
+    "BD_DISABLE_METRICS": "1",
+    "DOLT_DISABLE_EVENT_FLUSH": "1"
   },
   "forwardPorts": [5173, 6006, 20128, 8765],
   "portsAttributes": {
