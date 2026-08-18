@@ -111,6 +111,33 @@ jobs:
           [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || { echo 'ERROR: encrypted backup artifact missing.'; exit 1; }
           echo "Sequence verified: backup ${BACKUP_RUN_ID} -> rehearsal ${REHEARSAL_RUN_ID} -> rollout."
 
+      - name: Refuse to make Production the first hosted environment to see these
+        shell: bash
+        run: |
+          set -euo pipefail
+          # ADR 0024's ordering rule, restored. It was enforced at the 145-to-151
+          # boundary -- where it CAUGHT a stale record and refused before
+          # touching anything -- and has not been present on a rehearsal since.
+          # Eight migrations at once is the worst possible span on which to
+          # discover that Production went first.
+          #
+          # This reads the machine record rather than the Development database:
+          # the record is what CI keeps honest, and a rehearsal holding
+          # Production credentials should not also hold Development's.
+          dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
+          dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || {
+            echo "ERROR: the Development record names ${dev_ref}, not the Development project."
+            exit 1
+          }
+          if [ "${dev_contract}" -lt "${TARGET_CONTRACT}" ]; then
+            echo "ERROR: Development is recorded at contract ${dev_contract} and this boundary ends at ${TARGET_CONTRACT}."
+            echo 'Production must not be the first hosted environment to see a migration.'
+            echo 'Run the Development fast lane first, reconcile that record, and try again.'
+            exit 1
+          fi
+          echo "Development is recorded at contract ${dev_contract}, at or beyond this boundary's ${TARGET_CONTRACT}."
+
       - name: Prove the repository boundary is exactly 190 to 198
         shell: bash
         run: |
