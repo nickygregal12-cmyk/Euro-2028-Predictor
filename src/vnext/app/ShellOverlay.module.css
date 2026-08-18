@@ -1,0 +1,97 @@
+/* THE SHELL'S ONE OVERLAY SHAPE.
+ *
+ * A bottom sheet where the thumb is and a centred panel where the pointer is,
+ * decided against the SHELL's container rather than the viewport — a 375px
+ * frame on a 1920px monitor gets the phone's sheet, which is the whole reason
+ * the workshop's frames are honest.
+ */
+
+/* FIXED, AND CONTAINED BY THE FRAME RATHER THAN BY THE BROWSER.
+ * A transform makes an ancestor the containing block for its fixed
+ * descendants, and `WorkshopCanvas` scales every frame — so in the workshop
+ * this covers the DEVICE and not the monitor showing it, which is the only way
+ * a phone's sheet can be reviewed beside a desktop's panel. In the running
+ * application there is no such ancestor and it covers the window, which is what
+ * an overlay should do there. `absolute` would need the shell to become a
+ * positioned ancestor, and the shell's own sheet records what that cost the
+ * last time somebody tried it: 371px of sideways scroll at 375px. */
+.scrim {
+  position: fixed;
+  inset: 0;
+  /* Above the sticky masthead and the sticky bottom bar, so an overlay covers
+     the control that opened it rather than sliding under it. */
+  z-index: var(--vnext-layer-overlay);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: var(--vnext-scrim);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  inline-size: min(100%, 520px);
+  /* Bounded so a twenty-competition list scrolls inside the panel instead of
+     growing a sheet taller than the frame it is in. */
+  max-block-size: 82%;
+  padding: var(--vnext-space-4);
+  padding-block-end: calc(var(--vnext-space-4) + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
+  border: 1px solid var(--vnext-hairline-strong);
+  border-start-start-radius: var(--vnext-radius-lg);
+  border-start-end-radius: var(--vnext-radius-lg);
+  background: var(--vnext-surface-raised);
+  box-shadow: var(--vnext-shadow-lg);
+}
+
+.panel:focus {
+  outline: none;
+}
+
+.head {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-title);
+  font-weight: var(--vnext-weight-display);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.close {
+  flex: none;
+  min-block-size: var(--vnext-tap-target);
+  min-inline-size: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.close:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+@container vnext-shell (min-width: 1120px) {
+  .scrim {
+    align-items: center;
+  }
+
+  .panel {
+    max-block-size: 76%;
+    border-radius: var(--vnext-radius-lg);
+    padding-block-end: var(--vnext-space-4);
+  }
+}

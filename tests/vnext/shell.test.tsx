@@ -6,36 +6,39 @@ import type { ReactNode } from 'react'
 import { describe, expect, it } from 'vitest'
 import { VNextShell } from '../../src/vnext/app/VNextShell'
 import { VNextPageHeader } from '../../src/vnext/app/VNextPageHeader'
+import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { VNextHome } from '../../src/vnext/home/VNextHome'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
-import { defaultNavItems } from '../../src/vnext/components/navigation/VNextNav'
-import { homeScenarios } from '../../src/vnext/fixtures'
+import { SHELL_DESTINATIONS } from '../../src/vnext/models/shell'
+import { homeScenarios, shellScenarios } from '../../src/vnext/fixtures'
 import { fromRoot, reachableFrom } from '../app/importGraph'
 import { at } from '../support/indexed'
 
 /**
  * THE SHELL CONTRACT — the part every future vNext page inherits.
  *
- * Stage 5 extracted the application structure out of the Gold Standard Home so
- * that Match Predictor, Match Centre, Fixtures, Leagues and Season can start
- * from it instead of copying Home. That only holds if two things stay true, and
- * neither of them is visible in a screenshot:
+ * Stage 5 extracted the application structure out of the Gold Standard Home.
+ * Stage 7.6 replaced what that structure SAYS: the four platform destinations
+ * became the four destinations of the active FOOTBALL COMPETITION, which is
+ * Concept A — the Competition Deck — becoming product authority.
+ *
+ * What has to stay true, and none of it is visible in a screenshot:
  *
  *   THE LANDMARK CONTRACT. The shell owns exactly one `<main>` and the page
  *   owns exactly one `<h1>`, and the two are wired together. Get this wrong in
- *   the shell and every page inherits the mistake — two mains, or a heading
- *   nothing is labelled by, on eight surfaces at once.
+ *   the shell and every page inherits the mistake.
  *
- *   THE DIRECTION OF THE DEPENDENCY. `app/` may not reach into `home/`. A shell
- *   that imports one Home component is a shell that has quietly become Home,
- *   and the next page inherits a featured match it has no fixture for.
+ *   THE DIRECTION OF THE DEPENDENCY. `app/` may not reach into `home/` or
+ *   `fixtures/`. A shell that imports one Home component is a shell that has
+ *   quietly become Home.
  *
- * WHAT IS NOT HERE. Composition, overflow, the width at which the navigation
- * swaps, whether mobile content clears the bottom bar, and whether a dense page
+ *   THE ARCHITECTURE ITSELF. Which is now a product claim and not only an
+ *   implementation detail, so it is tested as one in `shellIa.test.tsx`.
+ *
+ * WHAT IS NOT HERE. Composition, overflow, the width at which the bar becomes a
+ * rail, whether mobile content clears the bottom bar and whether a dense page
  * can use the workspace are all LAYOUT, and jsdom computes none of it.
- * `e2e/vnext-shell.spec.ts` measures those in Chromium. Nothing below asserts
- * the markup of a demonstration page either: those placeholders exist to be
- * thrown away, and a test that froze them would make them permanent.
+ * `e2e/vnext-shell.spec.ts` measures those in Chromium.
  */
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']
@@ -47,7 +50,7 @@ function renderShell(children: ReactNode, header?: ReactNode) {
   return render(
     <VNextRoot>
       <VNextShell
-        destination="fixtures"
+        destination="matches"
         header={
           header ?? <VNextPageHeader competition="Placeholder" title="A page" context="Context" />
         }
@@ -86,15 +89,39 @@ describe('the shell owns the landmarks and the page owns the heading', () => {
   })
 
   it('still holds when Home is the page', () => {
-    // The migration's own guard. Home used to render the `<main>` and the `<h1>`
-    // itself; if the extraction had left either behind, this is where two mains
-    // or a dangling `aria-labelledby` would show up.
+    // The migration's own guard, in both directions now. Home used to render
+    // the `<main>` and the `<h1>` itself; and Stage 7.6 changed what surrounds
+    // it. Either mistake shows up here as two mains or a dangling label.
     render(
       <VNextRoot>
         <VNextHome model={homeScenarios.live} />
       </VNextRoot>,
     )
     expectLandmarkContract(homeScenarios.live.competition.matchweekLabel)
+  })
+
+  it('still holds when Home sits inside a supplied competition', () => {
+    // The Stage 7.6 case: the shell now has a switcher, an attention control and
+    // a rail of its own around the page, every one of which is a chance to grow
+    // a second heading or a second landmark.
+    //
+    // THE WORLD ARRIVES THROUGH A PROVIDER AND NEVER THROUGH A SECOND SHELL.
+    // Home renders `VNextShell` itself, so wrapping it in another one is how a
+    // page ends up with two `<main>` landmarks — which is exactly what this
+    // assertion caught the first time it was written the other way.
+    render(
+      <VNextRoot>
+        <VNextShellProvider model={shellScenarios.fourCompetitions}>
+          <VNextHome model={homeScenarios.live} />
+        </VNextShellProvider>
+      </VNextRoot>,
+    )
+    const mains = screen.getAllByRole('main')
+    expect(mains, 'Home inside the shell has one main — its own').toHaveLength(1)
+    expect(
+      screen.getAllByRole('heading', { level: 1 }),
+      'and one h1, which is the page’s',
+    ).toHaveLength(1)
   })
 
   it('labels main by nothing rather than by a missing element with no header', () => {
@@ -144,18 +171,49 @@ describe('global navigation', () => {
 
       const current = [...nav.querySelectorAll('[aria-current="page"]')]
       expect(current, 'exactly one current destination').toHaveLength(1)
-      expect(current[0]?.textContent).toContain('Fixtures')
+      expect(current[0]?.textContent).toContain('Matches')
     }
   })
 
-  it('offers the four vNext destinations and no invented ones', () => {
+  it('offers the four competition destinations and no invented ones', () => {
     renderShell(<p>Placeholder</p>)
     const nav = at(screen.getAllByRole('navigation'), 0)
     const labels = [...nav.querySelectorAll('button')].map((button) =>
       button.textContent?.trim(),
     )
 
-    expect(labels).toEqual(['Home', 'Fixtures', 'Leagues', 'Season'])
+    // THE SELECTED ARCHITECTURE, ASSERTED AS COPY. `Season` is gone because the
+    // competition is now the chrome above these four rather than a tab beside
+    // them, `Fixtures` became `Matches` to match the product's own word for
+    // football, and `Games` is the place where the three game formats are
+    // peers. See `docs/product/vnext-shell-ia.md`.
+    expect(labels).toEqual(['Home', 'Matches', 'Games', 'Leagues'])
+  })
+
+  it('takes its destination labels and counts from the supplied model', () => {
+    // The badge is the MODEL's and never the page's. Stage 5 let Home pass a
+    // `navItems` array with an open-prediction count on it, which made the page
+    // an author of the application's navigation.
+    render(
+      <VNextRoot>
+        <VNextShell
+          destination="home"
+          shell={{
+            ...shellScenarios.oneCompetition,
+            destinations: SHELL_DESTINATIONS.map((entry) =>
+              entry.id === 'games' ? { ...entry, badge: 2 } : entry,
+            ),
+          }}
+          header={<VNextPageHeader title="A page" />}
+        >
+          <p>Placeholder</p>
+        </VNextShell>
+      </VNextRoot>,
+    )
+
+    expect(
+      screen.getAllByRole('button', { name: 'Games, 2 waiting' }).length,
+    ).toBeGreaterThan(0)
   })
 
   it('puts the skip link first in focus order, then the destinations', () => {
@@ -178,43 +236,15 @@ describe('global navigation', () => {
       'a positive tabindex would reorder the page against its own reading order',
     ).toEqual([])
 
-    expect(focusable[0], 'the skip link comes before four destinations').toBe(
+    expect(focusable[0], 'the skip link comes before the destinations').toBe(
       screen.getByRole('link', { name: /skip to content/i }),
     )
-
-    // jsdom applies no stylesheet, so both navigation shapes are focusable
-    // here; the four that follow the skip link are the first one's.
-    expect(focusable.slice(1, 5).map((element) => element.textContent?.trim())).toEqual([
-      'Home',
-      'Fixtures',
-      'Leagues',
-      'Season',
-    ])
 
     // And each of them actually takes focus when it is reached.
     for (const element of focusable.slice(0, 5)) {
       element.focus()
       expect(document.activeElement).toBe(element)
     }
-  })
-
-  it('announces a badge as part of the destination name', () => {
-    render(
-      <VNextRoot>
-        <VNextShell
-          destination="home"
-          navItems={defaultNavItems.map((item) =>
-            item.id === 'fixtures' ? { ...item, badge: 2 } : item,
-          )}
-          header={<VNextPageHeader title="A page" />}
-        >
-          <p>Placeholder</p>
-        </VNextShell>
-      </VNextRoot>,
-    )
-
-    expect(screen.getAllByRole('button', { name: 'Fixtures, 2 waiting' }).length)
-      .toBeGreaterThan(0)
   })
 })
 
@@ -242,22 +272,55 @@ describe('the shell accessibility floor', () => {
     ).toEqual([])
   })
 
+  it('has no serious accessibility failures with a whole world supplied', async () => {
+    // The chrome that carries the architecture — switcher, attention control,
+    // rail shortcuts, Explore, account — exists only when a model does, so the
+    // bare shell above cannot see any of it.
+    render(
+      <VNextRoot>
+        <VNextShell
+          destination="home"
+          shell={shellScenarios.manyCompetitions}
+          header={<VNextPageHeader title="Home" />}
+        >
+          <p>Placeholder</p>
+        </VNextShell>
+      </VNextRoot>,
+    )
+
+    const results = await axe.run(document.body, {
+      runOnly: { type: 'tag', values: TAGS },
+    })
+    const failing = [
+      ...results.violations,
+      ...results.incomplete.filter((result) => !JSDOM_CANNOT_EVALUATE.has(result.id)),
+    ].filter((result) => result.impact && FAIL_IMPACTS.has(result.impact))
+
+    expect(
+      failing,
+      failing
+        .map((violation) => `${violation.id} (${violation.impact}): ${violation.help}`)
+        .join('\n'),
+    ).toEqual([])
+  })
+
   it('survives long localised destination labels', async () => {
     // Four English labels are short enough to hide a bar that cannot cope. The
     // German set is nearly three times as long and must still produce named,
     // reachable destinations.
-    const long = defaultNavItems.map((item, index) => ({
-      ...item,
-      label: ['Startseite', 'Spielbegegnungen', 'Ligatabellen', 'Saisonübersicht'][
-        index
-      ] as string,
-    }))
+    const long = ['Startseite', 'Spielbegegnungen', 'Spiele', 'Ligatabellen']
 
     render(
       <VNextRoot>
         <VNextShell
-          destination="fixtures"
-          navItems={long}
+          destination="matches"
+          shell={{
+            ...shellScenarios.oneCompetition,
+            destinations: SHELL_DESTINATIONS.map((entry, index) => ({
+              ...entry,
+              label: long[index] as string,
+            })),
+          }}
           header={<VNextPageHeader title="Spielbegegnungen" />}
         >
           <p>Platzhalter</p>
@@ -268,14 +331,15 @@ describe('the shell accessibility floor', () => {
     const nav = at(screen.getAllByRole('navigation'), 0)
     expect(
       [...nav.querySelectorAll('button')].map((button) => button.textContent?.trim()),
-    ).toEqual(['Startseite', 'Spielbegegnungen', 'Ligatabellen', 'Saisonübersicht'])
+    ).toEqual(long)
     expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1)
   })
 
   it('renders identical content on the reduced-motion path', () => {
     const page = (
       <VNextShell
-        destination="fixtures"
+        destination="matches"
+        shell={shellScenarios.fourCompetitions}
         header={<VNextPageHeader competition="Placeholder" title="A page" />}
       >
         <p>Placeholder</p>
@@ -306,6 +370,11 @@ describe('the shell knows nothing about Home', () => {
     // The test that answers "would deleting Home leave a coherent shell?". It
     // would: nothing under `app/` can see `home/`, so the dependency only ever
     // points from the page to the shell.
+    //
+    // IT COVERS `fixtures/` TOO, which matters more in Stage 7.6 than it did in
+    // Stage 5: the shell now has ten deterministic review worlds, and a shell
+    // that imported one to fill an empty state would have shipped Premier
+    // League as a default.
     const offenders: string[] = []
     for (const file of appFiles) {
       for (const reached of reachableFrom(file)) {
@@ -320,6 +389,23 @@ describe('the shell knows nothing about Home', () => {
       'the application shell reached into a page or its fixtures — it has stopped ' +
         'being infrastructure and become that page',
     ).toEqual([])
+  })
+
+  it('cannot reach the Stage 7.5 lab from the accepted shell', () => {
+    // `ia/` is historical evidence for WHY this architecture was chosen. The
+    // accepted shell must not depend on it, or archiving the lab would take the
+    // product down with it. The one module that moved the other way —
+    // `focusReturn` — was PROMOTED into `foundations/`, and the lab imports it
+    // from there.
+    const offenders: string[] = []
+    for (const file of appFiles) {
+      for (const reached of reachableFrom(file)) {
+        if (reached.includes('/src/vnext/ia/')) {
+          offenders.push(`${fromRoot(file)} -> ${fromRoot(reached)}`)
+        }
+      }
+    }
+    expect([...new Set(offenders)]).toEqual([])
   })
 })
 

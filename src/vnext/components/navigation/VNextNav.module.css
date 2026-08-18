@@ -114,19 +114,32 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- masthead band (expanded) ----
- * A row of destinations inside the masthead rather than a rail beside the page.
- * It carries no surface of its own: the masthead is already a surface, and a
- * second panel inside it would read as a control group rather than as the
- * page's navigation. */
-.band .list {
-  gap: var(--vnext-space-1);
+/* ---- desktop rail (expanded) ----
+ * A column of destinations inside the competition rail. It carries no surface
+ * of its own: the rail is already a panel, and a second panel inside it would
+ * read as a control group rather than as the competition's navigation. */
+.rail .list {
+  flex-direction: column;
+  gap: 2px;
 }
 
-.band .link {
+.rail .item {
+  inline-size: 100%;
+}
+
+.rail .link {
   flex-direction: row;
-  gap: var(--vnext-space-2);
+  gap: var(--vnext-space-3);
+  inline-size: 100%;
+  justify-content: flex-start;
   padding: var(--vnext-space-2) var(--vnext-space-3);
   border-radius: var(--vnext-radius-md);
   font-size: var(--vnext-size-caption);
+}
+
+/* A LONG LABEL WRAPS HERE TOO. The rail is 264px and a localised destination
+ * set can be three times the English one; nothing may clip. */
+.rail .label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }

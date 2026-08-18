@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { IA_CONCEPTS, IA_CONCEPT_KEYS, IaConcept } from '../../src/vnext/ia/IaLab'
 import type { IaConceptKey } from '../../src/vnext/ia/IaLab'
-import { useFocusReturn } from '../../src/vnext/ia/shared/focusReturn'
+import { useFocusReturn } from '../../src/vnext/foundations/focusReturn'
 import { iaScenarios, iaScenarioNames } from '../../src/vnext/fixtures'
 import type { IaScenarioName } from '../../src/vnext/fixtures'
 

@@ -65,3 +65,30 @@
   text-align: start;
   color: var(--vnext-text-secondary);
 }
+
+/* THE GAMES STUB'S LIST.
+ *
+ * The one stub worth styling at all, because it is the only one that
+ * demonstrates something the architecture claims: the three games are PEERS —
+ * one row shape, one weight, one place — and a game the competition does not
+ * run is absent from the list rather than greyed inside it. */
+.gameList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  overflow-wrap: anywhere;
+}

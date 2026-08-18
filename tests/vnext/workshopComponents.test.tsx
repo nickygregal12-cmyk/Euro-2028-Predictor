@@ -271,7 +271,7 @@ describe('VNextNav', () => {
       </VNextRoot>,
     )
 
-    const nav = screen.getByRole('navigation', { name: 'vNext primary' })
+    const nav = screen.getByRole('navigation', { name: 'Competition sections' })
     const home = within(nav).getByRole('button', { name: 'Home' })
     expect(home).toHaveAttribute('aria-current', 'page')
 
@@ -286,7 +286,7 @@ describe('VNextNav', () => {
           activeId="home"
           items={[
             { id: 'home', label: 'Home', icon: Home },
-            { id: 'fixtures', label: 'Fixtures', icon: CalendarDays, badge: 2 },
+            { id: 'games', label: 'Games', icon: CalendarDays, badge: 2 },
           ]}
         />
       </VNextRoot>,
@@ -295,14 +295,14 @@ describe('VNextNav', () => {
     // Not "2 waitingFixtures": adjacent text nodes are announced with no
     // separator, so the count belongs in the name rather than in a hidden span.
     expect(
-      screen.getByRole('button', { name: 'Fixtures, 2 waiting' }),
+      screen.getByRole('button', { name: 'Games, 2 waiting' }),
     ).toBeInTheDocument()
   })
 
-  it('renders the masthead band with the same names as the bar', () => {
+  it('renders the competition rail with the same names as the bar', () => {
     render(
       <VNextRoot>
-        <VNextNav variant="band" activeId="leagues" />
+        <VNextNav variant="rail" activeId="leagues" />
       </VNextRoot>,
     )
     expect(

@@ -1,0 +1,121 @@
+/* THE ATTENTION LAYER IS SECONDARY, AND THE STYLESHEET HAS TO MEAN IT.
+ *
+ * It sits BELOW the competition and BESIDE the destinations, never above them.
+ * If this were the loudest thing on the masthead the product would have become
+ * Concept B with a competition picker attached, which is the outcome §9 of the
+ * brief exists to prevent.
+ */
+
+.control {
+  display: flex;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--vnext-radius-md);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  text-align: start;
+  cursor: pointer;
+}
+
+.controlLabel {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+/* In the masthead it is a full-width strip under the context bar and carries a
+ * veil, because on a phone it is the only place this can be said. */
+.masthead {
+  border-color: var(--vnext-hairline-strong);
+  background: var(--vnext-warn-veil);
+}
+
+.masthead[data-tone='live'] {
+  background: var(--vnext-live-veil);
+}
+
+.masthead:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+/* In the rail it is one row among the rail's rows and takes their quieter
+ * treatment — the rail already has the competition, the destinations and the
+ * shortcuts to say, and a shouting row among them would make the attention
+ * layer primary. */
+.rail:hover {
+  background: var(--vnext-surface-interactive);
+}
+
+/* ---- the list ----------------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-3) var(--vnext-space-2);
+  border: 0;
+  border-inline-start: 3px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+/* URGENCY IS AN EDGE, NOT A COLOUR WASH. It orders the list and marks it; it
+ * does not make three rows shout at once. */
+.row[data-urgency='live'] {
+  border-inline-start-color: var(--vnext-live);
+}
+
+.row[data-urgency='urgent'] {
+  border-inline-start-color: var(--vnext-warn);
+}
+
+.rowText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowContext {
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.rowGame {
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+}
+
+.rowDetail {
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}

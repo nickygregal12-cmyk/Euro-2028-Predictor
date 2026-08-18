@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useNavigate } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextPredictorScreen } from '../vnext/integration/predictor/VNextPredictorScreen'
@@ -6,6 +7,7 @@ import {
   VNextPredictorLoading,
   VNextPredictorNotice,
 } from '../vnext/integration/predictor/VNextPredictorStates'
+import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -91,6 +93,9 @@ function PreviewBody() {
     matchweek: number | undefined
   } | null>(null)
 
+  const [shellNote, setShellNote] = useState<string | null>(null)
+  const onShellIntent = useShellIntentHost(setShellNote)
+
   return (
     <div className={styles.page}>
       <header className={styles.controls}>
@@ -153,6 +158,13 @@ function PreviewBody() {
               ? 'Signed in.'
               : 'No session. The page will render its signed-out state.'}
         </p>
+        {/* WHAT THE SHELL ASKED FOR, WHERE THE HARNESS CANNOT ANSWER IT. The
+            selected shell emits an intent for every control; Explore and the
+            account go to real routes, and everything else is a vNext surface a
+            later stage builds. Printing it is the honest thing a harness can do
+            — a placeholder page pretending to be Matches would be a design
+            nobody asked for. */}
+        {shellNote === null ? null : <p className={styles.note}>{shellNote}</p>}
       </header>
 
       {/*
@@ -191,9 +203,63 @@ function PreviewBody() {
             competitionSlug={applied?.competitionSlug}
             seasonSlug={applied?.seasonSlug}
             matchweek={applied?.matchweek}
+            onShellIntent={onShellIntent}
           />
         )}
       </VNextRoot>
     </div>
   )
+}
+
+/**
+ * THE HOST FOR THE SHELL'S INTENTS — the connected proof that the selected
+ * architecture is route-agnostic.
+ *
+ * `VNextShell` emits a `ShellIntent` and holds no URL. Here is one host turning
+ * those into the application's OWN routes, in eight lines, without vNext
+ * learning that a router exists. In Storybook the same intents go to `useState`;
+ * after the production cutover stage they will go to the real navigation. None
+ * of those is the shell's business, which is the point.
+ *
+ * DISCOVERY AND THE ACCOUNT GO SOMEWHERE REAL. `/competitions` is
+ * `ExploreCompetitionsPage` and `/account` is `AccountPage`, both of which
+ * already exist — so this harness can supply a handler honestly, and the shell
+ * therefore offers the controls. A destination intent has nowhere to go yet:
+ * Matches, Games and Leagues are Stage 8+ surfaces, so it is REPORTED rather
+ * than faked into a legacy route that looks nothing like the vNext page.
+ */
+function useShellIntentHost(report: (message: string) => void) {
+  const navigate = useNavigate()
+  return useCallback(
+    (intent: ShellIntent) => {
+      switch (intent.kind) {
+        case 'discover':
+          navigate('/competitions')
+          return
+        case 'account':
+          navigate('/account')
+          return
+        default:
+          report(describeIntent(intent))
+      }
+    },
+    [navigate, report],
+  )
+}
+
+function describeIntent(intent: ShellIntent): string {
+  switch (intent.kind) {
+    case 'destination':
+      return `Destination "${intent.destination}" — a vNext surface later stages build.`
+    case 'context':
+      return `Switch competition to "${intent.contextId}" — the connected shell states one competition, so there is nothing to switch to yet.`
+    case 'game':
+      return `Open ${intent.game} in "${intent.contextId}".`
+    case 'league':
+      return `Open league "${intent.leagueId}".`
+    default:
+      // `discover` and `account` are handled by the host above and never reach
+      // this describer; the branch exists so the union stays exhaustive.
+      return 'Handled by the harness.'
+  }
 }

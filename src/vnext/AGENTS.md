@@ -10,7 +10,8 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 
 1. [`../../docs/product/ui.md`](../../docs/product/ui.md) — vNext product/presentation direction.
 2. [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) — current workshop hypotheses and the questions left open.
-2b. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — **Stage 7.5's three information-architecture concepts, the capability audits and the open questions. No concept has been chosen; do not build on one as though it had.**
+2b. [`../../docs/product/vnext-shell-ia.md`](../../docs/product/vnext-shell-ia.md) — **THE SELECTED INFORMATION ARCHITECTURE (Stage 7.6). Concept A, the Competition Deck, is the accepted vNext IA and the contract `app/VNextShell` implements. Read this before touching navigation, the shell or any destination.**
+2c. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — Stage 7.5's three concepts and the capability audits, now the EVIDENCE for that decision. Concepts B and C are kept and are not primary architectures; do not build on either as though it had won.
 3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
 4. The exact domain/service contract for the data the component actually needs.
 
@@ -21,12 +22,12 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 | `app/` | **the application shell** — `VNextShell`, `VNextPageHeader` |
 | `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
 | `components/` | `football/`, `game/`, `social/`, `navigation/` |
-| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`) |
-| `fixtures/` | one deterministic fictional matchday, the Home model, and one designed matchweek |
+| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**) |
+| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, and **ten deterministic shell worlds** |
 | `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
 | `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
 | `integration/` | **the only application-facing code** — one adapter per connected page |
-| `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts over one shared model, plus the interaction-feedback prototype. Nothing here is accepted |
+| `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts and the interaction-feedback prototype. **Historical evidence for why the selected IA exists.** Nothing here is accepted, nothing under `app/` may import it, and it is not deleted |
 | `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
 | `stories/` | the `vNext/*` Storybook groups, which are the review surface |
 
@@ -34,67 +35,108 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 
 Start a vNext page with `app/VNextShell`. Do not copy Home.
 
-**The shell owns** the canvas and its competition atmosphere, the page bounds,
-the sticky masthead band, both navigations and the width at which they swap, the
-single `<main>` landmark, the skip link, and the bottom spacing that makes mobile
-content clear the bar. **The page owns** everything inside `<main>`: its own
-composition, its own container thresholds, its own zones, and its single `<h1>`.
+**THE SHELL IS THE COMPETITION DECK, AND THAT IS SETTLED (Stage 7.6).** Stage
+7.5 asked whether `Home · Fixtures · Leagues · Season` was the right permanent
+navigation at all. It was not. The human selection is **Concept A, the
+Competition Deck** — competition-context-first — with cross-competition
+attention retained from Concept B as a SECONDARY layer and Jump retained from
+Concept C as an OPTIONAL accelerator. `docs/product/vnext-shell-ia.md` records
+the decision and the rationale; do not re-open it in a component.
+
+> **I am inside a football competition. Everything beneath the shell belongs to
+> that competition until I deliberately change it.**
 
 ```tsx
-<VNextShell destination="fixtures" header={<VNextPageHeader … />}>
+// A page, on its own. Renderable with no application behind it — Storybook,
+// the visual matrix and every render test do exactly this.
+<VNextShell destination="games" header={<VNextPageHeader … />}>
   <YourPage />
 </VNextShell>
+
+// A page inside a real world. The HOST wraps; the page never sees the model.
+<VNextShellProvider model={shellModel} onIntent={…}>
+  <VNextHome model={homeModel} />
+</VNextShellProvider>
 ```
 
-- **Global navigation is `Home · Fixtures · Leagues · Season`,** settled by the
-  Gold Standard Home. Four destinations is the most that clears a 44px target
-  across a 375px bar. A bottom bar below 1120px, a masthead band at and above it,
-  and exactly one of them is ever real. Competition and matchweek are CONTEXT and
-  are stated in words in the page header — they never take a navigation slot, and
-  page-local tabs are a page's business, not the shell's.
+- **THE SHELL OWNS THE APPLICATION AND THE PAGE OWNS `<main>`.** The shell owns
+  the active football context, competition switching, the discovery entry, the
+  four destinations, the attention indicator, Jump, the account entry, the
+  canvas and its atmosphere, the page bounds, the sticky masthead, the single
+  `<main>`, the skip link, mobile safe-area clearance and the width at which the
+  bar becomes a rail. **A PAGE OWNS NONE OF THAT.** Stage 5 let Home pass a
+  `navItems` array with an open-prediction count on it; that prop is gone, and
+  the count now arrives on the shell model from the host that knows it.
+- **Global navigation is `Home · Matches · Games · Leagues`,** and they belong
+  to the ACTIVE COMPETITION rather than to the platform. There is no global
+  Matches, no global Games and no global Leagues. Four is still the most that
+  clears a 44px target across a 375px bar, which is why the attention layer and
+  Jump are not a fifth and a sixth.
+- **`Games`, NOT `Play`.** This product already uses both words and they already
+  mean different things: a *game* is a joinable format
+  (`get_competition_games`, `CompetitionGameKey`, onboarding's "Choose your
+  games"), and `/play` is the action inbox whose job the Competition Deck moves
+  into Home. The full comparison is `docs/product/vnext-shell-ia.md` §3. The
+  label is a field on the shell model, so revisiting it is a copy change.
+- **A bottom bar below 1120px, a competition RAIL at and above it, and exactly
+  one of them is ever real.** `display: none` takes the other out of the
+  accessibility tree as well as off the page.
+- **THE MODEL IS `models/shell.ts` AND THE SHELL REACHES NOTHING ELSE.** No
+  Supabase type, no generated database type, no RPC shape and no route. Every
+  control emits a `ShellIntent`; the host decides what it means, which is what
+  makes the same shell work under `useState` in Storybook, a state hook in the
+  dev harness and a router after cutover.
+- **THREE DIMENSIONS, KEPT APART:** football context, game, people. No field
+  derived from another, the same discipline
+  `features/hub/playerCompetitions.ts` applies to Follow/Join/Favourite. A game
+  drawn with a competition's furniture is a game masquerading as football
+  context, which is how Last Man Standing became "another little tab".
+- **THE PLATFORM MAY BE LARGE; THE PLAYER'S PRODUCT MUST FEEL SMALL.**
+  `contexts` is the PLAYER's list and never the platform's. At one competition
+  the switcher is a LABEL and not a control, there is no shortcut group, and no
+  other competition's name appears in the permanent chrome — but Explore is
+  still one press away, because the catalogue is not the player's competitions.
+  At twenty published the rail still shows six and a count.
+  `e2e/vnext-shell.spec.ts` MEASURES the chrome at one, four, twelve and twenty.
+- **ATTENTION IS SECONDARY AND QUIET.** It renders nothing at all when nothing
+  is waiting elsewhere — not a zero and not a greyed bell — it names the
+  competition and the game separately, and it never reports work in the
+  competition the player is already in, because Home answers that. It reads no
+  clock: `urgency` is the application's decision and `detail` is its copy.
+- **JUMP IS OPTIONAL AND GROUPED.** Offered only where the rail has stopped
+  being complete (`shellJumpAvailable`), desktop only, three separate groups —
+  competitions, games, leagues — and never a flat list. It searches the
+  player's own world and never the catalogue. `Ctrl/⌘+K` is an accelerator, is
+  guarded out of text fields, and is never the route.
 - **`<main>` is the shell's and `<h1>` is the page's.** The shell hands the
-  header an id through context and points `aria-labelledby` at it, so neither
-  side invents one. A page that renders its own `<main>` has two.
-- **The page bounds arrive as `--vnext-page-inset`** (16/24/32px by band). Apply
-  it where the page wants it rather than hard-coding a number, and a page that
-  wants to bleed to the bounds simply does not apply it. `<main>` itself carries
-  no inline padding and no maximum width: a standings table at 1920 is meant to
-  use the workspace.
+  header an id through context and points `aria-labelledby` at it. A page that
+  renders its own `<main>` has two — and so does a HOST that wraps a page in a
+  second `VNextShell`. Use `VNextShellProvider`.
+- **The page bounds arrive as `--vnext-page-inset`** (16/24/32px by band).
+  `<main>` itself carries no inline padding and no maximum width: a standings
+  table at 1920 is meant to use the workspace.
 - **`<main>` declares the container `vnext-page`.** Every page sizes itself
   against that, never against the viewport. The shell's own bands are 760 and
-  1120; a page's thresholds are its own and need not agree.
-- Shell motion is the masthead entrance and the navigation indicator. Content
-  entrance belongs to the page — two entrances competing is a page arriving
-  twice — and route transitions are not built yet.
-
-- **`VNextPageHeader.trailing` SURVIVED THE SECOND PAGE UNCHANGED.** Stage 5 left
-  the slot unsettled and said the second real page would decide it. Home puts a
+  1120; a page's thresholds are its own.
+- **`data-vnext-shell-zone` is the SHELL's structural marker and
+  `data-vnext-zone` is a PAGE's.** The rail is `display: none` below 1120, and
+  putting it in the page vocabulary hung every phone-width measurement in
+  `e2e/vnext-home.spec.ts` on a selector that waits for the first zone to be
+  visible.
+- **Shell motion is the masthead entrance, the navigation indicator and the
+  overlays' entrance.** Content entrance belongs to the page — two entrances
+  competing is a page arriving twice. **A competition switch is never delayed by
+  an animation:** the intent goes out and the sheet closes in the same tick.
+- **`VNextPageHeader.trailing` SURVIVED THE SECOND PAGE UNCHANGED.** Home puts a
   standing block there; the Match Predictor puts a deadline chip. The two have
   nothing in common but their position, which is exactly what the slot's own
-  comment predicted, and neither needed a prop, a variant or a shell change. It
-  also earned the predictor something real: the masthead is already sticky, so a
-  page can keep one status on screen without spending viewport on a second sticky
-  band. **Treat the slot as settled and keep it a slot.**
+  comment predicted. **Treat the slot as settled and keep it a slot.**
 
-`vNext/Shell` stories are neutral placeholders that prove the shell hosts a page
-that is not Home. **They are not designs and not authorities.** Where they and
-`vNext/Home` disagree about type, colour, density or motion, Home is right.
-
-- **THE SHELL'S FOUR DESTINATIONS ARE UNDER REVIEW, AND THE SHELL IS UNCHANGED.**
-  Stage 7.5 is a lab about whether `Home · Fixtures · Leagues · Season` is the
-  right permanent navigation at all. It answers that question **in `ia/`**, where
-  each concept builds its own chrome, and it changes **not one line under
-  `app/`** — because destabilising accepted, production-isolated infrastructure
-  to explore an alternative is how a workshop takes a shipped page down with it.
-  When a concept is chosen, the winning chrome is migrated INTO the shell in that
-  change and not before. Until then the shell's navigation is INFRASTRUCTURE that
-  Home and the Match Predictor depend on, not settled product authority.
-- **THE IA LAB DOES NOT USE `VNextShell`, AND THAT IS THE REASON.** Each concept
-  renders its own single `<main>`, its own single `<h1>` and its own skip link,
-  which is what lets three genuinely different navigations exist side by side in
-  one Storybook story. Everything BELOW the chrome is shared
-  (`ia/shared/Surfaces.tsx`), so the reviewed variable is the architecture and
-  not three people's league tables.
+`vNext/Shell` stories are the review surface for the ARCHITECTURE — ten
+deterministic worlds from one competition to twenty published, plus the two real
+pages inside it. The destination bodies are stubs and **are not designs**: Stage
+8 builds Matches. Where a stub and `vNext/Home` disagree about type, colour,
+density or motion, Home is right.
 
 Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNext value can reach a legacy screen. Layout responds to its **container**, never the viewport, so a 375px frame inside a wide monitor is an honest review.
 

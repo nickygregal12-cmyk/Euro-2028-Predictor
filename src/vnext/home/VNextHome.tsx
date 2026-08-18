@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import type { HomeModel } from '../models/home'
 import { VNextShell } from '../app/VNextShell'
-import { defaultNavItems } from '../components/navigation/VNextNav'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
@@ -93,14 +92,16 @@ export function VNextHome({ model }: VNextHomeProps) {
     emphasis === 'live' ? featured : emphasis === 'decision' ? decision : null
   const supporting = allMatches.filter((match) => match.id !== staged?.id)
 
-  const progress = model.primaryAction.progress
-  const openPredictions = progress ? progress.total - progress.completed : 0
-
   return (
     <VNextShell
       destination="home"
       header={<HomeMasthead model={model} />}
-      navItems={withBadge(openPredictions)}
+      // THE PALETTE IS A FALLBACK NOW AND NOT AN INSTRUCTION. Under the
+      // Competition Deck the football context — including its colours — belongs
+      // to the shell, which takes them from its own active competition wherever
+      // an application supplied one. This keeps `VNextHome({ model })`
+      // renderable on its own, which is what the deterministic visual matrix
+      // and every render test depend on.
       competitionColours={model.competition.colours}
     >
       <FixtureTicker matches={allMatches} now={now} />
@@ -157,13 +158,5 @@ export function VNextHome({ model }: VNextHomeProps) {
         )}
       </motion.div>
     </VNextShell>
-  )
-}
-
-/** Open predictions ride on Fixtures, which is where they are made. */
-function withBadge(openPredictions: number) {
-  if (openPredictions <= 0) return defaultNavItems
-  return defaultNavItems.map((item) =>
-    item.id === 'fixtures' ? { ...item, badge: openPredictions } : item,
   )
 }

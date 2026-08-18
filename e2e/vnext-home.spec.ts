@@ -84,6 +84,8 @@ const EMPHASES = [
 type Reading = {
   frameWidth: number
   frameHeight: number
+  /** The container Home answers: the frame minus the shell's own rail. */
+  mainWidth: number
   horizontalOverflow: number
   navigationLabels: string[]
   smallTargets: string[]
@@ -221,6 +223,11 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
     return {
       frameWidth: scroller?.clientWidth ?? 0,
       frameHeight: scroller?.clientHeight ?? 0,
+      // The CONTAINER Home answers, which since Stage 7.6 is the frame minus
+      // the application shell's competition rail rather than the frame itself.
+      mainWidth:
+        (document.querySelector('figure [data-vnext] main') as HTMLElement | null)
+          ?.offsetWidth ?? 0,
       horizontalOverflow: scroller ? scroller.scrollWidth - scroller.clientWidth : -1,
       navigationLabels,
       smallTargets,
@@ -353,24 +360,52 @@ test.describe('Home holds its frame', () => {
    * from two more stories. Home answers its CONTAINER — that is the workshop's
    * load-bearing rule — so driving the container is the same measurement the
    * story would produce, without adding review surface nobody looks at.
+   *
+   * THE FRAME IS NOT THE CONTAINER ANY MORE, AND THAT IS WHY THIS MEASURES THE
+   * GAP RATHER THAN ASSUMING IT IS ZERO. Stage 7.6 gave the application shell a
+   * competition rail at 1120px and above, so `<main>` — the container Home
+   * actually answers — is the frame minus that column. Driving the frame to
+   * 1560 now produces a container of 1296 and the NARROW composition, which is
+   * Home behaving correctly and the test asking the wrong question. The chrome's
+   * width is measured from the page rather than hard-coded, so this stays true
+   * if the rail's width ever changes and fails loudly if the shell stops taking
+   * a column at all.
    */
   test('competition fills its wide composition at and above 1560', async ({
     page,
   }) => {
     for (const width of [1559, 1560, 1920]) {
       await open(page, 'competition-1440')
-      await page.evaluate((frameWidth) => {
-        const frame = document.querySelector<HTMLElement>('figure > div')
-        if (!frame) throw new Error('no frame to resize')
-        frame.style.setProperty('--frame-width', `${frameWidth}px`)
-        frame.style.setProperty('--frame-scale', '1')
-      }, width)
+
+      // How much of the frame the shell spends on itself, at a width where the
+      // rail is real. Measured on the story's own 1440 frame first.
+      const chrome = await page.evaluate(() => {
+        const root = document.querySelector('figure [data-vnext]')
+        const scroller = root?.firstElementChild as HTMLElement | null
+        const main = scroller?.querySelector('main') as HTMLElement | null
+        if (!scroller || !main) throw new Error('no shell to measure')
+        return scroller.clientWidth - main.offsetWidth
+      })
+
+      await page.evaluate(
+        ({ containerWidth, chromeWidth }) => {
+          const frame = document.querySelector<HTMLElement>('figure > div')
+          if (!frame) throw new Error('no frame to resize')
+          frame.style.setProperty('--frame-width', `${containerWidth + chromeWidth}px`)
+          frame.style.setProperty('--frame-scale', '1')
+        },
+        { containerWidth: width, chromeWidth: chrome },
+      )
       await page.waitForTimeout(400)
 
       const reading = await read(page)
-      const where = `competition at ${width}`
+      const where = `competition at a ${width}px container`
 
-      expect(reading.frameWidth, `${where} frame width`).toBe(width)
+      expect(reading.frameWidth, `${where} frame width`).toBe(width + chrome)
+      expect(
+        reading.mainWidth,
+        `${where} should put ${width}px in front of the page`,
+      ).toBe(width)
       expect(reading.emphasis, `${where} emphasis`).toBe('competition')
       expect(reading.horizontalOverflow, `${where} scrolls sideways`).toBe(0)
       expect(reading.clipped, `${where} clips a name`).toEqual([])

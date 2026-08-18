@@ -283,13 +283,20 @@ describe('container-query structure', () => {
     // Both halves of each pair are always rendered and CSS hides one, so the
     // hidden half must be `display: none` — which removes it from the
     // accessibility tree as well as from the page.
-    expect(ruleBody(shellCss, '.navBand')).toContain('display: none')
-    expect(shellCss).toContain('.navBar {\n    display: none;\n  }')
+    // Stage 7.6: the desktop half is a competition RAIL rather than a masthead
+    // band, and the phone half gained a context bar and an attention strip.
+    // Every one of them is hidden by `display: none` in the band it is not
+    // real in, so none is ever a focus stop nobody can see.
+    expect(ruleBody(shellCss, '.rail')).toContain('display: none')
+    expect(shellCss).toContain(
+      '  .navBar,\n  .contextBar,\n  .attentionBand {\n    display: none;\n  }',
+    )
     expect(ruleBody(homeCss, '.socialFull')).toContain('display: none')
 
     // And the page owns neither of them any more, so it cannot grow a third.
     expect(homeCss).not.toContain('.navBar')
     expect(homeCss).not.toContain('.mastheadNav')
+    expect(homeCss).not.toContain('.rail')
   })
 })
 

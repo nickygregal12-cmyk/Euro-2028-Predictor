@@ -1,0 +1,172 @@
+/* THE COMPETITION IS THE LARGEST PERMANENT CONTROL IN THE PRODUCT.
+ *
+ * That is the Competition Deck's claim written as a declaration: the switcher
+ * takes all the width it can and the destinations beneath it are small.
+ *
+ * The label form and the button form are the SAME BOX. A one-competition player
+ * and a four-competition player see chrome of the same height and the same
+ * shape; only the caret and the press appear. Chrome that rearranged itself the
+ * first time a player joined a second competition would make joining feel like
+ * a settings change.
+ */
+
+.switcher {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  min-inline-size: 0;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background: var(--vnext-surface-raised);
+  text-align: start;
+}
+
+.button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+/* In the rail it is the head of the column and takes the full width it is
+ * given; in the bar it shares a row with Explore and the account. */
+.rail {
+  inline-size: 100%;
+}
+
+.text {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+}
+
+/* A COMPETITION NAME IS NEVER TRUNCATED. No line clamp, no `text-overflow` and
+ * nothing hiding overflow, so the defect cannot reopen; `overflow-wrap` stops a
+ * single long word widening the control instead. */
+.name {
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.caret {
+  flex: none;
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the sheet body ----------------------------------------------------- */
+
+.search {
+  min-block-size: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface-sunken);
+  font: inherit;
+  font-size: var(--vnext-size-body);
+  color: var(--vnext-text);
+}
+
+.group {
+  margin: var(--vnext-space-2) 0 0;
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2);
+  border: 0;
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface);
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.row:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.row[aria-current] {
+  box-shadow: inset 0 0 0 1px var(--vnext-accent);
+}
+
+.rowText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 1px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  font-size: var(--vnext-size-micro);
+  color: var(--vnext-text-muted);
+}
+
+/* An honest hint that something is waiting in a competition the player is not
+ * in — and no more than a hint. The dot cannot say WHAT is waiting, which is
+ * exactly why the attention layer exists beside it rather than instead of it. */
+.dot {
+  flex: none;
+  inline-size: 8px;
+  block-size: 8px;
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-warn);
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}
+
+.explore {
+  margin-block-start: var(--vnext-space-2);
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.explore:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
