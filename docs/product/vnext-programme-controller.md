@@ -2,6 +2,7 @@
 
 **Status:** orchestration contract only. This file does not replace product, backend, deployment, scoring, privacy or route authorities.
 **Machine state:** [`config/vnext-programme.json`](../../config/vnext-programme.json).
+**Stable stage scopes:** [`vnext-stage-contracts.md`](vnext-stage-contracts.md).
 **UI authority:** [`ui.md`](ui.md), the selected shell authority and each stage-specific authority created as work lands.
 **Execution discipline:** root [`AGENTS.md`](../../AGENTS.md) and [`.agents/skills/predictor-context/SKILL.md`](../../.agents/skills/predictor-context/SKILL.md).
 
@@ -21,22 +22,24 @@ This controller owns only:
 - durable handoff behaviour;
 - the explicit Production gate at Stage 14.
 
-It must not copy moving SHAs, contract numbers, hosted state or detailed product rules. Agents re-read those from their canonical current authorities.
+`vnext-stage-contracts.md` owns the stable answer to **what each stage is for, what it must deliver, and what it must not absorb**. Neither file may copy moving SHAs, contract numbers, hosted state or transient CI claims. Agents re-read those from their canonical current authorities.
 
 ## Stage sequence
 
-| Stage | Mission |
-| --- | --- |
-| 8 | Matches + Match Centre |
-| 9 | Leagues |
-| 10 | Player Profiles + H2H |
-| 11 | Last Man Standing |
-| 12 | Predictor Championship |
-| 13 | Supporting Surfaces |
-| 14 | Football Hub Production Cutover |
-| 15 | Euro 2028 vNext Adoption |
+| Stage | Mission | Stable contract |
+| --- | --- | --- |
+| 8 | Matches + Match Centre | current Stage 8 authority / accepted implementation brief |
+| 9 | Leagues | `vnext-stage-contracts.md#stage-9--leagues` |
+| 10 | Player Profiles + H2H | `vnext-stage-contracts.md#stage-10--player-profiles--h2h` |
+| 11 | Last Man Standing | `vnext-stage-contracts.md#stage-11--last-man-standing` |
+| 12 | Predictor Championship | `vnext-stage-contracts.md#stage-12--predictor-championship` |
+| 13 | Supporting Surfaces | `vnext-stage-contracts.md#stage-13--supporting-surfaces` |
+| 14 | Football Hub Production Cutover | `vnext-stage-contracts.md#stage-14--football-hub-production-cutover` |
+| 15 | Euro 2028 vNext Adoption | `vnext-stage-contracts.md#stage-15--euro-2028-vnext-adoption` |
 
-The mission names are stable routing labels, not complete implementation briefs. Before starting each stage, derive the exact brief from current `main`, current product authorities, executable tests and any newly merged backend capability.
+The stage contracts are stable programme scope, not frozen implementation prompts. Before starting each stage, use its contract as the binding mission/boundary/completion predicate, then derive the exact implementation plan from current `main`, current product authorities, executable tests and any newly merged backend capability.
+
+An agent may not redefine a stage merely because a different interpretation would be easier. If current authority genuinely conflicts with a stage contract, treat that as a new-authority conflict and surface it explicitly.
 
 ## Allowed states
 
@@ -50,7 +53,7 @@ A blocker in one optional or independent sub-area is not permission to abandon t
 
 A stage may become `merged` only when all of the following are true:
 
-1. its implementation completion predicate is satisfied;
+1. its stable completion predicate in `vnext-stage-contracts.md` (or the current accepted Stage 8 authority) is satisfied;
 2. required local validation is green;
 3. exact-head required CI is green;
 4. independent review, or a fresh review pass isolated from implementation intent, has no unresolved Blocker or Important finding;
@@ -65,16 +68,17 @@ Then immediately re-read current `main` and begin the next eligible stage. Do no
 For each stage:
 
 1. fetch current `main` and inspect open PR overlap;
-2. implement the smallest reviewable slice that advances the stage;
-3. run focused and repository-required gates;
-4. push/update the stage PR;
-5. inspect exact-head CI;
-6. fix stage-caused failures at their root;
-7. if a required failure is inherited from `main`, create a separate narrow baseline-repair PR, merge it, reconcile the stage branch and rerun exact-head CI;
-8. perform an independent-style review pass;
-9. correct only concrete Blocker/Important findings and re-review the delta;
-10. merge only when the stage predicate is satisfied;
-11. verify the merge on `main`, update programme state and continue.
+2. read the stable stage contract, then current scoped product/backend authority;
+3. implement the smallest reviewable slice that advances the stage completion predicate;
+4. run focused and repository-required gates;
+5. push/update the stage PR;
+6. inspect exact-head CI;
+7. fix stage-caused failures at their root;
+8. if a required failure is inherited from `main`, create a separate narrow baseline-repair PR, merge it, reconcile the stage branch and rerun exact-head CI;
+9. perform an independent-style review pass;
+10. correct only concrete Blocker/Important findings and re-review the delta;
+11. merge only when the whole stage predicate is satisfied;
+12. verify the merge on `main`, update programme state and continue.
 
 Do not weaken a gate to make the loop progress.
 
@@ -124,7 +128,7 @@ Never change the flag as a substitute for human authority.
 
 After Stage 15 implementation is otherwise complete, run a final audit across the current authorities and route-migration obligations. The programme completion predicate requires:
 
-- all Stage 8–15 obligations accounted for;
+- every stable Stage 8–15 completion predicate accounted for;
 - required CI green on the final programme head(s);
 - no unresolved Blocker/Important review finding;
 - Production state reported truthfully;
