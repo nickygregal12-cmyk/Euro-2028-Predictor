@@ -4,6 +4,13 @@ import { describe, expect, it } from 'vitest'
 
 const repositoryRoot = process.cwd()
 
+interface RenovateToolSource {
+  datasource: string
+  depName: string
+  versioning: string
+  extractVersion?: string
+}
+
 interface ToolEntry {
   package?: string
   repository?: string
@@ -12,6 +19,7 @@ interface ToolEntry {
   port?: number
   python?: string
   extras?: string[]
+  renovate: RenovateToolSource
 }
 
 type AgentToolConfiguration = Record<string, ToolEntry>
@@ -19,6 +27,20 @@ type AgentToolConfiguration = Record<string, ToolEntry>
 interface McpServer {
   command: string
   args: string[]
+}
+
+interface RenovateConfiguration {
+  customManagers?: Array<{
+    customType?: string
+    fileFormat?: string
+    managerFilePatterns?: string[]
+    matchStrings?: string[]
+  }>
+  packageRules?: Array<{
+    matchDepTypes?: string[]
+    minimumReleaseAge?: string
+    automerge?: boolean
+  }>
 }
 
 function readJson<T>(path: string): T {
@@ -36,7 +58,7 @@ function exactVersion(value: string): boolean {
 describe('Predictor developer operating system', () => {
   const tools = readJson<AgentToolConfiguration>('config/agent-tools.json')
 
-  it('keeps every supported tool on an exact central version', () => {
+  it('keeps every supported tool on an exact central version and update source', () => {
     expect(Object.keys(tools).sort()).toEqual(
       [
         'agentMail',
@@ -57,16 +79,55 @@ describe('Predictor developer operating system', () => {
       ].sort(),
     )
 
+    const allowedDatasources = new Set(['npm', 'pypi', 'github-tags', 'crate'])
     for (const [name, tool] of Object.entries(tools)) {
       expect(tool.version, `${name} version must be exact`).toSatisfy(exactVersion)
       expect(tool.mode, `${name} must declare a lifecycle mode`).not.toBe('')
       expect(tool.package ?? tool.repository, `${name} must identify its source`).toBeDefined()
+      expect(tool.renovate, `${name} must declare how updates are discovered`).toBeDefined()
+      expect(allowedDatasources.has(tool.renovate.datasource), `${name} Renovate datasource`).toBe(true)
+      expect(tool.renovate.depName, `${name} Renovate dependency name`).not.toBe('')
+      expect(tool.renovate.versioning, `${name} Renovate versioning`).not.toBe('')
+
+      if (tool.renovate.datasource === 'github-tags') {
+        expect(tool.renovate.versioning, `${name} GitHub tag versioning`).toBe('semver')
+        expect(tool.renovate.extractVersion, `${name} tag prefix extraction`).toBe(
+          '^v(?<version>.+)$',
+        )
+      }
     }
 
     expect(tools.graphify?.extras).toEqual(['sql', 'openai'])
     expect(tools.omniroute?.port).toBe(20128)
     expect(tools.agentMail?.port).toBe(8765)
     expect(tools.beads?.repository).toBe('gastownhall/beads')
+  })
+
+  it('lets Renovate maintain the central registry without auto-merging developer tools', () => {
+    const renovate = readJson<RenovateConfiguration>('renovate.json')
+    const manager = renovate.customManagers?.find(
+      (candidate) =>
+        candidate.customType === 'jsonata' &&
+        candidate.managerFilePatterns?.includes('/^config\\/agent-tools\\.json$/'),
+    )
+
+    expect(manager).toBeDefined()
+    expect(manager?.fileFormat).toBe('json')
+    const jsonata = manager?.matchStrings?.join('\n') ?? ''
+    expect(jsonata).toContain('"currentValue": $v.version')
+    expect(jsonata).toContain('"depName": $v.renovate.depName')
+    expect(jsonata).toContain('"datasource": $v.renovate.datasource')
+    expect(jsonata).toContain('"versioning": $v.renovate.versioning')
+    expect(jsonata).toContain('"extractVersion": $v.renovate.extractVersion')
+    expect(jsonata).toContain('"depType": "developer-tool"')
+
+    const developerToolRule = renovate.packageRules?.find((rule) =>
+      rule.matchDepTypes?.includes('developer-tool'),
+    )
+    expect(developerToolRule).toMatchObject({
+      minimumReleaseAge: '3 days',
+      automerge: false,
+    })
   })
 
   it('keeps every developer package outside application dependencies', () => {
