@@ -10,8 +10,9 @@ module.exports = {
     {
       name: 'no-runtime-to-dev-harness',
       severity: 'error',
-      comment: 'Production source may not depend on dev-only harnesses.',
-      from: { path: '^src/(?!dev/)' },
+      comment:
+        'Only App.tsx may register dev previews; every other shipped source surface stays independent of src/dev.',
+      from: { path: '^src/(?!dev/|App\\.tsx$)' },
       to: { path: '^src/dev/' },
     },
     {
@@ -20,7 +21,7 @@ module.exports = {
       comment: 'Domain rules must not acquire UI, query-client or hosted-data dependencies.',
       from: { path: '^src/domain/' },
       to: {
-        path: '^node_modules/(react|react-dom|react-router|@tanstack|@supabase)/',
+        path: '^(?:node_modules/)?(?:react(?:-dom|-router)?|@tanstack|@supabase)(?:/|$)',
       },
     },
     {
@@ -50,15 +51,17 @@ module.exports = {
       to: { path: '^(tests|e2e)/' },
     },
     {
-      name: 'no-unresolvable-dependencies',
+      name: 'no-unresolvable-relative-dependencies',
       severity: 'error',
+      comment:
+        'A relative source import must resolve. Package availability is already owned by npm ci/build and is not duplicated here.',
       from: { path: '^src/' },
-      to: { couldNotResolve: true },
+      to: { couldNotResolve: true, path: '^\\.' },
     },
     {
       name: 'no-circular-dependencies',
-      severity: 'warn',
-      comment: 'Visible on day one; promote to error once the current baseline is proven cycle-free.',
+      severity: 'error',
+      comment: 'The verified source graph is cycle-free; new cycles fail immediately.',
       from: { path: '^src/' },
       to: { circular: true },
     },
@@ -72,6 +75,11 @@ module.exports = {
     },
     exclude: {
       path: ['^node_modules/', '^dist/'],
+    },
+    enhancedResolveOptions: {
+      exportsFields: ['exports'],
+      conditionNames: ['import', 'browser', 'node', 'default', 'types'],
+      mainFields: ['module', 'main', 'types', 'typings'],
     },
     reporterOptions: {
       dot: {
