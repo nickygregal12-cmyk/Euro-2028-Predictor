@@ -289,9 +289,12 @@
   margin: 0;
 }
 
+/* The record is the headline figure of the panel, so it is a STEP ON THE SCALE
+ * rather than a relative bump — `1.25em` was a literal the foundation gate is
+ * right to refuse, and it would drift against whatever it happened to sit in. */
 .rivalryRecord {
   font-variant-numeric: tabular-nums;
-  font-size: 1.25em;
+  font-size: var(--vnext-size-title);
   color: var(--vnext-text);
 }
 
