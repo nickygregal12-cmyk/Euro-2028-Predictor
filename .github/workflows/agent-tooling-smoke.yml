@@ -49,6 +49,9 @@ jobs:
     name: Install pinned baseline developer tools
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      BD_DISABLE_METRICS: '1'
+      DOLT_DISABLE_EVENT_FLUSH: '1'
 
     steps:
       - name: Harden runner (audit egress)
@@ -188,6 +191,7 @@ jobs:
             echo
             echo '- Baseline bootstrap executed from the canonical registry.'
             echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
+            echo '- Beads command metrics and Dolt event flushing were disabled for the whole smoke job.'
             echo '- Serena loaded the tracked project configuration and passed its language-server health check.'
             echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
             echo '- Agent Mail, Weave and Mergiraf exact upstream releases were resolved without auto-starting/installing their heavier optional services or merge engines.'
