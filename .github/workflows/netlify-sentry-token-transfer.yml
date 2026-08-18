@@ -1,0 +1,213 @@
+name: Transfer Sentry source-map token to Euro Production
+
+# Netlify secret values are deliberately write-only. This workflow uses the
+# same server-side environment-variable copy path as `netlify env:clone`, but
+# limits the payload to SENTRY_AUTH_TOKEN and proves the copy with exact-main
+# Production builds before narrowing the source variable.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-sentry-token-transfer
+  cancel-in-progress: false
+
+jobs:
+  transfer-and-verify:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      HUB_SITE_ID: 88356cfb-6815-44ed-9ff6-83100425fac4
+      EURO_SITE_ID: c69da01a-4650-43db-a1d2-b78b7f8e198a
+    steps:
+      - name: Copy, restrict and verify the source-map token
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          [ -n "${NETLIFY_AUTH_TOKEN:-}" ] || {
+            echo 'ERROR: NETLIFY_AUTH_TOKEN is unavailable.'
+            exit 1
+          }
+
+          netlify_get() {
+            curl --fail-with-body --silent --show-error \
+              --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+              "$1"
+          }
+
+          source_site="$(netlify_get "https://api.netlify.com/api/v1/sites/${HUB_SITE_ID}")"
+          destination_site="$(netlify_get "https://api.netlify.com/api/v1/sites/${EURO_SITE_ID}")"
+          source_account="$(jq -r '.account_slug // empty' <<<"${source_site}")"
+          destination_account="$(jq -r '.account_slug // empty' <<<"${destination_site}")"
+
+          if [ -z "${source_account}" ] || [ "${source_account}" != "${destination_account}" ]; then
+            echo 'ERROR: the two Netlify sites are not in the same resolved account.'
+            exit 1
+          fi
+
+          source_token="$(netlify_get \
+            "https://api.netlify.com/api/v1/accounts/${source_account}/env/SENTRY_AUTH_TOKEN?site_id=${HUB_SITE_ID}")"
+
+          jq -e '
+            .key == "SENTRY_AUTH_TOKEN" and
+            .is_secret == true and
+            ([.values[] | select(.context == "production")] | length) == 1
+          ' >/dev/null <<<"${source_token}" || {
+            echo 'ERROR: Hub SENTRY_AUTH_TOKEN is not a secret with exactly one Production value.'
+            exit 1
+          }
+
+          destination_vars="$(netlify_get \
+            "https://api.netlify.com/api/v1/accounts/${destination_account}/env?site_id=${EURO_SITE_ID}")"
+          if jq -e 'any(.key == "SENTRY_AUTH_TOKEN")' >/dev/null <<<"${destination_vars}"; then
+            echo 'ERROR: Euro SENTRY_AUTH_TOKEN already exists; refusing to overwrite it.'
+            exit 1
+          fi
+
+          transfer_payload="$(jq -c '[{
+            key: .key,
+            scopes: ["builds"],
+            values: [.values[] | select(.context == "production")],
+            is_secret: true
+          }]' <<<"${source_token}")"
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data "${transfer_payload}" \
+            "https://api.netlify.com/api/v1/accounts/${destination_account}/env?site_id=${EURO_SITE_ID}" \
+            >/dev/null
+
+          read_token() {
+            local account="$1" site_id="$2"
+            netlify_get \
+              "https://api.netlify.com/api/v1/accounts/${account}/env/SENTRY_AUTH_TOKEN?site_id=${site_id}"
+          }
+
+          assert_restricted_secret() {
+            local label="$1" token="$2"
+            jq -e '
+              .key == "SENTRY_AUTH_TOKEN" and
+              .is_secret == true and
+              .scopes == ["builds"] and
+              ([.values[].context] == ["production"])
+            ' >/dev/null <<<"${token}" || {
+              echo "ERROR: ${label} SENTRY_AUTH_TOKEN is not Production-only and Builds-only."
+              return 1
+            }
+          }
+
+          destination_token="$(read_token "${destination_account}" "${EURO_SITE_ID}")"
+          assert_restricted_secret Euro "${destination_token}"
+
+          trigger_and_wait() {
+            local label="$1" site_id="$2" response build_id deploy_id state commit_ref context
+
+            response="$(curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+              --header 'Content-Type: application/json' \
+              "https://api.netlify.com/api/v1/sites/${site_id}/builds?branch=main")"
+            build_id="$(jq -r '.id // empty' <<<"${response}")"
+            deploy_id="$(jq -r '.deploy_id // empty' <<<"${response}")"
+            if [ -z "${build_id}" ] || [ -z "${deploy_id}" ]; then
+              echo "ERROR: ${label} build trigger returned no build/deploy id."
+              return 1
+            fi
+
+            echo "${label}: build ${build_id}, deploy ${deploy_id}."
+            for _ in $(seq 1 90); do
+              response="$(netlify_get "https://api.netlify.com/api/v1/deploys/${deploy_id}")"
+              state="$(jq -r '.state // empty' <<<"${response}")"
+              case "${state}" in
+                ready)
+                  commit_ref="$(jq -r '.commit_ref // empty' <<<"${response}")"
+                  context="$(jq -r '.context // empty' <<<"${response}")"
+                  [ "${commit_ref}" = "${GITHUB_SHA}" ] || {
+                    echo "ERROR: ${label} published ${commit_ref}, expected ${GITHUB_SHA}."
+                    return 1
+                  }
+                  [ "${context}" = production ] || {
+                    echo "ERROR: ${label} used ${context}, expected production."
+                    return 1
+                  }
+                  echo "${label}: ready at exact main ${commit_ref}."
+                  return 0
+                  ;;
+                error|failed|canceled)
+                  echo "ERROR: ${label} deploy ${deploy_id} ended in ${state}."
+                  return 1
+                  ;;
+              esac
+              sleep 10
+            done
+
+            echo "ERROR: ${label} deploy ${deploy_id} did not finish in time."
+            return 1
+          }
+
+          # This proves Netlify resolved the copied write-only value before the
+          # existing Hub token is changed in any way.
+          trigger_and_wait Euro "${EURO_SITE_ID}"
+
+          source_restricted="$(jq -c '{
+            key: .key,
+            scopes: ["builds"],
+            values: [.values[] | select(.context == "production")],
+            is_secret: true
+          }' <<<"${source_token}")"
+          rollback_payload="$(jq -c '{
+            key: .key,
+            scopes: ["builds"],
+            values: [.values[] | select(.context == "production")],
+            is_secret: true
+          }' <<<"${destination_token}")"
+          rollback_needed=0
+
+          restore_hub_token() {
+            if [ "${rollback_needed}" = 1 ]; then
+              echo 'Hub verification failed; restoring its token from the verified Euro copy.'
+              curl --fail-with-body --silent --show-error \
+                --request PUT \
+                --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+                --header 'Content-Type: application/json' \
+                --data "${rollback_payload}" \
+                "https://api.netlify.com/api/v1/accounts/${source_account}/env/SENTRY_AUTH_TOKEN?site_id=${HUB_SITE_ID}" \
+                >/dev/null
+            fi
+          }
+          trap restore_hub_token EXIT
+
+          rollback_needed=1
+          curl --fail-with-body --silent --show-error \
+            --request PUT \
+            --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
+            --header 'Content-Type: application/json' \
+            --data "${source_restricted}" \
+            "https://api.netlify.com/api/v1/accounts/${source_account}/env/SENTRY_AUTH_TOKEN?site_id=${HUB_SITE_ID}" \
+            >/dev/null
+
+          restricted_source_token="$(read_token "${source_account}" "${HUB_SITE_ID}")"
+          assert_restricted_secret Hub "${restricted_source_token}"
+          trigger_and_wait Hub "${HUB_SITE_ID}"
+          rollback_needed=0
+          trap - EXIT
+
+          final_destination_token="$(read_token "${destination_account}" "${EURO_SITE_ID}")"
+          final_source_token="$(read_token "${source_account}" "${HUB_SITE_ID}")"
+          assert_restricted_secret Euro "${final_destination_token}"
+          assert_restricted_secret Hub "${final_source_token}"
+
+          {
+            echo '## Sentry source-map token transfer complete'
+            echo
+            echo "- Exact main: \`${GITHUB_SHA}\`"
+            echo '- Euro: secret, Production-only, Builds-only; exact-main Production build ready.'
+            echo '- Hub: secret, Production-only, Builds-only; exact-main Production build ready.'
+          } >>"${GITHUB_STEP_SUMMARY}"
