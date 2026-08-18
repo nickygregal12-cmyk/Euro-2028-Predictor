@@ -1,0 +1,65 @@
+name: Production anonymous perimeter smoke
+
+# Read-only and credential-free by design. The protected deployments cannot
+# expose release identity anonymously, but they can continuously prove that DNS,
+# TLS and Netlify's password perimeter answer. The deeper release/browser smoke
+# remains an explicit, secret-bearing operator action in production-smoke.yml.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-anonymous-perimeter-smoke
+  cancel-in-progress: true
+
+jobs:
+  perimeter:
+    name: Perimeter (${{ matrix.site }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - site: euro
+            origin: https://euro28predictor.com
+          - site: hub
+            origin: https://predictorhub.netlify.app
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Verify anonymous perimeter
+        shell: bash
+        env:
+          ORIGIN: ${{ matrix.origin }}
+        run: |
+          set -euo pipefail
+          expected='401'
+
+          for path in / /auth/login /release.json; do
+            status="$(curl \
+              --silent --show-error \
+              --output /dev/null \
+              --write-out '%{http_code}' \
+              --connect-timeout 10 \
+              --max-time 20 \
+              --retry 2 \
+              --retry-all-errors \
+              "${ORIGIN}${path}")"
+
+            if [ "$status" != "$expected" ]; then
+              echo "STOP: ${ORIGIN}${path} returned HTTP ${status}; expected ${expected}." >&2
+              echo 'This can mean an outage, a routing failure, or an unapproved perimeter change.' >&2
+              exit 1
+            fi
+            echo "${ORIGIN}${path}: HTTP ${status} (protected as expected)"
+          done

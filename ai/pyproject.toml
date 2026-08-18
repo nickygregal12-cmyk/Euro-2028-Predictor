@@ -1,0 +1,61 @@
+[project]
+name = "predictor-ai-lab"
+version = "0.0.0"
+description = "Private, evidence-gated football prediction laboratory"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "joblib>=1.4,<2",
+  "numpy>=1.26,<3",
+  "pandas>=2.2,<4",
+  "psycopg[binary]>=3.2,<4",
+  "python-dotenv>=1.0,<2",
+  "requests>=2.32,<3",
+  "scikit-learn>=1.5,<2",
+  "scipy>=1.13,<2",
+]
+
+[dependency-groups]
+analytics = [
+  "duckdb==1.5.5",
+]
+observability = [
+  "dvc==3.67.1",
+  "evidently==0.7.21",
+  "shap==0.52.0",
+]
+test = [
+  "hypothesis==6.165.10",
+  "pip-audit==2.10.1",
+  "pytest==9.1.1",
+  "pytest-cov==7.1.0",
+  "ruff==0.16.3",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_*.py"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.coverage.run]
+branch = true
+relative_files = true
+source = ["."]
+omit = [
+  "test_*.py",
+  "analytics/test_analytics.py",
+]
+
+[tool.coverage.report]
+fail_under = 45
+show_missing = true
+skip_covered = true
+

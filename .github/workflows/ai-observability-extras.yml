@@ -3,7 +3,8 @@ name: AI observability extras
 on:
   pull_request:
     paths:
-      - 'ai/requirements-observability.txt'
+      - 'ai/pyproject.toml'
+      - 'ai/uv.lock'
       - 'ai/observability.py'
       - 'ai/shap_explain.py'
       - 'ai/model_zoo.py'
@@ -23,18 +24,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: |
-            ai/requirements.txt
-            ai/requirements-observability.txt
       - name: Install core and optional AI tooling
-        run: pip install -r ai/requirements.txt -r ai/requirements-observability.txt pytest
+        # The optional group remains isolated but is resolved in ai/uv.lock.
+        run: bash scripts/agent-tools/ai-sync.sh observability
       - name: Compile and exercise optional integrations
         working-directory: ai
         run: |

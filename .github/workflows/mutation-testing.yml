@@ -1,6 +1,15 @@
 name: Mutation testing
 
 on:
+  pull_request:
+    paths:
+      - 'src/domain/tournament/calculateScore.ts'
+      - 'src/domain/tournament/scoringConfig.ts'
+      - 'src/domain/season/standings.ts'
+      - 'tests/domain/calculateScore*.test.ts'
+      - 'tests/domain/season/standings.test.ts'
+      - 'stryker.config.mjs'
+      - '.github/workflows/mutation-testing.yml'
   schedule:
     - cron: '43 3 * * 2'
   workflow_dispatch:
@@ -9,9 +18,9 @@ permissions:
   contents: read
 
 jobs:
-  scoring-mutation:
+  critical-domain-mutation:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    timeout-minutes: 30
     steps:
       - name: Harden runner (audit egress)
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -28,13 +37,13 @@ jobs:
           cache: npm
       - name: Install dependencies
         run: npm ci
-      - name: Mutation-test scoring engine
+      - name: Mutation-test critical scoring authorities
         run: npm run test:mutation
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: scoring-mutation-report
+          name: critical-domain-mutation-report
           path: reports/mutation/
           if-no-files-found: warn
           retention-days: 14

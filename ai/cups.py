@@ -63,9 +63,9 @@ hold a cup forecast without a migration this session deliberately did not make.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 
-from features import DIVISION_RANK, division_prior
+from features import DIVISION_RANK
 
 # 90-minute outcomes. Spelled out because the whole point of this module is
 # that these three are not the same as "went through".

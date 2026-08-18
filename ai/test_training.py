@@ -11,7 +11,7 @@ should fail rather than the lab quietly getting worse.
 from __future__ import annotations
 
 import re
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -22,7 +22,7 @@ import calibration
 import ensemble
 import metrics
 import train
-from features import ELO_START, FeatureBuilder, TeamState, division_prior, feature_names
+from features import FeatureBuilder, TeamState, division_prior, feature_names
 from fitting import fit_family
 from test_models import synthetic_history
 

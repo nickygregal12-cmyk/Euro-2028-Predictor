@@ -22,6 +22,7 @@
 }
 
 .word {
+  color: var(--vnext-text-on-live);
   font-weight: var(--vnext-weight-medium);
 }
 

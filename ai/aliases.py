@@ -11,6 +11,9 @@ their matches contribute to their opponents' form.
 """
 from __future__ import annotations
 
+import re
+import unicodedata
+
 # platform team name  ->  (canonical, football-data.co.uk name, country)
 LIVE_CLUBS: list[tuple[str, str, str, str]] = [
     # --- Premier League 2026/27 (as held in public.teams) ---
@@ -105,9 +108,6 @@ def canonical_for(source_name: str) -> str:
 # fixture means a price attached to the wrong match, which is worse than a
 # missing price.
 # ---------------------------------------------------------------------------
-
-import re
-import unicodedata
 
 ODDS_API_TO_CANONICAL: dict[str, str] = {
     # England, where the two providers disagree

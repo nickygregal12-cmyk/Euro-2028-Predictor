@@ -7,6 +7,7 @@ const APP_ONLY_VITE_PLUGINS = new Set([
 
 const config: StorybookConfig = {
   stories: ['../src/**/*.stories.@(ts|tsx)'],
+  addons: ['@storybook/addon-a11y', '@storybook/addon-vitest'],
   framework: {
     name: '@storybook/react-vite',
     options: {},

@@ -156,8 +156,9 @@ describe('Production Batch A rehearsal', () => {
     // `actions/upload-artifact@v7`, and SHA-pinning rewrote it to
     // `@<sha> # v7`, so indexOf returned -1 and the ORDERING this test exists
     // to prove -- encrypt, then upload, then fail closed -- went unchecked
-    // while the failure pointed at the version string instead.
-    const upload = workflow.indexOf('actions/upload-artifact@')
+    // while the failure pointed at the version string instead. The reference
+    // must still be pinned and still be v7; neither is the literal old text.
+    const upload = workflow.search(/actions\/upload-artifact@[0-9a-f]{40} # v7\b/)
     const failClosed = workflow.indexOf(
       'Fail closed if the requested Batch A forward rehearsal failed',
     )

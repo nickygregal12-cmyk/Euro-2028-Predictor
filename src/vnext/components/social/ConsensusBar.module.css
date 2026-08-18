@@ -79,6 +79,10 @@
   background-color: var(--vnext-accent-veil);
 }
 
+.userMatch .popularShare {
+  color: var(--vnext-text-secondary);
+}
+
 .youTag {
   color: var(--vnext-accent);
   font-size: var(--vnext-size-micro);

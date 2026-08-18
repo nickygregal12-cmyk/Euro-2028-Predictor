@@ -29,14 +29,13 @@ Nothing here writes. Every operation is a read or a pure computation.
 """
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
 import accumulator as accumulator_mod
 import data_quality
-import diagnose as diagnose_mod
 import market_timing
 import value_engine
 from config import LEAGUES

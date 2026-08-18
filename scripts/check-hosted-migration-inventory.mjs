@@ -64,6 +64,58 @@ if (!inventory.includes(productionRow)) {
   fail(`Migration inventory is missing the current production row: ${productionRow}`)
 }
 
+// The inventory is newest-first and deliberately retains historical rollout
+// evidence. A whole-document "maximum contract mentioned" check therefore
+// cannot distinguish history from the CURRENT heading and summary. PR #857
+// demonstrated the failure mode: its current table said 198/198/198 while the
+// heading still said 198/190/189 and the next paragraph said 191-198 were
+// applied nowhere. Every existing documentation test passed.
+//
+// Hold the first Current state heading to the three machine records exactly.
+// This is the one place in the document where an older number is never history.
+const currentStateHeading = /^## Current state — repository (\d+), Production (\d+), Development (\d+) \([^)]+\)$/m.exec(
+  inventory,
+)
+if (currentStateHeading === null) {
+  fail('Migration inventory is missing its current-state repository/Production/Development heading.')
+} else {
+  const [, repositoryClaim, productionClaim, developmentClaim] = currentStateHeading.map(Number)
+  const expected = [
+    repository.requiredMigrationCount,
+    production.requiredMigrationCount,
+    hosted.requiredMigrationCount,
+  ]
+  const stated = [repositoryClaim, productionClaim, developmentClaim]
+  if (stated.some((value, index) => value !== expected[index])) {
+    fail(
+      `Migration inventory current-state heading says repository ${repositoryClaim}, ` +
+        `Production ${productionClaim}, Development ${developmentClaim}; records say ` +
+        `repository ${expected[0]}, Production ${expected[1]}, Development ${expected[2]}.`,
+    )
+  }
+}
+
+// When all three records are level the current section must say so explicitly.
+// This catches contradictory adjacent prose without trying to reinterpret the
+// historical sections that intentionally retain lower contract numbers.
+if (
+  repository.requiredMigrationCount === hosted.requiredMigrationCount &&
+  hosted.requiredMigrationCount === production.requiredMigrationCount
+) {
+  const levelStatement =
+    `**There are no pending hosted migrations: repository, Development and Production ` +
+    `are level at Contract ${repository.requiredMigrationCount}.**`
+  const currentSection = inventory.slice(
+    currentStateHeading?.index ?? 0,
+    inventory.indexOf('\n## Current state', (currentStateHeading?.index ?? 0) + 1) === -1
+      ? inventory.length
+      : inventory.indexOf('\n## Current state', (currentStateHeading?.index ?? 0) + 1),
+  )
+  if (!currentSection.includes(levelStatement)) {
+    fail(`Migration inventory current state must contain: ${levelStatement}`)
+  }
+}
+
 if (/Complete all exact combined-head contract 66 gates|development not applied/i.test(inventory)) {
   fail('Migration inventory still contains superseded contract-66 rollout instructions.')
 }

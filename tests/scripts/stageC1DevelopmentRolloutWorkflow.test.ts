@@ -96,9 +96,8 @@ describe('Stage C1 development rollout workflow', () => {
     // This named the bare tag `actions/download-artifact@v8`, and SHA-pinning
     // the workflows rewrote it to `@<sha> # v8` -- a supply-chain improvement
     // that changed nothing this assertion exists to protect, yet failed it.
-    // Either form satisfies the regex; removing the download, or moving off v8,
-    // still fails.
-    expect(workflow).toMatch(/actions\/download-artifact@(?:v8\b|[0-9a-f]{40} # v8\b)/)
+    // Removing the download, unpinning it, or moving off v8 each still fail.
+    expect(workflow).toMatch(/actions\/download-artifact@[0-9a-f]{40} # v8\b/)
     expect(workflow).toContain('manifest.repository_commit === process.env.GITHUB_SHA')
   })
 

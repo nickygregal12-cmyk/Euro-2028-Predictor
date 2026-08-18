@@ -29,7 +29,12 @@ Disabled:
 - automatic breadcrumbs;
 - fetch/XHR tracing and distributed trace headers;
 - resource child spans;
-- source-map upload.
+- source-map upload in ordinary builds.
+
+The repository now has an optional trusted-build source-map uploader. It is
+disabled in current hosted configuration until the build-only custody below is
+deliberately configured and verified; ordinary builds do not generate or upload
+source maps.
 
 ## Safety model
 
@@ -96,6 +101,30 @@ Current production release identity remains:
 
 Sentry operations do not alter Supabase variables or the database contract.
 
+## Trusted source-map build
+
+The official `@sentry/vite-plugin` runs only during a production build with the
+explicit opt-in and all three upload values present:
+
+```text
+SENTRY_SOURCEMAPS_ENABLED=true
+SENTRY_AUTH_TOKEN=<build-only project-release token>
+SENTRY_ORG=<organisation slug>
+SENTRY_PROJECT=<project slug>
+```
+
+These variables are not browser variables, must never use a `VITE_` prefix and
+must be scoped to the trusted production deploy context. An auth token being in
+scope by itself does nothing. If the explicit switch is true but one value is
+missing, the build fails instead of publishing a release whose stacks cannot be
+resolved.
+
+The plugin and browser reporter share the exact release identity
+`euro28@<commit>`. Trusted builds create hidden source maps, upload them, then
+delete `dist/**/*.map` before the deployment artifact is published. Preview,
+pull-request, local and ordinary production builds continue to generate no maps
+when the switch is absent.
+
 ## Verified hosted evidence
 
 Deploy preview:
@@ -158,7 +187,9 @@ No alert may automatically repair data, apply a migration, reset Supabase or swi
 
 ## Hard boundaries
 
-- No Sentry API token or source-map upload without separate review.
+- No Sentry API token in a browser variable, committed file or untrusted build.
+- No source-map upload without the explicit trusted-build switch and complete
+  build-only credentials.
 - No Replay, logs, profiling, automatic breadcrumbs or automatic user context.
 - No fetch/XHR spans or distributed trace headers.
 - No production synthetic verification flag.

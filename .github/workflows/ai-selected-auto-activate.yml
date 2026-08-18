@@ -47,6 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 180
     steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
@@ -54,8 +58,6 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: '3.12'
-          cache: pip
-          cache-dependency-path: ai/requirements.txt
 
       # This source guard deliberately runs before the hosted database secret is
       # resolved. The lifecycle writer is allowed to update ai.models only.
@@ -91,8 +93,8 @@ jobs:
           echo "DATABASE_URL=${PROD_DB_URL}" >> "${GITHUB_ENV}"
 
       - name: Install AI package
-        working-directory: ai
-        run: pip install -r requirements.txt
+        # Resolves nothing: activation consumes the committed ai/uv.lock.
+        run: bash scripts/agent-tools/ai-sync.sh core
 
       - name: Resolve a complete newly-selected version
         id: selected

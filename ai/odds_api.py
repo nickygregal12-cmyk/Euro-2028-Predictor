@@ -32,11 +32,9 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import date, datetime, timedelta, timezone
 
 import oddsapi as api
 from aliases import canonical_from_odds_api
-from config import LEAGUES
 from db import connect, job, query_df
 
 # ---------------------------------------------------------------------------
@@ -408,7 +406,8 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     sub.add_parser("probe")
-    pl = sub.add_parser("plan"); pl.add_argument("--preset", choices=sorted(PRESETS))
+    pl = sub.add_parser("plan")
+    pl.add_argument("--preset", choices=sorted(PRESETS))
     bf = sub.add_parser("backfill")
     bf.add_argument("--preset", choices=sorted(PRESETS), required=True)
     bf.add_argument("--confirm", action="store_true")
