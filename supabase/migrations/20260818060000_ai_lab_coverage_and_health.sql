@@ -100,14 +100,18 @@ create or replace view ai.canonical_fixture_predictions as
    -- Newest wins, and the tie-breaks are meaning rather than luck. Two forecasts
    -- can share a created_at to the microsecond — a retrain writes a league in one
    -- transaction — and `id desc` alone would then pick a random UUID, so a read
-   -- could name a RETIRED model's forecast as the current one and change its
-   -- answer between calls. The current model outranks a retired one, and a
-   -- forecast built on a later data snapshot outranks an earlier one, before the
-   -- id is ever consulted.
+   -- could name a RETIRED model's forecast as the current one, or an eight-day-out
+   -- forecast over a same-day one, and change its answer between calls. Each
+   -- tie-break below is a statement about which forecast is better informed:
+   -- the current model outranks a retired one, a later data snapshot outranks an
+   -- earlier one, and a forecast made NEARER kickoff outranks one made further
+   -- out. The id is only ever reached when every one of those is equal, which
+   -- means the two rows are the same forecast twice.
    order by p.fixture_id,
             p.created_at desc,
             (m.status = 'current') desc nulls last,
             p.data_snapshot_at desc nulls last,
+            p.hours_to_kickoff asc nulls last,
             p.id desc;
 
 comment on view ai.canonical_fixture_predictions is
