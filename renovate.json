@@ -10,11 +10,27 @@
     "enabled": true,
     "schedule": ["before 6am on Monday"]
   },
+  "customManagers": [
+    {
+      "customType": "jsonata",
+      "fileFormat": "json",
+      "managerFilePatterns": ["/^config\\/agent-tools\\.json$/"],
+      "matchStrings": [
+        "$each(function($v, $n) { { \"depName\": $v.renovate.depName, \"currentValue\": $v.version, \"datasource\": $v.renovate.datasource, \"versioning\": $v.renovate.versioning, \"extractVersion\": $v.renovate.extractVersion, \"depType\": \"developer-tool\" } })"
+      ]
+    }
+  ],
   "packageRules": [
     {
       "description": "Keep major dependency updates explicitly approved",
       "matchUpdateTypes": ["major"],
       "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Hold developer operating-system releases before review and never automerge them",
+      "matchDepTypes": ["developer-tool"],
+      "minimumReleaseAge": "3 days",
+      "automerge": false
     },
     {
       "description": "Group React runtime updates",
