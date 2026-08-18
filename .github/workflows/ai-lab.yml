@@ -23,7 +23,19 @@ on:
   schedule:
     - cron: '30 5 * * *'
     - cron: '0 23 * * *'
+    # TWO training passes a week, not one, and the second is the one that keeps
+    # the invariant. Football-Data publishes a weekend's results on the FOLLOWING
+    # morning, so the Monday 07:00 pass runs before them: the artefact trained at
+    # 08:04 on Monday 17 August 2026 ended at 8 August for most leagues and at
+    # 2 May for ECH and EL1, whose own divisions had not started, and the next
+    # training was the following Monday — after the weekend it was meant to
+    # inform. The Tuesday pass runs once the morning import has landed, so the
+    # deployment artefact carries last weekend before this weekend is priced.
+    # Both go through train_selected_challengers.py and the same verified
+    # artefact, provenance and selected-policy gates; the model family and window
+    # per league are unchanged, only the data window advances.
     - cron: '0 7 * * 1'
+    - cron: '30 8 * * 2'
     # The Production database dispatches the paid odds poll at :30. Run the
     # repository reconciliation fifteen minutes later so it consumes retained
     # responses rather than racing the provider poll.
@@ -257,6 +269,8 @@ jobs:
             echo 'name=evening' >> "$GITHUB_OUTPUT"
           elif [ "${{ github.event.schedule }}" = '0 7 * * 1' ]; then
             echo 'name=train' >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = '30 8 * * 2' ]; then
+            echo 'name=train' >> "$GITHUB_OUTPUT"
           else
             echo 'name=free-odds' >> "$GITHUB_OUTPUT"
           fi
@@ -343,7 +357,7 @@ jobs:
           ./run_leagues.sh predict.py
           ./run_leagues.sh find_value.py
 
-      - name: Import history and predict
+      - name: Import history, predict and settle
         if: steps.task.outputs.name == 'morning' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         run: |
@@ -352,6 +366,16 @@ jobs:
           python reconcile_paid_fixture_evidence.py
           status=0
           ./run_leagues.sh evaluate.py || status=1
+          # Settle HERE, not only in the evening pass. Football-Data publishes a
+          # weekend's results on the following morning, so ai.fixtures only turns
+          # `played` inside this job — on 18 August 2026 that happened at 09:23,
+          # nearly ten hours after the 23:31 settle run of the 17th had correctly
+          # reported nothing to settle. Every settle job in the ledger therefore
+          # read {"settled": 0} while 87 played bets waited, and the record looked
+          # like a broken settler rather than a slow provider. Settling in the
+          # same pass that imports the results closes that window; the job is
+          # idempotent, so the evening pass remains a harmless second chance.
+          ./run_leagues.sh settle_bets.py || status=1
           ./run_leagues.sh predict.py || status=1
           exit "$status"
 

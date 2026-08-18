@@ -341,3 +341,11 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 197:** records a backend capability: a player’s football can be listed in kickoff order across their competitions in one read. No frontend feature baseline changes, no Matches surface is designed or built, and no disclosure boundary moves — it is a fixture read with no prediction, score, standing or other player in it.
 
 > **Contract 198:** records a backend correctness fix and a rule clarification: a Championship can no longer be launched into a shape it cannot finish, and the shortfall no longer surfaces months later at qualification. No frontend feature baseline changes.
+
+> **Contract 199:** records two backend correctness fixes in the private AI Lab: repeated advice on one fixture and market no longer counts more than once towards bet count, exposure, hit rate, ROI or CLV, and a void settlement may exist without a scoreline. No frontend feature baseline changes and no public surface is touched — the AI Lab remains private admin paper research.
+
+> **Contract 200:** records a backend operational fix: the paid odds collector's cadence is stated as a function and asserted to stay inside the price-freshness allowance it feeds. No threshold is weakened and no frontend feature baseline changes.
+
+> **Contract 201:** records a backend capability for the private admin AI Lab only: coverage, operational health and a fixture-level results review, each behind the competition-admin capability and executable by no anonymous role. No public surface, no player-facing feature, no publication boundary and no threshold moves; the reads report decisions and make none.
+
+> **Contract 202:** records a backend correctness fix: a private AI Lab forecast for a fixture more than two days away was frozen at the first run of the week, so results imported afterwards never reached it. Predictions remain immutable — the fix is more horizon buckets, not an overwrite. No frontend feature baseline changes.

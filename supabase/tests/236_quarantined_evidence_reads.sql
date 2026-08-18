@@ -63,23 +63,32 @@ values
 -- A settled bet and an open bet on each forecast. The open pair is what makes
 -- the exposure assertion mean something: exposure is money the lab says is at
 -- risk right now, and a withdrawn forecast's stake is not.
+--
+-- THE OPEN PAIR IS ON THE OVER/UNDER MARKET, and the settled pair on 1X2.
+-- All four were 1X2 on two fixtures, which contract 199 now reads as two
+-- opinions about each match rather than four pieces of evidence: `ai.valid_bets`
+-- admits only the canonical advice for a fixture and market, so each pair would
+-- collapse and every count below would be measuring the canonical rule instead
+-- of the quarantine rule this file is about. Two markets on one fixture are two
+-- genuinely different pieces of evidence, so the suite now spans both — and a
+-- quarantined forecast must still take BOTH of its bets with it.
 insert into ai.bets (
   id, prediction_id, model_id, league, fixture_id, selection, advised_at,
   kickoff_at, bookmaker, odds_taken, model_prob, edge, stake_fraction,
-  stake_units, market, status)
+  stake_units, market, line, selection_label, status)
 values
   (md5('q189-b-keep-settled')::uuid, md5('q189-p-keep')::uuid, md5('q189-model')::uuid,
    'Q189', md5('q189-f-keep')::uuid, 'H', now(), now() + interval '3 days',
-   'PS', 2.500, 0.50000, 0.25000, 0.02000, 2.0000, '1X2', 'settled'),
+   'PS', 2.500, 0.50000, 0.25000, 0.02000, 2.0000, '1X2', null, null, 'settled'),
   (md5('q189-b-drop-settled')::uuid, md5('q189-p-drop')::uuid, md5('q189-model')::uuid,
    'Q189', md5('q189-f-drop')::uuid, 'H', now(), now() + interval '4 days',
-   'PS', 3.000, 0.99000, 1.97000, 0.20000, 20.0000, '1X2', 'settled'),
+   'PS', 3.000, 0.99000, 1.97000, 0.20000, 20.0000, '1X2', null, null, 'settled'),
   (md5('q189-b-keep-open')::uuid, md5('q189-p-keep')::uuid, md5('q189-model')::uuid,
-   'Q189', md5('q189-f-keep')::uuid, 'D', now(), now() + interval '3 days',
-   'B365', 4.000, 0.25000, 0.00000, 0.01000, 1.0000, '1X2', 'advised'),
+   'Q189', md5('q189-f-keep')::uuid, 'Over', now(), now() + interval '3 days',
+   'B365', 4.000, 0.25000, 0.00000, 0.01000, 1.0000, 'OU', 2.5, 'Over 2.5', 'advised'),
   (md5('q189-b-drop-open')::uuid, md5('q189-p-drop')::uuid, md5('q189-model')::uuid,
-   'Q189', md5('q189-f-drop')::uuid, 'D', now(), now() + interval '4 days',
-   'B365', 4.000, 0.00500, -0.98000, 0.05000, 5.0000, '1X2', 'advised');
+   'Q189', md5('q189-f-drop')::uuid, 'Over', now(), now() + interval '4 days',
+   'B365', 4.000, 0.00500, -0.98000, 0.05000, 5.0000, 'OU', 2.5, 'Over 2.5', 'advised');
 
 -- `settlement_outcome` is not null and is the canonical settlement across every
 -- market; `won` is the 1X2 shorthand beside it and is nullable.
