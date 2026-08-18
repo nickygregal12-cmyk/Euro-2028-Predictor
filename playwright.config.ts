@@ -26,6 +26,7 @@ export default defineConfig({
     'vnext-shell.spec.ts',
     'vnext-predictor.spec.ts',
     'vnext-matches.spec.ts',
+    'vnext-leagues.spec.ts',
     'vnext-ia.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
