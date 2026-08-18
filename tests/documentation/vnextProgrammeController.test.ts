@@ -10,6 +10,7 @@ interface StageState {
   name: string
   status: string
   pr: number | null
+  contract: string
 }
 
 interface ProgrammeState {
@@ -25,6 +26,7 @@ interface ProgrammeState {
 
 const state = JSON.parse(read('config/vnext-programme.json')) as ProgrammeState
 const controller = read('docs/product/vnext-programme-controller.md')
+const contracts = read('docs/product/vnext-stage-contracts.md')
 const runner = read('.agents/skills/vnext-programme-runner/SKILL.md')
 
 const allowedStatuses = new Set([
@@ -37,6 +39,16 @@ const allowedStatuses = new Set([
 ])
 
 const stageIds = ['8', '9', '10', '11', '12', '13', '14', '15']
+
+const stableStageContracts = [
+  ['9', '## Stage 9 — Leagues', 'people-I-compete-with'],
+  ['10', '## Stage 10 — Player Profiles + H2H', 'How do we compare?'],
+  ['11', '## Stage 11 — Last Man Standing', 'One consequential pick → survive or be eliminated.'],
+  ['12', '## Stage 12 — Predictor Championship', 'what must I do next'],
+  ['13', '## Stage 13 — Supporting Surfaces', 'route-matrix obligations'],
+  ['14', '## Stage 14 — Football Hub Production Cutover', 'READY FOR CUTOVER'],
+  ['15', '## Stage 15 — Euro 2028 vNext Adoption', 'convergence where the products genuinely share concepts'],
+] as const
 
 describe('vNext programme controller', () => {
   it('keeps one sequential machine-readable programme state', () => {
@@ -55,6 +67,33 @@ describe('vNext programme controller', () => {
     }
 
     expect(state.stages[currentIndex]?.status).not.toBe('merged')
+  })
+
+  it('binds stages 9-15 to stable mission, boundary and completion contracts', () => {
+    for (const [id, heading, semanticAnchor] of stableStageContracts) {
+      const stage = state.stages.find((candidate) => candidate.id === id)
+      expect(stage?.contract, id).toContain('docs/product/vnext-stage-contracts.md#stage-')
+      expect(contracts, heading).toContain(heading)
+      expect(contracts, semanticAnchor).toContain(semanticAnchor)
+    }
+
+    expect(contracts).toContain('### Stage 9 does not own')
+    expect(contracts).toContain('### Stage 10 does not own')
+    expect(contracts).toContain('### Stage 11 does not own')
+    expect(contracts).toContain('### Stage 12 does not own')
+    expect(contracts).toContain('### Stage 13 does not own')
+    expect(contracts).toContain('### Stage 14 does not own')
+    expect(contracts).toContain('### Stage 15 does not own')
+    expect(contracts.match(/### Minimum completion predicate/g)).toHaveLength(7)
+    expect(runner).toContain('Do not reinterpret a stage from its short name alone')
+    expect(controller).toContain('what each stage is for, what it must deliver, and what it must not absorb')
+  })
+
+  it('keeps stable stage scope separate from current implementation details', () => {
+    expect(contracts).toContain('does **not** freeze implementation details')
+    expect(runner).toContain('Stage contracts are stable; implementation briefs are derived')
+    expect(runner).toContain('backend contracts that have actually merged')
+    expect(controller).toContain('derive the exact implementation plan from current `main`')
   })
 
   it('makes programme completion larger than one PR or stage', () => {
@@ -79,7 +118,7 @@ describe('vNext programme controller', () => {
     expect(controller).toContain('immediately re-read current `main`')
     expect(runner).toContain('fetch current `main`')
     expect(runner).toContain("Never trust a previous chat's SHA")
-    expect(runner).toContain('Stage briefs are derived, not frozen')
+    expect(runner).toContain('implementation briefs are derived')
   })
 
   it('keeps the Production cutover behind an explicit authority gate', () => {
@@ -87,10 +126,11 @@ describe('vNext programme controller', () => {
     expect(controller).toContain('explicit Production gate')
     expect(controller).toContain('must **not mutate Production merely because Stage 14 is next**')
     expect(runner).toContain('Never flip it to make the loop continue')
+    expect(contracts).toContain('actual production switch **only when explicitly authorised**')
   })
 
   it('does not create a second moving contract or hosted-state authority', () => {
-    for (const source of [controller, runner]) {
+    for (const source of [controller, contracts, runner]) {
       expect(source).not.toMatch(/repository is at contract\s+\d+/i)
       expect(source).not.toMatch(/production (?:is|=|at) contract\s+\d+/i)
       expect(source).not.toMatch(/development (?:is|=|at) contract\s+\d+/i)
