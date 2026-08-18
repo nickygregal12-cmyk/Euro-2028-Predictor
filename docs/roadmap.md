@@ -350,6 +350,18 @@ same paragraph existed in seven places at once.
 > Penalty Number is never returned**, matching `get_my_cup` exactly, and
 > neither is whether they have submitted one. The Penalty Number WRITE
 > authority is untouched and was already season-capable through contract 98.
+> **Contract 198 — `CUP-006`, the knockout a Championship reserves.**
+> **Closes the last Championship item and reorders nothing else.** The register
+> asked whether the launcher must RESERVE calendar for the knockout it implies.
+> Measured, the defect was the opposite way round from its write-up: the format
+> that should NOT have a knockout invented one out of leftover rounds, and the
+> format that MUST have one reserved nothing. The owner decided it on 18 August
+> 2026 (ADR 0028 section 20) -- a knockout is what happens when the field is too
+> big for one league -- and ADR 0014's worked table, which reported leftovers
+> rather than required depth, is corrected in place. `cup_knockout_rounds` is
+> extracted so the launcher that reserves and the gate that creates the windows
+> share one answer.
+
 > **Contract 197 — one chronological calendar across the player's competitions.**
 > **Advances the Stage 8 Matches work and reorders nothing else.** Counted over
 > `public` at contract 196, every fixture read was scoped to one season, one

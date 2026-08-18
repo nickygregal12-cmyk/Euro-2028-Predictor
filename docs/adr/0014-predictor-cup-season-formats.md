@@ -41,21 +41,50 @@ The creator chooses nothing about structure. **A group is capped at twenty entra
 ```
 meetings = floor(remaining_rounds / (N − 1))
 odd meetings  → split into halves; the post-split round-robin provides the balance
-even meetings → remainder becomes a seeded knockout playoff
+even meetings → no split is needed; the remainder is spare calendar
 ```
+
+> **AMENDED 18 August 2026 by an owner decision, implemented as contract 198
+> (`CUP-006`).** The line above used to read "even meetings → remainder becomes
+> a seeded knockout playoff", and the table below reported that remainder as the
+> tail. Both were wrong in the same way: they described what was LEFT OVER, not
+> what a knockout NEEDS.
+>
+> **A knockout is what happens when the field is too big for one league.** A
+> single group IS a league and finishes as one — on the table, with the split
+> balancing an odd meeting count. The league is **never shortened** to make room
+> for a bracket. A knockout is added to a single group only when the rounds left
+> after the full league happen to be enough for the qualifier count, and
+> otherwise the table decides it.
+>
+> A consequence the owner was shown and accepted: whether a single group ends in
+> a knockout depends on how the league rounds divide the calendar, so
+> neighbouring field sizes end differently. Over 38 matchweeks 18 entrants reach
+> a knockout and 19 do not.
+>
+> For a **multi-group** competition the field cannot be one league, so it always
+> ends in a knockout, and its calendar is **reserved by arithmetic working
+> backwards** before the groups are sized. Reserving shrinks the groups: sixty
+> entrants over 38 matchweeks are four groups of fifteen, not three of twenty.
 
 A group of twelve predicting the Premier League still gets a split, which is correct — the structure follows the field, not the competition being predicted.
 
 **Six field sizes land exactly on a 38-round season:**
 
-| N | Meetings | League rounds | Tail | Total |
-|---|---|---|---|---|
-| 6 | 7 (odd) | 35 | split, 3 | 38 |
-| 8 | 5 (odd) | 35 | split, 3 | 38 |
-| 10 | 4 (even) | 36 | playoff, 2 | 38 |
-| 12 | 3 (odd) | 33 | split, 5 | 38 |
-| 19 | 2 (even) | 36 | playoff, 2 | 38 |
-| 20 | 2 (even) | 38 | none | 38 |
+| N | Meetings | League rounds | Split | Knockout | Spare | Total |
+|---|---|---|---|---|---|---|
+| 6 | 7 (odd) | 35 | 3 | — (4 qualifiers need 2, none left) | 0 | 38 |
+| 8 | 5 (odd) | 35 | 3 | — (6 qualifiers need 3, none left) | 0 | 38 |
+| 10 | 4 (even) | 36 | — | — (7 qualifiers need 3, only 2 left) | 2 | 38 |
+| 12 | 3 (odd) | 33 | 5 | — (8 qualifiers need 3, none left) | 0 | 38 |
+| 18 | 2 (even) | 34 | — | **4** (12 qualifiers) | 0 | 38 |
+| 19 | 2 (even) | 36 | — | — (13 qualifiers need 4, only 2 left) | 2 | 38 |
+| 20 | 2 (even) | 38 | — | — (14 qualifiers need 4, none left) | 0 | 38 |
+
+**The knockout column is what the bracket NEEDS, not what is left over**, which
+is the whole of contract 198's correction. Eighteen is added to the table
+because it is the largest single group over 38 matchweeks that can actually
+afford one.
 
 **Twenty is the cap because it is the last size at which a single group still plays home and away.** Above twenty, `floor(38 / (N − 1))` falls to one meeting: everyone played once, no return fixture, no chance to avenge anything. The format degrades before it fails, and the cap sits where it is still good.
 

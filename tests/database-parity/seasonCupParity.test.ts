@@ -38,8 +38,49 @@ const allSql = readdirSync(migrationsDirectory)
   .map((file) => readFileSync(resolve(migrationsDirectory, file), 'utf8'))
   .join('\n')
 
+/**
+ * The LAST definition, not the first.
+ *
+ * `allSql` is every migration concatenated in order, so a non-greedy `exec`
+ * returns whichever definition was written FIRST — which stops being the
+ * installed one the moment any later contract redefines the function. Contract
+ * 198 redefined `select_season_cup_format`, and this suite went on asserting
+ * against contract 94's superseded text until it was pointed at the end.
+ *
+ * That is the same defect contract 194 hit in a migration: reading committed
+ * text is only sound if it is the LATEST committed text.
+ */
+function lastDefinition(name: string): string {
+  // Anchored on `create or replace function`, not on the bare name: a mere
+  // CALL to the function inside some other body would otherwise match and
+  // capture the CALLER's body instead. That happened while writing this.
+  const pattern = new RegExp(
+    `create or replace function [\\w.]*${name}\\([\\s\\S]*?\\$\\$([\\s\\S]*?)\\$\\$;`,
+    'gi',
+  )
+  let body = ''
+  for (const match of allSql.matchAll(pattern)) body = match[1] ?? body
+  return body
+}
+
+const format = lastDefinition('select_season_cup_format')
+
+/**
+ * A FINDING, recorded rather than fixed here.
+ *
+ * `tie` and `launch` still read the FIRST definition, which is what this suite
+ * has always done. For `select_season_cup_format` that was corrected above
+ * because contract 198 had to be. For `settle_season_cup_tie` it is a latent
+ * hole: pointing it at the last definition fails three assertions, which means
+ * the function WAS redefined after contract 94 (contract 96, per this file's
+ * own header) and these assertions have been checking superseded text ever
+ * since. They are not wrong about contract 94; they simply are not about the
+ * installed function any more.
+ *
+ * Fixing it means re-deriving what contract 96 changed about refusal order,
+ * which is a different subject from CUP-006 and is not folded in here.
+ */
 const tie = /settle_season_cup_tie\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
-const format = /select_season_cup_format\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
 const launch = /resolve_public_cup_launch\([\s\S]*?\$\$([\s\S]*?)\$\$;/.exec(allSql)?.[1] ?? ''
 
 const card = [
@@ -190,14 +231,23 @@ describe('format selection agrees on every threshold', () => {
       leftoverRounds: 0,
     })
     expect(selectCupFormat(6, 20)).toMatchObject({ meetings: 4, tail: { kind: 'none' } })
+    // CONTRACT 198 changed this one. Six over twenty-four leaves four rounds
+    // after a four-meeting league; four qualifiers need a two-round bracket, so
+    // two are RESERVED and two are genuinely spare. Before contract 198 the
+    // whole remainder was reported as a `seeded_playoff_window` whether or not
+    // it could hold the bracket.
     expect(selectCupFormat(6, 24)).toMatchObject({
       meetings: 4,
       leagueRounds: 20,
-      tail: { kind: 'seeded_playoff_window', rounds: 4 },
+      tail: { kind: 'none' },
+      knockout: { rounds: 2, qualifiers: 4 },
+      leftoverRounds: 2,
     })
-    for (const key of ['leagueRounds', 'leftoverRounds', 'seeded_playoff_window']) {
+    for (const key of ['leagueRounds', 'leftoverRounds', 'knockout']) {
       expect(format).toContain(key)
     }
+    // The unconditional window is gone from both authorities.
+    expect(format).not.toContain('seeded_playoff_window')
   })
 
   it('balances the odd meeting with a split, and steps down when it will not fit', () => {
@@ -210,9 +260,14 @@ describe('format selection agrees on every threshold', () => {
       tail: { kind: 'split', topHalfSize: 3, bottomHalfSize: 3, splitRounds: 3 },
       leftoverRounds: 0,
     })
+    // Ten over thirty steps down to two meetings, and contract 198 then
+    // reserves three of the twelve remaining rounds for the seven qualifiers'
+    // bracket rather than calling all twelve a playoff window.
     expect(selectCupFormat(10, 30)).toMatchObject({
       meetings: 2,
-      tail: { kind: 'seeded_playoff_window', rounds: 12 },
+      tail: { kind: 'none' },
+      knockout: { rounds: 3, qualifiers: 7 },
+      leftoverRounds: 9,
     })
     expect(format).toMatch(/v_meetings % 2 = 1/)
     expect(format).toMatch(/v_meetings := v_meetings - 1/)
@@ -228,8 +283,14 @@ describe('format selection agrees on every threshold', () => {
       kind: 'groups',
       groupCount: 2,
       groupSizes: [15, 15],
+      // CONTRACT 198: a multi-group field cannot be one league, so it always
+      // reserves. Twenty qualifiers need a five-round bracket.
+      knockout: { rounds: 5, qualifiers: 20 },
     })
-    expect(selectCupFormat(25, 38)).toMatchObject({ groupSizes: [13, 12] })
+    expect(selectCupFormat(25, 38)).toMatchObject({
+      groupSizes: [13, 12],
+      knockout: { rounds: 5, qualifiers: 17 },
+    })
     expect(format).toContain('groupSizes')
     expect(format).toMatch(/v_base := p_field_size \/ v_group_count/)
     expect(format).toMatch(/v_remainder := p_field_size % v_group_count/)
