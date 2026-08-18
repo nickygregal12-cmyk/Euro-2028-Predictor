@@ -6,6 +6,7 @@ import {
   findFloatingActionRefs,
   findFloatingAddedActionRefs,
 } from '../../scripts/check-workflow-action-pins.mjs'
+import { parse } from 'yaml'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const secretBearingWorkflows = [
@@ -21,6 +22,12 @@ const secretBearingWorkflows = [
   'production-backup.yml',
   'production-smoke.yml',
 ]
+const credentialPersistingWorkflows = new Set([
+  'development-hosted-status-followup.yml',
+  'graphify-navigation.yml',
+  'regenerate-database-types.yml',
+  'visual-contracts.yml',
+])
 
 describe('workflow supply-chain hardening', () => {
   it('rejects newly added floating action tags while permitting local actions', () => {
@@ -69,5 +76,86 @@ describe('workflow supply-chain hardening', () => {
     for (const action of workflow.matchAll(/uses:\s*[^@\s]+@([^\s#]+)/g)) {
       expect(action[1]).toMatch(/^[0-9a-f]{40}$/)
     }
+  })
+
+  it('disables checkout credential persistence except in the four push jobs', () => {
+    const files = execFileSync(
+      'git',
+      ['ls-files', '.github/workflows/*.yml', '.github/workflows/*.yaml'],
+      { cwd: repositoryRoot, encoding: 'utf8' },
+    )
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+
+    for (const file of files) {
+      const workflow = parse(
+        readFileSync(resolve(repositoryRoot, file), 'utf8'),
+      ) as {
+        jobs?: Record<
+          string,
+          { steps?: Array<{ uses?: string; with?: Record<string, unknown> }> }
+        >
+      }
+      for (const job of Object.values(workflow.jobs ?? {})) {
+        for (const step of job.steps ?? []) {
+          if (!step.uses?.startsWith('actions/checkout@')) continue
+          const name = file.split('/').at(-1) ?? file
+          if (credentialPersistingWorkflows.has(name)) {
+            expect(step.with?.['persist-credentials']).not.toBe(false)
+          } else {
+            expect(step.with?.['persist-credentials'], file).toBe(false)
+          }
+        }
+      }
+    }
+  })
+
+  it('makes the zero-finding Zizmor audit blocking', () => {
+    const workflow = readFileSync(
+      resolve(repositoryRoot, '.github/workflows/security-tooling.yml'),
+      'utf8',
+    )
+    const config = readFileSync(
+      resolve(repositoryRoot, '.github/zizmor.yml'),
+      'utf8',
+    )
+
+    expect(workflow).toMatch(/zizmorcore\/zizmor-action@[0-9a-f]{40}/)
+    expect(workflow).not.toMatch(/zizmor:[\s\S]*?continue-on-error:\s*true/)
+    expect(config).toContain('rules:')
+    expect(config).not.toMatch(/^\s*unpinned-uses:\s*false\s*$/m)
+  })
+
+  it('holds version updates long enough to reduce supply-chain exposure', () => {
+    const dependabot = parse(
+      readFileSync(resolve(repositoryRoot, '.github/dependabot.yml'), 'utf8'),
+    ) as {
+      updates?: Array<{
+        'package-ecosystem'?: string
+        cooldown?: { 'default-days'?: number }
+      }>
+    }
+
+    expect(
+      dependabot.updates?.map((update) => update['package-ecosystem']),
+    ).toEqual(expect.arrayContaining(['npm', 'github-actions']))
+    for (const update of dependabot.updates ?? []) {
+      expect(
+        update.cooldown?.['default-days'],
+        update['package-ecosystem'],
+      ).toBeGreaterThanOrEqual(7)
+    }
+  })
+
+  it('keeps ShellCheck active inside Actionlint', () => {
+    const workflow = readFileSync(
+      resolve(repositoryRoot, '.github/workflows/security-tooling.yml'),
+      'utf8',
+    )
+
+    expect(workflow).not.toContain("-shellcheck=''")
+    expect(workflow).toMatch(/actionlint -color/)
+    expect(workflow).not.toContain('actionlint -color || true')
   })
 })

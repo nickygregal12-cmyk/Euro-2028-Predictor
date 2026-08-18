@@ -114,3 +114,25 @@ external repository setting is the remaining prerequisite. Conditional and
 conflicting candidates remain uninstalled. The work is split into reviewable
 commits/PRs, and each handoff names exact tests, unresolved external settings
 and deliberate non-actions.
+
+## Closeout extension — 18 August 2026
+
+After the repository batch merged, comparison with the remaining open branches
+showed that PR #869 also carried a distinct workflow least-privilege/Zizmor
+hardening commit and three invariant-based workflow test repairs. Those changes
+must not be discarded merely because #869's Action pinning was superseded.
+
+The closeout is limited to:
+
+- porting the unique security and test delta onto current `main`;
+- excluding #869's unrelated product owner-decision commit and any workflow
+  already deliberately removed by this specification;
+- proving the resulting workflow estate with the focused configuration tests,
+  Actionlint/ShellCheck, the full-SHA gate and Zizmor;
+- activating the already-specified GitHub required check, Renovate GitHub App
+  and trusted Production Sentry source-map variables with fresh hosted evidence.
+
+The owner has authorised those named external activations. Sentry variables may
+be changed only as one complete, production/build-scoped set; an incomplete set
+must remain disabled. No Production deployment, database change, provider call
+or unrelated product decision is authorised by this extension.

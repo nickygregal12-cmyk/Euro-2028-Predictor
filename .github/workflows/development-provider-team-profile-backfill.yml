@@ -43,6 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -230,6 +231,11 @@ jobs:
              and mapping.tournament_id = '${SCOTTISH_TOURNAMENT_ID}'::uuid;
           SQL
 
+          # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2016
           node -e '
             const fs = require("node:fs")
             const row = JSON.parse(fs.readFileSync("/tmp/provider-team-profile-backfill/postflight.json", "utf8"))

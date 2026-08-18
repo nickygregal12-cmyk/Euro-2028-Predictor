@@ -50,10 +50,15 @@ jobs:
 
       - name: Resolve target and fail closed
         shell: bash
+        # Dispatch inputs are values, not shell source. This step selects a
+        # hosted database target, so no input is interpolated into its script.
+        env:
+          INPUT_TARGET: ${{ inputs.target }}
+          INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
-          target="${{ inputs.target }}"
-          version="${{ inputs.version }}"
+          target="${INPUT_TARGET}"
+          version="${INPUT_VERSION}"
           case "$target" in
             development) url="${DEV_DB_URL}"; ref="${DEVELOPMENT_PROJECT_REF}" ;;
             production)
@@ -67,6 +72,11 @@ jobs:
           if [ -z "$url" ]; then echo "Database secret missing for $target"; exit 1; fi
           case "$url" in *"$ref"*) ;; *) echo "Database URL does not name $target project $ref"; exit 1 ;; esac
           echo "::add-mask::$url"
+          # Declared, not rewritten: individual redirects keep each appended line readable. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2129
           echo "DATABASE_URL=$url" >> "$GITHUB_ENV"
           echo "MATERIALIZE_TARGET=$target" >> "$GITHUB_ENV"
           echo "MATERIALIZE_VERSION=$version" >> "$GITHUB_ENV"

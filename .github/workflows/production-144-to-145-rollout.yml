@@ -65,6 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -171,6 +172,11 @@ jobs:
           }
 
           files="$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n '145p' | tr '\n' ' ')"
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -442,6 +448,11 @@ jobs:
             echo
             echo 'Schema only. This rollout did NOT:'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- publish Euro 2028 — contract 143 arrives `hidden` and publication stays an owner act;'
             echo '- promote the application — the deployed site is a separate, separately approved step;'
             echo '- import any football — Production holds no season fixtures, and copying Development'
@@ -449,6 +460,11 @@ jobs:
             echo '- authorise provider result writing to do anything yet — contract 135 has no season'
             echo '  fixture in Production to act on until football legitimately arrives there.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'Reconcile `config/production-hosted-contract.json` from an independent read-only'
             echo 'ledger query, not from this job'"'"'s own output.'
           } >> "${GITHUB_STEP_SUMMARY}"

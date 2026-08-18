@@ -47,6 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -125,12 +126,32 @@ jobs:
               files="${files} ${file}"
             fi
           done
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           [ "$(printf '%s\n' ${files} | grep -c . || true)" = 1 ] || {
+            # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2086
             echo 'ERROR: boundary does not contain exactly one migration.'; printf '%s\n' ${files}; exit 1;
           }
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           [ "$(basename ${files})" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || {
             echo 'ERROR: the one migration is not Contract 190.'; exit 1;
           }
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0

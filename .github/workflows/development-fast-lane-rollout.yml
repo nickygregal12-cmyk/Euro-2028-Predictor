@@ -41,6 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -169,6 +170,11 @@ jobs:
           done
           # The script prints what it refused and exits non-zero, so a failure
           # here already names the statement and the workflow to use instead.
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
           echo 'FAST_LANE_PENDING=1' >> "$GITHUB_ENV"
 

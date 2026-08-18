@@ -38,6 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -251,6 +252,11 @@ jobs:
           set -euo pipefail
           (
             cd "${BACKUP_WORK_DIR}/bundle"
+            # Declared, not rewritten: separate opens of a captured file, not a pipeline race. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2094
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
 

@@ -91,6 +91,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -218,14 +219,34 @@ jobs:
               files="${files} ${file}"
             fi
           done
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           count="$(printf '%s\n' ${files} | grep -c . || true)"
           [ "${count}" = "1" ] || {
             echo "ERROR: the range holds ${count} migrations, expected exactly 1."
+            # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2086
             printf '%s\n' ${files}
             exit 1
           }
           echo 'The one migration being promoted:'
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           printf '  %s\n' ${files}
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
           echo 'It is additive.'
 
@@ -640,12 +661,32 @@ jobs:
             echo '- delete, edit or restate any prediction, bet, result, recommendation or'
             echo '  invalidation. The 37 quarantined forecasts and the 35 bets advised from them'
             echo '  are exactly where they were, and remain readable through the base tables and'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '  through `admin_ai_recommendation_log`, which labels them rather than'
             echo '  dropping them;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- make any provider request. `ai.api_usage` did not move;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- change paid odds collection. `ai.api_budget.collection_enabled` is asserted'
             echo '  UNCHANGED across the apply: this contract alters evidence reads, not provider'
             echo '  custody, and turning collection off for it would be an unrelated change;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- change any cron schedule. The total and the four `ai-odds-*` jobs are'
             echo '  unchanged;'
             echo '- publish Euro 2028, launch a competition, draw a Championship or import'
@@ -653,10 +694,30 @@ jobs:
             echo '- promote the application. Nothing here is browser-reachable until a build'
             echo '  carrying it is published, which is a separate, separately approved step.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'Thirteen admin AI reads remain `SECURITY DEFINER` with an empty `search_path`,'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'all gated on `require_competition_admin()`, all executable by `authenticated`'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'and none by `anon`. `ai.valid_bets` is revoked from every browser role.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'Reconcile `config/production-hosted-contract.json` from an independent'
             echo 'read-only query that NAMES the expected ledger row rather than counting rows.'
           } >> "${GITHUB_STEP_SUMMARY}"

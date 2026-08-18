@@ -58,7 +58,7 @@ jobs:
           }
 
           dispatch_smoke() {
-            local site="$1" after run_id i
+            local site="$1" after run_id
             after="$(date -u +%s)"
             gh workflow run "${SMOKE_WORKFLOW}" \
               --repo "${GITHUB_REPOSITORY}" \
@@ -68,7 +68,7 @@ jobs:
               -f expected_contract=190
 
             run_id=''
-            for i in $(seq 1 30); do
+            for _ in $(seq 1 30); do
               run_id="$(find_exact_run "${after}" || true)"
               [ -n "${run_id}" ] && break
               sleep 2
@@ -81,8 +81,8 @@ jobs:
           }
 
           wait_for_run() {
-            local run_id="$1" label="$2" i status conclusion
-            for i in $(seq 1 150); do
+            local run_id="$1" label="$2" status conclusion
+            for _ in $(seq 1 150); do
               status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')"
               if [ "${status}" = completed ]; then
                 conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
@@ -121,5 +121,7 @@ jobs:
             echo "- Exact main: \`${GITHUB_SHA}\`"
             echo "- Euro Production Smoke: \`${euro_id}\`"
             echo "- Hub Production Smoke: \`${hub_id}\`"
+            # Literal Markdown backticks belong in the summary.
+            # shellcheck disable=SC2016
             echo '- Expected hosted/application contract: `190`'
           } >> "${GITHUB_STEP_SUMMARY}"

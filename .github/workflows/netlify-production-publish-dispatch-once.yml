@@ -50,7 +50,7 @@ jobs:
           }
 
           trigger_and_wait() {
-            local label="$1" site_id="$2" response build_id deploy_id i state commit_ref context
+            local label="$1" site_id="$2" response build_id deploy_id state commit_ref context
 
             response="$(curl --fail-with-body --silent --show-error \
               --request POST \
@@ -60,13 +60,13 @@ jobs:
 
             build_id="$(jq -r '.id // empty' <<<"${response}")"
             deploy_id="$(jq -r '.deploy_id // empty' <<<"${response}")"
-            [ -n "${build_id}" ] && [ -n "${deploy_id}" ] || {
+            if [ -z "${build_id}" ] || [ -z "${deploy_id}" ]; then
               echo "ERROR: ${label} build trigger did not return build/deploy ids."
               exit 1
-            }
+            fi
             echo "${label}: build=${build_id} deploy=${deploy_id}."
 
-            for i in $(seq 1 150); do
+            for _ in $(seq 1 150); do
               response="$(curl --fail-with-body --silent --show-error \
                 --header "Authorization: Bearer ${NETLIFY_AUTH_TOKEN}" \
                 "https://api.netlify.com/api/v1/deploys/${deploy_id}")"
