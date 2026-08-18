@@ -76,6 +76,19 @@ External activation still required:
 - configure build-only `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` and
   `SENTRY_SOURCEMAPS_ENABLED=true` only in the trusted production build.
 
+Closeout integration:
+
+- compare PR #869's commits individually against current `main`;
+- port only its invariant-based workflow test repairs and least-privilege/
+  Zizmor hardening, preserving the current always-present merge gate and the
+  deliberate removal of the redundant workflow-lint workflow;
+- reject its unrelated owner-decision commit from this tooling branch;
+- run the focused workflow tests first, then Actionlint with ShellCheck, the
+  full-SHA gate, Zizmor and the broader required repository checks;
+- publish and merge the bounded delta only after exact-head checks pass;
+- verify each account-level activation after the owner completes any UI-only
+  authentication or secret-entry step.
+
 Deliberate non-additions remain the conditional/conflicting tools named in the
 specification: no second test runner, browser runner, SAST, secret scanner,
 visual baseline, load tool, SBOM or API fuzzer was introduced.

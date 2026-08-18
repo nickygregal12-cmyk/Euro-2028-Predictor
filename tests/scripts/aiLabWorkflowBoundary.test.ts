@@ -43,7 +43,16 @@ const workflow = parse(source) as {
   jobs: {
     run: {
       env: Record<string, string>
-      steps: { name?: string; if?: string; run?: string; id?: string }[]
+      // `env` is read because hardening against template injection moved the
+      // expansions out of the scripts and into step environments, so the
+      // binding is now part of what these boundary tests must check.
+      steps: {
+        name?: string
+        if?: string
+        run?: string
+        id?: string
+        env?: Record<string, string>
+      }[]
     }
   }
 }
@@ -93,8 +102,17 @@ describe('Development cannot be made to spend a paid credit by a schedule', () =
     expect(dispatch.target?.options).toContain('development')
     // `github.event_name == 'workflow_dispatch'` is the only gate under which
     // `inputs.target` is set at all; a schedule has no inputs.
-    const resolver = steps.find((step) => step.id === 'task')?.run ?? ''
-    expect(resolver).toMatch(/github\.event_name \}\}" = workflow_dispatch/)
+    const task = steps.find((step) => step.id === 'task')
+    const resolver = task?.run ?? ''
+    // The BOUNDARY, not one spelling of it. This named the raw
+    // `${{ github.event_name }}` expansion; hardening the workflow against
+    // template injection moved it into `env:` as EVENT_NAME, and the assertion
+    // failed on the spelling while the boundary it protects was untouched.
+    // Both halves are now required: the resolver must branch on the event name
+    // and treat workflow_dispatch specially, AND the value must reach it from
+    // the real `github.event_name` rather than from anything else.
+    expect(resolver).toMatch(/(?:github\.event_name \}\}|\$\{EVENT_NAME\})" = workflow_dispatch/)
+    expect(task?.env?.EVENT_NAME ?? '${{ github.event_name }}').toBe('${{ github.event_name }}')
     expect(resolver).not.toMatch(/development/)
   })
 
@@ -250,7 +268,9 @@ describe('a merge does not run the forecasting path against a database that cann
 
   it('refuses rather than skips a manual dispatch that cannot work', () => {
     const manual = steps.find((step) => step.name === 'Run manual task')?.run ?? ''
-    expect(manual).toMatch(/Refusing \$\{\{ steps\.task\.outputs\.name \}\}/)
+    // Either the raw expansion or the env-bound form: the refusal message must
+    // name the task, however that value reaches the script.
+    expect(manual).toMatch(/Refusing (?:\$\{\{ steps\.task\.outputs\.name \}\}|\$\{TASK_NAME\})/)
     expect(manual).toMatch(/Refusing repair-identity/)
   })
 })

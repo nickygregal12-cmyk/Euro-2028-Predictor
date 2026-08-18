@@ -1,0 +1,50 @@
+# zizmor configuration.
+#
+# Only rules that are DELIBERATELY not applicable are listed, each with the
+# reason it does not apply. Nothing here is a blanket suppression: every entry
+# names one rule and one file, so the same rule still fails everywhere else. A
+# finding is fixed in the workflow wherever fixing it is the safer change --
+# non-push checkouts disable credential persistence, shell template expansions
+# use environment bindings, and `ci.yml` states least-privilege permissions.
+# What remains here could not be fixed without breaking the thing the workflow
+# exists to do.
+
+rules:
+  artipacked:
+    ignore:
+      # These three jobs push to the repository and authenticate with the token
+      # `actions/checkout` persists, not an explicit one. Setting
+      # `persist-credentials: false` would not harden them -- it would break the
+      # push they exist to perform. Graphify's separate snapshot publisher also
+      # persists credentials but does not trigger this rule; the workflow test
+      # keeps all four explicit push exceptions closed against future growth.
+      - development-hosted-status-followup.yml
+      - regenerate-database-types.yml
+      - visual-contracts.yml
+
+  dangerous-triggers:
+    ignore:
+      # `workflow_run` is dangerous because it runs in the BASE repository with
+      # write access and can be induced by a fork. Neither of these is reachable
+      # that way: both chain off a workflow in this repository, neither checks
+      # out a pull-request head, and neither reads a fork-controlled ref.
+      #
+      # `ai-selected-auto-activate` additionally refuses unless its checkout is
+      # the current `main`, which is the guard that matters if the trigger were
+      # ever induced. `development-hosted-status-followup` only records the
+      # contract a fast-lane rollout just applied.
+      - ai-selected-auto-activate.yml
+      - development-hosted-status-followup.yml
+
+  github-env:
+    ignore:
+      # The value written to `GITHUB_ENV` is `secrets.SUPABASE_PROD_DB_URL` -- a
+      # repository secret, not untrusted input -- and it is `::add-mask::`ed and
+      # checked to name the expected project before the write. The rule guards
+      # against attacker-controlled values smuggling extra variables through a
+      # newline; there is no attacker-controlled path to this value.
+      #
+      # Removing the write would mean handing the production database URL to
+      # each later step directly, which widens where the secret appears rather
+      # than narrowing it.
+      - ai-selected-auto-activate.yml

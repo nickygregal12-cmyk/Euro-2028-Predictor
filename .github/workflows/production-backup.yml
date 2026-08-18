@@ -190,6 +190,11 @@ jobs:
 
           (
             cd "${BACKUP_WORK_DIR}/bundle"
+            # Declared, not rewritten: separate opens of a captured file, not a pipeline race. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2094
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
           )
 

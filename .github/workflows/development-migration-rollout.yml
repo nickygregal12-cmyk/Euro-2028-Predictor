@@ -93,6 +93,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -206,6 +207,11 @@ jobs:
           # A REPORT, never a gate that silently passes. Carrying a destructive
           # migration is this lane's whole purpose, so the checker refusing is
           # an expected outcome — but it must be an outcome somebody SAW.
+          # Declared, not rewritten: the substitution yields a word list and is split on purpose. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2046
           if node scripts/check-migration-additive.mjs $(tr '\n' ' ' < "${WORK_DIR}/batch.txt") \
               > "${WORK_DIR}/additive.txt" 2>&1; then
             cat "${WORK_DIR}/additive.txt"
@@ -282,6 +288,11 @@ jobs:
           set -euo pipefail
           mkdir -p "${WORK_DIR}/later-migrations"
           : > "${WORK_DIR}/moved-files.txt"
+          # Declared, not rewritten: the loop reads whitespace-separated migration versions, not lines. Changing what this script DOES to
+          # satisfy a style rule is the worse trade in a workflow holding hosted
+          # database credentials. shellcheck only began seeing it when SHA-pinning
+          # marked the file changed, so the finding is pre-existing, not new.
+          # shellcheck disable=SC2013
           for file in $(cat "${WORK_DIR}/all.txt"); do
             filename="$(basename "${file}")"
             version="${filename:0:14}"
@@ -344,6 +355,11 @@ jobs:
             echo
             echo 'Applied:'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2016
             sed 's/^/- `/; s/$/`/' "${WORK_DIR}/expected.txt"
             echo
             echo 'This job applied the migrations. It does NOT verify them — a job'
@@ -355,6 +371,11 @@ jobs:
             echo '- whatever each migration claims to change is true on the target;'
             echo '- nothing the batch was not supposed to touch has moved.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. Changing what this script DOES to
+            # satisfy a style rule is the worse trade in a workflow holding hosted
+            # database credentials. shellcheck only began seeing it when SHA-pinning
+            # marked the file changed, so the finding is pre-existing, not new.
+            # shellcheck disable=SC2016
             echo 'Then update `config/development-hosted-contract.json` from that query,'
             echo 'not from this summary.'
           } >> "${GITHUB_STEP_SUMMARY}"
