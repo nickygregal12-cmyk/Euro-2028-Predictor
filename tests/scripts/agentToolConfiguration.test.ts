@@ -79,6 +79,33 @@ describe('Predictor developer operating system', () => {
       ].sort(),
     )
 
+    /**
+     * THE ANALYSIS PARSER IS EXACT AND IS BELOW THE CRUISER'S SUPPORTED CEILING.
+     *
+     * It is a sibling of `dependencyCruiser.version` rather than a tool of its
+     * own because the two are ONE PAIR: dependency-cruiser embeds the range it
+     * can parse with, and a parser outside that range makes it resolve nothing.
+     * Renovate manages the cruiser and deliberately does not manage this — a bot
+     * moving the parser on its own is precisely how the graph went to zero.
+     *
+     * The ceiling is asserted as a MAJOR rather than a range string so this test
+     * fails the day somebody raises the parser without checking the cruiser, and
+     * keeps passing when the cruiser's own support genuinely moves and both are
+     * raised together.
+     */
+    const analysisTypescript = String(
+      (tools.dependencyCruiser as { analysisTypescript?: string } | undefined)
+        ?.analysisTypescript ?? '',
+    )
+    expect(analysisTypescript, 'the dependency-cruiser analysis parser must be pinned').toSatisfy(
+      exactVersion,
+    )
+    expect(
+      Number(analysisTypescript.split('.')[0]),
+      'dependency-cruiser 18.x supports typescript >=2 <7; a parser at or above 7 ' +
+        'makes it cruise zero modules and report no violations',
+    ).toBeLessThan(7)
+
     const allowedDatasources = new Set(['npm', 'pypi', 'github-tags', 'crate'])
     for (const [name, tool] of Object.entries(tools)) {
       expect(tool.version, `${name} version must be exact`).toSatisfy(exactVersion)
@@ -263,6 +290,40 @@ describe('Predictor developer operating system', () => {
     expect(deepGraphify).toContain('--backend openai')
     expect(deepGraphify).toContain('--mode deep')
     expect(architecture).toContain("require('./config/agent-tools.json').dependencyCruiser.version")
+
+    /**
+     * THE ARCHITECTURE CHECK'S PARSER IS PINNED WITH THE CRUISER, NOT WITH THE
+     * REPOSITORY COMPILER — and this is the guard on the defect that taught us.
+     *
+     * dependency-cruiser needs a TypeScript parser to resolve the module graph.
+     * The script used to take that from `package.json`'s
+     * `devDependencies.typescript`, which tied the analysis parser to this
+     * repository's own compiler. When the repository moved to TypeScript 7,
+     * dependency-cruiser — which supports `typescript >=2.0.0 <7.0.0` — found no
+     * compatible transpiler and cruised ZERO modules while reporting "no
+     * dependency violations found".
+     *
+     * That is the worst possible failure for a boundary checker: it does not go
+     * red, it goes VACUOUSLY GREEN. Only the script's own fail-closed
+     * zero-module guard turned it into a visible failure, which is why the two
+     * assertions below are a pair — the pin stops it happening, and the guard
+     * catches it if the pin is ever wrong again.
+     */
+    expect(
+      architecture,
+      'the architecture check must take its analysis parser from the toolchain ' +
+        'pair, not from the repository compiler',
+    ).toContain("require('./config/agent-tools.json').dependencyCruiser.analysisTypescript")
+    expect(
+      architecture,
+      'deriving the analysis parser from package.json is what silently reduced ' +
+        'this check to zero modules when the repository moved to TypeScript 7',
+    ).not.toContain('devDependencies.typescript')
+    expect(
+      architecture,
+      'the fail-closed zero-module guard is what makes an unusable parser loud ' +
+        'instead of vacuously green — it must not be removed',
+    ).toContain('dependency-cruiser analysed zero modules')
     expect(contextPack).toContain("require('./config/agent-tools.json').repomix.version")
     expect(contextPack).toContain('.artifacts/context')
   })
