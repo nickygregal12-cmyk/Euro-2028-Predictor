@@ -119,9 +119,13 @@ jobs:
 
       - name: Select the journeys this change requires
         id: journeys
+        # A branch name is attacker-chosen on a fork pull request, so it is
+        # passed as data rather than pasted into the script.
+        env:
+          BASE_REF: ${{ github.base_ref }}
         run: |
-          git fetch --no-tags origin "${{ github.base_ref }}"
-          SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${{ github.base_ref }}")"
+          git fetch --no-tags origin "${BASE_REF}"
+          SELECTED="$(node scripts/select-browser-journeys.mjs "origin/${BASE_REF}")"
           echo "BROWSER_JOURNEYS=${SELECTED}" >> "$GITHUB_ENV"
 
       - name: Run authenticated application journeys
@@ -131,6 +135,9 @@ jobs:
             npm run test:e2e
           else
             echo "Running targeted journeys: ${BROWSER_JOURNEYS}"
+            # Declared, not rewritten: intentional. shellcheck only began seeing this
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2086
             npm run test:e2e -- ${BROWSER_JOURNEYS}
           fi
 

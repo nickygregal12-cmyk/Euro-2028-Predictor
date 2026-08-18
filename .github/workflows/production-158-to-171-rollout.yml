@@ -72,6 +72,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Refuse an unsafe dispatch or repository state
@@ -179,14 +180,34 @@ jobs:
               files="${files} ${file}"
             fi
           done
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           count="$(printf '%s\n' ${files} | grep -c . || true)"
           [ "${count}" = "13" ] || {
             echo "ERROR: the range holds ${count} migrations, expected 13."
+            # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2086
             printf '%s\n' ${files}
             exit 1
           }
           echo 'The thirteen migrations being promoted:'
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           printf '  %s\n' ${files}
+          # Declared, not rewritten: the migration list is split on purpose; quoting passes one argument, not many. This is a spent one-shot promotion
+          # script; changing what it DOES to satisfy a style rule would edit the
+          # record of a past production apply. shellcheck only began seeing it
+          # when SHA-pinning marked the file changed, so it is pre-existing.
+          # shellcheck disable=SC2086
           node scripts/check-migration-additive.mjs ${files}
           echo 'All thirteen are additive.'
 
@@ -515,9 +536,19 @@ jobs:
             echo
             echo 'Schema only. This rollout did NOT:'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- publish Euro 2028 — contract 143 stays `hidden` and publication is an owner act;'
             echo '- launch any competition, draw any Championship or open any Last Man Standing —'
             echo '  contracts 166 and 127 write only when an administrator calls them;'
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- schedule any job — `process_player_action_items` is `service_role`-only and is'
             echo '  scheduled by no migration, so contract 170 generates nothing until something'
             echo '  calls it, and contract 163 sends nothing and names no provider;'
@@ -526,6 +557,11 @@ jobs:
             echo '- import any football, and copying Development football rows into Production'
             echo '  remains forbidden by the contract 132 boundary.'
             echo
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. This is a spent one-shot promotion
+            # script; changing what it DOES to satisfy a style rule would edit the
+            # record of a past production apply. shellcheck only began seeing it
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo 'Reconcile `config/production-hosted-contract.json` from an independent read-only'
             echo 'ledger query that NAMES the expected rows rather than counting them.'
           } >> "${GITHUB_STEP_SUMMARY}"

@@ -262,18 +262,23 @@ jobs:
       - name: Resolve task
         id: task
         shell: bash
+        # Event data and dispatch inputs are values, not shell source.
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          INPUT_TASK: ${{ inputs.task }}
         run: |
-          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
-            echo "name=${{ inputs.task }}" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = push ]; then
+          if [ "${EVENT_NAME}" = workflow_dispatch ]; then
+            echo "name=${INPUT_TASK}" >> "$GITHUB_OUTPUT"
+          elif [ "${EVENT_NAME}" = push ]; then
             echo 'name=bootstrap-if-empty' >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = '30 5 * * *' ]; then
+          elif [ "${EVENT_SCHEDULE}" = '30 5 * * *' ]; then
             echo 'name=morning' >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = '0 23 * * *' ]; then
+          elif [ "${EVENT_SCHEDULE}" = '0 23 * * *' ]; then
             echo 'name=evening' >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = '0 7 * * 1' ]; then
+          elif [ "${EVENT_SCHEDULE}" = '0 7 * * 1' ]; then
             echo 'name=train' >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.schedule }}" = '30 8 * * 2' ]; then
+          elif [ "${EVENT_SCHEDULE}" = '30 8 * * 2' ]; then
             echo 'name=train' >> "$GITHUB_OUTPUT"
           else
             echo 'name=free-odds' >> "$GITHUB_OUTPUT"
@@ -396,8 +401,10 @@ jobs:
         if: steps.task.outputs.name == 'free-odds' && steps.schema.outputs.ready == 'true'
         working-directory: ai
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [ "${{ github.event_name }}" = schedule ]; then
+          if [ "${EVENT_NAME}" = schedule ]; then
             day="$(TZ=Europe/London date +%u)"
             hour="$(TZ=Europe/London date +%H)"
             { [ "$day" = 2 ] && [ "$hour" = 13 ]; } || \
@@ -414,18 +421,21 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         working-directory: ai
         shell: bash
+        env:
+          TASK_NAME: ${{ steps.task.outputs.name }}
+          SCHEMA_READY: ${{ steps.schema.outputs.ready }}
         run: |
-          case "${{ steps.task.outputs.name }}" in
+          case "${TASK_NAME}" in
             import) python fetch_history.py --all-divisions ;;
             # These three read `ai.valid_predictions`. A manual dispatch
             # against a database below contract 188 says so rather than
             # failing inside psycopg with an undefined relation.
             predict|evaluate|value)
-              if [ "${{ steps.schema.outputs.ready }}" != true ]; then
-                echo "Refusing ${{ steps.task.outputs.name }}: ${AI_ENV} is below contract 188."
+              if [ "${SCHEMA_READY}" != true ]; then
+                echo "Refusing ${TASK_NAME}: ${AI_ENV} is below contract 188."
                 exit 1
               fi
-              case "${{ steps.task.outputs.name }}" in
+              case "${TASK_NAME}" in
                 predict) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh predict.py ;;
                 evaluate) ./run_leagues.sh evaluate.py ;;
                 value) python reconcile_paid_fixture_evidence.py; ./run_leagues.sh find_value.py ;;
@@ -433,7 +443,7 @@ jobs:
             # Provider-free identity repair over retained rows. It needs the
             # contract too, and makes no request of any kind.
             repair-identity)
-              if [ "${{ steps.schema.outputs.ready }}" != true ]; then
+              if [ "${SCHEMA_READY}" != true ]; then
                 echo "Refusing repair-identity: ${AI_ENV} is below contract 188."
                 exit 1
               fi
@@ -508,10 +518,12 @@ jobs:
         if: steps.task.outputs.name == 'train' || steps.task.outputs.name == 'bootstrap'
         working-directory: ai
         shell: bash
+        env:
+          TASK_NAME: ${{ steps.task.outputs.name }}
         run: |
           stamp="$(date -u +%Y%m%dT%H%MZ)"
           python fetch_history.py --all-divisions
-          if [ "${{ steps.task.outputs.name }}" = bootstrap ]; then
+          if [ "${TASK_NAME}" = bootstrap ]; then
             python sync_fixtures.py
             python reconcile_paid_fixture_evidence.py
             python fetch_fixtures_odds.py

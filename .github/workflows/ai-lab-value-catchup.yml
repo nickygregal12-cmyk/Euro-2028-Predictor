@@ -227,8 +227,13 @@ jobs:
       - name: Summary
         if: success()
         shell: bash
+        # Step outputs are passed as environment values rather than expanded
+        # into the script. The output is produced by an earlier step here, but
+        # keeping template expansion out of shell source removes the class.
+        env:
+          NEED_RUN: ${{ steps.need.outputs.run }}
         run: |
-          if [ "${{ steps.need.outputs.run }}" = true ]; then
+          if [ "${NEED_RUN}" = true ]; then
             message='Completed a nine-league value pass from durable recovery evidence; this workflow made no paid provider call.'
           else
             message='No newer paid dispatch or missing explicit recovery pass was found; recovery was a no-op.'
@@ -237,6 +242,9 @@ jobs:
             echo '## AI Lab value catch-up'
             echo
             echo "- ${message}"
+            # Declared, not rewritten: backticks are literal markdown for the step summary and must not expand. shellcheck only began seeing this
+            # when SHA-pinning marked the file changed, so it is pre-existing.
+            # shellcheck disable=SC2016
             echo '- Paid dispatches are detected from `ai.odds_api_dispatches`; completion is proven from `ai.api_usage` and `ai.job_runs`.'
             echo '- Decision is based on durable evidence, not runner wall-clock time.'
           } >> "$GITHUB_STEP_SUMMARY"

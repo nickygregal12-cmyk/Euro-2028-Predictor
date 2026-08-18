@@ -109,19 +109,18 @@ jobs:
           fi
           printf 'actionlint will check:\n'
           printf '  %s\n' "${workflows[@]}"
-          actionlint -shellcheck='' -color "${workflows[@]}"
+          actionlint -color "${workflows[@]}"
       - name: Reject floating external action references
         run: node scripts/check-workflow-action-pins.mjs
-      - name: Report repository workflow baseline
+      - name: Lint repository workflow tree
         if: github.event_name != 'pull_request'
         shell: bash
         run: |
           set -o pipefail
-          actionlint -shellcheck='' -color || true
+          actionlint -color
 
   zizmor:
     runs-on: ubuntu-latest
-    continue-on-error: true
     permissions:
       contents: read
     steps:
@@ -133,7 +132,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
-      - name: Audit GitHub Actions security (baseline only)
+      - name: Audit GitHub Actions security
         uses: zizmorcore/zizmor-action@5f14fd08f7cf1cb1609c1e344975f152c7ee938d # v0.5.6
         with:
           advanced-security: false

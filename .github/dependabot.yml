@@ -21,6 +21,10 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    # Give newly published versions time for ecosystem compromise/regression
+    # signals to surface. Security updates are not delayed by this setting.
+    cooldown:
+      default-days: 7
     # Enough to be useful, few enough to be read. An update flood is ignored,
     # and an ignored queue is the same as no queue.
     open-pull-requests-limit: 5
@@ -51,6 +55,8 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 5
     labels:
       - dependencies

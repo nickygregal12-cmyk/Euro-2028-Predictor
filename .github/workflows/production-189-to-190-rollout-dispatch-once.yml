@@ -60,8 +60,8 @@ jobs:
           }
 
           wait_for_run() {
-            local run_id="$1" label="$2" i status conclusion
-            for i in $(seq 1 120); do
+            local run_id="$1" label="$2" status conclusion
+            for _ in $(seq 1 120); do
               status="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.status')"
               if [ "${status}" = completed ]; then
                 conclusion="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${run_id}" --jq '.conclusion')"
@@ -88,7 +88,7 @@ jobs:
             -f backup_run_id="${BACKUP_RUN_ID}"
 
           rehearsal_id=''
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             rehearsal_id="$(find_exact_run "${REHEARSAL_WORKFLOW}" "${rehearsal_after}" || true)"
             [ -n "${rehearsal_id}" ] && break
             sleep 2
@@ -110,7 +110,7 @@ jobs:
             -f rehearsal_run_id="${rehearsal_id}"
 
           rollout_id=''
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             rollout_id="$(find_exact_run "${ROLLOUT_WORKFLOW}" "${rollout_after}" || true)"
             [ -n "${rollout_id}" ] && break
             sleep 2
