@@ -51,7 +51,7 @@
     "@tanstack/react-query": "^5.101.4",
     "flag-icons": "^7.5.0",
     "framer-motion": "^13.0.0",
-    "lucide-react": "^1.28.0",
+    "lucide-react": "^1.31.0",
     "posthog-js": "^1.417.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
