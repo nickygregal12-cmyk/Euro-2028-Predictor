@@ -1,0 +1,433 @@
+/* vNEXT PLAYER PROFILE — one person, inside one competition season.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * sticky masthead, both navigations, the `<main>` landmark and the mobile
+ * bottom spacing are the shell's. What is here is what only a profile needs.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY on `vnext-page`, the shell's content region.
+ *
+ *   compact  (< 640px)   one column. The three panels stack, the stat grid
+ *                        drops to two across, and the comparison table keeps
+ *                        all three of its columns because dropping one is
+ *                        dropping half a comparison.
+ *   regular  (>= 640px)  the stat grid opens out; the recent strip lays out in
+ *                        a row and scrolls inside itself.
+ *   expanded (>= 1120px) the season summary and the chart sit side by side.
+ *                        The comparison stays full width — two columns of
+ *                        numbers want the room, not a sidebar.
+ *
+ * NO DISPLAY NAME IS EVER CLIPPED, here as in the leagues table. No
+ * `text-overflow`, no line clamp; `overflow-wrap: anywhere` stops one long word
+ * widening the page and the block grows instead. A truncated name is the defect
+ * contract 191 exists to prevent, arriving through CSS instead of through code.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. A matchweek outcome is a colour AND a
+ * word; a joker is a colour AND the word "Joker"; the chart's last point is
+ * larger AND named in the table beside it. Everything is readable in greyscale
+ * and readable with the stylesheet off.
+ *
+ * THE CHART IS AN ILLUSTRATION. Its `<svg>` is `aria-hidden` and the same
+ * series is a real table underneath, so nothing in this file is load-bearing
+ * for comprehension.
+ *
+ * THERE IS NO VISUALLY-HIDDEN UTILITY HERE. `typography.module.css` owns
+ * `.srOnly` and a second copy in this file would be a second authority for one
+ * rule — which is how one of them ends up missing the `clip-path` that the
+ * browser suite uses to tell "deliberately invisible" from "accidentally cut
+ * off". */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.selfNote {
+  color: var(--vnext-text-muted);
+}
+
+.panels {
+  display: grid;
+  gap: var(--vnext-space-5);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  /* A long unbroken display name must widen nothing. */
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.panelTitle {
+  margin: 0;
+}
+
+.panelSubheading {
+  margin: var(--vnext-space-2) 0 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.panelEmpty,
+.panelRefused,
+.chartEmpty {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the read that did not answer ---------------------------------------- */
+
+.unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+}
+
+.unavailable p {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.retry {
+  min-height: var(--vnext-tap-target);
+  min-width: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  color: var(--vnext-text);
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the season summary --------------------------------------------------- */
+
+.summaryBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--vnext-space-3);
+  margin: 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.statLabel {
+  color: var(--vnext-text-muted);
+}
+
+.statValue {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--vnext-text);
+}
+
+/* ---- the rank chart -------------------------------------------------------- */
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+}
+
+.chartFrame {
+  display: flex;
+  gap: var(--vnext-space-2);
+  align-items: stretch;
+}
+
+/* The axis prints the two bounds the line was scaled by — best at the top,
+ * because a rank improves as it falls and the plot is inverted to match. */
+.chartAxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--vnext-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chartPlot {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: auto;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+}
+
+.chartLine {
+  fill: none;
+  stroke: var(--vnext-accent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chartDot {
+  fill: var(--vnext-accent);
+}
+
+.chartDotLast {
+  fill: var(--vnext-accent-strong);
+  stroke: var(--vnext-canvas);
+  stroke-width: 2;
+}
+
+.chartCaption {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the revealed matchweeks ----------------------------------------------- */
+
+.history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.historyItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  background-color: var(--vnext-surface-raised);
+  border-radius: var(--vnext-radius-sm);
+  min-width: 0;
+}
+
+.historyHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.historyLabel {
+  color: var(--vnext-text);
+}
+
+.joker {
+  padding: 1px var(--vnext-space-2);
+  color: var(--vnext-joker);
+  background-color: var(--vnext-warn-veil);
+  border-radius: var(--vnext-radius-pill);
+}
+
+.historyFacts {
+  display: flex;
+  align-items: baseline;
+  gap: var(--vnext-space-3);
+}
+
+.historyPoints {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--vnext-text);
+}
+
+.historyUnit {
+  color: var(--vnext-text-muted);
+  font-weight: 400;
+}
+
+/* An unsettled matchweek is a sentence, never a nought. */
+.historyPending {
+  color: var(--vnext-text-muted);
+}
+
+.historyPicks {
+  color: var(--vnext-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the comparison --------------------------------------------------------- */
+
+.rivalry {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.rivalryHeadline {
+  margin: 0;
+}
+
+/* The record is the headline figure of the panel, so it is a STEP ON THE SCALE
+ * rather than a relative bump — `1.25em` was a literal the foundation gate is
+ * right to refuse, and it would drift against whatever it happened to sit in. */
+.rivalryRecord {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--vnext-size-title);
+  color: var(--vnext-text);
+}
+
+.rivalryRecordKey {
+  color: var(--vnext-text-secondary);
+}
+
+.rivalryGap {
+  margin: 0;
+  color: var(--vnext-text-muted);
+}
+
+.compare {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.compare th,
+.compare td {
+  padding: var(--vnext-space-2);
+  text-align: right;
+  border-bottom: 1px solid var(--vnext-hairline);
+  overflow-wrap: anywhere;
+}
+
+.compare thead th {
+  color: var(--vnext-text-muted);
+  font-weight: 600;
+}
+
+.compare tbody th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--vnext-text-secondary);
+}
+
+.recentHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* The strip scrolls inside itself rather than widening the page — the same rule
+ * the leagues chooser follows, and `e2e/vnext-player-profile.spec.ts` measures
+ * the page's own scroll container to prove it. */
+.recent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recentItem {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  background-color: var(--vnext-surface-raised);
+  border-radius: var(--vnext-radius-sm);
+  min-width: 0;
+}
+
+.recentLabel {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.recentScore {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--vnext-text);
+}
+
+/* The word is always present; the colour is an addition to it, never the fact.
+ *
+ * IT MUST BE ABLE TO WRAP. The sentence contains the other player's DISPLAY
+ * NAME — "Bartholomew Fitzgerald-Macpherson of Auchtermuchty won" — and
+ * `white-space: nowrap` made that 315 unbreakable pixels inside a 375 column,
+ * which pushed the whole page sideways by 29. `e2e/vnext-player-profile.spec.ts`
+ * measured it at 375 with the long-name world; no shorter name would have
+ * shown it. Keeping a two-word verdict on one line is not worth a page that
+ * scrolls, and a name is never the thing that gives way. */
+.recentOutcome {
+  color: var(--vnext-rank-flat);
+  overflow-wrap: anywhere;
+}
+
+.recentOutcome[data-outcome='you'] {
+  color: var(--vnext-rank-up);
+}
+
+.recentOutcome[data-outcome='them'] {
+  color: var(--vnext-rank-down);
+}
+
+/* ---- regular ---------------------------------------------------------------- */
+
+@container vnext-page (min-width: 640px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .recent {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .recentItem {
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+
+/* ---- expanded ---------------------------------------------------------------- */
+
+@container vnext-page (min-width: 1120px) {
+  .panels {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  /* The comparison spans both columns: two columns of numbers want the room,
+     and a sidebar beside them would only be filled with something invented to
+     fill it. */
+  .panel:last-child {
+    grid-column: 1 / -1;
+  }
+}

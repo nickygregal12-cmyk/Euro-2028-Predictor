@@ -149,6 +149,7 @@ describe('the map cannot rot', () => {
       'vnext-predictor.spec.ts',
       'vnext-matches.spec.ts',
       'vnext-leagues.spec.ts',
+      'vnext-player-profile.spec.ts',
       'vnext-ia.spec.ts',
       ...parkedEuroSpecs,
     ]

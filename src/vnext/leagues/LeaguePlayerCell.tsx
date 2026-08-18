@@ -17,12 +17,14 @@ import styles from './leagues.module.css'
  *
  * ============================ IT NEVER NAVIGATES BY NAME =================
  *
- * The intent carries `playerId` from the destination union, which is the only
- * place an id exists. There is no code path here that could put `displayName`
- * into a destination, because the intent has no field for it. Two players
- * called "Sam" therefore stay two players all the way through: the row is keyed
- * by `player.ref` upstream and opened by `destination.playerId` here, and
- * neither is the name.
+ * The intent carries `playerId` from the destination union — the only place an
+ * id exists — and `player.ref` beside it, because Stage 10's profile is
+ * assembled from reads addressed by BOTH: the account id opens contract 151 and
+ * the season reference opens contract 192. Two SERVER-ISSUED identifiers are
+ * two addresses; a display name is not one, and there is no code path here that
+ * could put one into a destination because the intent has no field for it. Two
+ * players called "Sam" therefore stay two players all the way through: the row
+ * is keyed by `player.ref` upstream and opened by these two here.
  *
  * ============================ A CLOSED ROW IS NOT A BROKEN ROW ===========
  *
@@ -44,7 +46,9 @@ import styles from './leagues.module.css'
  */
 export type LeaguePlayerCellProps = {
   readonly player: LeaguePlayer
-  readonly onOpen?: ((playerId: string) => void) | undefined
+  readonly onOpen?:
+    | ((playerId: string, playerRef: string | null) => void)
+    | undefined
 }
 
 export function LeaguePlayerCell({ player, onOpen }: LeaguePlayerCellProps) {
@@ -61,12 +65,13 @@ export function LeaguePlayerCell({ player, onOpen }: LeaguePlayerCellProps) {
 
   if (leaguePlayerIsOpen(player) && destination.kind === 'open' && onOpen) {
     const playerId = destination.playerId
+    const playerRef = player.ref
     return (
       <span className={styles.playerCell}>
         <button
           type="button"
           className={`${text.body} ${styles.playerName} ${styles.playerOpen}`}
-          onClick={() => onOpen(playerId)}
+          onClick={() => onOpen(playerId, playerRef)}
         >
           {player.displayName}
         </button>

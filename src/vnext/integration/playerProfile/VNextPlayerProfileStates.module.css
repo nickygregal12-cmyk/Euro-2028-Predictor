@@ -1,0 +1,58 @@
+/* The connected player profile while it has no profile to show.
+ *
+ * The skeleton takes the SHAPE the content will take — three bordered panels,
+ * the middle one chart-height — so the page does not reflow as it settles.
+ *
+ * IT CARRIES NO DIGITS, NO NAMES AND NO LINE. A profile placeholder showing a
+ * position, a points total or a plotted curve is a placeholder somebody reads
+ * as this player's season, and a rank is the one figure here a reader will act
+ * on at a glance. Bars only.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.bar {
+  display: block;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+}
+
+.barHeading {
+  height: 18px;
+  width: 180px;
+}
+
+.barStats {
+  height: 48px;
+  width: 100%;
+}
+
+/* Chart-height, and deliberately empty. A placeholder curve would be a season
+ * this player did not have. */
+.barChart {
+  height: 132px;
+  width: 100%;
+  border-radius: var(--vnext-radius-sm);
+}
+
+.barRowItem {
+  height: 40px;
+  width: 100%;
+}

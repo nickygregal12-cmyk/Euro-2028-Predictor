@@ -4,6 +4,7 @@ import { Alert, Skeleton } from '../../design-system'
 import { createSeasonPlayContextGateway } from '../../services/supabase/seasonPlayContext'
 import {
   fetchSeasonPlayerProfile,
+  seasonProfileRefused,
   type SeasonPlayerProfile,
 } from '../../services/supabase/seasonPlayerProfile'
 import { competitionSectionRoute } from '../../app/weeklyRoutes'
@@ -82,7 +83,7 @@ export function SeasonPlayerProfileRoute() {
         // The privacy refusal and a failed read are different sentences. The
         // server raises `insufficient_privilege` for the boundary, and the page
         // must not flatten that into "something went wrong".
-        setProfile({ kind: refusedByPrivacy(error) ? 'refused' : 'failed' })
+        setProfile({ kind: seasonProfileRefused(error) ? 'refused' : 'failed' })
       })
     return () => {
       active = false
@@ -233,16 +234,3 @@ export function SeasonPlayerProfileRoute() {
   )
 }
 
-/**
- * The privacy refusal, told apart from every other failure.
- *
- * Matched on the server's own code and message rather than on a status: the
- * function raises `insufficient_privilege` for the co-membership boundary, and
- * PostgREST carries that through as the error's `code`.
- */
-function refusedByPrivacy(error: unknown): boolean {
-  if (!error || typeof error !== 'object') return false
-  const row = error as { code?: unknown; message?: unknown }
-  if (row.code === '42501' || row.code === 'insufficient_privilege') return true
-  return typeof row.message === 'string' && row.message.includes('do not share a private league')
-}

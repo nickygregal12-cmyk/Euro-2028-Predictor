@@ -3,6 +3,12 @@
 **Status:** Stage 7.5 deliverable — an accounting device, not a design.
 **Scope:** every user-facing route registered in `src/App.tsx`, plus the two compatibility redirects and the dev-only harnesses.
 **Does not govern:** any route in production. Nothing here repoints a route, changes a guard or alters Netlify behaviour.
+**Updated 2026-08-18 (Stage 10).** The player-surface question — what is behind
+the doorway Stage 9 built, and whether a weekly-season head-to-head is possible
+at all — is SETTLED. See [`vnext-player-profiles.md`](vnext-player-profiles.md),
+which is the product authority for it. Two rows below carry the decision and one
+stale claim in §3 is corrected. **Both are TARGET IA decisions and neither
+repoints a route.**
 **Updated 2026-08-18 (Stage 9).** The people-surface question — whether `/leagues`
 and `/competitions/:c/:s/leagues` merge into one scoped or one unscoped surface —
 is SETTLED, and it settled the opposite way round from the way §2 first read it.
@@ -90,11 +96,11 @@ implied.
 | `/competitions/:c/:s/matches/:fixtureId` | `SeasonMatchCentreRoute` | One fixture in full | Contract 148 `get_season_fixture`, `matchCentreModel` | **Match Centre**, reached from Matches | 8 | **RETAIN + REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatchCentre.tsx`. The address shape is KEPT unchanged, because the addressability is the strength: contract 148 resolves the fixture from its id alone, so a deep refresh and a shared link both work with no date hint and no window. *Technical consequence: none.* |
 | `/competitions/:c/:s/games` | `CompetitionGamesPage` | The game catalogue and the player's memberships | `get_competition_games` | **`Games` — a first-class permanent destination** | 9+ | **REDESIGN** | **RESOLVED, Stage 7.6: it survives, and it is one of the four.** The only surface where Match Predictor, Last Man Standing and the Predictor Championship are PEERS, which is the thing that stopped LMS being "another little tab". Labelled `Games` and not `Play` — see [`vnext-shell-ia.md`](vnext-shell-ia.md) §3. Stage 7.6 builds no page here beyond a Storybook navigation stub. |
 | `/competitions/:c/:s/games/match-predictor` | `SeasonMatchPredictorRoute` | Predict the matchweek | Contract 113 card, `useSeasonMatchPredictor` | Match Predictor | 7 (done) | **REDESIGN** | Accepted and unchanged by Stage 7.5. Used here as a real arrival test for each concept. |
-| `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. See the identity gap in §5 — this is the surface that cannot link a player. |
+| `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. **The identity gap this row used to point at is closed**: contract 191 supplies `playerRef`, `reach` and `playerId`, Stage 9's table links a player where the server allows it, and Stage 10 built what is behind the link. |
 | `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | `lmsRoundModel`, `lmsRefusal`, `lmsStakeModel`, contracts for pick/settlement | Last Man Standing | **10 (to be scheduled)** | **REDESIGN** | §6. The row this matrix exists for. |
 | `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | **11 (to be scheduled)** | **REDESIGN** | A nested system, not a page — index, instance, table and fixtures. §8. |
 | `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | Contract 191 `get_season_leaderboard`, contract 128 `get_season_league_standings`, contract 150 movement, `get_my_game_leagues` | **Leagues** — one of the four competition-scoped destinations | 9 | **REDESIGN** | **Built in Stage 9** as `src/vnext/leagues/VNextLeagues.tsx`. The merge landed the other way round from the way §2 first read it: this row absorbs `/leagues`, rather than the two merging into something unscoped — because the season table and a private league's table have **two different rank authorities** and neither is a filter of the other. The season table and each private league are SCOPES inside this one surface. See [`vnext-leagues.md`](vnext-leagues.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-leagues` harness until the cutover stage. |
-| `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile` | Player profile | 9+ | **RETAIN + REDESIGN** | Competition-scoped for a real reason: points, rank and prediction history are facts about a player IN a season. Do not flatten to `/profile/:id`. |
+| `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile`, contract 192 `get_season_rank_history`, contract 192 `get_season_rivalry` | Player profile, reached from Leagues | 10 | **RETAIN + REDESIGN** | **Built in Stage 10** as `src/vnext/player/VNextPlayerProfile.tsx`. The address shape is KEPT and competition-scoped for the reason it always was: points, rank and prediction history are facts about a player IN a season, and flattening to `/profile/:id` would assert a cross-competition identity ADR 0011 refuses at the data layer. **What changed is the shape of what is behind it.** The page is three reads with THREE DIFFERENT permission boundaries, so a player whose profile is refused can still have a plotted season and a head-to-head — see [`vnext-player-profiles.md`](vnext-player-profiles.md) §2. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-player` harness until the cutover stage. |
 | `/competitions/:c/:s/tv` | `SeasonTvModeRoute` | A matchday screen on a wall | `tvModeModel` (`INNOV-006`) | Unchanged, outside the shell | later | **RETAIN** | Already outside the signed-in frame by design. **Stage 8 audited it and decided its relationship rather than rebuilding it:** SHARED DATA CONTRACT eventually (it should consume `MatchState` rather than grow a second one), SEPARATE PRESENTATION MODE, and the redesign DEFERRED to a stage of its own. It must stay shell-less — a room display with a bottom navigation bar is the wrong product. See [`vnext-matches.md`](vnext-matches.md) §12. **Nothing about it changed in Stage 8.** |
 
 ## 3. Cross-cutting player and social routes
@@ -105,7 +111,7 @@ implied.
 | `/account` | `AccountPage` | Settings, follow/unfollow, favourite team | Contract 157 `get_my_preferences` | Account / You | 9+ | **RETAIN** | Where a future haptic-feedback preference would live (§9). |
 | `/more/scoring` | `ScoringRulesPage` | How does scoring work | `matchweekPointsModel`, ADR 0012 | Reached from a game, not from a directory | 9+ | **ABSORB** | Rules belong beside the game they govern. |
 | `/league/:id` | `LeagueDetailRoutePage` | One private league (Euro tournament) | Tournament league authorities | People | **15** | **REDESIGN** | **Deferred by Stage 9, deliberately.** Euro-scoped, and its weekly counterpart is now built — but the tournament league authorities are a different set of reads, and rebuilding them here would be Stage 15's Euro adoption done early and out of order. See [`vnext-leagues.md`](vnext-leagues.md) §14. |
-| `/h2h/:rivalId` | `H2HPage` | Compare with one rival | `get_rival_entry`, `get_h2h_rank_history` | Player profile → compare | 9+ | **ABSORB** | **Tournament only.** There is no weekly-season head-to-head read. See §5. |
+| `/h2h/:rivalId` | `H2HPage` | Compare with one rival | `get_rival_entry`, `get_h2h_rank_history` | Player profile → compare | 10 (weekly) · 15 (Euro) | **ABSORB** | **Settled by Stage 10, and the previous note was wrong.** It read "there is no weekly-season head-to-head read"; there are two — contract 129 `get_season_head_to_head` and contract 192 `get_season_rivalry` — and the second is the one a season comparison must use, because contract 129 is PER-MATCHWEEK and building a season out of it is the "one RPC per matchweek" the Stage 10 predicate forbids. The comparison is now a PANEL inside the player profile rather than a destination, absorbed exactly as this row always said. **The Euro-scoped `/h2h/:rivalId` itself is untouched** and its tournament reads are Stage 15's, for the same reason `/league/:id` is. See [`vnext-player-profiles.md`](vnext-player-profiles.md) §5. *Technical consequence: none.* |
 | `/tournament/profile` | `ProfilePage` | The player's own tournament profile | Tournament profile authorities | Merged into the player surface | 9+ | **MERGE** | Three profile systems exist today (platform, tournament, season). vNext must not add a fourth. |
 | `/tournament/profile/:playerId` | `OtherPlayerProfilePage` | Another player's tournament profile | `20260728113000_other_player_profiles.sql` | Merged into the player surface | 9+ | **MERGE** | Same. |
 
@@ -141,6 +147,13 @@ implied.
 | REDIRECT | 4 |
 | HIDE | 4 |
 | RETIRE | 0 |
+
+**Stage 10 moved no row and built two.** `/competitions/:c/:s/players/:playerId`
+keeps `RETAIN + REDESIGN` and is now BUILT rather than planned; `/h2h/:rivalId`
+keeps `ABSORB` and the absorbing surface now exists. **No count changes**, which
+is the honest outcome — Stage 10 answered what was behind two rows rather than
+changing either row's fate. What it did change is a factual error in the H2H
+row's note; see §3.
 
 **Stage 9 moved two rows and built one.** `/leagues` went from `REDESIGN` to
 `HIDE / ABSORB`, and `/competitions/:c/:s/leagues` went from `MERGE` to
@@ -235,3 +248,31 @@ the profile because it was adjacent is exactly the surface-by-surface drift this
 matrix exists to prevent.
 
 The rationale for all four is in [`vnext-leagues.md`](vnext-leagues.md).
+
+## 9. Resolved by Stage 10
+
+The player-surface question is settled. **Both are TARGET IA decisions; neither
+repoints a route.**
+
+1. **`/competitions/:c/:s/players/:playerId` — RETAIN + REDESIGN, built.** The
+   address shape is kept and stays competition-scoped. What Stage 10 settled is
+   what is behind it: three reads with three different permission boundaries,
+   drawn as three independent panels, because a page with one permission flag
+   cannot express "you may plot this player and compare with them, and you may
+   not open their season" — which is the ordinary state for two entrants who
+   share a competition and no private league.
+2. **`/h2h/:rivalId` — ABSORB, and the row's note corrected.** It claimed there
+   is no weekly-season head-to-head read. There are two, and choosing between
+   them was the stage's architectural decision: contract 129 is per-matchweek,
+   so contract 192's `get_season_rivalry` is the bounded season answer the
+   predicate requires. The comparison is a panel inside the profile. The
+   Euro-scoped route is untouched and its tournament reads are Stage 15's.
+
+Two rows Stage 10 deliberately did **not** move: `/tournament/profile` and
+`/tournament/profile/:playerId` (`MERGE`). They are the tournament profile
+system, and merging them into the season surface would be Stage 15's Euro
+adoption pulled forward and out of order — the same reasoning Stage 9 applied to
+`/league/:id`.
+
+The rationale for both is in
+[`vnext-player-profiles.md`](vnext-player-profiles.md).

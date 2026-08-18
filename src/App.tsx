@@ -219,6 +219,20 @@ const VNextLeaguesPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 10's profile against real data, and it is REACHED FROM the Leagues
+// harness by pressing a player — which is the only way to show the thing no
+// fixture can: that contract 151 and contract 192's two reads really do have
+// different boundaries, so a player whose season is private can still have a
+// plotted position and a head-to-head. The production profile route is
+// untouched.
+const VNextPlayerProfilePreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextPlayerProfilePreview').then((m) => ({
+        default: m.VNextPlayerProfilePreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -278,6 +292,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextLeaguesPreview ? (
                   <Route path="/dev/vnext-leagues" element={<VNextLeaguesPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextPlayerProfilePreview ? (
+                  <Route path="/dev/vnext-player" element={<VNextPlayerProfilePreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
