@@ -1,12 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 203,
-  "latestMigrationVersion": "20260818080000",
-  "latestMigrationName": "ai_bet_builder_current_decision",
-  "verifiedAt": "2026-08-18T19:10:16.167Z",
+  "requiredMigrationCount": 204,
+  "latestMigrationVersion": "20260818090000",
+  "latestMigrationName": "ai_dashboard_league_scoped_quarantine",
+  "verifiedAt": "2026-08-18T23:25:47.262Z",
   "evidence": {
-    "source": "Contract 203 applied to Development on 18 August 2026 through the ADR 0024 fast lane, run 32174280080, from exact main 628842026e2996c4107c01ffbcbeb362803d98e9. It was proven additive by scripts/check-migration-additive.mjs before the apply: contract 203 redefines two SECURITY DEFINER reads and adds no table, column or constraint. CONFIRMED BY AN INDEPENDENT READ-ONLY QUERY RATHER THAN FROM THE JOB OUTPUT, naming the ledger row: 203 rows with newest 20260818080000 ai_bet_builder_current_decision. EVERY PLAYER-OWNED COUNT IS UNCHANGED against the contract-202 record: 24 auth users, 24 profiles, 34 entries, 64 season predictions, 756 match predictions, 8 matchweek scores, 20 competition entrants, 0 bonus score events, 5 leagues, 39 league members, 1 Cup launch, 112 Cup fixtures and 578 season fixtures. Cron still holds 14 jobs and PAID COLLECTION REMAINS DISABLED with ai.api_usage still 0, so this apply cost no provider credit. CUSTODY WAS VERIFIED ON THE INSTALLED DEFINITIONS rather than on the migration text: admin_ai_bet_builder_candidates and admin_ai_bet_builder_books are executable by authenticated and by NO anonymous role, the three ai views remain readable by no browser role at all, and schema ai is unreachable from both anon and authenticated. CONTRACT 203 ANSWERS ON THE LIVE DATABASE: both bet-builder reads are installed and BOTH take their rows from ai.current_fixture_recommendations, which is the whole point of the contract - a superseded BET cannot be returned as an actionable leg because the read now asks for the fixture's CURRENT decision rather than its newest BET. Development holds no AI Lab data - 0 bets, 0 predictions, 0 api_usage - because the lab runs against Production, so these are structural answers rather than answers over rows.",
-    "workflowRunId": 32174280080,
-    "repositoryHead": "628842026e2996c4107c01ffbcbeb362803d98e9"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 32196292139,
+    "repositoryHead": "e896178e9de63c738b5ed947605bfd482cd13a76"
   }
 }
