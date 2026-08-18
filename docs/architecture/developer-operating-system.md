@@ -172,6 +172,19 @@ The canonical versions and lifecycle classifications live in [`../../config/agen
 
 The distinction is load-bearing. “Supported by the repo” does not mean “every process starts in every Codespace.”
 
+## Keeping tool versions current without floating them
+
+Every entry in [`../../config/agent-tools.json`](../../config/agent-tools.json) declares both its exact supported version and the package/tag datasource Renovate should use to discover updates. [`../../renovate.json`](../../renovate.json) has one JSONata custom manager over that registry rather than a separate update rule for every tool.
+
+Developer-tool updates are intentionally more conservative than ordinary patch dev-dependency updates:
+
+- Renovate must wait through the configured release-age soak before proposing them;
+- developer-tool PRs never auto-merge;
+- the tooling smoke resolves or installs the exact proposed versions and validates the integration shape;
+- architecture and normal repository CI still run before merge.
+
+This matters for AI/developer infrastructure because a newly published tool can change repository-reading, code-editing or coordination behaviour even when its version bump looks small. Central pinning is only durable if discovery is automated and adoption remains reviewed.
+
 ## Credentials and data movement
 
 - No developer tool receives Production, Supabase or paid-provider credentials by default.
@@ -199,7 +212,7 @@ Do not duplicate package versions into these docs; `config/agent-tools.json` own
 A developer-tool integration is complete only when:
 
 1. its role and authority boundary are unambiguous;
-2. its supported version is pinned centrally;
+2. its supported version is pinned centrally **and its update datasource is declared**;
 3. bootstrap/on-demand/optional lifecycle is explicit;
 4. secrets and generated state have a safe location;
 5. a smoke/config test proves the integration shape;
