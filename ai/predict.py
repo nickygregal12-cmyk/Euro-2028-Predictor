@@ -35,6 +35,7 @@ from config import LEAGUES, season_date_bounds
 from db import (current_model, insert_predictions, job, league_grading_evidence,
                 load_history, load_market_snapshot, load_model_artifact,
                 load_upcoming_ai_fixtures)
+from db import supported_horizons as db_supported_horizons
 from features import FEATURES_VERSION, FeatureBuilder
 
 OUTCOMES = ("H", "D", "A")
@@ -71,10 +72,22 @@ HORIZON_BOUNDS = (("t6", 6.0), ("t24", 24.0), ("t48", 48.0),
                   ("t72", 72.0), ("t120", 120.0), ("t168", 168.0))
 
 
-def horizon_for(hours_to_kickoff: float) -> str:
+def horizon_for(hours_to_kickoff: float,
+                supported: frozenset[str] | None = None) -> str:
+    """The horizon bucket for this distance, narrowed to what the database has.
+
+    `supported` is the installed vocabulary. A database below contract 202 does
+    not accept t72, t120 or t168, and computing one for it would fail every
+    insert on a check violation for as long as the promotion took — a red job
+    every morning until somebody applies a migration, which is the shape of noise
+    that gets a red tick ignored. The bucket then widens to the next one the
+    database does hold, which reproduces the pre-202 behaviour exactly: one
+    forecast per fixture until the clock reaches forty-eight hours.
+    """
     for name, bound in HORIZON_BOUNDS:
         if hours_to_kickoff <= bound:
-            return name
+            if supported is None or name in supported:
+                return name
     return "scheduled"
 
 
@@ -127,6 +140,13 @@ def main() -> int:
 
         known = set(history["home_canonical"]) | set(history["away_canonical"])
 
+        # Asked once per run, not once per fixture.
+        supported_horizons = db_supported_horizons() or None
+        if supported_horizons and not {"t72", "t120", "t168"} <= supported_horizons:
+            print("NOTE - this database is below contract 202, so a forecast more "
+                  "than 48 hours out uses the single `scheduled` bucket and a "
+                  "fixture is forecast once until the clock reaches t48.")
+
         snapshot_at = datetime.now(timezone.utc)
         rows, feature_rows = [], []
         for rec in fixtures.itertuples(index=False):
@@ -147,7 +167,7 @@ def main() -> int:
                 "home_canonical": home,
                 "away_canonical": away,
                 "hours_to_kickoff": round(hours, 2),
-                "horizon": args.horizon or horizon_for(hours),
+                "horizon": args.horizon or horizon_for(hours, supported_horizons),
             })
 
         # --------------------------------------------------------------

@@ -1815,7 +1815,20 @@ def test_a_fixture_is_re_forecast_as_new_results_arrive():
     assert predict.horizon_for(24.0) == "t24"
     assert predict.horizon_for(6.0) == "t6"
 
+    # And the compatibility shim that stops this being a red job for as long as
+    # a Production promotion takes. A database below contract 202 refuses t72,
+    # so the forecaster must widen to the bucket that database does hold rather
+    # than fail every insert on a check violation.
+    pre_202 = frozenset({"scheduled", "t48", "t24", "t6", "lineup", "backtest"})
+    assert predict.horizon_for(150.0, pre_202) == "scheduled"
+    assert predict.horizon_for(55.0, pre_202) == "scheduled"
+    assert predict.horizon_for(30.0, pre_202) == "t48", (
+        "the buckets the old vocabulary DOES hold are unaffected")
+
     _bootstrap()
+    assert {"t72", "t120", "t168"} <= db.supported_horizons(), (
+        "the vocabulary is read from the installed constraint, which is the "
+        "thing that would refuse the insert")
     kickoff = datetime.now(timezone.utc) + timedelta(days=6)
     with db.connect() as conn:
         payload = b"horizons"

@@ -8,6 +8,7 @@ from `anon`/`authenticated` by design.
 from __future__ import annotations
 
 import json
+import re
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Any, Iterable
@@ -164,6 +165,33 @@ def load_finished_fixtures_needing_grading(league_key: str) -> pd.DataFrame:
         """,
         (league_key,),
     )
+
+
+def supported_horizons() -> frozenset[str]:
+    """The horizon vocabulary the TARGET DATABASE actually accepts.
+
+    Contract 202 widens `predictions_horizon_check` to admit t72, t120 and t168.
+    Between the moment that code merges and the moment the contract reaches a
+    hosted environment, `predict.py` would compute a horizon the database refuses
+    and every forecast in the window would fail on a check violation — a red job
+    every morning until somebody promotes a migration, which is the shape of
+    noise that gets a red tick ignored. The forecaster asks instead, and falls
+    back to the bucket the database does have.
+
+    Read from the installed constraint rather than from a version number,
+    because the constraint is the thing that will refuse the insert.
+    """
+    with connect() as conn:
+        row = conn.execute(
+            """select pg_get_constraintdef(c.oid) as def
+                 from pg_constraint c
+                where c.conrelid = 'ai.predictions'::regclass
+                  and c.conname = 'predictions_horizon_check'"""
+        ).fetchone()
+    if not row or not row["def"]:
+        return frozenset()
+    return frozenset(re.findall(r"'([a-z0-9]+)'::text", row["def"])
+                     or re.findall(r"'([a-z0-9]+)'", row["def"]))
 
 
 def current_model(league: str) -> dict[str, Any] | None:

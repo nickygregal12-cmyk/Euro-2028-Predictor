@@ -58,8 +58,25 @@
  * Browser E2E (`authenticated-browser`) run 32113190038, re-verifying the
  * seeded authenticated journeys against a database holding all 198 migrations
  * rather than merely reasoning about them.
+ *
+ * Contracts 199 to 202 are the private AI Lab's operational boundary and touch
+ * no authenticated read the seed exercises. 199 adds `ai.bet_advice_identity`
+ * and a third limb on `ai.valid_bets`, and makes `ai.bet_results.actual_result`
+ * nullable on a void settlement. 200 adds `ai.odds_poll_max_gap_seconds`. 201
+ * adds three competition-admin definer reads over schema `ai` and two views
+ * revoked from every browser role. 202 widens the `ai.predictions.horizon`
+ * CHECK. Schema `ai` has never been reachable from `anon` or `authenticated`,
+ * the three new reads require the competition-admin capability, and no existing
+ * function on a seeded journey is redefined.
+ *
+ * And again, that reasoning is not what raises the marker. Both jobs passed at
+ * the exact head `8fb3985`: Database parity (`local-supabase`) run 32137280991
+ * and Browser E2E (`authenticated-browser`) run 32137281011, against a database
+ * holding all 202 migrations. The database-parity run also carries the six
+ * behavioural pgTAP suites for this boundary -- 236 and 237 among them, because
+ * contract 199 redefines the object both of those are about.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 198
+export const SEED_REVIEWED_AT_CONTRACT = 202
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
