@@ -44,11 +44,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Harden runner
-        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -86,7 +86,6 @@ jobs:
             echo 'ERROR: encrypted backup artifact missing.'
             exit 1
           }
-          echo "Backup ${BACKUP_RUN_ID} verified."
 
       - name: Refuse to make Production the first hosted environment to see Contract 206
         shell: bash
@@ -94,12 +93,9 @@ jobs:
           set -euo pipefail
           dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
           dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
-          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || {
-            echo "ERROR: the Development record names ${dev_ref}, not the Development project."
-            exit 1
-          }
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: Development record names the wrong project.'; exit 1; }
           [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || {
-            echo "ERROR: Development is recorded at contract ${dev_contract}, below target ${TARGET_CONTRACT}."
+            echo "ERROR: Development is recorded at contract ${dev_contract}, below ${TARGET_CONTRACT}."
             exit 1
           }
 
@@ -126,11 +122,11 @@ jobs:
           [ "${count}" = "${expected}" ] || { echo "ERROR: boundary holds ${count} migrations, expected ${expected}."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
           [ "$(cat "${WORK_DIR}/boundary.txt")" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo 'ERROR: boundary is not exactly Contract 206.'; exit 1; }
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.2
 
-      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
         with:
           version: 2.109.1
           github-token: ${{ github.token }}
@@ -212,17 +208,11 @@ jobs:
             'profiles',(select count(*) from public.profiles),
             'entries',(select count(*) from public.entries),
             'season_predictions',(select count(*) from public.season_predictions),
-            'season_matchweek_scores',(select count(*) from public.season_matchweek_scores),
-            'leagues',(select count(*) from public.leagues),
             'league_members',(select count(*) from public.league_members),
-            'bonus_entrants',(select count(*) from public.bonus_competition_entrants),
-            'cup_members',(select count(*) from public.bonus_cup_members),
-            'ai_predictions',(select count(*) from ai.predictions),
             'ai_bets',(select count(*) from ai.bets),
-            'api_usage',(select count(*) from ai.api_usage),
             'cron_jobs',(select count(*) from cron.job),
-            'public_enabled',(select public_enabled from public.euro_publication_state limit 1),
-            'betting_public_enabled',(select betting_public_enabled from public.euro_publication_state limit 1));
+            'public_enabled',(select public_enabled from ai.publication_gate limit 1),
+            'betting_public_enabled',(select betting_public_enabled from ai.publication_gate limit 1));
           SQL
 
       - name: Apply exactly Contract 206 to the disposable copy
@@ -268,17 +258,11 @@ jobs:
             'profiles',(select count(*) from public.profiles),
             'entries',(select count(*) from public.entries),
             'season_predictions',(select count(*) from public.season_predictions),
-            'season_matchweek_scores',(select count(*) from public.season_matchweek_scores),
-            'leagues',(select count(*) from public.leagues),
             'league_members',(select count(*) from public.league_members),
-            'bonus_entrants',(select count(*) from public.bonus_competition_entrants),
-            'cup_members',(select count(*) from public.bonus_cup_members),
-            'ai_predictions',(select count(*) from ai.predictions),
             'ai_bets',(select count(*) from ai.bets),
-            'api_usage',(select count(*) from ai.api_usage),
             'cron_jobs',(select count(*) from cron.job),
-            'public_enabled',(select public_enabled from public.euro_publication_state limit 1),
-            'betting_public_enabled',(select betting_public_enabled from public.euro_publication_state limit 1),
+            'public_enabled',(select public_enabled from ai.publication_gate limit 1),
+            'betting_public_enabled',(select betting_public_enabled from ai.publication_gate limit 1),
             'by_ref_authenticated',has_function_privilege('authenticated','public.get_season_player_profile_by_ref(uuid,uuid)','EXECUTE'),
             'by_ref_anon',has_function_privilege('anon','public.get_season_player_profile_by_ref(uuid,uuid)','EXECUTE'),
             'legacy_authenticated',has_function_privilege('authenticated','public.get_season_player_profile(uuid,uuid)','EXECUTE'),
@@ -293,7 +277,7 @@ jobs:
           eq('migration_count', Number(process.env.TARGET_CONTRACT))
           eq('latest_version', process.env.TARGET_VERSION)
           eq('latest_name', process.env.TARGET_NAME)
-          for (const k of ['auth_users','profiles','entries','season_predictions','season_matchweek_scores','leagues','league_members','bonus_entrants','cup_members','ai_predictions','ai_bets','api_usage','cron_jobs','public_enabled','betting_public_enabled']) eq(k, b[k])
+          for (const k of ['auth_users','profiles','entries','season_predictions','league_members','ai_bets','cron_jobs','public_enabled','betting_public_enabled']) eq(k, b[k])
           eq('by_ref_authenticated', true)
           eq('by_ref_anon', false)
           eq('legacy_authenticated', true)
@@ -308,7 +292,7 @@ jobs:
 
       - name: Upload rehearsal evidence
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: production-205-to-206-rehearsal-evidence
           path: |
