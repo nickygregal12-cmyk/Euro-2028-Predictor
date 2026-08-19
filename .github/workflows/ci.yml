@@ -183,7 +183,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx playwright install --with-deps chromium
+          # The hosted Ubuntu image already carries Chromium's runtime libraries.
+          # `--with-deps` shells out to APT and can hang on the Azure mirror; run
+          # 32271017629 lost three vNext shards there before any browser test ran.
+          # The Lighthouse gate below still launches the exact Playwright browser,
+          # so a future runner image missing a runtime dependency fails closed.
+          npx playwright install chromium
           chrome_path="$(node -e "process.stdout.write(require('@playwright/test').chromium.executablePath())")"
           test -x "$chrome_path"
           echo "CHROME_PATH=$chrome_path" >> "$GITHUB_ENV"
