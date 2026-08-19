@@ -486,5 +486,5 @@ jobs:
 
           This promotion is schema only. It published no Euro 2028, launched no competition, drew no Championship, opened no Last Man Standing, scheduled no job, promoted no model and imported no football. Nothing it applied deletes, settles, voids or rewrites a historical bet, forecast or grade.
 
-          Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 203 ledger row. `promotionAuthorised` stays `false`.
+          Reconcile `config/production-hosted-contract.json` from an independent read-only query that names the Contract 205 ledger row. `promotionAuthorised` stays `false`.
           SUMMARY
