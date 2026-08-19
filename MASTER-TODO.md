@@ -47,7 +47,8 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 - [ ] **#33** — verify the effective Protect Main/ruleset controls and required contexts.
 - [ ] **#272** — independent qualified UK data-protection review; engineering cannot self-approve it.
 - [ ] **#854** — AI Lab first-weekend/operational completion; do not close on one bug fix.
-- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility implementation.
+- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility. Backend is in PR #920 (contract 206 on that branch); closure still needs the Development rollout, generated Supabase types and the vNext consumer. **Not on `main` today**, so `LeaguePlayer.destination` still closes a `compare` row.
+- [ ] **`PROF-002`** — "people you follow". `set_pinned_rival` exists and the vNext player profile now offers the pin over it; the LIST does not, because `get_my_preferences` returns pinned rivals as bare ids with no name and no season ref. The smallest safe contract is proposed in `docs/product/vnext-player-profiles.md` §8.5. Do not fabricate the list in local state.
 - [ ] **#865** — optional native Supabase passkey Development pilot, subject to current provider capability and RP/domain gates.
 - [ ] **#866** — available-provider anomaly corroboration sentinel.
 - [ ] **#867 / INNOV-012a** — deterministic League Side Honours.

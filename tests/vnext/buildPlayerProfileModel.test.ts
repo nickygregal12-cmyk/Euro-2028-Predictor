@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildPlayerProfileModel } from '../../src/vnext/integration/playerProfile/buildPlayerProfileModel'
 import type {
+  PinnedRead,
   PlayerProfileSource,
   ProfileRead,
   RankHistoryRead,
@@ -116,6 +117,7 @@ function source(overrides: {
   rivalry?: RivalryRead
   isYou?: boolean
   ref?: string | null
+  pinned?: PinnedRead | null
 }): PlayerProfileSource {
   return {
     generatedAt: NOW,
@@ -133,6 +135,8 @@ function source(overrides: {
     profile: overrides.profile ?? { kind: 'ok', profile: profilePayload() },
     rankHistory: overrides.rankHistory ?? { kind: 'ok', history: historyPayload() },
     rivalry: overrides.rivalry ?? { kind: 'ok', rivalry: rivalryPayload() },
+    pinned:
+      overrides.pinned === undefined ? { kind: 'ok', pinned: false } : overrides.pinned,
   }
 }
 
@@ -465,5 +469,55 @@ describe('the mapper is pure', () => {
   it('produces the same model twice from the same source', () => {
     const input = source({})
     expect(buildPlayerProfileModel(input)).toEqual(buildPlayerProfileModel(input))
+  })
+})
+
+/* ==========================================================================
+   PINNING A RIVAL
+   ========================================================================== */
+
+describe('a pin is offered exactly where the write would accept it', () => {
+  it('offers it where contract 151 answered, because that is the same boundary', () => {
+    // `set_pinned_rival` requires `season_player_reach = 'profile'`, and so
+    // does the profile read. A control drawn here is a control the write will
+    // accept — the page evaluates no boundary of its own.
+    expect(buildPlayerProfileModel(source({})).pin).toEqual({ kind: 'not-pinned' })
+    expect(
+      buildPlayerProfileModel(source({ pinned: { kind: 'ok', pinned: true } })).pin,
+    ).toEqual({ kind: 'pinned' })
+  })
+
+  it('offers nothing where the profile was refused', () => {
+    // The reader may plot this player and compare with them — contract 192 needs
+    // only `compare` — and may NOT pin them. Two boundaries, and the narrower
+    // one governs the control.
+    const model = buildPlayerProfileModel(source({ profile: { kind: 'refused' } }))
+    expect(model.pin).toEqual({ kind: 'not-offered' })
+    // And the two panels that ARE permitted are untouched.
+    expect(model.rankHistory.kind).toBe('history')
+    expect(model.rivalry.kind).toBe('rivalry')
+  })
+
+  it('offers nothing on the reader’s own profile', () => {
+    // `set_pinned_rival` raises 23514 in terms — "You cannot pin yourself as a
+    // rival" — so there is no control rather than one that errors.
+    expect(buildPlayerProfileModel(source({ isYou: true })).pin).toEqual({
+      kind: 'not-offered',
+    })
+  })
+
+  it('offers nothing where the host supplied no pin state at all', () => {
+    expect(buildPlayerProfileModel(source({ pinned: null })).pin).toEqual({
+      kind: 'not-offered',
+    })
+  })
+
+  it('says `unavailable` rather than `not-pinned` when the read failed', () => {
+    // THE ASSERTION THIS BLOCK EXISTS FOR. `false` from a failed read is a
+    // choice the player never made, and a control drawn from it toggles the
+    // WRONG WAY the first time they press it.
+    expect(buildPlayerProfileModel(source({ pinned: { kind: 'failed' } })).pin).toEqual({
+      kind: 'unavailable',
+    })
   })
 })

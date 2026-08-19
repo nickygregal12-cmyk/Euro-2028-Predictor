@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import type {
+  PinPanel,
   PlayerProfileModel,
   PlayerProfilePanel,
   PlayerSeasonSummary,
@@ -9,6 +11,7 @@ import type {
 } from '../models/playerProfile'
 import { accuracyRate } from '../models/playerProfile'
 import { VNextShell } from '../app/VNextShell'
+import { Pin } from 'lucide-react'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatNumber, formatOrdinal } from '../foundations/format'
@@ -59,6 +62,11 @@ import styles from './playerProfile.module.css'
  * a zero denominator; every other number on this page is one the server sent.
  */
 
+/** Contract 157's `set_pinned_rival`, performed by the host. */
+export type PlayerProfileActions = {
+  readonly setPinned?: ((pinned: boolean) => Promise<{ readonly ok: boolean; readonly message?: string }>) | undefined
+}
+
 export type VNextPlayerProfileProps = {
   readonly model: PlayerProfileModel
   /**
@@ -72,12 +80,15 @@ export type VNextPlayerProfileProps = {
    * the signal back without throwing the page away to do it.
    */
   readonly refreshing?: boolean | undefined
+  /** The one write this page has. Absent draws no control. */
+  readonly actions?: PlayerProfileActions | undefined
 }
 
 export function VNextPlayerProfile({
   model,
   onRetry,
   refreshing = false,
+  actions,
 }: VNextPlayerProfileProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { heading, context } = model
@@ -106,6 +117,8 @@ export function VNextPlayerProfile({
             This is your own profile.
           </p>
         ) : null}
+
+        <PinControl panel={model.pin} setPinned={actions?.setPinned} />
 
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.panels}>
           <Panel title="This season" zone="summary" busy={refreshing && model.profile.kind === 'unavailable'}>
@@ -418,4 +431,108 @@ function RivalryBody({
          true if they ever do not. */
       return <RivalryTable detail={panel.detail} />
   }
+}
+
+/* ==========================================================================
+   PINNING A RIVAL — the one thing this page lets a reader DO
+   ========================================================================== */
+
+/**
+ * A NOTE TO SELF, AND THE SERVER IS WHAT KEEPS IT ONE.
+ *
+ * ============================ WHY THIS IS NOT A FOLLOW ===================
+ *
+ * `set_pinned_rival` is season-scoped, refuses anybody the caller cannot
+ * already see, tells the pinned player nothing, publishes no count and grants
+ * no permission. Its own SQL says why the boundary is where it is: "a pin that
+ * worked on any same-season entrant would be user discovery by another name."
+ *
+ * So this is not a follower graph with a quieter label, and the page has no
+ * feed, no request, no reciprocity and no number attached to a person. It marks
+ * somebody as one of the handful of people a player is racing, which is what
+ * the Hub's Rival Watch already reads.
+ *
+ * ============================ WHERE IT MAY APPEAR ========================
+ *
+ * `not-offered` renders NOTHING AT ALL — not a greyed control and not an
+ * explanation of a control that is not there. The mapper decides it, from the
+ * profile read succeeding: that read requires the same shared private league
+ * the write does, so a control drawn here is a control the write will accept.
+ *
+ * ============================ AND IT MOVES BACK IF REFUSED ===============
+ *
+ * The same rule the reminder switch follows. A pressed state left standing
+ * after a refusal is a claim about a stored fact that is not true, and the
+ * player has no way to find out.
+ */
+function PinControl({
+  panel,
+  setPinned,
+}: {
+  readonly panel: PinPanel
+  readonly setPinned?: ((pinned: boolean) => Promise<{ readonly ok: boolean; readonly message?: string }>) | undefined
+}) {
+  const [shown, setShown] = useState(panel.kind === 'pinned')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // The model is the authority: a reload with a new stored value moves the
+  // control, rather than it keeping whatever it was last set to here.
+  const stored = panel.kind === 'pinned'
+  const [seen, setSeen] = useState(stored)
+  if (seen !== stored) {
+    setSeen(stored)
+    setShown(stored)
+  }
+
+  if (panel.kind === 'not-offered' || setPinned === undefined) return null
+
+  if (panel.kind === 'unavailable') {
+    // THE READ THAT KNOWS THE STATE DID NOT ANSWER, so no control is drawn in a
+    // position nobody chose. Said in a sentence rather than as a dead button.
+    return (
+      <p className={`${text.micro} ${styles.selfNote}`} data-vnext-zone="pin-unavailable">
+        We could not tell whether you have pinned this player.
+      </p>
+    )
+  }
+
+  return (
+    <div className={styles.pinRow} data-vnext-zone="pin">
+      <button
+        type="button"
+        aria-pressed={shown}
+        aria-busy={busy}
+        className={styles.pin}
+        onClick={() => {
+          const next = !shown
+          setShown(next)
+          setError(null)
+          setBusy(true)
+          void setPinned(next)
+            .then((result) => {
+              if (result.ok) return
+              setShown(!next)
+              setError(result.message ?? 'We could not save that just now.')
+            })
+            .catch(() => {
+              setShown(!next)
+              setError('We could not save that just now.')
+            })
+            .finally(() => setBusy(false))
+        }}
+      >
+        <Pin size={16} strokeWidth={1.75} aria-hidden="true" />
+        {/* THE LABEL IS THE STATE, not an instruction. `aria-pressed` carries
+            the toggle to a screen reader, and a label that read "Pin" in both
+            positions would leave a sighted reader guessing which it is in. */}
+        {shown ? 'Pinned as a rival' : 'Pin as a rival'}
+      </button>
+      {error === null ? null : (
+        <p className={`${text.micro} ${styles.pinError}`} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
 }

@@ -65,6 +65,44 @@ export type VNextPlayerProfileScreenProps = VNextPlayerProfileSourceInput & {
 export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
   const state = useVNextPlayerProfileSource(props)
 
+  const tournamentId = state.status === 'ready' ? state.source.context.tournamentId : null
+  const { playerId } = props
+
+  /**
+   * THE ONE WRITE THIS SURFACE HAS, performed by the host — Stage 7's rule.
+   *
+   * `set_pinned_rival` is the AUTHORITY on who may be pinned: it requires a
+   * shared private league and raises otherwise. Nothing here re-evaluates that;
+   * the model decides whether a control appears from the profile read, and a
+   * refusal that still reaches this point surfaces rather than being hidden
+   * behind an optimistic edit — the same rule the Hub's Rival Watch records.
+   */
+  const actions = useMemo(
+    () =>
+      tournamentId === null || !playerId
+        ? undefined
+        : {
+            setPinned: async (pinned: boolean) => {
+              try {
+                const { setPinnedRival } = await import(
+                  '../../../services/supabase/playerPreferences'
+                )
+                await setPinnedRival(tournamentId, playerId, pinned)
+                return { ok: true as const }
+              } catch (error) {
+                const { userFacingError } = await import(
+                  '../../../shared/errors/userFacingError'
+                )
+                return {
+                  ok: false as const,
+                  message: userFacingError(error, 'We could not save that just now.'),
+                }
+              }
+            },
+          },
+    [tournamentId, playerId],
+  )
+
   // The mapping is pure, so it is memoised on the source rather than re-run on
   // every render — rebuilding would restamp nothing (the instant lives in the
   // source) but would give React a new identity for every row each render.
@@ -140,6 +178,7 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
     ) : model ? (
       <VNextPlayerProfile
         model={model}
+        actions={actions}
         // A partial page is a READY page, so the retry travels with it. Only a
         // failed play context takes the whole surface down.
         onRetry={state.status === 'ready' ? state.retry : undefined}
