@@ -185,7 +185,14 @@ jobs:
             fi
           done
           count="$(wc -l < "${WORK_DIR}/boundary.txt" | tr -d ' ')"
-          [ "${count}" = 5 ] || { echo "ERROR: boundary holds ${count} migrations, expected 5."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
+          # DERIVED, not written down a second time. This read "= 5" while the
+          # boundary was retargeted from 198-to-203 to 198-to-204, so it refused
+          # the correct six-migration set as wrong -- the same copy-forward that
+          # left SOURCE_NAME naming contract 190's migration. A count that comes
+          # from the contracts the file already declares cannot disagree with
+          # them.
+          expected="$(( TARGET_CONTRACT - SOURCE_CONTRACT ))"
+          [ "${count}" = "${expected}" ] || { echo "ERROR: boundary holds ${count} migrations, expected ${expected}."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
           cat "${WORK_DIR}/boundary.txt"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -265,7 +272,7 @@ jobs:
           }
           NODE
 
-      - name: Dry run and refuse anything except the five approved migrations
+      - name: Dry run and refuse anything except the approved migration set
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -456,7 +463,7 @@ jobs:
           cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
           ## Production is at Contract 203
 
-          - Exactly five migrations applied, each proven additive before the apply.
+          - Exactly six migrations applied, each proven additive before the apply.
           - Auth users, profiles, entries, predictions, entrants, score events, leagues, members, Cup launches, Cup fixtures and season fixtures are all unchanged.
           - Euro publication state and paid collection are unchanged. The cron fingerprint is unchanged over every job EXCEPT the AI odds heartbeat, which `ai-odds-scheduler-reconcile.yml` owns and rewrites from repository SQL; the heartbeat is asserted present and active rather than byte-identical.
           - Contract 199: `ai.valid_bets` now holds at most one row per fixture and market, every `ai.bets` row is classified exactly once by `ai.bet_advice_identity`, and the `ai.bets` row count is UNCHANGED — the repeats were reclassified, not deleted.
