@@ -406,7 +406,7 @@ Item by item, with what discharges it.
 | Account/discovery/help/error states no longer fall back accidentally to an unrelated visual system | Met | §4 was the defect; `VNextAccountScreen` answers `kind: 'account'`, and the shared `src/vnext/states/` module carries a REQUIRED `destination` so a failing page never mislabels where the player is |
 | Action/attention UI only claims event classes the backend can produce | Met | §5.5 — no rejoin control exists in any world, because `competition_is_running` is revoked from `authenticated`; the surface states the rule and never a verdict |
 | No legally blocked or absent backend capability is papered over | Met | The two carried debts (`config/vnext-programme.json` → `carriedDebt`) are stated, not worked around: the elimination read and contract 120's membership lookup remain another session's backend work |
-| Exact-head tests / browser / CI and independent review are green | Tracked on the pull request | Not a claim this document can make |
+| Exact-head tests / browser / CI and independent review are green | Browser evidence exists; the rest is tracked on the pull request | `e2e/vnext-supporting.spec.ts` measures all five surfaces in a real engine — 34 checks for sideways scroll, clipped text, 44px targets and the one-main-one-h1 contract, plus the hub's no-promotion rule. It earned its place immediately: it found the onboarding club chips at 41px on a phone, which no jsdom test can see |
 
 ### `…/games/match-predictor/standings` — ABSORB, and it is absorbed
 
