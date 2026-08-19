@@ -23,6 +23,19 @@ import type { ChampionshipSource } from './championshipSource'
  *     initial group while a sibling read answers about the split one. Two reads
  *     that can disagree must not be merged behind one "loaded".
  *
+ * ============================ THE ONE WRITE, THROUGH THE ONE AUTHORITY ===
+ *
+ * `submit_cup_penalty_number`, and nothing else. The refusal taxonomy is
+ * `championshipRefusal.ts`'s and the conflict classifier is
+ * `writeConflict.ts`'s — BOTH SHARED, neither restated here. Stage 11 shipped a
+ * hook that matched one SQLSTATE out of five while a complete map sat beside
+ * the write, and the symptom was a player told to retry a submission that could
+ * never succeed.
+ *
+ * A SUCCESSFUL SUBMISSION RE-READS rather than patching the model. The write
+ * moves the version, and the version is the gateway's concern rather than the
+ * page's — the presentation model has no field for it.
+ *
  * ============================ A RE-READ DOES NOT TEAR THE PAGE DOWN ======
  *
  * Stage 11 shipped a version that cleared state on every refresh, so the whole
@@ -38,6 +51,33 @@ import type { ChampionshipSource } from './championshipSource'
  * better instant wherever the two disagree and is carried through the read.
  */
 
+/**
+ * WHERE A SUBMITTED PENALTY NUMBER GOT TO.
+ *
+ * `idle` covers "nothing submitted yet" and "the last one landed", because a
+ * landed submission is visible in the model itself — the value comes back on
+ * the next read — and a banner repeating it would be a second place to look.
+ *
+ * THREE OUTCOMES, KEPT APART, and the reasons differ:
+ *
+ *   • **conflict** — `PT409`. Somebody else wrote a Penalty Number for this
+ *     round while this page held an older version. Resolved by RE-READING,
+ *     never by retrying with the same version.
+ *   • **refused** — a rule the player met, classified by the shared
+ *     `isChampionshipRefusal`. The page's view is STALE rather than wrong, so
+ *     it re-reads and carries the refusal's own sentence.
+ *   • **failed** — anything else. A fault, and the only one where "try again"
+ *     is a sensible suggestion on its own.
+ */
+export type ChampionshipWriteState =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'saving' }
+  /** `PT409`: changed elsewhere. Resolved by re-reading, never by retrying. */
+  | { readonly kind: 'conflict' }
+  /** The server declined it on its own rules, with the shared sentence. */
+  | { readonly kind: 'refused'; readonly message: string }
+  | { readonly kind: 'failed'; readonly message: string }
+
 export type VNextChampionshipSourceState =
   | { status: 'loading' }
   | { status: 'signedOut' }
@@ -49,6 +89,9 @@ export type VNextChampionshipSourceState =
       retry: () => void
       /** A re-read is in flight over a page that is still shown. */
       refreshing: boolean
+      /** Submit the caller's Penalty Number for the round they are in. */
+      submitPenaltyNumber: (value: number) => void
+      penaltyNumber: ChampionshipWriteState
     }
 
 export type VNextChampionshipSourceInput = {
@@ -93,6 +136,7 @@ export function useVNextChampionshipSource(
   const [state, setState] = useState<InternalState>(IDLE)
   const [refreshing, setRefreshing] = useState(false)
   const [nonce, setNonce] = useState(0)
+  const [penaltyNumber, setPenaltyNumber] = useState<ChampionshipWriteState>({ kind: 'idle' })
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
   /**
@@ -184,6 +228,58 @@ export function useVNextChampionshipSource(
     }
   }, [authLoading, userId, competitionSlug, seasonSlug, championshipId, gameName, nonce])
 
+  /**
+   * SUBMIT, AND THEN RE-READ WHATEVER HAPPENED.
+   *
+   * A landed write, a conflict and a refusal ALL re-read, because in all three
+   * the page's view of the round is provably behind the server's. Only a fault
+   * leaves the page alone, because in that case nothing changed.
+   */
+  const submitPenaltyNumber = useCallback(
+    (value: number) => {
+      const loaded = state.status === 'loaded' ? state.payload : null
+      const answer = loaded?.bracket.kind === 'ok' ? loaded.bracket.bracket : null
+      const pn = answer !== null && answer.entered ? answer.penaltyNumber : null
+      // NO WINDOW, NO WRITE. The id comes from the read rather than from a
+      // caller, so a page with no live tie has nothing to submit against —
+      // Stage 9's identity rule and Stage 11's pick rule, once more.
+      if (loaded === null || pn === null) return
+
+      setPenaltyNumber({ kind: 'saving' })
+      void (async () => {
+        try {
+          const { submitCupPenaltyNumber } = await import('../../../services/supabase/cup')
+          await submitCupPenaltyNumber(
+            loaded.context.competitionId,
+            pn.windowId,
+            value,
+            pn.version,
+          )
+          setPenaltyNumber({ kind: 'idle' })
+          setNonce((current) => current + 1)
+        } catch (error) {
+          const { isVersionConflict } = await import('../../../services/supabase/writeConflict')
+          const { championshipRefusal, isChampionshipRefusal } = await import(
+            '../../../features/season/championshipRefusal'
+          )
+          if (isVersionConflict(error)) {
+            setPenaltyNumber({ kind: 'conflict' })
+            setNonce((current) => current + 1)
+            return
+          }
+          if (isChampionshipRefusal(error)) {
+            setPenaltyNumber({ kind: 'refused', message: championshipRefusal(error) })
+            setNonce((current) => current + 1)
+            return
+          }
+          // A FAULT CHANGES NOTHING, so the page is left exactly as it was.
+          setPenaltyNumber({ kind: 'failed', message: championshipRefusal(error) })
+        }
+      })()
+    },
+    [state],
+  )
+
   return useMemo<VNextChampionshipSourceState>(() => {
     if (authLoading) return { status: 'loading' }
     if (!userId) return { status: 'signedOut' }
@@ -201,10 +297,19 @@ export function useVNextChampionshipSource(
     // panel outcome, carried inside the payload, not a dead page.
     if (state.status === 'failed') return { status: 'failed', retry }
 
-    return { status: 'ready', source: state.payload, retry, refreshing }
+    return {
+      status: 'ready',
+      source: state.payload,
+      retry,
+      refreshing,
+      submitPenaltyNumber,
+      penaltyNumber,
+    }
   }, [
     state,
     refreshing,
+    submitPenaltyNumber,
+    penaltyNumber,
     authLoading,
     userId,
     competitionSlug,

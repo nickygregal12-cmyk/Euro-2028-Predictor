@@ -22,8 +22,14 @@ import { last } from '../support/indexed'
  */
 
 const server = vi.hoisted(() => {
-  const calls = { context: 0, bracket: 0 }
-  const state = { contextFails: false, bracketFails: false, delayMs: 0 }
+  const calls = { context: 0, bracket: 0, submit: 0 }
+  const state = {
+    contextFails: false,
+    bracketFails: false,
+    delayMs: 0,
+    /** null | a SQLSTATE the write should raise. */
+    submitFails: null as string | null,
+  }
   return { calls, state }
 })
 
@@ -48,7 +54,47 @@ vi.mock('../../src/services/supabase/seasonCupBracket', () => ({
     }
     server.calls.bracket += 1
     if (server.state.bracketFails) throw new Error('no bracket')
-    return { entered: false }
+    // A live tie with a Penalty Number, so the write has a window to aim at.
+    return {
+      entered: true,
+      serverNow: '2027-05-01T12:00:00.000Z',
+      format: { kind: 'groups', producesKnockout: true, groupStageLastSequence: 20 },
+      qualification: { drawn: true, qualifiers: 4, yourSeed: 1, youQualified: true },
+      myTie: {
+        fixtureId: 'fx-1',
+        stage: 'knockout' as const,
+        roundSize: 4,
+        bracketSlot: 1,
+        windowSequence: 21,
+        windowLabel: 'Semi-finals',
+        isHome: true,
+        opponent: { userId: 'u-2', displayName: 'Bo' },
+        locksAt: null,
+      },
+      penaltyNumber: {
+        windowId: 'w-1',
+        windowLabel: 'Semi-finals',
+        lane: 'odd' as const,
+        submitted: false,
+        value: null,
+        version: 3,
+        locksAt: '2027-05-02T14:00:00.000Z',
+        locked: false,
+        open: true,
+      },
+      myTies: [],
+      bracket: [],
+      champion: null,
+    }
+  },
+}))
+
+vi.mock('../../src/services/supabase/cup', () => ({
+  submitCupPenaltyNumber: async () => {
+    server.calls.submit += 1
+    if (server.state.submitFails !== null) {
+      throw Object.assign(new Error('declined'), { code: server.state.submitFails })
+    }
   },
 }))
 
@@ -88,9 +134,11 @@ function mount(input: VNextChampionshipSourceInput) {
 function reset() {
   server.calls.context = 0
   server.calls.bracket = 0
+  server.calls.submit = 0
   server.state.contextFails = false
   server.state.bracketFails = false
   server.state.delayMs = 0
+  server.state.submitFails = null
 }
 
 async function ready(probe: ReturnType<typeof mount>) {
@@ -231,6 +279,124 @@ describe('the states above the read', () => {
     const probe = mount({ ...BASE, championshipId: undefined })
     expect(last(probe.seen).status).toBe('noCompetition')
     expect(server.calls.context).toBe(0)
+    probe.unmount()
+  })
+})
+
+/**
+ * THE ONE WRITE.
+ *
+ * Its refusal taxonomy is `championshipRefusal.ts`'s and its conflict
+ * classifier is `writeConflict.ts`'s — both shared, neither restated in the
+ * hook. Stage 11 shipped a hook matching one SQLSTATE out of five while a
+ * complete map sat beside the write, so these tests exercise the SHARED map
+ * through the hook rather than a copy of it.
+ */
+describe('the Penalty Number write', () => {
+  it('submits against the window id the READ supplied', async () => {
+    reset()
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    if (state.status !== 'ready') throw new Error('expected ready')
+    state.submitPenaltyNumber(7)
+    await waitFor(() => expect(server.calls.submit).toBe(1))
+    probe.unmount()
+  })
+
+  it('re-reads after a submission that landed', async () => {
+    reset()
+    const probe = mount(BASE)
+    ;(await ready(probe)).submitPenaltyNumber(7)
+    await waitFor(() => expect(server.calls.bracket).toBe(2))
+    probe.unmount()
+  })
+
+  it.each([
+    ['55000', 'the round is not taking submissions'],
+    ['check_violation', 'the number is not allowed in this lane'],
+    ['no_data_found', 'no tie in this round'],
+  ])('classifies %s as a refusal and re-reads (%s)', async (code) => {
+    reset()
+    server.state.submitFails = code
+    const probe = mount(BASE)
+    ;(await ready(probe)).submitPenaltyNumber(7)
+
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.penaltyNumber.kind).toBe('refused')
+    })
+    // A refusal means the view is stale, so it re-reads rather than arguing.
+    await waitFor(() => expect(server.calls.bracket).toBe(2))
+    probe.unmount()
+  })
+
+  it('carries the refusal’s own sentence rather than a generic one', async () => {
+    reset()
+    server.state.submitFails = '55000'
+    const probe = mount(BASE)
+    ;(await ready(probe)).submitPenaltyNumber(7)
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      if (state.penaltyNumber.kind !== 'refused') throw new Error('expected a refusal')
+      expect(state.penaltyNumber.message).toMatch(/not taking Penalty Numbers/i)
+    })
+    probe.unmount()
+  })
+
+  it('reads PT409 as a conflict rather than a refusal, and re-reads', async () => {
+    reset()
+    server.state.submitFails = 'PT409'
+    const probe = mount(BASE)
+    ;(await ready(probe)).submitPenaltyNumber(7)
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.penaltyNumber.kind).toBe('conflict')
+    })
+    await waitFor(() => expect(server.calls.bracket).toBe(2))
+    probe.unmount()
+  })
+
+  it('leaves the page alone on a fault, because nothing changed', async () => {
+    reset()
+    server.state.submitFails = '08006'
+    const probe = mount(BASE)
+    ;(await ready(probe)).submitPenaltyNumber(7)
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.penaltyNumber.kind).toBe('failed')
+    })
+    // No re-read: a fault means the server did not act.
+    await new Promise((resolve) => setTimeout(resolve, 30))
+    expect(server.calls.bracket).toBe(1)
+    probe.unmount()
+  })
+
+  /**
+   * NO WINDOW, NO WRITE — AND NO ERROR EITHER.
+   *
+   * An earlier version of this test asserted only that no call was made, which
+   * a mutation removing the guard ALSO satisfies: without it the code reaches
+   * `pn.windowId`, throws, and is caught into `failed` — no call, test green,
+   * defect shipped. What actually distinguishes them is the STATE. Submitting
+   * with nothing to submit against is a no-op, not a fault to show the reader.
+   */
+  it('submits nothing, and reports nothing, when the round offers no Penalty Number', async () => {
+    reset()
+    server.state.bracketFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    if (state.status !== 'ready') throw new Error('expected ready')
+    state.submitPenaltyNumber(7)
+    await new Promise((resolve) => setTimeout(resolve, 30))
+
+    expect(server.calls.submit).toBe(0)
+    const after = last(probe.seen)
+    if (after.status !== 'ready') throw new Error('expected ready')
+    expect(after.penaltyNumber.kind).toBe('idle')
     probe.unmount()
   })
 })
