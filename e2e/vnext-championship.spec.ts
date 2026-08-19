@@ -82,6 +82,8 @@ type Reading = {
   pageText: string
   /** The bracket's own text, for assertions about what a SEAT may say. */
   bracketText: string
+  groupTables: number
+  groupOverflow: number[]
   /** The intent the harness last recorded, so a press is observed at the seam. */
   lastIntent: string
   /** Whether the submit control is currently disabled. */
@@ -164,6 +166,17 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       connectors: bracket?.querySelectorAll('svg, line, path').length ?? 0,
       pageText: ((frame ?? document.body).textContent ?? '').replace(/\s+/g, ' ').trim(),
       bracketText: (bracket?.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      // THE GROUP TABLE SCROLLS AND THE PAGE DOES NOT. Eight columns do not fit
+      // a phone, and the alternative — dropping columns — would be a stylesheet
+      // deciding which of the standings authority's measures matter.
+      groupTables: scope.querySelectorAll('[data-vnext-zone="groups"] table').length,
+      groupOverflow: [...scope.querySelectorAll('[data-vnext-zone="groups"] table')].map(
+        (table) => {
+          const box = table.parentElement
+          if (box === null) return -1
+          return getComputedStyle(box).overflowX === 'auto' ? 0 : box.scrollWidth - box.clientWidth
+        },
+      ),
       lastIntent:
         scope.querySelector('[data-vnext-championship-host]')?.getAttribute(
           'data-vnext-last-intent',
@@ -414,4 +427,57 @@ test.describe('the opponent’s Penalty Number is nowhere on any page', () => {
       )
     })
   }
+})
+
+/**
+ * THE GROUP PHASE, IN A REAL ENGINE.
+ *
+ * The Championship's ordinary state for most of a season, and the one this page
+ * answered with a single sentence while contract 167 held the standings. Two of
+ * these need a browser: whether eight columns overflow the PAGE at 375, and
+ * whether the table and the empty bracket coexist without either being clipped.
+ */
+test.describe('the group phase is a table, and it fits a phone', () => {
+  for (const [story, label] of [
+    ['frame-group-phase-phone', '375'],
+    ['frame-group-phase-tablet', '768'],
+    ['frame-group-phase-desktop', '1920'],
+  ] as const) {
+    test(`renders the tables at ${label} without the page scrolling sideways`, async ({ page }) => {
+      await open(page, story)
+      const reading = await read(page)
+      expectBaseline(reading, `the group phase at ${label}`)
+      expect(reading.groupTables).toBe(2)
+      // Each table is inside a container that scrolls rather than pushing the
+      // page wide. `expectBaseline` already holds the page to zero overflow.
+      expect(reading.groupOverflow.every((value) => value <= 0)).toBe(true)
+    })
+  }
+
+  test('shows the table beside the bracket that does not exist yet', async ({ page }) => {
+    await open(page, 'frame-group-phase-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('The knockout draw has not been made yet')
+    expect(reading.groupTables).toBeGreaterThan(0)
+    // Two reads disagreeing is not a verdict on the reader.
+    expect(reading.pageText).not.toMatch(/eliminated|knocked out|you are out/i)
+  })
+
+  test('renders one group where the competition was drawn as one', async ({ page }) => {
+    await open(page, 'frame-single-group-phone')
+    expect((await read(page)).groupTables).toBe(1)
+  })
+
+  test('shows no table at all where the competition has no group stage', async ({ page }) => {
+    await open(page, 'frame-no-group-stage-phone')
+    expect((await read(page)).groupTables).toBe(0)
+  })
+
+  test('keeps the bracket when only the group read failed', async ({ page }) => {
+    await open(page, 'frame-groups-unavailable-phone')
+    const reading = await read(page)
+    expect(reading.groupTables).toBe(0)
+    // The other read answered, and its panel is intact.
+    expect(reading.bracketText).not.toBe('')
+  })
 })

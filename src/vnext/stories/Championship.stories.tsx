@@ -300,3 +300,15 @@ export const FramePenaltyZeroPhone: Story = frame('penaltySubmittedZero', 'phone
 export const FramePenaltyLockedPhone: Story = frame('penaltyLocked', 'phone-375')
 export const FramePenaltyUnsubmittedPhone: Story = frame('penaltyLockedUnsubmitted', 'phone-375')
 export const FramePenaltyUnscheduledPhone: Story = frame('penaltyUnscheduled', 'phone-375')
+
+/* THE GROUP PHASE. The competition's ordinary state for most of a season, and
+   the one this page answered with a single sentence. The tablet and desktop
+   frames matter here: eight columns do not fit a phone, so the table scrolls
+   inside its own container and the page must not. */
+export const FrameGroupPhasePhone: Story = frame('groupPhase', 'phone-375')
+export const FrameGroupPhaseTablet: Story = frame('groupPhase', 'tablet-768')
+export const FrameGroupPhaseDesktop: Story = frame('groupPhase', 'desktop-1920')
+export const FrameSingleGroupPhone: Story = frame('singleGroupPhase', 'phone-375')
+export const FrameGroupsNotYoursPhone: Story = frame('groupsButNotYours', 'phone-375')
+export const FrameNoGroupStagePhone: Story = frame('noGroupStage', 'phone-375')
+export const FrameGroupsUnavailablePhone: Story = frame('groupsUnavailable', 'phone-375')
