@@ -1,0 +1,128 @@
+name: Contract 206 development guarded fallback
+
+# TEMPORARY FALLBACK ONLY.
+#
+# The normal Development fast lane is being attempted first. This one-shot exists
+# only so a repeat of the known Supabase CLI dump hang does not force another
+# design/CI cycle. It mirrors the repository's guarded Development lane for the
+# exact additive Contract 206 boundary and deliberately takes no snapshot: ADR
+# 0024 treats Development data as disposable, while Production retains its own
+# encrypted backup/rehearsal ceremony.
+#
+# Merge this file only if the Contract 206 fast-lane one-shot fails or stalls
+# before apply. Production is hard-refused.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract-206-development-guarded-fallback.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: development-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: iouzoutneyjpugbbtdem
+  FORBIDDEN_PRODUCTION_REF: vkfnsqdyhvtwyqkisxhk
+  SOURCE_CONTRACT: '205'
+  TARGET_CONTRACT: '206'
+  TARGET_VERSION: '20260819110000'
+  TARGET_NAME: same_season_player_profile
+  TARGET_MIGRATION: 20260819110000_same_season_player_profile.sql
+  WORK_DIR: /tmp/contract-206-development-guarded-fallback
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Refuse anything except exact Contract 206 main
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: main only.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: not exact origin/main.'; exit 1; }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is not clean.'; exit 1; }
+          contract="$(node -p "require('./config/deployment-contract.json').contractVersion")"
+          [ "${contract}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository contract is ${contract}, expected ${TARGET_CONTRACT}."; exit 1; }
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${newest}" = "${TARGET_MIGRATION}" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+          mkdir -p "${WORK_DIR}"
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@ab058987d8d6c725971f6cf9d0b5c98467e30bd1 # v1
+        with:
+          version: 2.84.2
+
+      - name: Preflight Development and prove the exact source boundary
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_DEV_DB_URL}" ] || { echo 'ERROR: SUPABASE_DEV_DB_URL is not set.'; exit 1; }
+          case "${SUPABASE_DEV_DB_URL}" in
+            *"${FORBIDDEN_PRODUCTION_REF}"*) echo 'ERROR: secret resolves to Production.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: secret does not resolve to Development.'; exit 1 ;;
+          esac
+
+          supabase migration list --db-url "${SUPABASE_DEV_DB_URL}" > "${WORK_DIR}/migration-list-before.txt"
+          applied="$(awk -F'|' '$2 ~ /[0-9]/ { v=$2; gsub(/[^0-9]/,"",v); if (length(v)==14) print v }' "${WORK_DIR}/migration-list-before.txt" | wc -l | tr -d ' ')"
+          [ "${applied}" = "${SOURCE_CONTRACT}" ] || { echo "ERROR: Development is at ${applied}, expected ${SOURCE_CONTRACT}."; exit 1; }
+
+          pending="$(awk -F'|' '$3 ~ /[0-9]/ && $2 !~ /[0-9]/ { v=$1; gsub(/[^0-9]/,"",v); if (length(v)==14) print v }' "${WORK_DIR}/migration-list-before.txt")"
+          [ "${pending}" = "${TARGET_VERSION}" ] || { echo "ERROR: pending boundary is ${pending:-<none>}, expected ${TARGET_VERSION}."; exit 1; }
+
+          file="supabase/migrations/${TARGET_MIGRATION}"
+          [ -f "${file}" ] || { echo "ERROR: target migration is missing."; exit 1; }
+          node scripts/check-migration-additive.mjs "${file}"
+
+      - name: Dry run exactly Contract 206
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_DEV_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' > "${WORK_DIR}/pending.txt"
+          [ "$(cat "${WORK_DIR}/pending.txt")" = "${TARGET_MIGRATION}" ] || {
+            echo 'ERROR: dry run is not exactly Contract 206.'
+            cat "${WORK_DIR}/pending.txt"
+            exit 1
+          }
+
+      - name: Apply Contract 206 to Development
+        env:
+          SUPABASE_DEV_DB_URL: ${{ secrets.SUPABASE_DEV_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_DEV_DB_URL}" 2>&1 | tee "${WORK_DIR}/apply.txt"
+
+      - name: Upload guarded-lane evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: contract-206-development-guarded-fallback-evidence
+          path: |
+            /tmp/contract-206-development-guarded-fallback/migration-list-before.txt
+            /tmp/contract-206-development-guarded-fallback/dry-run.txt
+            /tmp/contract-206-development-guarded-fallback/pending.txt
+            /tmp/contract-206-development-guarded-fallback/apply.txt
+          retention-days: 7
+          if-no-files-found: warn
