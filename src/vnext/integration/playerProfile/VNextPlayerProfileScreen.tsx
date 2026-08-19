@@ -3,6 +3,8 @@ import { VNextPlayerProfile } from '../../player/VNextPlayerProfile'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildPlayerProfileModel } from './buildPlayerProfileModel'
 import {
@@ -51,10 +53,57 @@ import { VNextPlayerProfileLoading } from './VNextPlayerProfileStates'
  */
 export type VNextPlayerProfileScreenProps = VNextPlayerProfileSourceInput & {
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
 }
 
 export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextPlayerProfileSource(props)
+
+  const tournamentId = state.status === 'ready' ? state.source.context.tournamentId : null
+  const { playerId } = props
+
+  /**
+   * THE ONE WRITE THIS SURFACE HAS, performed by the host — Stage 7's rule.
+   *
+   * `set_pinned_rival` is the AUTHORITY on who may be pinned: it requires a
+   * shared private league and raises otherwise. Nothing here re-evaluates that;
+   * the model decides whether a control appears from the profile read, and a
+   * refusal that still reaches this point surfaces rather than being hidden
+   * behind an optimistic edit — the same rule the Hub's Rival Watch records.
+   */
+  const actions = useMemo(
+    () =>
+      tournamentId === null || !playerId
+        ? undefined
+        : {
+            setPinned: async (pinned: boolean) => {
+              try {
+                const { setPinnedRival } = await import(
+                  '../../../services/supabase/playerPreferences'
+                )
+                await setPinnedRival(tournamentId, playerId, pinned)
+                return { ok: true as const }
+              } catch (error) {
+                const { userFacingError } = await import(
+                  '../../../shared/errors/userFacingError'
+                )
+                return {
+                  ok: false as const,
+                  message: userFacingError(error, 'We could not save that just now.'),
+                }
+              }
+            },
+          },
+    [tournamentId, playerId],
+  )
 
   // The mapping is pure, so it is memoised on the source rather than re-run on
   // every render — rebuilding would restamp nothing (the instant lives in the
@@ -85,9 +134,10 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
             // count what is outstanding. `null` is "this page cannot say".
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const body =
@@ -130,6 +180,7 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
     ) : model ? (
       <VNextPlayerProfile
         model={model}
+        actions={actions}
         // A partial page is a READY page, so the retry travels with it. Only a
         // failed play context takes the whole surface down.
         onRetry={state.status === 'ready' ? state.retry : undefined}

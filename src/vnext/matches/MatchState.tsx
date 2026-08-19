@@ -73,7 +73,7 @@ export function MatchStateMark({ state }: { readonly state: MatchState }) {
       return (
         <span className={`${styles.mark} ${styles.markOff}`}>
           <span className={styles.markWord}>Postponed</span>
-          {/* CONTRACT 207. "Postponed" alone leaves the one question a reader
+          {/* CONTRACT 209. "Postponed" alone leaves the one question a reader
               has — is there a new date? — visibly unanswered, and a card that
               looks unfinished reads as a card that is out of date. The note is
               the mapper's sentence, so the wording is decided once. */}
@@ -102,7 +102,7 @@ export function MatchStateMark({ state }: { readonly state: MatchState }) {
       // score column — there is no chip that says "scheduled", because a time
       // already says it and a second label would be noise on every quiet day.
       //
-      // CONTRACT 207 IS THE ONE EXCEPTION, and it earns it: a fixture that was
+      // CONTRACT 209 IS THE ONE EXCEPTION, and it earns it: a fixture that was
       // MOVED into this day looks identical to one that was always here, and
       // the reader most likely to be confused is the one who remembers it being
       // somewhere else. The time still shows in the score column beside this.

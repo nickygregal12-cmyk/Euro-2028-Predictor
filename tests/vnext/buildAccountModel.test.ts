@@ -70,8 +70,19 @@ function source(over: Partial<AccountSource> = {}): AccountSource {
       history: { total: 1, limit: 20, offset: 0, hasMore: false, seasons: [historySeason()] },
     },
     catalogue: { kind: 'ok', seasons: [catalogueSeason()] },
+    settings: {
+      kind: 'ok',
+      email: 'ada@example.test',
+      pendingEmail: null,
+      reminderEmails: true,
+      // The policy's real numbers, carried by the host rather than imported —
+      // the moderation list stays in the one place a database trigger mirrors.
+      displayNameMaxLength: 40,
+      passwordMinLength: 6,
+    },
+    supportHref: 'mailto:help@example.test?subject=Support',
     ...over,
-  } as AccountSource
+  }
 }
 
 describe('a follow is named only where a read supplies a name', () => {

@@ -39,7 +39,7 @@ export type SeasonFixtureRound = {
 }
 
 /**
- * WHERE THIS FIXTURE STANDS AGAINST ITS OWN CALENDAR (contract 207).
+ * WHERE THIS FIXTURE STANDS AGAINST ITS OWN CALENDAR (contract 209).
  *
  * Two facts a surface used to have to infer from a date, and the inference was
  * wrong in both directions. `kickoffAt` on a postponed fixture is where it WAS
@@ -68,7 +68,7 @@ export type SeasonListFixture = {
   status: string
   /** The matchweek this fixture BELONGS to, whenever it is actually played. */
   round: SeasonFixtureRound
-  /** Contract 207. Whether `kickoffAt` is still a plan, and whether it moved. */
+  /** Contract 209. Whether `kickoffAt` is still a plan, and whether it moved. */
   schedule: SeasonFixtureSchedule
   home: SeasonFixtureClub
   away: SeasonFixtureClub
@@ -166,7 +166,7 @@ function mapRound(value: unknown): SeasonFixtureRound | null {
  * A MISSING BLOCK FAILS CLOSED TO "CONFIRMED, NEVER MOVED", not to postponed.
  *
  * The only payload that can omit it is one from a server older than contract
- * 207, and every fixture such a server holds is one nothing has ever
+ * 209, and every fixture such a server holds is one nothing has ever
  * postponed — the automatic path did not exist. Defaulting the other way would
  * draw the whole calendar as abnormal the moment a deploy ran out of order.
  */

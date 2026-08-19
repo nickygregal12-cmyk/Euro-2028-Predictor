@@ -3,6 +3,8 @@ import { VNextChampionship, type ChampionshipIntent } from '../../championship/V
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildChampionshipModel } from './buildChampionshipModel'
 import { useVNextChampionshipSource } from './useVNextChampionshipSource'
@@ -34,9 +36,18 @@ export type VNextChampionshipScreenProps = {
   readonly championshipId: string | undefined
   readonly gameName: string
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
 }
 
 export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextChampionshipSource({
     userId: props.userId,
     authLoading: props.authLoading,
@@ -68,9 +79,10 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
             // `null` is "this page cannot say", never zero.
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const write = state.status === 'ready' ? state.penaltyNumber : { kind: 'idle' as const }

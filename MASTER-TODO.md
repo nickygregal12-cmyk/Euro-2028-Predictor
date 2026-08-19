@@ -27,6 +27,10 @@ This file is **not** implementation truth and does not restate moving contract n
 
 **Do not duplicate the route matrix here.** [`docs/product/vnext-route-migration-matrix.md`](docs/product/vnext-route-migration-matrix.md) owns route fate. The active Championship/Stage 12 branch already carries its Stage 12 correction.
 
+**Stage 12's two carried backend debts are paid in the repository and owed in every hosted environment.** The two Championship migrations pin `get_season_cup_phase` to a determinate membership row and put `bonus_competition_entrants.outcome` on the bracket read, so elimination is stated by the settlement authority rather than inferred. `config/vnext-programme.json` moves both from `carriedDebt` to `resolvedDebt`, and both carry `hostedRolloutRequired: true` — a repository fix is not a Development proof, and a green CI run is not one either.
+
+- [ ] Roll the two Championship migrations to Development through the guarded lane, verify hosted, regenerate the Supabase types if the read shape requires it, and prove the connected Championship consumer reads the new payload. Production promotion stays a separate, unauthorised milestone.
+
 ## 2. Accepted product gaps still requiring delivery
 
 Read the register for the actual requirement and acceptance evidence; these identifiers are an index, not a second specification.
@@ -47,7 +51,8 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 - [ ] **#33** — verify the effective Protect Main/ruleset controls and required contexts.
 - [ ] **#272** — independent qualified UK data-protection review; engineering cannot self-approve it.
 - [ ] **#854** — AI Lab first-weekend/operational completion; do not close on one bug fix.
-- [ ] **#863 / PROF-001** — backend same-season profile visibility is in PR #920; closure still requires Development rollout, generated types and the browser consumer/evidence.
+- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility. The backend (contract 206, `get_season_player_profile_by_ref`) is **on this branch** since PR #920 was merged into it, alongside this batch's contract 209 and contract 208. Closure still requires the Development rollout, generated Supabase types and the vNext browser consumer — until that consumer exists, `buildLeaguesModel.destinationOf` still closes a `compare` row, which is correct against the database as deployed.
+- [ ] **`PROF-002`** — "people you follow". `set_pinned_rival` exists and the vNext player profile now offers the pin over it; the LIST does not, because `get_my_preferences` returns pinned rivals as bare ids with no name and no season ref. The smallest safe contract is proposed in `docs/product/vnext-player-profiles.md` §8.5. Do not fabricate the list in local state.
 - [ ] **#865** — optional native Supabase passkey Development pilot, subject to current provider capability and RP/domain gates.
 - [ ] **#866** — available-provider anomaly corroboration sentinel.
 - [ ] **#867 / INNOV-012a** — deterministic League Side Honours.
@@ -55,15 +60,15 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 
 ## 4. Decisions and external gates
 
-- [ ] `DEC-017` — icon infrastructure decision before Stage 13 needs a general icon vocabulary.
-- [ ] `DEC-016` — vNext light-theme/persisted-theme decision before Stage 13 closes and before Stage 14 cutover.
+- [x] `DEC-017` — icon infrastructure decision. Answered: a vNext-native outline vocabulary, drawn in the lane rather than imported or added as a dependency.
+- [x] `DEC-016` — vNext light-theme/persisted-theme decision. Answered: dark stays the default, a designed light ramp ships beside it, and the player's choice outranks the device.
 - [ ] #272 external review before the blocked account-erasure ownership/schema path.
 - [ ] #868 external brand/domain clearance and registration before public Hub launch.
 - [ ] Any Production database/application mutation requires explicit authority for that exact action and target; a repository gap is not authorisation.
 
 ## 5. Release-quality debt that remains real
 
-- [ ] **Apply contract 207 to Development, then confirm the provider lane is alive again.** Until it is applied, Development has imported nothing since 10 August: `ING-001` in the risk register. Confirm by the next `provider_response_consumption` row reading outcome `applied`, and by a postponed fixture appearing as postponed on Matches without anyone touching it. The 13 already-consumed responses do not replay — the recovery arrives with the next poll.
+- [ ] **Apply contract 209 to Development, then confirm the provider lane is alive again.** Until it is applied, Development has imported nothing since 10 August: `ING-001` in the risk register. Confirm by the next `provider_response_consumption` row reading outcome `applied`, and by a postponed fixture appearing as postponed on Matches without anyone touching it. The 13 already-consumed responses do not replay — the recovery arrives with the next poll.
 - [ ] **`ING-002`** — measure SportMonks status tokens `14`–`21` against real payloads, or remove the guessed rows so they fail closed to `unknown`.
 - [ ] **`ING-005`** — decide whether the published prediction deadline is per fixture or per matchweek. Enforcement has been per fixture since contract 119; the card read still publishes the matchweek instant, so a rescheduled fixture reads as locked while the trigger would accept the write.
 - [ ] **`ING-006`** — a postponement can be up to 22 hours stale and the staleness spans the matchweek lock, so a player can be locked into a match already called off. No code change is owed: raise `cadence_minutes` to 360 and `live_lead_minutes` to 720 on the enabled poll target. It is a hosted `update`, so it needs explicit authority for the environment. Arithmetic and cost in the risk register.

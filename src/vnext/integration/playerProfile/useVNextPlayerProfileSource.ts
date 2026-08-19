@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type {
+  PinnedRead,
   PlayerProfileSource,
   PlayerProfileTarget,
   ProfileRead,
@@ -224,11 +225,18 @@ export function useVNextPlayerProfileSource(
 
         const isYou = playerId === userId
 
-        // WAVE TWO. Three reads, concurrently, each classified on its own.
-        const [profile, rankHistory, rivalry] = await Promise.all([
+        // WAVE TWO. Four reads, concurrently, each classified on its own.
+        //
+        // THE PREFERENCE READ IS ASKED ONLY WHERE A PIN COULD BE OFFERED. It is
+        // the caller's own preferences and costs nothing on this page's
+        // boundary, but asking it on the reader's OWN profile — where
+        // `set_pinned_rival` raises in terms — would be a request whose answer
+        // is discarded.
+        const [profile, rankHistory, rivalry, pinned] = await Promise.all([
           readProfile(context.tournamentId, playerId),
           readRankHistory(context.tournamentId, playerRef),
           readRivalry(context.tournamentId, playerRef, isYou),
+          isYou ? Promise.resolve(null) : readPinned(context.tournamentId, playerId),
         ])
         if (!active) return
 
@@ -243,6 +251,7 @@ export function useVNextPlayerProfileSource(
             // The one legitimate clock read on this path, stamped once here and
             // passed down as data so the mapper stays pure.
             generatedAt: new Date().toISOString(),
+            pinned,
             context: {
               tournamentId: context.tournamentId,
               competitionName: context.competitionName,
@@ -383,6 +392,37 @@ async function readRivalry(
   } catch (error) {
     if (error instanceof services.RivalryNotPermittedError) return { kind: 'refused' }
     if (error instanceof services.OpponentNotEnteredError) return { kind: 'not-entered' }
+    return { kind: 'failed' }
+  }
+}
+
+/**
+ * IS THIS PLAYER PINNED, IN THIS SEASON?
+ *
+ * Contract 157's `get_my_preferences` carries `pinned_rivals` as
+ * `(tournament_id, rival_user_id)` pairs — the caller's OWN list, and the only
+ * read that knows the current state. Narrowed to a boolean here because that is
+ * all this page needs and a list would tempt a surface into naming people it
+ * has no names for.
+ *
+ * A FAILED READ IS `failed`, NOT `false`. A control drawn off from a failure
+ * reports a choice the player never made and toggles the wrong way when pressed.
+ */
+async function readPinned(
+  tournamentId: string,
+  playerId: string,
+): Promise<PinnedRead> {
+  try {
+    const [{ fetchPlayerPreferences }, { pinnedRivalsFor }] = await Promise.all([
+      import('../../../services/supabase/playerPreferences'),
+      import('../../../services/supabase/playerPreferencesModel'),
+    ])
+    const preferences = await fetchPlayerPreferences()
+    return {
+      kind: 'ok',
+      pinned: pinnedRivalsFor(preferences, tournamentId).includes(playerId),
+    }
+  } catch {
     return { kind: 'failed' }
   }
 }

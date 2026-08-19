@@ -395,7 +395,7 @@
 
 .markOff {
   color: var(--vnext-warn);
-  /* Contract 207: the note stacks under the word, the same way the awaiting and
+  /* Contract 209: the note stacks under the word, the same way the awaiting and
      finished marks stack theirs. Without the column the "New date to be
      confirmed" line sits beside "Postponed" and pushes the score column. */
   flex-direction: column;

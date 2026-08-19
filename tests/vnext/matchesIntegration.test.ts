@@ -455,7 +455,7 @@ describe('the accessible summary', () => {
   it('names a postponement rather than describing a kick-off that will not happen', () => {
     const model = buildMatchesModel(source({ fixtures: [fixture({ status: 'postponed' })] }))
 
-    // Contract 207. The sentence carries the note, because "postponed" on its
+    // Contract 209. The sentence carries the note, because "postponed" on its
     // own leaves the question the card answers visually — is there a new
     // date? — unanswered for anyone listening rather than looking.
     expect(first(first(model.days).matches).accessibleSummary).toBe(
@@ -879,7 +879,7 @@ describe('the Match Centre mapping', () => {
 })
 
 /* ==========================================================================
-   CONTRACT 207 — THE LIFECYCLE, AS THE SURFACES SEE IT
+   CONTRACT 209 — THE LIFECYCLE, AS THE SURFACES SEE IT
    ========================================================================== */
 
 /**
@@ -938,7 +938,7 @@ describe('abnormal fixture state', () => {
   })
 
   it('still refuses a provider that reports a postponement the platform has not applied', () => {
-    // Contract 207 moved this decision to the ingestion boundary, where it is
+    // Contract 209 moved this decision to the ingestion boundary, where it is
     // recorded and reversible. It did NOT move it here, and a payload whose two
     // halves disagree still resolves to the platform's half.
     const state = matchStateOf(

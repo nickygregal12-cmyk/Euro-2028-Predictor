@@ -1,4 +1,4 @@
--- Contract 207 — a postponement reaches the fixture, and a reschedule reaches
+-- Contract 209 — a postponement reaches the fixture, and a reschedule reaches
 -- it back.
 --
 -- ===========================================================================
@@ -382,7 +382,7 @@ create table predictor_internal.season_fixture_lifecycle_transitions (
 );
 
 comment on table predictor_internal.season_fixture_lifecycle_transitions is
-  'Contract 207. Append-only record of every fixture status this platform moved '
+  'Contract 209. Append-only record of every fixture status this platform moved '
   'on a provider''s word, and the response it moved it on.';
 
 alter table predictor_internal.season_fixture_lifecycle_transitions
@@ -682,7 +682,7 @@ begin
     -- Two refusals, both fail-closed and both counted rather than raised, so
     -- one awkward fixture cannot stop the rest of a season importing.
     --
-    -- CONTRACT 207: `postponed` is admitted. A played, abandoned or voided
+    -- CONTRACT 209: `postponed` is admitted. A played, abandoned or voided
     -- fixture's kickoff is a historical fact; a postponed one's is a plan that
     -- fell through, and the replacement plan is the thing being imported.
     -- A kickoff moved into the past would retroactively close a lock that was
@@ -786,13 +786,13 @@ begin
     return null;
   end if;
 
-  -- CONTRACT 207. A fixture that will not be played has nothing to predict, and
+  -- CONTRACT 209. A fixture that will not be played has nothing to predict, and
   -- one voided before its kickoff would otherwise stay editable.
   if v_fixture.status in ('void', 'abandoned') then
     return '-infinity'::timestamptz;
   end if;
 
-  -- CONTRACT 207. A postponed fixture's kickoff is where it WAS due. While that
+  -- CONTRACT 209. A postponed fixture's kickoff is where it WAS due. While that
   -- instant is behind us it is not a deadline — locking on it is the permanent
   -- lock a postponement must never create. While it is ahead of us it IS the
   -- deadline, whatever the provider is still calling the fixture, because that
@@ -965,10 +965,10 @@ begin
                end) then
       -- INGEST-003.
       --
-      -- CONTRACT 207 added the guard above, and it is the ONLY change to this
+      -- CONTRACT 209 added the guard above, and it is the ONLY change to this
       -- function. A proposal asks an administrator to decide something; a
       -- fixture the platform already holds in the state the proposal would set
-      -- has nothing left to decide, and contract 207's applier now reaches
+      -- has nothing left to decide, and contract 209's applier now reaches
       -- `postponed` on its own. Without the guard every automatically applied
       -- postponement would also queue a pending proposal reading
       -- "we_already_hold_it_as_postponed" — a request for a decision that has
@@ -1208,7 +1208,7 @@ begin
             'ordinal', round.ordinal,
             'label', round.label),
 
-          -- CONTRACT 207. See this migration's section 7.
+          -- CONTRACT 209. See this migration's section 7.
           'schedule', jsonb_build_object(
             'kickoff_confirmed', fixture.status <> 'postponed',
             'rescheduled', exists (
@@ -1334,7 +1334,7 @@ begin
              'ordinal', round.ordinal,
              'label', round.label),
 
-           -- CONTRACT 207. Field for field with contract 139's list entry, for
+           -- CONTRACT 209. Field for field with contract 139's list entry, for
            -- the reason contract 148 gives: a fixture must look identical
            -- whether it arrived from the calendar or from a link.
            'schedule', jsonb_build_object(
@@ -1497,7 +1497,7 @@ begin
             'kickoffs', predictor_internal.import_provider_fixture_revisions(
               v_row.provider, v_tournament_id, v_row.normalized_payload,
               v_row.raw_response_id, p_now),
-            -- CONTRACT 207. The two reversible status transitions a provider
+            -- CONTRACT 209. The two reversible status transitions a provider
             -- may cause. See this migration's section 8 for why it sits here.
             'lifecycle', predictor_internal.apply_provider_fixture_lifecycle(
               v_row.provider, v_tournament_id, v_row.normalized_payload,

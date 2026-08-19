@@ -3,7 +3,7 @@ import { formatKickoffTime, formatMatchDay } from '../time/kickoff'
 /**
  * WHAT TO SAY ABOUT A FIXTURE WHOSE SLOT IS NOT WHAT IT LOOKS LIKE.
  *
- * Contract 207. The kickoff on a postponed fixture is a real instant and NOT a
+ * Contract 209. The kickoff on a postponed fixture is a real instant and NOT a
  * plan — it is where the match was due, or where it is now due once a
  * replacement has been recorded — so the words beside it are the whole
  * difference between a reader turning up and a reader not.

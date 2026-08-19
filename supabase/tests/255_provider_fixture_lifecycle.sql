@@ -1,4 +1,4 @@
--- Contract 207: a postponement reaches the fixture, and a reschedule reaches it
+-- Contract 209: a postponement reaches the fixture, and a reschedule reaches it
 -- back.
 --
 -- THE ASSERTION THIS FILE EXISTS FOR is the round trip, driven end to end from
@@ -82,7 +82,7 @@ select ok(
 
 -- ---------------------------------------------------------------------------
 -- Setup. One matchweek inside the seeded league season, four clubs, two
--- fixtures, mapped to football-data. Contract 207's rules are provider-neutral
+-- fixtures, mapped to football-data. Contract 209's rules are provider-neutral
 -- and football-data has the clearest published vocabulary, so the transitions
 -- are driven with it.
 -- ---------------------------------------------------------------------------
@@ -128,19 +128,19 @@ insert into public.provider_entity_map
   (provider, entity_kind, provider_id, tournament_id, competition_round_id, team_id, evidence_ref)
 values
   ('football-data', 'round', 'PFL-R1', current_setting('test.pfl_season')::uuid,
-   current_setting('test.pfl_round')::uuid, null, '253_provider_fixture_lifecycle.sql'),
+   current_setting('test.pfl_round')::uuid, null, '255_provider_fixture_lifecycle.sql'),
   ('football-data', 'team', 'PFL-T1', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle Rovers'), '253_provider_fixture_lifecycle.sql'),
+     and name = 'Lifecycle Rovers'), '255_provider_fixture_lifecycle.sql'),
   ('football-data', 'team', 'PFL-T2', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle United'), '253_provider_fixture_lifecycle.sql'),
+     and name = 'Lifecycle United'), '255_provider_fixture_lifecycle.sql'),
   ('football-data', 'team', 'PFL-T3', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle Athletic'), '253_provider_fixture_lifecycle.sql'),
+     and name = 'Lifecycle Athletic'), '255_provider_fixture_lifecycle.sql'),
   ('football-data', 'team', 'PFL-T4', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle Wanderers'), '253_provider_fixture_lifecycle.sql');
+     and name = 'Lifecycle Wanderers'), '255_provider_fixture_lifecycle.sql');
 
 -- One decoded entry, in the shape contract 96 stores. The kickoff travels with
 -- it because a real payload always carries one, including on the responses that
@@ -249,7 +249,7 @@ select is(
 -- 3b. The queue asks a human only where a human still has something to decide.
 --
 -- Contract 174 stages a proposal for every postponement, abandonment and
--- cancellation a provider reports. Contract 207 now REACHES `postponed` on its
+-- cancellation a provider reports. Contract 209 now REACHES `postponed` on its
 -- own, so a proposal for one is a request for a decision that has already been
 -- taken — and a queue of those is worse than no queue, because an administrator
 -- learns to clear it without reading it.
@@ -573,13 +573,13 @@ insert into public.provider_entity_map
   (provider, entity_kind, provider_id, tournament_id, competition_round_id, team_id, evidence_ref)
 values
   ('sportmonks', 'round', 'PFL-SM-R1', current_setting('test.pfl_season')::uuid,
-   current_setting('test.pfl_round')::uuid, null, '253_provider_fixture_lifecycle.sql'),
+   current_setting('test.pfl_round')::uuid, null, '255_provider_fixture_lifecycle.sql'),
   ('sportmonks', 'team', 'PFL-SM-T1', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle Sporting'), '253_provider_fixture_lifecycle.sql'),
+     and name = 'Lifecycle Sporting'), '255_provider_fixture_lifecycle.sql'),
   ('sportmonks', 'team', 'PFL-SM-T2', current_setting('test.pfl_season')::uuid, null,
    (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
-     and name = 'Lifecycle Corinthians'), '253_provider_fixture_lifecycle.sql');
+     and name = 'Lifecycle Corinthians'), '255_provider_fixture_lifecycle.sql');
 
 insert into public.season_fixtures
   (tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)

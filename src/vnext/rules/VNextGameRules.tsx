@@ -4,6 +4,7 @@ import {
   SEASON_JOKERS_PER_SEASON,
   SEASON_PREDICTOR_POINTS,
 } from '../../domain/season/scoring'
+import { CUP_TIE_MATCH_POINTS } from '../../domain/season/cupTieSettlement'
 import text from '../foundations/typography.module.css'
 import styles from './rules.module.css'
 
@@ -44,12 +45,18 @@ import styles from './rules.module.css'
  *
  * ============================ IT EXPLAINS ONLY WHAT IT KNOWS ============
  *
- * The Match Predictor's scoring is a domain constant and is stated exactly.
- * Last Man Standing's lives, saves and draws rule are the ORGANISER'S stored
- * settings, and the Championship's tie-breaks belong to the settlement
- * authority. Where a caller holds those it passes them in; where it does not,
- * the block says where they are stated rather than printing a default that
- * would be wrong for most competitions.
+ * The Match Predictor's scoring and the Championship's table points are domain
+ * constants and are stated exactly. Last Man Standing's lives, saves and draws
+ * rule are the ORGANISER'S stored settings; where a caller holds those it
+ * passes them in, and where it does not, the block says where they are stated
+ * rather than printing a default that would be wrong for most competitions.
+ *
+ * The Championship's SHAPE is the same kind of fact and gets the same
+ * treatment. Whether a season ends in a knockout depends on how its rounds
+ * divide the calendar — contract 198 exists to compute it, and over 38
+ * matchweeks eighteen entrants reach one and nineteen do not — so this block
+ * describes both phases as things that may happen and states neither as this
+ * competition's plan. The Championship page reads the real answer.
  */
 
 export type RulesGame = 'match-predictor' | 'last-man-standing' | 'championship'
@@ -189,15 +196,63 @@ function ChampionshipRules() {
   return (
     <>
       <p className={`${text.body} ${styles.lead}`}>
-        Play a head-to-head fixture every matchweek, scored from your Match
-        Predictor points.
+        Play a head-to-head tie every matchweek against one other entrant. The
+        Match Predictor points you were scoring anyway decide it — there is
+        nothing extra to enter.
       </p>
-      {/* NO TIE-BREAK LIST. How a drawn tie is settled is the Championship's own
-          authority — extra time, then a Penalty Number — and that vocabulary
-          belongs to the settlement contract rather than to a summary. */}
-      <p className={`${text.micro} ${styles.note}`} data-vnext-zone="rules-elsewhere">
-        How a drawn tie is settled is shown on the tie itself, in the words the
-        competition uses for it.
+
+      {/* PRINTED FROM THE AUTHORITY. `CUP_TIE_MATCH_POINTS` is what
+          `cupTieSettlement.ts` awards and what `cupGroupTable.ts` totals; not
+          one of these three numbers is written here. */}
+      <Rule label="Win a tie" value={`+${CUP_TIE_MATCH_POINTS.win}`} />
+      <Rule label="Draw a tie" value={`+${CUP_TIE_MATCH_POINTS.draw}`} />
+      <Rule label="Lose a tie" value={`+${CUP_TIE_MATCH_POINTS.loss}`} />
+
+      {/* THE NON-OBVIOUS RULE, AND THE ONE WORTH THE SPACE. A player who has
+          just spent a Joker will otherwise expect it to count here. The
+          authority is explicit: "Jokers never apply to Cup scoring, so this
+          module rejects any fixture points outside the raw scale rather than
+          trusting the caller not to have doubled them." */}
+      <p className={`${text.micro} ${styles.note}`}>
+        A tie is scored on the raw {SEASON_PREDICTOR_POINTS.exactScore} and{' '}
+        {SEASON_PREDICTOR_POINTS.correctResult} from each fixture. A Joker
+        doubles your matchweek in the Match Predictor and never your tie.
+      </p>
+
+      {/* THE THREE DECIDERS, IN THE SETTLEMENT AUTHORITY'S OWN ORDER AND ITS
+          OWN WORDS. `TieDecision` is that vocabulary and the Championship page
+          prints the same three phrases on a settled tie — so a reader who saw
+          "Decided in extra time" there can find out here what it meant. A
+          fourth invented step, or a different order, would be this block
+          becoming a second settlement rule. */}
+      <p className={`${text.body} ${styles.lead}`}>If a knockout tie is level</p>
+      <ol className={styles.steps}>
+        <li className={text.micro}>
+          <strong>Extra time.</strong> Whoever was closer on the scorelines
+          themselves goes through.
+        </li>
+        <li className={text.micro}>
+          <strong>The Penalty Number.</strong> Both of you seal a number before
+          the round kicks off. Whoever is closest to the total goals scored
+          across the round's matches goes through. One of you picks odd and the
+          other even, so you can never be equally close.
+        </li>
+        <li className={text.micro}>
+          <strong>A walkover.</strong> Where one of you submitted nothing at
+          all, the other goes through.
+        </li>
+      </ol>
+
+      {/* PROGRESSION, AS THE TABLE AUTHORITY STATES IT. "Points carry through —
+          that is what makes the split a continuation of the same competition
+          rather than a sorting operation, and why finishing sixth rather than
+          seventh matters. Nobody is eliminated." */}
+      <p className={`${text.micro} ${styles.note}`}>
+        The table runs through the season. Partway through, the field splits
+        into two halves and you carry your record with you — nobody is knocked
+        out by the split, and where you finish beforehand decides which half you
+        are in. Some competitions then end in a knockout; the Championship page
+        says whether yours has one.
       </p>
     </>
   )

@@ -75,7 +75,7 @@ describe('the season matches route', () => {
           kickoffAt: '2026-08-08T14:00:00+00:00',
           status: 'scheduled',
           round: { id: 'r2', ordinal: 2, label: 'Matchweek 2' },
-          // Contract 207. The decoder always supplies this, so a mock that
+          // Contract 209. The decoder always supplies this, so a mock that
           // omits it is describing a payload the gateway cannot produce.
           schedule: { kickoffConfirmed: true, rescheduled: false, originalKickoffAt: null },
           home: { name: 'Dundee', tokens: { monogram: 'DUN', primary: '#123456' } },

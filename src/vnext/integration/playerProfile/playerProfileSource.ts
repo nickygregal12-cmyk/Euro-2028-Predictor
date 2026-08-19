@@ -104,6 +104,18 @@ export type RivalryRead =
   | { readonly kind: 'refused' }
   | { readonly kind: 'failed' }
 
+/**
+ * Contract 157's `pinned_rivals`, narrowed to "is THIS player pinned in THIS
+ * season".
+ *
+ * `failed` IS NOT `false`. The preference read is what knows the current state,
+ * and a control drawn off from a failed read would report a choice the player
+ * never made and then toggle the wrong way when pressed.
+ */
+export type PinnedRead =
+  | { readonly kind: 'ok'; readonly pinned: boolean }
+  | { readonly kind: 'failed' }
+
 export type PlayerProfileSource = {
   readonly generatedAt: string
   readonly context: PlayerProfileSourceContext
@@ -111,4 +123,10 @@ export type PlayerProfileSource = {
   readonly profile: ProfileRead
   readonly rankHistory: RankHistoryRead
   readonly rivalry: RivalryRead
+  /**
+   * Whether the caller has pinned this player in this season, or `null` where
+   * the host does not offer the write at all — a story, a preview, or a host
+   * with no session to write from.
+   */
+  readonly pinned: PinnedRead | null
 }

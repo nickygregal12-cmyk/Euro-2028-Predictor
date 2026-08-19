@@ -232,7 +232,23 @@ function world(overrides: Partial<PlayerProfileModel> = {}): PlayerProfileModel 
     rankHistory: { kind: 'history', series: ordinarySeries },
     rivalry: { kind: 'rivalry', detail: ordinaryRivalry },
     ...overrides,
+    // PINNING FOLLOWS THE PROFILE READ, BECAUSE THE SERVER SAYS IT DOES.
+    // `set_pinned_rival` and contract 151's profile read require the same
+    // shared private league, so a world that refuses the profile cannot lawfully
+    // offer a pin — and a world that spelled both out by hand would let the
+    // next one be added in a state the mapper cannot produce.
+    //
+    // AFTER the spread, so a world may still say `pinned` or `unavailable`
+    // where its profile answered: those are real states the same read produces.
+    pin: pinFor(overrides),
   }
+}
+
+function pinFor(overrides: Partial<PlayerProfileModel>): PlayerProfileModel['pin'] {
+  const profile = overrides.profile?.kind ?? 'profile'
+  const isYou = overrides.heading?.isYou ?? false
+  if (isYou || profile !== 'profile') return { kind: 'not-offered' }
+  return overrides.pin ?? { kind: 'not-pinned' }
 }
 
 /* ==========================================================================
@@ -251,6 +267,17 @@ const yourOwnProfile = world({
 })
 
 /** THE BINDING WORLD for the three-boundaries rule. */
+/** Already pinned. The control's other position, which is a stored fact. */
+const alreadyPinned = world({ pin: { kind: 'pinned' } })
+
+/**
+ * The preference read did not answer, and the profile did.
+ *
+ * NO CONTROL IS DRAWN OFF. A pin button in a position nobody chose toggles the
+ * WRONG WAY the first time it is pressed, and the player has no way to know.
+ */
+const pinUnavailable = world({ pin: { kind: 'unavailable' } })
+
 const profileRefused = world({ profile: { kind: 'refused' } })
 
 const rankOnly = world({ profile: { kind: 'refused' }, rivalry: { kind: 'refused' } })
@@ -608,6 +635,8 @@ const rankUnavailable = world({ rankHistory: { kind: 'unavailable' } })
 
 export const playerProfileScenarios = {
   openProfile,
+  alreadyPinned,
+  pinUnavailable,
   yourOwnProfile,
   profileRefused,
   rankOnly,
@@ -646,6 +675,10 @@ export const playerProfileScenarioNames = Object.keys(
 export const playerProfileScenarioPremises: Readonly<
   Record<PlayerProfileScenarioName, string>
 > = {
+  alreadyPinned:
+    'The reader has already pinned this player. The control\u2019s other position, and a stored fact rather than a local one.',
+  pinUnavailable:
+    'The preference read did not answer and the profile did. NO control is drawn off \u2014 a pin button in a position nobody chose toggles the wrong way the first time it is pressed.',
   openProfile:
     'The ordinary visit. All three reads answered: a season, a plotted position and a comparison.',
   yourOwnProfile:

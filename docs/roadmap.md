@@ -383,14 +383,24 @@ same paragraph existed in seven places at once.
 > vocabulary gains more horizon buckets so a better forecast is a new row rather
 > than a discarded one — and a second weekly training pass runs after the
 > weekend's results are published rather than before.
-> Contract 207 fixes what the postponement finding found, and it was not one defect but
+> Contract 209 fixes what the postponement finding found, and it was not one defect but
 > four stacked: the ingestion driver had resolved no season since 10 August, so nothing at
 > all had been imported for nine days; the provider's word for "postponed" was not in the
 > vocabulary; nothing automatic could write that status to a fixture even if it had been;
 > and a fixture once postponed could never take its replacement date. A postponement now
 > applies on the provider's word, reverses on the provider's word, and takes a new date —
 > and a postponed fixture's prediction is neither frozen by a kickoff that never happened
-> nor left open into one that is about to.
+> nor left open into one that is about to.> Contract 208 pays off the second of Stage 12's carried backend debts. It puts
+> the canonical entrant outcome on the Championship bracket read, so elimination
+> is stated by the settlement authority instead of being absent, and it narrows
+> four `stage <> 'group'` predicates so a split fixture is no longer offered as a
+> knockout tie with a Penalty Number lane it has not got.
+
+> Contract 209 pays off the first. It pins `get_season_cup_phase`'s membership
+> lookup to the caller's current phase — the unfiltered version matched both of a
+> split entrant's rows and took one silently, and it is what the production
+> Football Hub calls, not only the vNext lane. Neither number is settled while
+> PR #920 is open: a contract number is the migration's position in the chain.
 
 > Contract 205 fixes what the Stage 12 audit found: the canonical Championship bracket read
 > raised an exception for every entrant in a competition that had reached its split, because

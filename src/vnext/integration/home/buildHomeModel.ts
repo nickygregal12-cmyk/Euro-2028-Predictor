@@ -217,7 +217,7 @@ function statusOf(fixture: SeasonListFixture): MatchStatus {
     case 'final':
       return 'fullTime'
     default:
-      // CONTRACT 207 REMOVED A `live.kind === 'postponed'` CASE FROM HERE, and
+      // CONTRACT 209 REMOVED A `live.kind === 'postponed'` CASE FROM HERE, and
       // the removal is the point rather than a tidy-up. Home used to promote a
       // provider's postponement on its own while `buildMatchesModel` refused
       // to — so the same fixture could read "P–P" on Home and "15:00" in

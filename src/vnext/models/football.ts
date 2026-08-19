@@ -147,7 +147,7 @@ export type Match = {
   readonly kickoff: string
   readonly status: MatchStatus
   /**
-   * WHAT THE PLATFORM SAYS ABOUT THIS FIXTURE'S SLOT (contract 207).
+   * WHAT THE PLATFORM SAYS ABOUT THIS FIXTURE'S SLOT (contract 209).
    *
    * A one-line sentence, decided by the mapper and never by a component, for
    * the two cases where the date beside a match does not mean what it looks

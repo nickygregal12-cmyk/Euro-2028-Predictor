@@ -81,6 +81,17 @@ function AccountHarness({ scenario }: { readonly scenario: AccountScenarioName }
         <VNextAccount
           model={accountScenarios[scenario]}
           onRetry={() => {}}
+          // EVERY WRITE ACCEPTS AND NOTHING HAPPENS. A story must stay
+          // deterministic, so these resolve `ok` without touching an account —
+          // which is enough for the sheets, the switch and the disabled states
+          // to be reviewable, and is why the REFUSAL paths are asserted in the
+          // render tests where a refusing action can be handed in.
+          actions={{
+            setDisplayName: async () => ({ ok: true }),
+            setPassword: async () => ({ ok: true }),
+            setEmail: async () => ({ ok: true }),
+            setReminderEmails: async () => ({ ok: true }),
+          }}
           onIntent={(intent) =>
             setLastIntent(
               intent.kind === 'open-season'
@@ -126,6 +137,11 @@ function frame(scenario: AccountScenarioName, viewport: string): Story {
  * ========================================================================== */
 
 export const Ordinary: Story = board('ordinary', ALL_WIDTHS, 0.42)
+export const EmailPending: Story = board('emailPending', ALL_WIDTHS, 0.42)
+export const RemindersOff: Story = board('remindersOff', ALL_WIDTHS, 0.42)
+export const SettingsUnavailable: Story = board('settingsUnavailable', ALL_WIDTHS, 0.42)
+export const NoSupportAddress: Story = board('noSupportAddress', ALL_WIDTHS, 0.42)
+export const EmailUnknown: Story = board('emailUnknown', ALL_WIDTHS, 0.42)
 export const NewAccount: Story = board('newAccount', ALL_WIDTHS, 0.42)
 export const ManyFollows: Story = board('manyFollows', ALL_WIDTHS, 0.42)
 
@@ -169,6 +185,10 @@ export const FrameArchivedPhone: Story = frame('archivedSeason', 'phone-375')
 export const FrameNewAccountPhone: Story = frame('newAccount', 'phone-375')
 export const FrameBothUnavailablePhone: Story = frame('bothUnavailable', 'phone-375')
 export const FrameFinishedPhone: Story = frame('finishedSeason', 'phone-375')
+export const FrameEmailPendingPhone: Story = frame('emailPending', 'phone-375')
+export const FrameEmailPendingDesktop: Story = frame('emailPending', 'desktop-1920')
+export const FrameSettingsUnavailablePhone: Story = frame('settingsUnavailable', 'phone-375')
+export const FrameNoSupportPhone: Story = frame('noSupportAddress', 'phone-375')
 
 /* ========================================================================== *
  * F. THE LIGHT THEME

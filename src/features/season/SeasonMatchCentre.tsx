@@ -284,7 +284,7 @@ export function SeasonMatchCentreView({
           <span className={styles.clubName}>{fixture.away.name}</span>
         </span>
       </div>
-      {/* CONTRACT 207. The matchweek, then the kick-off if there is still a
+      {/* CONTRACT 209. The matchweek, then the kick-off if there is still a
           valid one, then the reason there is not. `fixture.kickoff` is already
           null for a postponement with no replacement date — the presenter
           refuses to format an instant that is only a memory — so this line

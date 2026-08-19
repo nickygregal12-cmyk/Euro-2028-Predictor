@@ -223,7 +223,7 @@ describe('live state is honest', () => {
         .filter((node) => node.getAttribute('data-vnext-match-row') === 'fixture-pp-1'),
     )
 
-    // Contract 207. "Postponed" beside an empty score column leaves a reader
+    // Contract 209. "Postponed" beside an empty score column leaves a reader
     // asking the one question the row exists to answer.
     expect(row.textContent).toContain('New date to be confirmed')
   })

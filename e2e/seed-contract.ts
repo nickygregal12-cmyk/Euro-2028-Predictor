@@ -128,21 +128,41 @@
  * created, and against which the three new assertions ERROR rather than fail
  * before the fix.
  *
- * Contract 206 adds the bounded same-season profile read keyed by the season's
- * `entries.id` playerRef and widens `resolve_season_player.canViewProfile` for
- * compare reach. It deliberately leaves the legacy UUID profile path, pinned
- * rivals and Prediction DNA at their narrower boundaries, and it does not add
- * a new membership or seed prerequisite to the caller's own authenticated
- * journey.
+ * Contracts 207 and 208 redefine exactly one function each —
+ * `get_season_cup_phase` and `get_season_cup_bracket` — at their existing
+ * signatures and with their existing grants. Nothing is added to the schema,
+ * nothing is removed, and NO GATE MOVES: both reads were already
+ * `authenticated`-only and already gated on entrancy, 207 narrows a membership
+ * lookup to a determinate row and 208 narrows a stage predicate and emits one
+ * more column of a row it already read. A seeded player who has entered no
+ * Championship gets `{entered: false}` from both, exactly as before; the
+ * deterministic seed creates no Championship at all, let alone one that has
+ * reached the split phase either defect required.
  *
- * The marker is raised on execution evidence, not on that reasoning. At exact
- * Contract-206 head `bfe9252`, Database parity (`local-supabase`) run
- * 32285274468 and Browser E2E run 32285274480 both passed against all 206
- * migrations, including the deterministic seeded authenticated journeys. Later
- * heads only re-anchored moving main and renamed the byte-identical pgTAP suite;
- * they did not change the Contract-206 migration or seed requirements.
+ * Contract 206 beneath them adds the bounded same-season profile read keyed by
+ * the season's `entries.id` playerRef and widens `resolve_season_player.
+ * canViewProfile` for compare reach. It deliberately leaves the legacy UUID
+ * profile path, pinned rivals and Prediction DNA at their narrower boundaries,
+ * and it does not add a new membership or seed prerequisite to the caller's own
+ * authenticated journey. At exact Contract-206 head `bfe9252`, Database parity
+ * (`local-supabase`) run 32285274468 and Browser E2E run 32285274480 both
+ * passed against all 206 migrations, including the deterministic seeded
+ * authenticated journeys.
  *
- * Contract 207 adds two read-only fields to two existing `authenticated` reads
+ * **THE RUNS FOR 207 AND 208 ARE OWED AND ARE NOT YET CITED.** The marker is
+ * raised on runs rather than on the paragraph above, and the two jobs at this
+ * branch's exact head have not been observed. What HAS been proved, locally on
+ * a disposable PostgreSQL 16 against the real key shapes: the pre-207 phase
+ * lookup returns the PRE-SPLIT group for a both-memberships entrant and the
+ * pinned one returns the split group, with the unsplit entrant's and the
+ * non-entrant's payloads byte-identical either way; and the pre-208 bracket
+ * read offers a `split` fixture as a live knockout tie with `drawn: true` and
+ * an empty bracket, where 208 returns no tie, `drawn: false` and the caller's
+ * own outcome. Both migrations' in-transaction guards and negative controls
+ * were exercised. Fill in the Database-parity and Browser-E2E run ids here once
+ * they are green at the exact head, or lower this marker back to 206.
+ *
+ * Contract 209 adds two read-only fields to two existing `authenticated` reads
  * and one internal table no role can reach. `get_season_fixtures` and
  * `get_season_fixture` keep their signatures, their volatility, their
  * `authenticated`-only grants and their league-season refusal; each gains a
@@ -158,14 +178,12 @@
  * branches are reachable only from `postponed`, `void` and `abandoned`, none of
  * which the seed creates, so no seeded prediction's deadline moves.
  *
- * The marker is raised on the runs, not on that paragraph. Both jobs are
- * expected to run against a database holding all 207 migrations on this
- * boundary's own pull request, and the run identifiers are recorded here before
- * it merges; if either fails, the marker comes back down rather than the run
- * being explained away. The database-parity run carries pgTAP suite 253, which
- * drives the whole lifecycle from decoded provider payloads rather than by
- * setting a status by hand. */
-export const SEED_REVIEWED_AT_CONTRACT = 207
+ * **THE RUNS FOR 209 ARE OWED TOO.** Its evidence outside CI is a replay of
+ * Development's own archived provider response and pgTAP suite 255, neither of
+ * which is a CI run. Fill in the Database-parity and Browser-E2E run ids here
+ * once they are green at the exact head, or lower this marker back.
+ */
+export const SEED_REVIEWED_AT_CONTRACT = 209
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

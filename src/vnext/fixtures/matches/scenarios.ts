@@ -626,7 +626,7 @@ const noMatches: MatchesModel = model({
  * has no kickoff at all — a rearranged fixture the league has not timed yet,
  * which is a real row and not a broken one.
  *
- * CONTRACT 207 ADDS THE OTHER TWO ROWS OF THE LIFECYCLE, and the reason they
+ * CONTRACT 209 ADDS THE OTHER TWO ROWS OF THE LIFECYCLE, and the reason they
  * are in this scenario rather than a new one is that they only mean anything
  * beside each other. All four rows below are "this fixture is not where you
  * left it", and a reader has to be able to tell them apart AT A GLANCE:

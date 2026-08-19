@@ -67,7 +67,17 @@ export function VNextGames({
         <VNextPageHeader
           title="Games"
           competition={`${context.competitionName} · ${context.seasonLabel}`}
-          context="This season"
+          /* WHAT A "GAME" IS, IN THE SLOT THAT ALREADY EXISTS.
+             `Matches` and `Games` are two of the four destinations and they
+             mean different things — football fixtures, and the prediction games
+             played over them. Matches already tells a reader which it is: its
+             own subtitle is the round's own label, "Matchweek 12". This one
+             said "This season", which is true of every destination and
+             therefore distinguishes nothing.
+             THE FIX IS THE COPY AND NOT THE IA. A third word in the navigation,
+             a "Predictions & Games & Matches", another level or a More menu
+             would all be answering a comprehension question with structure. */
+          context="Ways to play this competition"
         />
       }
     >

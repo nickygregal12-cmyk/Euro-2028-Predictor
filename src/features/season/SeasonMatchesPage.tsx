@@ -138,7 +138,7 @@ function Match({
       {/* The matchweek, only where the day carries more than one — which is
           exactly when a reader needs telling. And the provisional marker, only
           where a provisional score is being shown in place of a result. */}
-      {/* CONTRACT 207 ADDS THE THIRD REASON THIS LINE EXISTS. A fixture that is
+      {/* CONTRACT 209 ADDS THE THIRD REASON THIS LINE EXISTS. A fixture that is
           not going ahead as printed says so here, beside the matchweek, because
           the slot above it now shows a dash rather than a kick-off nobody can
           turn up for — and a dash on its own says nothing. */}
