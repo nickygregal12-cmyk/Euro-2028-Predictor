@@ -108,8 +108,27 @@
  * `dataApiExposure.test.ts`, which had to be told about the new view before it
  * would pass -- so the run proves the view is unreachable from `anon` and
  * `authenticated` rather than merely unmentioned.
+ *
+ * Contract 205 redefines exactly one function, `get_season_cup_bracket`, at its
+ * existing signature and with its existing grants, so that the caller's seed
+ * lookup names the membership phase it means. Nothing is added, nothing is
+ * removed, and no gate moves: the read was already `authenticated`-only and
+ * already gated on entrancy, and the correction narrows a subquery rather than
+ * widening any permission. A seeded player who has entered no Championship gets
+ * `{entered: false}` from it, exactly as they did at 193 when the read was
+ * introduced — and the deterministic seed creates no Championship at all, let
+ * alone one that has reached the split phase the defect required.
+ *
+ * The marker is raised on the runs, not on that paragraph. Both jobs passed at
+ * the exact head `4cc7b13`: Database parity (`local-supabase`) run 32238551585
+ * and Browser E2E (`authenticated-browser`) run 32238551632, against a database
+ * holding all 205 migrations. The database-parity run carries pgTAP suite 241,
+ * which contract 205 extends with an entrant holding BOTH an `initial` and a
+ * `split` membership — the defect's own precondition, which no existing suite
+ * created, and against which the three new assertions ERROR rather than fail
+ * before the fix.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 204
+export const SEED_REVIEWED_AT_CONTRACT = 205
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

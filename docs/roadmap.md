@@ -383,6 +383,12 @@ same paragraph existed in seven places at once.
 > vocabulary gains more horizon buckets so a better forecast is a new row rather
 > than a discarded one — and a second weekly training pass runs after the
 > weekend's results are published rather than before.
+> Contract 205 fixes what the Stage 12 audit found: the canonical Championship bracket read
+> raised an exception for every entrant in a competition that had reached its split, because
+> its seed lookup did not say which membership phase it meant. One line, pinned to the
+> initial membership — the only phase a seed can live in. Nothing calls the read yet; Stage
+> 12 is about to.
+
 > Contract 204 fixes what the rehearsal found: the AI Lab dashboards answered a
 > league question with a lab-wide quarantine count. The number is scoped now, and
 > the suite that always asserted it seeds a second league so it can never pass

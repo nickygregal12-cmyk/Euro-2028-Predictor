@@ -19,7 +19,7 @@
 
 begin;
 
-select plan(16);
+select plan(19);
 
 insert into public.tournaments (name, year, competition_id, season_key, kind, display_timezone, status)
 select 'C193 Bracket Probe', 2069, t.competition_id, 'cup-bracket', 'league_season',
@@ -194,6 +194,74 @@ select ok(
   (public.get_season_cup_bracket(md5('cb-cup')::uuid) #>> '{penalty_number,value}')::integer = 84
     and public.get_season_cup_bracket(md5('cb-cup')::uuid)::text not like '%: 37%',
   'the away side sees their own value and not the home side''s');
+
+-- ---------------------------------------------------------------------------
+-- CONTRACT 205: the read survives a split.
+--
+-- Contract 102 keyed `bonus_cup_members` `(competition_id, user_id,
+-- phase_kind)` so ONE ENTRANT MAY HOLD TWO ROWS, and contract 124's split
+-- transition inserts the second without deleting the first. Contract 193's
+-- `your_seed` was a SCALAR subquery filtered by competition and user only, so
+-- from that moment it matched two rows and raised
+--
+--     more than one row returned by a subquery used as an expression
+--
+-- which failed the WHOLE read — format, qualification, my_tie, penalty_number,
+-- my_ties, bracket and champion — for every entrant in the competition.
+--
+-- So the seeding below is the defect's own precondition: user 1 keeps the
+-- `initial` row asserted above and gains the `split` row a real split would
+-- give them. Before contract 205 the next three assertions do not fail, they
+-- ERROR.
+--
+-- Note the split row carries no seed, no group_position and no qualified_as:
+-- `bonus_cup_members_split_metadata_empty` forbids all three, which is exactly
+-- why `initial` is the phase the lookup must name rather than merely a
+-- convenient tie-break.
+-- ---------------------------------------------------------------------------
+
+reset role;
+
+-- `ordinal` 2 because the original `unique (competition_id, ordinal)` survives
+-- contract 102 untouched, and `parent_group_id` because
+-- `bonus_cup_groups_parent_shape` requires a split group to name the initial
+-- group whose table it divided.
+insert into public.bonus_cup_groups
+  (id, competition_id, ordinal, size, phase_kind, parent_group_id)
+values (md5('cb-grp-split')::uuid, md5('cb-cup')::uuid, 2, 4, 'split',
+        md5('cb-grp')::uuid);
+
+insert into public.bonus_cup_members
+  (competition_id, group_id, user_id, draw_number, phase_kind)
+select md5('cb-cup')::uuid, md5('cb-grp-split')::uuid, md5('cb-user-' || n)::uuid, n, 'split'
+from generate_series(1, 4) as n;
+
+select set_config('request.jwt.claims',
+  json_build_object('sub', md5('cb-user-1')::uuid, 'role', 'authenticated',
+                    'app_metadata', json_build_object())::text, true);
+set local role authenticated;
+
+select set_config('test.cb_split',
+  public.get_season_cup_bracket(md5('cb-cup')::uuid)::text, true);
+
+select is(
+  (current_setting('test.cb_split')::jsonb #>> '{qualification,your_seed}')::integer,
+  1,
+  'a split entrant still reads the seed from their INITIAL membership');
+
+select is(
+  (current_setting('test.cb_split')::jsonb #>> '{qualification,you_qualified}')::boolean,
+  true,
+  'and still reads as qualified, because a split row carries no seed to confuse it');
+
+-- The read as a whole survives, which is the part that was actually broken:
+-- the exception took every other field with it.
+select is(
+  current_setting('test.cb_split')::jsonb #>> '{my_tie,opponent,display_name}',
+  'Bracket 2',
+  'and the rest of the payload is unharmed by the second membership row');
+
+reset role;
 
 -- ---------------------------------------------------------------------------
 -- A stranger learns nothing, including whether the competition exists.
