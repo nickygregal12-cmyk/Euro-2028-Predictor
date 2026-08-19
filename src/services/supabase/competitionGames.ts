@@ -34,6 +34,25 @@ const SEASON_STATUSES: readonly string[] = [
 type SeasonRow = { id: string; name: string; status: string | null }
 
 /**
+ * ONE SEASON'S GAME CATALOGUE, and the caller's membership in each.
+ *
+ * `fetchHubMembership` answers the same question for MANY seasons and is keyed
+ * on season NAMES, because the Hub knows names and not ids. A surface already
+ * holding a tournament id needs neither the name lookup nor the fan-out, and
+ * running the many-season path for one season would issue a `tournaments` query
+ * to rediscover an id it was handed.
+ *
+ * The decoder is the same one, so the shape rules cannot drift between them.
+ */
+export async function fetchSeasonGames(tournamentId: string): Promise<SeasonGames> {
+  const { data, error } = await db.rpc('get_competition_games', {
+    p_tournament_id: tournamentId,
+  })
+  if (error) throw error
+  return decodeSeasonGames(data)
+}
+
+/**
  * Fetch the caller's real game membership for the named seasons.
  *
  * Returns one entry per season the database actually holds; names it does not

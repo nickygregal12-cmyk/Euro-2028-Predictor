@@ -35,8 +35,19 @@ import styles from './VNextShell.module.css'
 export type VNextShellProps = {
   /** The page. The shell has no opinion about what is in here. */
   children: ReactNode
-  /** Which competition-scoped destination this page is. */
-  destination: ShellDestinationId
+  /**
+   * Which competition-scoped destination this page is, or `'none'`.
+   *
+   * `'none'` IS FOR A PAGE THAT IS LEGITIMATELY OUTSIDE THE FOUR, not for one
+   * that has not been assigned yet. Account is the first: the matrix keeps the
+   * player's platform identity deliberately outside the tournament boundary, so
+   * it is reached from the avatar rather than from the navigation, and no
+   * destination should light up while the player is there. The navigation
+   * compares `item.id === activeId` and simply matches nothing, which is the
+   * behaviour wanted — stated here so the next page outside the four does not
+   * reach for one of them at random.
+   */
+  destination: ShellDestinationId | 'none'
   /** Use `VNextPageHeader`. See the heading contract below. */
   header?: ReactNode
   /**

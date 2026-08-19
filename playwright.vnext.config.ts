@@ -67,6 +67,13 @@ export default defineConfig({
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic
     // fixtures, so there is nothing for a dev harness to show.
+    // Stage 13, the supporting surfaces. Same terms as the rest, and here the
+    // browser closes a gap rather than adding a flourish: five surfaces landed
+    // with no browser measurement at all. Onboarding is the reason it matters
+    // most. Every step of it is a control, on a phone, operated by somebody who
+    // has used the product for ninety seconds, and a target under 44px there
+    // costs a player their setup rather than a scroll position.
+    'vnext-supporting.spec.ts',
     'vnext-ia.spec.ts',
   ],
   fullyParallel: false,

@@ -29,7 +29,10 @@ export function buildShellModel(source: ShellSource): VNextShellModel {
       name: source.playerName ?? 'Your account',
       initials: initialsOf(source.playerName),
     },
-    contexts: [
+    // NO COMPETITION MEANS NO CONTEXT, not an invented one. A page outside a
+    // competition renders with an empty switcher and a null active context,
+    // which is the state the shell model documents and has always supported.
+    contexts: competition === null ? [] : [
       {
         competition: {
           id: competition.tournamentId,
@@ -53,7 +56,7 @@ export function buildShellModel(source: ShellSource): VNextShellModel {
         leagues: [],
       },
     ],
-    activeContextId: competition.tournamentId,
+    activeContextId: competition === null ? null : competition.tournamentId,
     destinations:
       outstanding === null || outstanding <= 0
         ? SHELL_DESTINATIONS

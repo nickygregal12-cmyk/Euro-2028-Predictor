@@ -143,3 +143,70 @@ export {
   championshipScenarios,
 } from './championship/scenarios'
 export type { ChampionshipScenarioName } from './championship/scenarios'
+
+/**
+ * Stage 13's Account worlds. Same rule again — and one addition worth naming:
+ * the binding world here is `unnameableFollow`, a follow no read this page
+ * makes can put a name to. A fixture that quietly gave it a name would hide the
+ * one state the surface exists to handle honestly.
+ */
+export {
+  accountScenarioNames,
+  accountScenarioPremises,
+  accountScenarios,
+} from './account/scenarios'
+export type { AccountScenarioName } from './account/scenarios'
+
+/**
+ * Stage 13's Games hub worlds. The binding world here is `leftAndUncertain`: a
+ * player who left the one game whose catalogue row refuses a rejoin once the
+ * competition is running. A fixture that resolved that into a yes or a no would
+ * be asserting a fact `competition_is_running` withholds from every browser.
+ */
+export {
+  gamesScenarioNames,
+  gamesScenarioPremises,
+  gamesScenarios,
+} from './games/scenarios'
+export type { GamesScenarioName } from './games/scenarios'
+
+/**
+ * Stage 13's Discovery worlds. The binding world is `followUnknown`: the
+ * preferences read failed, so the page draws no follow control at all. A
+ * fixture that resolved that into a yes or a no would hide the state this
+ * surface is careful about — following is an upsert, and a follow re-sent for a
+ * competition already followed clears the player's favourite club.
+ */
+export {
+  discoveryScenarioNames,
+  discoveryScenarioPremises,
+  discoveryScenarios,
+} from './discovery/scenarios'
+export type { DiscoveryScenarioName } from './discovery/scenarios'
+
+/**
+ * Stage 13's Invite worlds. Every refusal the server can make has a world,
+ * because the binding property of that surface is that it never offers a button
+ * the database would refuse — and a fixture set holding only the happy path
+ * would let that be reviewed as "there is a Join button, good".
+ */
+export {
+  inviteScenarioNames,
+  inviteScenarioPremises,
+  inviteScenarios,
+} from './invite/scenarios'
+export type { InviteScenarioName } from './invite/scenarios'
+
+/**
+ * Stage 13's onboarding worlds. The binding world is `games`: it holds a game
+ * the player has ALREADY JOINED beside one they can choose, because those two
+ * must never look alike — an unticked box would invite a player to choose what
+ * they already have, and a ticked one would make Finish look like it were about
+ * to join them twice.
+ */
+export {
+  onboardingScenarioNames,
+  onboardingScenarioPremises,
+  onboardingScenarios,
+} from './onboarding/scenarios'
+export type { OnboardingScenarioName } from './onboarding/scenarios'

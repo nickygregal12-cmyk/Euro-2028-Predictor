@@ -1,0 +1,184 @@
+/* vNEXT GAMES — the competition's games, as peers.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * masthead, both navigations, the `<main>` landmark and the mobile bottom
+ * spacing are the shell's.
+ *
+ * EVERY GAME ROW IS THE SAME SIZE, at every width, and none may be given a
+ * feature treatment. The one surface where the three games are peers stops
+ * being that the moment one of them is drawn larger — and the argument would
+ * always be "but most people play the Main Predictor", which is how Last Man
+ * Standing got under-scoped in the first place.
+ *
+ * NO NAME IS EVER CLIPPED. No `text-overflow`, no line clamp — a row grows.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. Where a player stands is a sentence, a
+ * game that is not running says so in words, and a row with no way in simply
+ * has no Join button rather than a greyed-out one.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.group + .group {
+  margin-top: var(--vnext-space-5);
+}
+
+.groupHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- one game --------------------------------------------------------------- */
+
+.row {
+  /* WRAPS. A long game name and two 44px controls do not share one line at
+     320px, and the name is the half that must not be pushed off. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+/* The player's own games carry weight, NOT size. Every row stays the same
+   height, because peers are peers. */
+.row[data-standing='playing'] {
+  border-color: var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-raised);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.rowTitle {
+  margin: 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.inactive {
+  margin: 0;
+  color: var(--vnext-text-muted);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: center;
+}
+
+.rowAction,
+.rowJoin,
+.retry {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+/* The one affordance that changes something. It is the only accented control
+   on the page, because it is the only one that writes. */
+.rowJoin {
+  border-color: transparent;
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+.rowAction:hover,
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.rowJoin:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.rowAction:focus-visible,
+.rowJoin:focus-visible,
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the states that are not a list ----------------------------------------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  margin: 0;
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- regular ---------------------------------------------------------------- */
+
+@container vnext-page (min-width: 700px) {
+  /* TWO ACROSS, and every card the same. `1fr 1fr` rather than `auto-fit` so a
+     group of three never leaves one game stretched across a whole row looking
+     like the important one. */
+  .list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+  }
+
+  .row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .rowActions {
+    margin-top: auto;
+  }
+}

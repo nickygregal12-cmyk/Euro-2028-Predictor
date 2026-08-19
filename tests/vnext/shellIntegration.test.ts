@@ -24,13 +24,21 @@ import {
  * makes that fail loudly instead of shipping.
  */
 
+/**
+ * The competition, named separately so these tests can vary it.
+ * `ShellSource.competition` is nullable — a page outside a competition is a
+ * real state — and spreading a nullable field is not the assertion any test
+ * here is making.
+ */
+const COMPETITION = {
+  tournamentId: 'tournament-1',
+  name: 'Scottish Premiership',
+  seasonLabel: '2026/27',
+  colours: { primary: '#0b2a4a', accent: '#7fc7ff' },
+} as const
+
 const SOURCE: ShellSource = {
-  competition: {
-    tournamentId: 'tournament-1',
-    name: 'Scottish Premiership',
-    seasonLabel: '2026/27',
-    colours: { primary: '#0b2a4a', accent: '#7fc7ff' },
-  },
+  competition: COMPETITION,
   playerName: 'Rowan Adeyemi',
   outstandingPredictions: 3,
   canNavigateAway: true,
@@ -66,11 +74,11 @@ describe('the connected shell states one football context', () => {
 
   it('paints an unknown competition neutrally rather than in the launch colours', () => {
     const colours = shellActiveContext(
-      buildShellModel({ ...SOURCE, competition: { ...SOURCE.competition, colours: null } }),
+      buildShellModel({ ...SOURCE, competition: { ...COMPETITION, colours: null } }),
     )?.competition.colours
 
     expect(colours).toBeDefined()
-    expect(colours).not.toEqual(SOURCE.competition.colours)
+    expect(colours).not.toEqual(COMPETITION.colours)
   })
 
   it('derives a monogram from the competition’s own words', () => {
@@ -79,7 +87,7 @@ describe('the connected shell states one football context', () => {
       shellActiveContext(
         buildShellModel({
           ...SOURCE,
-          competition: { ...SOURCE.competition, name: 'Bundesliga' },
+          competition: { ...COMPETITION, name: 'Bundesliga' },
         }),
       )?.competition.monogram,
     ).toBe('BU')
@@ -162,5 +170,51 @@ describe('the player is presentation and never an identity', () => {
     const player = buildShellModel({ ...SOURCE, playerName: null }).player
     expect(player.name).toBe('Your account')
     expect(player.initials).toBe('·')
+  })
+})
+
+/**
+ * A PAGE THAT IS NOT INSIDE A COMPETITION.
+ *
+ * `VNextShellModel.activeContextId` has always been nullable, documented as "a
+ * REAL state — a new account that has followed nothing — and the shell must
+ * answer it without inventing a competition to be inside". Only `ShellSource`
+ * could not express it, so no connected page could reach that state. Account is
+ * the first that must: the route matrix keeps platform identity deliberately
+ * outside the tournament boundary.
+ */
+describe('the shell can be chrome for a page outside every competition', () => {
+  const PLATFORM: ShellSource = { ...SOURCE, competition: null }
+
+  it('is in no context rather than in an invented one', () => {
+    const model = buildShellModel(PLATFORM)
+    expect(model.activeContextId).toBeNull()
+    expect(shellActiveContext(model)).toBeNull()
+  })
+
+  it('offers no context to switch to, rather than a fabricated one', () => {
+    // The module's own header forbids inventing a second context to make an
+    // affordance light up. Inventing the FIRST one is the same mistake.
+    expect(buildShellModel(PLATFORM).contexts).toEqual([])
+  })
+
+  it('still names the player, because the account control has to be nameable', () => {
+    const model = buildShellModel(PLATFORM)
+    expect(model.player.name).toBe('Rowan Adeyemi')
+    expect(model.player.initials).toBe('RA')
+  })
+
+  it('still offers the four destinations, which are the product’s and not a competition’s', () => {
+    expect(buildShellModel(PLATFORM).destinations.map((d) => d.id)).toEqual([
+      'home',
+      'matches',
+      'games',
+      'leagues',
+    ])
+  })
+
+  it('carries discovery reachability unchanged', () => {
+    expect(buildShellModel(PLATFORM).discovery.reachable).toBe(true)
+    expect(buildShellModel({ ...PLATFORM, canNavigateAway: false }).discovery.reachable).toBe(false)
   })
 })
