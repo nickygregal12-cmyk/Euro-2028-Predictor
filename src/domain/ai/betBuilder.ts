@@ -27,12 +27,14 @@
  *   returns £50 and profits £40. Both are shown, separately named.
  */
 
-export type Objective = 'value' | 'safety' | 'confidence'
+export type Objective = 'return' | 'value' | 'safety' | 'confidence'
 
-export const OBJECTIVES: readonly Objective[] = ['value', 'safety', 'confidence']
+export const OBJECTIVES: readonly Objective[] = ['return', 'value', 'safety', 'confidence']
 
 /** What each objective actually optimises, for the page to say out loud. */
 export const OBJECTIVE_MEANINGS: Readonly<Record<Objective, string>> = {
+  return:
+    'Biggest payout among combinations that meet the target — the most money if it lands, which says nothing about how likely that is.',
   safety:
     'Highest estimated joint probability among combinations that meet the target — the most likely to land, not the best priced.',
   value:
@@ -154,7 +156,7 @@ function singleBookNote(book: string): string {
 export function defaultRequest(overrides: Partial<BuildRequest> = {}): BuildRequest {
   return {
     legs: 3,
-    objective: 'value',
+    objective: 'return',
     stake: 10,
     minCombinedOdds: null,
     maxCombinedOdds: null,
@@ -297,6 +299,13 @@ function score(acc: BuiltAccumulator, objective: Objective): (number | string[])
   }
   if (objective === 'confidence') {
     return [placeable, -(acc.minDataConfidence ?? 0), -acc.expectedValue, ids]
+  }
+  if (objective === 'return') {
+    // Deliberately ranks on price alone. It is the only objective that does,
+    // which is why its stated meaning says out loud that it is silent on the
+    // chance of winning; joint probability breaks ties so that two equally
+    // priced combinations are not ordered arbitrarily.
+    return [placeable, -acc.combinedOdds, -acc.estimatedJointProbability, ids]
   }
   return [placeable, -acc.expectedValue, -acc.estimatedJointProbability, ids]
 }

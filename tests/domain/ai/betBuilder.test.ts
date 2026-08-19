@@ -89,7 +89,7 @@ function threeCleanLegs(book = 'B365'): Leg[] {
 
 describe('the vocabulary the page shows is complete and self-describing', () => {
   it('gives every objective a stated meaning', () => {
-    expect(OBJECTIVES).toEqual(['value', 'safety', 'confidence'])
+    expect(OBJECTIVES).toEqual(['return', 'value', 'safety', 'confidence'])
     for (const objective of OBJECTIVES) {
       expect(OBJECTIVE_MEANINGS[objective]).toBeTruthy()
     }
@@ -98,7 +98,7 @@ describe('the vocabulary the page shows is complete and self-describing', () => 
   it('applies its documented defaults, and lets one be overridden without moving the rest', () => {
     const request = defaultRequest()
     expect(request.legs).toBe(3)
-    expect(request.objective).toBe('value')
+    expect(request.objective).toBe('return')
     expect(request.results).toBe(DEFAULT_RESULTS)
     expect(request.poolCap).toBe(DEFAULT_POOL_CAP)
     expect(request.includeReferenceCeiling).toBe(false)
@@ -464,6 +464,40 @@ describe('the objective changes which combination is offered first', () => {
     const result = buildAccumulators(mixed(), defaultRequest({ legs: 2, objective: 'safety' }), REGISTRY)
     const first = at(result.accumulators, 0)
     expect(first.legs.map((l) => l.fixtureId).sort()).toEqual(['a1', 'a2'])
+  })
+
+  it('puts the biggest payout first when return is asked for, and it is a different answer', () => {
+    // The default objective, and the one the page opens on. It ranks on price
+    // alone, so it must pick the long shots that `safety` deliberately avoids —
+    // if these two ever agreed, one of them would be mislabelled.
+    const byReturn = buildAccumulators(
+      mixed(),
+      defaultRequest({ legs: 2, objective: 'return' }),
+      REGISTRY,
+    )
+    const bySafety = buildAccumulators(
+      mixed(),
+      defaultRequest({ legs: 2, objective: 'safety' }),
+      REGISTRY,
+    )
+
+    const top = at(byReturn.accumulators, 0)
+    expect(top.legs.map((l) => l.fixtureId).sort()).toEqual(['b1', 'b2'])
+    expect(top.combinedOdds).toBeCloseTo(72, 5)
+    expect(top.legs.map((l) => l.fixtureId).sort()).not.toEqual(
+      at(bySafety.accumulators, 0).legs.map((l) => l.fixtureId).sort(),
+    )
+  })
+
+  it('still honours the target when ranking by return', () => {
+    // A target is a floor on combined odds, not a hint. Asking for the biggest
+    // payout must not become a licence to ignore a constraint the user set.
+    const result = buildAccumulators(
+      mixed(),
+      defaultRequest({ legs: 2, objective: 'return', minCombinedOdds: 100 }),
+      REGISTRY,
+    )
+    expect(result.accumulators.every((acc) => acc.combinedOdds >= 100)).toBe(true)
   })
 
   it('puts the best-evidenced combination first when confidence is asked for', () => {
