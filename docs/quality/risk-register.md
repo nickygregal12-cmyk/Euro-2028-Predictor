@@ -536,3 +536,165 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 - Current contract truth lives in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md) — never restated here, because a restated number drifts. The recorded, fail-closed split between environments is a controlled state.
 - A guard blocking incompatible deployment is a safeguard, not a defect to bypass.
 - Historical audits and reconciliations remain immutable; corrections are recorded alongside them rather than rewriting history.
+
+---
+
+## Correction record — 19 August 2026, `UX-005` and `UX-006` closed together
+
+Both were opened by the 19 August programme review and both are now discharged,
+by owner instruction to give vNext a light option and a real icon system.
+
+**`UX-005` — closed.** `src/vnext/foundations/tokens.css` gains a
+`[data-vnext][data-vnext-theme='light']` ramp and `VNextRoot` a `theme` prop
+whose precedence is a choice over the device — the half a `prefers-color-scheme`
+media query cannot do, and the reason the resolution is in the component rather
+than the stylesheet. The vNext Account surface carries the control, as three
+answers rather than a toggle, because the third — *match my device* — is the one
+a player has before they ever open the page.
+
+**`UX-006` — closed, and it found four defects on its first run.** The palette
+had never been measured, and the new
+`tests/vnext/vnextTokenContrast.test.ts` immediately reported
+`--vnext-text-muted` and `--vnext-rank-flat` at **4.45:1** on the interactive
+hover surface, against the 4.5 floor. Both were lifted to `#8d9bb4`.
+
+**One of that test's own assertions was wrong, and the correction is the more
+useful record.** It first floored every state colour on every surface, and its
+loudest failure was `--vnext-text-on-live` on `--vnext-live` at 3.21:1 — a
+pairing **no component renders**. `text-on-live` named the crest monogram and
+the live chip's word; the live fill is a seven-pixel dot. Changing a shipped
+palette to satisfy that would have been correcting the product to match the
+test. The floor now applies to the general text ramp everywhere and to state
+colours on the surfaces a page actually places them on, with the whole matrix
+pinned either way. (The crest half of that sentence stopped being true the same
+day — see the veil record below.)
+
+`DEC-016` and `DEC-017` move to **decided and implemented** in the deferred
+register. `TEST-002`, `DOC-004`, `OPS-012` and `CI-002` are untouched and stay
+exactly as opened.
+
+
+## Correction record — 19 August 2026, the veil pairings nobody measured
+
+`UX-006` closed on a table that measures **token against token**, and shipped a
+gap the same size as the one it was opened for. A vNext state colour is rarely
+drawn on a surface. It is drawn on **its own veil** — `.youTag` is the accent
+over `--vnext-accent-veil`, `.badgeSettled` the hit over `--vnext-hit-veil` —
+and a veil is `rgba(...)` composited over whatever surface the chip landed on.
+The effective background is therefore a colour that appears **nowhere in
+`tokens.css`**, so no token-to-token matrix can see it, however complete.
+
+**What that hid.** The Storybook axe run failed on `--vnext-accent` at **4.45**
+over `--vnext-accent-veil` on `--vnext-surface-interactive` — found because
+`.youTag` happens to have a story, which is precisely the per-story mechanism
+`UX-006` was opened to stop relying on. Measuring the composite properly found
+that five light state colours sat under the floor, not one:
+
+| token | was | tightest, on its own veil | now | tightest |
+| --- | --- | --- | --- | --- |
+| `--vnext-accent` | `#00754a` | 4.13 | `#006b44` | 4.69 |
+| `--vnext-hit` | `#0c7141` | 4.36 | `#0b6b3e` | 4.69 |
+| `--vnext-warn` | `#8a5300` | 4.42 | `#844f00` | 4.72 |
+| `--vnext-miss` | `#b3243c` | 4.56 | `#ae233a` | 4.75 |
+| `--vnext-joker` | `#7a5800` | 4.55 | `#765500` | 4.76 |
+
+**The dark ramp needed nothing.** Its worst veil pairing is `miss` at 4.60. That
+matters as evidence: the fix is not a blanket darkening applied until a test
+went quiet, it is the light ramp alone, because compositing a dark veil onto a
+light surface eats margin in one direction only.
+
+**And a light-theme defect the same measurement would have caught first.**
+`--vnext-text-on-live` was copied into the light block as `#ffffff` and measured
+**1.33** on the live chip's own veil — white words on a near-white pill. Axe
+found it; the row `text-on-live` × `live-veil` is what should have. It is now
+`#0a1019`.
+
+**`TeamCrest` was reading the wrong token, and only the light theme exposed it.**
+The monogram took its colour from `--vnext-text-on-live`, which worked in dark
+by coincidence — `#ffffff` on `--vnext-team-primary` — and gave white on
+`#eef1f8` in light. `--vnext-team-on-primary` exists for exactly this and follows
+the team ramp, which is the point of a crest. That is the correction; the token
+was never about the live state.
+
+**Why the pairing list is written out and not parsed from the CSS.** A parser
+that pairs every `background-color: var(--vnext-*-veil)` rule with its `color:`
+finds `LiveIndicator`'s `.indicator`, which declares `color: var(--vnext-live)`
+— and would demand 4.5:1 of a token that renders **no text there**: every text
+node in that chip overrides the colour, and what `--vnext-live` actually draws
+is a 1px border and a 7px dot, non-text graphics at a 3:1 floor (WCAG 1.4.11)
+which they clear at 3.64 worst case. Deriving the list would have washed out the
+live colour to satisfy a pairing that does not exist — the identical mistake the
+record above documents. The list is explicit, each row carrying the component it
+was read from.
+
+Both directions are mutation-proved: reverting `--vnext-accent` fails four rows,
+and reverting `--vnext-text-on-live` reports **1.33 on `surface-interactive`**,
+the same number axe printed from a real browser.
+
+## Correction record — 19 August 2026, the external UI checklist audit
+
+The owner asked whether `nextlevelbuilder/ui-ux-pro-max-skill` could improve
+what this lane has built. It was read and applied as a checklist. Most of it
+does not reach us — it targets Tailwind, shadcn and native mobile, and this lane
+uses none of them — but three of its rules are stack-agnostic and worth the
+audit it prompted. **One found a real defect.**
+
+**`truncation-strategy` — "prefer wrapping over truncation; when truncating,
+provide the full text" — found a defect, and the lane had already written the
+rule itself.** Seven screen-level stylesheets say it in capitals: *"NO DISPLAY
+NAME IS EVER CLIPPED"* (`leagues.module.css`), *"NO CLUB NAME IS CLIPPED
+ANYWHERE IN THIS FILE"* (`matches.module.css`), *"A truncated name is the
+defect"* (`playerProfile.module.css`). It was nonetheless false.
+`typography.module.css` carried a `.truncate` helper — `white-space: nowrap`
+plus `text-overflow: ellipsis` — whose only three consumers were a rival's
+display name, that rival's league name, and a ladder row's player name. Exactly
+the three strings the doctrine is about. They now use `.clamp2`, which every
+other name in the lane already used, and the helper is gone.
+
+Nothing had a chance of catching it. The class was declared and its key existed,
+so the style-class scan was satisfied; axe has no rule for silent truncation;
+and no story renders a name long enough for the browser suite to see it clip.
+`tests/vnext/vnextNoNameTruncation.test.ts` closes it from the other end — the
+shared typography module may not offer a single-line clipping helper at all —
+and is mutation-proved in both directions.
+
+**Its first assertion was wrong, and the correction is the useful part.** It
+banned `white-space: nowrap` outright and failed on `.srOnly`, which carries it
+as part of the standard visually-hidden pattern on a 1px box that is already
+clipped out of the picture — it cuts nothing a sighted reader sees, and exists
+to give a screen reader the *full* string. The defect was never the property. It
+was clipping a name. `.srOnly` is a named exemption with that reasoning
+attached.
+
+**`color-not-only` — checked, already satisfied.** `FormRun` writes W/D/L and
+carries `role="img"` with a worded label; `PredictionChip` writes "Exact score",
+"Missed", "Not predicted". Neither leans on the hit/miss/warn colour alone.
+
+**`web-target-size` (WCAG 2.2 AA, 24×24) — checked, already enforced, and not by
+us.** axe-core 4.13 runs `target-size` in its default set under the `wcag22aa`
+tag, which is inside the tag list `tests/vnext/vnextAxe.ts` selects and inside
+the Storybook addon's default run. The lane's own 44px promise is stricter and
+is separately asserted by the browser suite.
+
+**`focus-not-obscured` (WCAG 2.2 AA) — NOT verified, and recorded as unproven
+rather than fixed.** `VNextShell.module.css` has a `position: sticky; top: 0`
+masthead and no `scroll-padding-block-start` anywhere in the lane, which reads
+like exposure. It was probed in a real browser and the probe did not stand up:
+its only hit was the masthead's *own* children, whose `top` is naturally above
+the bar's bottom because they are inside it, and after that bug was fixed the
+probe stopped detecting the sticky bar at all between runs. A flaky probe is not
+evidence. It also cannot currently be exercised where it would matter —
+`playwright.vnext.config.ts` states outright that vNext has no application
+route, so the document-level scroll this criterion is about does not exist in
+this lane yet. **`UX-007` is opened** for it below, owned by Stage 14, where the
+shell becomes the production frame and the document becomes the scroller.
+
+**`touch-action: manipulation` — declined, with the reason.** The skill lists it
+against a 300ms tap delay that modern engines removed for any document with
+`width=device-width`, which this application sets. Adding it lane-wide would be
+cargo, not a fix.
+
+| id | risk | status | closes when |
+| --- | --- | --- | --- |
+| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. Not currently reachable, because vNext has no application route. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
+

@@ -8,6 +8,7 @@ import type {
   LmsStanding,
 } from '../models/lms'
 import { lmsChampion, lmsPickableCount, lmsRoundIsOpen } from '../models/lms'
+import { VNextTrophyIcon } from '../foundations/VNextIcon'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -160,7 +161,7 @@ function StandingBanner({ standing }: { readonly standing: LmsStanding | null })
     >
       {/* A WORD, NOT A COLOUR. §31, and it is the whole page's headline. */}
       {STANDING_COPY[standing]}
-      {lmsChampion(standing) ? <span className={styles.trophy} aria-hidden="true"> 🏆</span> : null}
+      {lmsChampion(standing) ? <VNextTrophyIcon className={styles.trophy} /> : null}
     </p>
   )
 }

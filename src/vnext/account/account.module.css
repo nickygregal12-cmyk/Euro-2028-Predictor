@@ -469,3 +469,43 @@
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
 }
+
+/* APPEARANCE — three answers, so a radio group rather than a toggle. Same
+   segmented shape the scoring rules use, because it is the same question type:
+   pick one of a small closed set. */
+.themeChoice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.themeChoice legend {
+  margin-bottom: var(--vnext-space-2);
+  color: var(--vnext-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.themeOption {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--vnext-space-2) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-raised);
+  cursor: pointer;
+}
+
+.themeOption[data-selected='true'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.themeOption:focus-within {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}

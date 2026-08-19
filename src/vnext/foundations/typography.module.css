@@ -124,11 +124,13 @@
   overflow-wrap: anywhere;
 }
 
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* THERE IS NO `.truncate` HERE, AND THAT IS THE POINT. One existed, and its
+ * only three consumers were a rival's name, a rival's league and a ladder row's
+ * player — the exact strings every screen-level stylesheet in this lane says
+ * out loud must never be clipped ("NO DISPLAY NAME IS EVER CLIPPED",
+ * `leagues.module.css`). `white-space: nowrap` with an ellipsis gave a long name
+ * no second line and no way for a pointer or a keyboard to recover the rest of
+ * it. They use `.clamp2` now, like every other name in the lane. */
 
 /* Screen-reader-only text. vNext needs its own copy rather than importing the
  * legacy helper's stylesheet, which would drag legacy appearance in with it. */

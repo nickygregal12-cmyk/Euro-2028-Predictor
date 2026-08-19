@@ -49,6 +49,7 @@ const meta = {
       options: ['phone-375', 'phone-430', 'tablet-768', 'laptop-1024', 'laptop-1440', 'desktop-1920'],
     },
     scale: { control: { type: 'range', min: 0.2, max: 1, step: 0.02 } },
+    theme: { control: 'inline-radio', options: ['dark', 'light', 'system'] },
   },
 } satisfies Meta<typeof WorkshopCanvas>
 
@@ -188,3 +189,43 @@ export const FrameEmailPendingPhone: Story = frame('emailPending', 'phone-375')
 export const FrameEmailPendingDesktop: Story = frame('emailPending', 'desktop-1920')
 export const FrameSettingsUnavailablePhone: Story = frame('settingsUnavailable', 'phone-375')
 export const FrameNoSupportPhone: Story = frame('noSupportAddress', 'phone-375')
+
+/* ========================================================================== *
+ * F. THE LIGHT THEME
+ *
+ * The board pins DARK by default so a screenshot does not depend on the
+ * reviewer's operating system. This is how the other theme is seen: on purpose,
+ * side by side with the same worlds above.
+ * ========================================================================== */
+
+export const LightOrdinary: Story = {
+  render: (args) => (
+    <WorkshopCanvas {...args} viewports={['phone-375', 'laptop-1024']} scale={0.7} theme="light">
+      <AccountHarness scenario="ordinary" />
+    </WorkshopCanvas>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'The ordinary account in the light theme. The ramp is designed rather than inverted: the page is tinted and a card is white, which is the opposite move to dark, where a card is lighter than a near-black page.',
+      },
+    },
+  },
+}
+
+export const LightBothUnavailable: Story = {
+  render: (args) => (
+    <WorkshopCanvas {...args} viewports={['phone-375']} scale={0.9} theme="light">
+      <AccountHarness scenario="bothUnavailable" />
+    </WorkshopCanvas>
+  ),
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Both reads failed, in light. Failure states are where a second theme usually breaks first, because they are the states nobody opens while choosing colours.',
+      },
+    },
+  },
+}
