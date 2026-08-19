@@ -23,7 +23,23 @@
  */
 
 /** Journeys that currently have a next-generation implementation. */
-export type MigratedJourney = 'seasonMatchPredictor' | 'publicLanding'
+export type MigratedJourney =
+  | 'seasonMatchPredictor'
+  | 'publicLanding'
+  /**
+   * STAGE 14, THE FOOTBALL HUB CUTOVER. One flag per destination rather than
+   * one for the whole hub, because the stage contract asks for a "staged
+   * deployment/rollback plan" and an all-or-nothing switch is neither: it
+   * cannot be advanced one surface at a time, and rolling it back withdraws
+   * surfaces that were fine along with the one that was not.
+   *
+   * Each selects between a legacy route component that is STILL MOUNTED and
+   * still passing its own tests, and the vNext screen the earlier stages
+   * built. Nothing is deleted to make room — the retirement of superseded
+   * legacy code is separately owned by this stage and gated on rollback
+   * safety being proven, not on the flag existing.
+   */
+  | 'footballHubMatches'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -49,6 +65,12 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
     // it is the behaviour every signed-out visitor got until this flag shipped.
     case 'publicLanding':
       return enabled(import.meta.env.VITE_UI_PUBLIC_LANDING) ? 'next' : 'legacy'
+    // Stage 14. `productionCutoverAuthorized` is `false` in
+    // `config/vnext-programme.json`, so this ships UNSET and therefore
+    // `'legacy'`: the switch exists and is proved in both positions, and the
+    // production mutation is a separate, explicitly authorised act.
+    case 'footballHubMatches':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES) ? 'next' : 'legacy'
   }
 }
 

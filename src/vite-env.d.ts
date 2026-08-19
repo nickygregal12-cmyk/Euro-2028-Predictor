@@ -25,6 +25,9 @@ interface ImportMetaEnv {
   // Serves the public landing page at `/` to signed-out visitors instead of
   // redirecting them to `/auth/login`.
   readonly VITE_UI_PUBLIC_LANDING?: string
+
+  /** Stage 14 Football Hub cutover: vNext Matches and Match Centre. */
+  readonly VITE_UI_FOOTBALL_HUB_MATCHES?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

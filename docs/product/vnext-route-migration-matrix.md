@@ -411,3 +411,84 @@ check that no user-facing route is missing from this matrix — is in
    Nothing in Stage 13 was needed for it; the row is discharged by Stage 9's
    league table and Stage 10's player surface, and this is recorded so the row
    is not mistaken for outstanding work.
+
+## 13. Being resolved by Stage 14 — the cutover, in its OFF position
+
+Stage 14 is where this matrix stops being a plan. Every row above has a decided
+**fate**; until now not one of them had a decided **production behaviour**. The
+two are not the same thing, and the gap between them is the whole stage: thirteen
+vNext surfaces exist, every one reachable only from a `/dev/**` harness, while
+all 41 non-dev routes still serve the component they served before the programme
+began.
+
+### What landed first, and why this pair
+
+`/competitions/:c/:s/matches` and `/competitions/:c/:s/matches/:fixtureId` are
+the first routes to get an intentional production behaviour. They were chosen
+because they exercise **both directions** of the adapter a cutover needs, and
+the smallest pair that does:
+
+- **inward** — a route supplies the competition and season from `useParams`,
+  where the harness supplied them from a form, and has to behave when they are
+  absent;
+- **outward** — an `openMatch` intent must become a URL. The harness swapped a
+  piece of local state, which is exactly what makes it a harness: a destination
+  a player cannot link to, share or press *back* out of is not a destination.
+
+Contract 148 makes the outward half honest. The fixture id alone resolves the
+match, so the address carries no `?on=` window, and a deep link survives a
+refresh and a share. That property was asserted in Stage 8 and is now an
+address.
+
+### The switch, and the fact that it is off
+
+`src/app/routeFlags.ts` gains `footballHubMatches`, reading
+`VITE_UI_FOOTBALL_HUB_MATCHES`. **It ships unset, and unset means legacy** —
+`enabled()` matches the exact string `'true'` and nothing else, so an empty
+value, a misspelling, `TRUE` and `1` all select the legacy route. A player's
+Matches route today is the same `SeasonMatchesRoute` it was yesterday.
+
+That is not caution for its own sake. `config/vnext-programme.json` carries
+`productionCutoverAuthorized: false`, and the Stage 14 contract separates
+**READY FOR CUTOVER**, which autonomous engineering may reach, from **CUT OVER
+AND VERIFIED**, which requires explicit authority for the exact action. Building
+the switch is the first; throwing it is the second, and it has not been thrown.
+
+`NOW.md` regenerates to record the flag as *"unset everywhere — the journey
+serves its legacy implementation"*, so the programme's own status surface states
+the production truth rather than the intent.
+
+### One flag per destination, not one for the hub
+
+The stage contract asks for a *staged deployment/rollback plan*. A single
+hub-wide switch is neither: it cannot be advanced one surface at a time, and
+rolling it back withdraws the surfaces that were fine along with the one that
+was not.
+
+### The legacy pair stays mounted, and a test says so
+
+`SeasonMatchesRoute` and `SeasonMatchCentreRoute` are untouched, still routed on
+the off branch and still passing their own tests. Nothing was deleted to make
+room. The contract's *"deleting recoverable legacy code before rollback safety
+is proven"* is listed under what Stage 14 does **not** own, and retirement stays
+a later, separately gated act.
+
+`tests/vnext/vnextCutoverRouting.test.tsx` asserts the off branch **first**,
+because that is the state this ships in — a test that proves only the on branch
+proves the feature and not the release gate. It also reads `App.tsx` directly to
+confirm both routes actually consult the flag and that both legacy elements are
+still routed, because a route that forgot to ask renders legacy for ever and is
+indistinguishable from a correctly-off flag.
+
+### What this does not yet do
+
+The predicate is not met and nothing here claims it is. Still outstanding for
+READY FOR CUTOVER: the other eleven destinations; the `/play` attention layer,
+which needs a mapper and `tournamentId` carried through `PlayInboxEntry` and
+`InboxAction`; auth, refresh and error-path coverage at the real routes; bundle,
+performance and accessibility regression; monitoring and rollback readiness; and
+`UX-007`, the suspected focus-obscured exposure behind the sticky masthead,
+which only becomes exercisable once the shell is the production frame.
+
+*Fate counts are unchanged.* Stage 14 moves no row — it implements them.
+

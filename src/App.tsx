@@ -3,6 +3,11 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
+import { isNextUi } from './app/routeFlags'
+import {
+  VNextMatchCentreDestination,
+  VNextMatchesDestination,
+} from './app/vnext/VNextMatchesDestination'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
@@ -482,13 +487,35 @@ export default function App() {
                           path={weeklyRoutePatterns.play}
                           element={<SeasonPlayRoute />}
                         />
+                        {/* STAGE 14, THE FIRST CUTOVER VERTICAL. The choice is
+                            made HERE, at the routing layer, and not inside
+                            either component — `routeFlags.ts` exists because a
+                            flag threaded through a tree cannot be rolled back
+                            with confidence, while a flag that selects which
+                            element renders can. `SeasonMatchesRoute` and
+                            `SeasonMatchCentreRoute` are untouched and still
+                            mounted on the off branch, so turning the flag off
+                            restores yesterday's journey with no data rollback.
+                            It ships off: see `config/vnext-programme.json`. */}
                         <Route
                           path={weeklyRoutePatterns.matches}
-                          element={<SeasonMatchesRoute />}
+                          element={
+                            isNextUi('footballHubMatches') ? (
+                              <VNextMatchesDestination />
+                            ) : (
+                              <SeasonMatchesRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchCentre}
-                          element={<SeasonMatchCentreRoute />}
+                          element={
+                            isNextUi('footballHubMatches') ? (
+                              <VNextMatchCentreDestination />
+                            ) : (
+                              <SeasonMatchCentreRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.games}
