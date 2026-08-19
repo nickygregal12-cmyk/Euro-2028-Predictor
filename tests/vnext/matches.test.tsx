@@ -214,6 +214,74 @@ describe('live state is honest', () => {
     expect(row.textContent).not.toContain('15:00')
   })
 
+  it('says a postponed fixture has no new date, in words', () => {
+    renderMatches(matchesScenarios.postponedDay)
+
+    const row = first(
+      screen
+        .getAllByRole('button')
+        .filter((node) => node.getAttribute('data-vnext-match-row') === 'fixture-pp-1'),
+    )
+
+    // Contract 206. "Postponed" beside an empty score column leaves a reader
+    // asking the one question the row exists to answer.
+    expect(row.textContent).toContain('New date to be confirmed')
+  })
+
+  it('says when a postponed fixture is now due, once it has a date', () => {
+    renderMatches(matchesScenarios.postponedDay)
+
+    const row = first(
+      screen
+        .getAllByRole('button')
+        .filter((node) => node.getAttribute('data-vnext-match-row') === 'fixture-pp-4'),
+    )
+
+    expect(row.getAttribute('data-vnext-match-state')).toBe('postponed')
+    expect(row.textContent).toContain('Postponed')
+    expect(row.textContent).toContain('Now due')
+    // Still no live furniture: a replacement date is not a match in progress.
+    expect(row.getAttribute('data-live')).toBeNull()
+  })
+
+  it('marks a fixture that was moved into this day and is going ahead', () => {
+    renderMatches(matchesScenarios.postponedDay)
+
+    const row = first(
+      screen
+        .getAllByRole('button')
+        .filter((node) => node.getAttribute('data-vnext-match-row') === 'fixture-pp-5'),
+    )
+
+    // It is ON, so it keeps its kick-off and its scheduled state; the mark only
+    // explains why it is not where the reader last saw it.
+    expect(row.getAttribute('data-vnext-match-state')).toBe('scheduled')
+    expect(row.textContent).toContain('Rescheduled')
+    expect(row.textContent).toContain('17:30')
+  })
+
+  it('draws the four "not where you left it" rows so no two read the same', () => {
+    // `FINDING G §E`: a postponed match must not be visually equivalent to a
+    // completed, cancelled or ordinary scheduled one. They share a mark style,
+    // so the WORDS carry the difference — and this is the scenario that fails
+    // if two of them ever converge.
+    renderMatches(matchesScenarios.postponedDay)
+
+    const textOf = (id: string) =>
+      first(
+        screen
+          .getAllByRole('button')
+          .filter((node) => node.getAttribute('data-vnext-match-row') === id),
+      ).textContent ?? ''
+
+    const rows = ['fixture-pp-1', 'fixture-pp-4', 'fixture-pp-5', 'fixture-pp-2'].map(textOf)
+
+    expect(new Set(rows).size).toBe(4)
+    // And the ordinary one says none of it.
+    expect(textOf('fixture-pp-2')).not.toContain('Postponed')
+    expect(textOf('fixture-pp-2')).not.toContain('Rescheduled')
+  })
+
   it('says "provisional" in words rather than only in colour', () => {
     renderMatches(matchesScenarios.severalLive)
 

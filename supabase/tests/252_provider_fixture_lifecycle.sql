@@ -31,7 +31,7 @@
 
 begin;
 
-select plan(40);
+select plan(44);
 
 -- ---------------------------------------------------------------------------
 -- The record this contract adds is evidence, so it is unreachable.
@@ -244,6 +244,55 @@ select is(
     where competition_round_id = current_setting('test.pfl_round')::uuid),
   2,
   'no second fixture was created for the postponed match');
+
+-- ---------------------------------------------------------------------------
+-- 3b. The queue asks a human only where a human still has something to decide.
+--
+-- Contract 174 stages a proposal for every postponement, abandonment and
+-- cancellation a provider reports. Contract 206 now REACHES `postponed` on its
+-- own, so a proposal for one is a request for a decision that has already been
+-- taken — and a queue of those is worse than no queue, because an administrator
+-- learns to clear it without reading it.
+--
+-- The cancellation beside it is the control, and it is also `FINDING G §F`'s
+-- second transition: postponed -> cancelled. A provider may not void a fixture,
+-- so the proposal is staged and the calendar is untouched until somebody
+-- approves it.
+-- ---------------------------------------------------------------------------
+
+select is(
+  (predictor_internal.detect_provider_calendar_changes(
+     'football-data', current_setting('test.pfl_season')::uuid,
+     jsonb_build_array(pg_temp.pfl_entry('PFL-T1', 'PFL-T2', 'POSTPONED', now() + interval '10 days')),
+     null, now(), null, null) ->> 'staged')::integer,
+  0,
+  'a postponement the platform has already applied stages no proposal');
+
+select is(
+  (predictor_internal.detect_provider_calendar_changes(
+     'football-data', current_setting('test.pfl_season')::uuid,
+     jsonb_build_array(pg_temp.pfl_entry('PFL-T1', 'PFL-T2', 'CANCELLED', now() + interval '10 days')),
+     null, now(), null, null) ->> 'staged')::integer,
+  1,
+  'but a cancellation of that same fixture does, because voiding it is still a human decision');
+
+select is(
+  (select status from public.season_fixtures where id = current_setting('test.pfl_moved')::uuid),
+  'postponed',
+  'and staging it changed no calendar: the fixture is still postponed, not void');
+
+-- THE GUARD IS CONDITIONAL, NOT A BLANKET SKIP. A future change that dropped
+-- the status comparison and simply stopped staging postponements would pass
+-- every assertion above and silently empty contract 174's queue for the one
+-- case an administrator still owns: a fixture the platform does NOT already
+-- hold as postponed.
+select is(
+  (predictor_internal.detect_provider_calendar_changes(
+     'football-data', current_setting('test.pfl_season')::uuid,
+     jsonb_build_array(pg_temp.pfl_entry('PFL-T3', 'PFL-T4', 'POSTPONED', now() + interval '10 days')),
+     null, now(), null, null) ->> 'staged')::integer,
+  1,
+  'and a postponement of a fixture the platform still calls scheduled does stage one');
 
 -- ---------------------------------------------------------------------------
 -- 4. It does not score, and it does not settle.
