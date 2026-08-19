@@ -74,9 +74,10 @@ describe('Contract 206 preserves the older narrow UUID boundary', () => {
   })
 
   it('shares the payload derivation rather than creating two reveal implementations', () => {
-    const occurrences = body.match(/predictor_internal\.season_player_profile_payload\(/g) ?? []
-    // Definition + legacy call + by-ref call.
-    expect(occurrences).toHaveLength(3)
+    const publicCalls = body.match(/return predictor_internal\.season_player_profile_payload\(/g) ?? []
+    // One public return from the legacy UUID path and one from the by-ref path.
+    // COMMENT/REVOKE statements naming the helper are metadata, not derivations.
+    expect(publicCalls).toHaveLength(2)
   })
 })
 
