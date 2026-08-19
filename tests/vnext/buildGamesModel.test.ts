@@ -41,7 +41,7 @@ function membership(over: Record<string, unknown> = {}) {
 function source(over: Partial<GamesSource> = {}): GamesSource {
   return {
     generatedAt: HOST_NOW,
-    context: { competitionName: 'Caledonian Premiership', seasonLabel: '2027/28' },
+    context: { tournamentId: 't-1', competitionName: 'Caledonian Premiership', seasonLabel: '2027/28' },
     games: {
       kind: 'ok',
       games: { competitionMember: true, serverNow: SERVER_NOW, games: [game()] },

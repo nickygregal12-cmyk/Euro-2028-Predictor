@@ -25,6 +25,8 @@ export type GamesSource = {
   /** The host's instant. Used ONLY where the read supplied no `server_now`. */
   readonly generatedAt: string
   readonly context: {
+    /** The season row id every season read is addressed by. */
+    readonly tournamentId: string
     readonly competitionName: string
     readonly seasonLabel: string
   }

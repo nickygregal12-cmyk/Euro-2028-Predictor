@@ -41,6 +41,25 @@ type SeasonRow = { id: string; name: string; status: string | null }
  * the whole read — partial truth dressed as the full picture is the exact
  * defect this read exists to remove.
  */
+/**
+ * ONE SEASON'S GAME CATALOGUE, and the caller's membership in each.
+ *
+ * `fetchHubMembership` answers the same question for MANY seasons and is keyed
+ * on season NAMES, because the Hub knows names and not ids. A surface already
+ * holding a tournament id needs neither the name lookup nor the fan-out, and
+ * running the many-season path for one season would issue a `tournaments` query
+ * to rediscover an id it was handed.
+ *
+ * The decoder is the same one, so the shape rules cannot drift between them.
+ */
+export async function fetchSeasonGames(tournamentId: string): Promise<SeasonGames> {
+  const { data, error } = await db.rpc('get_competition_games', {
+    p_tournament_id: tournamentId,
+  })
+  if (error) throw error
+  return decodeSeasonGames(data)
+}
+
 export async function fetchHubMembership(
   seasonNames: readonly string[],
 ): Promise<HubSeasonMembership[]> {

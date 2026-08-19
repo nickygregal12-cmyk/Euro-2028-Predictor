@@ -275,6 +275,19 @@ const VNextAccountPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's Games hub against real data — the one surface where the three
+// games are peers. It reads `get_competition_games` for a single season and
+// WRITES NOTHING: pressing Join reports the intent rather than entering the
+// competition, because a review harness pointed at a live season must not be
+// able to enter one by a stray click.
+const VNextGamesPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextGamesPreview').then((m) => ({
+        default: m.VNextGamesPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -346,6 +359,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextAccountPreview ? (
                   <Route path="/dev/vnext-account" element={<VNextAccountPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextGamesPreview ? (
+                  <Route path="/dev/vnext-games" element={<VNextGamesPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

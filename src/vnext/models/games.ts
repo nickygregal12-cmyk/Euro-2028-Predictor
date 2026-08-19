@@ -36,8 +36,19 @@
  * is the shape of what is knowable here.
  */
 
-/** The catalogue's own keys. Never inferred from a display name. */
-export type GameKey =
+/**
+ * THE CATALOGUE'S OWN KEYS — the database's vocabulary, not the IA's.
+ *
+ * DELIBERATELY NOT CALLED `GameKey`. `models/ia.ts` already has one of those,
+ * and it is a DIFFERENT vocabulary: `'match-predictor' | 'last-man-standing' |
+ * 'championship'` are the information architecture's presentation keys, chosen
+ * for the shell. These are `game_definitions`' own identifiers, and the two
+ * must never be assigned to one another. One name over two vocabularies is how
+ * that starts.
+ *
+ * Not exported: nothing outside this file names it, and `GameEntry` carries it.
+ */
+type CatalogueGameKey =
   | 'main_predictor'
   | 'last_man_standing'
   | 'predictor_cup'
@@ -82,7 +93,7 @@ export type GameStanding =
 export type GameEntry = {
   /** `game_competition_id` — what every join and leave is addressed by. */
   readonly id: string
-  readonly gameKey: GameKey
+  readonly gameKey: CatalogueGameKey
   /**
    * The catalogue's own name, or null. NEVER derived from the key: a key is an
    * identifier and turning `predictor_cup` into "Predictor Cup" would be this
@@ -108,7 +119,9 @@ export type GamesPanel =
   | { readonly kind: 'empty' }
   | { readonly kind: 'games'; readonly entries: readonly GameEntry[] }
 
-export type GamesContext = {
+/** Not exported: nothing outside this file names it, and `GamesPageModel`
+ * carries it. An export nothing imports is a widened surface for free. */
+type GamesContext = {
   readonly competitionName: string
   readonly seasonLabel: string
 }

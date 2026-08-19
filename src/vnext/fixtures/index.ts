@@ -156,3 +156,16 @@ export {
   accountScenarios,
 } from './account/scenarios'
 export type { AccountScenarioName } from './account/scenarios'
+
+/**
+ * Stage 13's Games hub worlds. The binding world here is `leftAndUncertain`: a
+ * player who left the one game whose catalogue row refuses a rejoin once the
+ * competition is running. A fixture that resolved that into a yes or a no would
+ * be asserting a fact `competition_is_running` withholds from every browser.
+ */
+export {
+  gamesScenarioNames,
+  gamesScenarioPremises,
+  gamesScenarios,
+} from './games/scenarios'
+export type { GamesScenarioName } from './games/scenarios'
