@@ -130,10 +130,10 @@ export function VNextChampionship({
 /**
  * WHERE THE PLAYER STANDS — THE COMPETITION'S OWN VERDICT.
  *
- * Contract 207 put `bonus_competition_entrants.outcome` on the read, so this is
+ * Contract 208 put `bonus_competition_entrants.outcome` on the read, so this is
  * a sentence per stored value and no inference at all. For four stages there
  * was no such value and this block rendered nothing; `not-stated` STILL renders
- * nothing, and now means the database is behind contract 207 rather than that
+ * nothing, and now means the database is behind contract 208 rather than that
  * the fact exists nowhere.
  *
  * `survived` HAS COPY EVEN THOUGH THE CHAMPIONSHIP DOES NOT WRITE IT. The

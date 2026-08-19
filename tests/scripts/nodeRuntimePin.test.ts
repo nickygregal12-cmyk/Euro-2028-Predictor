@@ -20,7 +20,8 @@ describe('Node runtime pin', () => {
 
     expect(nvmVersion).toBe(expectedNodeVersion)
     expect(packageJson.engines?.node).toBe(expectedNodeVersion)
-    expect(ciWorkflow).toContain(`node-version: ${expectedNodeVersion}`)
+    expect(ciWorkflow).toContain('node-version-file: .nvmrc')
+    expect(ciWorkflow).not.toContain('node-version:')
     expect(netlifyConfig).toMatch(
       new RegExp(`NODE_VERSION\\s*=\\s*["']${expectedNodeVersion.replaceAll('.', '\\.') }["']`),
     )

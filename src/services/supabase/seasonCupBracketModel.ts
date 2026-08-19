@@ -76,7 +76,7 @@
  * THE CALLER'S OWN STANDING IN THE COMPETITION, and the only authority for it.
  *
  * `bonus_competition_entrants.outcome`, constrained to these five values since
- * the games platform was founded and added to this read by contract 207. Before
+ * the games platform was founded and added to this read by contract 208. Before
  * that, no season Championship read returned elimination at all: a surface
  * could say who WON and not who was OUT, and every available inference — lost
  * your only tie, hold no later fixture, hold no seed — is conclusive-looking
@@ -143,7 +143,7 @@ export type SeasonCupBracket =
       /** The database's own clock, returned so a caller need not read one. */
       serverNow: string
       /**
-       * Contract 207. The caller's own outcome, verbatim, or `null` where the
+       * Contract 208. The caller's own outcome, verbatim, or `null` where the
        * database predates the contract. Never derived here and never defaulted.
        */
       yourOutcome: CupEntrantOutcome | null

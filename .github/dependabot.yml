@@ -1,55 +1,17 @@
 # Dependency update automation (`ACQ-R19`).
 #
-# WHAT THIS ADDS THAT CI DID NOT. `npm audit --omit=dev --audit-level=high`
-# already runs in CI and is real coverage, but it is a GATE, not a WATCHMAN: it
-# runs only when something else triggers a build, it looks only at production
-# dependencies, and it blocks only at high severity. Nothing in the repository
-# notices a new advisory on a quiet week, and nothing proposes the upgrade. That
-# gap is what this closes; the audit step stays exactly as it is.
+# OWNERSHIP IS DELIBERATELY SPLIT. Renovate owns npm dependency updates (and
+# `config/agent-tools.json` through its JSONata custom manager), so Dependabot
+# must not open competing npm PRs or rewrite the same lock file.
 #
-# The `github-actions` ecosystem is here for a second reason. Third-party
-# actions are currently referenced by moving tags (`@v4`), so the code they run
-# can change without any commit in this repository. Pinning to immutable commit
-# SHAs is the fix, and once pinned a pin goes stale silently — Dependabot is
-# what keeps a pinned SHA current, which is what makes pinning sustainable
-# rather than a one-off that rots.
+# Dependabot owns `github-actions` for a separate security reason. Third-party
+# actions are pinned to immutable commit SHAs, so the code they run cannot move
+# without a repository change. A pinned SHA then goes stale silently;
+# Dependabot keeps those immutable pins current, which makes SHA pinning
+# sustainable rather than a one-off that rots.
 version: 2
 
 updates:
-  - package-ecosystem: npm
-    directory: /
-    schedule:
-      interval: weekly
-      day: monday
-    # Give newly published versions time for ecosystem compromise/regression
-    # signals to surface. Security updates are not delayed by this setting.
-    cooldown:
-      default-days: 7
-    # Enough to be useful, few enough to be read. An update flood is ignored,
-    # and an ignored queue is the same as no queue.
-    open-pull-requests-limit: 5
-    groups:
-      # One pull request per concern rather than per package. Twelve separate
-      # bumps of the same toolchain is a review cost with no review benefit.
-      types:
-        patterns:
-          - '@types/*'
-      vitest:
-        patterns:
-          - 'vitest'
-          - '@vitest/*'
-      playwright:
-        patterns:
-          - '@playwright/*'
-          - 'playwright'
-      react:
-        patterns:
-          - 'react'
-          - 'react-dom'
-          - 'react-router*'
-    labels:
-      - dependencies
-
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -63,8 +25,7 @@ updates:
       - ci
 
 # NOT CONFIGURABLE FROM THIS FILE, and still outstanding under `ACQ-R19`:
-# Dependabot *alerts* and *security updates* are repository settings rather than
-# repository files, and the audit reported alerts as disabled. This file enables
-# the update pull requests; someone with repository administration has to enable
-# the alerting half in Settings → Code security. Recorded here so the two halves
-# are not mistaken for one.
+# Dependabot alerts and security updates are repository settings rather than
+# repository files. Someone with repository administration has to manage the
+# alerting half in Settings → Code security; this file only owns action-pin
+# update pull requests.

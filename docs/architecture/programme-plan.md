@@ -282,12 +282,14 @@ blockquotes could never show without being read end to end.
 
 > **Contract 202 programme effect:** the private AI Lab's stated invariant — last Saturday reaches next Saturday's forecast — becomes true in practice rather than only in the README. No programme reordering.
 
-> **Contract 207 programme effect:** closes Stage 12's carried elimination delta — the read now returns the canonical entrant outcome — and removes the read defect the vNext decoder was working around. No programme reordering.
+> **Contract 208 programme effect:** closes Stage 12's carried elimination delta — the read now returns the canonical entrant outcome — and removes the read defect the vNext decoder was working around. No programme reordering.
 
-> **Contract 206 programme effect:** closes Stage 12's carried membership-lookup defect, which reached the production Football Hub and not only the vNext lane. No programme reordering.
+> **Contract 207 programme effect:** closes Stage 12's carried membership-lookup defect, which reached the production Football Hub and not only the vNext lane. No programme reordering.
 
 > **Contract 205 programme effect:** the canonical Championship bracket read stops throwing for split competitions, which is a precondition for Stage 12 consuming it. No programme reordering.
 
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.
+
+**Contract 206 programme effect:** the backend now supports ADR 0031's same-season bounded player-profile visibility without publishing an auth UUID. No programme phase, product gate or external-review dependency moves.

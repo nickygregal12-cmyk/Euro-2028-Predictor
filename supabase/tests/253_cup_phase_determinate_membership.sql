@@ -1,4 +1,4 @@
--- Contract 206: `get_season_cup_phase` answers about a DETERMINATE membership.
+-- Contract 207: `get_season_cup_phase` answers about a DETERMINATE membership.
 --
 -- THE ASSERTION THIS FILE EXISTS FOR is that a split entrant is answered about
 -- their SPLIT group, and that the answer is not a matter of which row the
@@ -136,7 +136,7 @@ set local role authenticated;
 select set_config('test.cp_split',
   public.get_season_cup_phase(md5('cp-cup')::uuid)::text, true);
 
--- THE DEFECT, DIRECTLY. Before contract 206 this returns `initial`.
+-- THE DEFECT, DIRECTLY. Before contract 207 this returns `initial`.
 select is(
   current_setting('test.cp_split')::jsonb ->> 'phase_kind',
   'split',

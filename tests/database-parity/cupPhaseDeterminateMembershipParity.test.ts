@@ -6,7 +6,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'
 
 const migration = read('supabase/migrations/20260819120000_cup_phase_determinate_membership.sql')
 const previous = read('supabase/migrations/20260811200000_season_cup_initial_group_table.sql')
-const proof = read('supabase/tests/252_cup_phase_determinate_membership.sql')
+const proof = read('supabase/tests/253_cup_phase_determinate_membership.sql')
 
 /**
  * The body of the one function this contract replaces, so an assertion about
@@ -31,7 +31,7 @@ function membershipLookup(source: string): string {
   return body.slice(start, body.indexOf(';', start))
 }
 
-describe('contract 206 determinate Championship phase membership', () => {
+describe('contract 207 determinate Championship phase membership', () => {
   it('names the phase, so the primary key identifies exactly one row', () => {
     // THE ASSERTION THIS FILE EXISTS FOR. `bonus_cup_members` is keyed
     // (competition_id, user_id, phase_kind); a predicate naming only the first
@@ -102,9 +102,9 @@ describe('contract 206 determinate Championship phase membership', () => {
 
   it('proves the property against the installed text, not against this file', () => {
     expect(migration).toContain("pg_get_functiondef('public.get_season_cup_phase(uuid)'::regprocedure)")
-    expect(migration).toContain('Contract 206: the membership lookup is not pinned to a phase')
+    expect(migration).toContain('Contract 207: the membership lookup is not pinned to a phase')
     expect(migration).toContain(
-      'Contract 206: the membership lookup resolves by ordering, not by key',
+      'Contract 207: the membership lookup resolves by ordering, not by key',
     )
   })
 

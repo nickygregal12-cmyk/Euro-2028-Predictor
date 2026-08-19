@@ -383,13 +383,13 @@ same paragraph existed in seven places at once.
 > vocabulary gains more horizon buckets so a better forecast is a new row rather
 > than a discarded one — and a second weekly training pass runs after the
 > weekend's results are published rather than before.
-> Contract 207 pays off the second of Stage 12's carried backend debts. It puts
+> Contract 208 pays off the second of Stage 12's carried backend debts. It puts
 > the canonical entrant outcome on the Championship bracket read, so elimination
 > is stated by the settlement authority instead of being absent, and it narrows
 > four `stage <> 'group'` predicates so a split fixture is no longer offered as a
 > knockout tie with a Penalty Number lane it has not got.
 
-> Contract 206 pays off the first. It pins `get_season_cup_phase`'s membership
+> Contract 207 pays off the first. It pins `get_season_cup_phase`'s membership
 > lookup to the caller's current phase — the unfiltered version matched both of a
 > split entrant's rows and took one silently, and it is what the production
 > Football Hub calls, not only the vNext lane. Neither number is settled while
@@ -484,3 +484,5 @@ same paragraph existed in seven places at once.
 > advances, the reason is audit evidence, no score or prediction points are
 > invented, and a tie neither may contest refuses rather than fabricating a
 > winner. **`CUP-006` is the remaining Championship work.**
+
+**Contract 206 delivery effect:** `PROF-001` gains its backend boundary: a season entrant can address another entrant's bounded profile by the season-scoped `playerRef` without receiving the target auth UUID. The requirement remains open until Development rollout, generated types and the browser consumer are proven; this contract does not reorder the roadmap.

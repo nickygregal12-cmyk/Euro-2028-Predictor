@@ -120,9 +120,9 @@ fails closed to the legacy journey.**
 
 | Layer | Choice |
 | --- | --- |
-| UI | React 19, React Router 7, CSS Modules over design tokens |
-| Language / build | TypeScript (strict, project references), Vite 7 |
-| Motion & polish | Framer Motion, Lenis, Lucide icons, Fontsource (Inter / Space Grotesk), flag-icons |
+| UI | React 19, React Router 8, CSS Modules over design tokens |
+| Language / build | TypeScript (strict, project references), Vite 8 |
+| Motion & polish | Framer Motion, Lucide icons, Fontsource (Inter / Space Grotesk), flag-icons |
 | Backend | Supabase — Postgres, Auth, Row Level Security, RPC functions, Edge Functions, pg_cron |
 | Hosting | Netlify, with a CSP kept in step with the app by a parity test |
 | Testing | Vitest + Testing Library, Playwright (desktop and phone), pgTAP, TypeScript↔Postgres parity checks |

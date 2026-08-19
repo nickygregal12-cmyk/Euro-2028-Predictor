@@ -130,7 +130,7 @@ describe('elimination is stated by the server, and never derived', () => {
   it('says nothing about elimination when the reader lost their only tie', () => {
     // The world where the inference is most available: a settled defeat, no
     // later tie, and a read that carried no outcome. `lostButNotStated` is now
-    // a database behind contract 207, and the page must be as silent as it was
+    // a database behind contract 208, and the page must be as silent as it was
     // when no read anywhere held the fact.
     renderChampionship(championshipScenarios.lostButNotStated)
     const page = document.body.textContent ?? ''
@@ -588,7 +588,7 @@ describe('a refusal is shown whatever the panel became', () => {
  */
 describe('the qualification line is a draw fact, not a survival claim', () => {
   it('does not let the draw fact contradict the verdict above it', () => {
-    // Contract 207's separation, at its sharpest: eliminated AND once seeded
+    // Contract 208's separation, at its sharpest: eliminated AND once seeded
     // are both true of the same reader. The verdict leads; the draw fact
     // follows it in the past tense and never stands in for it.
     const { container } = renderChampionship({

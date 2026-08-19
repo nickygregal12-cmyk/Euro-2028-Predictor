@@ -6,7 +6,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'
 
 const migration = read('supabase/migrations/20260819130000_cup_bracket_outcome_and_knockout_stage.sql')
 const previous = read('supabase/migrations/20260819100000_cup_bracket_seed_initial_phase.sql')
-const proof = read('supabase/tests/253_cup_bracket_outcome_and_knockout_stage.sql')
+const proof = read('supabase/tests/254_cup_bracket_outcome_and_knockout_stage.sql')
 
 /**
  * The function body alone. Both migrations quote the DEFECTIVE predicate in
@@ -22,7 +22,7 @@ function bracketBody(source: string): string {
   return source.slice(start, end)
 }
 
-describe('contract 207 Championship outcome and knockout stage', () => {
+describe('contract 208 Championship outcome and knockout stage', () => {
   describe('the elimination gap', () => {
     it('reads the outcome from the entrant row and emits it unchanged', () => {
       const body = bracketBody(migration)

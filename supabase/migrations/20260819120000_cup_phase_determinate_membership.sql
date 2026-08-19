@@ -1,5 +1,5 @@
 -- ===========================================================================
--- Contract 206 — `get_season_cup_phase` answers about a determinate row
+-- Contract 207 — `get_season_cup_phase` answers about a determinate row
 -- ===========================================================================
 --
 -- ---------------------------------------------------------------------------
@@ -11,15 +11,17 @@
 -- `contractVersion === requiredMigrationCount === the file count`. So the
 -- number a migration holds is decided by what else is in the chain beside it.
 --
--- Against `main` at `7b8339c` this file is the 206th migration and the one
--- beside it is the 207th, which is what they are called throughout.
+-- Against `main` at `d7a09e8` — which carries PR #920's
+-- `20260819110000_same_season_player_profile.sql` as contract 206 — the
+-- determinate-membership fix in this file is the 207th migration and the
+-- bracket-outcome file beside it is the 208th, which is what they are called
+-- throughout.
 --
--- **PR #920 is open and its own records call its migration contract 206.** Its
--- timestamp (`20260819110000`) sorts BEFORE both of these, so if it lands first
--- these two become 207 and 208 and the two numbers in this pair of files must
--- be swept forward. That is a mechanical rename of a stated number, not a
--- change of behaviour, and it is recorded here rather than discovered by
--- whichever branch merges second.
+-- **PR #920 LANDED FIRST.** Its timestamp (`20260819110000`) sorts BEFORE both
+-- of these, so the pair was swept forward from 206/207 to 207/208 when this
+-- branch was re-anchored. That was a mechanical rename of a stated number, not
+-- a change of behaviour, and it was recorded here before it happened rather
+-- than discovered by whichever branch merged second.
 --
 -- WHAT WAS WRONG
 --
@@ -253,35 +255,35 @@ declare
 begin
   -- The pin itself. Without it the read is indeterminate for a split entrant.
   if v_read !~ 'later\.phase_kind = ''split''' then
-    raise exception 'Contract 206: the membership lookup is not pinned to a phase';
+    raise exception 'Contract 207: the membership lookup is not pinned to a phase';
   end if;
 
   -- Determinacy must come from the KEY, not from an ordering. A `limit` here
   -- would mean the answer depends on a plan.
   if v_read ~* 'from public\.bonus_cup_members member.*limit' then
-    raise exception 'Contract 206: the membership lookup resolves by ordering, not by key';
+    raise exception 'Contract 207: the membership lookup resolves by ordering, not by key';
   end if;
 
   -- The dispatcher, the entrancy gate and the non-entrant shape are carried.
   if v_read !~ 'cup_split_group_tables' or v_read !~ 'cup_initial_group_tables' then
-    raise exception 'Contract 206: the phase dispatcher was lost';
+    raise exception 'Contract 207: the phase dispatcher was lost';
   end if;
   if v_read !~ '''entered'', false' then
-    raise exception 'Contract 206: the non-entrant shape was lost';
+    raise exception 'Contract 207: the non-entrant shape was lost';
   end if;
   if v_read !~ 'table_source' then
-    raise exception 'Contract 206: contract 169''s table_source key was lost';
+    raise exception 'Contract 207: contract 169''s table_source key was lost';
   end if;
 
   -- It reads the caller's own membership and nobody else's.
   if v_read !~ 'member\.user_id = v_uid' then
-    raise exception 'Contract 206: the caller scope was lost';
+    raise exception 'Contract 207: the caller scope was lost';
   end if;
 
   -- It still computes nothing. A rank, a total or a sort here would be this
   -- read becoming a second standings authority.
   if v_read ~* '\morder by t\.(table_points|points_for|window_points)' then
-    raise exception 'Contract 206: the read re-ranks a table it was given';
+    raise exception 'Contract 207: the read re-ranks a table it was given';
   end if;
 end;
 $guard$;

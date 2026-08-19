@@ -1,4 +1,4 @@
--- Contract 207: contract 193 states the caller's outcome, and means "knockout"
+-- Contract 208: contract 193 states the caller's outcome, and means "knockout"
 -- when it says so.
 --
 -- TWO DEFECTS, ONE READ, AND BOTH ARE ONLY VISIBLE IN A COMPETITION THAT HAS
@@ -21,7 +21,7 @@
 --
 -- The fixture below is therefore a split-phase competition with NO knockout at
 -- all. Under contract 193 as it stood, `my_tie` is that split fixture and
--- `drawn` is true. Under contract 207 there is no tie and nothing is drawn.
+-- `drawn` is true. Under contract 208 there is no tie and nothing is drawn.
 
 begin;
 
@@ -110,7 +110,7 @@ set local role authenticated;
 select set_config('test.co_seen',
   public.get_season_cup_bracket(md5('co-cup')::uuid)::text, true);
 
--- THE ELIMINATION GAP, CLOSED. Before contract 207 this key does not exist.
+-- THE ELIMINATION GAP, CLOSED. Before contract 208 this key does not exist.
 select is(
   current_setting('test.co_seen')::jsonb ->> 'your_outcome',
   'eliminated',

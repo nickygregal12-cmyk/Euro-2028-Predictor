@@ -128,31 +128,41 @@
  * created, and against which the three new assertions ERROR rather than fail
  * before the fix.
  *
- * Contracts 206 and 207 redefine exactly one function each —
+ * Contracts 207 and 208 redefine exactly one function each —
  * `get_season_cup_phase` and `get_season_cup_bracket` — at their existing
  * signatures and with their existing grants. Nothing is added to the schema,
  * nothing is removed, and NO GATE MOVES: both reads were already
- * `authenticated`-only and already gated on entrancy, 206 narrows a membership
- * lookup to a determinate row and 207 narrows a stage predicate and emits one
+ * `authenticated`-only and already gated on entrancy, 207 narrows a membership
+ * lookup to a determinate row and 208 narrows a stage predicate and emits one
  * more column of a row it already read. A seeded player who has entered no
  * Championship gets `{entered: false}` from both, exactly as before; the
  * deterministic seed creates no Championship at all, let alone one that has
  * reached the split phase either defect required.
  *
- * **THE RUNS FOR THIS RAISE ARE OWED AND ARE NOT YET CITED.** The marker is
+ * Contract 206 beneath them adds the bounded same-season profile read keyed by
+ * the season's `entries.id` playerRef and widens `resolve_season_player.
+ * canViewProfile` for compare reach. It deliberately leaves the legacy UUID
+ * profile path, pinned rivals and Prediction DNA at their narrower boundaries,
+ * and it does not add a new membership or seed prerequisite to the caller's own
+ * authenticated journey. At exact Contract-206 head `bfe9252`, Database parity
+ * (`local-supabase`) run 32285274468 and Browser E2E run 32285274480 both
+ * passed against all 206 migrations, including the deterministic seeded
+ * authenticated journeys.
+ *
+ * **THE RUNS FOR 207 AND 208 ARE OWED AND ARE NOT YET CITED.** The marker is
  * raised on runs rather than on the paragraph above, and the two jobs at this
  * branch's exact head have not been observed. What HAS been proved, locally on
- * a disposable PostgreSQL 16 against the real key shapes: the pre-206 phase
+ * a disposable PostgreSQL 16 against the real key shapes: the pre-207 phase
  * lookup returns the PRE-SPLIT group for a both-memberships entrant and the
  * pinned one returns the split group, with the unsplit entrant's and the
- * non-entrant's payloads byte-identical either way; and the pre-207 bracket
+ * non-entrant's payloads byte-identical either way; and the pre-208 bracket
  * read offers a `split` fixture as a live knockout tie with `drawn: true` and
- * an empty bracket, where 207 returns no tie, `drawn: false` and the caller's
+ * an empty bracket, where 208 returns no tie, `drawn: false` and the caller's
  * own outcome. Both migrations' in-transaction guards and negative controls
  * were exercised. Fill in the Database-parity and Browser-E2E run ids here once
- * they are green at the exact head, or lower this marker back to 205.
+ * they are green at the exact head, or lower this marker back to 206.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 207
+export const SEED_REVIEWED_AT_CONTRACT = 208
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

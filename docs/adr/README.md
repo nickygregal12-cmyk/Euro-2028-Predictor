@@ -124,9 +124,9 @@ same paragraph existed in seven places at once.
 
 > **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged.
 
-> **Contract 207:** adds no rule and changes no ADR. It makes ADR 0014's own vocabulary readable: `bonus_competition_entrants.outcome` is where elimination has always been recorded, and the read now carries it instead of leaving a surface to infer one. It also applies contract 102's stage domain to a predicate that predated it — `stage <> 'group'` stopped meaning "knockout" when `split` was added.
+> **Contract 208:** adds no rule and changes no ADR. It makes ADR 0014's own vocabulary readable: `bonus_competition_entrants.outcome` is where elimination has always been recorded, and the read now carries it instead of leaving a surface to infer one. It also applies contract 102's stage domain to a predicate that predated it — `stage <> 'group'` stopped meaning "knockout" when `split` was added.
 
-> **Contract 206:** adds no rule and changes no ADR. It upholds contract 102's phase model in the same way contract 205 did, one function along: a membership row is identified by its phase, and a read asking which phase the caller is IN must say which row it means.
+> **Contract 207:** adds no rule and changes no ADR. It upholds contract 102's phase model in the same way contract 205 did, one function along: a membership row is identified by its phase, and a read asking which phase the caller is IN must say which row it means.
 
 > **Contract 205:** adds no rule and changes no ADR. It upholds contract 102's phase model rather than relaxing it: a membership row is identified by its phase, and a read asking for a seed must say which phase it means. `bonus_cup_members_split_metadata_empty` already made `initial` the only phase that can hold one.
 
@@ -135,3 +135,5 @@ same paragraph existed in seven places at once.
 > **Contract 203:** adds no rule and changes no ADR. ADR 0029's actionability boundary is unchanged — aggregates are still refused as venues — and the newer-PASS-supersedes-older-BET rule is not new either; it moves from the browser to the database so there is one definition of it instead of two.
 
 > **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged — the second weekly training pass runs the same `train_selected_challengers.py` through the same verified gates.
+
+**Contract 206:** implements the backend half of ADR 0031 § 2 without changing the decision. Same-season `compare` reach may open the bounded profile through a season-scoped ref, while the stable auth UUID remains withheld and co-member-only features keep their narrower boundary.

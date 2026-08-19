@@ -143,8 +143,10 @@ insert into expected_authenticated_functions (signature) values
   ('get_season_league_matchweek_predictions(uuid,uuid)'),
   -- Contract 150: how a league table moved over one settled matchweek.
   ('get_season_league_rank_movement(uuid,uuid)'),
-  -- Contract 151: one player's season, gated on a shared private league.
+  -- Contract 151: the legacy UUID-addressed profile remains gated on self/shared private league.
   ('get_season_player_profile(uuid,uuid)'),
+  -- Contract 206 / PROF-001: same-season profile navigation uses the season-scoped entry ref.
+  ('get_season_player_profile_by_ref(uuid,uuid)'),
   -- Contract 152-157: the private containers, the one code entry point, the
   -- permanent archive and the preference authority.
   ('create_private_season_lms(uuid,text,smallint,smallint,text,text)'),

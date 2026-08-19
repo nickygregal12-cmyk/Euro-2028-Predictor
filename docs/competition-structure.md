@@ -201,12 +201,14 @@ same paragraph existed in seven places at once.
 
 > **Contract 202:** does not alter competition structure. It widens the private AI Lab's forecast-horizon vocabulary so a fixture is re-forecast as new completed matches arrive, and touches no competition, scoring or player relation.
 
-> **Contract 207:** does not alter competition structure. It redefines one season Championship read at its existing signature, adding the caller's own stored outcome to the payload and narrowing four stage predicates to the knockout stages. No competition, group, fixture or scoring relation changes.
+> **Contract 208:** does not alter competition structure. It redefines one season Championship read at its existing signature, adding the caller's own stored outcome to the payload and narrowing four stage predicates to the knockout stages. No competition, group, fixture or scoring relation changes.
 
-> **Contract 206:** does not alter competition structure. It redefines one season Championship read at its existing signature, naming the phase its membership lookup means so the primary key identifies one row. No competition, group, fixture or scoring relation changes.
+> **Contract 207:** does not alter competition structure. It redefines one season Championship read at its existing signature, naming the phase its membership lookup means so the primary key identifies one row. No competition, group, fixture or scoring relation changes.
 
 > **Contract 205:** does not alter competition structure. It redefines one season Championship read at its existing signature, pinning the caller's seed lookup to their initial membership so the read survives the split phase contract 124 introduced. No competition, group, fixture or scoring relation changes.
 
 > **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
 
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.
+
+**Contract 206:** does not change competition, game, scoring or membership structure. It makes one existing season entrant addressable to another for the bounded competitive profile through `entries.id`; no cross-competition identity or directory is introduced.
