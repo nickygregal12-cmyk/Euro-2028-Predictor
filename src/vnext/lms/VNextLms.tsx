@@ -12,6 +12,7 @@ import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatKickoffLabel, formatNumber } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import { LmsPickList } from './LmsPickList'
 import text from '../foundations/typography.module.css'
 import styles from './lms.module.css'
@@ -408,6 +409,8 @@ function Body({
  * markup was perfectly well-formed and merely untrue.
  */
 function Deadline({ round, now }: { readonly round: LmsRound; readonly now: string }) {
+  const zone = useVNextPresentationZone()
+
   // A DAY, NOT JUST A CLOCK. `formatTime` gives "11:00" and nothing else, and
   // an LMS deadline is routinely days away — so "Picks close 11:00" read on a
   // Tuesday for a Saturday lock is the worst ambiguity this product can
@@ -428,10 +431,10 @@ function Deadline({ round, now }: { readonly round: LmsRound; readonly now: stri
       : round.state === 'not-open'
         ? round.opensAt === null
           ? 'This round has not opened yet'
-          : `Picks open ${formatKickoffLabel(round.opensAt, now)}`
+          : `Picks open ${formatKickoffLabel(round.opensAt, now, zone)}`
         : round.state === 'open'
-          ? `Picks close ${formatKickoffLabel(round.locksAt, now)}`
-          : `Picks closed ${formatKickoffLabel(round.locksAt, now)}`
+          ? `Picks close ${formatKickoffLabel(round.locksAt, now, zone)}`
+          : `Picks closed ${formatKickoffLabel(round.locksAt, now, zone)}`
 
   return <p className={`${text.micro} ${styles.deadline}`}>{words}</p>
 }

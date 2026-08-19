@@ -5,6 +5,7 @@ import {
   formatKickoffLabel,
   formatOrdinal,
 } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import { FormRun } from '../components/football/FormRun'
 import { LiveIndicator } from '../components/football/LiveIndicator'
@@ -100,6 +101,7 @@ export function AroundTheGrounds({
 }
 
 function GroundRow({ match, now }: { match: Match; now: string }) {
+  const zone = useVNextPresentationZone()
   const inPlay = match.status === 'live' || match.status === 'halfTime'
   const needsPrediction = match.prediction === null && match.status === 'upcoming'
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
@@ -126,7 +128,7 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
               ? 'Full time'
               : match.status === 'postponed'
                 ? 'Postponed'
-                : formatKickoffLabel(match.kickoff, now)}
+                : formatKickoffLabel(match.kickoff, now, zone)}
           </span>
         )}
       </div>

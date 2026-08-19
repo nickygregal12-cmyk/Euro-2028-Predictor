@@ -153,14 +153,25 @@ the Tuesday after (competition), and a new user with no private league looking
 at fixtures that carry no venue, head to head or consensus. They are visual
 fixtures; none of them invents a rule.
 
+## Settled since
+
+- **Time zone handling — CLOSED for Stage 14.** The workshop still pins
+  `Europe/London` and `en-GB`, because a board that moved with the machine
+  reviewing it would be worthless. That pin is now the DEFAULT of
+  `foundations/format.ts` rather than the only answer it has: every formatter
+  takes a `VNextPresentationZone`, and `VNextConnectedShell` renders every
+  connected surface inside `VNextViewerZoneProvider`, so a reader gets their own
+  device zone. `src/shared/time/kickoff.ts` remains the product-wide authority
+  and `tests/vnext/vnextViewerZone.test.tsx` proves the two agree for one
+  instant, that the day and the time move together across midnight, and that no
+  connected screen can slip back to the pin.
+
 ## Deliberately unresolved
 
 Home settled the questions about Home. These are still open:
 
 - Whether a light theme is in scope for the alpha. **Deferred** — vNext is dark
   and the direction works dark.
-- Time zone handling. The workshop pins Europe/London for determinism; the real
-  product must use the user's zone.
 - Whether score changes should be announced to assistive technology while a
   match is live, and how. `LiveIndicator` is `aria-live="off"` on purpose; a
   polite region on a minute that changes constantly would talk over everything

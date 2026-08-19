@@ -2,50 +2,88 @@
  * Presentation formatting for vNext.
  *
  * DETERMINISM. Nothing here reads the clock. Every function that needs "now"
- * takes it as an argument, and every formatter pins its locale and time zone.
- * Left to the environment, a story would render 15:30 on a laptop and 10:30 in
- * CI, and a screenshot comparison would be worthless.
+ * takes it as an argument.
  *
- * The pinned zone is a workshop decision, not a product one — real integration
- * will use the user's zone, and that is listed as unresolved in the workshop
- * note rather than settled here.
+ * AND NOTHING HERE READS A ZONE EITHER. Every function that prints a time takes
+ * one — a `VNextPresentationZone`, defaulting to the workshop's pin so a story
+ * renders the same board on a laptop and in CI. Production callers pass the
+ * reader's own zone, which they get from `useVNextPresentationZone()` inside
+ * `VNextViewerZoneProvider`. `foundations/presentationZone.tsx` holds why the
+ * default is the pinned one and what stops that default reaching production.
+ *
+ * The product-wide rule is `src/shared/time/kickoff.ts` — the viewer's own
+ * device zone — and this module is how a vNext presentation component obeys it
+ * without importing a second formatter vocabulary into every card.
  */
 
+import {
+  WORKSHOP_PRESENTATION_ZONE,
+  type VNextPresentationZone,
+} from './presentationZone'
+
 const WORKSHOP_LOCALE = 'en-GB'
-const WORKSHOP_TIME_ZONE = 'Europe/London'
-
-const timeFormatter = new Intl.DateTimeFormat(WORKSHOP_LOCALE, {
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-  timeZone: WORKSHOP_TIME_ZONE,
-})
-
-const weekdayFormatter = new Intl.DateTimeFormat(WORKSHOP_LOCALE, {
-  weekday: 'short',
-  timeZone: WORKSHOP_TIME_ZONE,
-})
-
-const dayKeyFormatter = new Intl.DateTimeFormat('en-CA', {
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-  timeZone: WORKSHOP_TIME_ZONE,
-})
 
 const numberFormatter = new Intl.NumberFormat(WORKSHOP_LOCALE)
 
-/** "Sat 21 August" — the heading over a day's fixtures. */
-const dayHeadingFormatter = new Intl.DateTimeFormat(WORKSHOP_LOCALE, {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'long',
-  timeZone: WORKSHOP_TIME_ZONE,
-})
+/**
+ * `Intl.DateTimeFormat` construction is the expensive half of formatting and a
+ * fixture list formats once per row, so the four shapes are cached per zone.
+ * The key is the zone pair; the map is bounded by how many zones one render
+ * tree uses, which is one.
+ */
+type ZoneFormatters = {
+  readonly time: Intl.DateTimeFormat
+  readonly weekday: Intl.DateTimeFormat
+  readonly dayKey: Intl.DateTimeFormat
+  readonly dayHeading: Intl.DateTimeFormat
+}
+
+const formatterCache = new Map<string, ZoneFormatters>()
+
+function formatters(zone: VNextPresentationZone): ZoneFormatters {
+  const key = `${zone.locale ?? ''}|${zone.timeZone}`
+  const cached = formatterCache.get(key)
+  if (cached) return cached
+  const built: ZoneFormatters = {
+    // TWENTY-FOUR HOUR, EVERYWHERE, which is `kickoff.ts`'s rule and its
+    // reasoning: a fixture list is a column of times a reader compares, and
+    // "05:45 PM" among them is noise per row. The zone is the reader's; the
+    // clock face is the product's.
+    time: new Intl.DateTimeFormat(zone.locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: zone.timeZone,
+    }),
+    weekday: new Intl.DateTimeFormat(zone.locale, {
+      weekday: 'short',
+      timeZone: zone.timeZone,
+    }),
+    // `en-CA` yields `YYYY-MM-DD` reliably. It is a KEY and never shown, so it
+    // does not follow the reader's locale — only their zone, which it must.
+    dayKey: new Intl.DateTimeFormat('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: zone.timeZone,
+    }),
+    dayHeading: new Intl.DateTimeFormat(zone.locale, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'long',
+      timeZone: zone.timeZone,
+    }),
+  }
+  formatterCache.set(key, built)
+  return built
+}
 
 /** "17:30" */
-export function formatTime(iso: string): string {
-  return timeFormatter.format(new Date(iso))
+export function formatTime(
+  iso: string,
+  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
+): string {
+  return formatters(zone).time.format(new Date(iso))
 }
 
 /** "1,428" — ranks and totals that get large enough to need grouping. */
@@ -61,13 +99,17 @@ export function formatSignedPoints(value: number): string {
 }
 
 /** "Today 17:30", "Tomorrow 12:00", "Sat 15:00". */
-export function formatKickoffLabel(kickoff: string, now: string): string {
-  const dayOffset = calendarDayOffset(kickoff, now)
-  const time = formatTime(kickoff)
+export function formatKickoffLabel(
+  kickoff: string,
+  now: string,
+  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
+): string {
+  const dayOffset = calendarDayOffset(kickoff, now, zone)
+  const time = formatTime(kickoff, zone)
   if (dayOffset === 0) return `Today ${time}`
   if (dayOffset === 1) return `Tomorrow ${time}`
   if (dayOffset === -1) return `Yesterday ${time}`
-  return `${weekdayFormatter.format(new Date(kickoff))} ${time}`
+  return `${formatters(zone).weekday.format(new Date(kickoff))} ${time}`
 }
 
 /**
@@ -100,24 +142,36 @@ export function formatCountdown(target: string, now: string): string | null {
  * a fixture list has always had, and it is what stops a card of ten reading as
  * ten identical rows. It decides no lock, no state and no permission.
  *
- * It uses the SAME pinned zone as `formatTime` and `formatKickoffLabel`, so a day
- * heading and the kickoff times under it can never disagree about which day a
- * 22:45 kickoff belongs to. The zone is a workshop decision and the product-wide
- * time-zone policy is still open, which is recorded in the workshop note.
+ * It resolves in the SAME zone as `formatTime` and `formatKickoffLabel` — the one
+ * the caller was rendered inside — so a day heading and the kickoff times under
+ * it can never disagree about which day a 22:45 kickoff belongs to. That is the
+ * property `src/shared/time/kickoff.ts` names in terms: the day and the time
+ * move together, always.
  */
-export function formatDayKey(iso: string): string {
-  return dayKeyFormatter.format(new Date(iso))
+export function formatDayKey(
+  iso: string,
+  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
+): string {
+  return formatters(zone).dayKey.format(new Date(iso))
 }
 
 /** "Sat 21 August" — the heading a day's fixtures sit under. */
-export function formatDayHeading(iso: string): string {
-  return dayHeadingFormatter.format(new Date(iso))
+export function formatDayHeading(
+  iso: string,
+  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
+): string {
+  return formatters(zone).dayHeading.format(new Date(iso))
 }
 
-/** How many calendar days apart two instants are, in the workshop's zone. */
-function calendarDayOffset(target: string, now: string): number {
-  const targetDay = Date.parse(`${dayKeyFormatter.format(new Date(target))}T00:00:00Z`)
-  const nowDay = Date.parse(`${dayKeyFormatter.format(new Date(now))}T00:00:00Z`)
+/** How many calendar days apart two instants are, in the reader's zone. */
+function calendarDayOffset(
+  target: string,
+  now: string,
+  zone: VNextPresentationZone,
+): number {
+  const { dayKey } = formatters(zone)
+  const targetDay = Date.parse(`${dayKey.format(new Date(target))}T00:00:00Z`)
+  const nowDay = Date.parse(`${dayKey.format(new Date(now))}T00:00:00Z`)
   return Math.round((targetDay - nowDay) / 86_400_000)
 }
 

@@ -5,6 +5,7 @@ import {
   formatOrdinal,
   formatScoreline,
 } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import { FormRun } from '../components/football/FormRun'
 import { TeamCrest } from '../components/football/TeamCrest'
@@ -40,6 +41,7 @@ export type DecisionHeroProps = {
  * masthead above it and same ticker under that. Only the emphasis moved.
  */
 export function DecisionHero({ match, now }: DecisionHeroProps) {
+  const zone = useVNextPresentationZone()
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
   const community = match.consensus?.community ?? null
   const prediction = match.prediction
@@ -58,13 +60,13 @@ export function DecisionHero({ match, now }: DecisionHeroProps) {
             {prediction ? 'Your next match' : 'Your next decision'}
           </p>
           <p className={`${styles.decisionWhen} ${typography.numeric}`}>
-            {formatKickoffLabel(match.kickoff, now)}
+            {formatKickoffLabel(match.kickoff, now, zone)}
           </p>
         </header>
 
         <h2 id={`${match.id}-decision-heading`} className={typography.srOnly}>
           {match.home.team.name} versus {match.away.team.name},{' '}
-          {formatKickoffLabel(match.kickoff, now)}
+          {formatKickoffLabel(match.kickoff, now, zone)}
           {countdown ? `, predictions close in ${countdown}` : ''}
         </h2>
 

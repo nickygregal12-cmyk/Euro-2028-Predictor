@@ -7,6 +7,7 @@ import {
   formatOrdinal,
   formatScoreline,
 } from '../../foundations/format'
+import { useVNextPresentationZone } from '../../foundations/presentationZone'
 import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import surfaces from '../../foundations/surfaces.module.css'
 import typography from '../../foundations/typography.module.css'
@@ -66,6 +67,7 @@ export function MatchCard({
   showContext = false,
   onAction,
 }: MatchCardProps) {
+  const zone = useVNextPresentationZone()
   const headingId = useId()
   const lift = useVNextMotion(vnextMotion.liftAndPress)
 
@@ -119,7 +121,7 @@ export function MatchCard({
           </span>
         ) : (
           <span className={`${typography.label} ${styles.kickoff}`}>
-            {isFinished ? 'Full time' : formatKickoffLabel(match.kickoff, now)}
+            {isFinished ? 'Full time' : formatKickoffLabel(match.kickoff, now, zone)}
           </span>
         )}
         {match.broadcast ? (

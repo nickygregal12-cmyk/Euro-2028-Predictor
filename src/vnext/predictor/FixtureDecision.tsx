@@ -9,6 +9,7 @@ import {
   formatScoreline,
   formatShare,
 } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import type {
   PredictorActions,
@@ -88,6 +89,7 @@ export function FixtureDecision({
   onAdvanceOut,
   registerHomeInput,
 }: FixtureDecisionProps) {
+  const zone = useVNextPresentationZone()
   const panelId = useId()
   const titleId = useId()
   const [open, setOpen] = useState(false)
@@ -120,7 +122,7 @@ export function FixtureDecision({
           {nextUp ? <span className={styles.nextTag}>Next up</span> : null}
           {fixture.kickoff === null
             ? 'Kickoff to be confirmed'
-            : formatKickoffLabel(fixture.kickoff, now)}
+            : formatKickoffLabel(fixture.kickoff, now, zone)}
         </p>
         <PredictionState
           state={entry.state}

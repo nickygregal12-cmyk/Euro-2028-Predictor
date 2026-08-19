@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { VNextInvite, type InviteIntent } from '../../invite/VNextInvite'
-import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -120,8 +120,8 @@ export function VNextInviteScreen(props: VNextInviteScreenProps) {
     )
 
   return (
-    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextShellProvider>
+    </VNextConnectedShell>
   )
 }

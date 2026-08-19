@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { ArrowDown } from 'lucide-react'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatCountdown, formatKickoffLabel, formatNumber } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import surfaces from '../foundations/surfaces.module.css'
 import type { PredictorActions, PredictorModel } from '../models/predictor'
@@ -55,6 +56,7 @@ export type MatchweekBriefProps = {
 }
 
 export function MatchweekBrief({ model, actions, now, onJumpToNext }: MatchweekBriefProps) {
+  const zone = useVNextPresentationZone()
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { lock, progress, phase } = model
   const remaining = progress.total - progress.entered
@@ -109,7 +111,7 @@ export function MatchweekBrief({ model, actions, now, onJumpToNext }: MatchweekB
             evening wants the second, and the two together are three words. */}
         {lock.kind === 'open' && lock.at !== null ? (
           <p className={`${typography.caption} ${typography.numeric} ${styles.briefWhen}`}>
-            Locks {formatKickoffLabel(lock.at, now)}
+            Locks {formatKickoffLabel(lock.at, now, zone)}
           </p>
         ) : null}
         <p className={typography.caption}>{lock.detail}</p>

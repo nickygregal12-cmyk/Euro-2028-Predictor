@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { VNextLeagues } from '../../leagues/VNextLeagues'
 import type { LeaguesIntent } from '../../leagues/VNextLeagues'
-import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -141,8 +141,8 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
   return shell === null ? (
     body
   ) : (
-    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextShellProvider>
+    </VNextConnectedShell>
   )
 }

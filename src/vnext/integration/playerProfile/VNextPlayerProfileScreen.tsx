@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { VNextPlayerProfile } from '../../player/VNextPlayerProfile'
-import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -155,8 +155,8 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
   return shell === null ? (
     body
   ) : (
-    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextShellProvider>
+    </VNextConnectedShell>
   )
 }

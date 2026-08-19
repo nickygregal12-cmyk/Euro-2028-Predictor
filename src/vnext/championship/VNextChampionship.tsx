@@ -13,6 +13,7 @@ import type { GroupPanel, GroupTable, PenaltyNumberPanel } from '../models/champ
 import { bracketRounds, penaltyLaneRule, penaltyValueAllowed } from '../models/championship'
 import { useState } from 'react'
 import { formatKickoffLabel } from '../foundations/format'
+import { useVNextPresentationZone } from '../foundations/presentationZone'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -305,6 +306,7 @@ function PenaltyNumberForm({
   readonly busy: boolean
   readonly notice?: string | undefined
 }) {
+  const zone = useVNextPresentationZone()
   const [entry, setEntry] = useState('')
   const parsed = entry.trim() === '' ? null : Number(entry)
   const allowed = parsed !== null && penaltyValueAllowed(panel.lane, parsed)
@@ -338,7 +340,7 @@ function PenaltyNumberForm({
 
       {panel.locksAt === null ? null : (
         <p className={`${text.micro} ${styles.penaltyRule}`}>
-          Locks {formatKickoffLabel(panel.locksAt, generatedAt)}.
+          Locks {formatKickoffLabel(panel.locksAt, generatedAt, zone)}.
         </p>
       )}
 

@@ -3,7 +3,7 @@ import type { MatchPredictorGateway } from '../../../features/season/matchPredic
 import { useSeasonMatchPredictor } from '../../../features/season/useSeasonMatchPredictor'
 import type { PredictorActions } from '../../models/predictor'
 import type { ShellIntent } from '../../models/shell'
-import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { VNextMatchPredictor } from '../../predictor/VNextMatchPredictor'
@@ -109,9 +109,9 @@ export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
   return shell === null ? (
     <VNextPredictorBody state={state} createGateway={createGateway} />
   ) : (
-    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
       <VNextPredictorBody state={state} createGateway={createGateway} />
-    </VNextShellProvider>
+    </VNextConnectedShell>
   )
 }
 

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { VNextLms, type LmsIntent } from '../../lms/VNextLms'
-import { VNextShellProvider } from '../../app/VNextShellProvider'
+import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -140,8 +140,8 @@ export function VNextLmsScreen(props: VNextLmsScreenProps) {
   return shell === null ? (
     body
   ) : (
-    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
+    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextShellProvider>
+    </VNextConnectedShell>
   )
 }
