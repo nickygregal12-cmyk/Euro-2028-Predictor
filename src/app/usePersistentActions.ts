@@ -1,10 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  dismissMyAction,
-  fetchMyActions,
-  markMyActionsSeen,
-  type PersistentPlayerAction,
-  type PlayerActionsFeed,
+import type {
+  PersistentPlayerAction,
+  PlayerActionsFeed,
 } from '../services/supabase/playerActions'
 
 export type PersistentActionsGateway = {
@@ -13,10 +10,24 @@ export type PersistentActionsGateway = {
   dismiss: (actionKey: string) => Promise<void>
 }
 
+/**
+ * Keep the real Supabase client behind an async boundary. ActionCentre is lazy,
+ * and this preserves that property all the way down: importing the hook for a
+ * unit test or rendering the application shell does not initialise Supabase.
+ */
 const gateway: PersistentActionsGateway = {
-  load: () => fetchMyActions(),
-  markSeen: markMyActionsSeen,
-  dismiss: dismissMyAction,
+  load: async () => {
+    const service = await import('../services/supabase/playerActions')
+    return service.fetchMyActions()
+  },
+  markSeen: async (actionKeys) => {
+    const service = await import('../services/supabase/playerActions')
+    return service.markMyActionsSeen(actionKeys)
+  },
+  dismiss: async (actionKey) => {
+    const service = await import('../services/supabase/playerActions')
+    return service.dismissMyAction(actionKey)
+  },
 }
 
 export type PersistentActionsStatus = 'idle' | 'loading' | 'ready' | 'error'
@@ -39,7 +50,9 @@ export function usePersistentActions(
       setActions(feed.actions)
       setStatus('ready')
 
-      const unseen = feed.actions.filter((action) => !action.seen).map((action) => action.actionKey)
+      const unseen = feed.actions
+        .filter((action) => !action.seen)
+        .map((action) => action.actionKey)
       if (unseen.length === 0) return
       await source.markSeen(unseen)
       if (current !== generation.current) return
