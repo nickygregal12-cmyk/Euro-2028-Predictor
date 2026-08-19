@@ -117,6 +117,43 @@ describe('a promotion workflow names migrations that exist', () => {
       })
     }
 
+    it(`${workflow} compares only keys its before-snapshot actually measures`, () => {
+      // The rehearsal verification compares an after-measurement against a
+      // before-measurement, key by key:
+      //
+      //   for (const k of ['ai_predictions','ai_bets','ai_models_current']) eq(k, b[k])
+      //
+      // Those three keys were added to the AFTER measurement and to this list,
+      // and never to the BEFORE one. `b[k]` was therefore undefined and the
+      // assertion could not pass at all -- it failed the 198-to-205 rehearsal
+      // with "ai_bets=230, expected undefined", AFTER a Production dump, a
+      // restore and seven green pgTAP suites had already been paid for.
+      //
+      // A comparison against a key nobody measured is not a weak check, it is
+      // an impossible one, and it is answerable from the file alone.
+      const measured = new Set<string>()
+      const beforeStep = /Measure the disposable copy before applying|Capture exact pre-apply Production state/.exec(source)
+      if (beforeStep === null) return
+      const afterBefore = source.slice(beforeStep.index)
+      const sqlEnd = afterBefore.indexOf('- name:', 40)
+      const beforeSql = sqlEnd === -1 ? afterBefore : afterBefore.slice(0, sqlEnd)
+      for (const key of beforeSql.matchAll(/^\s*'([a-z_]+)',\(select/gm)) measured.add(key[1]!)
+
+      const compared = new Set<string>()
+      for (const list of source.matchAll(/for \(const k of \[([^\]]+)\]\) eq\(k, b\[k\]\)/g)) {
+        for (const quoted of list[1]!.matchAll(/'([a-z_]+)'/g)) compared.add(quoted[1]!)
+      }
+      if (compared.size === 0 || measured.size === 0) return
+
+      const unmeasured = [...compared].filter((key) => !measured.has(key)).sort()
+      expect(
+        unmeasured,
+        `${workflow} compares ${unmeasured.join(', ')} against a before-snapshot that ` +
+          'never measures them, so the comparison is against undefined and cannot pass. ' +
+          'Add the key to the before measurement rather than dropping it from the check.',
+      ).toEqual([])
+    })
+
     for (const edge of ['SOURCE', 'TARGET'] as const) {
       const version = envValue(source, `${edge}_VERSION`)
       const name = envValue(source, `${edge}_NAME`)

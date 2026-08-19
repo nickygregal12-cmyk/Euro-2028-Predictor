@@ -237,6 +237,18 @@ jobs:
             'cup_launches',(select count(*) from public.bonus_cup_launches),
             'cup_fixtures',(select count(*) from public.bonus_cup_fixtures),
             'action_items',(select count(*) from public.player_action_items),
+            -- The three AI Lab history counts are measured HERE as well as
+            -- after. They were added to the after-measurement and to the
+            -- comparison without being added here, so `b[k]` was undefined and
+            -- the assertion read "ai_bets=230, expected undefined" -- it could
+            -- not pass, and it failed the 198-to-205 rehearsal after the pgTAP
+            -- suites had already gone green. The assertion is worth keeping: it
+            -- is what proves contract 199 RECLASSIFIES evidence rather than
+            -- rewriting history. So the missing half is supplied rather than
+            -- the check removed. Expressions are identical to the after step's.
+            'ai_predictions',(select count(*) from ai.predictions),
+            'ai_bets',(select count(*) from ai.bets),
+            'ai_models_current',(select count(*) from ai.models where status='current'),
             'api_usage',(select count(*) from ai.api_usage),
             'collection_enabled',(select collection_enabled from ai.api_budget limit 1),
             'cron_fingerprint',(select md5(coalesce(string_agg(jobid::text||'|'||jobname||'|'||schedule||'|'||command||'|'||active::text,E'\n' order by jobid),'')) from cron.job where jobname not like 'ai-odds-%'),
