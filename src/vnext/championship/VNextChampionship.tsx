@@ -576,7 +576,7 @@ function Groups({ panel }: { readonly panel: GroupPanel }) {
 
   return (
     <section className={styles.groups} data-vnext-zone="groups">
-      <h2 className={`${text.h2} ${styles.groupsHeading}`}>Group stage</h2>
+      <h2 className={`${text.title} ${styles.groupsHeading}`}>Group stage</h2>
       {panel.yourOrdinal === null ? (
         <p className={`${text.micro} ${styles.groupsNote}`} data-vnext-zone="groups-none-yours">
           You do not hold a group in this stage.

@@ -161,6 +161,12 @@ describe('the map cannot rot', () => {
       // rendered geometry, so the suite measures round rows and columns rather
       // than class names.
       'vnext-championship.spec.ts',
+      // Stage 13's supporting surfaces. Same terms again — and here the
+      // browser closes a gap rather than adding a flourish: Account, the games
+      // hub, Discovery, the invite landing and onboarding all landed with no
+      // browser measurement, and onboarding is a journey made entirely of
+      // controls, on a phone, for somebody ninety seconds into the product.
+      'vnext-supporting.spec.ts',
       'vnext-ia.spec.ts',
       ...parkedEuroSpecs,
     ]

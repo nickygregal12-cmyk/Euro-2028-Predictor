@@ -3,7 +3,7 @@ import { VNextPlayerProfile } from '../../player/VNextPlayerProfile'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextLeaguesNotice } from '../leagues/VNextLeaguesStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildPlayerProfileModel } from './buildPlayerProfileModel'
 import {
   useVNextPlayerProfileSource,
@@ -94,19 +94,22 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
     state.status === 'loading' ? (
       <VNextPlayerProfileLoading />
     ) : state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
         heading="Player"
         title="Sign in to see this player"
         body="A player's season belongs to a competition you are both in, and a competition is reached from your account."
       />
     ) : state.status === 'noCompetition' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
         heading="Player"
         title="No competition to show"
         body="Pick a competition and season, and this is where a player's season will be."
       />
     ) : state.status === 'noPlayer' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
         heading="Player"
         title="No player to show"
         // IT DOES NOT INVITE A SEARCH. Stage 10 owns no directory, and offering
@@ -114,7 +117,8 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
         body="Open a player from a league table and their season will be here."
       />
     ) : state.status === 'failed' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
         heading="Player"
         title="We could not load this player"
         // IT DOES NOT DENY THE PLAYER. Their season exists; the read did not

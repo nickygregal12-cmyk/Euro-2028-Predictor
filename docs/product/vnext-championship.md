@@ -379,11 +379,51 @@ contract's stated scope, not a defect, and it is the honest thing to render —
 the initial table is a real table that really happened. But it is **not the
 reader's current group** once a split exists.
 
-**Contract 133 (`get_season_cup_player_view`) is what answers the split**, and
-it is NOT consumed by this stage. It returns `phase_kind` explicitly, resolves
-`split` groups, and carries the caller's own group FIXTURES (`is_my_fixture`,
-`matchday`, `home_points`/`away_points`, `opens_at`/`locks_at`) — facts contract
-167 does not hold at all.
+**Contract 133 (`get_season_cup_player_view`) was expected to answer the split.
+Read against the SQL, it does not** — and an earlier draft of this section said
+it did, which was wrong. It carries facts 167 does not hold at all (the caller's
+own group FIXTURES: `is_my_fixture`, `matchday`, `home_points`/`away_points`,
+`opens_at`/`locks_at`, and a per-fixture `result`), and it returns `phase_kind`.
+But it does not resolve its own group: it takes it from contract 120.
+
+```sql
+v_group_id := (v_phase #>> '{group,id}')::uuid;   -- contract 133
+```
+
+and contract 120's lookup is unfiltered:
+
+```sql
+select member.group_id, member.phase_kind          -- get_season_cup_phase
+  into v_group_id, v_phase_kind
+  from public.bonus_cup_members member
+ where member.competition_id = p_competition_id
+   and member.user_id = v_uid;
+```
+
+no `phase_kind`, no `order by`, no `limit`. `bonus_cup_members`'s primary key is
+`(competition_id, user_id, phase_kind)` (contract 102), so **one entrant holds
+two rows once a split exists** — and a plain PL/pgSQL `SELECT … INTO` over two
+rows takes one and raises nothing.
+
+Driven on a disposable PostgreSQL 16 against both shapes, with one entrant
+holding both memberships:
+
+```
+ CONTRACT 120 SHAPE ->  initial / aaaaaaaa-…      <- the PRE-SPLIT group, silently
+ SCALAR SUBQUERY SHAPE -> SQLSTATE 21000 : more than one row returned by a
+                          subquery used as an expression
+```
+
+**This is contract 205's defect again, in its quieter and worse form.** Contract
+193 used a scalar subquery, so it raised and was found. Contract 120 uses
+`SELECT … INTO`, so it *chooses* — and a split entrant is shown their pre-split
+group, its members, its table and its fixtures, with no error anywhere.
+
+It is not confined to this lane: **contract 120 is called in production** at
+`src/services/supabase/seasonCup.ts:88`.
+
+So contract 133 is **not consumed**, and would not be consumed for the split
+case even if it were, because the group it answers about is not determinate.
 
 **Recorded as deliberate scope, not as done.** Stage 12 renders the group phase
 from contract 167 because that closes the predicate's gap — the phase now has a
@@ -393,7 +433,20 @@ here so neither is mistaken for shipped:
 1. a split competition's CURRENT group table, and
 2. the reader's group-phase fixtures.
 
-Both are frontend consumption of an existing read; neither needs a migration.
+Both were expected to be frontend-only. **They are not.** Contract 133 is the
+read that holds them, and its group resolution is indeterminate after a split
+for the reason proved above, so consuming it would put an arbitrary answer on
+the page. This is therefore a **second owed backend delta**, distinct from §6's:
+
+> **Owed: pin `get_season_cup_phase`'s membership lookup to a determinate row**,
+> the way contract 205 pinned contract 193's seed lookup. The correction is the
+> same shape — the caller's CURRENT phase is the one a phase read should answer
+> about — but it is a behaviour change to a function production already calls,
+> so it needs its own contract, its own regression test proving a
+> both-memberships entrant resolves to the split group, and its own review.
+
+**No migration is written here.** Migrations, including this one and §6's, are
+another session's work. Recorded rather than attempted.
 
 ### It is a `<table>`
 

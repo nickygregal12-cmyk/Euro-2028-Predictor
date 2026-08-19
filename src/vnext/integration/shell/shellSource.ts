@@ -48,7 +48,22 @@ export type ShellSourceCompetition = {
 }
 
 export type ShellSource = {
-  readonly competition: ShellSourceCompetition
+  /**
+   * The competition season the page is about, or `null` for a page that is not
+   * inside one.
+   *
+   * `null` IS A REAL ANSWER AND NOT A MISSING VALUE. The route matrix keeps
+   * platform identity deliberately outside the tournament boundary, so Account
+   * is not in a competition and must not be given one — and `VNextShellModel`
+   * has always been able to say so: `activeContextId` is nullable, documented
+   * as "a REAL state ... the shell must answer it without inventing a
+   * competition to be inside". Only this source type could not express it.
+   *
+   * A page passing `null` gets the shell's cross-competition chrome and no
+   * competition mark. It does NOT get a fabricated context — inventing one to
+   * make the switcher light up is the thing this module's header forbids.
+   */
+  readonly competition: ShellSourceCompetition | null
   /**
    * The signed-in player's display name, as the auth authority states it.
    * `null` where the profile read has no name — never a placeholder.

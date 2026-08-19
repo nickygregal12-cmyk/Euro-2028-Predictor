@@ -262,6 +262,69 @@ const VNextChampionshipPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's Account surface against real data. It is the first vNext page that
+// is NOT inside a competition — the route matrix keeps platform identity outside
+// the tournament boundary — so it is also the first to exercise a shell built
+// with no competition at all. Every call it makes is a read; the production
+// /account, /profile and /more surfaces are untouched.
+const VNextAccountPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextAccountPreview').then((m) => ({
+        default: m.VNextAccountPreview,
+      })),
+    )
+  : null
+
+// Stage 13's Games hub against real data — the one surface where the three
+// games are peers. It reads `get_competition_games` for a single season and
+// WRITES NOTHING: pressing Join reports the intent rather than entering the
+// competition, because a review harness pointed at a live season must not be
+// able to enter one by a stray click.
+const VNextGamesPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextGamesPreview').then((m) => ({
+        default: m.VNextGamesPreview,
+      })),
+    )
+  : null
+
+// Stage 13's Discovery surface against real data. Unlike the other Stage 13
+// harnesses this one WRITES: Follow and Unfollow call set_competition_follow
+// against the signed-in account. Following never enters a game — contract 157's
+// migration refuses to install if it ever could — but unfollowing deletes the
+// follow row and any favourite club on it, and the harness says so on the page.
+const VNextDiscoveryPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextDiscoveryPreview').then((m) => ({
+        default: m.VNextDiscoveryPreview,
+      })),
+    )
+  : null
+
+// Stage 13's invite landing against real data. It WRITES: accepting really
+// joins, through whichever function the server's own joinWith names. The
+// production /join/:code landing is untouched, including its pending-invite
+// handling across sign-up, which is routing and therefore Stage 14's.
+const VNextInvitePreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextInvitePreview').then((m) => ({
+        default: m.VNextInvitePreview,
+      })),
+    )
+  : null
+
+// Stage 13's onboarding harness. READ-ONLY: the vNext screen writes nothing —
+// not the progress stamp, not the follows, not the game entries — because the
+// commit order lives in OnboardingJourney and this lane keeps no second copy.
+// The production /welcome route is untouched and still runs that journey.
+const VNextOnboardingPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextOnboardingPreview').then((m) => ({
+        default: m.VNextOnboardingPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -330,6 +393,21 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextChampionshipPreview ? (
                   <Route path="/dev/vnext-championship" element={<VNextChampionshipPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextAccountPreview ? (
+                  <Route path="/dev/vnext-account" element={<VNextAccountPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextGamesPreview ? (
+                  <Route path="/dev/vnext-games" element={<VNextGamesPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextDiscoveryPreview ? (
+                  <Route path="/dev/vnext-discovery" element={<VNextDiscoveryPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextInvitePreview ? (
+                  <Route path="/dev/vnext-invite" element={<VNextInvitePreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextOnboardingPreview ? (
+                  <Route path="/dev/vnext-onboarding" element={<VNextOnboardingPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
