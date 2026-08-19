@@ -119,13 +119,14 @@
  * introduced — and the deterministic seed creates no Championship at all, let
  * alone one that has reached the split phase the defect required.
  *
- * The marker is raised on the runs, not on that paragraph. Both jobs are
- * expected to run against a database holding all 205 migrations on this
- * boundary's own pull request, and the run identifiers are recorded here before
- * it merges; if either fails, the marker comes back down rather than the run
- * being explained away. The database-parity run also carries pgTAP suite 241,
- * which contract 205 extends with an entrant holding BOTH memberships — the
- * defect's own precondition, which no existing suite created.
+ * The marker is raised on the runs, not on that paragraph. Both jobs passed at
+ * the exact head `4cc7b13`: Database parity (`local-supabase`) run 32238551585
+ * and Browser E2E (`authenticated-browser`) run 32238551632, against a database
+ * holding all 205 migrations. The database-parity run carries pgTAP suite 241,
+ * which contract 205 extends with an entrant holding BOTH an `initial` and a
+ * `split` membership — the defect's own precondition, which no existing suite
+ * created, and against which the three new assertions ERROR rather than fail
+ * before the fix.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 205
 
