@@ -43,12 +43,110 @@ from __future__ import annotations
 import argparse
 import sys
 
+from aliases import canonical_for_fixture
 from db import connect, job
 
 
 def _one(conn, sql: str, params=()):
     row = conn.execute(sql, params).fetchone()
     return None if row is None else list(row.values())[0]
+
+
+def retire_fixture_feed_phantoms(conn, apply: bool) -> dict:
+    """Retire a scheduled fixture the FIXTURES FEED minted beside a real one.
+
+    A different doorway from the one `ai.repair_provider_identity` walks, and it
+    has to be a different function because the knowledge lives in a different
+    place. That repair reads `ai.odds_api_events` and resolves through
+    `ai.canonical_from_odds_api`, which is mirrored in SQL. The fixtures file is
+    a fourth vocabulary with no SQL counterpart -- `ai.canonical_from_odds_api`
+    answers `unmatched` for `Sheffield Wed` -- so the resolution has to happen
+    here, in Python, where `canonical_for_fixture` knows it.
+
+    MEASURED, so the shape is not hypothetical. Production on 19 August 2026 held
+    `Sheffield Weds v Bradford` from 16 August with four forecasts, a decision,
+    two paper bets and 169 price rows -- and, from 18 August, a second scheduled
+    row for the same match called `Sheffield Wed v Bradford City` with no
+    forecast, no bet and 24 price rows. The match was covered the whole time. The
+    feed had simply minted a twin, which inflated the fixture inventory and put
+    two dozen real prices on a row nothing reads.
+
+    The rules match the repair this sits beside, for the same reasons:
+
+      market_prices are REPOINTED, never rewritten -- they are the retained
+      provider observation and belong to the match, not to the row.
+
+      fixture_odds are DELETED where they carry the phantom's club names, being
+      a derived projection that `reconcile_paid_fixture_evidence` rebuilds.
+
+      the phantom is VOIDED, never deleted, because `void` is already the state
+      every value path filters out and deleting would break a reference.
+
+    A phantom carrying forecasts or bets is REPORTED AND LEFT ALONE. Voiding one
+    would silently move betting evidence, which is the quarantine mechanism's job
+    and not something a tidy-up should do on its way past.
+    """
+    candidates = conn.execute(
+        """
+        select id, division, match_date, kickoff_at,
+               home_canonical, away_canonical
+          from ai.fixtures
+         where status = 'scheduled'
+        """).fetchall()
+
+    by_key: dict[tuple, str] = {}
+    for row in candidates:
+        by_key[(row["division"], row["match_date"],
+                row["home_canonical"], row["away_canonical"])] = row["id"]
+
+    retired, skipped, prices, derived = [], [], 0, 0
+    for row in candidates:
+        home = canonical_for_fixture(row["home_canonical"])
+        away = canonical_for_fixture(row["away_canonical"])
+        if home == row["home_canonical"] and away == row["away_canonical"]:
+            continue                      # already canonical; the common case
+        twin = by_key.get((row["division"], row["match_date"], home, away))
+        if twin is None or twin == row["id"]:
+            # No real fixture to fold into. Renaming this one in place is a
+            # different and riskier operation than retiring a duplicate, so it
+            # is reported rather than guessed at.
+            skipped.append({"fixture_id": row["id"], "reason": "no canonical twin",
+                            "stored": f"{row['home_canonical']} v {row['away_canonical']}",
+                            "resolves_to": f"{home} v {away}"})
+            continue
+
+        held = conn.execute(
+            """
+            select (select count(*) from ai.predictions p where p.fixture_id = %s) as forecasts,
+                   (select count(*) from ai.bets b where b.fixture_id = %s) as bets
+            """, (row["id"], row["id"])).fetchone()
+        if held["forecasts"] or held["bets"]:
+            skipped.append({"fixture_id": row["id"], "reason": "carries evidence",
+                            "forecasts": held["forecasts"], "bets": held["bets"]})
+            continue
+
+        entry = {"fixture_id": row["id"], "twin_id": twin,
+                 "stored": f"{row['home_canonical']} v {row['away_canonical']}",
+                 "resolves_to": f"{home} v {away}",
+                 "kickoff_at": str(row["kickoff_at"])}
+        if apply:
+            conn.execute("update ai.market_prices set fixture_id = %s where fixture_id = %s",
+                         (twin, row["id"]))
+            prices += conn.execute(
+                "select count(*) as n from ai.market_prices where fixture_id = %s",
+                (twin,)).fetchone()["n"]
+            conn.execute("delete from ai.fixture_odds where fixture_id = %s", (row["id"],))
+            derived += 1
+            conn.execute(
+                "update ai.fixtures set status = 'void', updated_at = now() where id = %s",
+                (row["id"],))
+        retired.append(entry)
+
+    if apply and retired:
+        conn.commit()
+    return {"retired": retired, "skipped": skipped,
+            "market_prices_repointed_onto_twin": prices,
+            "fixture_odds_cleared": derived, "applied": bool(apply)}
 
 
 def main() -> int:
@@ -119,6 +217,21 @@ def main() -> int:
                       f"(known {row['home_known']}/{row['away_known']}; "
                       f"resolves to {row['home_resolves_to']} / "
                       f"{row['away_resolves_to']})")
+
+            # The fixtures-file doorway. Runs after the quarantine so it sees
+            # the settled state, and independently of --quarantine-only because
+            # retiring a duplicate is not a quarantine.
+            phantoms = retire_fixture_feed_phantoms(conn, args.apply)
+            detail["fixture_feed_phantoms"] = phantoms
+            print(f"\nfixture-feed phantoms "
+                  f"({'applied' if args.apply else 'dry run'}): "
+                  f"{len(phantoms['retired'])} retired, "
+                  f"{len(phantoms['skipped'])} left alone")
+            for row in phantoms["retired"][:20]:
+                print(f"  {row['stored']}  ->  folded into {row['resolves_to']}")
+            for row in phantoms["skipped"][:20]:
+                print(f"  LEFT: {row.get('stored', row['fixture_id'])} "
+                      f"({row['reason']})")
 
             after = conn.execute(
                 """

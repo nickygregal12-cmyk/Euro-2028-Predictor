@@ -39,7 +39,7 @@ import numpy as np
 DEFAULT_POOL_CAP = 40
 DEFAULT_RESULTS = 5
 
-OBJECTIVES = ("value", "safety", "confidence")
+OBJECTIVES = ("return", "value", "safety", "confidence")
 
 
 @dataclass(frozen=True)
@@ -277,10 +277,19 @@ def _score(acc: Accumulator, objective: str) -> tuple:
     sorted purely on value would put the unplaceable combination at the top of
     the page every single time.
 
-    The three objectives are three different questions and are kept apart:
+    The four objectives are four different questions and are kept apart:
+      return      highest combined odds                 (biggest payout, and
+                                                         SILENT on the chance
+                                                         of winning)
       safety      highest estimated joint probability   (most likely to land)
       value       highest expected value                (best price for the risk)
       confidence  strongest evidence behind the legs    (NOT most likely to win)
+
+    `return` is the browser's default. It lives here as well as in
+    `src/domain/ai/betBuilder.ts` because those two are one authority with two
+    implementations, held together by `tests/database-parity/betBuilderParity`
+    -- adding it to only one side is precisely what that test exists to catch,
+    and it did.
     """
     ids = tuple(sorted(leg.fixture_id for leg in acc.legs))
     placeable = 0 if acc.actionable else 1
@@ -288,6 +297,8 @@ def _score(acc: Accumulator, objective: str) -> tuple:
         return (placeable, -acc.joint_probability, -acc.expected_value, ids)
     if objective == "confidence":
         return (placeable, -(acc.min_data_confidence or 0.0), -acc.expected_value, ids)
+    if objective == "return":
+        return (placeable, -acc.combined_odds, -acc.joint_probability, ids)
     return (placeable, -acc.expected_value, -acc.joint_probability, ids)
 
 
