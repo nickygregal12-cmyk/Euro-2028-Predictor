@@ -722,6 +722,12 @@ function centreSource(overrides: Partial<MatchCentreSource> = {}): MatchCentreSo
     seasonLabel: '2027/28',
     colours: null,
     serverNow: NOW,
+    // THE HOST LOADED NONE OF THE THREE SOCIAL SCOPES, which is what a mapper
+    // test wants: it is measuring the fixture, the table and the head-to-head,
+    // and a `null` module draws nothing rather than an empty one.
+    you: null,
+    leagues: null,
+    everyone: null,
     clubForm: null,
     table: null,
     headToHead: null,

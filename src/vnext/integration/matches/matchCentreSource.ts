@@ -7,6 +7,9 @@ import type {
   SeasonClubFormTable,
 } from '../../../services/supabase/seasonClubFormModel'
 import type { CompetitionTable } from '../../../services/supabase/competitionTableModel'
+import type { MatchCentreView } from '../../../features/season/matchCentreModel'
+import type { LeagueFixtureView } from '../../../features/season/leagueFixtureModel'
+import type { SeasonConsensusFixture } from '../../../services/supabase/seasonConsensusModel'
 
 /**
  * WHAT THE REAL APPLICATION HANDS ONE FIXTURE'S MATCH CENTRE.
@@ -50,6 +53,25 @@ import type { CompetitionTable } from '../../../services/supabase/competitionTab
  * page one module and nothing else — the same degradation model `homeSource.ts`
  * states, for the same reason.
  *
+ * ============================ AND THE THREE SOCIAL SCOPES =================
+ *
+ * The production Match Centre composes three deliberately separate things —
+ * **You**, **Your leagues**, **Everyone** — and vNext's shipped with none of
+ * them. That is a feature regression rather than a redesign, and Stage 14's
+ * contract says a cutover does not own one.
+ *
+ * All three arrive here ALREADY PRESENTED BY THE EXISTING AUTHORITY.
+ * `presentMatchCentre` decides what a fixture was worth, `presentLeagueFixture`
+ * decides what a co-member predicted, and the consensus read decides its own
+ * cohort. This lane re-derives none of it: a second answer to "was that exact"
+ * or "may these be revealed" is the drift the whole adapter pattern exists to
+ * stop, and both are rules rather than presentation.
+ *
+ * EACH IS INDEPENDENTLY NULLABLE AND INDEPENDENTLY FAILABLE. `null` means the
+ * host did not load that module; a `failed` inside one means the module was
+ * loaded and could not answer. Neither can empty the fixture, and one league
+ * failing costs that league's panel and nothing else.
+ *
  * ============================ WHAT IS NOT HERE, AND WHY ===================
  *
  * NO LINEUPS, NO EVENT TIMELINE, NO MATCH STATISTICS, NO INJURIES, NO REFEREE,
@@ -90,4 +112,56 @@ export type MatchCentreSource = {
    * no predictor to be sent to.
    */
   readonly predictorReachable: boolean
+
+  /**
+   * YOU — the reader's own side of this fixture, from contract 113's matchweek
+   * card, presented by `features/season/matchCentreModel`.
+   *
+   * READ ON DEMAND, FOR THIS MATCHWEEK ONLY, which is the discipline
+   * `useSeasonMatchCentre` already records: the Matches LIST must never read a
+   * card per row, and a Match Centre is one fixture.
+   *
+   * `not-playing` IS NOT AN ERROR. Fixtures are readable by anyone following
+   * the competition and most readers have not joined every game behind it. The
+   * server refuses a non-entrant with 42501 and the acquisition classifies it
+   * by CODE.
+   */
+  readonly you:
+    | { readonly kind: 'ok'; readonly view: MatchCentreView }
+    | { readonly kind: 'not-playing' }
+    | { readonly kind: 'failed' }
+    | null
+
+  /**
+   * YOUR LEAGUES — what the people the reader actually plays with predicted,
+   * presented by `features/season/leagueFixtureModel`.
+   *
+   * ONE ENTRY PER LEAGUE, EACH SETTLED INDEPENDENTLY, so a league whose read
+   * did not answer names itself rather than hiding the ones that did.
+   */
+  readonly leagues:
+    | readonly {
+        readonly leagueId: string
+        readonly leagueName: string | null
+        readonly view: LeagueFixtureView | null
+      }[]
+    | null
+
+  /**
+   * EVERYONE — the anonymous, platform-wide cohort for this matchweek.
+   *
+   * The whole matchweek's consensus arrives and this fixture's row is selected
+   * from it, which is the read's own shape. `suppressed` is the SERVER's
+   * minimum-cohort decision and is carried rather than recomputed.
+   */
+  readonly everyone:
+    | {
+        readonly kind: 'ok'
+        readonly suppressed: boolean
+        readonly minimumEntries: number
+        readonly submittedEntries: number
+        readonly fixture: SeasonConsensusFixture | null
+      }
+    | { readonly kind: 'failed' }
+    | null
 }

@@ -350,3 +350,54 @@
     top: var(--vnext-space-4);
   }
 }
+
+/* ---- the three social scopes -------------------------------------------
+ * They share the module shell every other Match Centre block uses, so You,
+ * Your leagues and Everyone read as three sections of one page rather than as
+ * three widgets bolted on.
+ */
+
+.leagueBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding-block-start: var(--vnext-space-2);
+}
+
+.leagueBlock + .leagueBlock {
+  margin-block-start: var(--vnext-space-3);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.leagueName {
+  margin: 0;
+  color: var(--vnext-text-primary);
+}
+
+.leagueRows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* A name and a scoreline, and the name is the half that must never be clipped:
+   no `text-overflow`, no clamp — the row grows instead. */
+.leagueRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+}
+
+.leagueMember {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.leagueScore {
+  color: var(--vnext-text-primary);
+  white-space: nowrap;
+}
