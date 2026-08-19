@@ -117,10 +117,14 @@
 }
 
 .tick {
+  display: inline-flex;
   flex: none;
+  align-items: center;
+  justify-content: center;
   width: 1.25rem;
+  /* The icon inherits this, which is what keeps one accent colour for the tick
+     in both themes rather than a second one defined here. */
   color: var(--vnext-accent);
-  text-align: center;
 }
 
 /* A GAME ALREADY JOINED, OR NOT YET OPEN. Same row, no control, and visibly

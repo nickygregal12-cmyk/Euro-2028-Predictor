@@ -72,7 +72,7 @@ export function LeagueLadder({ league, onOpen }: LeagueLadderProps) {
               <span className={styles.avatar} aria-hidden="true">
                 {standing.player.initials}
               </span>
-              <span className={`${typography.body} ${typography.truncate}`}>
+              <span className={`${typography.body} ${typography.clamp2}`}>
                 {standing.isUser ? 'You' : standing.player.name}
               </span>
             </span>

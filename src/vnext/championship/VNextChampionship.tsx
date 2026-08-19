@@ -14,6 +14,7 @@ import { bracketRounds, penaltyLaneRule, penaltyValueAllowed } from '../models/c
 import { useState } from 'react'
 import { formatKickoffLabel } from '../foundations/format'
 import { useVNextPresentationZone } from '../foundations/presentationZone'
+import { VNextTrophyIcon } from '../foundations/VNextIcon'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -168,7 +169,7 @@ function Standing({
           {/* A WORD, NOT A COLOUR. §31. */}
           {STANDING_COPY[standing.outcome]}
           {standing.outcome === 'champion' ? (
-            <span className={styles.trophy} aria-hidden="true"> 🏆</span>
+            <VNextTrophyIcon className={styles.trophy} />
           ) : null}
         </p>
       ) : null}

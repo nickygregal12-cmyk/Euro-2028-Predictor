@@ -18,7 +18,7 @@
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 22%),
     var(--vnext-shadow-sm);
-  color: var(--vnext-text-on-live);
+  color: var(--vnext-team-on-primary);
   font-family: var(--vnext-font-display);
   font-weight: var(--vnext-weight-display);
   letter-spacing: 0.02em;

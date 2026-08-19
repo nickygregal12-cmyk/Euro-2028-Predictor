@@ -48,6 +48,8 @@ export type VNextAccountScreenProps = {
    * belongs to a host that mounts it once above the pages.
    */
   readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
+  /** The player's appearance choice, held by the host that persists it. */
+  readonly theme?: 'system' | 'dark' | 'light'
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
 }
 
@@ -100,6 +102,7 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         model={model}
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
+        theme={props.theme ?? 'system'}
         onIntent={props.onIntent}
       />
     )
