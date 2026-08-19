@@ -1,10 +1,11 @@
-name: Contract 208 development fast-lane dispatcher one-shot
+name: Contract 208 rollout dispatcher one-shot
 
-# Temporary dispatcher only. It does not connect to Supabase itself and does not
-# duplicate rollout logic. When this file first lands on main it dispatches the
-# canonical Development fast-lane workflow with its existing typed confirmation.
-# The target workflow remains workflow_dispatch-only and owns all additive,
-# snapshot, project-ref and postflight guards.
+# Temporary dispatcher only. It never connects to Supabase itself and never
+# duplicates migration or backup logic. When this file first lands on main it
+# dispatches two canonical workflow_dispatch-only workflows:
+#   1. Development fast lane for repository Contract 208;
+#   2. the read-only encrypted Production backup while Production is still 205.
+# Each target workflow keeps all of its own guards and evidence requirements.
 on:
   push:
     branches:
@@ -17,7 +18,7 @@ permissions:
   actions: write
 
 jobs:
-  dispatch-canonical-fast-lane:
+  dispatch-canonical-workflows:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -34,9 +35,14 @@ jobs:
           [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact origin/main.'; exit 1; }
           contract="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
           newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          production_contract="$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")"
           [ "${contract}" = '208' ] || { echo "ERROR: repository contract is ${contract}, expected 208."; exit 1; }
           [ "${newest}" = '20260819130000_cup_bracket_outcome_and_knockout_stage.sql' ] || {
             echo "ERROR: newest migration is ${newest}; expected Contract 208 head."
+            exit 1
+          }
+          [ "${production_contract}" = '205' ] || {
+            echo "ERROR: committed Production record is ${production_contract}; expected source Contract 205."
             exit 1
           }
 
@@ -54,4 +60,18 @@ jobs:
             -f ref='main' \
             -f 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
             -f 'inputs[confirmation]=APPLY-DEVELOPMENT-FAST-LANE'
-          echo 'Dispatched Development fast-lane rollout for exact main Contract 208.'
+          echo 'Dispatched canonical Development fast-lane rollout for exact main Contract 208.'
+
+      - name: Dispatch the canonical read-only encrypted Production backup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/production-backup.yml/dispatches" \
+            -f ref='main'
+          echo 'Dispatched canonical Production backup; the target workflow is read-only against Production.'
