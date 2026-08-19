@@ -1,4 +1,5 @@
 import { AiLabPage } from '../features/admin/AiLabPage'
+import { previewCoverage, previewHealth, previewReview } from './aiLabPreviewContext'
 import { mapAiLabSnapshot } from '../services/supabase/aiLabModel'
 
 const preview = mapAiLabSnapshot({
@@ -77,5 +78,10 @@ const preview = mapAiLabSnapshot({
 })
 
 export function AiLabPreview() {
-  return <AiLabPage previewSnapshot={preview} />
+  return (
+    <AiLabPage
+      previewSnapshot={preview}
+      previewContext={{ health: previewHealth, coverage: previewCoverage, review: previewReview }}
+    />
+  )
 }

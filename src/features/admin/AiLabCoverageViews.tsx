@@ -159,6 +159,37 @@ export function OperationalHealth({ health }: { health: AiHealth }) {
   )
 }
 
+/**
+ * Plain names for the refusal vocabulary.
+ *
+ * The codes are the contract and stay visible — `ai.pass_reason_explanation`
+ * answers for all eleven and a reader tracing one back to SQL needs the exact
+ * string. But `PASS_HIGH_MODEL_DISAGREEMENT` as the PRIMARY label makes a
+ * human read a machine's identifier and translate it themselves, on a page
+ * whose whole purpose is explaining why a fixture was refused.
+ *
+ * An unknown code falls through to itself rather than being prettified by
+ * rule, so a new refusal added in SQL shows up honestly as unlabelled here
+ * instead of being silently reworded into something it does not mean.
+ */
+const REFUSAL_LABELS: Readonly<Record<string, string>> = {
+  PASS_LOW_EDGE: 'Edge too small',
+  PASS_STALE_PRICE: 'Price too old',
+  PASS_WIDE_UNCERTAINTY: 'Forecast too uncertain',
+  PASS_HIGH_MODEL_DISAGREEMENT: 'Models disagree',
+  PASS_ODDS_OUT_OF_RANGE: 'Price out of range',
+  PASS_LOW_DATA: 'Too little history',
+  PASS_MARKET_DISCREPANCY: 'Too far from the market',
+  PASS_NO_REAL_PRICE: 'No real bookmaker price',
+  PASS_LOW_CONFIDENCE: 'Data confidence too low',
+  PASS_NO_FORECAST: 'No forecast',
+  PASS_QUARANTINED: 'Forecast withdrawn',
+}
+
+export function refusalLabel(code: string): string {
+  return REFUSAL_LABELS[code] ?? code
+}
+
 export function CoverageSummary({ coverage }: { coverage: AiCoverage }) {
   const { totals } = coverage
   return (
@@ -197,7 +228,10 @@ export function CoverageSummary({ coverage }: { coverage: AiCoverage }) {
             <tbody>
               {coverage.passReasonCounts.map((row) => (
                 <tr key={row.code}>
-                  <td>{row.code}</td>
+                  <td>
+                    <strong>{refusalLabel(row.code)}</strong>
+                    <span>{row.code}</span>
+                  </td>
                   <td>{row.n}</td>
                 </tr>
               ))}
@@ -302,77 +336,102 @@ function CoverageRow({
     decision?.priceAgeLimitSeconds ?? null,
   )
   const detailId = `coverage-detail-${fixture.fixtureId}`
+  const pick = fixture.prediction?.predictedResult ?? null
+  const headlineProbability: number | null =
+    (pick === 'H' ? fixture.prediction?.pHome
+      : pick === 'D' ? fixture.prediction?.pDraw
+        : pick === 'A' ? fixture.prediction?.pAway
+          : null) ?? null
+
+  // ONE LINE PER FIXTURE. This was a stacked card roughly 230px tall — league
+  // chip, kick-off, teams, a three-column probability row, a dense metadata
+  // line, the refusal code and its sentence — which made a seven-day window of
+  // fifty-three fixtures around eighteen thousand pixels of scrolling. Nothing
+  // was removed: everything below the summary line now lives in the detail
+  // this row could already open.
   return (
     <li className={styles.matchRow}>
-      <div className={styles.matchTop}>
-        <span className={styles.leagueCode}>{fixture.league}</span>
-        <span>{when(fixture.kickoffAt)}</span>
-        <span
-          className={styles.statePill}
-          data-tone={decision?.decision === 'BET' ? 'positive' : 'neutral'}
-        >
-          {decision ? decision.decision : 'NOT DECIDED'}
-        </span>
-      </div>
-      <p className={styles.fixture}>
-        {fixture.home} <span>v</span> {fixture.away}
-      </p>
-
-      {fixture.prediction ? (
-        <div className={styles.probabilities}>
-          {([
-            ['Home', fixture.prediction.pHome],
-            ['Draw', fixture.prediction.pDraw],
-            ['Away', fixture.prediction.pAway],
-          ] as const).map(([label, value]) => (
-            <span
-              key={label}
-              data-peak={fixture.prediction?.predictedResult === label[0] ? 'true' : 'false'}
-            >
-              <span>{label}</span>
-              <span>{percent(value)}</span>
-            </span>
-          ))}
-        </div>
-      ) : (
-        <p className={styles.rowMeta}>
-          No current forecast. Nothing has been decided about this fixture, and that is
-          not the same thing as a refusal.
-        </p>
-      )}
-
-      {decision ? (
-        <p className={styles.rowMeta}>
-          {decision.bookmaker ?? 'no venue'} {decimal(decision.oddsOffered)} ·
-          {' '}model {percent(decision.modelProbability)} ·
-          {' '}fair {decimal(decision.modelFairOdds)} ·
-          {' '}edge {signedPercent(decision.modelEdge)} ·
-          {' '}price {humanAge(decision.priceAgeSeconds)} old
-          {decision.priceAgeLimitSeconds !== null
-            ? ` of ${humanAge(decision.priceAgeLimitSeconds)} allowed`
-            : ''}
-          {freshness === 'stale' ? ' — too old to act on' : ''}
-        </p>
-      ) : null}
-
-      {decision && decision.reasons.length > 0 ? (
-        <ul className={styles.checkList}>
-          {decision.reasons.map((reason) => (
-            <li key={reason.code} className={styles.rowMeta}>
-              <strong>{reason.code}</strong> — {reason.explanation}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-
+      {/* The summary line IS the control. A separate "Show detail" link under
+          every fixture cost another line each, which over a seven-day window of
+          fifty-three fixtures is most of a screen of pure affordance. Children
+          are phrasing content so the button stays valid. */}
       <button
         type="button"
-        className={styles.textAction}
+        className={styles.rowToggle}
         aria-expanded={open}
         aria-controls={detailId}
         onClick={onToggle}
       >
-        {open ? 'Hide detail' : 'Show model, data and market detail'}
+      <span className={styles.rowMain}>
+        <span className={styles.rowWho}>
+          <span className={styles.leagueCode}>{fixture.league}</span>
+          <span className={styles.fixture}>
+            {fixture.home} <span>v</span> {fixture.away}
+          </span>
+          <span className={styles.rowWhen}>{when(fixture.kickoffAt)}</span>
+        </span>
+
+        <span className={styles.rowVerdict}>
+          {decision ? (
+            <>
+              <span
+                className={styles.statePill}
+                data-tone={decision.decision === 'BET' ? 'positive' : 'neutral'}
+              >
+                {decision.decision}
+              </span>
+              {decision.decision === 'BET' ? (
+                <span className={styles.rowPrice}>
+                  <strong>{outcomeLabel(decision.selection)}</strong>
+                  {' '}{decimal(decision.oddsOffered)}
+                  {decision.bookmaker ? ` ${decision.bookmaker}` : ''}
+                  {' · '}
+                  <strong data-edge="true">{signedPercent(decision.modelEdge)}</strong>
+                </span>
+              ) : (
+                <span className={styles.rowReason}>
+                  {decision.reasons.length
+                    ? decision.reasons.map((r) => refusalLabel(r.code)).join(' · ')
+                    : 'Passed'}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <span className={styles.statePill} data-tone="neutral">NOT DECIDED</span>
+              <span className={styles.rowReason}>
+                {fixture.prediction ? 'Awaiting a decision' : 'Not forecast'}
+              </span>
+            </>
+          )}
+        </span>
+      </span>
+
+      {decision && decision.reasons.length > 0 ? (
+        <span className={styles.rowWhy}>
+          {decision.reasons.map((reason) => reason.explanation).join(' ')}
+        </span>
+      ) : null}
+
+      <span className={styles.rowGlance}>
+        {fixture.prediction && headlineProbability !== null
+          ? `Model ${percent(headlineProbability)} ${outcomeLabel(pick).toLowerCase()}`
+          : 'No current forecast — and that is not the same thing as a refusal'}
+        {decision?.priceAgeSeconds !== undefined && decision?.priceAgeSeconds !== null
+          ? ` · price ${humanAge(decision.priceAgeSeconds)} old${
+              decision.priceAgeLimitSeconds !== null
+                ? ` of ${humanAge(decision.priceAgeLimitSeconds)} allowed`
+                : ''
+            }${freshness === 'stale' ? ' — too old to act on' : ''}`
+          : ''}
+        {fixture.quality?.dataConfidenceState
+          ? ` · ${fixture.quality.dataConfidenceState} data`
+          : ''}
+        <span className={styles.rowChevron} aria-hidden="true">{open ? '▾' : '▸'}</span>
+        <span className={styles.srOnly}>
+          {open ? 'Hide detail' : 'Show model, data and market detail'}
+        </span>
+      </span>
       </button>
 
       {open ? (

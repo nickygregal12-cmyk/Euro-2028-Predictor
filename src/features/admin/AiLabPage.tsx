@@ -97,7 +97,22 @@ function pickLabel(pick: string): string {
   return ({ H: 'Home', D: 'Draw', A: 'Away' } as Record<string, string>)[pick] ?? pick
 }
 
-export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabSnapshot | null } = {}) {
+/**
+ * `previewContext` exists so the development preview can render the FIVE tabs
+ * that were previously unreachable without a hosted admin session. Coverage,
+ * the results review and operational health all come from separate reads, and
+ * a preview snapshot only ever filled the dashboard — so This weekend, Recent
+ * results, Predictions, Betting evidence and Operations all showed "Coverage
+ * unavailable · Preview snapshot" and nobody could look at them. It is also
+ * what lets a visual contract cover them.
+ */
+export function AiLabPage({
+  previewSnapshot = null,
+  previewContext = null,
+}: {
+  previewSnapshot?: AiLabSnapshot | null
+  previewContext?: { health: AiHealth; coverage: AiCoverage; review: AiResultsReview } | null
+} = {}) {
   const [league, setLeague] = useState<string | null>(null)
   const [view, setView] = useState<View>('overview')
   const [reload, setReload] = useState(0)
@@ -105,7 +120,11 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
     previewSnapshot ? { kind: 'ready', snapshot: previewSnapshot } : { kind: 'loading' },
   )
   const [context, setContext] = useState<LabContext>(
-    previewSnapshot ? { kind: 'failed', message: 'Preview snapshot' } : { kind: 'loading' },
+    previewContext
+      ? { kind: 'ready', ...previewContext }
+      : previewSnapshot
+        ? { kind: 'failed', message: 'Preview snapshot' }
+        : { kind: 'loading' },
   )
   const [promotion, setPromotion] = useState<AiModel | null>(null)
   const [promotionReason, setPromotionReason] = useState('')
@@ -137,6 +156,10 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
   }, [league, reload, previewSnapshot])
 
   useEffect(() => {
+    if (previewContext) {
+      setContext({ kind: 'ready', ...previewContext })
+      return
+    }
     if (previewSnapshot) return
     let active = true
     setContext({ kind: 'loading' })
@@ -173,7 +196,7 @@ export function AiLabPage({ previewSnapshot = null }: { previewSnapshot?: AiLabS
     return () => {
       active = false
     }
-  }, [league, reload, previewSnapshot])
+  }, [league, reload, previewSnapshot, previewContext])
 
   async function confirmPromotion() {
     if (!promotion || promotionReason.trim().length < 10) return
