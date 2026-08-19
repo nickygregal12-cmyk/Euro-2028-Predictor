@@ -1,0 +1,63 @@
+/* The connected Last Man Standing surface while it has no round to show.
+ *
+ * The skeleton takes the SHAPE the content will take — a standing banner, a
+ * round block, a grid of club pairs — so the page does not reflow as it
+ * settles.
+ *
+ * IT CARRIES NO CLUB NAMES AND NO DIGITS. A pick-list placeholder showing real
+ * club names is a placeholder somebody taps, and on this surface a tap spends a
+ * club for the season. Bars only, and none of them shaped like a button. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.bar {
+  display: block;
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+}
+
+.barStanding {
+  height: 56px;
+  width: 100%;
+  border-radius: var(--vnext-radius-md);
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+}
+
+.barHeading {
+  height: 18px;
+  width: 160px;
+}
+
+/* Pairs rather than single blocks, because the real list is pairs — but with
+ * no name and no border that reads as a control. */
+.pairs {
+  display: grid;
+  gap: var(--vnext-space-2);
+}
+
+.barPair {
+  height: 64px;
+  width: 100%;
+}
+
+@container vnext-page (min-width: 640px) {
+  .pairs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

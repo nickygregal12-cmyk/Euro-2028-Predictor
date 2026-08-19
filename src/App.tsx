@@ -233,6 +233,20 @@ const VNextPlayerProfilePreview = import.meta.env.DEV
     )
   : null
 
+// Stage 11's Last Man Standing against real data, and it is the first vNext
+// harness that WRITES: pressing a club calls `save_lms_selection` and spends it
+// for the season. That is the point — a survival game whose write was never
+// exercised against a real round is a survival game nobody has tested — and it
+// is why this stays firmly behind the DEV gate. The production LMS surfaces are
+// untouched.
+const VNextLmsPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextLmsPreview').then((m) => ({
+        default: m.VNextLmsPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -295,6 +309,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextPlayerProfilePreview ? (
                   <Route path="/dev/vnext-player" element={<VNextPlayerProfilePreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextLmsPreview ? (
+                  <Route path="/dev/vnext-lms" element={<VNextLmsPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
