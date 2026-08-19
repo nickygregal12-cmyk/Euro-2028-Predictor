@@ -192,3 +192,20 @@
   margin: 0 0 var(--vnext-space-3);
   color: var(--vnext-text-secondary);
 }
+
+/* THE ROW'S OWN ANSWER TO A WRITE THAT DID NOT LAND.
+
+   IT SITS UNDER THE ROW AND REPLACES NOTHING IN IT, because the row is still
+   true: the follow state is the server's and it did not change. `flex-basis:
+   100%` takes a whole line of the wrapping row, so the sentence never squeezes
+   a 44px control on a 320px phone.
+
+   COLOUR IS NOT THE MESSAGE. `--vnext-miss` is the lane's existing "this did
+   not land" tone and the same one the Match Predictor prints a missed
+   prediction in — and it arrives beside a sentence, never instead of one. */
+.rowFailure {
+  flex-basis: 100%;
+  margin: var(--vnext-space-1) 0 0;
+  color: var(--vnext-miss);
+  overflow-wrap: anywhere;
+}

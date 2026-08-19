@@ -36,7 +36,19 @@ export type VNextDiscoverySourceInput = {
 type DiscoveryWriteState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'saving'; readonly tournamentId: string }
-  | { readonly kind: 'failed'; readonly message: string }
+  /**
+   * THE FAILURE NAMES ITS ROW. A message with no season attached can only be
+   * drawn somewhere general — a banner, or nowhere at all, which is what
+   * happened: the state existed and connected Discovery read it only for
+   * `saving`, so a failed Follow went Follow → Following… → Follow with no
+   * explanation. The row is where the player pressed and the row is where the
+   * answer belongs.
+   */
+  | {
+      readonly kind: 'failed'
+      readonly tournamentId: string
+      readonly message: string
+    }
 
 export type VNextDiscoverySourceState =
   | { status: 'loading' }
@@ -122,6 +134,9 @@ export function useVNextDiscoverySource(
 
   const setFollowing = useCallback(
     (tournamentId: string, following: boolean) => {
+      // A NEW ATTEMPT CLEARS THE OLD ANSWER. Leaving the previous failure up
+      // while the retry is in flight would show a player a reason for
+      // something that is currently being tried again.
       setWrite({ kind: 'saving', tournamentId })
       void (async () => {
         try {
@@ -133,11 +148,14 @@ export function useVNextDiscoverySource(
           // emits `follow` for a row it knows is not followed, and `unfollow`
           // deletes the row outright.
           await setCompetitionFollow(tournamentId, following)
+          // SUCCESS REPLACES THE FAILURE rather than leaving it beside a row
+          // that has just changed. The re-read below is what makes the row
+          // right; this is what makes the sentence beside it right.
           setWrite({ kind: 'idle' })
           setNonce((value) => value + 1)
         } catch (error) {
           const { userFacingError } = await import('../../../shared/errors/userFacingError')
-          setWrite({ kind: 'failed', message: userFacingError(error) })
+          setWrite({ kind: 'failed', tournamentId, message: userFacingError(error) })
         }
       })()
     },

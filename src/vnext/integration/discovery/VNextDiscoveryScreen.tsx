@@ -18,8 +18,14 @@ import { useVNextDiscoverySource } from './useVNextDiscoverySource'
  *
  * The follow write lives in the hook and the decision about whether a control
  * may be drawn at all lives in the model. This file only chooses which state to
- * show, and passes the write's failure through as a notice rather than
- * re-wording it.
+ * show, and passes the write's failure through to the row it belongs to rather
+ * than re-wording it.
+ *
+ * THE FAILURE USED TO BE DROPPED HERE. The hook has always had a `failed`
+ * state; this file read the write only for `saving`, so a Follow that the
+ * server refused went Follow → Following… → Follow and said nothing. The state
+ * now names its season and the row prints it, so one row's failure is one
+ * row's sentence and never the catalogue's.
  */
 
 export type VNextDiscoveryScreenProps = {
@@ -86,6 +92,14 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
         busyTournamentId={
           state.status === 'ready' && state.write.kind === 'saving'
             ? state.write.tournamentId
+            : null
+        }
+        writeFailure={
+          // CARRIED WHOLE, so the write's own sentence travels with it rather
+          // than this file re-choosing copy the error authority already chose —
+          // the same rule the Championship's refused-write notice follows.
+          state.status === 'ready' && state.write.kind === 'failed'
+            ? { tournamentId: state.write.tournamentId, message: state.write.message }
             : null
         }
         onIntent={(intent: DiscoveryIntent) => {
