@@ -104,7 +104,7 @@ type LmsContext = {
  * `postponed` is not a result — the fixture produced no standing outcome — and
  * it is a real answer rather than a missing one.
  */
-export type LmsClubResult = 'won' | 'lost' | 'drew' | 'postponed'
+type LmsClubResult = 'won' | 'lost' | 'drew' | 'postponed'
 
 /**
  * WHAT THE COMPETITION SAYS THE PLAYER NOW IS. The only survival verdict, and
@@ -209,7 +209,7 @@ export type LmsRound = {
  * `result` is null until the fixture produces one, and that is not the same as
  * the player being safe — `LmsPage.standing` is the only thing that says so.
  */
-export type LmsPick = {
+type LmsPick = {
   readonly clubName: string
   readonly result: LmsClubResult | null
 }
@@ -254,10 +254,22 @@ export type LmsPageModel = {
    */
   readonly standing: LmsStanding | null
   /**
-   * Clubs spent in the current cycle, for a surface that wants to list them.
-   * The same names the options carry `used` for — one authority, two readings.
+   * Clubs the player has spent that ARE PLAYING IN THIS ROUND — the same names
+   * the options above carry `used` for, gathered in one place.
+   *
+   * **REAL BUT PARTIAL, AND THE NAME SAYS SO.** Contract 116's `used_team_ids`
+   * is the caller's complete cycle list, but it is IDS ONLY, and the read
+   * supplies club NAMES exclusively for clubs in this round's fixtures. A club
+   * spent three rounds ago that is not playing this week therefore has no name
+   * to print, and is absent from this list.
+   *
+   * An earlier draft called this `usedClubNames` and a surface headed it
+   * "Clubs you have already used" — a completeness claim the read cannot
+   * support, and one that would quietly under-report exactly the clubs a player
+   * is most likely to have forgotten. Naming the bound in the field is the fix,
+   * because the surface then cannot forget it.
    */
-  readonly usedClubNames: readonly string[]
+  readonly usedClubNamesInRound: readonly string[]
   readonly body: LmsBody
 }
 
@@ -275,35 +287,9 @@ export function lmsRoundIsOpen(round: LmsRound): boolean {
   return round.state === 'open'
 }
 
-/**
- * Whether the player is out of the competition.
- *
- * `eliminated` ONLY. A lost club is not an elimination — some rules give a
- * second life, a postponed fixture may resolve later, and only the settlement
- * job decides. This is the one place that question is answered.
- */
-export function lmsEliminated(standing: LmsStanding | null): boolean {
-  return standing === 'eliminated'
-}
-
 /** Whether the player has won the whole thing. */
 export function lmsChampion(standing: LmsStanding | null): boolean {
   return standing === 'champion'
-}
-
-/**
- * The one club the player holds in this round, if any.
- *
- * Reads the OPTIONS rather than the pick, because the options are what the
- * server marked — and a surface asking "which row is mine" must get the same
- * answer as the row itself gives.
- */
-export function lmsChosenOption(round: LmsRound): LmsTeamOption | null {
-  for (const choice of round.choices) {
-    if (choice.home.action.kind === 'chosen') return choice.home
-    if (choice.away.action.kind === 'chosen') return choice.away
-  }
-  return null
 }
 
 /** How many clubs remain pickable in this round. Never an eligibility rule. */

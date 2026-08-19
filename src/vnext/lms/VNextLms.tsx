@@ -88,15 +88,21 @@ export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNe
           />
         </motion.div>
 
-        {model.usedClubNames.length === 0 ? null : (
+        {model.usedClubNamesInRound.length === 0 ? null : (
           <section className={styles.used} data-vnext-zone="used">
             <h2 className={`${text.micro} ${styles.usedHeading}`}>
-              Clubs you have already used
+              Clubs in this round you have already used
             </h2>
             {/* PERMANENT FURNITURE, NOT A DETAIL. What a player has spent is
-                half the game, and it is the thing they forget between rounds. */}
+                half the game, and it is the thing they forget between rounds.
+
+                THE HEADING STATES ITS BOUND. The model can only name used clubs
+                that are PLAYING this round — contract 116 gives the full cycle
+                list as ids and club names only for this round's fixtures — so
+                "Clubs you have already used" would be a completeness claim the
+                read cannot support. See `usedClubNamesInRound`. */}
             <p className={`${text.body} ${styles.usedList}`}>
-              {model.usedClubNames.join(' · ')}
+              {model.usedClubNamesInRound.join(' · ')}
             </p>
           </section>
         )}

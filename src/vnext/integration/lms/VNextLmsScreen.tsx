@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { VNextLms } from '../../lms/VNextLms'
+import { VNextLms, type LmsIntent } from '../../lms/VNextLms'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
@@ -106,7 +106,9 @@ export function VNextLmsScreen(props: VNextLmsScreenProps) {
     ) : model ? (
       <VNextLms
         model={model}
-        onIntent={(intent) => {
+        onIntent={(intent: LmsIntent) => {
+          // NAMED RATHER THAN INFERRED, so the one intent this page can emit is
+          // visible at the seam that acts on it.
           if (state.status === 'ready') state.pick(intent.teamId)
         }}
         onRetry={state.status === 'ready' ? state.retry : undefined}

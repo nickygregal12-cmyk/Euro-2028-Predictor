@@ -11,13 +11,7 @@ import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRo
  * than reach past it into a feature directory — which is the import direction
  * the vNext lane is built on, and the reason this line exists.
  */
-export type {
-  EntryOutcome,
-  LmsClub,
-  LmsRoundPage,
-  PickOutcome,
-  SeasonLmsGateway,
-} from '../../features/season/lmsRoundModel'
+export type { LmsClub, LmsRoundPage } from '../../features/season/lmsRoundModel'
 
 /**
  * The real season Last Man Standing gateway, over contract 116's bounded read

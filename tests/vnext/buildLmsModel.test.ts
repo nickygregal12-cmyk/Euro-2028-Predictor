@@ -320,7 +320,7 @@ describe('eligibility is the server`s flag, not a comparison here', () => {
   })
 
   it('lists the used club names without inventing any', () => {
-    expect(buildLmsModel(source(page())).usedClubNames).toEqual(['Hearts'])
+    expect(buildLmsModel(source(page())).usedClubNamesInRound).toEqual(['Hearts'])
   })
 })
 

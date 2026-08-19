@@ -52,7 +52,7 @@ type LmsSourceContext = {
  * offered, not entered, between rounds, eliminated — is INSIDE the payload,
  * because the server knows them and this lane does not guess them.
  */
-export type LmsRead =
+type LmsRead =
   | { readonly kind: 'ok'; readonly page: LmsRoundPage }
   | { readonly kind: 'failed' }
 

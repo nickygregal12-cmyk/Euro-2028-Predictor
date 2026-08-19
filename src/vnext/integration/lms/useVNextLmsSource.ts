@@ -59,7 +59,7 @@ import type { LmsSource } from './lmsSource'
  * landed pick is visible in the model itself — the club is marked `chosen` —
  * and a banner repeating it would be a second place to look.
  */
-export type LmsPickState =
+type LmsPickState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'saving' }
   /** `PT409`: changed elsewhere. Resolved by re-reading, never by retrying. */

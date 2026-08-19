@@ -322,6 +322,22 @@ describe('every world is one page', () => {
     expect(zone('used').textContent).toContain('Dundee United')
   })
 
+  /**
+   * THE HEADING MAY NOT CLAIM COMPLETENESS IT DOES NOT HAVE.
+   *
+   * `usedClubNamesInRound` can only name used clubs PLAYING THIS ROUND —
+   * contract 116 gives the whole cycle list as ids, and club names only for
+   * this round's fixtures. A heading reading "Clubs you have already used"
+   * would under-report exactly the clubs a player has most likely forgotten,
+   * and no amount of correct markup would make it true.
+   */
+  it('bounds the used heading to this round rather than claiming the cycle', () => {
+    renderLms(lmsScenarios.manyUsed, { onIntent: vi.fn() })
+    const heading = zone('used').querySelector('h2')?.textContent ?? ''
+    expect(heading).toContain('in this round')
+    expect(heading).not.toMatch(/^Clubs you have already used$/)
+  })
+
   it('counts what is still pickable', () => {
     renderLms(lmsScenarios.oneClubLeft, { onIntent: vi.fn() })
     // THE SINGULAR, because this is the round where the count is the warning.

@@ -103,7 +103,7 @@ function world(overrides: Partial<LmsPageModel> = {}): LmsPageModel {
     generatedAt: LMS_NOW,
     context: competition,
     standing: 'active',
-    usedClubNames: ['Hearts'],
+    usedClubNamesInRound: ['Hearts'],
     body: { kind: 'round', round: round('open', openChoices), pick: null },
     ...overrides,
   }
@@ -129,7 +129,7 @@ const pickMade = world({
 /** THE BINDING WORLD for the two-verdicts rule. */
 const wonButEliminated = world({
   standing: 'eliminated',
-  usedClubNames: ['Hearts', 'Celtic'],
+  usedClubNamesInRound: ['Hearts', 'Celtic'],
   body: {
     kind: 'round',
     round: round('settled', [
@@ -143,7 +143,7 @@ const wonButEliminated = world({
 /** The mirror. */
 const lostButAlive = world({
   standing: 'active',
-  usedClubNames: ['Hearts', 'Celtic'],
+  usedClubNamesInRound: ['Hearts', 'Celtic'],
   body: {
     kind: 'round',
     round: round('settled', [
@@ -190,7 +190,7 @@ const notOpenYet = world({
 
 const eliminated = world({
   standing: 'eliminated',
-  usedClubNames: ['Hearts', 'Celtic', 'Rangers'],
+  usedClubNamesInRound: ['Hearts', 'Celtic', 'Rangers'],
   body: {
     kind: 'round',
     round: round('open', openChoices.map((choice) => ({
@@ -204,14 +204,14 @@ const eliminated = world({
 
 const champion = world({
   standing: 'champion',
-  usedClubNames: ['Hearts', 'Celtic', 'Rangers', 'Aberdeen'],
+  usedClubNamesInRound: ['Hearts', 'Celtic', 'Rangers', 'Aberdeen'],
   body: { kind: 'no-round' },
 })
 
 const survivedLastRound = world({ standing: 'survived' })
 
 const manyUsed = world({
-  usedClubNames: [
+  usedClubNamesInRound: [
     'Hearts',
     'Celtic',
     'Rangers',
@@ -233,7 +233,7 @@ const manyUsed = world({
 })
 
 const oneClubLeft = world({
-  usedClubNames: ['Hearts', 'Celtic', 'Rangers', 'Aberdeen', 'Hibernian'],
+  usedClubNamesInRound: ['Hearts', 'Celtic', 'Rangers', 'Aberdeen', 'Hibernian'],
   body: {
     kind: 'round',
     round: round('open', [
@@ -245,11 +245,11 @@ const oneClubLeft = world({
 
 const noRound = world({ body: { kind: 'no-round' } })
 
-const notEntered = world({ standing: null, usedClubNames: [], body: { kind: 'not-entered' } })
+const notEntered = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'not-entered' } })
 
-const notOffered = world({ standing: null, usedClubNames: [], body: { kind: 'not-offered' } })
+const notOffered = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'not-offered' } })
 
-const unavailable = world({ standing: null, usedClubNames: [], body: { kind: 'unavailable' } })
+const unavailable = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'unavailable' } })
 
 const unscheduled = world({
   body: {
@@ -267,7 +267,7 @@ const unscheduled = world({
 })
 
 const longClubNames = world({
-  usedClubNames: ['Inverness Caledonian Thistle'],
+  usedClubNamesInRound: ['Inverness Caledonian Thistle'],
   body: {
     kind: 'round',
     round: round('open', [

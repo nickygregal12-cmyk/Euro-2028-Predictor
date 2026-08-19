@@ -28,10 +28,15 @@ import type { LmsSource } from './lmsSource'
  *
  * ============================ IT DECIDES NO ELIGIBILITY ==================
  *
- * `used` is contract 116's `used` flag per club, computed server-side from
- * `used_team_ids` within the current cycle. Nothing here compares club names,
- * counts rounds, or works out what a cycle is. A club is spent because the
- * server said so.
+ * BE PRECISE ABOUT WHOSE ANSWER `used` IS, because the whole stage turns on
+ * that distinction. The LIST is the server's: `lms_used_team_ids` returns the
+ * team ids the caller has consumed IN THEIR CURRENT CYCLE, which is the list
+ * ADR 0013's reset makes the right one. The per-club `used` FLAG is that list
+ * projected onto each club BY ID, once, in `seasonLms.ts`.
+ *
+ * That projection is a set membership test on a server-issued id and nothing
+ * else. Nothing in this lane compares club names, counts rounds, or works out
+ * what a cycle is. A club is spent because the server listed it.
  *
  * ============================ IT DERIVES NO SURVIVAL =====================
  *
@@ -98,7 +103,7 @@ function actionFor(
 ): LmsPickAction {
   if (club.teamId === chosenTeamId) return { kind: 'chosen' }
   if (blocked !== null) return { kind: 'unavailable', reason: blocked }
-  // The server's own `used` flag, per club, for the current cycle.
+  // The server's used-list for the current cycle, matched by id. See header.
   if (club.used) return { kind: 'used' }
   return { kind: 'pick', teamId: club.teamId }
 }
@@ -187,7 +192,7 @@ export function buildLmsModel(source: LmsSource): LmsPageModel {
       // Null rather than a guess: "active" would tell somebody they are still
       // in a competition this page failed to read.
       standing: null,
-      usedClubNames: [],
+      usedClubNamesInRound: [],
       body: { kind: 'unavailable' },
     }
   }
@@ -199,7 +204,7 @@ export function buildLmsModel(source: LmsSource): LmsPageModel {
     context,
     // Carried untouched. The settlement job's word, never derived from a result.
     standing: page.entryOutcome,
-    usedClubNames: page.fixtures
+    usedClubNamesInRound: page.fixtures
       .flatMap((fixture) => [fixture.home, fixture.away])
       .filter((club) => club.used)
       .map((club) => club.name),
