@@ -292,7 +292,20 @@ export function AiLabPage({
           <Alert variant="warning" title="Pipeline health unavailable">{context.message}</Alert>
         ) : null}
         {snapshot && view === 'overview' ? (
-          <Overview snapshot={snapshot} modelTarget={league ? 1 : AI_LAB_LEAGUES.length} onPromote={setPromotion} />
+          <Overview
+            snapshot={snapshot}
+            modelTarget={league ? 1 : AI_LAB_LEAGUES.length}
+            onPromote={setPromotion}
+            versusMarket={
+              context.kind === 'ready' && context.review.totals.meanMarketLogLoss !== null
+                ? {
+                    model: context.review.totals.meanLogLoss,
+                    market: context.review.totals.meanMarketLogLoss,
+                    comparisons: context.review.totals.marketComparisons,
+                  }
+                : null
+            }
+          />
         ) : null}
         {view === 'coverage' ? (
           context.kind === 'ready' ? (
@@ -391,18 +404,41 @@ function Overview({
   snapshot,
   modelTarget,
   onPromote,
+  versusMarket = null,
 }: {
   snapshot: AiLabSnapshot
   modelTarget: number
   onPromote: (model: AiModel) => void
+  versusMarket?: { model: number | null; market: number; comparisons: number } | null
 }) {
   const currentModels = snapshot.models.filter((model) => model.status === 'current').length
+
+  // A log loss on its own is unreadable. 1.021 is neither good nor bad until it
+  // sits beside something, and the only comparator that means anything is the
+  // de-vigged closing line: it is what a well-informed market thought, priced
+  // on the same matches. Reported here because it is the single most important
+  // thing this page knows and it was previously visible nowhere -- the number
+  // was shown with the hint "Lower is better", which tells a reader the
+  // direction and not the verdict.
+  const marketGap =
+    versusMarket && versusMarket.model !== null
+      ? versusMarket.model - versusMarket.market
+      : null
   return (
     <div className={styles.stack}>
       <section className={styles.metricGrid} aria-label="AI performance summary">
         <Metric label="Graded predictions" value={String(snapshot.performance.graded)} hint="Evidence sample" />
         <Metric label="Result accuracy" value={percent(snapshot.performance.accuracy)} hint={`${snapshot.performance.resultCorrect} correct`} />
-        <Metric label="Mean log loss" value={decimal(snapshot.performance.meanLogLoss)} hint="Lower is better" />
+        <Metric
+          label="Mean log loss"
+          value={decimal(snapshot.performance.meanLogLoss)}
+          hint={
+            marketGap === null
+              ? 'Lower is better · no closing comparison yet'
+              : `${marketGap > 0 ? 'Behind' : 'Ahead of'} the closing line by ${Math.abs(marketGap).toFixed(4)} · market ${versusMarket?.market.toFixed(4)} over ${versusMarket?.comparisons}`
+          }
+          tone={marketGap === null ? 'neutral' : marketGap > 0 ? 'negative' : 'positive'}
+        />
         <Metric
           label="Current models"
           value={`${currentModels} / ${modelTarget}`}
