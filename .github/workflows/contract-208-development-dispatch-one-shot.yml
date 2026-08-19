@@ -1,0 +1,57 @@
+name: Contract 208 development fast-lane dispatcher one-shot
+
+# Temporary dispatcher only. It does not connect to Supabase itself and does not
+# duplicate rollout logic. When this file first lands on main it dispatches the
+# canonical Development fast-lane workflow with its existing typed confirmation.
+# The target workflow remains workflow_dispatch-only and owns all additive,
+# snapshot, project-ref and postflight guards.
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/contract-208-development-dispatch-one-shot.yml
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch-canonical-fast-lane:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse unless main is exactly Contract 208
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: dispatcher runs only from main.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact origin/main.'; exit 1; }
+          contract="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${contract}" = '208' ] || { echo "ERROR: repository contract is ${contract}, expected 208."; exit 1; }
+          [ "${newest}" = '20260819130000_cup_bracket_outcome_and_knockout_stage.sql' ] || {
+            echo "ERROR: newest migration is ${newest}; expected Contract 208 head."
+            exit 1
+          }
+
+      - name: Dispatch the canonical Development fast lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/development-fast-lane-rollout.yml/dispatches" \
+            -f ref='main' \
+            -f 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -f 'inputs[confirmation]=APPLY-DEVELOPMENT-FAST-LANE'
+          echo 'Dispatched Development fast-lane rollout for exact main Contract 208.'
