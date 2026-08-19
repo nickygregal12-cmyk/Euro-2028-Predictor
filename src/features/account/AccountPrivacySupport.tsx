@@ -1,4 +1,5 @@
 import { Alert } from '../../design-system'
+import { useSite } from '../../app/site/SiteProvider'
 import { buildAdminSupportHref } from './accountSupport'
 import s from '../shared.module.css'
 import a from './account.module.css'
@@ -12,7 +13,12 @@ export function AccountPrivacySupport({
   supportEmail,
   accountEmail,
 }: AccountPrivacySupportProps) {
-  const supportHref = buildAdminSupportHref(supportEmail, accountEmail)
+  const site = useSite()
+  const supportHref = buildAdminSupportHref(
+    supportEmail,
+    accountEmail,
+    site.brand.productName,
+  )
 
   return (
     <section className={s.card} aria-labelledby="account-privacy-title">

@@ -59,7 +59,7 @@ describe('the Hub build', () => {
   const built = builtDocument('hub')
 
   it('is the weekly product', () => {
-    expect(built).toContain('<title>Football Prediction Hub</title>')
+    expect(built).toContain('<title>Predictor Hub</title>')
     expect(built).toContain('Premier League and the Scottish Premiership')
   })
 
@@ -93,8 +93,8 @@ describe('the Euro build', () => {
   })
 
   it('does not present itself as the weekly platform', () => {
-    expect(built).not.toContain('<title>Football Prediction Hub</title>')
-    expect(built).not.toContain('og:site_name" content="Football Prediction Hub')
+    expect(built).not.toContain('<title>Predictor Hub</title>')
+    expect(built).not.toContain('og:site_name" content="Predictor Hub')
   })
 })
 

@@ -89,7 +89,7 @@ export function JoinLandingPage() {
   return (
     <div className={j.page}>
       <div className={j.card}>
-        <p className={j.eyebrow}>Football Prediction Hub</p>
+        <p className={j.eyebrow}>{site.brand.productName}</p>
 
         {(state.status === 'idle' || state.status === 'looking') && <Skeleton lines={4} />}
 

@@ -56,7 +56,7 @@ describe('the two products differ where they are meant to', () => {
   const euro = siteConfiguration('euro', { publicOrigin: EURO_ORIGIN })
 
   it('names itself differently', () => {
-    expect(hub.brand.productName).toBe('Football Prediction Hub')
+    expect(hub.brand.productName).toBe('Predictor Hub')
     expect(euro.brand.productName).toBe('Euro 2028 Predictor')
     expect(siteBrandCopy('hub').description).not.toBe(siteBrandCopy('euro').description)
   })
@@ -205,7 +205,7 @@ describe('generated public metadata', () => {
 
   it('omits every absolute-URL tag when the site has no origin', () => {
     const head = documentHeadTags(sitePublicMetadata('hub')).join('\n')
-    expect(head).toContain('<title>Football Prediction Hub</title>')
+    expect(head).toContain('<title>Predictor Hub</title>')
     expect(head).toContain('<meta name="description"')
     expect(head).not.toContain('rel="canonical"')
     expect(head).not.toContain('og:url')

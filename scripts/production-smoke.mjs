@@ -73,7 +73,7 @@ const ROUTE_PROBE = 'PRODUCTION-READ-ONLY-PROBE'
  */
 const PRODUCTION_SITES = new Map([
   ['https://euro28predictor.com', 'Euro 2028 Predictor'],
-  ['https://predictorhub.netlify.app', 'Football Prediction Hub'],
+  ['https://predictorhub.netlify.app', 'Predictor Hub'],
 ])
 
 const EVERY_PRODUCT = [...new Set(PRODUCTION_SITES.values())]

@@ -184,7 +184,7 @@ describe('the browser tab', () => {
     // the same fact, and both come from the site configuration. Hard-coding
     // either is how the Euro site's tabs end up reading "Football Prediction
     // Hub" — the other product's name, in every bookmark a player keeps.
-    expect(HUB.brand.productName).toBe('Football Prediction Hub')
+    expect(HUB.brand.productName).toBe('Predictor Hub')
     expect(EURO.brand.productName).toBe('Euro 2028 Predictor')
   })
 })
