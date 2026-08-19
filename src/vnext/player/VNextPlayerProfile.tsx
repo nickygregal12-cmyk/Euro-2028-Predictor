@@ -62,8 +62,14 @@ import styles from './playerProfile.module.css'
  * a zero denominator; every other number on this page is one the server sent.
  */
 
-/** Contract 157's `set_pinned_rival`, performed by the host. */
-export type PlayerProfileActions = {
+/**
+ * Contract 157's `set_pinned_rival`, performed by the host.
+ *
+ * Not exported: `VNextPlayerProfileProps` carries it and the screen hands in an
+ * object literal, so nothing outside this file names it. An export nothing
+ * imports is a widened surface for free.
+ */
+type PlayerProfileActions = {
   readonly setPinned?: ((pinned: boolean) => Promise<{ readonly ok: boolean; readonly message?: string }>) | undefined
 }
 

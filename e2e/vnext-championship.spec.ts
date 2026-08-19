@@ -306,11 +306,43 @@ test.describe('the page says only what the read stated', () => {
     expect(reading.pageText).not.toMatch(/\bbye\b/i)
   })
 
-  test('names the champion without telling the reader they lost', async ({ page }) => {
+  test('names the champion AND states the reader is out, from two facts', async ({ page }) => {
+    // CONTRACT 208 CHANGED WHAT THIS WORLD MAY SAY, and the change is which
+    // fact the sentence comes from rather than whether it appears.
+    //
+    // Before it, no season read returned elimination at all, so the page could
+    // name the winner and had to stay silent about the reader — and this test
+    // asserted that silence. Now `your_outcome` carries the settlement
+    // authority's own column, so the page says both: the bracket panel names
+    // the fixture's winner, and the standing states the entrant's outcome.
+    // NEITHER PRODUCED THE OTHER, which is the property the surface tests hold.
     await open(page, 'frame-someone-else-won-phone')
     const reading = await read(page)
     expect(reading.pageText).toContain('Bo Nilsson')
-    expect(reading.pageText).not.toMatch(/eliminated/i)
+    expect(reading.pageText).toMatch(/You have been eliminated/i)
+  })
+
+  test('states elimination where nothing on the page looks like a defeat', async ({
+    page,
+  }) => {
+    // THE WORLD CONTRACT 208 EXISTS FOR. Group phase, no knockout, no settled
+    // tie and no seed: every inference the surface could have made returns
+    // "still in", and the reader is told they are out because the settlement
+    // authority says so.
+    await open(page, 'frame-eliminated-in-groups-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(/You have been eliminated/i)
+    expect(reading.pageText).not.toMatch(/Your tie/i)
+  })
+
+  test('still says nothing about elimination where the read carried none', async ({
+    page,
+  }) => {
+    // The world where the inference is most available and is still refused: a
+    // settled defeat, no later tie, and a database behind contract 208.
+    await open(page, 'frame-lost-phone')
+    const reading = await read(page)
+    expect(reading.pageText).not.toMatch(/eliminated|knocked out|you are out/i)
   })
 })
 

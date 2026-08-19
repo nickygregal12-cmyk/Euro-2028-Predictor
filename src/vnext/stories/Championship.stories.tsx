@@ -286,6 +286,7 @@ export const FrameEveryDecisionPhone: Story = frame('everyDecision', 'phone-375'
 export const FrameHalfFilledPhone: Story = frame('halfFilledSeat', 'phone-375')
 export const FrameChampionPhone: Story = frame('youAreChampion', 'phone-375')
 export const FrameSomeoneElseWonPhone: Story = frame('someoneElseWon', 'phone-375')
+export const FrameEliminatedInGroupsPhone: Story = frame('eliminatedInGroups', 'phone-375')
 export const FramePlayoffPhone: Story = frame('playoffRound', 'phone-375')
 export const FrameUnlabelledPhone: Story = frame('unlabelledRound', 'phone-375')
 export const FrameLongNamesPhone: Story = frame('longNames', 'phone-375')

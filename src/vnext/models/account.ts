@@ -208,7 +208,10 @@ export type HistoryPanel =
  *
  * `unknown` is the session read not landing. It is not an empty address.
  */
-export type AccountEmail =
+/* Not exported: `AccountSettingsPanel` carries it and nothing outside this file
+ * names it. An export nothing imports is a widened surface for free — the same
+ * reason `AccountContext` is not one. */
+type AccountEmail =
   | {
       readonly kind: 'known'
       readonly address: string
