@@ -64,16 +64,26 @@ const CompetitionGamesPage = lazy(() =>
    rebalancing: a second consumer for shared modules split `lib`,
    `seasonClubForm` and `shellRoutes` into their own chunks and hoisted common
    code up. Worth stating rather than rounding to zero. */
-const VNextMatchesDestination = lazy(() =>
-  import('./app/vnext/VNextMatchesDestination').then((m) => ({
-    default: m.VNextMatchesDestination,
-  })),
-)
-const VNextMatchCentreDestination = lazy(() =>
-  import('./app/vnext/VNextMatchesDestination').then((m) => ({
-    default: m.VNextMatchCentreDestination,
-  })),
-)
+/* INLINE, AND IT HAS TO BE. Vite folds this to a literal so Rollup can drop
+   the vNext subtree and its CSS entirely when the flag is off — the bundle then
+   measures byte-identical to `main`. Re-exporting the comparison from
+   `routeFlags.ts` was tried and does not fold across the module boundary. See
+   the note there; the two readings must stay in step and a test pins them. */
+const FOOTBALL_HUB_MATCHES_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES === 'true'
+const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchesDestination,
+      })),
+    )
+  : null
+const VNextMatchCentreDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchCentreDestination,
+      })),
+    )
+  : null
 const SeasonMatchPredictorRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
@@ -519,7 +529,7 @@ export default function App() {
                         <Route
                           path={weeklyRoutePatterns.matches}
                           element={
-                            isNextUi('footballHubMatches') ? (
+                            isNextUi('footballHubMatches') && VNextMatchesDestination ? (
                               <VNextMatchesDestination />
                             ) : (
                               <SeasonMatchesRoute />
@@ -529,7 +539,7 @@ export default function App() {
                         <Route
                           path={weeklyRoutePatterns.matchCentre}
                           element={
-                            isNextUi('footballHubMatches') ? (
+                            isNextUi('footballHubMatches') && VNextMatchCentreDestination ? (
                               <VNextMatchCentreDestination />
                             ) : (
                               <SeasonMatchCentreRoute />

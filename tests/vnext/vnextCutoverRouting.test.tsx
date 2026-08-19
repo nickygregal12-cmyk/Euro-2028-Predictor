@@ -121,6 +121,38 @@ describe('the Football Hub cutover switch', () => {
     }
   })
 
+  it('reads the flag identically in both places, so the two cannot drift', () => {
+    // WHY THERE ARE TWO READINGS AT ALL. `isNextUi()` is a function call and no
+    // bundler can see through it, so a route that merely asks still drags the
+    // vNext surfaces AND their CSS into the shipped artifact — measured, all JS
+    // 354.0 -> 411.2 KB gz and all CSS 42.5 -> 49.1, against budgets of 366 and
+    // 44. `cssCodeSplit: false` is why the CSS half bites: one stylesheet, every
+    // visitor, lazy or not.
+    //
+    // So `App.tsx` also compares `import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES`
+    // INLINE, which Vite folds to a literal so Rollup drops the subtree. With
+    // the flag off the bundle is byte-identical to `main`. Re-exporting the same
+    // comparison as a const from `routeFlags.ts` was tried and does not fold
+    // across the module boundary, so the duplication is a bundler constraint.
+    //
+    // Two readings of one flag is precisely the drift `routeFlags.ts` exists to
+    // prevent, so this pins them to the same variable and the same string.
+    const app = readFileSync(resolve(import.meta.dirname, '../../src/App.tsx'), 'utf8')
+    const flags = readFileSync(
+      resolve(import.meta.dirname, '../../src/app/routeFlags.ts'),
+      'utf8',
+    )
+    const VARIABLE = 'VITE_UI_FOOTBALL_HUB_MATCHES'
+    expect(app).toContain(`import.meta.env.${VARIABLE} === 'true'`)
+    expect(flags).toContain(`enabled(import.meta.env.${VARIABLE})`)
+    // `enabled()` is `=== 'true'` after a trim, so both readings accept exactly
+    // the same value. If either side ever loosens, this is the tripwire.
+    expect(flags).toContain("value?.trim() === 'true'")
+    // And the build-time gate must actually guard the lazy imports, or the
+    // subtree comes back regardless of what the constant says.
+    expect(app).toMatch(/FOOTBALL_HUB_MATCHES_BUILT\s*\n?\s*\?\s*lazy\(\(\) =>/)
+  })
+
   it('keeps the Match Centre address self-contained, so a deep link survives', async () => {
     // Contract 148 resolves a fixture from its id alone. The pattern must
     // therefore carry a `:fixtureId` and no window or date parameter — a

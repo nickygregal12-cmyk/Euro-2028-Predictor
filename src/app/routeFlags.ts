@@ -74,6 +74,32 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
   }
 }
 
+/**
+ * WHY `src/App.tsx` READS THIS VARIABLE A SECOND TIME, AS A LITERAL.
+ *
+ * `isNextUi()` is a function call and no bundler can see through it, so a route
+ * that merely *asks* still drags the vNext surfaces — and their CSS — into the
+ * shipped artifact. Measured on the Stage 14 adapters: all JS 354.0 → 411.2 KB
+ * gz and all CSS 42.5 → 49.1, against budgets of 366 and 44. The CSS half is
+ * the sharp one, because `cssCodeSplit: false` collapses every stylesheet into
+ * one that EVERY visitor downloads, so a lazy chunk defers the JavaScript and
+ * not the styles.
+ *
+ * `App.tsx` therefore gates the lazy import on the same variable read INLINE,
+ * as `import.meta.env` dot the name below. Vite replaces that with a literal, the branch folds, and Rollup drops
+ * the subtree: with the flag off the bundle is byte-identical to `main`, so the
+ * rollback promise becomes one about bytes rather than behaviour.
+ *
+ * IT HAS TO BE INLINE. Re-exporting the same comparison as a `const` from this
+ * module was tried and does NOT fold across the module boundary — the import
+ * survives and every byte comes back. That is why the duplication exists; it is
+ * a bundler constraint, not a preference.
+ *
+ * The two readings compare the same variable to the same string, and
+ * `tests/vnext/vnextCutoverRouting.test.tsx` pins that they cannot diverge —
+ * because two readings of one flag is the drift this module exists to prevent.
+ */
+
 /** Whether the next-generation implementation serves this journey. */
 export function isNextUi(journey: MigratedJourney): boolean {
   return journeyImplementation(journey) === 'next'

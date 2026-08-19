@@ -551,32 +551,55 @@ Which zone is still vNext's choice, and it defaults to the workshop pin:
 `configureVNextTimeZone` is called only from `src/app/vnext/`, so stories and
 jsdom tests stay deterministic and production gets `viewerTimeZone()`.
 
-### Bundle cost, measured
+### Bundle cost, measured — and then removed entirely
 
-The predicate asks that bundle regression be *acceptable*, which means someone
-has to have looked. The first draft of this change imported the destinations
-statically and was not acceptable:
+The predicate asks that bundle regression be *acceptable*. It turns out the
+repository already enforces that: `scripts/check-bundle-budget.mjs` runs in CI
+as **Compressed bundle budgets**, and the first two drafts of this change failed
+it. Three ratchets, all breached:
 
-| build | entry chunk | gzip |
-| --- | ---: | ---: |
-| `main` | 240.19 kB | 75.81 kB |
-| static import | 428.67 kB | 133.27 kB |
-| **lazy (shipped)** | **262.33 kB** | **82.56 kB** |
+| budget | `main` | static import | lazy import | limit |
+| --- | ---: | ---: | ---: | ---: |
+| largest JS chunk | 73.2 KB gz | 133.3 | 79.8 | 77 |
+| all JS | 354.0 KB gz | — | 411.2 | 366 |
+| all CSS | 42.5 KB gz | — | 49.1 | 44 |
 
-A **78% entry increase**, paid by every visitor, for a surface that cannot
-render while the flag is off — `isNextUi(...)` is a function call, so no bundler
-can shake it out. Every other heavy route element in `App.tsx` is already
-`lazy()`; these two were not, and that was the whole defect.
+**Lazy loading was not enough, and the CSS row is why.** `vite.config.ts` sets
+`cssCodeSplit: false` deliberately — collapsing 39 per-route stylesheets into
+one *saved* 15 KB, because per-file gzip overhead cost more than the content —
+so there is exactly one stylesheet and **every visitor downloads it**. A lazy
+chunk defers the JavaScript and not the styles. With the flag off and nobody
+able to see a vNext surface, every visitor would still have paid 6.6 KB gz for
+its design language.
 
-Lazily loaded, the vNext surfaces get their own 187.32 kB chunk (57.71 kB gzip),
-fetched only when the flag is on and the route is visited.
+The budget file also already explained the entry-chunk residue this section
+previously recorded as unexplained: *"splitting a route out of this bundle
+hoists the modules it shares with the rest into the entry chunk, so the chunk
+grows while total JavaScript barely moves."*
 
-**The residual +22.14 kB raw / +6.75 kB gzip on the entry is not vNext code.**
-The entry chunk contains no vNext module — checked. It is Rollup rebalancing:
-adding a second consumer for shared modules split `lib`, `seasonClubForm` and
-`shellRoutes` out as their own chunks and hoisted common code upward. Recorded
-here rather than rounded to zero, because the next destination to be wired will
-move this number again and the baseline needs to be a real one.
+**The fix is to make the off branch cost nothing at all, which it now does.**
+`VITE_*` values are build-time literals in Vite, so `src/App.tsx` gates the
+lazy import on `import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES === 'true'`
+inline. The branch folds, Rollup drops the whole subtree — JavaScript and CSS
+— and with the flag off the bundle measures **73.2 / 354.0 / 42.5: byte-identical
+to `main`**.
+
+That upgrades the rollback promise from a claim about behaviour to one about
+bytes. A build with this flag off is the build that shipped yesterday.
+
+**It has to be inline.** Re-exporting the same comparison as a `const` from
+`routeFlags.ts` was tried and does **not** fold across the module boundary — the
+import survives and every byte comes back. The duplication is a bundler
+constraint, not a preference, and
+`tests/vnext/vnextCutoverRouting.test.tsx` pins the two readings to the same
+variable and the same string so they cannot drift.
+
+**With the flag ON the budgets fail, and that is left standing on purpose.**
+Turning the flag on is the production mutation this stage gates behind explicit
+authority. The ratchet failing at that moment is the correct behaviour: it
+forces the real cost of shipping two design languages to be confronted *when
+someone decides to ship it*, with a measurement in hand, rather than smuggled in
+now while no player can see the benefit.
 
 ### What this does not yet do
 
