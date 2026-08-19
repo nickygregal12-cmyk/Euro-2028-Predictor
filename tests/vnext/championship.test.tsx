@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { VNextChampionship } from '../../src/vnext/championship/VNextChampionship'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import {
@@ -25,7 +25,13 @@ import type { ChampionshipPageModel } from '../../src/vnext/models/championship'
 
 function renderChampionship(
   model: ChampionshipPageModel,
-  props: { onRetry?: () => void; refreshing?: boolean } = {},
+  props: {
+    onRetry?: () => void
+    refreshing?: boolean
+    onIntent?: (intent: { kind: 'submit-penalty-number'; value: number }) => void
+    busy?: boolean
+    notice?: string
+  } = {},
 ) {
   return render(
     <VNextShellProvider model={shellScenarios.oneCompetition}>
@@ -64,7 +70,17 @@ describe('every world is one page', () => {
       expect(world.standing.outcome).not.toBe('eliminated')
       if (world.standing.outcome === 'champion') {
         expect(world.bracket.kind).toBe('bracket')
-        if (world.bracket.kind === 'bracket') {
+        // A locked or unscheduled Penalty Number carries no lane, because there is
+    // nothing to submit with — and an open one always does.
+    if (world.penaltyNumber.kind === 'open' || world.penaltyNumber.kind === 'submitted') {
+      expect(['odd', 'even']).toContain(world.penaltyNumber.lane)
+    }
+    // A panel that is not a bracket cannot be offering a live submission.
+    if (world.bracket.kind !== 'bracket') {
+      expect(world.penaltyNumber.kind).toBe('not-required')
+    }
+
+    if (world.bracket.kind === 'bracket') {
           expect(world.bracket.champion?.isYou).toBe(true)
         }
       }
@@ -73,6 +89,16 @@ describe('every world is one page', () => {
     // A panel that is not a bracket carries no standing the bracket implied.
     if (world.bracket.kind !== 'bracket') {
       expect(world.standing.kind).toBe('not-stated')
+    }
+
+    // A locked or unscheduled Penalty Number carries no lane, because there is
+    // nothing to submit with — and an open one always does.
+    if (world.penaltyNumber.kind === 'open' || world.penaltyNumber.kind === 'submitted') {
+      expect(['odd', 'even']).toContain(world.penaltyNumber.lane)
+    }
+    // A panel that is not a bracket cannot be offering a live submission.
+    if (world.bracket.kind !== 'bracket') {
+      expect(world.penaltyNumber.kind).toBe('not-required')
     }
 
     if (world.bracket.kind === 'bracket') {
@@ -227,5 +253,107 @@ describe('the states that are not a bracket', () => {
     expect(zone('bracket-unavailable').textContent).toContain('Trying again')
     // No second retry beside an in-flight one.
     expect(screen.queryByRole('button', { name: /try again/i })).toBeNull()
+  })
+})
+
+/**
+ * THE PENALTY NUMBER — the one secret, and the one thing the page asks for.
+ */
+describe('the Penalty Number states its rule before any refusal', () => {
+  it('prints the odd-lane rule beside the box', () => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd)
+    expect(zone('penalty-rule').textContent).toContain('odd number from 1 to 99')
+  })
+
+  it('prints the even-lane rule for the other lane', () => {
+    renderChampionship(championshipScenarios.penaltySubmittedZero)
+    expect(zone('penalty-rule').textContent).toContain('even number from 0 to 98')
+  })
+
+  it('refuses to submit a value the lane forbids', () => {
+    const onIntent = vi.fn()
+    renderChampionship(championshipScenarios.penaltyOpenOdd, { onIntent })
+    const input = zone('penalty-number').querySelector('input') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '8' } })
+    // Even, in the odd lane. The server would refuse it; the page does not send
+    // it — the constraint was knowable before the write.
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+    expect(onIntent).not.toHaveBeenCalled()
+  })
+
+  it('submits a value the lane allows', () => {
+    const onIntent = vi.fn()
+    renderChampionship(championshipScenarios.penaltyOpenOdd, { onIntent })
+    const input = zone('penalty-number').querySelector('input') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '7' } })
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'submit-penalty-number', value: 7 })
+  })
+})
+
+describe('a submitted zero is a submission', () => {
+  it('shows the stored value rather than an empty prompt', () => {
+    renderChampionship(championshipScenarios.penaltySubmittedZero)
+    // `0` is legal in the even lane. A page choosing its case on truthiness
+    // tells this player they have not submitted.
+    expect(zone('penalty-value').textContent).toContain('0')
+    expect(zone('penalty-number').textContent).toContain('change it')
+  })
+})
+
+describe('the Penalty Number panel says only what the read stated', () => {
+  it('calls an unscheduled round unscheduled, not closed', () => {
+    renderChampionship(championshipScenarios.penaltyUnscheduled)
+    const panel = zone('penalty-number').textContent ?? ''
+    expect(panel).toContain('no kick-off time yet')
+    // Nothing has been missed, so it must not read as a deadline gone by.
+    expect(panel).not.toMatch(/locked|closed|too late/i)
+  })
+
+  it('shows the reader their own locked value', () => {
+    renderChampionship(championshipScenarios.penaltyLocked)
+    expect(zone('penalty-number').textContent).toContain('37')
+  })
+
+  it('says plainly when they never submitted', () => {
+    renderChampionship(championshipScenarios.penaltyLockedUnsubmitted)
+    expect(zone('penalty-number').textContent).toContain('did not submit')
+  })
+
+  /**
+   * THERE IS NOWHERE TO SHOW THE OPPONENT'S NUMBER, so no world can leak one.
+   * Contract 193 never returns it, and the model has no field for it or for
+   * whether they submitted.
+   */
+  it.each(championshipScenarioNames)('%s never mentions an opponent’s number', (name) => {
+    renderChampionship(championshipScenarios[name])
+    const page = document.body.textContent ?? ''
+    expect(page).not.toMatch(/their penalty|opponent.s (penalty|number)|they (have )?submitted/i)
+  })
+
+  it('carries the write’s own sentence rather than re-choosing copy', () => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd, {
+      notice: 'This round is not taking Penalty Numbers. Reload to see where it stands.',
+    })
+    expect(zone('penalty-number').textContent).toContain('not taking Penalty Numbers')
+  })
+
+  /**
+   * NOTE THE VALID VALUE. An earlier version asserted the button was disabled
+   * with the box EMPTY — which it is anyway, because nothing is submittable
+   * yet. That version passed with the `busy` guard removed entirely. The guard
+   * only means anything when the value would otherwise be accepted.
+   */
+  it('waits rather than queueing a second submission', () => {
+    const onIntent = vi.fn()
+    renderChampionship(championshipScenarios.penaltyOpenOdd, { busy: true, onIntent })
+    const input = zone('penalty-number').querySelector('input') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '7' } })
+
+    expect(input).toBeDisabled()
+    expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
+    fireEvent.submit(input.closest('form') as HTMLFormElement)
+    expect(onIntent).not.toHaveBeenCalled()
   })
 })

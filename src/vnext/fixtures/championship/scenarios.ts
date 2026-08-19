@@ -78,6 +78,7 @@ function world(overrides: Partial<ChampionshipPageModel> = {}): ChampionshipPage
     context: competition,
     standing: { kind: 'stated', outcome: 'qualified' },
     bracket: { kind: 'bracket', seats: [...semiFinals, finalSeat], champion: null },
+    penaltyNumber: { kind: 'open', lane: 'odd', locksAt: '2027-05-02T14:00:00.000Z' },
     ...overrides,
   }
 }
@@ -303,11 +304,45 @@ const longNames = world({
   },
 })
 
-const notDrawn = world({ standing: { kind: 'not-stated' }, bracket: { kind: 'not-drawn' } })
+const notDrawn = world({ penaltyNumber: { kind: 'not-required' }, standing: { kind: 'not-stated' }, bracket: { kind: 'not-drawn' } })
 
-const notEntered = world({ standing: { kind: 'not-stated' }, bracket: { kind: 'not-entered' } })
+const notEntered = world({ penaltyNumber: { kind: 'not-required' }, standing: { kind: 'not-stated' }, bracket: { kind: 'not-entered' } })
 
-const unavailable = world({ standing: { kind: 'not-stated' }, bracket: { kind: 'unavailable' } })
+const unavailable = world({ penaltyNumber: { kind: 'not-required' }, standing: { kind: 'not-stated' }, bracket: { kind: 'unavailable' } })
+
+/**
+ * THE EVEN LANE, ALREADY SUBMITTED, AND THE VALUE IS ZERO.
+ *
+ * `0` is a legal Penalty Number in the even lane, so a page choosing its case
+ * on truthiness rather than on `value !== null` shows this player an empty box
+ * and tells them they have not submitted.
+ */
+const penaltySubmittedZero = world({
+  penaltyNumber: {
+    kind: 'submitted',
+    lane: 'even',
+    value: 0,
+    locksAt: '2027-05-02T14:00:00.000Z',
+  },
+})
+
+/** The odd lane, nothing submitted. The rule is stated before any refusal. */
+const penaltyOpenOdd = world({
+  penaltyNumber: { kind: 'open', lane: 'odd', locksAt: '2027-05-02T14:00:00.000Z' },
+})
+
+/** Locked, with a value. The reader can still see their own. */
+const penaltyLocked = world({ penaltyNumber: { kind: 'locked', value: 37 } })
+
+/** Locked, and they never submitted. Said plainly rather than shown as blank. */
+const penaltyLockedUnsubmitted = world({ penaltyNumber: { kind: 'locked', value: null } })
+
+/**
+ * NEITHER LOCKED NOR OPEN. Contract 193 returns both booleans false when the
+ * round has no scheduled kickoff, and this is the world that proves the surface
+ * reads them independently rather than as complements.
+ */
+const penaltyUnscheduled = world({ penaltyNumber: { kind: 'unscheduled' } })
 
 /* ==========================================================================
    THE REGISTRY
@@ -328,6 +363,11 @@ export const championshipScenarios = {
   notDrawn,
   notEntered,
   unavailable,
+  penaltyOpenOdd,
+  penaltySubmittedZero,
+  penaltyLocked,
+  penaltyLockedUnsubmitted,
+  penaltyUnscheduled,
 } as const
 
 export type ChampionshipScenarioName = keyof typeof championshipScenarios
@@ -366,4 +406,14 @@ export const championshipScenarioPremises: Readonly<
   notEntered:
     'The reader is not entered. An ordinary answer, and there is no join button — Stage 12 does not own entry.',
   unavailable: 'The bracket read did not answer. The only state with a retry.',
+  penaltyOpenOdd:
+    'The odd lane, nothing submitted. The lane rule is printed BESIDE the box rather than discovered from a refusal — the server refuses the wrong parity with `check_violation`, and that is knowable in advance.',
+  penaltySubmittedZero:
+    'The even lane, already submitted, and the value is ZERO. A page choosing its case on truthiness rather than on `value !== null` shows this player an empty box and tells them they have not submitted.',
+  penaltyLocked:
+    'Locked, with a value. The reader can still see their own — and there is nowhere on the page for their opponent’s, because the read never returns it.',
+  penaltyLockedUnsubmitted:
+    'Locked, and they never submitted. Said plainly rather than rendered as a blank the reader has to interpret.',
+  penaltyUnscheduled:
+    'Neither locked nor open. Contract 193 returns both booleans false when the round has no scheduled kickoff — so this is the world that proves the surface reads them independently rather than as complements, and it must not say “closed”.',
 }

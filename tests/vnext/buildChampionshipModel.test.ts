@@ -283,3 +283,76 @@ describe('the mapper is pure', () => {
     expect(buildChampionshipModel(input)).toEqual(buildChampionshipModel(input))
   })
 })
+
+/**
+ * THE PENALTY NUMBER PANEL, TESTED AT THE MAPPER.
+ *
+ * THESE CANNOT BE SURFACE TESTS. The Storybook worlds set `penaltyNumber`
+ * directly, so they bypass this mapping entirely — two mutations here passed
+ * every one of the 88 surface tests before these existed. A mapping only a
+ * fixture stands in for is a mapping nothing checks.
+ */
+describe('the Penalty Number is mapped from two independent booleans', () => {
+  const withPenalty = (over: Record<string, unknown>) =>
+    entered({
+      penaltyNumber: {
+        windowId: 'w-1',
+        windowLabel: 'Semi-finals',
+        lane: 'odd' as const,
+        submitted: false,
+        value: null,
+        version: 3,
+        locksAt: '2027-05-02T14:00:00.000Z',
+        locked: false,
+        open: true,
+        ...over,
+      },
+    })
+
+  it('reads neither-locked-nor-open as unscheduled, not as locked', () => {
+    // Contract 193 returns BOTH false when the round has no scheduled kickoff.
+    // Reading `locked` as `!open` calls that round closed and tells a player
+    // they missed a deadline that never existed.
+    const model = buildChampionshipModel(
+      source(withPenalty({ locked: false, open: false, locksAt: null })),
+    )
+    expect(model.penaltyNumber).toEqual({ kind: 'unscheduled' })
+  })
+
+  it('reads locked as locked', () => {
+    const model = buildChampionshipModel(source(withPenalty({ locked: true, open: false, value: 37 })))
+    expect(model.penaltyNumber).toEqual({ kind: 'locked', value: 37 })
+  })
+
+  it('treats a stored ZERO as a submission', () => {
+    // `0` is legal in the even lane. Choosing the case on truthiness shows this
+    // player an empty box and tells them they have not submitted.
+    const model = buildChampionshipModel(
+      source(withPenalty({ lane: 'even', submitted: true, value: 0 })),
+    )
+    expect(model.penaltyNumber).toEqual({
+      kind: 'submitted',
+      lane: 'even',
+      value: 0,
+      locksAt: '2027-05-02T14:00:00.000Z',
+    })
+  })
+
+  it('reads an open round with no value as open', () => {
+    const model = buildChampionshipModel(source(withPenalty({})))
+    expect(model.penaltyNumber).toEqual({
+      kind: 'open',
+      lane: 'odd',
+      locksAt: '2027-05-02T14:00:00.000Z',
+    })
+  })
+
+  it('reports not-required where the read gave no Penalty Number at all', () => {
+    const model = buildChampionshipModel(source(entered({ penaltyNumber: null })))
+    expect(model.penaltyNumber).toEqual({ kind: 'not-required' })
+  })
+
+  it('reports not-required when the read did not answer', () => {
+    expect(buildChampionshipModel(source(null)).penaltyNumber).toEqual({ kind: 'not-required' })
+  })
+})

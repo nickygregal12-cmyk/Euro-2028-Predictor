@@ -69,7 +69,7 @@ import type { ChampionshipSource } from './championshipSource'
  *   • **failed** — anything else. A fault, and the only one where "try again"
  *     is a sensible suggestion on its own.
  */
-export type ChampionshipWriteState =
+type ChampionshipWriteState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'saving' }
   /** `PT409`: changed elsewhere. Resolved by re-reading, never by retrying. */

@@ -1,5 +1,6 @@
 import type {
   BracketPanel,
+  PenaltyNumberPanel,
   BracketSeat,
   BracketSide,
   ChampionshipPageModel,
@@ -158,6 +159,41 @@ function standingOf(source: ChampionshipSource, panel: BracketPanel): Championsh
   return { kind: 'not-stated' }
 }
 
+/**
+ * CONTRACT 193'S PENALTY NUMBER STATE → THE PANEL.
+ *
+ * `locked` AND `open` ARE READ AS TWO INDEPENDENT BOOLEANS, because that is
+ * what they are. Contract 193 computes them from `cup_window_first_kickoff`:
+ *
+ *     'locked', first_kickoff.at is not null and now() >= first_kickoff.at
+ *     'open',   first_kickoff.at is not null and now() <  first_kickoff.at
+ *
+ * so an UNSCHEDULED round returns BOTH false. Treating one as the negation of
+ * the other would call that round open and offer a control the write refuses
+ * with `55000`. Both server-evaluated, against the database's own clock —
+ * nothing here compares an instant.
+ *
+ * A SUBMITTED VALUE OF ZERO IS A SUBMISSION. `0` is a legal Penalty Number in
+ * the even lane, so the case is chosen on `value !== null` rather than on
+ * truthiness.
+ */
+function penaltyNumberOf(source: ChampionshipSource): PenaltyNumberPanel {
+  if (source.bracket.kind !== 'ok') return { kind: 'not-required' }
+  const answer = source.bracket.bracket
+  if (!answer.entered) return { kind: 'not-required' }
+
+  const pn = answer.penaltyNumber
+  if (pn === null) return { kind: 'not-required' }
+
+  if (pn.locked) return { kind: 'locked', value: pn.value }
+  // NEITHER LOCKED NOR OPEN: the round has no scheduled kickoff. Its own case.
+  if (!pn.open) return { kind: 'unscheduled' }
+
+  return pn.value === null
+    ? { kind: 'open', lane: pn.lane, locksAt: pn.locksAt }
+    : { kind: 'submitted', lane: pn.lane, value: pn.value, locksAt: pn.locksAt }
+}
+
 export function buildChampionshipModel(source: ChampionshipSource): ChampionshipPageModel {
   const bracket = bracketPanelOf(source)
   return {
@@ -169,5 +205,6 @@ export function buildChampionshipModel(source: ChampionshipSource): Championship
     },
     standing: standingOf(source, bracket),
     bracket,
+    penaltyNumber: penaltyNumberOf(source),
   }
 }

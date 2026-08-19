@@ -8,7 +8,10 @@ import type {
   TieDecision,
   TieOutcome,
 } from '../models/championship'
-import { bracketRounds } from '../models/championship'
+import type { PenaltyNumberPanel } from '../models/championship'
+import { bracketRounds, penaltyLaneRule, penaltyValueAllowed } from '../models/championship'
+import { useState } from 'react'
+import { formatKickoffLabel } from '../foundations/format'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -59,15 +62,32 @@ import styles from './championship.module.css'
  * neither may be printed.
  */
 
+export type ChampionshipIntent = {
+  readonly kind: 'submit-penalty-number'
+  readonly value: number
+}
+
 export type VNextChampionshipProps = {
   readonly model: ChampionshipPageModel
   /** Ask the host to read again. Offered beside a read that did not answer. */
   readonly onRetry?: (() => void) | undefined
   /** A re-read is in flight over a page that is still shown. */
   readonly refreshing?: boolean | undefined
+  readonly onIntent?: ((intent: ChampionshipIntent) => void) | undefined
+  /** A write is in flight. The control waits rather than queueing a second. */
+  readonly busy?: boolean | undefined
+  /** What the last submission did, where it did not simply land. */
+  readonly notice?: string | undefined
 }
 
-export function VNextChampionship({ model, onRetry, refreshing = false }: VNextChampionshipProps) {
+export function VNextChampionship({
+  model,
+  onRetry,
+  refreshing = false,
+  onIntent,
+  busy = false,
+  notice,
+}: VNextChampionshipProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
 
@@ -88,6 +108,14 @@ export function VNextChampionship({ model, onRetry, refreshing = false }: VNextC
     >
       <div className={styles.page}>
         <Standing standing={model.standing} />
+
+        <PenaltyNumber
+          panel={model.penaltyNumber}
+          generatedAt={model.generatedAt}
+          onIntent={onIntent}
+          busy={busy}
+          notice={notice}
+        />
 
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
           <Bracket panel={model.bracket} onRetry={onRetry} refreshing={refreshing} />
@@ -127,6 +155,169 @@ function Standing({ standing }: { readonly standing: ChampionshipStanding }) {
         <span className={styles.trophy} aria-hidden="true"> 🏆</span>
       ) : null}
     </p>
+  )
+}
+
+/**
+ * THE PENALTY NUMBER — the one secret in the Championship, and the one thing
+ * this page asks a reader to do.
+ *
+ * ============================ IT STATES THE RULE BEFORE THE REFUSAL =======
+ *
+ * The lane is the server's — the home side (better seed) holds ODD — and
+ * `submit_cup_penalty_number` refuses the wrong parity with `check_violation`.
+ * That refusal is knowable in advance, so the rule is printed BESIDE the box
+ * and the control refuses to submit a value that breaks it. A constraint learnt
+ * from an error is a constraint the page could have told you.
+ *
+ * `championshipRefusal.ts` deliberately does NOT name the lane in its sentence,
+ * because one SQLSTATE covers three rules there. This is the other half of that
+ * split: the page says more, because the page knows more.
+ *
+ * ============================ THERE IS NOWHERE TO SHOW THE OPPONENT'S =====
+ *
+ * Not hidden, not blanked — ABSENT. The model has no field for the opponent's
+ * value or for whether they have submitted, because contract 193 returns
+ * neither under any condition. A page cannot leak what it has nowhere to put.
+ *
+ * ============================ UNSCHEDULED IS NOT CLOSED ==================
+ *
+ * Contract 193 returns `locked` and `open` as two independent booleans, and a
+ * round whose real fixtures have no kickoff returns both false. That gets its
+ * own sentence rather than being folded into "closed", because a player whose
+ * round has not been scheduled has not missed anything.
+ */
+function PenaltyNumber({
+  panel,
+  generatedAt,
+  onIntent,
+  busy,
+  notice,
+}: {
+  readonly panel: PenaltyNumberPanel
+  readonly generatedAt: string
+  readonly onIntent?: ((intent: ChampionshipIntent) => void) | undefined
+  readonly busy: boolean
+  readonly notice?: string | undefined
+}) {
+  if (panel.kind === 'not-required') return null
+
+  if (panel.kind === 'unscheduled') {
+    return (
+      <section className={styles.penalty} data-vnext-zone="penalty-number">
+        <h2 className={`${text.micro} ${styles.penaltyHeading}`}>Penalty Number</h2>
+        <p className={`${text.body} ${styles.penaltyBody}`}>
+          {/* NOT "closed" — nothing has been missed. */}
+          This round has no kick-off time yet, so it cannot take a Penalty
+          Number.
+        </p>
+      </section>
+    )
+  }
+
+  if (panel.kind === 'locked') {
+    return (
+      <section className={styles.penalty} data-vnext-zone="penalty-number">
+        <h2 className={`${text.micro} ${styles.penaltyHeading}`}>Penalty Number</h2>
+        <p className={`${text.body} ${styles.penaltyBody}`}>
+          {panel.value === null
+            ? 'Penalty Numbers are locked for this round, and you did not submit one.'
+            : `Penalty Numbers are locked. Yours was ${panel.value}.`}
+        </p>
+      </section>
+    )
+  }
+
+  return (
+    <PenaltyNumberForm
+      panel={panel}
+      generatedAt={generatedAt}
+      onIntent={onIntent}
+      busy={busy}
+      notice={notice}
+    />
+  )
+}
+
+function PenaltyNumberForm({
+  panel,
+  generatedAt,
+  onIntent,
+  busy,
+  notice,
+}: {
+  readonly panel: Extract<PenaltyNumberPanel, { kind: 'open' | 'submitted' }>
+  readonly generatedAt: string
+  readonly onIntent?: ((intent: ChampionshipIntent) => void) | undefined
+  readonly busy: boolean
+  readonly notice?: string | undefined
+}) {
+  const [entry, setEntry] = useState('')
+  const parsed = entry.trim() === '' ? null : Number(entry)
+  const allowed = parsed !== null && penaltyValueAllowed(panel.lane, parsed)
+
+  return (
+    <section className={styles.penalty} data-vnext-zone="penalty-number">
+      <h2 className={`${text.micro} ${styles.penaltyHeading}`}>Penalty Number</h2>
+
+      {panel.kind === 'submitted' ? (
+        <p className={`${text.body} ${styles.penaltyBody}`} data-vnext-zone="penalty-value">
+          Your Penalty Number is <strong>{panel.value}</strong>. You can change
+          it until Penalty Numbers lock.
+        </p>
+      ) : (
+        <p className={`${text.body} ${styles.penaltyBody}`}>
+          A drawn tie is decided by Penalty Number. Yours is a sealed bid — no
+          one else can see it.
+        </p>
+      )}
+
+      {/* THE RULE, BEFORE THE REFUSAL. */}
+      <p className={`${text.micro} ${styles.penaltyRule}`} data-vnext-zone="penalty-rule">
+        {penaltyLaneRule(panel.lane)}
+      </p>
+
+      {panel.locksAt === null ? null : (
+        <p className={`${text.micro} ${styles.penaltyRule}`}>
+          Locks {formatKickoffLabel(panel.locksAt, generatedAt)}.
+        </p>
+      )}
+
+      <form
+        className={styles.penaltyForm}
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!allowed || parsed === null || busy) return
+          onIntent?.({ kind: 'submit-penalty-number', value: parsed })
+        }}
+      >
+        <label className={styles.penaltyField}>
+          <span className={text.srOnly}>Your Penalty Number</span>
+          <input
+            className={styles.penaltyInput}
+            inputMode="numeric"
+            value={entry}
+            onChange={(event) => setEntry(event.target.value)}
+            disabled={busy}
+            aria-describedby="vnext-penalty-rule"
+          />
+        </label>
+        <button type="submit" className={styles.penaltySubmit} disabled={!allowed || busy}>
+          {panel.kind === 'submitted' ? 'Change it' : 'Submit'}
+        </button>
+      </form>
+
+      {/* THE RULE AGAIN, WIRED TO THE INPUT for a screen reader. */}
+      <span id="vnext-penalty-rule" className={text.srOnly}>
+        {penaltyLaneRule(panel.lane)}
+      </span>
+
+      {notice === undefined ? null : (
+        <p className={`${text.body} ${styles.penaltyNotice}`} role="status">
+          {notice}
+        </p>
+      )}
+    </section>
   )
 }
 

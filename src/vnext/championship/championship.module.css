@@ -63,6 +63,97 @@
   font-size: var(--vnext-size-title);
 }
 
+/* ---- the Penalty Number ----------------------------------------------------- */
+
+.penalty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface-raised);
+}
+
+.penaltyHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.penaltyBody {
+  margin: 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.penaltyRule,
+.penaltyNotice {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.penaltyNotice {
+  color: var(--vnext-text-secondary);
+}
+
+.penaltyForm {
+  /* WRAPS, so a 44px input and a 44px button never squeeze each other on a
+     320px phone. */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: center;
+}
+
+.penaltyField {
+  display: block;
+  min-width: 0;
+}
+
+.penaltyInput {
+  min-height: var(--vnext-tap-target);
+  /* Wide enough for two digits with room to spare, and no wider: this is a
+     number from 0 to 99 and a long box would suggest otherwise. */
+  width: 6rem;
+  padding: 0 var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text);
+}
+
+.penaltyInput:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.penaltySubmit {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.penaltySubmit:hover:not(:disabled) {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.penaltySubmit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.penaltySubmit:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
 /* ---- the bracket ------------------------------------------------------------ */
 
 .bracket {

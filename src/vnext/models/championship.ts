@@ -194,12 +194,93 @@ export type BracketPanel =
   | { readonly kind: 'not-entered' }
   | { readonly kind: 'unavailable' }
 
+/* ==========================================================================
+   THE PENALTY NUMBER — the one secret, and the one thing to do
+   ========================================================================== */
+
+/**
+ * WHICH NUMBERS THIS PLAYER MAY SUBMIT.
+ *
+ * The lane is fixed at round creation and is the SERVER'S: the home side (the
+ * better seed) holds ODD, the away side EVEN. `submit_cup_penalty_number`
+ * refuses the wrong parity with `check_violation`, so the page states the rule
+ * rather than discovering it — a refusal after the fact is a worse way to learn
+ * a constraint that was knowable before.
+ */
+export type PenaltyLane = 'odd' | 'even'
+
+/**
+ * WHAT MAY BE DONE ABOUT THE PENALTY NUMBER RIGHT NOW.
+ *
+ * ONLY THE ACTIONABLE CASES CARRY A LANE, which is what a submission needs.
+ * A locked or unscheduled round has nothing to submit with — Stage 11's rule
+ * that an id exists only where an action is permitted, applied to a constraint
+ * rather than to an address.
+ *
+ * `unscheduled` IS ITS OWN CASE BECAUSE THE SERVER SAYS SO, and not by
+ * inference: contract 193 returns `locked` and `open` as two INDEPENDENT
+ * booleans, and when the round's real fixtures have no kickoff BOTH are false.
+ * A surface reading one as the negation of the other would call an unscheduled
+ * round open, and offer a control the write refuses with `55000`.
+ */
+export type PenaltyNumberPanel =
+  /** Open, and nothing submitted yet. */
+  | { readonly kind: 'open'; readonly lane: PenaltyLane; readonly locksAt: string | null }
+  /** Open, and a value already stored. Re-submittable until the lock. */
+  | {
+      readonly kind: 'submitted'
+      readonly lane: PenaltyLane
+      readonly value: number
+      readonly locksAt: string | null
+    }
+  /** The lock passed. The value, where the caller has one, is still theirs. */
+  | { readonly kind: 'locked'; readonly value: number | null }
+  /** The round has no scheduled kickoff, so it cannot take a submission. */
+  | { readonly kind: 'unscheduled' }
+  /** No tie needing one. */
+  | { readonly kind: 'not-required' }
+
+/**
+ * THE OPPONENT'S NUMBER HAS NO REPRESENTATION HERE, AND THAT IS DELIBERATE.
+ *
+ * Contract 193 never returns it under any condition — no post-settlement
+ * reveal, no administrator path — and its migration asserts against its own
+ * installed text that `bonus_cup_penalty_numbers` is reached exactly once and
+ * scoped to `pn.user_id = v_uid`. Whether the opponent has SUBMITTED is
+ * withheld too, for the same reason: a sealed bid whose existence is disclosed
+ * is a bid with information in it.
+ *
+ * So there is no field for either. A page cannot leak what it has nowhere to
+ * put.
+ */
+
 export type ChampionshipPageModel = {
   /** The instant the model describes, supplied rather than read. */
   readonly generatedAt: string
   readonly context: ChampionshipContext
   readonly standing: ChampionshipStanding
   readonly bracket: BracketPanel
+  /** Its own outcome, independent of the bracket. */
+  readonly penaltyNumber: PenaltyNumberPanel
+}
+
+/**
+ * The numbers this lane permits, as a sentence.
+ *
+ * ONE PLACE, so the rule the page states and the rule a test asserts cannot
+ * drift. Derived from the lane the SERVER assigned, never from the caller.
+ */
+export function penaltyLaneRule(lane: PenaltyLane): string {
+  return lane === 'odd'
+    ? 'Your lane is odd — pick an odd number from 1 to 99.'
+    : 'Your lane is even — pick an even number from 0 to 98.'
+}
+
+/** Whether a value is submittable in this lane. States the rule, never applies a server one. */
+export function penaltyValueAllowed(lane: PenaltyLane, value: number): boolean {
+  if (!Number.isInteger(value)) return false
+  if (lane === 'odd') return value >= 1 && value <= 99 && value % 2 === 1
+  return value >= 0 && value <= 98 && value % 2 === 0
 }
 
 /* ==========================================================================

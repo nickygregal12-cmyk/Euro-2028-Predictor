@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { VNextChampionship } from '../../championship/VNextChampionship'
+import { VNextChampionship, type ChampionshipIntent } from '../../championship/VNextChampionship'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
@@ -73,6 +73,8 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
     [state, props.onShellIntent],
   )
 
+  const write = state.status === 'ready' ? state.penaltyNumber : { kind: 'idle' as const }
+
   const body =
     state.status === 'loading' ? (
       <VNextChampionshipLoading />
@@ -102,6 +104,21 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
         model={model}
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
+        onIntent={(intent: ChampionshipIntent) => {
+          // NAMED RATHER THAN INFERRED, so the one intent this page can emit is
+          // visible at the seam that acts on it.
+          if (state.status === 'ready') state.submitPenaltyNumber(intent.value)
+        }}
+        busy={write.kind === 'saving'}
+        notice={
+          // CARRIED WHOLE, so the refusal's own sentence travels with it rather
+          // than the surface re-choosing copy the write contract already chose.
+          write.kind === 'refused' || write.kind === 'failed'
+            ? write.message
+            : write.kind === 'conflict'
+              ? 'Your Penalty Number was changed somewhere else, so we have reloaded this round.'
+              : undefined
+        }
       />
     ) : (
       <VNextChampionshipLoading />
