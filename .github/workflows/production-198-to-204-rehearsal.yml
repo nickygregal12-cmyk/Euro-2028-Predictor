@@ -3,13 +3,13 @@ name: Production 198 to 204 rehearsal
 # Read-only rehearsal of Contracts 199 to 204 — the private AI Lab's operational
 # boundary — against a disposable copy of Production. The encrypted backup
 # remains the rollback authority; its private age key stays offline. This
-# workflow independently reads Production only through dumps and applies the five
+# workflow independently reads Production only through dumps and applies the six
 # approved migrations to a disposable restore.
 #
 # The boundary checks below prove the exact SET rather than a single filename,
-# and every one of the five is additive.
+# and every one of the six is additive.
 #
-# The pgTAP list is seven suites rather than five. 236 and 237 are re-run
+# The pgTAP list is seven suites rather than six. 236 and 237 are re-run
 # deliberately: contract 199 redefines `ai.valid_bets`, which is the object both
 # of them are about, and a boundary that applied 199 without re-proving the
 # quarantine rule and the real-venue rule would be trusting that a redefinition
@@ -138,7 +138,14 @@ jobs:
             fi
           done
           count="$(wc -l < "${WORK_DIR}/boundary.txt" | tr -d ' ')"
-          [ "${count}" = 5 ] || { echo "ERROR: boundary holds ${count} migrations, expected 5."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
+          # DERIVED, not written down a second time. This read "= 5" while the
+          # boundary was retargeted from 198-to-203 to 198-to-204, so it refused
+          # the correct six-migration set as wrong -- the same copy-forward that
+          # left SOURCE_NAME naming contract 190's migration. A count that comes
+          # from the contracts the file already declares cannot disagree with
+          # them.
+          expected="$(( TARGET_CONTRACT - SOURCE_CONTRACT ))"
+          [ "${count}" = "${expected}" ] || { echo "ERROR: boundary holds ${count} migrations, expected ${expected}."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
           cat "${WORK_DIR}/boundary.txt"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -252,7 +259,7 @@ jobs:
           cat "${WORK_DIR}/dry-run.txt"
           grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
           sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
-          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: dry run is not exactly the five approved migrations.'; exit 1; }
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: dry run is not exactly the approved migration set.'; exit 1; }
           supabase db push --db-url "${LOCAL_DB_URL}"
 
       - name: Run the behavioural pgTAP suites for Contracts 199 to 204
@@ -355,7 +362,7 @@ jobs:
           eq('migration_count', Number(process.env.TARGET_CONTRACT))
           eq('latest_version', process.env.TARGET_VERSION)
           eq('latest_name', process.env.TARGET_NAME)
-          // Every one of the five contracts is additive: nothing a player owns moves.
+          // Every one of the six contracts is additive: nothing a player owns moves.
           for (const k of ['entries','season_predictions','season_matchweek_scores','bonus_entrants','leagues','league_members','profiles','cup_launches','cup_fixtures','action_items','api_usage','collection_enabled','cron_fingerprint']) eq(k, b[k])
           // Nothing in this boundary deletes an ai.bets row, an ai.predictions
           // row or a current model. Contract 199 RECLASSIFIES evidence; if it
@@ -381,7 +388,7 @@ jobs:
           cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
           ## Rehearsal passed — Contracts 199 to 204 applied to a disposable Production copy
 
-          - Exactly five migrations were pending, each proven additive.
+          - Exactly six migrations were pending, each proven additive.
           - All seven behavioural pgTAP suites (236, 237, 247-251) passed against restored Production data.
           - Entries, predictions, matchweek scores, entrants, leagues, members, profiles, Cup launches, Cup fixtures and action items are all unchanged.
           - Provider usage, paid collection and the cron fingerprint are unchanged.

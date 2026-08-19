@@ -91,6 +91,32 @@ describe('a promotion workflow names migrations that exist', () => {
       })
     }
 
+    if (sourceContract !== null && targetContract !== null) {
+      it(`${workflow} expects as many migrations as its own span`, () => {
+        // The number of migrations in a boundary IS the span: 198 to 204 is six.
+        // Stating it a second time creates something that can disagree with the
+        // contracts beside it, and it did -- retargeting 198-to-203 to
+        // 198-to-204 left `[ "${count}" = 5 ]` behind, so the rehearsal refused
+        // the correct six-migration set with "boundary holds 6 migrations,
+        // expected 5", and it took dispatching it against Production to notice.
+        //
+        // Deriving the number is the fix and the current workflows do that. A
+        // literal is still permitted, because the finished historical
+        // boundaries carry one and rewriting them would change a record of what
+        // actually ran -- but a literal that CONTRADICTS the span is refused.
+        const span = Number(targetContract) - Number(sourceContract)
+        const literals = [...source.matchAll(/boundary holds \$\{count\} migrations, expected (\d+)\./g)]
+        for (const found of literals) {
+          expect(
+            Number(found[1]!),
+            `${workflow} spans contracts ${sourceContract} to ${targetContract} — ` +
+              `${span} migrations — but expects ${found[1]}. Derive the count from ` +
+              'TARGET_CONTRACT minus SOURCE_CONTRACT so retargeting cannot leave it behind.',
+          ).toBe(span)
+        }
+      })
+    }
+
     for (const edge of ['SOURCE', 'TARGET'] as const) {
       const version = envValue(source, `${edge}_VERSION`)
       const name = envValue(source, `${edge}_NAME`)
