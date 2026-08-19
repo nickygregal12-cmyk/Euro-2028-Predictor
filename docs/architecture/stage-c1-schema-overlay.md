@@ -268,6 +268,13 @@ differentially tested rather than asserted.
 - `get_season_rank_history`
 - `get_season_rivalry`
 
+Contract 206 adds one more taking `p_tournament_id`, with the same season-scoped
+disposition. `get_season_player_profile_by_ref` addresses the target by that
+season's `entries.id`, requires the caller to belong to the same season, emits
+no target auth/profile UUID, writes nothing and changes no auth ownership.
+
+- `get_season_player_profile_by_ref`
+
 Contracts 175 to 178 add five more taking `p_tournament_id`, and their
 disposition is the same season-scoped one with one distinction worth recording.
 Three are ordinary season-scoped reads or writes: the projection and the DNA
