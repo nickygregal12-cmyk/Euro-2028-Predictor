@@ -256,9 +256,18 @@
    WHY THE STATE COLOURS ARE NOT THE DARK ONES. `--vnext-live`, `--vnext-hit`
    and the rest are luminous on black and illegible on white; they are restated
    at a darkness that clears AA on every surface in this ramp rather than
-   dimmed by eye. `--vnext-hit` in particular is `#0c7141` rather than the more
-   obvious `#0d7a45`, because that lighter green measured 4.44:1 on the
-   interactive hover surface — under the 4.5 floor, and only there.
+   dimmed by eye.
+
+   WHY THEY ARE DARKER THAN THE SURFACE MATH ALONE ASKS FOR. A state colour is
+   rarely drawn on a surface. It is drawn on ITS OWN VEIL — `.youTag` is the
+   accent over `--vnext-accent-veil`, `.badgeSettled` is the hit over
+   `--vnext-hit-veil` — and a veil is `rgba(...)` composited over whatever
+   surface the chip landed on, which on light darkens the background and eats
+   the margin. The first draft of this ramp read AA against the surfaces and
+   still shipped `--vnext-accent` at 4.45 on its own veil over
+   `--vnext-surface-interactive`; axe found it on one story. These values are
+   solved against the composite instead, so `--vnext-hit` is `#0b6b3e` and not
+   the more obvious `#0d7a45` or even the earlier `#0c7141`.
 
    EVERY NUMBER BELOW IS MEASURED by `tests/vnext/vnextTokenContrast.test.ts`,
    which pins the whole matrix for both themes. */
@@ -286,24 +295,24 @@
   /* On light, the accent is dark enough to carry white text rather than the
      near-black the dark theme puts on its luminous green. */
   --vnext-text-on-accent: #ffffff;
-  --vnext-text-on-live: #ffffff;
+  --vnext-text-on-live: #0a1019;
 
   /* ---- accent and states ------------------------------------------------ */
-  --vnext-accent: #00754a;
+  --vnext-accent: #006b44;
   --vnext-accent-strong: #005c3a;
-  --vnext-accent-veil: rgba(0, 117, 74, 0.10);
+  --vnext-accent-veil: rgba(0, 107, 68, 0.10);
   --vnext-live: #c1123a;
   --vnext-live-veil: rgba(193, 18, 58, 0.10);
-  --vnext-hit: #0c7141;
-  --vnext-hit-veil: rgba(12, 113, 65, 0.10);
-  --vnext-warn: #8a5300;
-  --vnext-warn-veil: rgba(138, 83, 0, 0.12);
-  --vnext-miss: #b3243c;
-  --vnext-miss-veil: rgba(179, 36, 60, 0.10);
-  --vnext-rank-up: #0c7141;
-  --vnext-rank-down: #b3243c;
+  --vnext-hit: #0b6b3e;
+  --vnext-hit-veil: rgba(11, 107, 62, 0.10);
+  --vnext-warn: #844f00;
+  --vnext-warn-veil: rgba(132, 79, 0, 0.12);
+  --vnext-miss: #ae233a;
+  --vnext-miss-veil: rgba(174, 35, 58, 0.10);
+  --vnext-rank-up: #0b6b3e;
+  --vnext-rank-down: #ae233a;
   --vnext-rank-flat: #5a6577;
-  --vnext-joker: #7a5800;
+  --vnext-joker: #765500;
   --vnext-focus: #1a5fb4;
 
   /* The neutral team palette follows the surfaces, not the dark ones. */

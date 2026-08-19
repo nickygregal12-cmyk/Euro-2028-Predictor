@@ -561,13 +561,72 @@ hover surface, against the 4.5 floor. Both were lifted to `#8d9bb4`.
 **One of that test's own assertions was wrong, and the correction is the more
 useful record.** It first floored every state colour on every surface, and its
 loudest failure was `--vnext-text-on-live` on `--vnext-live` at 3.21:1 — a
-pairing **no component renders**. `text-on-live` names the crest monogram and
+pairing **no component renders**. `text-on-live` named the crest monogram and
 the live chip's word; the live fill is a seven-pixel dot. Changing a shipped
 palette to satisfy that would have been correcting the product to match the
 test. The floor now applies to the general text ramp everywhere and to state
 colours on the surfaces a page actually places them on, with the whole matrix
-pinned either way.
+pinned either way. (The crest half of that sentence stopped being true the same
+day — see the veil record below.)
 
 `DEC-016` and `DEC-017` move to **decided and implemented** in the deferred
 register. `TEST-002`, `DOC-004`, `OPS-012` and `CI-002` are untouched and stay
 exactly as opened.
+
+
+## Correction record — 19 August 2026, the veil pairings nobody measured
+
+`UX-006` closed on a table that measures **token against token**, and shipped a
+gap the same size as the one it was opened for. A vNext state colour is rarely
+drawn on a surface. It is drawn on **its own veil** — `.youTag` is the accent
+over `--vnext-accent-veil`, `.badgeSettled` the hit over `--vnext-hit-veil` —
+and a veil is `rgba(...)` composited over whatever surface the chip landed on.
+The effective background is therefore a colour that appears **nowhere in
+`tokens.css`**, so no token-to-token matrix can see it, however complete.
+
+**What that hid.** The Storybook axe run failed on `--vnext-accent` at **4.45**
+over `--vnext-accent-veil` on `--vnext-surface-interactive` — found because
+`.youTag` happens to have a story, which is precisely the per-story mechanism
+`UX-006` was opened to stop relying on. Measuring the composite properly found
+that five light state colours sat under the floor, not one:
+
+| token | was | tightest, on its own veil | now | tightest |
+| --- | --- | --- | --- | --- |
+| `--vnext-accent` | `#00754a` | 4.13 | `#006b44` | 4.69 |
+| `--vnext-hit` | `#0c7141` | 4.36 | `#0b6b3e` | 4.69 |
+| `--vnext-warn` | `#8a5300` | 4.42 | `#844f00` | 4.72 |
+| `--vnext-miss` | `#b3243c` | 4.56 | `#ae233a` | 4.75 |
+| `--vnext-joker` | `#7a5800` | 4.55 | `#765500` | 4.76 |
+
+**The dark ramp needed nothing.** Its worst veil pairing is `miss` at 4.60. That
+matters as evidence: the fix is not a blanket darkening applied until a test
+went quiet, it is the light ramp alone, because compositing a dark veil onto a
+light surface eats margin in one direction only.
+
+**And a light-theme defect the same measurement would have caught first.**
+`--vnext-text-on-live` was copied into the light block as `#ffffff` and measured
+**1.33** on the live chip's own veil — white words on a near-white pill. Axe
+found it; the row `text-on-live` × `live-veil` is what should have. It is now
+`#0a1019`.
+
+**`TeamCrest` was reading the wrong token, and only the light theme exposed it.**
+The monogram took its colour from `--vnext-text-on-live`, which worked in dark
+by coincidence — `#ffffff` on `--vnext-team-primary` — and gave white on
+`#eef1f8` in light. `--vnext-team-on-primary` exists for exactly this and follows
+the team ramp, which is the point of a crest. That is the correction; the token
+was never about the live state.
+
+**Why the pairing list is written out and not parsed from the CSS.** A parser
+that pairs every `background-color: var(--vnext-*-veil)` rule with its `color:`
+finds `LiveIndicator`'s `.indicator`, which declares `color: var(--vnext-live)`
+— and would demand 4.5:1 of a token that renders **no text there**: every text
+node in that chip overrides the colour, and what `--vnext-live` actually draws
+is a 1px border and a 7px dot, non-text graphics at a 3:1 floor (WCAG 1.4.11)
+which they clear at 3.64 worst case. Deriving the list would have washed out the
+live colour to satisfy a pairing that does not exist — the identical mistake the
+record above documents. The list is explicit, each row carrying the component it
+was read from.
+
+Both directions are mutation-proved: reverting `--vnext-accent` fails four rows,
+and reverting `--vnext-text-on-live` reports **1.33 on `surface-interactive`**,
+the same number axe printed from a real browser.
