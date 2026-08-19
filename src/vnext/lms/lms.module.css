@@ -251,6 +251,45 @@
   overflow-wrap: anywhere;
 }
 
+/* ---- the field: how many are left, and under what rules --------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.fieldCounts {
+  /* WRAPS. Three figures and two separators on a 320px phone is more than one
+     line, and a survival count that ran off the edge would hide the number the
+     whole section exists to show. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.fieldRemaining {
+  /* THE ONE FIGURE THAT MATTERS MOST, and it is weight rather than colour —
+     §31, so it survives a monochrome screen and a colour-blind reader. */
+  color: var(--vnext-text);
+  font-weight: 600;
+}
+
+.fieldSeparator {
+  color: var(--vnext-text-muted);
+}
+
+.fieldPicked,
+.fieldRules,
+.fieldMissing {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
 /* ---- a read that did not answer --------------------------------------------- */
 
 .unavailable {

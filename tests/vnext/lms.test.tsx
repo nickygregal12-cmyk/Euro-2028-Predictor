@@ -309,6 +309,43 @@ describe('a write that did not land says which kind it was', () => {
  * 7. Structure and the accessibility floor
  * ------------------------------------------------------------------ */
 
+/**
+ * EVERY WORLD MUST BE A STATE THE MAPPER CAN ACTUALLY PRODUCE.
+ *
+ * Stage 10 shipped a fixture pairing two figures the real read never emits
+ * together, and four layers of tests passed against it because every layer
+ * trusted the fixture. This is the structural version of that lesson: the
+ * pairing rules `buildLmsModel` enforces are asserted over EVERY world at once,
+ * so a new world cannot be added in an impossible state.
+ */
+describe('no world describes a page the mapper could not build', () => {
+  it.each(lmsScenarioNames)('%s pairs its body and its field lawfully', (name) => {
+    const world = lmsScenarios[name]
+
+    // CONTRACT 164'S DISCLOSURE BOUNDARY IS ENTRANCY. A caller who is not
+    // entered, or a season not running the game, is returned `field: null` —
+    // so they cannot learn the competition's size without joining. A world
+    // showing "83 still in" beside "you are not entered" is unreachable.
+    if (world.body.kind === 'not-entered' || world.body.kind === 'not-offered') {
+      expect(world.field.kind).toBe('not-counted')
+    }
+
+    // `picked` IS WITHHELD UNTIL THE ROUND LOCKS. `lms_round_revealed` is
+    // `locks_at <= now()`, the same boundary `LmsRoundState` reports — so a
+    // number here beside an open round is a world the server cannot emit.
+    if (world.field.kind === 'field' && world.field.counts.picked !== null) {
+      expect(world.body.kind).toBe('round')
+      if (world.body.kind === 'round') {
+        expect(['locked', 'settled']).toContain(world.body.round.state)
+      }
+    }
+
+    // A PLAYER WHO IS NOT ENTERED HAS NO STANDING, and vice versa: the standing
+    // is the entry outcome, and `entered` is that row existing at all.
+    if (world.body.kind === 'not-entered') expect(world.standing).toBeNull()
+  })
+})
+
 describe('every world is one page', () => {
   it.each(lmsScenarioNames)('%s has one main and one h1', (name) => {
     renderLms(lmsScenarios[name], { onIntent: vi.fn() })
@@ -336,6 +373,83 @@ describe('every world is one page', () => {
     const heading = zone('used').querySelector('h2')?.textContent ?? ''
     expect(heading).toContain('in this round')
     expect(heading).not.toMatch(/^Clubs you have already used$/)
+  })
+
+  /* ---------------------------------------------------------------- *
+   * The field: carried, never counted, and its nulls kept
+   * ---------------------------------------------------------------- */
+
+  it('states the three pool counts without implying they add up', () => {
+    renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
+    const field = zone('field').textContent ?? ''
+    expect(field).toContain('83 still in')
+    expect(field).toContain('33 out')
+    expect(field).toContain('120 entered')
+    // NOT "83 of 120": in contract 164 a NULL outcome is counted in neither
+    // `remaining` nor `eliminated`, so the figures need not sum to `entrants`
+    // and a fraction would read as a whole the database never agreed to.
+    expect(field).not.toContain('83 of 120')
+  })
+
+  it('says the picked count is withheld rather than printing a zero', () => {
+    renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
+    const field = zone('field').textContent ?? ''
+    expect(field).toContain('hidden until picks close')
+    // THE DEFECT THIS FORBIDS: `picked ?? 0` rendering "0 players picked" —
+    // a confident claim about rivals the server deliberately refused to make.
+    expect(field).not.toContain('0 players picked')
+  })
+
+  it('shows the picked count once the round has locked and the server discloses it', () => {
+    renderLms(lmsScenarios.fieldRevealed, { onIntent: vi.fn() })
+    const field = zone('field').textContent ?? ''
+    expect(field).toContain('79 players picked')
+    expect(field).not.toContain('hidden until picks close')
+  })
+
+  it('states the organiser`s rules and never applies them', () => {
+    renderLms(lmsScenarios.fieldWithLives, { onIntent: vi.fn() })
+    expect(zone('rules').textContent).toContain('2 lives')
+    expect(zone('rules').textContent).toContain('1 save')
+    expect(zone('rules').textContent).toContain('A draw survives')
+  })
+
+  it('gets the singular right for one life and no saves', () => {
+    renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
+    const rules = zone('rules').textContent ?? ''
+    expect(rules).toContain('1 life')
+    expect(rules).not.toContain('1 lives')
+    expect(rules).toContain('no saves')
+    expect(rules).not.toContain('0 saves')
+  })
+
+  it('renders no rules at all when the organiser wrote none', () => {
+    renderLms(lmsScenarios.fieldWithoutRules, { onIntent: vi.fn() })
+    // ABSENT, not zeroed. "0 lives" would describe a harsher game than the
+    // real one, and nobody chose it.
+    expect(document.querySelector('[data-vnext-zone="rules"]')).toBeNull()
+    expect(zone('field').textContent).not.toContain('0 lives')
+  })
+
+  it('keeps the round pickable when only the field read failed', () => {
+    renderLms(lmsScenarios.fieldUnavailable, { onIntent: vi.fn() })
+    expect(document.querySelector('[data-vnext-zone="field"]')).toBeNull()
+    // The pick is still there — the entire reason the two reads are apart.
+    expect(zone('pick-list').querySelectorAll('button').length).toBeGreaterThan(0)
+  })
+
+  it('still counts the field when only the round read failed', () => {
+    renderLms(lmsScenarios.roundUnavailableFieldOk, { onIntent: vi.fn(), onRetry: vi.fn() })
+    expect(zone('field').textContent).toContain('83 still in')
+    // The round offers its retry; the field, which answered, does not.
+    expect(screen.getByRole('button', { name: /try again/i })).toBeTruthy()
+  })
+
+  it('says nothing about the pool where there is nothing to count', () => {
+    // `not-entered` — the BODY already says why. A second sentence here in
+    // different words would be one fact explained twice.
+    renderLms(lmsScenarios.notEntered, { onIntent: vi.fn() })
+    expect(document.querySelector('[data-vnext-zone="field"]')).toBeNull()
   })
 
   it('counts what is still pickable', () => {

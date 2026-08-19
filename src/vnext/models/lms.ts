@@ -243,6 +243,76 @@ export type LmsBody =
   /** The read did not answer. About the READ — the only case with a retry. */
   | { readonly kind: 'unavailable' }
 
+/* ==========================================================================
+   THE FIELD — how many are left, and the rules they are left under
+   ========================================================================== */
+
+/**
+ * THE POOL, AS THE SERVER COUNTED IT.
+ *
+ * THE THREE COUNTS ARE THREE SEPARATE `count(*)`s AND MUST NEVER BE DERIVED
+ * FROM EACH OTHER. Contract 164 counts `remaining` as `outcome <> 'eliminated'`
+ * and `eliminated` as `outcome = 'eliminated'`, and in SQL a NULL outcome
+ * satisfies NEITHER. So `remaining + eliminated` can be less than `entrants`,
+ * and a surface computing any one of them from the other two would print a
+ * number the database never agreed to. I read the migration to establish this
+ * rather than assuming the obvious arithmetic.
+ *
+ * `picked` IS NULL BEFORE THE ROUND LOCKS, and null is the answer rather than a
+ * missing one: how many rivals have already committed is live strategic
+ * information when the clubs are a depleting resource. Never rendered as 0.
+ */
+type LmsFieldCounts = {
+  readonly entrants: number
+  readonly remaining: number
+  readonly eliminated: number
+  /** Withheld until the round locks. NEVER shown as zero. */
+  readonly picked: number | null
+}
+
+/**
+ * THE ORGANISER'S SETUP, WHERE THEY WROTE ONE.
+ *
+ * `drawsRule` is the field this lane most wanted and could not previously see:
+ * `lmsRoundModel.ts` refuses to say whether a draw eliminates precisely because
+ * "whether a draw eliminates is a stored rule this surface cannot see". Through
+ * contract 164 it CAN see it — so it may STATE the rule, and still never apply
+ * it. Saying "a draw counts as a loss" is reporting the organiser's setup;
+ * turning a drawn pick into an elimination would be running the settlement, and
+ * that remains the settlement job's alone.
+ */
+export type LmsRules = {
+  readonly lives: number
+  readonly saves: number
+  /** The organiser's stored wording. STATED, never applied to an outcome. */
+  readonly drawsRule: string | null
+}
+
+/**
+ * WHAT THE FIELD READ ANSWERED, AS ITS OWN UNION.
+ *
+ * SEPARATE FROM `LmsBody` ON PURPOSE, and it is Stage 10's lesson carried
+ * forward: two reads with two outcomes get two unions, so a field read that
+ * fails cannot take the round — the thing a player came to act on — down with
+ * it. There is no page-level "loaded" in this lane.
+ *
+ * `not-counted` is the field read answering that the caller is not entered or
+ * the game is not offered: contract 164 returns `field: null` in both cases,
+ * because entrancy is its disclosure boundary. The ROUND's own body already
+ * says which, so this case carries no reason of its own.
+ */
+export type LmsFieldPanel =
+  | {
+      readonly kind: 'field'
+      readonly counts: LmsFieldCounts
+      /** Null when the organiser has written no setup. Absent, not zeroed. */
+      readonly rules: LmsRules | null
+    }
+  /** Contract 164 answered, and had no field to give. Not a failure. */
+  | { readonly kind: 'not-counted' }
+  /** The field read did not answer. The round may still be perfectly readable. */
+  | { readonly kind: 'unavailable' }
+
 export type LmsPageModel = {
   /** The instant the model describes, supplied rather than read. */
   readonly generatedAt: string
@@ -271,6 +341,13 @@ export type LmsPageModel = {
    */
   readonly usedClubNamesInRound: readonly string[]
   readonly body: LmsBody
+  /**
+   * The pool this player is competing against, from contract 164.
+   *
+   * ITS OWN OUTCOME, INDEPENDENT OF `body`. A round that reads fine beside a
+   * field that does not is an ordinary combination, and the page shows both.
+   */
+  readonly field: LmsFieldPanel
 }
 
 /* ==========================================================================

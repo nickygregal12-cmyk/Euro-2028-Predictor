@@ -8,6 +8,14 @@ import type { LmsSource } from './lmsSource'
  * that turns an answer into something a page can draw, which is what makes
  * every mapping case testable with no Supabase, no auth and no network.
  *
+ * ============================ TWO READS, CONCURRENT, INDEPENDENTLY
+ * CLASSIFIED ===============================================================
+ *
+ * Contract 116 (the round) and contract 164 (the pool and the rules) are issued
+ * together and each catches its own failure, so neither can withhold the other.
+ * That is Stage 10's three-panel discipline in a two-read page: a field read
+ * that fell over must not stop a player making the pick they came for.
+ *
  * ============================ IT IS THE FIRST vNEXT SURFACE THAT WRITES ==
  *
  * Stages 8, 9 and 10 read. This one submits a pick, through
@@ -163,7 +171,24 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
         const lms = createSeasonLmsRpcGateway({ tournamentId: context.tournamentId })
         gateway.current = { identity, value: lms }
 
-        const page = await lms.load().catch(() => null)
+        const { fetchSeasonLmsField } = await import(
+          '../../../services/supabase/seasonLmsField'
+        )
+
+        // CONCURRENT, AND EACH CATCHES ITS OWN. The two reads answer different
+        // questions and one failing must not withhold the other: a player whose
+        // field read fell over can still see their round and make their pick,
+        // and a player whose round read fell over can still be told how many
+        // are left. Sequencing them would also make the page wait twice for
+        // information the server was ready to give at once.
+        //
+        // NOTE THE `.catch` IS PER-PROMISE rather than around the pair. A
+        // `Promise.all` over unguarded promises rejects on the first failure
+        // and discards the other answer even when it arrived.
+        const [page, field] = await Promise.all([
+          lms.load().catch(() => null),
+          fetchSeasonLmsField(context.tournamentId).catch(() => null),
+        ])
         if (!active) return
 
         setState({
@@ -181,6 +206,7 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
               gameName,
             },
             read: page === null ? { kind: 'failed' } : { kind: 'ok', page },
+            field: field === null ? { kind: 'failed' } : { kind: 'ok', field },
           },
         })
       } catch {

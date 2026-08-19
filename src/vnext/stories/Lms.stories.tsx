@@ -12,8 +12,8 @@ import type { LmsScenarioName } from '../fixtures'
  *
  * ============================ WHAT A REVIEWER IS BEING ASKED ==============
  *
- * Not "does it render". Nineteen worlds, each with the reason it exists written
- * into its description, and the questions they settle are:
+ * Not "does it render". Twenty-five worlds, each with the reason it exists
+ * written into its description, and the questions they settle are:
  *
  *   1. does this read as a DIFFERENT GAME from Match Predictor, or as the same
  *      page with fewer fields? There is no score input anywhere and one press
@@ -28,6 +28,11 @@ import type { LmsScenarioName } from '../fixtures'
  *      four different situations?
  *   6. does a fifty-character club name survive at 375 without clipping — on
  *      the one surface where misreading a name costs a season? (`LongClubNames`)
+ *   7. does the POOL read as three stated figures rather than a fraction, and
+ *      is the withheld picked-count SAID rather than shown as a zero?
+ *      (`FieldRevealed` beside `OpenRound`)
+ *   8. when one read answers and the other does not, is the page still useful?
+ *      (`FieldUnavailable`, `RoundUnavailableFieldOk`)
  *
  * ============================ THE PICK IS A REAL CONTROL ==================
  *
@@ -266,6 +271,57 @@ export const NotOffered: Story = board('notOffered', ALL_WIDTHS, 0.42)
 
 /** The round read did not answer. The only state with a retry. */
 export const Unavailable: Story = board('unavailable', ALL_WIDTHS, 0.42)
+
+/* ========================================================================== *
+ * D2. THE FIELD — how many are left, and under what rules
+ * ========================================================================== */
+
+/**
+ * THE POOL AFTER THE LOCK, WHEN THE SERVER DISCLOSES WHO PICKED.
+ *
+ * Compare it with `OpenRound`, where the same figure is a SENTENCE saying it is
+ * withheld. Contract 164 hides it until `locks_at` passes, because how many
+ * rivals have committed is live strategic information when the clubs are a
+ * depleting resource — and `picked ?? 0` would tell every player, before the
+ * lock, that nobody had picked.
+ */
+export const FieldRevealed: Story = board('fieldRevealed', ALL_WIDTHS, 0.42)
+
+/**
+ * TWO LIVES, ONE SAVE, AND A DRAW SURVIVES.
+ *
+ * The stored rule `lmsRoundModel.ts` says it "cannot see". Through contract 164
+ * this page CAN see it — so it may STATE it, and still never apply it. Read the
+ * page: the rule is printed, and no outcome anywhere is derived from it.
+ */
+export const FieldWithLives: Story = board('fieldWithLives', ALL_WIDTHS, 0.42)
+
+/**
+ * THE ORGANISER WROTE NO SETUP.
+ *
+ * The rules line is ABSENT, not zeroed. Nobody chose "0 lives, no saves", and
+ * printing it would describe a harsher game than the one being played.
+ */
+export const FieldWithoutRules: Story = board('fieldWithoutRules', ALL_WIDTHS, 0.42)
+
+/** Two players left out of 120. The count is the whole atmosphere of the round. */
+export const FieldNearlyOver: Story = board('fieldNearlyOver', ALL_WIDTHS, 0.42)
+
+/**
+ * THE FIELD READ FELL OVER AND THE ROUND DID NOT.
+ *
+ * The pick is still there to be made. This is the entire reason the two reads
+ * carry separate outcomes rather than one page-level "loaded".
+ */
+export const FieldUnavailable: Story = board('fieldUnavailable', ALL_WIDTHS, 0.42)
+
+/**
+ * THE MIRROR: the round read fell over and the field answered.
+ *
+ * The page can still say how many are left instead of going blank, and the
+ * retry belongs to the read that failed.
+ */
+export const RoundUnavailableFieldOk: Story = board('roundUnavailableFieldOk', ALL_WIDTHS, 0.42)
 
 /* ========================================================================== *
  * E. THE WORST STRINGS

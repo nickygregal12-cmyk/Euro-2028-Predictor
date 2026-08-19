@@ -21,6 +21,7 @@
  */
 
 import type {
+  LmsFieldPanel,
   LmsFixtureChoice,
   LmsPageModel,
   LmsPickAction,
@@ -98,6 +99,19 @@ const openChoices: readonly LmsFixtureChoice[] = [
   fixture(6, '2027-11-16T16:15:00.000Z', pickable('fx-6:home', 'Livingston', 'team-livingston'), pickable('fx-6:away', 'St Johnstone', 'team-st-johnstone')),
 ]
 
+/**
+ * THE ORDINARY FIELD. Note the three counts do not add up, and that is the
+ * point: contract 164 counts `remaining` and `eliminated` from `outcome`, and a
+ * NULL outcome satisfies neither — so four of these 120 entrants are in neither
+ * bucket. A world where 83 + 37 = 120 would let a surface derive one count from
+ * the others and pass.
+ */
+const ordinaryField: LmsFieldPanel = {
+  kind: 'field',
+  counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+  rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
+}
+
 function world(overrides: Partial<LmsPageModel> = {}): LmsPageModel {
   return {
     generatedAt: LMS_NOW,
@@ -105,6 +119,7 @@ function world(overrides: Partial<LmsPageModel> = {}): LmsPageModel {
     standing: 'active',
     usedClubNamesInRound: ['Hearts'],
     body: { kind: 'round', round: round('open', openChoices), pick: null },
+    field: ordinaryField,
     ...overrides,
   }
 }
@@ -245,11 +260,38 @@ const oneClubLeft = world({
 
 const noRound = world({ body: { kind: 'no-round' } })
 
-const notEntered = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'not-entered' } })
+/**
+ * NOT ENTERED, AND THE FIELD SAYS SO TOO.
+ *
+ * `not-counted` rather than a pool, because contract 164 makes ENTRANCY its
+ * disclosure boundary: a non-entrant is returned `field: null` so they cannot
+ * learn the competition's size without joining. A world pairing "you are not
+ * entered" with "83 still in" would be a state the mapper cannot produce, and
+ * Stage 10 was caught by exactly that — a fixture asserting a combination the
+ * real read never emits.
+ */
+const notEntered = world({
+  standing: null,
+  usedClubNamesInRound: [],
+  body: { kind: 'not-entered' },
+  field: { kind: 'not-counted' },
+})
 
-const notOffered = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'not-offered' } })
+/** Same boundary: a season not running the game returns no field either. */
+const notOffered = world({
+  standing: null,
+  usedClubNamesInRound: [],
+  body: { kind: 'not-offered' },
+  field: { kind: 'not-counted' },
+})
 
-const unavailable = world({ standing: null, usedClubNamesInRound: [], body: { kind: 'unavailable' } })
+/** Both reads fell over. `roundUnavailableFieldOk` is the mixed case. */
+const unavailable = world({
+  standing: null,
+  usedClubNamesInRound: [],
+  body: { kind: 'unavailable' },
+  field: { kind: 'unavailable' },
+})
 
 const unscheduled = world({
   body: {
@@ -292,6 +334,70 @@ const emptyRound = world({
   body: { kind: 'round', round: round('open', []), pick: null },
 })
 
+/**
+ * THE POOL, AFTER THE LOCK. `picked` is a number now — the server discloses it
+ * once the round has locked, and only then.
+ */
+const fieldRevealed = world({
+  body: {
+    kind: 'round',
+    round: round('locked', openChoices.map((choice) => ({
+      ...choice,
+      home: shut(choice.home.key, choice.home.name, 'locked'),
+      away: shut(choice.away.key, choice.away.name, 'locked'),
+    }))),
+    pick: { clubName: 'Celtic', result: null },
+  },
+  field: {
+    kind: 'field',
+    counts: { entrants: 120, remaining: 83, eliminated: 33, picked: 79 },
+    rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
+  },
+})
+
+/** The organiser wrote no setup. ABSENT, not "0 lives" — a harsher game. */
+const fieldWithoutRules = world({
+  field: {
+    kind: 'field',
+    counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+    rules: null,
+  },
+})
+
+/** Lives and saves in play. The rules a player must know before pressing. */
+const fieldWithLives = world({
+  field: {
+    kind: 'field',
+    counts: { entrants: 5000, remaining: 4218, eliminated: 780, picked: null },
+    rules: { lives: 2, saves: 1, drawsRule: 'A draw survives' },
+  },
+})
+
+/**
+ * THE FIELD READ FELL OVER AND THE ROUND DID NOT. The pick is still there to be
+ * made — the whole reason the two reads are classified apart.
+ */
+const fieldUnavailable = world({ field: { kind: 'unavailable' } })
+
+/** The round read fell over and the FIELD did not. The mirror. */
+const roundUnavailableFieldOk = world({
+  standing: null,
+  usedClubNamesInRound: [],
+  body: { kind: 'unavailable' },
+})
+
+/**
+ * DOWN TO TWO. The count that changes how a player feels about the press, and
+ * the singular is one step away.
+ */
+const fieldNearlyOver = world({
+  field: {
+    kind: 'field',
+    counts: { entrants: 120, remaining: 2, eliminated: 118, picked: null },
+    rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
+  },
+})
+
 /* ==========================================================================
    THE REGISTRY
    ========================================================================== */
@@ -316,6 +422,12 @@ export const lmsScenarios = {
   notEntered,
   notOffered,
   unavailable,
+  fieldRevealed,
+  fieldWithoutRules,
+  fieldWithLives,
+  fieldNearlyOver,
+  fieldUnavailable,
+  roundUnavailableFieldOk,
 } as const
 
 export type LmsScenarioName = keyof typeof lmsScenarios
@@ -356,4 +468,16 @@ export const lmsScenarioPremises: Readonly<Record<LmsScenarioName, string>> = {
   notOffered:
     'The competition season does not run this game at all. About the COMPETITION, and it must not read as "come back later".',
   unavailable: 'The round read did not answer. The only state with a retry.',
+  fieldRevealed:
+    'The round has locked, so the server discloses how many have picked. Before the lock that figure is null — how many rivals have committed is live strategic information — and it must never appear as a zero.',
+  fieldWithoutRules:
+    'The organiser wrote no setup. The rules are ABSENT rather than zero: nobody chose "no lives", and printing one would describe a harsher game than the real one.',
+  fieldWithLives:
+    'Two lives, one save, and a draw survives. The stored rule this lane may STATE and must never APPLY — turning a drawn pick into an elimination is the settlement job\'s alone.',
+  fieldNearlyOver:
+    'Two players left out of 120. The pool count is the whole atmosphere of the round, and the singular is one elimination away.',
+  fieldUnavailable:
+    'The field read fell over and the round did not. The pick is still there to be made — which is the entire reason the two reads carry separate outcomes.',
+  roundUnavailableFieldOk:
+    'The mirror: the round read fell over and the field answered. The page can still say how many are left rather than going blank.',
 }

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import type { LmsPageModel, LmsRound, LmsStanding } from '../models/lms'
+import type { LmsFieldPanel, LmsPageModel, LmsRound, LmsRules, LmsStanding } from '../models/lms'
 import { lmsChampion, lmsPickableCount, lmsRoundIsOpen } from '../models/lms'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
@@ -77,6 +77,8 @@ export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNe
       <div className={styles.page}>
         <StandingBanner standing={model.standing} />
 
+        <Field panel={model.field} />
+
         {notice === undefined ? null : <PickNotice notice={notice} />}
 
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
@@ -138,6 +140,127 @@ function StandingBanner({ standing }: { readonly standing: LmsStanding | null })
       {/* A WORD, NOT A COLOUR. §31, and it is the whole page's headline. */}
       {STANDING_COPY[standing]}
       {lmsChampion(standing) ? <span className={styles.trophy} aria-hidden="true"> 🏆</span> : null}
+    </p>
+  )
+}
+
+/* ==========================================================================
+   THE FIELD — how many are left, and the rules they are left under
+   ========================================================================== */
+
+/**
+ * THE POOL, AND IT IS THE ATMOSPHERE OF THE ROUND.
+ *
+ * "83 still in" is what makes a survival game feel like one, and it is the fact
+ * Match Predictor has no equivalent of: a score-entry form has no shrinking
+ * field. It sits under the standing because the order of the page is who you
+ * are, then who is left, then what you must do.
+ *
+ * THREE FIGURES, THREE SENTENCES, NO ARITHMETIC. Contract 164 counts
+ * `remaining` and `eliminated` from `outcome` and a NULL outcome is in neither,
+ * so `entrants` need not equal their sum. Each is printed as the server stated
+ * it and none is computed from the others — which is also why they are not
+ * phrased as "83 of 120", a form that reads as a fraction of a whole and would
+ * be quietly wrong.
+ */
+function Field({ panel }: { readonly panel: LmsFieldPanel }) {
+  if (panel.kind === 'not-counted') {
+    // The BODY already says why there is nothing to count — not offered, or not
+    // entered. Saying it again here in different words would be a second
+    // sentence about one fact.
+    return null
+  }
+
+  if (panel.kind === 'unavailable') {
+    /* NO RETRY BUTTON. The pool is context; the round is the thing a player
+     * came for, and it is still on screen. A second retry control beside a
+     * working page would invite a re-read of everything to fix an aside. */
+    return (
+      <p className={`${text.micro} ${styles.fieldMissing}`} role="status">
+        We could not load how many players are left.
+      </p>
+    )
+  }
+
+  const { counts } = panel
+
+  return (
+    <section className={styles.field} data-vnext-zone="field">
+      <p className={`${text.body} ${styles.fieldCounts}`}>
+        <span className={styles.fieldRemaining}>
+          {formatNumber(counts.remaining)} still in
+        </span>
+        <span aria-hidden="true" className={styles.fieldSeparator}>
+          ·
+        </span>
+        <span>{formatNumber(counts.eliminated)} out</span>
+        <span aria-hidden="true" className={styles.fieldSeparator}>
+          ·
+        </span>
+        <span>{formatNumber(counts.entrants)} entered</span>
+      </p>
+
+      <Picked picked={counts.picked} />
+      {panel.rules === null ? null : <Rules rules={panel.rules} />}
+    </section>
+  )
+}
+
+/**
+ * HOW MANY RIVALS HAVE COMMITTED — AND THE FACT THAT IT IS WITHHELD.
+ *
+ * NULL IS A SENTENCE, NOT A BLANK. Contract 164 hides this figure until the
+ * round locks, because knowing how many have already picked is live strategic
+ * information when the clubs are a depleting resource. Rendering `picked ?? 0`
+ * would print "0 have picked" to every player before the lock — a confident
+ * claim about rivals the server deliberately refused to make.
+ *
+ * So the withholding is SAID. A player who can see the number after the lock
+ * and nothing before it should be told which of those two they are looking at.
+ */
+function Picked({ picked }: { readonly picked: number | null }) {
+  if (picked === null) {
+    return (
+      <p className={`${text.micro} ${styles.fieldPicked}`}>
+        How many players have picked stays hidden until picks close.
+      </p>
+    )
+  }
+
+  return (
+    <p className={`${text.micro} ${styles.fieldPicked}`}>
+      {picked === 1
+        ? '1 player picked in this round'
+        : `${formatNumber(picked)} players picked in this round`}
+    </p>
+  )
+}
+
+/**
+ * THE ORGANISER'S RULES, STATED AND NEVER RUN.
+ *
+ * `lmsRoundModel.ts` refuses to say whether a draw eliminates because it is "a
+ * stored rule this surface cannot see". Contract 164 lets this page SEE it, and
+ * that permission extends exactly as far as printing it. Nothing here reads
+ * `drawsRule` beside a drawn pick to produce a verdict — that is the settlement
+ * job's, and a browser running the rule would be wrong in precisely the seasons
+ * configured differently from its guess.
+ *
+ * ABSENT RULES RENDER NOTHING AT ALL, one level up: an organiser who wrote no
+ * setup has not chosen "0 lives", and printing zeroes would describe a harsher
+ * game than the real one.
+ */
+function Rules({ rules }: { readonly rules: LmsRules }) {
+  return (
+    <p className={`${text.micro} ${styles.fieldRules}`} data-vnext-zone="rules">
+      {rules.lives === 1 ? '1 life' : `${formatNumber(rules.lives)} lives`}
+      {' · '}
+      {rules.saves === 0
+        ? 'no saves'
+        : rules.saves === 1
+          ? '1 save'
+          : `${formatNumber(rules.saves)} saves`}
+      {rules.drawsRule === null ? null : ` · ${rules.drawsRule}`}
     </p>
   )
 }

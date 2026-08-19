@@ -6,6 +6,7 @@ import {
   type VNextLmsSourceState,
 } from '../../src/vnext/integration/lms/useVNextLmsSource'
 import type { LmsRoundPage } from '../../src/services/supabase/seasonLms'
+import type { SeasonLmsField } from '../../src/services/supabase/seasonLmsField'
 import { last } from '../support/indexed'
 
 /**
@@ -34,7 +35,7 @@ import { last } from '../support/indexed'
  */
 
 const server = vi.hoisted(() => {
-  const calls = { load: 0, pick: 0 }
+  const calls = { load: 0, pick: 0, field: 0 }
   const picked: string[] = []
   /** How many gateways were constructed — one per identity, not per render. */
   let gateways = 0
@@ -42,6 +43,7 @@ const server = vi.hoisted(() => {
   const state = {
     contextFails: false,
     loadFails: false,
+    fieldFails: false,
     /** null | 'conflict' | 'refused' | 'failed' */
     pickFails: null as null | 'conflict' | 'refused' | 'failed',
   }
@@ -73,11 +75,33 @@ const server = vi.hoisted(() => {
     }
   }
 
+  function field(): SeasonLmsField {
+    return {
+      available: true,
+      entered: true,
+      myOutcome: 'active',
+      round: {
+        windowId: 'window-7',
+        sequence: 7,
+        label: 'Round 7',
+        opensAt: '2027-11-10T12:00:00.000Z',
+        locksAt: '2099-01-01T00:00:00.000Z',
+        settlesAt: null,
+        revealed: false,
+        settled: false,
+      },
+      rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss', endgameScope: null },
+      field: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+      entrants: [],
+    }
+  }
+
   return {
     calls,
     picked,
     state,
     page,
+    field,
     countGateway() {
       gateways += 1
     },
@@ -127,6 +151,14 @@ vi.mock('../../src/services/supabase/seasonLms', () => ({
   },
 }))
 
+vi.mock('../../src/services/supabase/seasonLmsField', () => ({
+  fetchSeasonLmsField: async () => {
+    server.calls.field += 1
+    if (server.state.fieldFails) throw new Error('no field')
+    return server.field()
+  },
+}))
+
 // THE REAL CLASSIFIER'S RULE, restated because the module is mocked wholesale.
 vi.mock('../../src/services/supabase/writeConflict', () => ({
   isVersionConflict: (error: unknown) =>
@@ -163,8 +195,10 @@ function reset() {
   server.calls.pick = 0
   server.picked.length = 0
   server.resetGateways()
+  server.calls.field = 0
   server.state.contextFails = false
   server.state.loadFails = false
+  server.state.fieldFails = false
   server.state.pickFails = null
 }
 
@@ -174,6 +208,66 @@ async function ready(probe: ReturnType<typeof mount>) {
   if (state.status !== 'ready') throw new Error('expected ready')
   return state
 }
+
+/* ------------------------------------------------------------------ *
+ * 0. Two reads, and neither may withhold the other
+ * ------------------------------------------------------------------ */
+
+/**
+ * THE TWO READS ARE ISSUED TOGETHER AND CATCH SEPARATELY.
+ *
+ * The failure this guards against is a `Promise.all` over UNGUARDED promises:
+ * it rejects on the first rejection and throws away the other answer even when
+ * that answer had already arrived. On this page that would mean a field read
+ * falling over and taking with it the round a player came to act on — the one
+ * outcome the whole two-union design exists to prevent.
+ */
+describe('the round and the field are read together and fail apart', () => {
+  it('issues exactly two reads per visit, and no more', async () => {
+    reset()
+    const probe = mount(BASE)
+    await ready(probe)
+    expect(server.calls.load).toBe(1)
+    expect(server.calls.field).toBe(1)
+    probe.unmount()
+  })
+
+  it('still reaches ready with a round when the field read throws', async () => {
+    reset()
+    server.state.fieldFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.read.kind).toBe('ok')
+    expect(state.source.field.kind).toBe('failed')
+    probe.unmount()
+  })
+
+  it('still reaches ready with a field when the round read throws', async () => {
+    reset()
+    server.state.loadFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.read.kind).toBe('failed')
+    // THE POINT: the field arrived and was kept. A page that discarded it on
+    // the round's failure would go blank where it could still say "83 still in".
+    expect(state.source.field.kind).toBe('ok')
+    probe.unmount()
+  })
+
+  it('is still ready when BOTH reads throw, because neither is the page', async () => {
+    reset()
+    server.state.loadFails = true
+    server.state.fieldFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.read.kind).toBe('failed')
+    expect(state.source.field.kind).toBe('failed')
+    // `failed` is reserved for the PLAY CONTEXT, which is the only read whose
+    // absence means there is no page to draw at all.
+    expect(state.status).toBe('ready')
+    probe.unmount()
+  })
+})
 
 /* ------------------------------------------------------------------ *
  * 1. The write's three failures are three states

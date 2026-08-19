@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildLmsModel } from '../../src/vnext/integration/lms/buildLmsModel'
 import type { LmsSource } from '../../src/vnext/integration/lms/lmsSource'
 import type { LmsRoundPage } from '../../src/services/supabase/seasonLms'
+import type { LmsRules, SeasonLmsField } from '../../src/services/supabase/seasonLmsField'
 import type { LmsPageModel, LmsTeamOption } from '../../src/vnext/models/lms'
 import { first } from '../support/indexed'
 
@@ -68,7 +69,57 @@ function page(overrides: Partial<LmsRoundPage> = {}): LmsRoundPage {
   }
 }
 
-function source(page_: LmsRoundPage | null, generatedAt = NOW): LmsSource {
+/**
+ * CONTRACT 164'S ANSWER, as its decoder produces it.
+ *
+ * `revealed` DEFAULTS TO ABSENT, not false: most tests below are about the
+ * fallback path, where no server verdict exists and the instants decide. The
+ * tests that are about the server's verdict pass one explicitly.
+ */
+function fieldAnswer(
+  overrides: {
+    windowId?: string
+    revealed?: boolean
+    picked?: number | null
+    rules?: LmsRules | null
+  } = {},
+): SeasonLmsField {
+  return {
+    available: true,
+    entered: true,
+    myOutcome: 'active',
+    round: {
+      windowId: overrides.windowId ?? 'window-7',
+      sequence: 7,
+      label: 'Round 7',
+      opensAt: '2027-11-10T12:00:00.000Z',
+      locksAt: AFTER,
+      settlesAt: null,
+      revealed: overrides.revealed ?? false,
+      settled: false,
+    },
+    // NOT 83 + 33 = 120. A NULL outcome is counted in neither bucket, so a
+    // mapper deriving one count from the other two fails here rather than
+    // passing by arithmetic luck.
+    field: {
+      entrants: 120,
+      remaining: 83,
+      eliminated: 33,
+      picked: overrides.picked === undefined ? null : overrides.picked,
+    },
+    rules:
+      overrides.rules === undefined
+        ? { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss', endgameScope: null }
+        : overrides.rules,
+    entrants: [],
+  }
+}
+
+function source(
+  page_: LmsRoundPage | null,
+  generatedAt = NOW,
+  field: LmsSource['field'] = { kind: 'failed' },
+): LmsSource {
   return {
     generatedAt,
     context: {
@@ -78,6 +129,7 @@ function source(page_: LmsRoundPage | null, generatedAt = NOW): LmsSource {
       gameName: 'Last Man Standing',
     },
     read: page_ === null ? { kind: 'failed' } : { kind: 'ok', page: page_ },
+    field,
   }
 }
 
@@ -241,6 +293,176 @@ describe('the lock is judged from the instant the source supplied', () => {
     const model = buildLmsModel(source(page()))
     if (model.body.kind !== 'round') throw new Error('expected a round')
     expect(model.body.round.locksAt).toBe(AFTER)
+  })
+})
+
+/**
+ * THE PREDICATE'S OWN WORDS: "lock/deadline states come from authority, not
+ * browser inference." Contract 164's `revealed` IS that authority — the
+ * database comparing `locks_at` to its own `now()` — so where it exists it
+ * decides, and where it does not the instants still do.
+ *
+ * Each test below is written so the two sources DISAGREE. A mapper that
+ * silently preferred the instants, or that trusted a verdict about a different
+ * window, gives the wrong answer here rather than the right one by coincidence.
+ */
+describe('the server`s lock verdict outranks this machine`s clock', () => {
+  it('locks a round the instants call open, when the server says revealed', () => {
+    const model = buildLmsModel(
+      // `locksAt` is AFTER, so the instants say OPEN. The server says locked.
+      source(page(), NOW, { kind: 'ok', field: fieldAnswer({ revealed: true }) }),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('locked')
+    expect(first(options(model)).action).toEqual({ kind: 'unavailable', reason: 'locked' })
+  })
+
+  it('opens a round the instants call locked, when the server says not revealed', () => {
+    const model = buildLmsModel(
+      // Read at 22:00, an hour past `locksAt` by this clock. The server, whose
+      // clock is the one the write is refused against, says it has not locked.
+      source(page(), '2027-11-14T22:00:00.000Z', {
+        kind: 'ok',
+        field: fieldAnswer({ revealed: false }),
+      }),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('open')
+  })
+
+  it('ignores a verdict about a DIFFERENT window rather than applying it', () => {
+    const model = buildLmsModel(
+      // The two reads straddled a lock and landed on different rounds. The
+      // verdict is about window-8; this page is showing window-7.
+      source(page(), NOW, {
+        kind: 'ok',
+        field: fieldAnswer({ windowId: 'window-8', revealed: true }),
+      }),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    // Falls back to the instants, which say open. NOT locked by a verdict
+    // about a round this page is not showing.
+    expect(model.body.round.state).toBe('open')
+  })
+
+  it('still says not-open for a round that has not opened, whatever revealed says', () => {
+    const model = buildLmsModel(
+      source(
+        page({ round: { windowId: 'window-7', sequence: 7, label: 'Round 7', opensAt: AFTER, locksAt: AFTER } }),
+        NOW,
+        // `revealed: false` answers "has it locked", which is equally false of
+        // a round that has not started. It must not be read as "open".
+        { kind: 'ok', field: fieldAnswer({ revealed: false }) },
+      ),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('not-open')
+  })
+
+  it('leaves a settled round settled even when the server says not revealed', () => {
+    const model = buildLmsModel(
+      source(page({ pickOutcome: 'won', pick: { teamId: 'team-celtic' } }), NOW, {
+        kind: 'ok',
+        field: fieldAnswer({ revealed: false }),
+      }),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('settled')
+  })
+})
+
+/**
+ * THE POOL. Carried, never computed — and the counts in `fieldAnswer` do not
+ * add up on purpose, because in contract 164 they genuinely need not.
+ */
+describe('the field is carried rather than counted', () => {
+  it('carries the three counts exactly as the server stated them', () => {
+    const model = buildLmsModel(source(page(), NOW, { kind: 'ok', field: fieldAnswer() }))
+    expect(model.field).toEqual({
+      kind: 'field',
+      // 83 + 33 is 116, not 120. A NULL outcome is in neither bucket, so any
+      // mapper deriving a count from the others is wrong here.
+      counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+      rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
+    })
+  })
+
+  it('keeps `picked` null before the reveal rather than defaulting it to zero', () => {
+    const model = buildLmsModel(source(page(), NOW, { kind: 'ok', field: fieldAnswer() }))
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    expect(model.field.counts.picked).toBeNull()
+    // The distinction that matters: null is "withheld", 0 would be "nobody
+    // has picked" — a sentence about rivals the server refused to make.
+    expect(model.field.counts.picked).not.toBe(0)
+  })
+
+  it('carries a revealed `picked` through as the number it is', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, { kind: 'ok', field: fieldAnswer({ revealed: true, picked: 79 }) }),
+    )
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    expect(model.field.counts.picked).toBe(79)
+  })
+
+  it('keeps absent rules absent rather than inventing a harsher game', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, { kind: 'ok', field: fieldAnswer({ rules: null }) }),
+    )
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    expect(model.field.rules).toBeNull()
+  })
+
+  it('states the draws rule without applying it to a drawn pick', () => {
+    const model = buildLmsModel(
+      source(page({ pickOutcome: 'drew', pick: { teamId: 'team-celtic' }, entryOutcome: 'active' }), NOW, {
+        kind: 'ok',
+        field: fieldAnswer({ rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss', endgameScope: null } }),
+      }),
+    )
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    // The rule SAYS a draw is a loss. The player is still ACTIVE, because only
+    // the settlement job runs the rule. A mapper that applied it would produce
+    // `eliminated` here and be inventing the competition's verdict.
+    expect(model.field.rules?.drawsRule).toBe('A draw counts as a loss')
+    expect(model.standing).toBe('active')
+  })
+})
+
+/**
+ * TWO READS, TWO OUTCOMES, AND NEITHER MAY WITHHOLD THE OTHER. Stage 10's
+ * three-panel lesson in a two-read page.
+ */
+describe('one read failing does not take the other down', () => {
+  it('keeps the round pickable when only the field read failed', () => {
+    const model = buildLmsModel(source(page(), NOW, { kind: 'failed' }))
+    expect(model.field).toEqual({ kind: 'unavailable' })
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('open')
+    expect(first(options(model)).action.kind).toBe('pick')
+  })
+
+  it('still counts the field when only the round read failed', () => {
+    const model = buildLmsModel(source(null, NOW, { kind: 'ok', field: fieldAnswer() }))
+    expect(model.body).toEqual({ kind: 'unavailable' })
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    expect(model.field.counts.remaining).toBe(83)
+  })
+
+  it('reports a field the caller is not entered in as not-counted, not as a failure', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, {
+        kind: 'ok',
+        field: { available: true, entered: false },
+      }),
+    )
+    expect(model.field).toEqual({ kind: 'not-counted' })
+  })
+
+  it('reports an unoffered game as not-counted too', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, { kind: 'ok', field: { available: false } }),
+    )
+    expect(model.field).toEqual({ kind: 'not-counted' })
   })
 })
 
