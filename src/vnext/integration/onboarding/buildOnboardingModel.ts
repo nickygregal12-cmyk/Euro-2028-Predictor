@@ -12,6 +12,7 @@ import {
   previousStep,
 } from '../../../features/onboarding/onboardingResume'
 import type { SeasonClub } from '../../../services/supabase/seasonClubs'
+import type { RegistrationOutlook } from '../../models/games'
 import type {
   OnboardingClubGroup,
   OnboardingStep,
@@ -61,6 +62,12 @@ export type OnboardingSource = {
    * not been read; the step says so rather than drawing an empty list.
    */
   readonly clubs: Readonly<Record<string, readonly SeasonClub[]>>
+  /**
+   * Where registration stands, per competition key and game key, resolved by
+   * `registrationOutlookOf` against the SERVER's clock. A competition or a game
+   * the read did not carry is absent, and absence fails closed.
+   */
+  readonly entry: Readonly<Record<string, Readonly<Record<string, RegistrationOutlook>>>>
   readonly displayName: string | null
   readonly commit: OnboardingCommit
   readonly generatedAt: string
@@ -69,36 +76,76 @@ export type OnboardingSource = {
 const NOTE =
   'Following a competition only decides what you see. It does not enter you into any of its games — you choose those next.'
 
+/**
+ * WHY A GAME CANNOT BE CHOSEN, in the player's words — or null where it can.
+ *
+ * THE ORDER MATTERS AND IS THE SERVER'S. `enter_competition_game` checks the
+ * game is active, then `completed_at`, then the two registration windows, so a
+ * finished game is finished whatever its windows say. The catalogue's own
+ * `coming-soon` is checked first because it means the competition has not
+ * opened this game at all, which is a fact about the competition rather than
+ * about a window.
+ */
+function refusalOf(
+  status: HubCompetition['games'][number]['status'],
+  entry: RegistrationOutlook,
+): string | null {
+  // "Not open yet" and "this platform does not have that game" are different
+  // facts, and a player who cannot tell them apart keeps looking for it.
+  if (status === 'coming-soon') return 'This competition has not opened this game yet.'
+  switch (entry) {
+    case 'finished':
+      return 'This one has finished for the season.'
+    case 'not-open':
+      return 'Registration has not opened yet.'
+    case 'closed':
+      return 'Registration has closed for this season.'
+    default:
+      return null
+  }
+}
+
 function gameOffers(
   competition: HubCompetition,
-  draft: OnboardingDraft,
+  source: OnboardingSource,
 ): readonly OnboardingGameOffer[] {
-  const chosen = gamesFor(draft, competition.seasonRowName)
-  return competition.games.map((game) => ({
-    gameKey: game.gameKey,
-    name: game.name,
-    description: game.description,
-    cadence: GAME_PRESENTATION[game.gameKey].cadence,
-    joined: game.joined,
-    chosen: chosen.includes(game.gameKey),
-    refusal:
-      game.status === 'coming-soon'
-        ? 'This competition has not opened this game yet.'
-        : null,
-  }))
+  const chosen = gamesFor(source.draft, competition.seasonRowName)
+  const outlooks = source.entry[competition.seasonRowName] ?? {}
+  return competition.games.map((game) => {
+    // ABSENT MEANS UNREADABLE, AND UNREADABLE FAILS CLOSED. The windows come
+    // from the membership read; a game the catalogue lists but that read did not
+    // carry cannot be shown as joinable, because the one thing worse than not
+    // offering a game is offering one the server will refuse at Finish.
+    const entry: RegistrationOutlook = outlooks[game.gameKey] ?? 'not-open'
+    const refusal = refusalOf(game.status, entry)
+    return {
+      gameKey: game.gameKey,
+      name: game.name,
+      description: game.description,
+      cadence: GAME_PRESENTATION[game.gameKey].cadence,
+      joined: game.joined,
+      // A REFUSED GAME IS NEVER SHOWN AS CHOSEN. The draft can still hold it —
+      // a window can close while the player is deciding — and showing a tick
+      // beside a sentence saying it cannot be entered is the surface
+      // contradicting itself.
+      chosen: refusal === null && chosen.includes(game.gameKey),
+      entry,
+      refusal,
+    }
+  })
 }
 
 function offerOf(
   competition: HubCompetition,
-  draft: OnboardingDraft,
+  source: OnboardingSource,
 ): OnboardingCompetitionOffer {
   return {
     key: competition.seasonRowName,
     name: competition.name,
     seasonLabel: competition.seasonLabel,
     summary: competition.summary,
-    followed: draft.followed.includes(competition.seasonRowName),
-    games: gameOffers(competition, draft),
+    followed: source.draft.followed.includes(competition.seasonRowName),
+    games: gameOffers(competition, source),
   }
 }
 
@@ -154,9 +201,12 @@ function summaryOf(
 
     for (const gameKey of gamesFor(draft, key)) {
       const served = competition.games.find((game) => game.gameKey === gameKey)
-      // Already joined, or no longer served: neither is something Finish will
-      // do, so neither is listed as something it will.
+      // Already joined, no longer served, or something the server would now
+      // refuse: none of those is something Finish will do, so none is listed as
+      // something it will. The window can close between choosing and reviewing.
       if (served === undefined || served.joined) continue
+      const outlook = source.entry[key]?.[gameKey] ?? 'not-open'
+      if (served.status === 'coming-soon' || outlook !== 'open') continue
       games.push({ competition: competition.name, game: served.name })
     }
   }
@@ -182,13 +232,13 @@ function panelOf(
     case 'competitions':
       return {
         step,
-        offers: catalogue.map((entry) => offerOf(entry, source.draft)),
+        offers: catalogue.map((entry) => offerOf(entry, source)),
         note: NOTE,
       }
     case 'clubs':
       return { step, groups: clubGroups(followed, source) }
     case 'games':
-      return { step, offers: followed.map((entry) => offerOf(entry, source.draft)) }
+      return { step, offers: followed.map((entry) => offerOf(entry, source)) }
     default:
       return { step: 'review', summary: summaryOf(followed, source) }
   }

@@ -89,11 +89,19 @@ function AccountHarness() {
             navigate(`/competitions/${intent.competitionSlug}/${intent.seasonKey}`)
             return
           }
-          // REALLY SIGNS OUT. The page owns the control and the wording; the
-          // session belongs to the auth provider, and this is the host
-          // performing it — the same division every write in this lane uses.
-          setNote('Signing out…')
-          void signOut()
+          // NAMED, NOT A FALL-THROUGH. Signing out was reached by "anything
+          // that is not open-season", so a third intent added later would have
+          // silently ended the session. It is the one action here that cannot
+          // be undone by pressing back.
+          if (intent.kind === 'sign-out') {
+            // REALLY SIGNS OUT. The page owns the control and the wording; the
+            // session belongs to the auth provider, and this is the host
+            // performing it — the same division every write in this lane uses.
+            setNote('Signing out…')
+            void signOut()
+            return
+          }
+          setNote(`Intent "${(intent as { kind: string }).kind}" — reported rather than routed.`)
         }}
       />
     </div>

@@ -23,8 +23,8 @@ import styles from './onboarding.module.css'
  * "Step 2 of 4" and nothing else. No percentage complete, no progress bar
  * filling up, no encouragement: a player setting up an account is not
  * competing, and a meter implies both that there is a finish worth racing to
- * and that stopping short is a failure. Three of the four steps are skippable
- * and the page never suggests otherwise.
+ * and that stopping short is a failure. Nothing after the first step is
+ * required, and the page never suggests otherwise.
  *
  * ============================ NOTHING IS PRE-TICKED =====================
  *

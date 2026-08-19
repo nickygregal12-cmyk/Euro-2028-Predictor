@@ -418,3 +418,70 @@ the server allows it, and Stage 10 built what is behind the link. A game's
 standings and a private league's table are the same question at two scopes, and
 both scopes now have a vNext surface. Nothing further is owed here; performing
 the absorption on the live address is Stage 14's.
+
+---
+
+## 10. THE SECOND REVIEW ROUND, AND WHAT IT FOUND AFTER THE MERGE
+
+Stage 13 merged as #923 while round two was still running. Its findings are
+therefore recorded here and carried in a follow-up change rather than in the
+stage's own pull request — which is the honest place for them, because two of
+them are defects the stage shipped.
+
+Round two **confirmed all eight corrections** from round one, each by applying
+the mutation itself rather than by reading the commit messages. It then found
+three things in the code round one never saw:
+
+### The club read that was abandoned and never re-issued
+
+`VNextOnboardingScreen` marked a competition as asked-for *before* awaiting its
+club list, and discarded the answer if the effect had since torn down. The key
+stayed marked, so nothing re-asked. Pressing **Back** on the favourite step
+while a read was in flight, then **Continue**, left that competition on
+"Loading clubs…" for the rest of the session — and the docblock claimed the
+opposite in as many words.
+
+The fix is not a smarter guard but a smaller one. A club list is keyed,
+immutable and idempotent: an answer arriving after the step changed is still
+the right answer, so it is stored. The only thing that must not happen is a
+setState after unmount, and that is now the only thing guarded.
+
+### Two Stage 13 surfaces disagreed about whether a game could be entered
+
+The games hub refuses to offer a game whose registration has closed, because
+`registrationOutlookOf` resolves the stored windows against the server's clock.
+The onboarding games step had only the display catalogue, which keeps `active`
+and discards the windows — so it drew a tick box for a closed or finished game
+and promised Finish would enter the player, which `enter_competition_game`
+refuses outright.
+
+**The rule now has one home.** `registrationOutlookOf` moved into its own module
+and both mappers call it; onboarding reads the windows from the same membership
+rows the hub uses, and a season whose read carried no `serverNow` is omitted
+entirely so the absence fails closed. A game the server would refuse gets no
+control, the sentence names which refusal it is, and the review summary stops
+listing it as something Finish will do.
+
+### The connected screen had no tests at all
+
+Every onboarding test targeted the presentational component against fixed
+fixtures, or the pure mapper. All of the read and effect logic was untested,
+and the blocker above was the direct consequence.
+`tests/vnext/onboardingScreen.test.tsx` now covers the resume, the failure
+fallback, the entry rule reaching the step, the fail-closed clock and the
+abandoned-read regression — the last of which fails if the old guard returns.
+
+### And a defect class no gate covered
+
+Round one found `text.h2`, a typography class that has never existed, rendering
+`class="undefined"` in the Championship. Generalising that scan to **every** CSS
+module in the lane found two more, both in surfaces that had already shipped:
+`styles.heroScore` in the Match Centre, so the headline score lost its display
+font, weight, size and `white-space: nowrap` and rendered as body text; and
+`styles.pickResult` in Last Man Standing, so the one paragraph saying what a
+submitted pick did kept the browser's default margins.
+
+Neither is visible to lint, typecheck, the unit suites, the axe scan or the
+browser suite, because the markup is *fine* — a CSS module resolves an unknown
+key to `undefined`, which is a perfectly ordinary class name to a renderer.
+`tests/vnext/vnextStyleClasses.test.ts` is the gate that now catches it.

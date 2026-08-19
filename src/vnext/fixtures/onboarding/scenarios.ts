@@ -179,6 +179,7 @@ const onboardingGames: OnboardingView = {
               cadence: 'Every matchweek',
               joined: false,
               chosen: true,
+              entry: 'open',
               refusal: null,
             },
             {
@@ -188,6 +189,7 @@ const onboardingGames: OnboardingView = {
               cadence: 'One pick a round',
               joined: true,
               chosen: false,
+              entry: 'open',
               refusal: null,
             },
             {
@@ -197,7 +199,56 @@ const onboardingGames: OnboardingView = {
               cadence: 'Two legs a tie',
               joined: false,
               chosen: false,
+              entry: 'not-open',
               refusal: 'This competition has not opened this game yet.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+}
+
+/**
+ * THE BINDING ENTRY WORLD. A game the competition serves and the catalogue
+ * calls available, whose REGISTRATION HAS CLOSED. The catalogue cannot see it —
+ * it keeps only `active` — so an earlier draft drew a tick box here and
+ * promised Finish would enter the player, which `enter_competition_game`
+ * refuses. There is no control, and the sentence says which refusal it is.
+ */
+const onboardingClosedEntry: OnboardingView = {
+  kind: 'ready',
+  model: {
+    ...modelOf(onboardingGames),
+    panel: {
+      step: 'games',
+      offers: [
+        {
+          key: 'Caledonian Premiership 2027/28',
+          name: 'Caledonian Premiership',
+          seasonLabel: '2027/28',
+          summary: 'Twelve clubs, thirty-eight matchweeks.',
+          followed: true,
+          games: [
+            {
+              gameKey: 'main_predictor',
+              name: 'Match Predictor',
+              description: 'Predict every score before the matchweek locks.',
+              cadence: 'Every matchweek',
+              joined: false,
+              chosen: false,
+              entry: 'closed',
+              refusal: 'Registration has closed for this season.',
+            },
+            {
+              gameKey: 'last_man_standing',
+              name: 'Last Man Standing',
+              description: 'Pick one club to win. Get it wrong and you are out.',
+              cadence: 'One pick a round',
+              joined: false,
+              chosen: false,
+              entry: 'finished',
+              refusal: 'This one has finished for the season.',
             },
           ],
         },
@@ -292,6 +343,7 @@ export const onboardingScenarios = {
   clubs: onboardingClubs,
   noClubs: onboardingNoClubs,
   games: onboardingGames,
+  closedEntry: onboardingClosedEntry,
   noGames: onboardingNoGames,
   review: onboardingReview,
   reviewEmpty: onboardingReviewEmpty,
@@ -323,6 +375,8 @@ export const onboardingScenarioPremises: Readonly<
   noClubs: 'On the club step having followed nothing. There is nothing to choose from, and it says that rather than drawing an empty list.',
   games:
     'THE binding world. All three offer states at once: one choosable, one ALREADY JOINED — a server fact with no control — and one the competition has not opened, stated rather than hidden.',
+  closedEntry:
+    'THE binding entry world. Registration has closed on one game and the other has finished — neither of which the display catalogue can see, because it keeps only `active`. No control, and the sentence names which refusal it is rather than a generic "unavailable".',
   noGames: 'On the games step having followed nothing. Games belong to a competition.',
   review:
     'The review, with the three choices listed APART. They are three server authorities and one can be refused while the others go through.',

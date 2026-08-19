@@ -82,7 +82,14 @@ export type OnboardingStep = (typeof ONBOARDING_STEP_ORDER)[number]
  *
  * Restated for the same boundary reason, and deliberately NOT named `GameKey`:
  * `models/ia.ts` has one of those and it is the information architecture's
- * vocabulary, not the database's. Pinned by the same test.
+ * vocabulary, not the database's.
+ *
+ * PINNED BY THE COMPILER RATHER THAN BY A TEST, which is worth saying because
+ * an earlier draft claimed a test did it and none does. Removing a key fails
+ * `buildOnboardingModel.ts` where the catalogue's keys are assigned in, and
+ * adding one fails `VNextOnboardingScreen.tsx` where the intent is passed to
+ * `toggleGame`. `npx tsc -b` is the gate; a mutation here leaves the suite
+ * green and the build red.
  */
 export type OnboardingGameKey =
   | 'main_predictor'
@@ -90,6 +97,8 @@ export type OnboardingGameKey =
   | 'predictor_cup'
   | 'original_predictor'
   | 'ko_predictor'
+
+import type { RegistrationOutlook } from './games'
 
 /* ==========================================================================
    WHAT IS ON OFFER
@@ -107,6 +116,15 @@ export type OnboardingGameKey =
  * no control at all — an unticked box would invite the player to choose
  * something they already have, and a ticked one would make Finish look like it
  * were about to join them twice.
+ *
+ * AND `entry` IS THE SAME RULE THE GAMES HUB USES, not a second opinion. An
+ * earlier draft carried only the catalogue's `coming-soon` flag, so a game
+ * whose registration had CLOSED, or that had FINISHED, still got a tick box and
+ * a promise that Finish would enter the player into it — which
+ * `enter_competition_game` refuses outright. The hub had always refused those;
+ * onboarding did not; and two surfaces in one stage disagreeing about one
+ * server rule is the failure a shared authority exists to prevent.
+ * `registrationOutlookOf` is now that authority for both.
  */
 export type OnboardingGameOffer = {
   readonly gameKey: OnboardingGameKey
@@ -116,6 +134,9 @@ export type OnboardingGameOffer = {
   readonly cadence: string
   readonly joined: boolean
   readonly chosen: boolean
+  /** Where registration stands. Only `open` may be chosen. */
+  readonly entry: RegistrationOutlook
+  /** Why it cannot be chosen, in the player's words. Null when it can. */
   readonly refusal: string | null
 }
 
