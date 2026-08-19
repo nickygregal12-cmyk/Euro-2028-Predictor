@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextLeaguesScreen } from '../vnext/integration/leagues/VNextLeaguesScreen'
-import {
-  VNextLeaguesLoading,
-  VNextLeaguesNotice,
-} from '../vnext/integration/leagues/VNextLeaguesStates'
+import { VNextLoadingRows, VNextNotice } from '../vnext/integration/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
@@ -184,9 +181,11 @@ function PreviewBody() {
 
       <VNextRoot>
         {forced === 'loading' ? (
-          <VNextLeaguesLoading />
+          <VNextLoadingRows heading="Leagues" destination="leagues" label="Loading standings" />
         ) : forced === 'failed' ? (
-          <VNextLeaguesNotice
+          <VNextNotice
+            destination="leagues"
+            heading="Leagues"
             title="We could not load these standings"
             body="The table is there — we just could not read it just now. Trying again usually works."
             onRetry={() => window.location.reload()}

@@ -3,7 +3,7 @@ import { VNextAccount, type AccountIntent } from '../../account/VNextAccount'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextLeaguesNotice } from '../leagues/VNextLeaguesStates'
+import { VNextNotice } from '../states/VNextStates'
 import { buildAccountModel } from './buildAccountModel'
 import { useVNextAccountSource } from './useVNextAccountSource'
 
@@ -70,13 +70,15 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
 
   const body =
     state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="none"
         heading="You"
         title="Sign in to see your account"
         body="Your competitions, your seasons and your settings live with your account."
       />
     ) : model === null ? (
-      <VNextLeaguesNotice heading="You" title="Loading your account" body="One moment." />
+      <VNextNotice
+        destination="none" heading="You" title="Loading your account" body="One moment." />
     ) : (
       <VNextAccount
         model={model}

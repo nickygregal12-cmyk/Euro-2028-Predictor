@@ -9,7 +9,7 @@ import {
   useVNextLeaguesSource,
   type VNextLeaguesSourceInput,
 } from './useVNextLeaguesSource'
-import { VNextLeaguesLoading, VNextLeaguesNotice } from './VNextLeaguesStates'
+import { VNextLoadingRows, VNextNotice } from '../states/VNextStates'
 
 /**
  * THE CONNECTED vNEXT LEAGUES SURFACE.
@@ -90,19 +90,25 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
 
   const body =
     state.status === 'loading' ? (
-      <VNextLeaguesLoading />
+      <VNextLoadingRows heading="Leagues" destination="leagues" label="Loading standings" />
     ) : state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
+        heading="Leagues"
         title="Sign in to see the standings"
         body="A league ranks the people playing a game inside a competition season, and a season is reached from your account."
       />
     ) : state.status === 'noCompetition' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
+        heading="Leagues"
         title="No competition to show"
         body="Pick a competition and season, and this is where its standings will be."
       />
     ) : state.status === 'failed' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="leagues"
+        heading="Leagues"
         title="We could not load these standings"
         // IT DOES NOT DENY THE PLAYERS. The table exists; the read did not
         // answer. Saying "you are not in any league" here would be the page
@@ -119,7 +125,7 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
         onRetry={state.status === 'ready' ? state.retry : undefined}
       />
     ) : (
-      <VNextLeaguesLoading />
+      <VNextLoadingRows heading="Leagues" destination="leagues" label="Loading standings" />
     )
 
   return shell === null ? (

@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextPlayerProfileScreen } from '../vnext/integration/playerProfile/VNextPlayerProfileScreen'
 import { VNextPlayerProfileLoading } from '../vnext/integration/playerProfile/VNextPlayerProfileStates'
-import { VNextLeaguesNotice } from '../vnext/integration/leagues/VNextLeaguesStates'
+import { VNextNotice } from '../vnext/integration/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
@@ -182,7 +182,8 @@ function PreviewBody() {
         {forced === 'loading' ? (
           <VNextPlayerProfileLoading />
         ) : forced === 'failed' ? (
-          <VNextLeaguesNotice
+          <VNextNotice
+            destination="leagues"
             heading="Player"
             title="We could not load this player"
             body="Their season is there — we just could not read it just now. Trying again usually works."

@@ -3,7 +3,7 @@ import { VNextGames, type GamesIntent } from '../../games/VNextGames'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextLeaguesNotice } from '../leagues/VNextLeaguesStates'
+import { VNextNotice } from '../states/VNextStates'
 import { buildGamesModel } from './buildGamesModel'
 import { useVNextGamesSource } from './useVNextGamesSource'
 
@@ -72,19 +72,22 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
 
   const body =
     state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Games"
         title="Sign in to see this season’s games"
         body="A season’s games belong to the competition, and a competition is reached from your account."
       />
     ) : state.status === 'noCompetition' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Games"
         title="No season to show"
         body="Pick a competition and a season, and this is where its games will be."
       />
     ) : state.status === 'failed' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Games"
         title="We could not open this season"
         // IT SAYS NOTHING ABOUT THE CATALOGUE BEING EMPTY. The season exists;
@@ -93,7 +96,8 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
         onRetry={state.retry}
       />
     ) : model === null ? (
-      <VNextLeaguesNotice heading="Games" title="Loading this season’s games" body="One moment." />
+      <VNextNotice
+        destination="games" heading="Games" title="Loading this season’s games" body="One moment." />
     ) : (
       <VNextGames
         model={model}

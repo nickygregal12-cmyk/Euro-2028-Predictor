@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextChampionshipScreen } from '../vnext/integration/championship/VNextChampionshipScreen'
 import { VNextChampionshipLoading } from '../vnext/integration/championship/VNextChampionshipStates'
-import { VNextLeaguesNotice } from '../vnext/integration/leagues/VNextLeaguesStates'
+import { VNextNotice } from '../vnext/integration/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
@@ -162,7 +162,8 @@ function PreviewBody() {
         {forced === 'loading' ? (
           <VNextChampionshipLoading />
         ) : forced === 'failed' ? (
-          <VNextLeaguesNotice
+          <VNextNotice
+            destination="games"
             heading="Predictor Championship"
             title="We could not load this Championship"
             body="The draw is there — we just could not read it just now. Trying again usually works."

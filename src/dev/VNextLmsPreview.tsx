@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextLmsScreen } from '../vnext/integration/lms/VNextLmsScreen'
 import { VNextLmsLoading } from '../vnext/integration/lms/VNextLmsStates'
-import { VNextLeaguesNotice } from '../vnext/integration/leagues/VNextLeaguesStates'
+import { VNextNotice } from '../vnext/integration/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
@@ -129,7 +129,8 @@ function PreviewBody() {
         {forced === 'loading' ? (
           <VNextLmsLoading />
         ) : forced === 'failed' ? (
-          <VNextLeaguesNotice
+          <VNextNotice
+            destination="games"
             heading="Last Man Standing"
             title="We could not load this round"
             body="The round is there — we just could not read it just now. Trying again usually works."

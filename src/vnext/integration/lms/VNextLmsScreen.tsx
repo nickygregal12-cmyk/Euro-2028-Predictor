@@ -3,7 +3,7 @@ import { VNextLms, type LmsIntent } from '../../lms/VNextLms'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextLeaguesNotice } from '../leagues/VNextLeaguesStates'
+import { VNextNotice } from '../states/VNextStates'
 import { buildLmsModel } from './buildLmsModel'
 import { useVNextLmsSource, type VNextLmsSourceInput } from './useVNextLmsSource'
 import { VNextLmsLoading } from './VNextLmsStates'
@@ -82,19 +82,22 @@ export function VNextLmsScreen(props: VNextLmsScreenProps) {
     state.status === 'loading' ? (
       <VNextLmsLoading />
     ) : state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Last Man Standing"
         title="Sign in to play"
         body="A round belongs to a competition season, and a season is reached from your account."
       />
     ) : state.status === 'noCompetition' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Last Man Standing"
         title="No competition to show"
         body="Pick a competition and season, and this is where its round will be."
       />
     ) : state.status === 'failed' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Last Man Standing"
         title="We could not load this round"
         // IT DOES NOT SAY THE GAME IS OVER. The round exists; the read did not
