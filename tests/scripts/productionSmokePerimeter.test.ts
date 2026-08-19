@@ -78,6 +78,9 @@ describe('the authenticated half never leaks the session', () => {
         (match) => match[2],
       )
       for (const line of logs) {
+        // The leak shape is interpolating the cookie-bearing variable itself.
+        // Deciding a message on whether a cookie EXISTS is fine and is done
+        // deliberately, so this pins the value rather than the word.
         expect(line, `${name} logs a cookie value`).not.toMatch(
           /\$\{\s*(site)?[Cc]ookie\s*\}/,
         )
@@ -88,6 +91,8 @@ describe('the authenticated half never leaks the session', () => {
 
 describe('identity is asserted, not just reachability', () => {
   it('refuses a 200 that is really the login page', () => {
+    // Netlify can serve the password form with a 200. A poll that trusted the
+    // status alone would report that as a successful release.
     expect(waiter).toContain('response was not JSON, which is what a login page looks like from here')
   })
 
@@ -113,6 +118,11 @@ describe('the checked routes are derived, not restated', () => {
   })
 
   it('keeps no hand-written route list beside it', () => {
+    // The hand-written list drifted: it demanded 200 for `/predict`, a retired
+    // tournament path that netlify.toml deliberately 404s. A second copy is the
+    // defect, so a reintroduced literal list is what this catches.
+    // Anchored to a top-level declaration: the accumulator inside the
+    // derivation is indented and is not what this is about.
     expect(smoke).not.toMatch(/^const routes = \[/m)
   })
 
@@ -122,6 +132,8 @@ describe('the checked routes are derived, not restated', () => {
   })
 
   it('substitutes parameters and wildcards rather than skipping those rules', () => {
+    // Dropping them would quietly stop checking every competition and league
+    // route, which is most of the application's surface.
     expect(smoke).toContain('.replace(/:[A-Za-z]+/g, ROUTE_PROBE)')
     expect(smoke).toContain('.replace(/\\/\\*$/, `/${ROUTE_PROBE}`)')
   })
@@ -155,23 +167,33 @@ describe('each production origin must serve its own product', () => {
   })
 
   it('leaves no hard-coded brand at the assertion site', () => {
+    // A literal there is what made the check origin-blind: whichever origin the
+    // workflow pointed at was measured against the other site's brand.
     expect(smoke).not.toMatch(
       /assertIncludes\(\s*root\.body,\s*'(Football Prediction Hub|Euro 2028 Predictor)'/,
     )
   })
 
   it('still refuses to accept either brand on one origin', () => {
+    // The original hazard: a disjunction that lets a Hub build pass on the Euro
+    // domain, or the reverse. Neither brand may appear as an alternative.
     expect(smoke).not.toMatch(/includes\('Football Prediction Hub'\)\s*\|\|/)
     expect(smoke).not.toMatch(/includes\('Euro 2028 Predictor'\)\s*\|\|/)
     expect(smoke).not.toMatch(/!root\.body\.includes\('Euro 2028 Predictor'\)/)
   })
 
   it('fails when an origin serves the other deployment as well as its own', () => {
+    // The assertion that catches an unset VITE_SITE_VARIANT, which fails closed
+    // to the Hub and would otherwise publish the weekly platform on the Euro
+    // domain with every other check in this smoke still passing.
     expect(smoke).toContain('served ${JSON.stringify(other)} as well as')
     expect(smoke).toContain('an unset value fails closed to the Hub.')
   })
 
   it('draws the perimeter from the same map, so a brand and an origin cannot disagree', () => {
+    // One list decides both which origins may be smoked and what each must
+    // serve. Two lists could disagree about what "production" means, and the
+    // origin guard is the half that would win silently.
     expect(smoke).toContain('if (!PRODUCTION_SITES.has(origin) && !allowNonProduction)')
     expect(smoke).toContain('EVERY_PRODUCT = [...new Set(PRODUCTION_SITES.values())]')
   })
@@ -181,6 +203,25 @@ describe('each production origin must serve its own product', () => {
   })
 })
 
+/**
+ * THE THREE COPIES, COMPARED AGAINST THE ONE SOURCE.
+ *
+ * The HTTP smoke, the browser spec and the Playwright configuration each carry
+ * the production origins literally, and the browser spec also carries each
+ * site's product name and landing heading. They are literal because Playwright
+ * reads a config and a spec before any bundling — the reason
+ * `playwright.euro.config.ts` gives for restating its own spec list — and
+ * because `production-smoke.mjs` is plain JavaScript that cannot import a
+ * TypeScript module at all.
+ *
+ * That makes drift the hazard, and it is a quiet one: a site added to the smoke
+ * and missed in the config produces "refusing to browser-smoke non-production
+ * origin", which reads as a caller mistake; a renamed product produces a red
+ * production smoke against a correct deploy, which is exactly what happened on
+ * 12 August 2026. So the copies are compared here against
+ * `siteConfiguration()` and the landing models, which are the authorities that
+ * decide what each build actually serves.
+ */
 describe('the smoke copies agree with the site authority', () => {
   const origins = ['https://euro28predictor.com', 'https://predictorhub.netlify.app']
 
@@ -195,6 +236,8 @@ describe('the smoke copies agree with the site authority', () => {
   })
 
   it('pins each origin to the product name its variant actually builds', () => {
+    // Not a second copy of the names: they come from the configuration the
+    // running application reads, so a rename moves both together or fails here.
     const hub = siteConfiguration('hub').brand.productName
     const euro = siteConfiguration('euro').brand.productName
 
@@ -205,11 +248,16 @@ describe('the smoke copies agree with the site authority', () => {
   })
 
   it('maps each origin to the variant that deployment builds', () => {
+    // `docs/ops/netlify-deploy-access.md` records the declarations:
+    // predictorhub is VITE_SITE_VARIANT=hub, euro28predictor is =euro.
     expect(browserSpec).toContain("['https://euro28predictor.com', 'euro']")
     expect(browserSpec).toContain("['https://predictorhub.netlify.app', 'hub']")
   })
 
   it('expects each build own landing heading, from the model that produces it', () => {
+    // The Euro deployment fails closed to the same headline whether contract
+    // 143 answers `hidden` or the read does not answer at all, and asserting
+    // the model's value rather than a transcription is what keeps that true.
     expect(euroLandingPresentation('unknown').headline).toBe(
       euroLandingPresentation('hidden').headline,
     )
@@ -228,6 +276,10 @@ describe('the smoke copies agree with the site authority', () => {
   })
 
   it('dispatches only origins the smoke will accept', () => {
+    // The workflow chooses the origin and the script decides whether to smoke
+    // it. An origin the workflow can select but the script does not know is a
+    // run that dies on "refusing to smoke-test non-production origin" — a
+    // caller error by its wording, a configuration defect in fact.
     const selectable = [...workflow.matchAll(/'(https:\/\/[^']+)'/g)].map((match) => at(match, 1))
     expect(selectable.length, 'the workflow selects no origin at all').toBeGreaterThan(0)
     for (const origin of selectable) {
@@ -235,6 +287,7 @@ describe('the smoke copies agree with the site authority', () => {
         `'${origin}'`,
       )
     }
+    // Both sites, so adding an input option without its origin fails here.
     for (const origin of origins) expect(selectable).toContain(origin)
   })
 })
