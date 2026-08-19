@@ -8,18 +8,6 @@ import {
 } from '../../src/app/site/documentMetadata'
 import { sitePublicMetadata } from '../../src/app/site/sitePublicMetadata'
 
-/**
- * What the two Netlify sites actually ship.
- *
- * This applies the real build transform to the real `index.html` rather than
- * asserting on a fixture, because the failure this guards against is a template
- * edit: someone adds a `<title>` or a canonical tag back into the document by
- * hand, both sites ship it, and the per-variant generator silently stops being
- * the authority. Running `vite build` twice would prove the same thing and take
- * two minutes; `applyDocumentHead` IS the transform the plugin calls, so this
- * proves it in milliseconds.
- */
-
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const EURO_ORIGIN = 'https://euro28predictor.com'
 
@@ -38,7 +26,6 @@ describe('index.html is a template, not a document', () => {
       template.indexOf('<!-- SITE METADATA: generated -->'),
       template.indexOf('<!-- /SITE METADATA -->'),
     )
-    // Only the placeholder title lives inside the block; nothing outside it.
     const outside = template.replace(managed, '')
     expect(outside).not.toContain('<title>')
     expect(outside).not.toContain('rel="canonical"')
@@ -59,12 +46,10 @@ describe('the Hub build', () => {
   const built = builtDocument('hub')
 
   it('is the weekly product', () => {
-    expect(built).toContain('<title>Football Prediction Hub</title>')
+    expect(built).toContain('<title>Predictor Hub</title>')
     expect(built).toContain('Premier League and the Scottish Premiership')
   })
 
-  // `EURO-001`/`EURO-003`: Euro 2028 absent from the weekly platform's public
-  // metadata, and absent from its domain.
   it('mentions Euro 2028 nowhere, and never carries the Euro origin', () => {
     expect(built).not.toContain('euro28predictor.com')
     expect(built.toLowerCase()).not.toContain('euro 2028')
@@ -93,8 +78,8 @@ describe('the Euro build', () => {
   })
 
   it('does not present itself as the weekly platform', () => {
-    expect(built).not.toContain('<title>Football Prediction Hub</title>')
-    expect(built).not.toContain('og:site_name" content="Football Prediction Hub')
+    expect(built).not.toContain('<title>Predictor Hub</title>')
+    expect(built).not.toContain('og:site_name" content="Predictor Hub')
   })
 })
 
@@ -110,12 +95,6 @@ describe('the two builds cannot be confused for one another', () => {
 
 describe('netlify.toml', () => {
   const netlify = readFileSync(resolve(repositoryRoot, 'netlify.toml'), 'utf8')
-
-  /**
-   * A `[build.environment]` value applies to EVERY site using this file, so a
-   * variant declared here would give both deployments the same product. The
-   * variant belongs in each Netlify site's own environment variables.
-   */
   it('declares no site variant or origin, because both sites share the file', () => {
     const environmentBlocks = netlify
       .split('\n')
