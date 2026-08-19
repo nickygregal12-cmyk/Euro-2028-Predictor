@@ -50,10 +50,6 @@ export function JoinLandingPage() {
 
   const authed = Boolean(userId)
 
-  // Storage is an external side effect. Persist the invite only after React has
-  // committed the signed-out landing state, then allow the signup redirect.
-  // Tracking the exact code prevents a route-param change from redirecting
-  // before the new value has replaced the old pending invite.
   useEffect(() => {
     if (loading || authed || !code) return
     setPendingJoin(code)
@@ -62,40 +58,30 @@ export function JoinLandingPage() {
 
   useEffect(() => {
     if (!authed || !code) return
-    // We have arrived signed in — the pending redirect is consumed.
     clearPendingJoin()
     void resolve(code)
   }, [authed, code, resolve])
 
   if (loading) return <AuthSplash />
 
-  // Signed out: wait until the code has been committed to storage before
-  // routing through sign-up, so the auth gate can resume the exact deep link.
   if (!authed) {
     if (code && storedPendingCode !== code) return <AuthSplash />
     return <Navigate to="/auth/signup" replace />
   }
 
   function landOn(joined: InviteJoinResult) {
-    // Where a joined container opens is a rule about this BUILD, not about this
-    // component, so it lives in `joinDestination.ts` and is asserted there. A
-    // private competition has no page of its own on either build, and a league
-    // has one only where the tournament is served — see that file for the
-    // measurement. Sending a player to the private play list is honest; sending
-    // them to a page whose server read refuses their league is not.
     navigate(joinedInviteHref(joined, site.servesEuroTournament), { replace: true })
   }
 
   return (
     <div className={j.page}>
       <div className={j.card}>
-        <p className={j.eyebrow}>Football Prediction Hub</p>
+        <p className={j.eyebrow}>{site.brand.productName}</p>
 
         {(state.status === 'idle' || state.status === 'looking') && <Skeleton lines={4} />}
 
         {state.status === 'notfound' && (
           <>
-            {/* One sentence for unknown, malformed and rotated alike. */}
             <Alert variant="error" title="Invite not found">
               This code doesn’t match anything. Ask your friend for a fresh link.
             </Alert>
@@ -134,11 +120,6 @@ export function JoinLandingPage() {
                 if (joined) landOn(joined)
               })()
             }}
-            // No `onOpen`: contract 159 stopped the resolver returning a
-            // container id, so there is nothing to open BY. A player who is
-            // already in is sent to their private play list, which is where it
-            // is, by the same control that declines.
-
             onDecline={() => navigate(weeklyRoutes.leagues, { replace: true })}
             declineLabel={state.invite.alreadyIn ? 'Go to your private play' : undefined}
           />
