@@ -3,6 +3,11 @@
 **Status:** Stage 7.5 deliverable — an accounting device, not a design.
 **Scope:** every user-facing route registered in `src/App.tsx`, plus the two compatibility redirects and the dev-only harnesses.
 **Does not govern:** any route in production. Nothing here repoints a route, changes a guard or alters Netlify behaviour.
+**Updated 2026-08-19 (Stage 11).** The Last Man Standing row — the row §6 named
+as "the row this matrix exists for" — is BUILT. See [`vnext-lms.md`](vnext-lms.md),
+which is the product authority for it. One row below carries the decision, and
+§10 records what the audit found. **It is a TARGET IA decision and it does not
+repoint a route.**
 **Updated 2026-08-18 (Stage 10).** The player-surface question — what is behind
 the doorway Stage 9 built, and whether a weekly-season head-to-head is possible
 at all — is SETTLED. See [`vnext-player-profiles.md`](vnext-player-profiles.md),
@@ -97,7 +102,7 @@ implied.
 | `/competitions/:c/:s/games` | `CompetitionGamesPage` | The game catalogue and the player's memberships | `get_competition_games` | **`Games` — a first-class permanent destination** | 9+ | **REDESIGN** | **RESOLVED, Stage 7.6: it survives, and it is one of the four.** The only surface where Match Predictor, Last Man Standing and the Predictor Championship are PEERS, which is the thing that stopped LMS being "another little tab". Labelled `Games` and not `Play` — see [`vnext-shell-ia.md`](vnext-shell-ia.md) §3. Stage 7.6 builds no page here beyond a Storybook navigation stub. |
 | `/competitions/:c/:s/games/match-predictor` | `SeasonMatchPredictorRoute` | Predict the matchweek | Contract 113 card, `useSeasonMatchPredictor` | Match Predictor | 7 (done) | **REDESIGN** | Accepted and unchanged by Stage 7.5. Used here as a real arrival test for each concept. |
 | `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. **The identity gap this row used to point at is closed**: contract 191 supplies `playerRef`, `reach` and `playerId`, Stage 9's table links a player where the server allows it, and Stage 10 built what is behind the link. |
-| `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | `lmsRoundModel`, `lmsRefusal`, `lmsStakeModel`, contracts for pick/settlement | Last Man Standing | **10 (to be scheduled)** | **REDESIGN** | §6. The row this matrix exists for. |
+| `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | Contract 116 `get_season_lms_round`, contract 164 `get_season_lms_field`, `save_lms_selection`, `lmsRoundModel` | Last Man Standing | 11 | **REDESIGN** | **Built in Stage 11** as `src/vnext/lms/VNextLms.tsx`. §6 called this "the row this matrix exists for", and the build bore that out: it is the first vNext surface that WRITES, and the first where the page's own heading is a verdict rather than a total. Two reads with two outcomes — the round a player acts on, and the pool they act against — so a field read that fails cannot withhold the pick. **The lock is the SERVER'S**: contract 164's `revealed` is `locks_at <= now()` evaluated by the database, and the instants are only the fallback. See [`vnext-lms.md`](vnext-lms.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-lms` harness until the cutover stage. |
 | `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | **11 (to be scheduled)** | **REDESIGN** | A nested system, not a page — index, instance, table and fixtures. §8. |
 | `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | Contract 191 `get_season_leaderboard`, contract 128 `get_season_league_standings`, contract 150 movement, `get_my_game_leagues` | **Leagues** — one of the four competition-scoped destinations | 9 | **REDESIGN** | **Built in Stage 9** as `src/vnext/leagues/VNextLeagues.tsx`. The merge landed the other way round from the way §2 first read it: this row absorbs `/leagues`, rather than the two merging into something unscoped — because the season table and a private league's table have **two different rank authorities** and neither is a filter of the other. The season table and each private league are SCOPES inside this one surface. See [`vnext-leagues.md`](vnext-leagues.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-leagues` harness until the cutover stage. |
 | `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile`, contract 192 `get_season_rank_history`, contract 192 `get_season_rivalry` | Player profile, reached from Leagues | 10 | **RETAIN + REDESIGN** | **Built in Stage 10** as `src/vnext/player/VNextPlayerProfile.tsx`. The address shape is KEPT and competition-scoped for the reason it always was: points, rank and prediction history are facts about a player IN a season, and flattening to `/profile/:id` would assert a cross-competition identity ADR 0011 refuses at the data layer. **What changed is the shape of what is behind it.** The page is three reads with THREE DIFFERENT permission boundaries, so a player whose profile is refused can still have a plotted season and a head-to-head — see [`vnext-player-profiles.md`](vnext-player-profiles.md) §2. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-player` harness until the cutover stage. |
@@ -276,3 +281,44 @@ adoption pulled forward and out of order — the same reasoning Stage 9 applied 
 
 The rationale for both is in
 [`vnext-player-profiles.md`](vnext-player-profiles.md).
+
+---
+
+## 10. Resolved by Stage 11
+
+The Last Man Standing row is built, and the audit behind it changed two things
+this matrix had recorded.
+
+1. **`/competitions/:c/:s/games/lms` — REDESIGN, built.** The address is
+   unchanged. What Stage 11 settled is that this is a **first-class game**
+   rather than a Match Predictor reskin: no numeric input exists anywhere in the
+   lane, a fixture appears only as the two clubs it offers, and the page's own
+   headline is the player's standing rather than a total.
+
+2. **The row's data authority column was incomplete, and the gap mattered.** It
+   named `lmsRoundModel`, `lmsRefusal` and `lmsStakeModel`. The read that
+   supplies the **pool and the lock** — contract 164 `get_season_lms_field` —
+   was not listed, and I had begun the stage on the assumption it did not exist.
+   Reading the migrations rather than the decoders corrected that. It supplies
+   three things contract 116 does not carry at all:
+
+   - `field.remaining` — "83 still in", the atmosphere of a survival round;
+   - `rules.draws_rule` — the stored rule `lmsRoundModel.ts` says it "cannot
+     see". This lane may now STATE it and still never apply it;
+   - `round.revealed` — `locks_at <= now()` evaluated **by the database**, which
+     turns the lock from a presentation judgement into the server's answer.
+
+3. **`/competitions/:c/:s/games/championship/*` is next**, and its stage number
+   in §2 reads "11 (to be scheduled)" against a programme in which it is
+   **Stage 12**. That is a stale number rather than a decision, and Stage 12
+   will correct the row when it builds it.
+
+Three things Stage 11 deliberately did **not** take on, each because no
+authority supplies them: a per-round survival history (contract 116 returns one
+round by design, and one call per round is an N+1 this lane refuses), a private
+LMS league container (no contract scopes an LMS field to one), and entry into
+the game (Stage 11 does not own registration, so the surface offers no join
+button — a control there would be a door onto a corridor that has not been
+built).
+
+The rationale for all of it is in [`vnext-lms.md`](vnext-lms.md).

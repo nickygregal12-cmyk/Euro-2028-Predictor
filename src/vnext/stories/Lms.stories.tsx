@@ -377,3 +377,10 @@ export const FrameNotEnteredPhone: Story = frame('notEntered', 'phone-375')
 export const FrameNotOfferedPhone: Story = frame('notOffered', 'phone-375')
 export const FrameUnavailablePhone: Story = frame('unavailable', 'phone-375')
 export const FrameEmptyRoundPhone: Story = frame('emptyRound', 'phone-375')
+
+/* The field, at the width where three counts and a rules line must all fit. */
+export const FrameFieldRevealedPhone: Story = frame('fieldRevealed', 'phone-375')
+export const FrameFieldWithLivesPhone: Story = frame('fieldWithLives', 'phone-375')
+export const FrameFieldNearlyOverPhone: Story = frame('fieldNearlyOver', 'phone-375')
+export const FrameFieldUnavailablePhone: Story = frame('fieldUnavailable', 'phone-375')
+export const FrameRoundUnavailableFieldOkPhone: Story = frame('roundUnavailableFieldOk', 'phone-375')

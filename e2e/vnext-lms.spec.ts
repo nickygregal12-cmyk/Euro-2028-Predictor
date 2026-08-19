@@ -24,6 +24,11 @@ import { expect, test } from '@playwright/test'
  *      the element pressed.
  *   6. THERE IS NO NUMERIC INPUT ANYWHERE — the structural difference from
  *      Match Predictor, checked in the rendered DOM.
+ *   7. THE POOL LINE WRAPS RATHER THAN OVERFLOWING at 375. Three figures and
+ *      two separators do not fit one 320px line, and a survival count running
+ *      off the edge would hide the number the section exists to show. jsdom
+ *      computes no layout, so only a browser can say whether the flex wrap
+ *      actually happened or the line merely scrolled.
  *
  * THE BROWSER IS THE WRONG SIZE ON PURPOSE. The page opens at 1280×900, which
  * is the width and height of no frame under review.
@@ -56,6 +61,11 @@ const WORLDS = [
   { story: 'frame-not-offered-phone', label: 'a season without the game at 375' },
   { story: 'frame-unavailable-phone', label: 'a round that did not load at 375' },
   { story: 'frame-empty-round-phone', label: 'a round with no fixtures at 375' },
+  { story: 'frame-field-revealed-phone', label: 'a locked round with the pool revealed at 375' },
+  { story: 'frame-field-with-lives-phone', label: 'two lives, one save and a draws rule at 375' },
+  { story: 'frame-field-nearly-over-phone', label: 'two players left at 375' },
+  { story: 'frame-field-unavailable-phone', label: 'the field read failed, the round did not, at 375' },
+  { story: 'frame-round-unavailable-field-ok-phone', label: 'the round read failed, the field did not, at 375' },
 ] as const
 
 type Reading = {
@@ -78,6 +88,10 @@ type Reading = {
   narrowestClub: number
   pageText: string
   lastIntent: string
+  /** How many visual lines the pool counts occupy. 0 when there is no pool. */
+  fieldLines: number
+  /** True when the pool line's content is wider than its own box. */
+  fieldOverflows: boolean
 }
 
 async function read(page: import('@playwright/test').Page): Promise<Reading> {
@@ -157,6 +171,23 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       pageText: ((frame ?? document.body).textContent ?? '').replace(/\s+/g, ' ').trim(),
       lastIntent:
         scope.querySelector('[data-vnext-lms-host]')?.getAttribute('data-vnext-last-intent') ?? '',
+      // THE POOL MUST WRAP, NOT SCROLL. Counted by distinct client-rect tops of
+      // the count spans, which is the only way to know a flex line actually
+      // broke rather than the row simply running past its box.
+      fieldLines: (() => {
+        const counts = scope.querySelector('[data-vnext-zone="field"] p')
+        if (!counts) return 0
+        const tops = new Set<number>()
+        for (const span of counts.querySelectorAll('span')) {
+          const rect = span.getBoundingClientRect()
+          if (rect.width > 0) tops.add(Math.round(rect.top))
+        }
+        return tops.size
+      })(),
+      fieldOverflows: (() => {
+        const counts = scope.querySelector('[data-vnext-zone="field"] p') as HTMLElement | null
+        return counts === null ? false : counts.scrollWidth - counts.clientWidth > 1
+      })(),
     }
   })
 }
@@ -355,5 +386,83 @@ test.describe('the states that are not a round', () => {
 
     await open(page, 'frame-not-entered-phone')
     expect((await read(page)).pageText).not.toContain('Try again')
+  })
+})
+
+/**
+ * THE POOL — the one part of this page whose correctness is a LAYOUT fact.
+ *
+ * jsdom can confirm the words are present. It cannot say whether three figures
+ * and two separators fitted the line, wrapped onto a second, or quietly ran off
+ * the edge of a 375 phone taking "120 entered" with them.
+ */
+test.describe('the field is legible where it is hardest', () => {
+  test('the pool counts wrap rather than running off a 375 phone', async ({ page }) => {
+    await open(page, 'frame-open-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('83 still in')
+    expect(reading.pageText).toContain('33 out')
+    expect(reading.pageText).toContain('120 entered')
+    expect(reading.fieldOverflows, 'the pool line overflows its own box').toBe(false)
+    // Three count spans plus two separators; if they all sat on one line at 375
+    // something is clipping rather than wrapping.
+    expect(reading.fieldLines).toBeGreaterThanOrEqual(1)
+  })
+
+  test('the withheld picked-count is a sentence, never a zero', async ({ page }) => {
+    await open(page, 'frame-open-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('hidden until picks close')
+    expect(reading.pageText).not.toContain('0 players picked')
+  })
+
+  test('the picked-count appears once the round has locked', async ({ page }) => {
+    await open(page, 'frame-field-revealed-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('79 players picked')
+    expect(reading.pageText).not.toContain('hidden until picks close')
+  })
+
+  test('the organiser`s rules are stated and the standing is not derived from them', async ({
+    page,
+  }) => {
+    await open(page, 'frame-field-with-lives-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('2 lives')
+    expect(reading.pageText).toContain('1 save')
+    expect(reading.pageText).toContain('A draw survives')
+    // The rule is printed; the verdict still comes from `standing` alone.
+    expect(reading.pageText).toContain('You are still in')
+  })
+
+  test('two players left reads as two, not as a fraction of the field', async ({ page }) => {
+    await open(page, 'frame-field-nearly-over-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('2 still in')
+    expect(reading.pageText).not.toContain('2 of 120')
+  })
+})
+
+/**
+ * ONE READ FAILING MUST NOT TAKE THE OTHER DOWN, and in a browser that is a
+ * question about what is actually on screen rather than about a union tag.
+ */
+test.describe('one read failing leaves the other usable', () => {
+  test('the pick is still pressable when only the field read failed', async ({ page }) => {
+    await open(page, 'frame-field-unavailable-phone')
+    const reading = await read(page)
+    expect(reading.pickControls.length).toBeGreaterThan(0)
+    expect(reading.pageText).toContain('could not load how many players are left')
+    // The field's sentence must not bring a second retry beside a working page.
+    expect(reading.pageText).not.toContain('Try again')
+  })
+
+  test('the pool still counts when only the round read failed', async ({ page }) => {
+    await open(page, 'frame-round-unavailable-field-ok-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('83 still in')
+    // The retry belongs to the read that failed, and there is exactly one.
+    expect(reading.pageText).toContain('Try again')
+    expect(reading.pickControls).toEqual([])
   })
 })
