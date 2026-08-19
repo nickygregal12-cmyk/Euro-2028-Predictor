@@ -1,0 +1,49 @@
+name: PR 920 quality-status fix
+
+on:
+  push:
+    branches:
+      - agent/same-season-player-profile
+
+permissions:
+  contents: write
+
+jobs:
+  patch-current-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 1
+      - name: Record Contract 206 in the live quality authority
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/quality/current-status.md')
+          text = path.read_text()
+          old = "| Repository contract | **205** — 205 canonical migrations through `20260819100000_cup_bracket_seed_initial_phase.sql`,"
+          new = "| Repository contract | **206** — 206 canonical migrations through `20260819110000_same_season_player_profile.sql`, which closes `PROF-001` by allowing a league-season entrant to open another entrant's bounded competitive profile through the season-scoped `entries.id` player reference already issued by standings, without exposing the target's authentication UUID; the legacy UUID profile path and private-league-only pinned-rival and Prediction DNA boundaries remain unchanged, and prediction reveal still follows each matchweek's own lock. Additive, and applied to no hosted environment. Contract 205 is 205 canonical migrations through `20260819100000_cup_bracket_seed_initial_phase.sql`,"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one Contract-205 repository row prefix, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- docs/quality/current-status.md
+      - name: Commit the authority correction
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/quality/current-status.md
+          git commit -m 'docs: record contract 206 in quality status'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
