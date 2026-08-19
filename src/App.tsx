@@ -4,10 +4,6 @@ import { ThemeProvider } from './app/providers/ThemeProvider'
 import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { isNextUi } from './app/routeFlags'
-import {
-  VNextMatchCentreDestination,
-  VNextMatchesDestination,
-} from './app/vnext/VNextMatchesDestination'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
@@ -53,6 +49,29 @@ const CompetitionDashboardPage = lazy(() =>
 const CompetitionGamesPage = lazy(() =>
   import('./features/hub/CompetitionDashboardPage').then((m) => ({
     default: m.CompetitionGamesPage,
+  })),
+)
+/* LAZY, LIKE EVERY OTHER HEAVY ROUTE ELEMENT HERE, AND MEASURED RATHER THAN
+   ASSUMED. Imported statically these cost the ENTRY chunk 240.19 kB → 428.67 kB
+   raw (75.81 → 133.27 kB gzip) — a 78% increase paid by every visitor, for a
+   surface that cannot render while `footballHubMatches` is off, because
+   `isNextUi(...)` is a function call and no bundler can shake it out.
+
+   Lazy, the vNext surfaces get their own 187.32 kB chunk (57.71 kB gzip),
+   fetched only when the flag is on AND the route is visited. The entry still
+   moves 240.19 → 262.33 kB raw (75.81 → 82.56 kB gzip), and that residue is
+   NOT vNext code — the entry contains no vNext module. It is Rollup
+   rebalancing: a second consumer for shared modules split `lib`,
+   `seasonClubForm` and `shellRoutes` into their own chunks and hoisted common
+   code up. Worth stating rather than rounding to zero. */
+const VNextMatchesDestination = lazy(() =>
+  import('./app/vnext/VNextMatchesDestination').then((m) => ({
+    default: m.VNextMatchesDestination,
+  })),
+)
+const VNextMatchCentreDestination = lazy(() =>
+  import('./app/vnext/VNextMatchesDestination').then((m) => ({
+    default: m.VNextMatchCentreDestination,
   })),
 )
 const SeasonMatchPredictorRoute = lazy(() =>

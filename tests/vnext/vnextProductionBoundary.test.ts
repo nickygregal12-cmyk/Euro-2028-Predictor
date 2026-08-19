@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { fromRoot, reachableFrom } from '../app/importGraph'
@@ -37,9 +37,38 @@ function filesUnder(directory: string): string[] {
 }
 
 const vnextFiles = filesUnder(resolve(repositoryRoot, 'src/vnext'))
+
+/**
+ * THE ONE SANCTIONED SEAM, AND WHY IT IS NOT A HOLE IN THIS RULE.
+ *
+ * Stage 14 is the cutover: the stage whose entire job is to give vNext surfaces
+ * a production behaviour. So from Stage 14 onward "vNext is unreachable from
+ * production" cannot be literally true, and a guard that has to be DELETED the
+ * first time the programme reaches its own goal was never protecting anything.
+ *
+ * It is narrowed instead, exactly as this suite was already narrowed once —
+ * Stage 6 turned a blanket ban into a directional rule when `integration/`
+ * legitimately needed the application. Same move, same reason.
+ *
+ * READ THE FAILURE MODE THIS SUITE NAMES, because the narrowing is built to
+ * keep catching it: *"one import added from a production surface because a
+ * component looked reusable … while looking like an ordinary refactor."* That
+ * is an ACCIDENT, made anywhere, by anyone, in a diff that reads as tidying.
+ * A cutover is its opposite — deliberate, contracted, flag-gated, and argued
+ * for in `docs/product/vnext-route-migration-matrix.md` §13.
+ *
+ * So `src/app/vnext/` is stopped at, exactly as `src/dev/` is, and the original
+ * assertion below is then made VERBATIM against the rest of the tree. Every
+ * accidental import from anywhere else still fails it. What the seam buys is
+ * one door; the cases after it prove that door is the only one, that it is
+ * lazy, and that it is flag-gated.
+ */
+const CUTOVER_SEAM = '/src/app/vnext/'
 const productionGraph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
-  stopAt: ['/src/dev/'],
+  stopAt: ['/src/dev/', CUTOVER_SEAM],
 })
+const seamFiles = filesUnder(resolve(repositoryRoot, 'src/app/vnext'))
+const appTsx = readFileSync(resolve(repositoryRoot, 'src/App.tsx'), 'utf8')
 
 /**
  * THE ONE PLACE vNEXT IS ALLOWED TO KNOW THE APPLICATION EXISTS.
@@ -80,6 +109,62 @@ describe('the vNext workshop', () => {
         'surface has imported one, which ships an unapproved design language ' +
         'and its tokens in the production bundle',
     ).toEqual([])
+  })
+
+  it('reaches vNext through the cutover seam and nowhere else', () => {
+    // The seam is a door, not a hole, and this is what makes the difference
+    // checkable. Walk production WITHOUT stopping at `src/app/vnext/`, then
+    // subtract everything the seam legitimately pulls in: whatever is left is
+    // a second route into vNext, which is the accident this suite exists for.
+    const withSeam = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
+      stopAt: ['/src/dev/'],
+    })
+    const throughSeam = new Set<string>()
+    for (const file of seamFiles) {
+      for (const reached of reachableFrom(file)) throughSeam.add(reached)
+    }
+    const otherDoors = vnextFiles.filter(
+      (file) => withSeam.has(file) && !throughSeam.has(file),
+    )
+    expect(
+      otherDoors.map(fromRoot),
+      'these vNext modules reach production by some path other than the ' +
+        'flag-gated cutover adapters in src/app/vnext/ — that is the ' +
+        '"looked reusable" import this suite exists to catch',
+    ).toEqual([])
+  })
+
+  it('enters the seam lazily, so vNext cannot join the entry chunk', () => {
+    // MEASURED, NOT ASSUMED. Imported statically the Stage 14 adapters moved
+    // the entry chunk 240.19 kB → 428.67 kB raw (75.81 → 133.27 kB gzip): a
+    // 78% increase paid by every visitor, for a surface that cannot render
+    // while the flag is off. `isNextUi(...)` is a function call, so no bundler
+    // can shake it out. Lazy is therefore load-bearing rather than tidy, and a
+    // future static import would silently undo it.
+    expect(seamFiles.length).toBeGreaterThan(0)
+    const statically = new RegExp(`^import\\s[^;]*from '\\.${CUTOVER_SEAM.replace('/src', '')}`, 'm')
+    expect(
+      statically.test(appTsx),
+      'src/App.tsx must reach src/app/vnext/ only through lazy(() => import(...))',
+    ).toBe(false)
+    expect(appTsx).toMatch(/lazy\(\(\) =>\s*import\('\.\/app\/vnext\//)
+  })
+
+  it('gates every seam route behind a rollback flag', () => {
+    // A cutover adapter that is mounted unconditionally is a cutover, not a
+    // switch — and the release gate this programme works to is that a flag
+    // restores the prior journey with no data rollback. Every element the seam
+    // exports must therefore appear opposite a legacy element under a flag.
+    const exported = seamFiles
+      .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(/export function (VNext\w+)/g)])
+      .map((match) => match[1])
+    expect(exported.length).toBeGreaterThan(0)
+    for (const element of exported) {
+      const mounted = appTsx.includes(`<${element} />`)
+      if (!mounted) continue
+      const guarded = new RegExp(`isNextUi\\('[a-zA-Z]+'\\)[\\s\\S]{0,200}<${element} />`)
+      expect(guarded.test(appTsx), `${element} is routed without a rollback flag`).toBe(true)
+    }
   })
 
   it('keeps a presentation lane that never reaches the application', () => {

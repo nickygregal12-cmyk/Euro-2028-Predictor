@@ -480,6 +480,104 @@ confirm both routes actually consult the flag and that both legacy elements are
 still routed, because a route that forgot to ask renders legacy for ever and is
 indistinguishable from a correctly-off flag.
 
+### The production boundary, narrowed rather than flipped
+
+`tests/vnext/vnextProductionBoundary.test.ts` asserted that **no** vNext module
+is reachable from `src/main.tsx`. Wiring a vNext surface to a real route breaks
+that by construction, and this programme's rule is explicit: *never flip a guard
+merely to keep the loop moving.* So it was not flipped.
+
+Read what the guard says it protects against: *"one import added from a
+production surface because a component looked reusable … while looking like an
+ordinary refactor."* **That is an accident.** A cutover is its opposite —
+deliberate, contracted, flag-gated, and argued for here. The guard was written
+for a lane that had no sanctioned door, and Stage 14 is the stage that builds
+one. A guard that must be DELETED the first time the programme reaches its own
+stated goal was never protecting anything.
+
+It is narrowed, exactly as this suite was narrowed once before: Stage 6 turned a
+blanket ban into a directional rule when `integration/` legitimately needed the
+application. `src/app/vnext/` is now stopped at, precisely as `src/dev/` already
+was, and **the original assertion is then made verbatim against the whole rest
+of the tree** — any accidental import from anywhere else still fails it.
+
+Three new cases prove the door is a door and not a hole:
+
+1. **vNext is reachable through the seam and nowhere else.** Production is
+   walked *without* stopping at the seam, then everything the seam legitimately
+   pulls in is subtracted; anything left is a second route in, and fails.
+2. **The seam is entered lazily.** A static import would put vNext in the entry
+   chunk — measured below — so `lazy()` is load-bearing rather than tidy.
+3. **Every seam route is gated by a rollback flag.** An adapter mounted
+   unconditionally is a cutover, not a switch.
+
+All three are mutation-proved: an accidental `VNextRoot` import from
+`src/app/Providers.tsx` fails (1), converting the lazy wrapper to a static
+import fails (2), and dropping the flag from a route fails (3).
+
+### The kickoff formatter, which the cutover exposed
+
+Wiring the routes also tripped `tests/app/kickoffFormattingAuthority.test.ts`,
+and this one was not a boundary question — it was a **defect that had been true
+and invisible for six stages**.
+
+`src/vnext/foundations/format.ts` built its own `Intl.DateTimeFormat` pinned to
+`en-GB` / `Europe/London`. That is right for a workshop: a story must render
+17:30 on a laptop and 17:30 in CI or a screenshot comparison is worthless. The
+file said so itself, and said what it cost — *"the pinned zone is a workshop
+decision, not a product one; real integration will use the user's zone."*
+
+Stage 14 is real integration. Shipped as it stood, **Matches — a surface that is
+almost entirely kickoff times — would have told a player in Dublin, New York or
+Sydney what time the match starts in London.** The guard caught it the instant a
+vNext module entered the shipping graph, which is the only moment it could have.
+
+The owner's 10 August 2026 direction, which that guard enforces, asks for two
+things: kickoffs in the viewer's own device zone, **and one shared helper**
+across Matches, the Match Predictor, LMS, the Championship and the Match Centre.
+vNext's formatter was a sixth local copy of exactly the kind that once left five
+implementations disagreeing about whose zone a kickoff belongs to. So it is not
+an `ALLOWED` entry, and it was not given one.
+
+**vNext now delegates.** `formatTime`, `formatDayKey`, `formatDayHeading` and
+the weekday inside `formatKickoffLabel` call `src/shared/time/kickoff.ts`. The
+options already matched where the authority had an equivalent — `hourCycle: 'h23'`
+is vNext's `hour12: false`, and the day key was `en-CA` in both — so the visible
+output is unchanged and all 2015 vNext tests pass untouched. The two forms the
+authority lacked, an abbreviated weekday and a short-weekday day heading, were
+added **to the authority** rather than kept locally.
+
+Which zone is still vNext's choice, and it defaults to the workshop pin:
+`configureVNextTimeZone` is called only from `src/app/vnext/`, so stories and
+jsdom tests stay deterministic and production gets `viewerTimeZone()`.
+
+### Bundle cost, measured
+
+The predicate asks that bundle regression be *acceptable*, which means someone
+has to have looked. The first draft of this change imported the destinations
+statically and was not acceptable:
+
+| build | entry chunk | gzip |
+| --- | ---: | ---: |
+| `main` | 240.19 kB | 75.81 kB |
+| static import | 428.67 kB | 133.27 kB |
+| **lazy (shipped)** | **262.33 kB** | **82.56 kB** |
+
+A **78% entry increase**, paid by every visitor, for a surface that cannot
+render while the flag is off — `isNextUi(...)` is a function call, so no bundler
+can shake it out. Every other heavy route element in `App.tsx` is already
+`lazy()`; these two were not, and that was the whole defect.
+
+Lazily loaded, the vNext surfaces get their own 187.32 kB chunk (57.71 kB gzip),
+fetched only when the flag is on and the route is visited.
+
+**The residual +22.14 kB raw / +6.75 kB gzip on the entry is not vNext code.**
+The entry chunk contains no vNext module — checked. It is Rollup rebalancing:
+adding a second consumer for shared modules split `lib`, `seasonClubForm` and
+`shellRoutes` out as their own chunks and hoisted common code upward. Recorded
+here rather than rounded to zero, because the next destination to be wired will
+move this number again and the baseline needs to be a real one.
+
 ### What this does not yet do
 
 The predicate is not met and nothing here claims it is. Still outstanding for
@@ -491,4 +589,3 @@ performance and accessibility regression; monitoring and rollback readiness; and
 which only becomes exercisable once the shell is the production frame.
 
 *Fate counts are unchanged.* Stage 14 moves no row — it implements them.
-

@@ -1,10 +1,12 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { configureVNextTimeZone } from '../../vnext/foundations/format'
 import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
 import type { ShellIntent } from '../../vnext/models/shell'
+import { viewerTimeZone } from '../../shared/time/kickoff'
 import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyRoutes'
 
 /**
@@ -45,6 +47,7 @@ import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyR
  * not because the read needs them.
  */
 export function VNextMatchesDestination() {
+  useViewerFormatting()
   const { competitionSlug, seasonSlug } = useParams()
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
@@ -79,6 +82,7 @@ export function VNextMatchesDestination() {
  * could resolve without one.
  */
 export function VNextMatchCentreDestination() {
+  useViewerFormatting()
   const { competitionSlug, seasonSlug, fixtureId } = useParams()
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
@@ -101,6 +105,31 @@ export function VNextMatchCentreDestination() {
       />
     </VNextRoot>
   )
+}
+
+/**
+ * POINT vNEXT'S FORMATTERS AT THE PLAYER, WHICH IS A CUTOVER OBLIGATION.
+ *
+ * `src/vnext/foundations/format.ts` pins `en-GB`/`Europe/London` so that
+ * stories and jsdom tests are deterministic, and said in its own docblock that
+ * "real integration will use the user's zone". This is real integration. Left
+ * pinned, Matches — a surface that is almost entirely kickoff times — would
+ * tell a player in Dublin, New York or Sydney what time the match starts in
+ * London.
+ *
+ * `tests/app/kickoffFormattingAuthority.test.ts` is what surfaced it, and only
+ * once the route wiring put a vNext module in the shipping graph. It had been
+ * true and invisible for six stages.
+ *
+ * Set in an effect rather than during render, because it is a side effect on
+ * module state and a render must stay pure — and set on every mount, because a
+ * viewer who changes their system zone gets it applied the next time they open
+ * a vNext surface rather than on a full reload.
+ */
+function useViewerFormatting() {
+  useEffect(() => {
+    configureVNextTimeZone(viewerTimeZone())
+  }, [])
 }
 
 /**
