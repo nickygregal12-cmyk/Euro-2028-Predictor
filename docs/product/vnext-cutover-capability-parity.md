@@ -213,6 +213,20 @@ are now under `resolvedDebt`:
 205 and each is a separately authorised rollout. A cutover cannot claim the
 Championship is truth-complete until the environment it runs against has them.
 
+### A hosted sequencing constraint, recorded because it outranks readiness
+
+Contracts 207 and 208 are committed and applied nowhere. **Contract 206 must
+reach Development and Production first**, and the reason is a deployment one
+rather than a dependency between the migrations: advancing the repository
+contract moves the Netlify deployment declaration with it, so landing 207/208
+before 206 is reconciled forces another hosted cycle before production builds
+can resume.
+
+That is the owner's sequencing decision, and it is why the pull request carrying
+this batch is deliberately held. **Nothing in this page is a reason to bring it
+forward.** Everything below is about product readiness; the order in which
+contracts reach an environment is a separate authority and wins.
+
 ### The honest verdict
 
 **CUTOVER BLOCKED ONLY BY EXPLICIT PRODUCTION AUTHORITY — and by the cutover
