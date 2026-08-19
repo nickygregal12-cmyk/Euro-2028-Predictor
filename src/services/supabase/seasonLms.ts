@@ -3,6 +3,23 @@ import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRoundModel'
 
 /**
+ * RE-EXPORTED SO CALLERS OF THIS READ CAN NAME ITS ANSWER.
+ *
+ * The shapes live in `lmsRoundModel.ts` beside the presentation that first
+ * needed them, and moving them would churn a working surface for no gain. But
+ * a consumer of THIS gateway should be able to depend on the gateway rather
+ * than reach past it into a feature directory — which is the import direction
+ * the vNext lane is built on, and the reason this line exists.
+ */
+export type {
+  EntryOutcome,
+  LmsClub,
+  LmsRoundPage,
+  PickOutcome,
+  SeasonLmsGateway,
+} from '../../features/season/lmsRoundModel'
+
+/**
  * The real season Last Man Standing gateway, over contract 116's bounded read
  * and the shared `save_lms_selection` write.
  *

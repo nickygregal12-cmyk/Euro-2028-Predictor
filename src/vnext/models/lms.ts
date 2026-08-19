@@ -42,15 +42,39 @@
  * caller may not open has no id to open it with; here, a club the player may
  * not pick has no id to pick it with.
  *
- * ============================ THE DEADLINE IS THE SERVER'S ================
+ * ============================ THE DEADLINE, AND WHAT IS ACTUALLY
+ * AUTHORITATIVE ABOUT IT ===================================================
  *
- * `locksAt` is contract 116's `locks_at`, carried as the instant the server
- * stated. NOTHING IN THIS LANE COMPARES IT TO A CLOCK to decide whether the
- * round is open — `LmsRoundState` is the server's answer, and the instant is
- * carried beside it so a surface can say WHEN rather than infer WHETHER. It is
- * Stage 8's rule (never infer a live minute from `Date.now() - kickoff`)
- * applied to a deadline, and the predicate names it: "lock/deadline states come
- * from authority, not browser inference".
+ * BE PRECISE HERE, BECAUSE THE PREDICATE IS. Contract 116 returns `opens_at`
+ * and `locks_at` and **no state field and no server clock** — I checked the
+ * migration rather than assuming, and an earlier draft of this header claimed
+ * `LmsRoundState` was "the server's answer", which was simply untrue.
+ *
+ * What IS the server's:
+ *
+ *   • the INSTANTS. `opensAt` and `locksAt` are stored values, not guesses;
+ *   • WHICH round is current. `season_lms_current_window` picks the first
+ *     window whose `locks_at` is still in the future, falling back to the last
+ *     window when every one has locked — so a finished competition still
+ *     renders its ending rather than nothing;
+ *   • **THE WRITE.** `save_lms_selection` refuses a pick after the lock. That
+ *     is the authority that decides whether a pick counts, and it is not this
+ *     lane's to duplicate or to pre-empt.
+ *
+ * What is a PRESENTATION JUDGEMENT: turning those instants into `LmsRoundState`
+ * requires comparing them to an instant, and `buildLmsModel` takes that instant
+ * as an argument rather than reading a clock — the same shape
+ * `presentLmsRound(page, now)` already uses in production.
+ *
+ * THAT IS NOT THE THING STAGE 8 FORBADE. Stage 8's rule bans INVENTING A VALUE
+ * the server never stated — a live minute computed from `Date.now() - kickoff`.
+ * Reading a stated boundary to decide which control to offer is a different
+ * act: no figure is fabricated, and the server still adjudicates the write.
+ *
+ * The consequence this lane must therefore honour: **a pick offered near the
+ * boundary can still be refused**, and that refusal is a state a surface has to
+ * show rather than a failure to swallow. A clock that is slightly wrong must
+ * cost a player an explanation, never a silent no-op.
  *
  * ============================ WHAT IT IS NOT ==============================
  *
@@ -156,14 +180,19 @@ export type LmsFixtureChoice = {
    ========================================================================== */
 
 /**
- * WHETHER THIS ROUND CAN BE PICKED IN, AS THE SERVER SEES IT.
+ * WHETHER THIS ROUND CAN BE PICKED IN.
  *
- * A state rather than a computed comparison. `locksAt` travels beside it so a
- * surface can print the deadline; it must never be used to decide the state.
+ * DERIVED ONCE, IN THE MAPPER, from the server's instants against a supplied
+ * instant — never in a component, and never from a clock a component read
+ * itself. `locksAt` travels beside it so a surface prints the deadline from the
+ * same value the state was decided by, rather than from a second reading.
+ *
+ * `settled` is not a time at all: it is the round having produced a result.
  */
 export type LmsRoundState = 'open' | 'not-open' | 'locked' | 'settled'
 
 export type LmsRound = {
+  /** Contract 116's window id. Addresses the write; never shown. */
   readonly windowId: string
   readonly sequence: number
   readonly label: string
@@ -198,8 +227,20 @@ export type LmsPick = {
  */
 export type LmsBody =
   | { readonly kind: 'round'; readonly round: LmsRound; readonly pick: LmsPick | null }
+  /** Entered, but nothing is running. The state between rounds; not a failure. */
   | { readonly kind: 'no-round' }
+  /** The player has not joined. This game is opt-in — an ordinary answer. */
   | { readonly kind: 'not-entered' }
+  /**
+   * The competition season does not run Last Man Standing at all.
+   *
+   * Contract 116's `available: false`, and a different sentence from every
+   * other case here: it is about the COMPETITION rather than the player or the
+   * read. Folding it into "no round" would tell somebody the game is between
+   * rounds when it was never offered.
+   */
+  | { readonly kind: 'not-offered' }
+  /** The read did not answer. About the READ — the only case with a retry. */
   | { readonly kind: 'unavailable' }
 
 export type LmsPageModel = {
@@ -228,7 +269,7 @@ export type LmsPageModel = {
  * Whether this round can be picked in at all.
  *
  * ONE PREDICATE, so no component decides for itself and none reaches for a
- * clock. The whole answer is the server's `state`.
+ * clock. The state was settled once in the mapper; this only reads it.
  */
 export function lmsRoundIsOpen(round: LmsRound): boolean {
   return round.state === 'open'
