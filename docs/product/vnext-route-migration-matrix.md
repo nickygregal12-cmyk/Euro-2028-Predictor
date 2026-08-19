@@ -3,6 +3,12 @@
 **Status:** Stage 7.5 deliverable — an accounting device, not a design.
 **Scope:** every user-facing route registered in `src/App.tsx`, plus the two compatibility redirects and the dev-only harnesses.
 **Does not govern:** any route in production. Nothing here repoints a route, changes a guard or alters Netlify behaviour.
+**Updated 2026-08-19 (Stage 12).** The Championship row is being built, and its
+stale stage number — "11 (to be scheduled)", which §10 flagged — is corrected to
+12. See [`vnext-championship.md`](vnext-championship.md), which is the product
+authority for it. §11 records what the audit found, including one predicate item
+the current backend cannot satisfy. **It is a TARGET IA decision and it does not
+repoint a route.**
 **Updated 2026-08-19 (Stage 11).** The Last Man Standing row — the row §6 named
 as "the row this matrix exists for" — is BUILT. See [`vnext-lms.md`](vnext-lms.md),
 which is the product authority for it. One row below carries the decision, and
@@ -103,7 +109,7 @@ implied.
 | `/competitions/:c/:s/games/match-predictor` | `SeasonMatchPredictorRoute` | Predict the matchweek | Contract 113 card, `useSeasonMatchPredictor` | Match Predictor | 7 (done) | **REDESIGN** | Accepted and unchanged by Stage 7.5. Used here as a real arrival test for each concept. |
 | `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. **The identity gap this row used to point at is closed**: contract 191 supplies `playerRef`, `reach` and `playerId`, Stage 9's table links a player where the server allows it, and Stage 10 built what is behind the link. |
 | `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | Contract 116 `get_season_lms_round`, contract 164 `get_season_lms_field`, `save_lms_selection`, `lmsRoundModel` | Last Man Standing | 11 | **REDESIGN** | **Built in Stage 11** as `src/vnext/lms/VNextLms.tsx`. §6 called this "the row this matrix exists for", and the build bore that out: it is the first vNext surface that WRITES, and the first where the page's own heading is a verdict rather than a total. Two reads with two outcomes — the round a player acts on, and the pool they act against — so a field read that fails cannot withhold the pick. **The lock is the SERVER'S**: contract 164's `revealed` is `locks_at <= now()` evaluated by the database, and the instants are only the fallback. See [`vnext-lms.md`](vnext-lms.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-lms` harness until the cutover stage. |
-| `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | **11 (to be scheduled)** | **REDESIGN** | A nested system, not a page — index, instance, table and fixtures. §8. |
+| `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | Contract 193 `get_season_cup_bracket`, contract 133 `get_season_cup_player_view`, contract 167 group stage, `submit_cup_penalty_number`, `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | 12 | **REDESIGN** | **Stage number corrected from "11 (to be scheduled)", which §10 flagged as stale — this is Stage 12 in the programme this matrix serves.** In progress as `src/vnext/championship/VNextChampionship.tsx`. **Four addresses become two**, and from the data rather than from a preference: `SeasonChampionshipPages.tsx` branches on a `mode` after loading a SINGLE player view and says so about its own neighbour table — *"IT USES WHAT THE PAGE ALREADY LOADED … this costs no request"* — so three addresses over one read is a navigation habit, not a data boundary. That is the opposite of Stage 9's leagues, where two tables had two different rank authorities and had to stay apart. The index keeps its address because `get_my_season_cup_instances` is genuinely its own read. See [`vnext-championship.md`](vnext-championship.md). *Technical consequence: none.* The legacy routes are untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-championship` harness until the cutover stage. |
 | `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | Contract 191 `get_season_leaderboard`, contract 128 `get_season_league_standings`, contract 150 movement, `get_my_game_leagues` | **Leagues** — one of the four competition-scoped destinations | 9 | **REDESIGN** | **Built in Stage 9** as `src/vnext/leagues/VNextLeagues.tsx`. The merge landed the other way round from the way §2 first read it: this row absorbs `/leagues`, rather than the two merging into something unscoped — because the season table and a private league's table have **two different rank authorities** and neither is a filter of the other. The season table and each private league are SCOPES inside this one surface. See [`vnext-leagues.md`](vnext-leagues.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-leagues` harness until the cutover stage. |
 | `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile`, contract 192 `get_season_rank_history`, contract 192 `get_season_rivalry` | Player profile, reached from Leagues | 10 | **RETAIN + REDESIGN** | **Built in Stage 10** as `src/vnext/player/VNextPlayerProfile.tsx`. The address shape is KEPT and competition-scoped for the reason it always was: points, rank and prediction history are facts about a player IN a season, and flattening to `/profile/:id` would assert a cross-competition identity ADR 0011 refuses at the data layer. **What changed is the shape of what is behind it.** The page is three reads with THREE DIFFERENT permission boundaries, so a player whose profile is refused can still have a plotted season and a head-to-head — see [`vnext-player-profiles.md`](vnext-player-profiles.md) §2. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-player` harness until the cutover stage. |
 | `/competitions/:c/:s/tv` | `SeasonTvModeRoute` | A matchday screen on a wall | `tvModeModel` (`INNOV-006`) | Unchanged, outside the shell | later | **RETAIN** | Already outside the signed-in frame by design. **Stage 8 audited it and decided its relationship rather than rebuilding it:** SHARED DATA CONTRACT eventually (it should consume `MatchState` rather than grow a second one), SEPARATE PRESENTATION MODE, and the redesign DEFERRED to a stage of its own. It must stay shell-less — a room display with a bottom navigation bar is the wrong product. See [`vnext-matches.md`](vnext-matches.md) §12. **Nothing about it changed in Stage 8.** |
@@ -322,3 +328,41 @@ button — a control there would be a door onto a corridor that has not been
 built).
 
 The rationale for all of it is in [`vnext-lms.md`](vnext-lms.md).
+
+---
+
+## 11. Resolved by Stage 12
+
+1. **`/competitions/:c/:s/games/championship/*` — REDESIGN, and FOUR ADDRESSES
+   BECOME TWO.** The decision came from the reads: production's three instance
+   modes are three arrangements of one payload, so they are sections of one
+   phase-aware page; the index has its own read and keeps its address. The row's
+   stale stage number is corrected in the same edit.
+
+2. **The row's data-authority column was incomplete in a way that mattered.** It
+   named `championshipStandingModel` and `cupPhaseModel` — two presentation
+   models — and no contract at all. The canonical player-facing read, contract
+   193 `get_season_cup_bracket`, **had never been called by any application
+   code**, and would have gone on not being called if the matrix had been
+   trusted. It is now named, along with the group-stage reads and the Penalty
+   Number write.
+
+3. **Two defects were found in that read by being its first consumer**, and they
+   are recorded rather than absorbed:
+
+   - it **raised an exception** for every entrant in a Championship that had
+     split, because its seed lookup did not name a membership phase. Fixed as
+     **contract 205**, reproduced on a scratch PostgreSQL 16 first;
+   - it uses `stage <> 'group'` in four places where its sibling contracts use
+     the narrow form and contract 194 *asserts against* the broad one, so a
+     split competition would be offered a league fixture as a knockout tie. The
+     decoder filters it, and says in the code that it is a workaround.
+
+4. **One predicate item the current backend cannot satisfy.** No season
+   Championship read returns a canonical `eliminated` fact. The surface states
+   what an authority states and stays silent otherwise — it never derives
+   elimination from a lost tie — and that truthful asymmetry is recorded as a
+   **backend delta owed before Stage 12 is complete**, not as a reason to
+   reinterpret the requirement. See [`vnext-championship.md`](vnext-championship.md) §6.
+
+The rationale for all of it is in [`vnext-championship.md`](vnext-championship.md).
