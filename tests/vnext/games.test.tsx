@@ -194,3 +194,41 @@ describe('the states that are not a catalogue', () => {
     expect(zone('inactive')?.textContent).toMatch(/not running/i)
   })
 })
+
+/**
+ * THE RULES, BESIDE THE GAMES THEY GOVERN.
+ *
+ * The route matrix ABSORBS `/more/scoring` — "rules belong beside the game they
+ * govern", "reached from a game, not from a directory" — so the hub carries
+ * them, and it opens on the game the player is most likely asking about.
+ */
+describe('the scoring rules are on the page, not in a directory', () => {
+  it('renders them beside the catalogue', () => {
+    renderGames(gamesScenarios.allOpen)
+    expect(zone('rules')).not.toBeNull()
+  })
+
+  it('opens on the game the player is actually in', () => {
+    renderGames(gamesScenarios.playingOne)
+    // `playingOne` has the player in Last Man Standing.
+    expect(zone('rules')?.getAttribute('data-game')).toBe('last-man-standing')
+  })
+
+  it('opens on the catalogue’s first game where the player is in none', () => {
+    renderGames(gamesScenarios.allOpen)
+    // Never a hard-coded favourite: that would be this page deciding which game
+    // matters, on a page built to stop exactly that.
+    expect(zone('rules')?.getAttribute('data-game')).toBe('match-predictor')
+  })
+
+  it('lets a player read another game’s rules without leaving', () => {
+    renderGames(gamesScenarios.playingOne)
+    fireEvent.click(screen.getByRole('radio', { name: 'Championship' }))
+    expect(zone('rules')?.getAttribute('data-game')).toBe('championship')
+  })
+
+  it('shows no rules where there is no catalogue to explain', () => {
+    renderGames(gamesScenarios.notAMember)
+    expect(zone('rules')).toBeNull()
+  })
+})

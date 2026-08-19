@@ -3,6 +3,7 @@ import type { GameEntry, GamesPageModel, GamesPanel } from '../models/games'
 import { offersEntry, partitionByPlaying } from '../models/games'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
+import { VNextGameRules, type RulesGame } from '../rules/VNextGameRules'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import text from '../foundations/typography.module.css'
 import styles from './games.module.css'
@@ -79,6 +80,14 @@ export function VNextGames({
             onIntent={onIntent}
             joiningGameId={joiningGameId}
           />
+
+          {/* THE RULES, BESIDE THE GAMES THEY GOVERN. The route matrix absorbs
+              `/more/scoring` for exactly this: rules are reached from a game,
+              not from a directory. It opens on the game the player is already
+              in, so the common question needs no press. */}
+          {model.games.kind === 'games' ? (
+            <VNextGameRules game={rulesGameFor(model.games.entries)} />
+          ) : null}
         </motion.div>
       </div>
     </VNextShell>
@@ -169,6 +178,31 @@ function Games({
       )}
     </div>
   )
+}
+
+/**
+ * WHICH GAME'S RULES TO OPEN ON.
+ *
+ * The first game the player is actually IN, because that is the one they are
+ * most likely to be asking about. Where they are in none, the catalogue's own
+ * first game — never a hard-coded favourite, which would be this file deciding
+ * which game matters on a page built to stop exactly that.
+ */
+function rulesGameFor(entries: readonly GameEntry[]): RulesGame | undefined {
+  const playing = entries.find((entry) => entry.standing.kind === 'playing')
+  const chosen = playing ?? entries[0]
+  switch (chosen?.gameKey) {
+    case 'last_man_standing':
+      return 'last-man-standing'
+    case 'predictor_cup':
+      return 'championship'
+    case 'main_predictor':
+      return 'match-predictor'
+    default:
+      // A game this block has no rules for — the page opens on its default
+      // rather than claiming the catalogue's game is one of the three.
+      return undefined
+  }
 }
 
 /** What the page says about where a player stands. One sentence, never a colour alone. */

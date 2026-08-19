@@ -5,6 +5,7 @@ import {
   VNextNotFound,
   VNextNotice,
 } from '../integration/states/VNextStates'
+import { VNextGameRules } from '../rules/VNextGameRules'
 import { VNextShellProvider } from '../app/VNextShellProvider'
 import { WorkshopCanvas } from '../workshop/WorkshopCanvas'
 import { shellScenarios } from '../fixtures'
@@ -139,3 +140,41 @@ export const FrameLoadingPhone: Story = board(
   '',
   ['phone-375'],
 )
+
+/* ========================================================================== *
+ * E. HOW THE GAMES SCORE
+ *
+ * The route matrix ABSORBS `/more/scoring`: rules belong beside the game they
+ * govern, reached from a game rather than from a directory. So this is a block,
+ * not a page — the Games hub places it.
+ *
+ * A REVIEWER SHOULD CHECK: is one game at a time better than the production
+ * page's three stacked lists? Scoring is opened with a specific question, and
+ * an answer somebody has to scroll past two other games to reach is an answer
+ * they take on trust. Comparison is still one press.
+ * ========================================================================== */
+
+export const RulesMatchPredictor: Story = board(
+  <VNextGameRules game="match-predictor" />,
+  'Every number is imported from the scoring authority — the domain module forbids recreating the rules in presentation code to explain them.',
+)
+
+export const RulesLastManStanding: Story = board(
+  <VNextGameRules game="last-man-standing" />,
+  'Lives, saves and the draws rule are the ORGANISER’s stored settings, so where the caller does not hold them the block says where they are set rather than printing a default that would be wrong for most competitions.',
+)
+
+export const RulesLastManStandingWithSettings: Story = board(
+  <VNextGameRules
+    game="last-man-standing"
+    lmsRules={{ lives: 2, saves: 1, drawsRule: 'A draw counts as a win for this competition.' }}
+  />,
+  'The same, with the organiser’s settings supplied — including their own wording for draws, stated and never applied to an outcome.',
+)
+
+export const RulesChampionship: Story = board(
+  <VNextGameRules game="championship" />,
+  'No tie-break list: how a drawn tie is settled belongs to the settlement authority, in the words the competition uses for it.',
+)
+
+export const FrameRulesPhone: Story = board(<VNextGameRules />, '', ['phone-375'])
