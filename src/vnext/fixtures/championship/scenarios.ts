@@ -128,7 +128,10 @@ function world(overrides: Partial<ChampionshipPageModel> = {}): ChampionshipPage
   return {
     generatedAt: CHAMPIONSHIP_NOW,
     context: competition,
-    standing: { kind: 'stated', outcome: 'qualified' },
+    standing: { kind: 'stated', outcome: 'active' },
+    // Contract 193's `you_qualified`. Held apart from the standing because it
+    // never retracts: the default reader is BOTH still in and once seeded.
+    seededIntoKnockout: true,
     bracket: { kind: 'bracket', seats: [...semiFinals, finalSeat], champion: null },
     // THE COMMON CASE IS A KNOCKOUT THAT CAME FROM GROUPS, so the default world
     // carries both. A Championship that never had a group stage is its own
@@ -147,12 +150,20 @@ function world(overrides: Partial<ChampionshipPageModel> = {}): ChampionshipPage
 const drawnBracket = world()
 
 /**
- * THE BINDING WORLD FOR THIS STAGE. The reader LOST their only tie and has no
- * later one — the inference a derivation makes, and the one refused. `standing`
- * is `not-stated`, because no season read supplies elimination.
+ * THE WORLD THAT PROVED THE DERIVATION IS REFUSED, and still does.
+ *
+ * The reader LOST their only tie and has no later one — the inference a
+ * derivation makes, and the one refused. `standing` is `not-stated`, which
+ * since contract 207 means the READ CARRIED NO OUTCOME: a database behind the
+ * contract, which every hosted environment is until it is rolled forward.
+ *
+ * The page must still say nothing here. A surface that filled the gap from the
+ * bracket the moment the column went missing would have moved the derivation
+ * rather than removed it.
  */
 const lostButNotStated = world({
   standing: { kind: 'not-stated' },
+  seededIntoKnockout: true,
   // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
   // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
   penaltyNumber: { kind: 'not-required' },
@@ -175,6 +186,23 @@ const lostButNotStated = world({
     ],
     champion: null,
   },
+})
+
+/**
+ * ELIMINATION AS A STATED FACT, in the world where it could never be inferred.
+ *
+ * The group phase, no knockout, no settled tie, no seed — nothing on this page
+ * shaped like a defeat. The competition has nonetheless recorded the reader as
+ * eliminated, and that sentence can only have come from
+ * `bonus_competition_entrants.outcome`. This is the world contract 207 exists
+ * for: every inference the old surface could have made returns "still in".
+ */
+const eliminatedInGroups = world({
+  standing: { kind: 'stated', outcome: 'eliminated' },
+  seededIntoKnockout: false,
+  penaltyNumber: { kind: 'not-required' },
+  bracket: { kind: 'not-drawn' },
+  groups: { kind: 'groups', yourOrdinal: 1, groups: [groupA, groupB] },
 })
 
 /** A walkover, which carries a decision and NO score and NO reason. */
@@ -258,9 +286,17 @@ const youAreChampion = world({
   },
 })
 
-/** Somebody else won it, and the reader is told who without being told they lost. */
+/**
+ * Somebody else won it, and the read STATES that the reader is out.
+ *
+ * Before contract 207 this world's whole point was that the page could not say
+ * so. It can now, and the difference is where the sentence comes from: the
+ * settlement authority's own column, not the observation that the final has a
+ * different name on it.
+ */
 const someoneElseWon = world({
-  standing: { kind: 'stated', outcome: 'qualified' },
+  standing: { kind: 'stated', outcome: 'eliminated' },
+  seededIntoKnockout: true,
   // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
   // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
   penaltyNumber: { kind: 'not-required' },
@@ -480,6 +516,7 @@ const groupsUnavailable = world({ groups: { kind: 'unavailable' } })
 export const championshipScenarios = {
   drawnBracket,
   lostButNotStated,
+  eliminatedInGroups,
   walkover,
   everyDecision,
   youAreChampion,
@@ -527,7 +564,9 @@ export const championshipScenarioPremises: Readonly<
   groupsUnavailable:
     'Contract 193 answered and contract 167 did not. ONE read failed, and the bracket beside it is still shown \u2014 which is what independent panel outcomes are for.',
   lostButNotStated:
-    'THE binding world. The reader LOST their only tie and has no later one — and the page says NOTHING about elimination, because no season read supplies it. A derivation would print "you are out" here, and would be wrong whenever the competition has not finished eliminating.',
+    'The reader LOST their only tie and has no later one, and the read carried no outcome \u2014 a database behind contract 207. The page still says NOTHING about elimination. A derivation would print "you are out" here, and would be wrong whenever the competition has not finished eliminating.',
+  eliminatedInGroups:
+    'THE binding world since contract 207. Nothing on the page is shaped like a defeat \u2014 group phase, no knockout, no settled tie, no seed \u2014 and the reader is nonetheless told they are out, because the settlement authority says so. Every inference the surface could have made returns "still in" here.',
   walkover:
     'A walkover and an organiser-awarded walkover, side by side. Each is a word with NO score and NO reason: whether the opponent withdrew or was disqualified is not in this read.',
   everyDecision:
@@ -535,7 +574,7 @@ export const championshipScenarioPremises: Readonly<
   youAreChampion:
     'The reader won it. The only world where the champion is them, and the standing says so because the server named them.',
   someoneElseWon:
-    'Somebody else won it. The reader is told who, and is NOT told they were eliminated — the read never said so.',
+    'Somebody else won it, and the read states that the reader is out. The sentence comes from the settlement column, not from the observation that the final carries a different name.',
   halfFilledSeat:
     'One side of a seat is empty. It reads "To be decided" rather than as a person called "Player", which is what contract 193 literally returns — and it is not called a bye, because the read does not say why the seat is empty.',
   playoffRound:

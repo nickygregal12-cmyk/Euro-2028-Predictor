@@ -6,31 +6,84 @@
   "lastMergedStage": "13",
   "productionCutoverAuthorized": false,
   "completionPredicate": "stages_8_through_15_merged_both_products_live_and_final_programme_audit_green",
-  "carriedDebt": [
+  "carriedDebt": [],
+  "completionContract": "docs/product/vnext-final-programme-completion.md",
+  "stages": [
+    {
+      "id": "8",
+      "name": "Matches + Match Centre",
+      "status": "merged",
+      "pr": 855,
+      "contract": "current-stage-8-authority"
+    },
+    {
+      "id": "9",
+      "name": "Leagues",
+      "status": "merged",
+      "pr": 873,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-9--leagues"
+    },
+    {
+      "id": "10",
+      "name": "Player Profiles + H2H",
+      "status": "merged",
+      "pr": 891,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-10--player-profiles--h2h"
+    },
+    {
+      "id": "11",
+      "name": "Last Man Standing",
+      "status": "merged",
+      "pr": 903,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-11--last-man-standing"
+    },
+    {
+      "id": "12",
+      "name": "Predictor Championship",
+      "status": "merged",
+      "pr": 913,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-12--predictor-championship"
+    },
+    {
+      "id": "13",
+      "name": "Supporting Surfaces",
+      "status": "merged",
+      "pr": 923,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-13--supporting-surfaces"
+    },
+    {
+      "id": "14",
+      "name": "Football Hub Production Cutover",
+      "status": "in_progress",
+      "pr": null,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-14--football-hub-production-cutover"
+    },
+    {
+      "id": "15",
+      "name": "Euro 2028 vNext Adoption",
+      "status": "not_started",
+      "pr": null,
+      "contract": "docs/product/vnext-stage-contracts.md#stage-15--euro-2028-vnext-adoption"
+    }
+  ],
+  "resolvedDebt": [
     {
       "owedBy": "12",
       "kind": "backend_read_delta",
-      "authority": "docs/product/vnext-championship.md#6-the-elimination-gap--a-recorded-backend-debt-not-a-satisfied-predicate",
-      "summary": "Stage 12's minimum completion predicate requires eliminated/champion/no-action-required states to be complete. No season Championship read the surface can call returns bonus_competition_entrants.outcome, so the page states what an authority states and stays silent otherwise rather than deriving elimination. Stage 12 was advanced past on explicit user authority with this debt carried, NOT because the predicate was met.",
-      "resolvedWhen": "a season-scoped read exposes a canonical elimination fact and the Championship surface renders it"
+      "authority": "docs/product/vnext-championship.md#6-the-elimination-gap--closed-by-contract-208",
+      "summary": "No season Championship read returned bonus_competition_entrants.outcome, so the surface could name a champion and never an eliminated player, and stated nothing rather than deriving elimination.",
+      "resolvedBy": "supabase/migrations/20260819130000_cup_bracket_outcome_and_knockout_stage.sql",
+      "resolvedEvidence": "get_season_cup_bracket returns your_outcome, the caller's own only; supabase/tests/253_cup_bracket_outcome_and_knockout_stage.sql; tests/database-parity/cupBracketOutcomeAndStageParity.test.ts; the mapper's three former fallbacks removed and the eliminatedInGroups world added.",
+      "hostedRolloutRequired": true
     },
     {
       "owedBy": "12",
       "kind": "backend_read_defect",
       "authority": "docs/product/vnext-championship.md#contract-167-is-the-initial-group-stage-and-that-is-a-scope-limit",
-      "summary": "get_season_cup_phase (contract 120) selects the caller's membership with no phase_kind filter, no order by and no limit. bonus_cup_members is keyed (competition_id, user_id, phase_kind) under contract 102, so a split entrant holds two rows and a plain PL/pgSQL SELECT INTO takes one silently — proved on PostgreSQL 16 to return the PRE-SPLIT group. Contract 205's defect in a quieter form. Called in production at src/services/supabase/seasonCup.ts:88, so it is not confined to the vNext lane. Blocks consuming contract 133 for the split case.",
-      "resolvedWhen": "contract 120's membership lookup is pinned to a determinate row, with a regression test proving a both-memberships entrant resolves to the split group"
+      "summary": "get_season_cup_phase (contract 120) selected the caller's membership with no phase_kind filter, no order by and no limit, so a split entrant holding two rows was silently answered about their PRE-SPLIT group. Called in production at src/services/supabase/seasonCup.ts.",
+      "resolvedBy": "supabase/migrations/20260819120000_cup_phase_determinate_membership.sql",
+      "resolvedEvidence": "the lookup names the caller's current phase, so the primary key identifies one row; supabase/tests/252_cup_phase_determinate_membership.sql proves a both-memberships entrant resolves to the split group under both a sequential and an index plan; tests/database-parity/cupPhaseDeterminateMembershipParity.test.ts.",
+      "hostedRolloutRequired": true
     }
-  ],
-  "completionContract": "docs/product/vnext-final-programme-completion.md",
-  "stages": [
-    { "id": "8", "name": "Matches + Match Centre", "status": "merged", "pr": 855, "contract": "current-stage-8-authority" },
-    { "id": "9", "name": "Leagues", "status": "merged", "pr": 873, "contract": "docs/product/vnext-stage-contracts.md#stage-9--leagues" },
-    { "id": "10", "name": "Player Profiles + H2H", "status": "merged", "pr": 891, "contract": "docs/product/vnext-stage-contracts.md#stage-10--player-profiles--h2h" },
-    { "id": "11", "name": "Last Man Standing", "status": "merged", "pr": 903, "contract": "docs/product/vnext-stage-contracts.md#stage-11--last-man-standing" },
-    { "id": "12", "name": "Predictor Championship", "status": "merged", "pr": 913, "contract": "docs/product/vnext-stage-contracts.md#stage-12--predictor-championship" },
-    { "id": "13", "name": "Supporting Surfaces", "status": "merged", "pr": 923, "contract": "docs/product/vnext-stage-contracts.md#stage-13--supporting-surfaces" },
-    { "id": "14", "name": "Football Hub Production Cutover", "status": "in_progress", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-14--football-hub-production-cutover" },
-    { "id": "15", "name": "Euro 2028 vNext Adoption", "status": "not_started", "pr": null, "contract": "docs/product/vnext-stage-contracts.md#stage-15--euro-2028-vnext-adoption" }
   ]
 }

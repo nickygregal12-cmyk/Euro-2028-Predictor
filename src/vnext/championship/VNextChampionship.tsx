@@ -3,6 +3,7 @@ import type {
   BracketPanel,
   BracketSeat,
   BracketSide,
+  ChampionshipOutcome,
   ChampionshipPageModel,
   ChampionshipStanding,
   TieDecision,
@@ -107,7 +108,7 @@ export function VNextChampionship({
       }
     >
       <div className={styles.page}>
-        <Standing standing={model.standing} />
+        <Standing standing={model.standing} seededIntoKnockout={model.seededIntoKnockout} />
 
         <PenaltyNumber
           panel={model.penaltyNumber}
@@ -127,43 +128,62 @@ export function VNextChampionship({
 }
 
 /**
- * WHERE THE PLAYER STANDS — WHERE AN AUTHORITY SAID SO.
+ * WHERE THE PLAYER STANDS — THE COMPETITION'S OWN VERDICT.
  *
- * `not-stated` RENDERS NOTHING AT ALL, and that is the deliverable rather than
- * an omission. No season Championship read supplies elimination, so a banner
- * here could only be a guess — and it is the guess a reader would most readily
- * believe, because it would sit exactly where a real verdict goes. Silence is
- * the truthful output, and the gap is recorded rather than papered over.
+ * Contract 207 put `bonus_competition_entrants.outcome` on the read, so this is
+ * a sentence per stored value and no inference at all. For four stages there
+ * was no such value and this block rendered nothing; `not-stated` STILL renders
+ * nothing, and now means the database is behind contract 207 rather than that
+ * the fact exists nowhere.
+ *
+ * `survived` HAS COPY EVEN THOUGH THE CHAMPIONSHIP DOES NOT WRITE IT. The
+ * column is shared with Last Man Standing, and the constraint — not this page's
+ * expectations — decides what can arrive. A record keyed on four of five values
+ * throws on the fifth, which is a crash where a sentence belongs.
  */
-const STANDING_COPY: Record<'active' | 'qualified' | 'eliminated' | 'champion', string> = {
+const STANDING_COPY: Record<ChampionshipOutcome, string> = {
   active: 'You are still in.',
-  // A FACT ABOUT THE DRAW, PHRASED AS ONE. `you_qualified` is
-  // `exists(member.seed is not null)` — permanently true from the moment a seed
-  // is dealt, and it never becomes false when the player is knocked out. "You
-  // qualified for the knockout" sits in the standing slot and reads as a
-  // CURRENT status, so a player eliminated in round one saw it above the very
-  // seat recording their defeat. Naming the draw is the honest version: it says
-  // the thing the field actually knows and claims nothing about survival, which
-  // no season read supplies.
-  qualified: 'You were seeded into the knockout draw.',
+  qualified: 'You have qualified.',
+  survived: 'You are still in.',
   eliminated: 'You have been eliminated.',
   champion: 'You won the Championship.',
 }
 
-function Standing({ standing }: { readonly standing: ChampionshipStanding }) {
-  if (standing.kind !== 'stated') return null
+function Standing({
+  standing,
+  seededIntoKnockout,
+}: {
+  readonly standing: ChampionshipStanding
+  readonly seededIntoKnockout: boolean
+}) {
+  if (standing.kind !== 'stated' && !seededIntoKnockout) return null
   return (
-    <p
-      className={`${text.title} ${styles.standing}`}
-      data-vnext-zone="standing"
-      data-standing={standing.outcome}
-    >
-      {/* A WORD, NOT A COLOUR. §31. */}
-      {STANDING_COPY[standing.outcome]}
-      {standing.outcome === 'champion' ? (
-        <span className={styles.trophy} aria-hidden="true"> 🏆</span>
+    <div className={styles.standingBlock} data-vnext-zone="standing">
+      {standing.kind === 'stated' ? (
+        <p
+          className={`${text.title} ${styles.standing}`}
+          data-standing={standing.outcome}
+        >
+          {/* A WORD, NOT A COLOUR. §31. */}
+          {STANDING_COPY[standing.outcome]}
+          {standing.outcome === 'champion' ? (
+            <span className={styles.trophy} aria-hidden="true"> 🏆</span>
+          ) : null}
+        </p>
       ) : null}
-    </p>
+      {/* THE DRAW FACT, BENEATH THE VERDICT AND NEVER INSTEAD OF IT.
+          `you_qualified` is `exists(member.seed is not null)`: permanently true
+          from the moment a seed is dealt, and it never becomes false when the
+          player is knocked out. Rendered in the verdict slot it read as a
+          CURRENT status, so a player eliminated in round one saw it above the
+          very seat recording their defeat. It is true and it is not a standing,
+          so it is said quietly and in the past tense. */}
+      {seededIntoKnockout ? (
+        <p className={`${text.micro} ${styles.standingNote}`} data-vnext-zone="seeded">
+          You were seeded into the knockout draw.
+        </p>
+      ) : null}
+    </div>
   )
 }
 
