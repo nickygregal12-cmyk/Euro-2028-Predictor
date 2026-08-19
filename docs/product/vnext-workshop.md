@@ -157,8 +157,14 @@ fixtures; none of them invents a rule.
 
 Home settled the questions about Home. These are still open:
 
-- Whether a light theme is in scope for the alpha. **Deferred** — vNext is dark
-  and the direction works dark.
+- Whether a light theme is in scope for the alpha. **ANSWERED 19 August 2026 —
+  yes, and it is not optional.** vNext stays dark by default because the product
+  is aiming at a broadcast-feeling football game, but the live application has
+  persisted a user theme choice since long before this lane existed, and Stage
+  14 makes vNext that application; shipping dark-only would have removed a
+  setting from every player who had chosen it. The light ramp is designed rather
+  than inverted and every pairing in both themes is measured by
+  `tests/vnext/vnextTokenContrast.test.ts`. See `DEC-016`.
 - Time zone handling. The workshop pins Europe/London for determinism; the real
   product must use the user's zone.
 - Whether score changes should be announced to assistive technology while a

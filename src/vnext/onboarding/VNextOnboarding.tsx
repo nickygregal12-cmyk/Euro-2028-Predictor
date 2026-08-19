@@ -7,6 +7,7 @@ import type {
   OnboardingPanel,
   OnboardingView,
 } from '../models/onboarding'
+import { VNextCheckIcon } from '../foundations/VNextIcon'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { VNextNotice } from '../states/VNextStates'
@@ -279,9 +280,7 @@ function FollowChoice({
         <span className={`${text.caption} ${styles.meta}`}>{offer.seasonLabel}</span>
         <span className={`${text.caption} ${styles.meta}`}>{offer.summary}</span>
       </span>
-      <span aria-hidden="true" className={styles.tick}>
-        {offer.followed ? '✓' : ''}
-      </span>
+      <span className={styles.tick}>{offer.followed ? <VNextCheckIcon /> : null}</span>
     </label>
   )
 }
@@ -382,8 +381,8 @@ function GameGroup({
                   <span className={`${text.caption} ${styles.meta}`}>{game.description}</span>
                   <span className={`${text.caption} ${styles.meta}`}>{game.cadence}</span>
                 </span>
-                <span aria-hidden="true" className={styles.tick}>
-                  {game.chosen ? '✓' : ''}
+                <span className={styles.tick}>
+                  {game.chosen ? <VNextCheckIcon /> : null}
                 </span>
               </label>
             )}

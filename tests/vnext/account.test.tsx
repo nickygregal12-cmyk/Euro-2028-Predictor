@@ -12,6 +12,7 @@ function renderAccount(
     onRetry?: () => void
     refreshing?: boolean
     onIntent?: (intent: { kind: string }) => void
+    theme?: 'system' | 'dark' | 'light'
   } = {},
 ) {
   return render(
@@ -267,5 +268,34 @@ describe('signing out', () => {
     renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
     const page = screen.getByRole('main').textContent ?? ''
     expect(page).not.toMatch(/change email|reminder emails|settings/i)
+  })
+})
+
+describe('appearance', () => {
+  it('offers all three answers, with the current one marked', () => {
+    renderAccount(accountScenarios.ordinary, { onIntent: vi.fn(), theme: 'light' })
+    const chosen = screen
+      .getAllByRole('radio')
+      .filter((node) => (node as HTMLInputElement).checked)
+    expect(chosen).toHaveLength(1)
+    expect(chosen[0]).toHaveAccessibleName('Light')
+    expect(screen.getAllByRole('radio')).toHaveLength(3)
+  })
+
+  it('offers "match my device" as a real answer, not the absence of one', () => {
+    // A toggle can hold two answers and would drop this one — which is the
+    // answer a player has before they ever open this page.
+    renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
+    const chosen = screen
+      .getAllByRole('radio')
+      .filter((node) => (node as HTMLInputElement).checked)
+    expect(chosen[0]).toHaveAccessibleName('Match my device')
+  })
+
+  it('asks the host to perform the choice rather than persisting it here', () => {
+    const onIntent = vi.fn()
+    renderAccount(accountScenarios.ordinary, { onIntent })
+    fireEvent.click(screen.getByRole('radio', { name: 'Light' }))
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'set-theme', theme: 'light' })
   })
 })

@@ -13,10 +13,23 @@
  * Resist growing it speculatively — the concept PRs will show which values are
  * real.
  *
- * DARK ONLY, FOR NOW. vNext starts dark because the product it is aiming at is
- * a broadcast-feeling football game. A light theme is a real question and is
- * listed as unresolved in docs/product/vnext-workshop.md rather than being
- * half-answered here.
+ * TWO THEMES. vNext is dark BY DEFAULT, because the product it aims at is a
+ * broadcast-feeling football game — but a light theme is not optional, and
+ * `DEC-016` recorded why: production has persisted a user theme choice since
+ * long before this lane existed, and a cutover that dropped it would take a
+ * setting away from every player who had chosen it.
+ *
+ * THE LIGHT RAMP IS DESIGNED, NOT INVERTED, which is the condition `DEC-016`
+ * itself attached to building it — "an inverted dark ramp is not a measured
+ * light ramp". The two ramps move in opposite directions: in dark, a raised
+ * card is LIGHTER than the page; in light, the page is tinted and a raised card
+ * is WHITE. Inverting the dark values would have produced grey cards on a white
+ * page, which reads as disabled rather than raised.
+ *
+ * AND EVERY PAIRING IS MEASURED. `tests/vnext/vnextTokenContrast.test.ts` pins
+ * the full text-on-surface matrix for BOTH themes, so a token edit shows its
+ * consequences across every surface at once. That test is what closes `UX-006`,
+ * which recorded that this palette was the one nobody measured.
  *
  * FONT WEIGHTS. Only the weights the repository actually self-hosts are used:
  * Inter 400/500 and Space Grotesk 400/500/700. Nothing here asks a browser to
@@ -43,7 +56,7 @@
      a decision, and the muted step is already the contrast floor. */
   --vnext-text: #f2f6ff;
   --vnext-text-secondary: #b6c1d8;
-  --vnext-text-muted: #8593ac;
+  --vnext-text-muted: #8d9bb4;
   --vnext-text-on-accent: #04130c;
   --vnext-text-on-live: #ffffff;
 
@@ -63,7 +76,7 @@
   --vnext-miss-veil: rgba(255, 122, 133, 0.12);
   --vnext-rank-up: #3ddc84;
   --vnext-rank-down: #ff7a85;
-  --vnext-rank-flat: #8593ac;
+  --vnext-rank-flat: #8d9bb4;
   --vnext-joker: #e8c34a;
   --vnext-focus: #8fc0ff;
 
@@ -223,4 +236,88 @@
   --vnext-duration-fast: 1ms;
   --vnext-duration-base: 1ms;
   --vnext-duration-slow: 1ms;
+}
+
+/* ==========================================================================
+   THE LIGHT THEME
+   ==========================================================================
+
+   Applied by `VNextRoot` as `data-vnext-theme='light'`, and by nothing else.
+   It redefines COLOUR ONLY: spacing, radius, type, depth and duration are the
+   same product in both themes, and duplicating them here would be two places
+   for one decision.
+
+   WHY THE RAMP RUNS THE OTHER WAY. In dark, the page is near-black and a raised
+   card is lighter than it. In light, the page is TINTED and a raised card is
+   pure white — brighter than its surroundings, not greyer. Inverting the dark
+   values would have made cards grey on a white page, which every user reads as
+   disabled rather than raised.
+
+   WHY THE STATE COLOURS ARE NOT THE DARK ONES. `--vnext-live`, `--vnext-hit`
+   and the rest are luminous on black and illegible on white; they are restated
+   at a darkness that clears AA on every surface in this ramp rather than
+   dimmed by eye.
+
+   WHY THEY ARE DARKER THAN THE SURFACE MATH ALONE ASKS FOR. A state colour is
+   rarely drawn on a surface. It is drawn on ITS OWN VEIL — `.youTag` is the
+   accent over `--vnext-accent-veil`, `.badgeSettled` is the hit over
+   `--vnext-hit-veil` — and a veil is `rgba(...)` composited over whatever
+   surface the chip landed on, which on light darkens the background and eats
+   the margin. The first draft of this ramp read AA against the surfaces and
+   still shipped `--vnext-accent` at 4.45 on its own veil over
+   `--vnext-surface-interactive`; axe found it on one story. These values are
+   solved against the composite instead, so `--vnext-hit` is `#0b6b3e` and not
+   the more obvious `#0d7a45` or even the earlier `#0c7141`.
+
+   EVERY NUMBER BELOW IS MEASURED by `tests/vnext/vnextTokenContrast.test.ts`,
+   which pins the whole matrix for both themes. */
+
+[data-vnext][data-vnext-theme='light'] {
+  /* ---- canvas and surfaces ---------------------------------------------- */
+  --vnext-canvas: #f4f6fb;
+  --vnext-canvas-deep: #e8ecf5;
+  --vnext-surface: #ffffff;
+  --vnext-surface-raised: #ffffff;
+  --vnext-surface-interactive: #eef1f8;
+  --vnext-surface-interactive-hover: #e4e9f4;
+  --vnext-surface-sunken: #e9edf6;
+
+  /* Hairlines are DARK on light and light on dark. A white hairline on a white
+     card is not a quiet border, it is no border. */
+  --vnext-hairline: rgba(11, 18, 32, 0.12);
+  --vnext-hairline-strong: rgba(11, 18, 32, 0.22);
+  --vnext-scrim: rgba(11, 18, 32, 0.45);
+
+  /* ---- text ------------------------------------------------------------- */
+  --vnext-text: #0b1220;
+  --vnext-text-secondary: #404a5e;
+  --vnext-text-muted: #5a6577;
+  /* On light, the accent is dark enough to carry white text rather than the
+     near-black the dark theme puts on its luminous green. */
+  --vnext-text-on-accent: #ffffff;
+  --vnext-text-on-live: #0a1019;
+
+  /* ---- accent and states ------------------------------------------------ */
+  --vnext-accent: #006b44;
+  --vnext-accent-strong: #005c3a;
+  --vnext-accent-veil: rgba(0, 107, 68, 0.10);
+  --vnext-live: #c1123a;
+  --vnext-live-veil: rgba(193, 18, 58, 0.10);
+  --vnext-hit: #0b6b3e;
+  --vnext-hit-veil: rgba(11, 107, 62, 0.10);
+  --vnext-warn: #844f00;
+  --vnext-warn-veil: rgba(132, 79, 0, 0.12);
+  --vnext-miss: #ae233a;
+  --vnext-miss-veil: rgba(174, 35, 58, 0.10);
+  --vnext-rank-up: #0b6b3e;
+  --vnext-rank-down: #ae233a;
+  --vnext-rank-flat: #5a6577;
+  --vnext-joker: #765500;
+  --vnext-focus: #1a5fb4;
+
+  /* The neutral team palette follows the surfaces, not the dark ones. */
+  --vnext-team-primary: var(--vnext-surface-interactive);
+  --vnext-team-secondary: var(--vnext-surface-raised);
+  --vnext-team-accent: var(--vnext-accent);
+  --vnext-team-on-primary: var(--vnext-text);
 }

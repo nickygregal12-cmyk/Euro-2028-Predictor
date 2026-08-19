@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { VNextAccountScreen } from '../vnext/integration/account/VNextAccountScreen'
 import type { ShellIntent } from '../vnext/models/shell'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
-import { VNextRoot } from '../vnext/foundations/VNextRoot'
+import { VNextRoot, type VNextThemeSetting } from '../vnext/foundations/VNextRoot'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -41,16 +41,27 @@ import styles from './VNextHomePreview.module.css'
  * `/profile` and `/more` all still render exactly what they rendered before.
  */
 export function VNextAccountPreview() {
+  // THE HOST HOLDS THE CHOICE, as it will after cutover — there the holder is
+  // the production ThemeProvider, which already persists one. Here it is state,
+  // because a harness that wrote to the real preference would change a setting
+  // just by being opened.
+  const [theme, setTheme] = useState<VNextThemeSetting>('system')
   return (
     <AuthProvider>
-      <VNextRoot>
-        <AccountHarness />
+      <VNextRoot theme={theme}>
+        <AccountHarness theme={theme} onTheme={setTheme} />
       </VNextRoot>
     </AuthProvider>
   )
 }
 
-function AccountHarness() {
+function AccountHarness({
+  theme,
+  onTheme,
+}: {
+  readonly theme: VNextThemeSetting
+  readonly onTheme: (theme: VNextThemeSetting) => void
+}) {
   const { userId, displayName, loading, signOut } = useAuth()
   const [note, setNote] = useState('')
   const onShellIntent = useShellIntentHost(setNote)
@@ -83,6 +94,7 @@ function AccountHarness() {
         userId={userId}
         authLoading={loading}
         displayName={displayName}
+        theme={theme}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
           if (intent.kind === 'open-season') {
@@ -93,6 +105,11 @@ function AccountHarness() {
           // that is not open-season", so a third intent added later would have
           // silently ended the session. It is the one action here that cannot
           // be undone by pressing back.
+          if (intent.kind === 'set-theme') {
+            onTheme(intent.theme)
+            setNote(`Appearance: ${intent.theme}.`)
+            return
+          }
           if (intent.kind === 'sign-out') {
             // REALLY SIGNS OUT. The page owns the control and the wording; the
             // session belongs to the auth provider, and this is the host
