@@ -7,13 +7,16 @@ const LMS_PATH = '/competitions/premier-league/2026-27/games/lms'
 
 function NavigationHarness() {
   const navigate = useNavigate()
+
   return (
     <>
       <RouteAccessibility />
       <button type="button" onClick={() => navigate(LMS_PATH)}>
         Open Premier League LMS
       </button>
-      <main id="main-content" tabIndex={-1}>Route content</main>
+      <main id="main-content" tabIndex={-1}>
+        Route content
+      </main>
     </>
   )
 }
@@ -27,19 +30,38 @@ describe('RouteAccessibility', () => {
   })
 
   it('sets the document title and exposes a polite route announcement', async () => {
-    render(<MemoryRouter initialEntries={['/matches']}><RouteAccessibility /></MemoryRouter>)
-    await waitFor(() => expect(document.title).toBe('Matches | Predictor Hub'))
+    render(
+      <MemoryRouter initialEntries={['/matches']}>
+        <RouteAccessibility />
+      </MemoryRouter>,
+    )
+
+    await waitFor(() => {
+      expect(document.title).toBe('Matches | Predictor Hub')
+    })
+
     const announcement = screen.getByText('Matches page loaded')
     expect(announcement.getAttribute('aria-live')).toBe('polite')
     expect(announcement.getAttribute('aria-atomic')).toBe('true')
   })
 
   it('moves focus to main content after client-side navigation', async () => {
-    render(<MemoryRouter initialEntries={['/matches']}><NavigationHarness /></MemoryRouter>)
-    await waitFor(() => expect(document.title).toBe('Matches | Predictor Hub'))
-    fireEvent.click(screen.getByRole('button', { name: 'Open Premier League LMS' }))
+    render(
+      <MemoryRouter initialEntries={['/matches']}>
+        <NavigationHarness />
+      </MemoryRouter>,
+    )
+
     await waitFor(() => {
-      expect(document.title).toBe('Premier League 2026/27 Last Man Standing | Predictor Hub')
+      expect(document.title).toBe('Matches | Predictor Hub')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open Premier League LMS' }))
+
+    await waitFor(() => {
+      expect(document.title).toBe(
+        'Premier League 2026/27 Last Man Standing | Predictor Hub',
+      )
       expect(document.activeElement).toBe(screen.getByRole('main'))
     })
   })
