@@ -228,8 +228,3 @@ export function bracketRounds(
   }
   return rounds
 }
-
-/** Whether the competition has named a champion. Never inferred from a seat. */
-export function championshipIsOver(panel: BracketPanel): boolean {
-  return panel.kind === 'bracket' && panel.champion !== null
-}

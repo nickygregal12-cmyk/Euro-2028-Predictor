@@ -1,0 +1,58 @@
+/* The connected Championship while it has nothing to show.
+ *
+ * THE SKELETON IS UNIFORM ON PURPOSE. A bracket placeholder that suggested
+ * pairs would be read as a draw, and a reader would look for themselves in it.
+ * These bars carry no pairing, no "v", and no name-shaped run. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.rounds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-4);
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.bar {
+  display: block;
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.barStanding {
+  height: 3rem;
+  border-radius: var(--vnext-radius-md);
+}
+
+.barHeading {
+  width: 40%;
+  height: 0.75rem;
+}
+
+.barSeat {
+  height: 4.5rem;
+  border-radius: var(--vnext-radius-md);
+}
+
+@container vnext-page (min-width: 700px) {
+  .rounds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container vnext-page (min-width: 1180px) {
+  .rounds {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start;
+  }
+}

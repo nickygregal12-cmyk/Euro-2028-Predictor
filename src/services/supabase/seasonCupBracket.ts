@@ -10,14 +10,7 @@ import { mapSeasonCupBracket, type SeasonCupBracket } from './seasonCupBracketMo
  * it. The mapping is the part with the surprises in it, and it belongs
  * somewhere a test can reach.
  */
-export type {
-  CupBracketSeat,
-  CupPenaltyNumber,
-  CupSeatSide,
-  CupTieDecision,
-  SeasonCupBracket,
-} from './seasonCupBracketModel'
-export { mapSeasonCupBracket } from './seasonCupBracketModel'
+export type { CupBracketSeat, CupSeatSide, SeasonCupBracket } from './seasonCupBracketModel'
 
 export async function fetchSeasonCupBracket(competitionId: string): Promise<SeasonCupBracket> {
   const { data, error } = await db.rpc('get_season_cup_bracket', {

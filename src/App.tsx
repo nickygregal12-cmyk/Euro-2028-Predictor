@@ -247,6 +247,20 @@ const VNextLmsPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 12's Predictor Championship against real data, and it is contract 193's
+// FIRST CALLER — nothing in the application has ever invoked
+// `get_season_cup_bracket`. Every payload shape the decoder handles was
+// established by reading the migration, so this is where that reading meets a
+// real database. Unlike Stage 11's harness it writes nothing. The production
+// Championship surfaces are untouched.
+const VNextChampionshipPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextChampionshipPreview').then((m) => ({
+        default: m.VNextChampionshipPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -312,6 +326,12 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextLmsPreview ? (
                   <Route path="/dev/vnext-lms" element={<VNextLmsPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextChampionshipPreview ? (
+                  <Route
+                    path="/dev/vnext-championship"
+                    element={<VNextChampionshipPreview />}
+                  />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

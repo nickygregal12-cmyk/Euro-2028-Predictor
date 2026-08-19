@@ -64,7 +64,7 @@
  * 'Player'}`. Same concept, two encodings; both are handled.
  */
 
-export type CupTieDecision =
+type CupTieDecision =
   | 'points'
   | 'extra_time'
   | 'penalty_number'
@@ -88,7 +88,7 @@ export type CupBracketSeat = {
   decidedBy: CupTieDecision | null
 }
 
-export type CupPenaltyNumber = {
+type CupPenaltyNumber = {
   windowId: string
   windowLabel: string | null
   lane: 'odd' | 'even'
