@@ -287,3 +287,58 @@ describe('the Overview preview', () => {
     expect(view.rows[0]?.played).toBe(false)
   })
 })
+
+/**
+ * Contract 206. The two facts a surface used to have to infer from a date.
+ *
+ * They are decoded here rather than derived anywhere downstream, so every
+ * surface reading a fixture gets the SAME answer to "is this time still real?"
+ * — which is the property `FINDING G §E` asks for and the property a per-screen
+ * inference cannot have.
+ */
+describe('the schedule block', () => {
+  it('carries what the server said about the slot', () => {
+    const list = mapSeasonFixtureList(
+      raw({
+        fixtures: [
+          fixture({
+            status: 'postponed',
+            schedule: {
+              kickoff_confirmed: false,
+              rescheduled: true,
+              original_kickoff_at: '2026-08-08T14:00:00Z',
+            },
+          }),
+        ],
+      }),
+    )
+
+    expect(list.fixtures[0]?.schedule).toEqual({
+      kickoffConfirmed: false,
+      rescheduled: true,
+      originalKickoffAt: '2026-08-08T14:00:00Z',
+    })
+  })
+
+  it('fails closed to an ordinary fixture when the server is older than the block', () => {
+    // A deploy that runs the browser ahead of the database must not draw every
+    // fixture in the calendar as abnormal. An absent block is "nothing unusual
+    // here", which is true of every fixture such a server holds.
+    const list = mapSeasonFixtureList(raw({ fixtures: [fixture()] }))
+
+    expect(list.fixtures[0]?.schedule).toEqual({
+      kickoffConfirmed: true,
+      rescheduled: false,
+      originalKickoffAt: null,
+    })
+  })
+
+  it('still says a postponed fixture is unconfirmed when only the block is missing', () => {
+    // The status is the fallback, not `true`. Reading "confirmed" off a fixture
+    // the platform itself calls postponed would be the browser contradicting
+    // the field beside it.
+    const list = mapSeasonFixtureList(raw({ fixtures: [fixture({ status: 'postponed' })] }))
+
+    expect(list.fixtures[0]?.schedule.kickoffConfirmed).toBe(false)
+  })
+})

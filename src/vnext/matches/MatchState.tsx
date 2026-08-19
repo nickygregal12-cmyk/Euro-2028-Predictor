@@ -73,6 +73,13 @@ export function MatchStateMark({ state }: { readonly state: MatchState }) {
       return (
         <span className={`${styles.mark} ${styles.markOff}`}>
           <span className={styles.markWord}>Postponed</span>
+          {/* CONTRACT 206. "Postponed" alone leaves the one question a reader
+              has — is there a new date? — visibly unanswered, and a card that
+              looks unfinished reads as a card that is out of date. The note is
+              the mapper's sentence, so the wording is decided once. */}
+          {state.note === null ? null : (
+            <span className={styles.markNote}>{state.note}</span>
+          )}
         </span>
       )
 
@@ -94,7 +101,16 @@ export function MatchStateMark({ state }: { readonly state: MatchState }) {
       // Scheduled. The kickoff TIME is the mark, and the row draws it in the
       // score column — there is no chip that says "scheduled", because a time
       // already says it and a second label would be noise on every quiet day.
-      return null
+      //
+      // CONTRACT 206 IS THE ONE EXCEPTION, and it earns it: a fixture that was
+      // MOVED into this day looks identical to one that was always here, and
+      // the reader most likely to be confused is the one who remembers it being
+      // somewhere else. The time still shows in the score column beside this.
+      return state.rescheduled ? (
+        <span className={`${styles.mark} ${styles.markMoved}`}>
+          <span className={styles.markWord}>Rescheduled</span>
+        </span>
+      ) : null
   }
 }
 
@@ -122,6 +138,11 @@ export function MatchScoreMark({
     // No score to show. A scheduled match shows its kickoff; a postponed one
     // shows a dash, because "15:00" beside "Postponed" reads as a match that is
     // about to start.
+    //
+    // THAT HOLDS EVEN ONCE A REPLACEMENT DATE EXISTS. The instant is real then,
+    // but the mark beside this already prints it in full — "Now due Tue 14 Sep
+    // · 19:45" — so putting "19:45" here as well says the same thing twice in
+    // the one column a reader scans for a score.
     const showKickoff = state.kind === 'scheduled' || state.kind === 'live'
     return (
       <span

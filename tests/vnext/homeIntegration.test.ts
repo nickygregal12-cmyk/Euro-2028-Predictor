@@ -47,6 +47,7 @@ function fixture(overrides: Partial<SeasonListFixture> = {}): SeasonListFixture 
     kickoffAt: '2027-08-21T14:00:00.000Z',
     status: 'scheduled',
     round: { id: 'r-5', ordinal: 5, label: 'Matchweek 5' },
+    schedule: { kickoffConfirmed: true, rescheduled: false, originalKickoffAt: null },
     home: club('Porthaven City', 'POR'),
     away: club('Balmorral Athletic', 'BAL'),
     result: null,
@@ -937,5 +938,80 @@ describe('the emphasis selector over real state', () => {
       source({ fixtures: [fixture({ status: 'played', result: { home: 1, away: 0 } })] }),
     )
     expect(selectHomeEmphasis(quiet)).toBe('competition')
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * Contract 206 — Home and Matches answer the same question the same way
+ * ------------------------------------------------------------------ */
+
+describe('abnormal fixture state on Home', () => {
+  it('says a postponed fixture has no new date', () => {
+    const model = buildHomeModel(source({ fixtures: [fixture({ status: 'postponed' })] }))
+    const match = first(model.upcomingMatches)
+
+    expect(match.status).toBe('postponed')
+    expect(match.scheduleNote).toBe('New date to be confirmed')
+  })
+
+  it('says when it is now due, once it has one', () => {
+    const model = buildHomeModel(
+      source({
+        fixtures: [
+          fixture({
+            status: 'postponed',
+            kickoffAt: '2027-09-14T18:45:00.000Z',
+            schedule: {
+              kickoffConfirmed: false,
+              rescheduled: true,
+              originalKickoffAt: '2027-08-21T14:00:00.000Z',
+            },
+          }),
+        ],
+      }),
+    )
+
+    expect(first(model.upcomingMatches).scheduleNote?.startsWith('Now due ')).toBe(true)
+  })
+
+  it('explains a fixture that was moved into this week and is going ahead', () => {
+    const model = buildHomeModel(
+      source({
+        fixtures: [
+          fixture({
+            schedule: {
+              kickoffConfirmed: true,
+              rescheduled: true,
+              originalKickoffAt: '2027-07-30T14:00:00.000Z',
+            },
+          }),
+        ],
+      }),
+    )
+
+    expect(first(model.upcomingMatches).status).toBe('upcoming')
+    expect(first(model.upcomingMatches).scheduleNote).toBe('Rescheduled')
+  })
+
+  it('says nothing at all about an ordinary fixture', () => {
+    expect(first(buildHomeModel(source()).upcomingMatches).scheduleNote).toBeNull()
+  })
+
+  it('no longer postpones a fixture on a provider kind Matches would refuse', () => {
+    // The divergence contract 206 removed: Home used to promote `live.kind`
+    // 'postponed' on its own, so one payload could read "P–P" here and "15:00"
+    // in Matches. Both surfaces now read `status`, and there is one answer.
+    const model = buildHomeModel(
+      source({
+        fixtures: [
+          fixture({
+            status: 'scheduled',
+            live: { kind: 'postponed', home: null, away: null, observedAt: NOW },
+          }),
+        ],
+      }),
+    )
+
+    expect(first(model.upcomingMatches).status).toBe('upcoming')
   })
 })

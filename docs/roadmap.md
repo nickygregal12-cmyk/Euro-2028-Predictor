@@ -383,6 +383,15 @@ same paragraph existed in seven places at once.
 > vocabulary gains more horizon buckets so a better forecast is a new row rather
 > than a discarded one — and a second weekly training pass runs after the
 > weekend's results are published rather than before.
+> Contract 206 fixes what the postponement finding found, and it was not one defect but
+> four stacked: the ingestion driver had resolved no season since 10 August, so nothing at
+> all had been imported for nine days; the provider's word for "postponed" was not in the
+> vocabulary; nothing automatic could write that status to a fixture even if it had been;
+> and a fixture once postponed could never take its replacement date. A postponement now
+> applies on the provider's word, reverses on the provider's word, and takes a new date —
+> and a postponed fixture's prediction is neither frozen by a kickoff that never happened
+> nor left open into one that is about to.
+
 > Contract 205 fixes what the Stage 12 audit found: the canonical Championship bracket read
 > raised an exception for every entrant in a competition that had reached its split, because
 > its seed lookup did not say which membership phase it meant. One line, pinned to the

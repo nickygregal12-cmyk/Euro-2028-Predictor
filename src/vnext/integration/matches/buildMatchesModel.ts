@@ -19,6 +19,7 @@ import type {
 } from '../../models/matches'
 import { matchPhase } from '../../models/matches'
 import type { MatchesSource } from './matchesSource'
+import { postponedScheduleNote } from '../fixtureScheduleNote'
 
 /**
  * `MatchesSource` → `MatchesModel`. PURE: no network, no storage, NO CLOCK and
@@ -55,13 +56,27 @@ import type { MatchesSource } from './matchesSource'
  * `awaitingResult` where the feed says the football is over and the platform
  * has not settled a result.
  *
- * A PROVIDER MAY NOT POSTPONE, ABANDON OR CANCEL A FIXTURE. Contract 135's
- * vocabulary includes all three, and a feed reports them for ordinary reasons —
- * a delayed kickoff, a momentary outage, a mis-mapped fixture. Letting one
- * through would empty a fixture list on a provider's say-so, which is the
- * confirmation boundary the whole ingestion lane exists to hold. The platform's
- * own `postponed`, `abandoned` and `void` are the only ones that reach the
- * model.
+ * A PROVIDER MAY NOT POSTPONE, ABANDON OR CANCEL A FIXTURE **HERE**. Contract
+ * 135's vocabulary includes all three, and a feed reports them for ordinary
+ * reasons — a delayed kickoff, a momentary outage, a mis-mapped fixture.
+ * Letting one through would empty a fixture list on a provider's say-so, which
+ * is the confirmation boundary the whole ingestion lane exists to hold. The
+ * platform's own `postponed`, `abandoned` and `void` are the only ones that
+ * reach the model.
+ *
+ * THAT REFUSAL IS UNCHANGED BY CONTRACT 206, AND IS WHY IT WAS THE RIGHT ONE.
+ * Until that contract, `season_fixtures.status` could only become `postponed`
+ * by an administrator pressing approve, so the practical effect of this file's
+ * rule was that a real postponement never appeared at all. Contract 206 moved
+ * the decision to where it belongs — the ingestion boundary applies a
+ * provider's postponement, records it, and reverses it when the provider
+ * recants — so `fixture.status` now carries the answer this mapper always
+ * insisted on reading, and this mapper still reads nothing else.
+ *
+ * WHAT A MOVED FIXTURE LOOKS LIKE. `fixture.schedule.rescheduled` is contract
+ * 117's stored fact, and it travels onto the two states a moved fixture can be
+ * in. Nothing here compares a kickoff against anything to decide it — see
+ * `MatchState`.
  */
 export function buildMatchesModel(source: MatchesSource): MatchesModel {
   const scope: MatchesScope = source.combined === null ? 'competition' : 'combined'
@@ -118,13 +133,19 @@ export function buildMatchesModel(source: MatchesSource): MatchesModel {
  */
 export function matchStateOf(fixture: SeasonListFixture): MatchState {
   const kickoff = fixture.kickoffAt
+  const rescheduled = fixture.schedule.rescheduled
 
   switch (fixture.status) {
     case 'postponed':
       // NO PROVIDER SCORE IS CARRIED. A postponed fixture that a feed once
       // reported in play must not keep the numbers: that is how a postponed
       // match ends up drawn with a live scoreline.
-      return { kind: 'postponed', kickoff, note: null }
+      return {
+        kind: 'postponed',
+        kickoff,
+        note: postponedScheduleNote(fixture),
+        rescheduled,
+      }
 
     case 'abandoned':
       return { kind: 'abandoned', kickoff, note: null }
@@ -143,7 +164,7 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
       // put a provisional score on a match the platform calls played. There is
       // no state to show, so the honest answer is the one that shows none.
       return fixture.result === null
-        ? { kind: 'scheduled', kickoff }
+        ? { kind: 'scheduled', kickoff, rescheduled }
         : {
             kind: 'finished',
             kickoff,
@@ -163,7 +184,8 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
 
 function providerRefined(kickoff: string | null, fixture: SeasonListFixture): MatchState {
   const live = fixture.live
-  if (live === null) return { kind: 'scheduled', kickoff }
+  const rescheduled = fixture.schedule.rescheduled
+  if (live === null) return { kind: 'scheduled', kickoff, rescheduled }
 
   switch (live.kind) {
     case 'in_play':
@@ -178,7 +200,7 @@ function providerRefined(kickoff: string | null, fixture: SeasonListFixture): Ma
     default:
       // `scheduled`, `postponed`, `abandoned`, `cancelled`, `unknown`. None of
       // them may move the platform's own state — see the header.
-      return { kind: 'scheduled', kickoff }
+      return { kind: 'scheduled', kickoff, rescheduled }
   }
 }
 
@@ -428,15 +450,23 @@ export function summarise(
         : `${home} ${score.home}, ${away} ${score.away}, ${phase}, provisional score${where}`
     }
     case 'postponed':
-      return `${home} against ${away}, postponed${where}`
+      // The note is part of the sentence, not decoration: "postponed" alone
+      // leaves a listener asking the one question the card answers visually.
+      return state.note === null
+        ? `${home} against ${away}, postponed${where}`
+        : `${home} against ${away}, postponed, ${state.note.toLowerCase()}${where}`
     case 'abandoned':
       return `${home} against ${away}, abandoned${where}`
     case 'void':
       return `${home} against ${away}, void${where}`
-    default:
+    default: {
+      // A rescheduled fixture says so in the sentence too. A reader scanning a
+      // Saturday for a match that was moved into it has no other way to tell.
+      const moved = state.kind === 'scheduled' && state.rescheduled ? ', rescheduled' : ''
       return kickoffLabel
-        ? `${home} against ${away}, kick-off ${kickoffLabel}${where}`
-        : `${home} against ${away}, kick-off to be confirmed${where}`
+        ? `${home} against ${away}${moved}, kick-off ${kickoffLabel}${where}`
+        : `${home} against ${away}${moved}, kick-off to be confirmed${where}`
+    }
   }
 }
 

@@ -38,6 +38,29 @@ export type SeasonFixtureRound = {
   label: string
 }
 
+/**
+ * WHERE THIS FIXTURE STANDS AGAINST ITS OWN CALENDAR (contract 206).
+ *
+ * Two facts a surface used to have to infer from a date, and the inference was
+ * wrong in both directions. `kickoffAt` on a postponed fixture is where it WAS
+ * due — a real instant, and not a plan — so a countdown drawn from it counts
+ * down to nothing, and a "has this moved?" test built from the shape of a date
+ * silently reclassifies fixtures whenever the shape is tuned.
+ *
+ * Both are now stated by the server. `rescheduled` is contract 117's stored
+ * fact rather than a guess: a fixture has moved because a revision recorded
+ * that it did, which is the same fact contract 119's per-fixture lock reads, so
+ * the deadline and the wording cannot disagree.
+ */
+type SeasonFixtureSchedule = {
+  /** False exactly while the platform holds the fixture postponed. */
+  kickoffConfirmed: boolean
+  /** True once any kickoff revision has been recorded against this fixture. */
+  rescheduled: boolean
+  /** The instant of the FIRST recorded move. Null where it has never moved. */
+  originalKickoffAt: string | null
+}
+
 export type SeasonListFixture = {
   id: string
   /** ISO instant, or null for a fixture the league has not timed. */
@@ -45,6 +68,8 @@ export type SeasonListFixture = {
   status: string
   /** The matchweek this fixture BELONGS to, whenever it is actually played. */
   round: SeasonFixtureRound
+  /** Contract 206. Whether `kickoffAt` is still a plan, and whether it moved. */
+  schedule: SeasonFixtureSchedule
   home: SeasonFixtureClub
   away: SeasonFixtureClub
   /** Settled by the platform. Null until it is. */
@@ -137,6 +162,26 @@ function mapRound(value: unknown): SeasonFixtureRound | null {
   return { id, ordinal, label }
 }
 
+/**
+ * A MISSING BLOCK FAILS CLOSED TO "CONFIRMED, NEVER MOVED", not to postponed.
+ *
+ * The only payload that can omit it is one from a server older than contract
+ * 206, and every fixture such a server holds is one nothing has ever
+ * postponed — the automatic path did not exist. Defaulting the other way would
+ * draw the whole calendar as abnormal the moment a deploy ran out of order.
+ */
+function mapSchedule(value: unknown, status: string): SeasonFixtureSchedule {
+  const row = objectOf(value)
+  return {
+    kickoffConfirmed:
+      typeof row.kickoff_confirmed === 'boolean'
+        ? row.kickoff_confirmed
+        : status !== 'postponed',
+    rescheduled: row.rescheduled === true,
+    originalKickoffAt: stringOrNull(row.original_kickoff_at),
+  }
+}
+
 function mapResult(value: unknown): { home: number; away: number } | null {
   const row = objectOf(value)
   const home = integerOrNull(row.home)
@@ -179,6 +224,7 @@ function mapFixture(value: unknown): SeasonListFixture | null {
     kickoffAt: stringOrNull(row.kickoff_at),
     status,
     round,
+    schedule: mapSchedule(row.schedule, status),
     home,
     away,
     result: mapResult(row.result),

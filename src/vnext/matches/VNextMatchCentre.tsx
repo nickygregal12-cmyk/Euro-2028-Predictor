@@ -352,9 +352,14 @@ function MatchWhen({ model }: { readonly model: MatchCentreModel }) {
    * still going to happen. "Was due Saturday 21 August, 15:00" says the same
    * fact and cannot be misread — and the fact is worth keeping, because the
    * original slot is how a reader recognises which fixture this is.
+   *
+   * CONTRACT 206 QUALIFIES IT: a postponed fixture that has been given a new
+   * date is showing that date, and "Was due Tue 18 August, 19:45" about an
+   * evening still to come is simply false. The mark beside it already says the
+   * match is off and when it is now due, so the line reverts to plain.
    */
   const off =
-    model.state.kind === 'postponed' ||
+    (model.state.kind === 'postponed' && !model.state.rescheduled) ||
     model.state.kind === 'abandoned' ||
     model.state.kind === 'void'
 

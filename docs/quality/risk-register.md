@@ -400,6 +400,64 @@ worth having, but its benefit is runner minutes and capacity rather than merge
 latency: a merge was never waiting on that suite in the first place. The earlier
 framing of it as time a doc-only pull request spent waiting was wrong.
 
+## Correction record — 19 August 2026, the fixture postponement finding
+
+Two Scottish Premiership fixtures were known to have been postponed and the
+application showed neither. The full lifecycle was audited from the provider
+response to every vNext surface, against hosted Development's own archived
+payloads, and the answer is four independent faults stacked on top of each
+other. Each one alone loses the status, which is why no single symptom pointed
+at any of them.
+
+**`ING-001` — the ingestion driver had resolved no season since 10 August.**
+Every decoded response from `2026-08-10T15:27Z` to `2026-08-19T15:42Z` was
+consumed with outcome `unresolved_season`: 13 responses, one per daily poll, all
+archived and decoded correctly and none applied. Both of
+`resolve_provider_response_season`'s arms were broken, for unrelated reasons and
+at different times. The payload arm compares the decoded `seasonProviderId`
+(`28275`) against `provider_entity_map` by equality, while the operator mapped
+the season under the composite key `501/28275` — so that arm had never once
+matched, and nothing noticed because the second arm was carrying it. The second
+arm compares the request URL against the poll target's stored path, and contract
+146 put `{{date:+N}}` placeholders in that path on 10 August, which no
+dispatched URL can ever match. Fixed by contract 206.
+
+**`ING-002` — the provider's word for "postponed" was not in the vocabulary.**
+SportMonks state `10` is absent from `provider_status_kinds`, so contract 135
+resolves it `unknown` and contract 174 stages nothing. The archived payloads
+show four 22 August fixtures moving from state `1` to state `10` on 15 August
+and holding it across five consecutive daily polls with no score and an
+unchanged kickoff. Seeded as `postponed` by contract 206, with that evidence
+recorded in the seed row.
+
+**`ING-003` — nothing automatic could write the status at all.**
+`apply_provider_fixture_facts` writes every provider kind into
+`season_fixture_live_state`, which its own comment forbids anything deriving
+from, and writes `season_fixtures.status` only for a `final`. The single path
+from a provider postponement to the fixture's status was an administrator
+approving a contract 174 proposal. Fixed by contract 206, which applies and
+reverses `postponed` automatically and leaves `cancelled` and `abandoned` with
+the administrator.
+
+**`ING-004` — and a postponement could never be undone.**
+`import_provider_fixture_revisions` refused a kickoff move on any fixture whose
+status was not `scheduled`, so a fixture marked `postponed` kept its stale
+kickoff for ever: the replacement date could never import, and contract 119's
+per-fixture lock read the elapsed instant. Fixed by contract 206.
+
+**Where the pipeline was already right, stated because it was checked rather
+than assumed.** A postponed fixture cannot score — the settlement card maps it
+to `scheduled`, so the matchweek does not settle. It cannot eliminate a Last Man
+Standing entrant — contract 85 treats every non-`played` status as a
+postponement that survives and consumes nothing. It cannot settle a Championship
+tie — the window is unsettled while any fixture is unplayed. It cannot orphan a
+prediction or create a duplicate fixture — the natural key holds the fixture's
+identity across a move, and the importer creates nothing. And the vNext
+presentation lane already drew a postponed fixture as postponed, refused to draw
+its kickoff as a countdown, and refused to let a provider's opinion produce the
+state. The defect was never in the surfaces; it was that no surface had ever
+been handed a postponed fixture to draw.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.
@@ -460,6 +518,10 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 
 | ID | Finding | Current status | Evidence / required closure |
 | --- | --- | --- | --- |
+| `ING-001` | Provider ingestion resolved no season for nine days, so nothing was imported at all | **Repository-fixed at contract 206; hosted Development still carries the outage.** Both arms of `resolve_provider_response_season` were broken — an equality lookup against a composite season key, and a URL compared against a path still holding contract 146's `{{date:+N}}` placeholders. 13 consecutive responses consumed `unresolved_season`. | Apply contract 206 to Development, then confirm the next consumption records outcome `applied` and that `season_fixture_live_state` gains rows again. **A backlog does not replay itself:** `provider_response_consumption` is keyed by processing id, so the 13 already-consumed responses stay consumed and the recovery arrives with the next poll rather than from history. |
+| `ING-002` | The provider status vocabulary is measured for four tokens and guessed for eight | **Partly closed at contract 206.** SportMonks `10` is now measured from retained payloads. SportMonks `14`–`21` were seeded by contract 135 from published documentation rather than from a payload, and the evidence now contradicts one of them: `10` is what this provider actually sends for a postponement, while `14` is mapped `postponed` on no measurement at all. | Measure each of `14`, `15`, `16`, `17`, `18`, `20` and `21` against a real payload before relying on it, or remove it so it fails closed to `unknown`. Contract 206 deliberately removed none: replacing one guess with another is not an improvement, and an `unknown` token is recorded in `provider_status_observations` where it can be measured. |
+| `ING-005` | Prediction deadlines are enforced per fixture but published per matchweek | **Open; predates contract 206 and is not made worse by it.** Contract 119 made ENFORCEMENT per fixture for a rescheduled match; `get_season_matchweek_card` still publishes the matchweek instant. A rescheduled or postponed fixture therefore reads as locked on the Match Predictor while the trigger would accept the write — the surface is stricter than the rule, so nothing illegal is possible, but a player is told they cannot do something they can. | Publish the per-fixture lock instant on the card read and have the Match Predictor draw it, or accept the matchweek instant as the product rule and reverse contract 119. Not both. |
+| `ING-006` | The provider poll window is eight days wide and the idle cadence is daily | **Open; reported by the contract 206 audit, deliberately not changed by it.** Contract 146's adaptive cadence is sound for a matchday — a live window at ten-minute spacing, one idle call otherwise — but a postponement is announced days out, not minutes, and the two settings that decide whether it is seen in time are the window width and the idle cadence. A postponement announced more than eight days ahead is invisible until the fixture enters the window, and one announced inside it can be up to 24 hours stale. Both faults were masked entirely by `ING-001`. | Proposed policy, to be decided rather than assumed: widen the stored window so it covers at least the furthest matchweek whose predictions are open; and add a third cadence between idle and live — a fixture inside 72 hours of its own prediction deadline polled every few hours — because a postponement inside the lock window is the one that changes what a player may do. Cost is bounded by the same self-limiting rule contract 146 already uses: a fixture with a result stops holding any window open. |
 | `PRIV-002` | Former-player retention, erasure and pseudonymisation boundary is not independently approved | **Open; Stage C2 blocked by issue #272.** The *product* direction was approved on 6 August 2026 — ordinary closure and formal erasure as two separate journeys, with no permanent cross-competition former-player identifier — and is recorded in [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) as `PRIV-003`–`PRIV-007`. **That is a product decision and changes nothing about this finding:** no independent approval exists, and none is claimed. | No profile ownership, account-erasure, pseudonymisation or related RLS implementation until the recorded independent review approves the boundary and required safeguards. Stage C1 must preserve current auth ownership. |
 | `DATA-003` | Same-tournament/reference constraints incomplete | **Resolved and hosted** | Private guards, privileges and valid/invalid hosted verification passed. |
 | `DATA-006` | Wider fixture/source relationships insufficiently constrained | **No proven residual defect** | Reopen only with an exact uncovered relationship. |

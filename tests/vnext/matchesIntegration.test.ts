@@ -56,6 +56,7 @@ function fixture(overrides: Partial<SeasonListFixture> = {}): SeasonListFixture 
     kickoffAt: '2027-08-21T14:00:00.000Z',
     status: 'scheduled',
     round: { id: 'r-4', ordinal: 4, label: 'Matchweek 4' },
+    schedule: { kickoffConfirmed: true, rescheduled: false, originalKickoffAt: null },
     home: club('Porthaven City', 'POR'),
     away: club('Glenmore Athletic', 'GLN'),
     result: null,
@@ -454,8 +455,11 @@ describe('the accessible summary', () => {
   it('names a postponement rather than describing a kick-off that will not happen', () => {
     const model = buildMatchesModel(source({ fixtures: [fixture({ status: 'postponed' })] }))
 
+    // Contract 206. The sentence carries the note, because "postponed" on its
+    // own leaves the question the card answers visually — is there a new
+    // date? — unanswered for anyone listening rather than looking.
     expect(first(first(model.days).matches).accessibleSummary).toBe(
-      'Porthaven City against Glenmore Athletic, postponed, Matchweek 4',
+      'Porthaven City against Glenmore Athletic, postponed, new date to be confirmed, Matchweek 4',
     )
   })
 })
@@ -871,5 +875,117 @@ describe('the Match Centre mapping', () => {
   it('never produces a prediction on the Match Centre either', () => {
     // The whole matchweek card would be needed, and this page does not read it.
     expect(buildMatchCentreModel(centreSource()).prediction).toBeNull()
+  })
+})
+
+/* ==========================================================================
+   CONTRACT 206 — THE LIFECYCLE, AS THE SURFACES SEE IT
+   ========================================================================== */
+
+/**
+ * The postponement finding, held at the mapper.
+ *
+ * The transitions themselves belong to the database and are driven from real
+ * payloads in `supabase/tests/252_provider_fixture_lifecycle.sql`. What is
+ * asserted here is the half a browser owns: that each abnormal state produces a
+ * DIFFERENT sentence, that a postponed fixture never presents its old kickoff
+ * as a plan, and that none of it is inferred from a clock.
+ */
+function schedule(overrides: Partial<SeasonListFixture['schedule']> = {}) {
+  return { kickoffConfirmed: true, rescheduled: false, originalKickoffAt: null, ...overrides }
+}
+
+describe('abnormal fixture state', () => {
+  it('says a postponed fixture has no new date, rather than saying nothing', () => {
+    const state = matchStateOf(fixture({ status: 'postponed' }))
+
+    expect(state.kind).toBe('postponed')
+    expect(state.kind === 'postponed' && state.note).toBe('New date to be confirmed')
+    expect(state.kind === 'postponed' && state.rescheduled).toBe(false)
+  })
+
+  it('says when a postponed fixture is now due, once it has been given a date', () => {
+    const state = matchStateOf(
+      fixture({
+        status: 'postponed',
+        kickoffAt: '2027-09-14T18:45:00.000Z',
+        schedule: schedule({ kickoffConfirmed: false, rescheduled: true }),
+      }),
+    )
+
+    // The instant is formatted, never compared. The words either side of it are
+    // what stop a real date reading as a fixture that is going ahead as normal.
+    expect(state.kind === 'postponed' && state.note?.startsWith('Now due ')).toBe(true)
+    expect(state.kind === 'postponed' && state.rescheduled).toBe(true)
+  })
+
+  it('marks a fixture that was moved INTO its day and is going ahead', () => {
+    const state = matchStateOf(fixture({ schedule: schedule({ rescheduled: true }) }))
+
+    expect(state).toEqual({
+      kind: 'scheduled',
+      kickoff: '2027-08-21T14:00:00.000Z',
+      rescheduled: true,
+    })
+  })
+
+  it('does not mark an ordinary fixture as moved', () => {
+    expect(matchStateOf(fixture())).toEqual({
+      kind: 'scheduled',
+      kickoff: '2027-08-21T14:00:00.000Z',
+      rescheduled: false,
+    })
+  })
+
+  it('still refuses a provider that reports a postponement the platform has not applied', () => {
+    // Contract 206 moved this decision to the ingestion boundary, where it is
+    // recorded and reversible. It did NOT move it here, and a payload whose two
+    // halves disagree still resolves to the platform's half.
+    const state = matchStateOf(
+      fixture({
+        status: 'scheduled',
+        live: { kind: 'postponed', home: null, away: null, observedAt: NOW },
+      }),
+    )
+
+    expect(state.kind).toBe('scheduled')
+  })
+
+  it('carries no provider score on a postponed fixture', () => {
+    // A feed that reported it in play before it was called off must not leave
+    // its numbers behind: a postponed match drawn with a scoreline is the
+    // worst available reading of two correct facts.
+    const state = matchStateOf(
+      fixture({
+        status: 'postponed',
+        live: { kind: 'in_play', home: 1, away: 0, observedAt: NOW },
+      }),
+    )
+
+    expect(matchScoreClaim(state)).toBeNull()
+  })
+
+  it('keeps a postponed fixture where a reader looking for what is coming will find it', () => {
+    expect(matchPhase(matchStateOf(fixture({ status: 'postponed' })))).toBe('upcoming')
+  })
+
+  it('names a rescheduled fixture in the accessible sentence too', () => {
+    const model = buildMatchesModel(
+      source({ fixtures: [fixture({ schedule: schedule({ rescheduled: true }) })] }),
+    )
+
+    expect(first(first(model.days).matches).accessibleSummary).toContain('rescheduled')
+  })
+
+  it('draws the three abnormal states differently from each other', () => {
+    // `FINDING G §E`: a postponed match must not be visually equivalent to a
+    // cancelled or an abandoned one. They share a mark style, so the WORDS are
+    // what carry the difference, and they are produced here.
+    const summaries = (['postponed', 'abandoned', 'void'] as const).map((status) =>
+      buildMatchesModel(source({ fixtures: [fixture({ status })] })).days[0]?.matches[0]
+        ?.accessibleSummary,
+    )
+
+    expect(new Set(summaries).size).toBe(3)
   })
 })

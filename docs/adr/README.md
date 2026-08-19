@@ -126,6 +126,8 @@ same paragraph existed in seven places at once.
 
 > **Contract 205:** adds no rule and changes no ADR. It upholds contract 102's phase model rather than relaxing it: a membership row is identified by its phase, and a read asking for a seed must say which phase it means. `bonus_cup_members_split_metadata_empty` already made `initial` the only phase that can hold one.
 
+> **Contract 206:** amends ADR 0020's ingestion rule rather than adding one. Its §Ingestion sentence — "fixture changes import automatically and notify an administrator for review" — was implemented for a kickoff move and, by contract 174, as a staged proposal for everything else. Contract 206 decides which side of that line a POSTPONEMENT falls on: it applies automatically and reverses automatically, because it removes no fixture from the competition, awards no point and can be undone by the next poll. Cancellation and abandonment stay staged, because they are terminal and change what the competition consists of.
+
 > **Contract 204:** adds no rule and changes no ADR. It extends the existing custody pattern rather than relaxing it — `ai.valid_predictions` is custody for forecasts that still count, `ai.quarantined_predictions` is custody for those that stopped, and `236_quarantined_evidence_reads.sql`'s rule that no admin read touches `ai.predictions` directly is upheld rather than excepted.
 
 > **Contract 203:** adds no rule and changes no ADR. ADR 0029's actionability boundary is unchanged — aggregates are still refused as venues — and the newer-PASS-supersedes-older-BET rule is not new either; it moves from the browser to the database so there is one definition of it instead of two.

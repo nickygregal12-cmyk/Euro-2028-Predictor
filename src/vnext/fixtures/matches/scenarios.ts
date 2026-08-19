@@ -137,7 +137,11 @@ function observedTime(iso: string): string {
   return observedFormatter.format(new Date(iso))
 }
 
-const scheduled = (kickoff: string | null): MatchState => ({ kind: 'scheduled', kickoff })
+const scheduled = (kickoff: string | null, rescheduled = false): MatchState => ({
+  kind: 'scheduled',
+  kickoff,
+  rescheduled,
+})
 
 /** Live, WITH a minute — the state a richer provider would allow. */
 const liveWithMinute = (
@@ -204,10 +208,15 @@ const finished = (kickoff: string, home: number, away: number): MatchState => ({
   aggregate: null,
 })
 
-const postponed = (kickoff: string | null, note: string | null = null): MatchState => ({
+const postponed = (
+  kickoff: string | null,
+  note: string | null = null,
+  rescheduled = false,
+): MatchState => ({
   kind: 'postponed',
   kickoff,
   note,
+  rescheduled,
 })
 
 /* ==========================================================================
@@ -616,6 +625,18 @@ const noMatches: MatchesModel = model({
  * It sits in its original slot with its state said plainly. The one below it
  * has no kickoff at all — a rearranged fixture the league has not timed yet,
  * which is a real row and not a broken one.
+ *
+ * CONTRACT 206 ADDS THE OTHER TWO ROWS OF THE LIFECYCLE, and the reason they
+ * are in this scenario rather than a new one is that they only mean anything
+ * beside each other. All four rows below are "this fixture is not where you
+ * left it", and a reader has to be able to tell them apart AT A GLANCE:
+ *
+ *   off, no date        Postponed / New date to be confirmed, no time shown
+ *   off, date known     Postponed / Now due …, the new time shown
+ *   on, moved here      Rescheduled, the time leading
+ *   on, ordinary        the time alone, no chip at all
+ *
+ * If two of them ever render the same, this is the scenario that shows it.
  */
 const postponedDay: MatchesModel = model({
   days: [
@@ -624,8 +645,30 @@ const postponedDay: MatchesModel = model({
         id: 'fixture-pp-1',
         home: T.glenmore,
         away: T.strathkelvin,
-        state: postponed('2027-08-21T14:00:00.000Z', 'Waterlogged pitch'),
+        state: postponed('2027-08-21T14:00:00.000Z', 'New date to be confirmed'),
         kickoffLabel: '15:00',
+      }),
+      row({
+        id: 'fixture-pp-4',
+        home: T.invercaledonian,
+        away: T.dunveggie,
+        // Off, but the league has already named the replacement. The instant on
+        // the row IS the new one, which is why the mark says "now due" and the
+        // page stops calling it "was due".
+        state: postponed('2027-09-14T18:45:00.000Z', 'Now due Tue 14 Sep · 19:45', true),
+        kickoffLabel: '19:45',
+      }),
+      row({
+        id: 'fixture-pp-5',
+        home: T.eastcraig,
+        away: T.glenmore,
+        // On, and playing today only because it was moved here out of an
+        // earlier matchweek — which is what the stage label beside it says.
+        stage: matchweek(2),
+        state: scheduled('2027-08-21T16:30:00.000Z', true),
+        kickoffLabel: '17:30',
+        contextLabel: 'Matchweek 2',
+        prediction: { kind: 'needed' },
       }),
       row({
         id: 'fixture-pp-2',

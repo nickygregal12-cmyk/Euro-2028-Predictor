@@ -84,7 +84,11 @@ export function MatchCard({
     : `${match.home.team.name} versus ${match.away.team.name}`
   // The status belongs in the name for the one state where the rest of the card
   // would otherwise read as a fixture that is still going ahead.
-  const heading = isPostponed ? `${baseHeading}, postponed` : baseHeading
+  const heading = isPostponed
+    ? `${baseHeading}, postponed${match.scheduleNote ? `, ${match.scheduleNote.toLowerCase()}` : ''}`
+    : match.scheduleNote
+      ? `${baseHeading}, ${match.scheduleNote.toLowerCase()}`
+      : baseHeading
 
   return (
     <motion.article
@@ -114,12 +118,27 @@ export function MatchCard({
           // The kick-off is deliberately not shown beside it: a time that is no
           // longer happening, printed next to the word that says so, still
           // reads as a time to turn up for.
+          //
+          // CONTRACT 206 ADDS THE SECOND HALF OF THE SENTENCE. "Postponed" on
+          // its own leaves the reader's actual question — when is it now? —
+          // unanswered, and a card that cannot answer it reads as one that has
+          // not been updated. The note is the mapper's, so Home and Matches say
+          // the same words about the same fixture.
           <span className={`${typography.label} ${styles.postponedFlag}`}>
             Postponed
+            {match.scheduleNote ? (
+              <span className={typography.micro}>{match.scheduleNote}</span>
+            ) : null}
           </span>
         ) : (
           <span className={`${typography.label} ${styles.kickoff}`}>
             {isFinished ? 'Full time' : formatKickoffLabel(match.kickoff, now)}
+            {/* A fixture MOVED into this slot is going ahead, so the time still
+                leads. The note only explains why it is not where the reader
+                last saw it. */}
+            {!isFinished && match.scheduleNote ? (
+              <span className={typography.micro}>{match.scheduleNote}</span>
+            ) : null}
           </span>
         )}
         {match.broadcast ? (

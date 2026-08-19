@@ -127,8 +127,32 @@
  * `split` membership — the defect's own precondition, which no existing suite
  * created, and against which the three new assertions ERROR rather than fail
  * before the fix.
+ *
+ * Contract 206 adds two read-only fields to two existing `authenticated` reads
+ * and one internal table no role can reach. `get_season_fixtures` and
+ * `get_season_fixture` keep their signatures, their volatility, their
+ * `authenticated`-only grants and their league-season refusal; each gains a
+ * `schedule` object built from columns the same query already joins, and
+ * `predictor_internal.season_fixture_lifecycle_transitions` is created with row
+ * level security on and every grant revoked, as the pinned invariant in
+ * `schemaSecurityInvariants.test.ts` now records.
+ *
+ * NO SEEDED JOURNEY CHANGES SHAPE. The deterministic seed holds no postponed
+ * fixture and no kickoff revision, so every seeded fixture reads
+ * `{kickoff_confirmed: true, rescheduled: false, original_kickoff_at: null}` —
+ * the same fixture, with one more field on it. The lock authority's two new
+ * branches are reachable only from `postponed`, `void` and `abandoned`, none of
+ * which the seed creates, so no seeded prediction's deadline moves.
+ *
+ * The marker is raised on the runs, not on that paragraph. Both jobs are
+ * expected to run against a database holding all 206 migrations on this
+ * boundary's own pull request, and the run identifiers are recorded here before
+ * it merges; if either fails, the marker comes back down rather than the run
+ * being explained away. The database-parity run carries pgTAP suite 252, which
+ * drives the whole lifecycle from decoded provider payloads rather than by
+ * setting a status by hand.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 205
+export const SEED_REVIEWED_AT_CONTRACT = 206
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

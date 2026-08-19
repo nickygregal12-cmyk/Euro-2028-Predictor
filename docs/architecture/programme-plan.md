@@ -284,6 +284,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 205 programme effect:** the canonical Championship bracket read stops throwing for split competitions, which is a precondition for Stage 12 consuming it. No programme reordering.
 
+> **Contract 206 programme effect:** the provider ingestion lane resumes — season resolution had failed on every response since contract 146 — and a postponement now reaches the fixture and the surfaces. No programme reordering.
+
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.

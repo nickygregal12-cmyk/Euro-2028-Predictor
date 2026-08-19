@@ -146,6 +146,23 @@ export type Match = {
   /** ISO 8601. Fixtures use fixed instants so the workshop is deterministic. */
   readonly kickoff: string
   readonly status: MatchStatus
+  /**
+   * WHAT THE PLATFORM SAYS ABOUT THIS FIXTURE'S SLOT (contract 206).
+   *
+   * A one-line sentence, decided by the mapper and never by a component, for
+   * the two cases where the date beside a match does not mean what it looks
+   * like: a postponement with no replacement, and a fixture that has been
+   * moved. Null on every ordinary fixture, which is almost all of them.
+   *
+   * It sits beside `status` rather than inside it because the same sentence is
+   * needed on a `postponed` card and on an `upcoming` one that was
+   * rescheduled, and a status that encoded both would have to grow a case for
+   * each.
+   *
+   * OPTIONAL so a hand-written fixture that predates it still type-checks — an
+   * absent note and an explicit null mean the same thing.
+   */
+  readonly scheduleNote?: string | null
   readonly clock: MatchClock | null
   readonly home: MatchSide
   readonly away: MatchSide
