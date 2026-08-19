@@ -3,41 +3,21 @@ import { Link } from 'react-router'
 import { Alert } from '../design-system'
 import { weeklyRoutes } from './weeklyRoutes'
 import type { InboxAction, PlayInbox } from '../features/hub/playInboxModel'
+import type { PersistentPlayerAction } from '../services/supabase/playerActions'
+import type { PersistentActionsStatus } from './usePersistentActions'
 import styles from './ActionCentre.module.css'
 
 /**
- * Everything the player owes, reachable from anywhere in the shell.
+ * Everything the player owes, plus the canonical persistent activity feed.
  *
- * WHY THIS IS AN OUTSTANDING COUNT AND NOT A NOTIFICATION BELL.
- * `ui-finalisation.md` § 4A decided the AppBar would carry **no** notification
- * control, and gave the reason: a bell over an inbox with no read state would
- * either shout for ever or forget on a second device. That reasoning is exactly
- * right and this control does not contradict it — it answers a different
- * question.
+ * The AppBar badge remains OUTSTANDING work from each game's server read. The
+ * persistent feed answers a different question: what server-issued actions has
+ * this player seen or dismissed across devices? Keeping those concepts separate
+ * prevents an unread counter from masquerading as a deadline/eligibility rule.
  *
- * "Unread" is a fact about what the player has SEEN, needs a stored cursor, and
- * is `MIG-UI-14`. "Outstanding" is a fact about what the player has DONE: it
- * comes from each game's own read, it is identical on every device because the
- * server computes it, and it clears itself when they act rather than when they
- * glance. So the badge here counts predictions not made and picks not made —
- * never messages not looked at — and the copy says "to do", never "new" and
- * never "unread".
- *
- * NOTHING HERE IS STORED IN `localStorage`, and that is deliberate rather than
- * incidental: there is no dismiss, no mark-as-seen and no per-item state at
- * all, so there is nothing that could be mistaken for cross-device persistence.
- * When contract 162's `get_my_actions` / `mark_actions_seen` / `dismiss_action`
- * are reachable from a browser, seen and dismissed state joins this panel and
- * the badge can start distinguishing new from outstanding. Until then it says
- * only what it can prove.
- *
- * IT COMPUTES NO DEADLINE, LOCK OR PROGRESS. `presentPlayInbox` groups; each
- * game's own read decided what is due. This renders.
- *
- * IT IS ONE COMPONENT AT BOTH WIDTHS. A bottom sheet on a phone and a docked
- * side panel on a desktop are the same list with a different frame, which is
- * CSS — building two would be two chances for the urgent group to disagree
- * with itself.
+ * No deadline, completion or expiry is computed here. `get_my_actions` decides
+ * which persistent rows are open; the browser may only mark those rows seen or
+ * dismissed through the two bounded commands Contract 162 exposes.
  */
 
 export type ActionCentreProps = {
@@ -45,14 +25,22 @@ export type ActionCentreProps = {
   onClose: () => void
   status: 'loading' | 'ready'
   inbox: PlayInbox | null
+  persistentStatus: PersistentActionsStatus
+  persistentActions: readonly PersistentPlayerAction[]
+  onDismissPersistentAction: (actionKey: string) => Promise<void>
 }
 
-export function ActionCentre({ open, onClose, status, inbox }: ActionCentreProps) {
+export function ActionCentre({
+  open,
+  onClose,
+  status,
+  inbox,
+  persistentStatus,
+  persistentActions,
+  onDismissPersistentAction,
+}: ActionCentreProps) {
   const closer = useRef<HTMLButtonElement>(null)
 
-  // Focus moves into the panel when it opens, and Escape closes it. Both are
-  // the minimum a thing that covers the page owes a keyboard: without them the
-  // tab order continues behind the scrim and there is no way out.
   useEffect(() => {
     if (!open) return
     closer.current?.focus()
@@ -67,12 +55,6 @@ export function ActionCentre({ open, onClose, status, inbox }: ActionCentreProps
 
   return (
     <div className={styles.root}>
-      {/* The click-away, as a real button and a SIBLING of the panel rather
-          than its wrapper. A div with a click handler is not keyboard operable
-          and nesting the dialog inside an interactive element is invalid; this
-          is neither. It is hidden from assistive technology and out of the tab
-          order on purpose — a full-screen tab stop in front of a dialog helps
-          nobody, and a keyboard user already has Escape and the Close button. */}
       <button
         type="button"
         className={styles.scrim}
@@ -102,8 +84,6 @@ export function ActionCentre({ open, onClose, status, inbox }: ActionCentreProps
         ) : (
           <>
             {inbox.unreadable.length > 0 ? (
-              // Named rather than dropped: silently omitting a competition
-              // would tell a player they are up to date while a lock passes.
               <Alert variant="warning" title="Some competitions could not be checked">
                 {inbox.unreadable.join(', ')}. Anything due there is missing from this list.
               </Alert>
@@ -124,6 +104,12 @@ export function ActionCentre({ open, onClose, status, inbox }: ActionCentreProps
             ) : null}
           </>
         )}
+
+        <PersistentUpdates
+          status={persistentStatus}
+          actions={persistentActions}
+          onDismiss={onDismissPersistentAction}
+        />
 
         <Link className={styles.all} to={weeklyRoutes.play} onClick={onClose}>
           Open Play
@@ -160,9 +146,6 @@ function Group({
           )
           return (
             <li key={action.key} className={urgent ? styles.itemUrgent : styles.item}>
-              {/* An action with no route is still shown. It is something the
-                  player owes; hiding it because this build cannot link to it
-                  would under-report what is due. */}
               {action.href ? (
                 <Link className={styles.action} to={action.href} onClick={onNavigate}>
                   {body}
@@ -174,6 +157,72 @@ function Group({
           )
         })}
       </ul>
+    </section>
+  )
+}
+
+const ACTION_TITLES: Readonly<Record<string, string>> = {
+  matchweek_predictions_due: 'Predictions due',
+  lms_pick_due: 'Last Man Standing pick due',
+  cup_penalty_number_due: 'Cup penalty number due',
+  matchweek_settled: 'Matchweek settled',
+  game_consequence: 'Game update',
+  // This is rendered only if the SERVER supplies a real invitation action. The
+  // current reusable share-code model creates no such row and the client never
+  // manufactures one merely because this vocabulary value exists.
+  league_invitation: 'League invitation',
+}
+
+function PersistentUpdates({
+  status,
+  actions,
+  onDismiss,
+}: {
+  status: PersistentActionsStatus
+  actions: readonly PersistentPlayerAction[]
+  onDismiss: (actionKey: string) => Promise<void>
+}) {
+  return (
+    <section className={styles.updates} aria-labelledby="action-updates-title">
+      <h3 className={styles.groupTitle} id="action-updates-title">
+        Updates
+      </h3>
+      {status === 'idle' || status === 'loading' ? (
+        <p className={styles.note} aria-live="polite">
+          Checking saved updates…
+        </p>
+      ) : null}
+      {status === 'error' ? (
+        <Alert variant="warning" title="Saved updates could not be checked">
+          Your current to-do list is still available above. Try opening this panel again later.
+        </Alert>
+      ) : null}
+      {status === 'ready' && actions.length === 0 ? (
+        <p className={styles.note}>No saved updates to review.</p>
+      ) : null}
+      {status === 'ready' && actions.length > 0 ? (
+        <ul className={styles.persistentList}>
+          {actions.map((action) => (
+            <li className={styles.persistentItem} key={action.actionKey}>
+              <span className={styles.persistentCopy}>
+                <span className={styles.actionTitle}>
+                  {ACTION_TITLES[action.actionType] ?? 'Competition update'}
+                </span>
+                <span className={styles.persistentMeta}>
+                  {action.seen ? 'Seen' : 'New'}
+                </span>
+              </span>
+              <button
+                type="button"
+                className={styles.dismiss}
+                onClick={() => void onDismiss(action.actionKey)}
+              >
+                Dismiss
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </section>
   )
 }
