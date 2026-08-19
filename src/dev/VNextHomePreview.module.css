@@ -49,10 +49,10 @@
   font-size: var(--fs-2);
   color: var(--text-1);
   max-width: 80ch;
-  border: 1px solid var(--danger-6, var(--border-2));
+  border: 1px solid var(--danger-6, var(--border-strong));
   border-left-width: 4px;
-  border-radius: var(--radius-2);
-  background: var(--surface-2);
+  border-radius: var(--radius-input);
+  background: var(--surface-raised);
 }
 
 .form {
