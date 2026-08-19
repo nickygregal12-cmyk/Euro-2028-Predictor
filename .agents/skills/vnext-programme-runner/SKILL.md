@@ -21,6 +21,15 @@ Before changing code:
 6. inspect current `main`, current branch/PR and overlapping open PRs;
 7. inspect executable source/tests for the surface being changed.
 
+The controller also carries **standing review findings**, assigned per stage and
+recorded in full at `docs/quality/audits/2026-08-19-vnext-programme-review.md`.
+Read the ones naming the current stage while deriving its brief; their live
+status is in `docs/quality/risk-register.md` and
+`docs/quality/deferred-decisions.md`, never in the runner or the controller. A
+finding is a known defect to weigh, never a stage contract — it adds no scope,
+does not outrank a stage's completion predicate, and does not block a stage that
+records a decision not to take it.
+
 Current code, tests and canonical product/backend/deployment authorities always outrank this runner. The stable stage contract defines the stage's mission, boundaries and minimum completion predicate; current authorities determine how that contract is implemented now.
 
 ## Completion predicate
@@ -57,7 +66,7 @@ Never trust a previous chat's SHA, CI result, contract number or hosted-state cl
 For the current stage, repeat until its whole completion predicate is satisfied:
 
 1. load the stable stage contract;
-2. load only the current stage-specific authority needed for the next slice;
+2. load only the current stage-specific authority needed for the next slice, plus any standing review finding assigned to this stage;
 3. implement a reviewable slice that advances the contract;
 4. run focused validation;
 5. run required repository gates appropriate to the delta;

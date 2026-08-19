@@ -41,6 +41,41 @@ The stage contracts are stable programme scope, not frozen implementation prompt
 
 An agent may not redefine a stage merely because a different interpretation would be easier. If current authority genuinely conflicts with a stage contract, treat that as a new-authority conflict and surface it explicitly.
 
+## Standing review findings
+
+A dated read-only review of the programme itself — its stage machinery, its lane
+conventions and the executable gates that enforce them — is recorded at
+[`../quality/audits/2026-08-19-vnext-programme-review.md`](../quality/audits/2026-08-19-vnext-programme-review.md).
+
+It is **evidence at its own commit and decides nothing.** Current code,
+executable tests and the canonical product, backend and deployment authorities
+outrank it, as they outrank this file.
+
+Its findings are assigned to the stage that owns them, so when deriving a
+stage's implementation brief from current `main`, read the ones that name that
+stage:
+
+| Stage | Findings assigned to it |
+| --- | --- |
+| 12 | `TEST-003` — no stated rule for drawn geometry, and this stage draws a bracket |
+| 13 | `DEC-016` the vNext light theme, `DEC-017` the vNext icon system, `CI-002` sharding the browser suite before four more surfaces reach it |
+| 14 | `UX-005` — the theme collision arrives at this stage and this stage's contract excludes resolving it |
+| 15 | `DOC-004` — the vNext primitives this stage must audit against are not enumerated anywhere |
+| Any stage | `TEST-002` the duplicated and drifted surface checklist, `UX-006` the unmeasured vNext palette, `OPS-012` whether the vNext checks are required for merge |
+
+**Live status for every one of those identifiers is in
+[`../quality/risk-register.md`](../quality/risk-register.md) and
+[`../quality/deferred-decisions.md`](../quality/deferred-decisions.md), never
+here.** A status copied into this file is a status that is stale the moment the
+register moves.
+
+A finding is **not** a stage contract. It cannot add scope to a stage, it never
+outranks that stage's minimum completion predicate in
+[`vnext-stage-contracts.md`](vnext-stage-contracts.md), and a stage that
+deliberately does not take one is not blocked by it — it records the decision and
+continues. Treat a finding as a known defect to weigh while deriving the brief,
+and a later review as the thing that confirms or contradicts it.
+
 ## Allowed states
 
 `not_started` → `in_progress` → `review` → `correction` → `merged`
