@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **205** | latest `20260819100000_cup_bracket_seed_initial_phase.sql` |
-| Development hosted | **204** | at `20260818090000_ai_dashboard_league_scoped_quarantine.sql`, verified `2026-08-18T23:20:00.000Z`, fast-lane run `32196292139` |
+| Development hosted | **205** | at `20260819100000_cup_bracket_seed_initial_phase.sql`, verified `2026-08-19T11:30:00.000Z`, fast-lane run `32246603342` |
 | Production | **198** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260819100000_cup_bracket_seed_initial_phase.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 206. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
