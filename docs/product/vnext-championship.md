@@ -325,8 +325,19 @@ player, so it can answer about the initial group while a sibling read answers
 about the split one. **Two reads that can disagree must not be merged behind one
 "loaded".**
 
-**Who "you" are comes from the server's `is_yours` flag**, never from an id
-passed in — Stage 9's identity rule in the one place this page could break it.
+**Who "you" are comes from `my_ties[].is_home`**, never from an id passed in —
+Stage 9's identity rule in the one place this page could break it. `is_yours`
+marks the SEAT and is not enough: it does not say which SIDE of the tie the
+caller holds. Contract 193 states that separately, per fixture, and states it
+for SETTLED ties too — which is why it still answers after the final, where
+`my_tie` (filtered `winner_user_id is null`) has gone null. Pairing one of the
+caller's own ties with its seat by `fixture_id` names the caller outright.
+
+An earlier build derived the side by subtracting the CURRENT opponent out of the
+caller's seat. That marked the wrong player from round two onward — a reader who
+had been the away side saw `(you)` against their old opponent — and it made
+`champion` unreachable, because a champion has no live tie to subtract with. The
+seat flag alone cannot answer a question about sides.
 
 ---
 

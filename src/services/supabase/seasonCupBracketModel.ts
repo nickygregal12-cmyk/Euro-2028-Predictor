@@ -141,6 +141,10 @@ export type SeasonCupBracket =
         stage: 'playoff' | 'knockout'
         windowSequence: number
         windowLabel: string | null
+        // WHICH SIDE OF THE TIE THE CALLER IS, stated by the server per
+        // fixture. Unlike `my_tie`, this is present on SETTLED ties too, so it
+        // still answers after the final has been won.
+        isHome: boolean
         opponent: CupSeatSide
         settled: boolean
         youWon: boolean
@@ -279,6 +283,7 @@ export function mapSeasonCupBracket(payload: unknown): SeasonCupBracket {
           stage,
           windowSequence: integerOrNull(row.window_sequence) ?? 0,
           windowLabel: stringOrNull(row.window_label),
+          isHome: row.is_home === true,
           opponent: side(row.opponent),
           settled: row.settled === true,
           youWon: row.you_won === true,

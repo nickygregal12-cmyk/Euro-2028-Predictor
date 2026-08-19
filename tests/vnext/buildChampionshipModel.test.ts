@@ -39,6 +39,27 @@ function seat(over: Record<string, unknown> = {}) {
   }
 }
 
+/**
+ * A ROW OF `my_ties`, which contract 193 emits for every tie the caller has
+ * PLAYED OR IS PLAYING — settled ones included. `isHome` is the server's own
+ * statement of which side of the tie the caller is.
+ */
+function myTie(over: Record<string, unknown> = {}) {
+  return {
+    fixtureId: 'fx-1',
+    stage: 'knockout' as const,
+    windowSequence: 21,
+    windowLabel: 'Semi-finals',
+    isHome: true,
+    opponent: { userId: 'u-2', displayName: 'Bo' },
+    settled: false,
+    youWon: false,
+    decidedBy: null,
+    settledAt: null,
+    ...over,
+  }
+}
+
 function entered(over: Partial<Extract<SeasonCupBracket, { entered: true }>> = {}) {
   return {
     entered: true as const,
@@ -57,7 +78,10 @@ function entered(over: Partial<Extract<SeasonCupBracket, { entered: true }>> = {
       locksAt: null,
     },
     penaltyNumber: null,
-    myTies: [],
+    // The caller's own tie, present because the default carries a live `myTie`
+    // for the same fixture. A payload with one and not the other is not one the
+    // server emits.
+    myTies: [myTie()],
     bracket: [seat()],
     champion: null,
     ...over,
@@ -199,6 +223,86 @@ describe('a deterministic outcome grows no football', () => {
 })
 
 /**
+ * WHO THE READER IS. `is_yours` marks a SEAT; it does not say which SIDE of it
+ * the caller holds. Deriving the side by subtracting the current opponent marks
+ * the WRONG PLAYER as soon as the caller was the away side of an earlier round,
+ * and marks NOBODY once the final settles and the live tie disappears.
+ */
+describe('the reader is named by the server, not derived', () => {
+  it('marks the away side when that is the side the caller held', () => {
+    const model = buildChampionshipModel(
+      source(
+        entered({
+          // Round 21: the caller is AWAY to Al. Round 22: a live tie against Bo.
+          bracket: [
+            seat({
+              fixtureId: 'fx-1',
+              windowSequence: 21,
+              home: { userId: 'u-A', displayName: 'Al' },
+              away: { userId: 'u-me', displayName: 'Ada' },
+              winnerUserId: 'u-me',
+              decidedBy: 'points',
+            }),
+            seat({
+              fixtureId: 'fx-2',
+              windowSequence: 22,
+              roundSize: 2,
+              windowLabel: 'Final',
+              home: { userId: 'u-me', displayName: 'Ada' },
+              away: { userId: 'u-B', displayName: 'Bo' },
+            }),
+          ],
+          myTies: [
+            myTie({
+              fixtureId: 'fx-1',
+              isHome: false,
+              opponent: { userId: 'u-A', displayName: 'Al' },
+              settled: true,
+              youWon: true,
+              decidedBy: 'points',
+            }),
+            myTie({
+              fixtureId: 'fx-2',
+              windowSequence: 22,
+              windowLabel: 'Final',
+              opponent: { userId: 'u-B', displayName: 'Bo' },
+            }),
+          ],
+          myTie: {
+            fixtureId: 'fx-2',
+            stage: 'knockout' as const,
+            roundSize: 2,
+            bracketSlot: 1,
+            windowSequence: 22,
+            windowLabel: 'Final',
+            isHome: true,
+            opponent: { userId: 'u-B', displayName: 'Bo' },
+            locksAt: null,
+          },
+        }),
+      ),
+    )
+    if (model.bracket.kind !== 'bracket') throw new Error('expected a bracket')
+    const marked = model.bracket.seats.flatMap((s) =>
+      [s.home, s.away].flatMap((side) =>
+        side.kind === 'player' && side.isYou ? [side.displayName] : [],
+      ),
+    )
+    // Ada in both rounds. Al — the earlier opponent — in neither.
+    expect(marked).toEqual(['Ada', 'Ada'])
+  })
+
+  it('marks nobody when the caller holds no tie in the bracket', () => {
+    const model = buildChampionshipModel(source(entered({ myTies: [] })))
+    if (model.bracket.kind !== 'bracket') throw new Error('expected a bracket')
+    const marked = model.bracket.seats.flatMap((s) =>
+      [s.home, s.away].filter((side) => side.kind === 'player' && side.isYou),
+    )
+    expect(marked).toEqual([])
+  })
+})
+
+/**
  * THE STAGE'S OWN ANTI-DERIVATION RULE, and the one the user's decision pins.
  */
 describe('elimination is never derived', () => {
@@ -209,17 +313,12 @@ describe('elimination is never derived', () => {
           qualification: { drawn: true, qualifiers: 4, yourSeed: 2, youQualified: false },
           bracket: [seat({ winnerUserId: 'u-2', decidedBy: 'points' })],
           myTies: [
-            {
-              fixtureId: 'fx-1',
-              stage: 'knockout',
-              windowSequence: 21,
-              windowLabel: 'Semi-finals',
-              opponent: { userId: 'u-2', displayName: 'Bo' },
+            myTie({
               settled: true,
               youWon: false,
               decidedBy: 'points',
               settledAt: '2027-05-02T18:00:00.000Z',
-            },
+            }),
           ],
           myTie: null,
         }),
@@ -231,16 +330,46 @@ describe('elimination is never derived', () => {
     expect(model.standing).toEqual({ kind: 'not-stated' })
   })
 
-  it('states champion where the server named one', () => {
-    const model = buildChampionshipModel(
-      source(entered({ champion: { userId: 'u-me', displayName: 'Ada' } })),
-    )
+  // THE PAYLOAD A CHAMPION ACTUALLY RECEIVES. `my_tie` filters
+  // `winner_user_id is null`, so the player who has just won the final has NO
+  // live tie: `myTie` and `penaltyNumber` are both null. A test that pairs a
+  // champion with a live tie is testing a payload the server cannot emit, and
+  // for four commits that is what this one did.
+  function afterTheFinal(over: Record<string, unknown> = {}) {
+    return entered({
+      myTie: null,
+      penaltyNumber: null,
+      myTies: [myTie({ fixtureId: 'fx-final', settled: true, youWon: true, decidedBy: 'points' })],
+      bracket: [seat({ fixtureId: 'fx-final', roundSize: 2, winnerUserId: 'u-me', decidedBy: 'points' })],
+      champion: { userId: 'u-me', displayName: 'Ada' },
+      ...over,
+    })
+  }
+
+  it('states champion after the final, where there is no live tie left', () => {
+    const model = buildChampionshipModel(source(afterTheFinal()))
     expect(model.standing).toEqual({ kind: 'stated', outcome: 'champion' })
+  })
+
+  it('marks the champion as the reader on a post-final payload', () => {
+    const model = buildChampionshipModel(source(afterTheFinal()))
+    if (model.bracket.kind !== 'bracket') throw new Error('expected a bracket')
+    expect(model.bracket.champion).toEqual({ displayName: 'Ada', isYou: true })
   })
 
   it('does not call the caller champion when somebody else won', () => {
     const model = buildChampionshipModel(
-      source(entered({ champion: { userId: 'u-2', displayName: 'Bo' } })),
+      source(
+        afterTheFinal({
+          myTies: [
+            myTie({ fixtureId: 'fx-final', settled: true, youWon: false, decidedBy: 'points' }),
+          ],
+          bracket: [
+            seat({ fixtureId: 'fx-final', roundSize: 2, winnerUserId: 'u-2', decidedBy: 'points' }),
+          ],
+          champion: { userId: 'u-2', displayName: 'Bo' },
+        }),
+      ),
     )
     // They qualified, which the server did say. They are not the champion.
     expect(model.standing).toEqual({ kind: 'stated', outcome: 'qualified' })

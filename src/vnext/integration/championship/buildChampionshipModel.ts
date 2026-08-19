@@ -103,24 +103,25 @@ function bracketPanelOf(source: ChampionshipSource): BracketPanel {
     return { kind: 'not-drawn' }
   }
 
-  // WHO "YOU" ARE, taken from a seat the server already marked as the caller's
-  // rather than from any id this lane was passed. `is_yours` is contract 193's
-  // own flag, so the identity never comes from a route or a query string —
-  // Stage 9's rule, in the one place this page could have broken it.
-  const yours = answer.bracket.find((seat) => seat.isYours) ?? null
-  const youId =
-    yours === null
-      ? null
-      : ((): string | null => {
-          // The caller is whichever side of their own seat is not the opponent
-          // named in `my_tie`; where there is no live tie, the seat alone
-          // cannot say which side is theirs, and null is the honest answer.
-          const opponentId = answer.myTie?.opponent?.userId ?? null
-          if (opponentId === null) return null
-          if (yours.home !== null && yours.home.userId !== opponentId) return yours.home.userId
-          if (yours.away !== null && yours.away.userId !== opponentId) return yours.away.userId
-          return null
-        })()
+  // WHO "YOU" ARE, read from the server rather than derived. `is_yours` marks
+  // the SEAT; it does not say which SIDE of it the caller is. Contract 193
+  // answers that separately, per fixture, with `my_ties[].is_home` — and it
+  // answers it for SETTLED ties as well, which is why this survives the final:
+  // `my_tie` filters `winner_user_id is null`, so it is null for a champion,
+  // but their won final is still in `my_ties`.
+  //
+  // Pairing one of the caller's own ties with its seat by `fixture_id` names
+  // the caller outright. No subtraction, no id passed in, no guess. Where the
+  // caller holds no tie at all, null remains the honest answer.
+  const youId = ((): string | null => {
+    for (const tie of answer.myTies) {
+      const seat = answer.bracket.find((row) => row.fixtureId === tie.fixtureId)
+      if (seat === undefined) continue
+      const mine = tie.isHome ? seat.home : seat.away
+      if (mine !== null) return mine.userId
+    }
+    return null
+  })()
 
   return {
     kind: 'bracket',
