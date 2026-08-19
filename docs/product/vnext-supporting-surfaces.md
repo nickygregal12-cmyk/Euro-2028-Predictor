@@ -322,10 +322,24 @@ TODAY, in production, from reads that already exist: each competition's week,
 loaded concurrently from `PlayerCompetitions` and settled independently, with no
 new capability of any kind. `InboxAction` carries `competitionName`, `gameName`,
 `title`, `locksAt` and `outstanding`; `ShellAttentionItem` wants `contextId`,
-`game`, `headline`, `detail` and `urgency`. That is a mapper, not a backend
-delta. The one field with no source is the `live` urgency, and the honest
-handling is to emit `urgent` and `soon` only — which satisfies the predicate's
-rule rather than straining it.
+`game`, `headline`, `detail` and `urgency`.
+
+**One field short, and the shortfall is worth naming rather than discovering in
+Stage 14.** No type in the inbox model carries a tournament id — `InboxAction`
+identifies its competition by NAME, and even its `key` is built from that name.
+`ShellAttentionItem.contextId` has to match `contexts[].competition.id`, which
+is the tournament id. So a mapper written against `InboxAction` alone could only
+join on a display name, and deriving identity from a name is the one thing this
+codebase refuses everywhere else it comes up.
+
+The join is available without that: `presentPlayInbox` is fed entries the caller
+builds from `PlayerCompetitions`, which holds the tournament id beside each
+competition. So the work is a mapper PLUS carrying `tournamentId` through
+`PlayInboxEntry` and `InboxAction` — a small change to a production presentation
+model, not a backend delta, and not a name join.
+
+The only other gap is the `live` urgency, which has no source; emitting `urgent`
+and `soon` only satisfies the predicate's rule rather than straining it.
 
 So the ABSORB of `/play` and `/competitions/:c/:s/play` is a recorded fate whose
 execution is **available to Stage 14**, not one waiting on the carried debts.
