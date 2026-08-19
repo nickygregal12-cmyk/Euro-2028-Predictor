@@ -44,26 +44,39 @@ export function usePersistentActions(
     if (!open) return
     const current = ++generation.current
     setStatus('loading')
-    try {
-      const feed = await source.load()
-      if (current !== generation.current) return
-      setActions(feed.actions)
-      setStatus('ready')
 
-      const unseen = feed.actions
-        .filter((action) => !action.seen)
-        .map((action) => action.actionKey)
-      if (unseen.length === 0) return
-      await source.markSeen(unseen)
-      if (current !== generation.current) return
-      setActions((existing) =>
-        existing.map((action) =>
-          unseen.includes(action.actionKey) ? { ...action, seen: true } : action,
-        ),
-      )
+    let feed: PlayerActionsFeed
+    try {
+      feed = await source.load()
     } catch {
       if (current === generation.current) setStatus('error')
+      return
     }
+
+    if (current !== generation.current) return
+    setActions(feed.actions)
+    setStatus('ready')
+
+    const unseen = feed.actions
+      .filter((action) => !action.seen)
+      .map((action) => action.actionKey)
+    if (unseen.length === 0) return
+
+    try {
+      await source.markSeen(unseen)
+    } catch {
+      // The read succeeded, so keep showing it. A failed seen write is not
+      // permission to pretend the server recorded anything: rows stay `New`
+      // and opening the panel later can retry the canonical command.
+      return
+    }
+
+    if (current !== generation.current) return
+    setActions((existing) =>
+      existing.map((action) =>
+        unseen.includes(action.actionKey) ? { ...action, seen: true } : action,
+      ),
+    )
   }, [open, source])
 
   useEffect(() => {
@@ -81,7 +94,13 @@ export function usePersistentActions(
 
   const dismiss = useCallback(
     async (actionKey: string) => {
-      await source.dismiss(actionKey)
+      try {
+        await source.dismiss(actionKey)
+      } catch {
+        // Keep the server-owned row visible if persistence failed. Removing it
+        // locally would manufacture a cross-device state that does not exist.
+        return
+      }
       setActions((existing) => existing.filter((action) => action.actionKey !== actionKey))
     },
     [source],
