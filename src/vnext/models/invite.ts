@@ -24,8 +24,11 @@
  * is no instant in this model to recompute it from, on purpose.
  */
 
-/** What kind of thing the code opened. The server's word. */
-export type InviteContainer = 'league' | 'competition'
+/**
+ * What kind of thing the code opened. The server's word. Not exported:
+ * nothing outside this file names it, and `InviteDetails` carries it.
+ */
+type InviteContainer = 'league' | 'competition'
 
 /**
  * WHAT THE PLAYER CAN DO ABOUT THIS INVITE.

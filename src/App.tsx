@@ -301,6 +301,18 @@ const VNextDiscoveryPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's invite landing against real data. It WRITES: accepting really
+// joins, through whichever function the server's own joinWith names. The
+// production /join/:code landing is untouched, including its pending-invite
+// handling across sign-up, which is routing and therefore Stage 14's.
+const VNextInvitePreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextInvitePreview').then((m) => ({
+        default: m.VNextInvitePreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -378,6 +390,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextDiscoveryPreview ? (
                   <Route path="/dev/vnext-discovery" element={<VNextDiscoveryPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextInvitePreview ? (
+                  <Route path="/dev/vnext-invite" element={<VNextInvitePreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

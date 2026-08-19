@@ -183,3 +183,16 @@ export {
   discoveryScenarios,
 } from './discovery/scenarios'
 export type { DiscoveryScenarioName } from './discovery/scenarios'
+
+/**
+ * Stage 13's Invite worlds. Every refusal the server can make has a world,
+ * because the binding property of that surface is that it never offers a button
+ * the database would refuse — and a fixture set holding only the happy path
+ * would let that be reviewed as "there is a Join button, good".
+ */
+export {
+  inviteScenarioNames,
+  inviteScenarioPremises,
+  inviteScenarios,
+} from './invite/scenarios'
+export type { InviteScenarioName } from './invite/scenarios'
