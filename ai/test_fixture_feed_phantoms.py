@@ -31,12 +31,14 @@ PHANTOM = {
 class FakeConn:
     """Enough of the connection to record what the repair would do."""
 
-    def __init__(self, fixtures, evidence=None):
+    def __init__(self, fixtures, evidence=None, rowcounts=None):
         self.fixtures = fixtures
         self.evidence = evidence or {}
+        self.rowcounts = rowcounts or {}
         self.writes: list[tuple[str, tuple]] = []
         self.committed = False
         self._result = None
+        self.rowcount = 0
 
     def execute(self, sql, params=()):
         squashed = " ".join(sql.split())
@@ -50,6 +52,8 @@ class FakeConn:
         else:
             self.writes.append((squashed, params))
             self._result = []
+            self.rowcount = next(
+                (n for prefix, n in self.rowcounts.items() if squashed.startswith(prefix)), 0)
         return self
 
     def fetchall(self):
@@ -142,3 +146,34 @@ def test_an_already_canonical_board_is_a_no_op(fixtures):
     assert report["retired"] == []
     assert report["skipped"] == []
     assert conn.writes == []
+
+
+def test_the_audit_counts_what_moved_not_what_the_twin_ends_up_holding():
+    """The first version reported the destination's TOTAL as "repointed".
+
+    It logged 570 market prices moved when 24 rows had actually moved, and
+    counted fixtures rather than rows for the derived odds. An audit trail that
+    overstates is worse than one that stays silent, because the number looks
+    like evidence.
+    """
+    conn = FakeConn(
+        [REAL, PHANTOM],
+        rowcounts={
+            'update ai.market_prices': 24,
+            'delete from ai.fixture_odds': 24,
+        },
+    )
+    report = retire_fixture_feed_phantoms(conn, apply=True)
+
+    assert report["market_price_rows_moved"] == 24
+    assert report["fixture_odds_rows_deleted"] == 24
+    assert report["retired"][0]["market_prices_moved"] == 24
+    assert report["retired"][0]["fixture_odds_deleted"] == 24
+
+
+def test_a_dry_run_reports_no_counts_it_did_not_earn():
+    conn = FakeConn([REAL, PHANTOM], rowcounts={'update ai.market_prices': 24})
+    report = retire_fixture_feed_phantoms(conn, apply=False)
+    assert report["market_price_rows_moved"] == 0
+    assert report["fixture_odds_rows_deleted"] == 0
+    assert "market_prices_moved" not in report["retired"][0]

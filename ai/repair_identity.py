@@ -130,23 +130,31 @@ def retire_fixture_feed_phantoms(conn, apply: bool) -> dict:
                  "resolves_to": f"{home} v {away}",
                  "kickoff_at": str(row["kickoff_at"])}
         if apply:
-            conn.execute("update ai.market_prices set fixture_id = %s where fixture_id = %s",
-                         (twin, row["id"]))
-            prices += conn.execute(
-                "select count(*) as n from ai.market_prices where fixture_id = %s",
-                (twin,)).fetchone()["n"]
-            conn.execute("delete from ai.fixture_odds where fixture_id = %s", (row["id"],))
-            derived += 1
+            # COUNT WHAT MOVED, not what the destination ended up holding. The
+            # first version of this reported the twin's TOTAL price count as
+            # "repointed" -- 570 where 24 rows had actually moved -- and counted
+            # fixtures rather than rows for the derived odds. An audit trail
+            # that overstates is worse than one that stays silent, because the
+            # number looks like evidence.
+            moved = conn.execute(
+                "update ai.market_prices set fixture_id = %s where fixture_id = %s",
+                (twin, row["id"])).rowcount
+            prices += max(moved, 0)
+            cleared = conn.execute(
+                "delete from ai.fixture_odds where fixture_id = %s", (row["id"],)).rowcount
+            derived += max(cleared, 0)
             conn.execute(
                 "update ai.fixtures set status = 'void', updated_at = now() where id = %s",
                 (row["id"],))
+            entry["market_prices_moved"] = max(moved, 0)
+            entry["fixture_odds_deleted"] = max(cleared, 0)
         retired.append(entry)
 
     if apply and retired:
         conn.commit()
     return {"retired": retired, "skipped": skipped,
-            "market_prices_repointed_onto_twin": prices,
-            "fixture_odds_cleared": derived, "applied": bool(apply)}
+            "market_price_rows_moved": prices,
+            "fixture_odds_rows_deleted": derived, "applied": bool(apply)}
 
 
 def main() -> int:
