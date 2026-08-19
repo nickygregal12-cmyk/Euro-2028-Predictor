@@ -369,6 +369,37 @@ detail. Three things are worth recording here rather than there:
   with different evidence, and folding it in here would have made both harder to
   review.
 
+## Correction record — 19 August 2026, `OPS-012` confirmed and reclassified
+
+`OPS-012` was opened hours earlier as a check to perform rather than a defect,
+because the branch ruleset is a hosted setting and this clone cannot read it.
+The question has now been answered without reading it, from the repository's own
+merge history — and the answer is more interesting than the question.
+
+**The vNext browser suite is not a merge condition.** On #910 the merge fired
+five seconds after `CI / Required merge gate` went green and **cancelled the
+`layout` job mid-run**; it never reported a conclusion on that head. #914 shows
+the same five-second pattern. Whatever the ruleset says in full, it plainly does
+not wait for that suite.
+
+**But this is a deliberate trade-off, not an oversight**, and the register
+should not have implied otherwise. `specs/tooling-assurance-activation/plan.md`
+already names the constraint that produced it: a path-scoped workflow must not
+become an impossible required check, because a required context that a `paths:`
+filter stops from ever posting blocks the pull request forever — the same class
+of failure as the ruleset/context name mismatch recorded under `DOC-001`, and
+this repository has already lost a day to that one.
+
+So the finding survives with its cause corrected, and its closure changed. The
+review asked for the ruleset to be read; reading the merge history answered it
+better, and the fix the review implied — make those contexts required — is the
+one thing that must not be done on its own.
+
+**A note on what this makes of `CI-002`.** The #911 path-filter change is still
+worth having, but its benefit is runner minutes and capacity rather than merge
+latency: a merge was never waiting on that suite in the first place. The earlier
+framing of it as time a doc-only pull request spent waiting was wrong.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.
@@ -478,7 +509,7 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 | `UX-006` | The vNext palette has no contrast matrix | **Open, recorded 19 August 2026.** `tests/design-system/tokenContrast.test.ts` measures every text token against every surface token in `src/styles/tokens.css` and exists because a 4.06:1 pairing shipped and was found only where a route happened to render it. Nothing measures `src/vnext/foundations/tokens.css`, whose muted text step is described in its own authority as sitting at the contrast floor. The vNext Storybook axe run is blocking and real, but it is exactly the per-story mechanism that earlier proved insufficient. Closure is the same measurement pointed at the vNext palette with its table pinned. Related to `DEC-013`; not the same item. |
 | `TEST-003` | No rule covers drawn geometry, and Stage 12 draws a bracket | **Closed 19 August 2026 — the rule exists and it fails.** `src/vnext/AGENTS.md` now states the three parts together: the geometry comes from the model in one calculation, a browser spec reads the rendered coordinates back and asserts the RELATIONSHIPS against what the page itself states, and the drawing is the illustration while something semantic is the authority. `tests/vnext/vnextDrawnGeometry.test.ts` is the half that fails: a registry naming, for every vNext component that positions something by a computed coordinate, the browser spec that measures it — checked in BOTH directions, so an unregistered drawing fails and a registered file that has stopped drawing fails too, and the named spec must exist, be registered in `playwright.vnext.config.ts` so it actually runs, and contain a read of rendered geometry rather than markup alone. **Enforcement was verified by mutation rather than by the checker going quiet:** removing the registry entry, adding an unregistered bracket component, and pointing the entry at a spec that never reads a coordinate each failed the assertion written for them. A drawing whose coordinates are all literals is deliberately outside the rule — a static icon is not a calculation that can invert itself, and a gate that made the lane's future icon set answer to a chart rule would be worked around rather than satisfied. **What the guard cannot check** is whether the assertions inside the named spec are the right ones; nothing mechanical can, and the reviewer still has to ask what the coordinates are compared against. Closed before Stage 12 drew anything: no vNext Championship or bracket source existed on `main` at the time, which is the timing the finding asked for. |
 | `DOC-004` | Stage 15 must audit against vNext primitives that are not enumerated anywhere | **Open, recorded 19 August 2026.** Stage 15's completion predicate requires every major Euro 2028 surface to be audited against the vNext quality and system primitives, and that shared components are reused only where their semantics match. The per-surface authorities exist and are good; the global half is distributed through `src/vnext/AGENTS.md` alongside the shell contract, the integration contract and roughly thirty invariants. An auditor would have to re-derive the list by inferring which paragraphs are reusable primitives. Closure is one short enumerated list that `src/vnext/AGENTS.md` points at. |
-| `OPS-012` | Whether the vNext and Storybook checks are required for merge is unverified | **Recorded 19 August 2026 as a check to perform, not a confirmed defect.** `CI / Required merge gate` is `needs: ci` and aggregates the `ci` job alone; `vnext-workshop.yml` and `storybook.yml` are path-scoped workflows outside it. Whether the branch ruleset separately requires those contexts is a hosted setting and was not readable from the repository, so no defect is claimed. It is recorded because the failure mode is silent, and because if they are not required, the controller's transition condition that exact-head required CI is green can be satisfied by a gate that never looked at the suite proving the stage's layout contract. Closure is reading the ruleset and recording the answer. |
+| `OPS-012` | The vNext and Storybook checks are not required for merge, and a merge can cancel them mid-run | **Confirmed 19 August 2026, and reclassified — the cause is a deliberate trade-off rather than an oversight.** Measured on two of this repository's own pull requests: on #910 `CI / Required merge gate` reported success at 10:44:02 and the pull request merged at 10:44:07, five seconds later, while the vNext `layout` suite was still running — it was **cancelled at 10:55:08** by that merge and never reported a conclusion on that head. #914 repeats the pattern: gate green 12:06:30, merged 12:06:30. `authenticated-browser` also completed after #910 had merged. **The cause is written down and was reasoned about.** `specs/tooling-assurance-activation/plan.md` names the constraint under *Risks to falsify* — "path-scoped workflows must not become impossible required checks; the main CI aggregate must always report a conclusion" — which is the correct GitHub concern: a required context that a `paths:` filter prevents from ever posting blocks the pull request forever. So the gate aggregates the always-running `ci` job alone, on purpose. **What remains true is the review's point:** the suite that proves a vNext stage's layout contract is not a merge condition, so the controller's stage-transition requirement that exact-head required CI is green can be satisfied while that suite is cancelled, unreported or red. **Closure is therefore NOT "add the contexts to the ruleset"** — that recreates exactly the failure the plan warned about. Either the path-scoped workflow gains a companion job that always reports a conclusion (success when its paths did not match) and *that* becomes required, or the vNext programme's own transition check verifies the layout suite's conclusion on the exact head rather than trusting the aggregate. Both are repository work; the ruleset half is an admin action in GitHub settings and cannot be performed from a session. |
 
 ## Low
 
