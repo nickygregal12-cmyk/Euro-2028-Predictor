@@ -19,7 +19,7 @@
  * reason — see `fixtures/about/content.ts`.
  */
 
-export type AboutSection = {
+type AboutSection = {
   /** Stable id, used for the heading and for anchoring a link at it. */
   readonly id: string
   readonly heading: string
@@ -27,7 +27,7 @@ export type AboutSection = {
   readonly paragraphs: readonly string[]
 }
 
-export type AboutLink = {
+type AboutLink = {
   readonly label: string
   /**
    * An in-product route or an absolute URL.
