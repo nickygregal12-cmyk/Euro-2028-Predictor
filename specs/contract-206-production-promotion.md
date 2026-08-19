@@ -34,7 +34,7 @@ Out of scope:
 - updating hosted contract records before hosted evidence exists;
 - updating Netlify's production contract declaration before Production is
   independently read back at 206;
-- Contracts 207/208 or any other open migration branch.
+- any later queued migration branch beyond the current Contract 206 boundary.
 
 ## Governing authorities
 
