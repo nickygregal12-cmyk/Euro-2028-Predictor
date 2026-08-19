@@ -64,10 +64,10 @@ import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
  * platform's own `postponed`, `abandoned` and `void` are the only ones that
  * reach the model.
  *
- * THAT REFUSAL IS UNCHANGED BY CONTRACT 206, AND IS WHY IT WAS THE RIGHT ONE.
+ * THAT REFUSAL IS UNCHANGED BY CONTRACT 207, AND IS WHY IT WAS THE RIGHT ONE.
  * Until that contract, `season_fixtures.status` could only become `postponed`
  * by an administrator pressing approve, so the practical effect of this file's
- * rule was that a real postponement never appeared at all. Contract 206 moved
+ * rule was that a real postponement never appeared at all. Contract 207 moved
  * the decision to where it belongs — the ingestion boundary applies a
  * provider's postponement, records it, and reverses it when the provider
  * recants — so `fixture.status` now carries the answer this mapper always

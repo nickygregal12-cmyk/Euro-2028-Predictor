@@ -420,14 +420,14 @@ the season under the composite key `501/28275` — so that arm had never once
 matched, and nothing noticed because the second arm was carrying it. The second
 arm compares the request URL against the poll target's stored path, and contract
 146 put `{{date:+N}}` placeholders in that path on 10 August, which no
-dispatched URL can ever match. Fixed by contract 206.
+dispatched URL can ever match. Fixed by contract 207.
 
 **`ING-002` — the provider's word for "postponed" was not in the vocabulary.**
 SportMonks state `10` is absent from `provider_status_kinds`, so contract 135
 resolves it `unknown` and contract 174 stages nothing. The archived payloads
 show four 22 August fixtures moving from state `1` to state `10` on 15 August
 and holding it across five consecutive daily polls with no score and an
-unchanged kickoff. Seeded as `postponed` by contract 206, with that evidence
+unchanged kickoff. Seeded as `postponed` by contract 207, with that evidence
 recorded in the seed row.
 
 **`ING-003` — nothing automatic could write the status at all.**
@@ -435,7 +435,7 @@ recorded in the seed row.
 `season_fixture_live_state`, which its own comment forbids anything deriving
 from, and writes `season_fixtures.status` only for a `final`. The single path
 from a provider postponement to the fixture's status was an administrator
-approving a contract 174 proposal. Fixed by contract 206, which applies and
+approving a contract 174 proposal. Fixed by contract 207, which applies and
 reverses `postponed` automatically and leaves `cancelled` and `abandoned` with
 the administrator.
 
@@ -443,7 +443,7 @@ the administrator.
 `import_provider_fixture_revisions` refused a kickoff move on any fixture whose
 status was not `scheduled`, so a fixture marked `postponed` kept its stale
 kickoff for ever: the replacement date could never import, and contract 119's
-per-fixture lock read the elapsed instant. Fixed by contract 206.
+per-fixture lock read the elapsed instant. Fixed by contract 207.
 
 **Where the pipeline was already right, stated because it was checked rather
 than assumed.** A postponed fixture cannot score — the settlement card maps it
@@ -465,7 +465,7 @@ render `row.score ?? row.provisional ?? row.kickoff ?? '—'`, and
 `played: status === 'played'`. A postponed fixture would therefore have rendered
 as an ordinary row at its dead kickoff — the exact sentence `FINDING G §E`
 forbids — on the generation of the UI production is actually serving. Closed by
-contract 206: the presenter refuses to format an instant that is only a memory,
+contract 207: the presenter refuses to format an instant that is only a memory,
 and the three surfaces say which state it is in, in the same words the vNext
 lane uses and from the same shared helper.
 
@@ -478,13 +478,13 @@ at `2026-08-19T15:40:03Z` — on a scratch PostgreSQL 16 carrying Development's
 season key (`501/28275`), its twelve SportMonks team identifiers, its Matchweek 3
 round mapping, its six fixtures and contract 146's stored poll path verbatim.
 
-**Before contract 206**, with the committed pre-206 resolvers installed, both
+**Before contract 207**, with the committed pre-207 resolvers installed, both
 arms fail on that exact response: `resolve_provider_season('sportmonks','28275')`
 returns null, and the request URL `LIKE` the stored path is false. The response
 resolves to no season, which is the `unresolved_season` outcome Development has
 recorded 13 times.
 
-**After contract 206**, with nothing else changed, the same response resolves,
+**After contract 207**, with nothing else changed, the same response resolves,
 and one run of `consume_provider_responses()` — the function `pg_cron` calls —
 reports `applied: 1` and leaves:
 
@@ -514,16 +514,16 @@ because it is scheduled in the feed. For the Celtic fixture the failure was
 ours; for the Rangers fixture the provider has not moved yet. When it does, this
 replay is what that poll will do.
 
-**What was real and what was stood in for.** Every function contract 206 writes
+**What was real and what was stood in for.** Every function contract 207 writes
 or redefines ran as its committed text: both resolvers, the poll-path pattern,
 the kickoff importer, the lifecycle applier, the change detector, the driver and
 the lock authority — as did `season_fixtures`' own status and
-score-matching CHECK constraints. The functions contract 206 does not touch were
+score-matching CHECK constraints. The functions contract 207 does not touch were
 stubbed: `apply_provider_fixture_facts`, `stage_provider_fixture_proposals`,
 `provider_mapping_gaps`, `refresh_round_play_windows` and
 `season_matchweek_lock_at`. So this is evidence about the ingestion path and the
 lifecycle, and it is not evidence about result writing. The full schema runs in
-CI, where `supabase/tests/252_provider_fixture_lifecycle.sql` drives the same
+CI, where `supabase/tests/253_provider_fixture_lifecycle.sql` drives the same
 transitions against every real constraint and trigger.
 
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
@@ -586,11 +586,11 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 
 | ID | Finding | Current status | Evidence / required closure |
 | --- | --- | --- | --- |
-| `ING-001` | Provider ingestion resolved no season for nine days, so nothing was imported at all | **Repository-fixed at contract 206 and replayed against the real archived response; hosted Development still carries the outage.** Both arms of `resolve_provider_response_season` were broken — an equality lookup against a composite season key, and a URL compared against a path still holding contract 146's `{{date:+N}}` placeholders. 13 consecutive responses consumed `unresolved_season`. | Apply contract 206 to Development, then confirm the next consumption records outcome `applied` and that `season_fixture_live_state` gains rows again. **A backlog does not replay itself:** `provider_response_consumption` is keyed by processing id, so the 13 already-consumed responses stay consumed and the recovery arrives with the next poll rather than from history. |
-| `ING-002` | The provider status vocabulary is measured for four tokens and guessed for eight | **Partly closed at contract 206.** SportMonks `10` is now measured from retained payloads. SportMonks `14`–`21` were seeded by contract 135 from published documentation rather than from a payload, and the evidence now contradicts one of them: `10` is what this provider actually sends for a postponement, while `14` is mapped `postponed` on no measurement at all. | Measure each of `14`, `15`, `16`, `17`, `18`, `20` and `21` against a real payload before relying on it, or remove it so it fails closed to `unknown`. Contract 206 deliberately removed none: replacing one guess with another is not an improvement, and an `unknown` token is recorded in `provider_status_observations` where it can be measured. |
-| `ING-007` | The legacy production fixture surfaces had no representation of an abnormal fixture status | **Closed at contract 206, repository-side.** `fixtureListModel` carried `played` and nothing else, so a postponed, abandoned or voided fixture rendered as an ordinary row at a kickoff that would not happen — on the generation of the UI production serves today, not the flagged vNext one. | Regression-tested in `tests/features/season/fixtureListModel.test.ts`, including that the three abnormal states produce three different accessible sentences, that none of them says "kick-off", and that the wording matches the vNext lane's from the same shared helper. Reopen if a fourth surface starts formatting `kickoffAt` itself instead of reading `row.kickoff`. |
-| `ING-005` | Prediction deadlines are enforced per fixture but published per matchweek | **Open; predates contract 206 and is not made worse by it.** Contract 119 made ENFORCEMENT per fixture for a rescheduled match; `get_season_matchweek_card` still publishes the matchweek instant. A rescheduled or postponed fixture therefore reads as locked on the Match Predictor while the trigger would accept the write — the surface is stricter than the rule, so nothing illegal is possible, but a player is told they cannot do something they can. | Publish the per-fixture lock instant on the card read and have the Match Predictor draw it, or accept the matchweek instant as the product rule and reverse contract 119. Not both. |
-| `ING-006` | A postponement can be up to 22 hours stale, and the staleness spans the prediction lock | **Open; measured by the contract 206 audit, deliberately not changed by it — it is a hosted configuration change, not a code change.** The enabled SportMonks target polls `cadence_minutes = 1440` (one call a day, currently ~15:40 UTC) with a live window opening `live_lead_minutes = 15` before kickoff. Worked through on the real fixture: for a 22 August 14:00 kickoff the last routine poll before it is 21 August ~15:40, because the 22 August daily poll fires at 15:40, after the match. The next observation is the live window at 13:45 on match day. So a postponement announced any time in those ~22 hours is invisible until 13:45 — **and the Main Predictor matchweek locks at the earliest kickoff minus its buffer, which for Matchweek 3 is 22 August 14:00 minus the buffer.** Players can therefore be predicting, and being locked into, a match the provider has already called off. This was masked entirely by `ING-001`, which meant nothing was observed at all. | **No new rule is needed — contract 146 already has both levers, and they are columns.** Proposed, for a decision rather than assumed: raise `cadence_minutes` to `360` (four calls a day) and `live_lead_minutes` to `720`, its constraint maximum, so a fixture is polled every ten minutes for the twelve hours before its kickoff. Worst-case staleness before the lock falls from ~22 hours to 6, and to 10 minutes inside the final 12. Cost, against contract 146's own published budget of ~58 requests on a matchday: about 76, plus 4 idle calls on a quiet one, and the self-limiting rule is unchanged — a fixture with a result stops holding the window open. The change is one `update public.provider_poll_targets set cadence_minutes = 360, live_lead_minutes = 720 where enabled;` against a hosted database, so it needs explicit authority for that environment and is **not** carried by contract 206. Widening the eight-day window is a separate question and is NOT proposed: the postponement this finding turned on was announced seven days out and was inside the window throughout. |
+| `ING-001` | Provider ingestion resolved no season for nine days, so nothing was imported at all | **Repository-fixed at contract 207 and replayed against the real archived response; hosted Development still carries the outage.** Both arms of `resolve_provider_response_season` were broken — an equality lookup against a composite season key, and a URL compared against a path still holding contract 146's `{{date:+N}}` placeholders. 13 consecutive responses consumed `unresolved_season`. | Apply contract 207 to Development, then confirm the next consumption records outcome `applied` and that `season_fixture_live_state` gains rows again. **A backlog does not replay itself:** `provider_response_consumption` is keyed by processing id, so the 13 already-consumed responses stay consumed and the recovery arrives with the next poll rather than from history. |
+| `ING-002` | The provider status vocabulary is measured for four tokens and guessed for eight | **Partly closed at contract 207.** SportMonks `10` is now measured from retained payloads. SportMonks `14`–`21` were seeded by contract 135 from published documentation rather than from a payload, and the evidence now contradicts one of them: `10` is what this provider actually sends for a postponement, while `14` is mapped `postponed` on no measurement at all. | Measure each of `14`, `15`, `16`, `17`, `18`, `20` and `21` against a real payload before relying on it, or remove it so it fails closed to `unknown`. Contract 207 deliberately removed none: replacing one guess with another is not an improvement, and an `unknown` token is recorded in `provider_status_observations` where it can be measured. |
+| `ING-007` | The legacy production fixture surfaces had no representation of an abnormal fixture status | **Closed at contract 207, repository-side.** `fixtureListModel` carried `played` and nothing else, so a postponed, abandoned or voided fixture rendered as an ordinary row at a kickoff that would not happen — on the generation of the UI production serves today, not the flagged vNext one. | Regression-tested in `tests/features/season/fixtureListModel.test.ts`, including that the three abnormal states produce three different accessible sentences, that none of them says "kick-off", and that the wording matches the vNext lane's from the same shared helper. Reopen if a fourth surface starts formatting `kickoffAt` itself instead of reading `row.kickoff`. |
+| `ING-005` | Prediction deadlines are enforced per fixture but published per matchweek | **Open; predates contract 207 and is not made worse by it.** Contract 119 made ENFORCEMENT per fixture for a rescheduled match; `get_season_matchweek_card` still publishes the matchweek instant. A rescheduled or postponed fixture therefore reads as locked on the Match Predictor while the trigger would accept the write — the surface is stricter than the rule, so nothing illegal is possible, but a player is told they cannot do something they can. | Publish the per-fixture lock instant on the card read and have the Match Predictor draw it, or accept the matchweek instant as the product rule and reverse contract 119. Not both. |
+| `ING-006` | A postponement can be up to 22 hours stale, and the staleness spans the prediction lock | **Open; measured by the contract 207 audit, deliberately not changed by it — it is a hosted configuration change, not a code change.** The enabled SportMonks target polls `cadence_minutes = 1440` (one call a day, currently ~15:40 UTC) with a live window opening `live_lead_minutes = 15` before kickoff. Worked through on the real fixture: for a 22 August 14:00 kickoff the last routine poll before it is 21 August ~15:40, because the 22 August daily poll fires at 15:40, after the match. The next observation is the live window at 13:45 on match day. So a postponement announced any time in those ~22 hours is invisible until 13:45 — **and the Main Predictor matchweek locks at the earliest kickoff minus its buffer, which for Matchweek 3 is 22 August 14:00 minus the buffer.** Players can therefore be predicting, and being locked into, a match the provider has already called off. This was masked entirely by `ING-001`, which meant nothing was observed at all. | **No new rule is needed — contract 146 already has both levers, and they are columns.** Proposed, for a decision rather than assumed: raise `cadence_minutes` to `360` (four calls a day) and `live_lead_minutes` to `720`, its constraint maximum, so a fixture is polled every ten minutes for the twelve hours before its kickoff. Worst-case staleness before the lock falls from ~22 hours to 6, and to 10 minutes inside the final 12. Cost, against contract 146's own published budget of ~58 requests on a matchday: about 76, plus 4 idle calls on a quiet one, and the self-limiting rule is unchanged — a fixture with a result stops holding the window open. The change is one `update public.provider_poll_targets set cadence_minutes = 360, live_lead_minutes = 720 where enabled;` against a hosted database, so it needs explicit authority for that environment and is **not** carried by contract 207. Widening the eight-day window is a separate question and is NOT proposed: the postponement this finding turned on was announced seven days out and was inside the window throughout. |
 | `PRIV-002` | Former-player retention, erasure and pseudonymisation boundary is not independently approved | **Open; Stage C2 blocked by issue #272.** The *product* direction was approved on 6 August 2026 — ordinary closure and formal erasure as two separate journeys, with no permanent cross-competition former-player identifier — and is recorded in [`../architecture/stage-c1-c2-governance.md`](../architecture/stage-c1-c2-governance.md) as `PRIV-003`–`PRIV-007`. **That is a product decision and changes nothing about this finding:** no independent approval exists, and none is claimed. | No profile ownership, account-erasure, pseudonymisation or related RLS implementation until the recorded independent review approves the boundary and required safeguards. Stage C1 must preserve current auth ownership. |
 | `DATA-003` | Same-tournament/reference constraints incomplete | **Resolved and hosted** | Private guards, privileges and valid/invalid hosted verification passed. |
 | `DATA-006` | Wider fixture/source relationships insufficiently constrained | **No proven residual defect** | Reopen only with an exact uncovered relationship. |
@@ -667,3 +667,165 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 - Current contract truth lives in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md) — never restated here, because a restated number drifts. The recorded, fail-closed split between environments is a controlled state.
 - A guard blocking incompatible deployment is a safeguard, not a defect to bypass.
 - Historical audits and reconciliations remain immutable; corrections are recorded alongside them rather than rewriting history.
+
+---
+
+## Correction record — 19 August 2026, `UX-005` and `UX-006` closed together
+
+Both were opened by the 19 August programme review and both are now discharged,
+by owner instruction to give vNext a light option and a real icon system.
+
+**`UX-005` — closed.** `src/vnext/foundations/tokens.css` gains a
+`[data-vnext][data-vnext-theme='light']` ramp and `VNextRoot` a `theme` prop
+whose precedence is a choice over the device — the half a `prefers-color-scheme`
+media query cannot do, and the reason the resolution is in the component rather
+than the stylesheet. The vNext Account surface carries the control, as three
+answers rather than a toggle, because the third — *match my device* — is the one
+a player has before they ever open the page.
+
+**`UX-006` — closed, and it found four defects on its first run.** The palette
+had never been measured, and the new
+`tests/vnext/vnextTokenContrast.test.ts` immediately reported
+`--vnext-text-muted` and `--vnext-rank-flat` at **4.45:1** on the interactive
+hover surface, against the 4.5 floor. Both were lifted to `#8d9bb4`.
+
+**One of that test's own assertions was wrong, and the correction is the more
+useful record.** It first floored every state colour on every surface, and its
+loudest failure was `--vnext-text-on-live` on `--vnext-live` at 3.21:1 — a
+pairing **no component renders**. `text-on-live` named the crest monogram and
+the live chip's word; the live fill is a seven-pixel dot. Changing a shipped
+palette to satisfy that would have been correcting the product to match the
+test. The floor now applies to the general text ramp everywhere and to state
+colours on the surfaces a page actually places them on, with the whole matrix
+pinned either way. (The crest half of that sentence stopped being true the same
+day — see the veil record below.)
+
+`DEC-016` and `DEC-017` move to **decided and implemented** in the deferred
+register. `TEST-002`, `DOC-004`, `OPS-012` and `CI-002` are untouched and stay
+exactly as opened.
+
+
+## Correction record — 19 August 2026, the veil pairings nobody measured
+
+`UX-006` closed on a table that measures **token against token**, and shipped a
+gap the same size as the one it was opened for. A vNext state colour is rarely
+drawn on a surface. It is drawn on **its own veil** — `.youTag` is the accent
+over `--vnext-accent-veil`, `.badgeSettled` the hit over `--vnext-hit-veil` —
+and a veil is `rgba(...)` composited over whatever surface the chip landed on.
+The effective background is therefore a colour that appears **nowhere in
+`tokens.css`**, so no token-to-token matrix can see it, however complete.
+
+**What that hid.** The Storybook axe run failed on `--vnext-accent` at **4.45**
+over `--vnext-accent-veil` on `--vnext-surface-interactive` — found because
+`.youTag` happens to have a story, which is precisely the per-story mechanism
+`UX-006` was opened to stop relying on. Measuring the composite properly found
+that five light state colours sat under the floor, not one:
+
+| token | was | tightest, on its own veil | now | tightest |
+| --- | --- | --- | --- | --- |
+| `--vnext-accent` | `#00754a` | 4.13 | `#006b44` | 4.69 |
+| `--vnext-hit` | `#0c7141` | 4.36 | `#0b6b3e` | 4.69 |
+| `--vnext-warn` | `#8a5300` | 4.42 | `#844f00` | 4.72 |
+| `--vnext-miss` | `#b3243c` | 4.56 | `#ae233a` | 4.75 |
+| `--vnext-joker` | `#7a5800` | 4.55 | `#765500` | 4.76 |
+
+**The dark ramp needed nothing.** Its worst veil pairing is `miss` at 4.60. That
+matters as evidence: the fix is not a blanket darkening applied until a test
+went quiet, it is the light ramp alone, because compositing a dark veil onto a
+light surface eats margin in one direction only.
+
+**And a light-theme defect the same measurement would have caught first.**
+`--vnext-text-on-live` was copied into the light block as `#ffffff` and measured
+**1.33** on the live chip's own veil — white words on a near-white pill. Axe
+found it; the row `text-on-live` × `live-veil` is what should have. It is now
+`#0a1019`.
+
+**`TeamCrest` was reading the wrong token, and only the light theme exposed it.**
+The monogram took its colour from `--vnext-text-on-live`, which worked in dark
+by coincidence — `#ffffff` on `--vnext-team-primary` — and gave white on
+`#eef1f8` in light. `--vnext-team-on-primary` exists for exactly this and follows
+the team ramp, which is the point of a crest. That is the correction; the token
+was never about the live state.
+
+**Why the pairing list is written out and not parsed from the CSS.** A parser
+that pairs every `background-color: var(--vnext-*-veil)` rule with its `color:`
+finds `LiveIndicator`'s `.indicator`, which declares `color: var(--vnext-live)`
+— and would demand 4.5:1 of a token that renders **no text there**: every text
+node in that chip overrides the colour, and what `--vnext-live` actually draws
+is a 1px border and a 7px dot, non-text graphics at a 3:1 floor (WCAG 1.4.11)
+which they clear at 3.64 worst case. Deriving the list would have washed out the
+live colour to satisfy a pairing that does not exist — the identical mistake the
+record above documents. The list is explicit, each row carrying the component it
+was read from.
+
+Both directions are mutation-proved: reverting `--vnext-accent` fails four rows,
+and reverting `--vnext-text-on-live` reports **1.33 on `surface-interactive`**,
+the same number axe printed from a real browser.
+
+## Correction record — 19 August 2026, the external UI checklist audit
+
+The owner asked whether `nextlevelbuilder/ui-ux-pro-max-skill` could improve
+what this lane has built. It was read and applied as a checklist. Most of it
+does not reach us — it targets Tailwind, shadcn and native mobile, and this lane
+uses none of them — but three of its rules are stack-agnostic and worth the
+audit it prompted. **One found a real defect.**
+
+**`truncation-strategy` — "prefer wrapping over truncation; when truncating,
+provide the full text" — found a defect, and the lane had already written the
+rule itself.** Seven screen-level stylesheets say it in capitals: *"NO DISPLAY
+NAME IS EVER CLIPPED"* (`leagues.module.css`), *"NO CLUB NAME IS CLIPPED
+ANYWHERE IN THIS FILE"* (`matches.module.css`), *"A truncated name is the
+defect"* (`playerProfile.module.css`). It was nonetheless false.
+`typography.module.css` carried a `.truncate` helper — `white-space: nowrap`
+plus `text-overflow: ellipsis` — whose only three consumers were a rival's
+display name, that rival's league name, and a ladder row's player name. Exactly
+the three strings the doctrine is about. They now use `.clamp2`, which every
+other name in the lane already used, and the helper is gone.
+
+Nothing had a chance of catching it. The class was declared and its key existed,
+so the style-class scan was satisfied; axe has no rule for silent truncation;
+and no story renders a name long enough for the browser suite to see it clip.
+`tests/vnext/vnextNoNameTruncation.test.ts` closes it from the other end — the
+shared typography module may not offer a single-line clipping helper at all —
+and is mutation-proved in both directions.
+
+**Its first assertion was wrong, and the correction is the useful part.** It
+banned `white-space: nowrap` outright and failed on `.srOnly`, which carries it
+as part of the standard visually-hidden pattern on a 1px box that is already
+clipped out of the picture — it cuts nothing a sighted reader sees, and exists
+to give a screen reader the *full* string. The defect was never the property. It
+was clipping a name. `.srOnly` is a named exemption with that reasoning
+attached.
+
+**`color-not-only` — checked, already satisfied.** `FormRun` writes W/D/L and
+carries `role="img"` with a worded label; `PredictionChip` writes "Exact score",
+"Missed", "Not predicted". Neither leans on the hit/miss/warn colour alone.
+
+**`web-target-size` (WCAG 2.2 AA, 24×24) — checked, already enforced, and not by
+us.** axe-core 4.13 runs `target-size` in its default set under the `wcag22aa`
+tag, which is inside the tag list `tests/vnext/vnextAxe.ts` selects and inside
+the Storybook addon's default run. The lane's own 44px promise is stricter and
+is separately asserted by the browser suite.
+
+**`focus-not-obscured` (WCAG 2.2 AA) — NOT verified, and recorded as unproven
+rather than fixed.** `VNextShell.module.css` has a `position: sticky; top: 0`
+masthead and no `scroll-padding-block-start` anywhere in the lane, which reads
+like exposure. It was probed in a real browser and the probe did not stand up:
+its only hit was the masthead's *own* children, whose `top` is naturally above
+the bar's bottom because they are inside it, and after that bug was fixed the
+probe stopped detecting the sticky bar at all between runs. A flaky probe is not
+evidence. It also cannot currently be exercised where it would matter —
+`playwright.vnext.config.ts` states outright that vNext has no application
+route, so the document-level scroll this criterion is about does not exist in
+this lane yet. **`UX-007` is opened** for it below, owned by Stage 14, where the
+shell becomes the production frame and the document becomes the scroller.
+
+**`touch-action: manipulation` — declined, with the reason.** The skill lists it
+against a 300ms tap delay that modern engines removed for any document with
+`width=device-width`, which this application sets. Adding it lane-wide would be
+cargo, not a fix.
+
+| id | risk | status | closes when |
+| --- | --- | --- | --- |
+| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. Not currently reachable, because vNext has no application route. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
+

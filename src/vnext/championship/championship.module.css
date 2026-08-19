@@ -60,7 +60,14 @@
 }
 
 .trophy {
-  font-size: var(--vnext-size-title);
+  /* AN SVG SIZED IN `em`, NOT A GLYPH. It was an emoji, which the design system
+     forbids and which rendered as a different typeface on every platform. The
+     icon takes its size from this rule and its colour from the text it sits
+     beside, so it needs the vertical alignment a glyph got for free. */
+  width: 1.1em;
+  height: 1.1em;
+  margin-left: var(--vnext-space-2);
+  vertical-align: -0.15em;
 }
 
 /* ---- the Penalty Number ----------------------------------------------------- */

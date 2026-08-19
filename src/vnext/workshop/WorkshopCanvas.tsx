@@ -1,6 +1,6 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { VNextRoot } from '../foundations/VNextRoot'
-import type { VNextMotionSetting } from '../foundations/VNextRoot'
+import type { VNextMotionSetting, VNextThemeSetting } from '../foundations/VNextRoot'
 // The workshop board is painted before any VNextRoot mounts, so it needs the
 // token sheet in its own right rather than by way of a child.
 import '../foundations/tokens.css'
@@ -39,6 +39,22 @@ export type WorkshopCanvasProps = {
   viewports?: readonly string[]
   motion?: VNextMotionSetting
   /**
+   * WHICH THEME THE BOARD RENDERS IN, PINNED TO DARK BY DEFAULT.
+   *
+   * Not `system`, and the difference is not cosmetic. `VNextRoot`'s default
+   * follows `prefers-color-scheme`, which is right for a player and wrong for a
+   * review surface: a Storybook frame that follows the machine renders dark on
+   * one reviewer's laptop and light on another's, and every visual-regression
+   * screenshot then depends on the CI runner's OS preference rather than on the
+   * change under review. This was observed, not predicted — the first browser
+   * probe after the light theme landed came back with the LIGHT accent because
+   * this container prefers light.
+   *
+   * So the board states its theme. Passing `light` is how a reviewer sees the
+   * other one deliberately.
+   */
+  theme?: VNextThemeSetting
+  /**
    * Shrinks the frames so several fit on one screen. Layout is unaffected: a
    * CSS transform does not change layout width, so a 1920 frame at 0.4 still
    * answers container queries as 1920 — which is the only reason side-by-side
@@ -63,6 +79,7 @@ export type WorkshopCanvasProps = {
 export function WorkshopCanvas({
   viewports = ['phone-375', 'laptop-1440'],
   motion = 'system',
+  theme = 'dark',
   scale = 1,
   children,
 }: WorkshopCanvasProps) {
@@ -89,7 +106,7 @@ export function WorkshopCanvas({
             }
           >
             <div className={styles.inner}>
-              <VNextRoot motion={motion} fill>
+              <VNextRoot motion={motion} theme={theme} fill>
                 {/* The scroller IS the frame's scrollport, so it is the thing
                     that knows how tall the frame is. Declaring
                     `--vnext-frame-block` here — inside `[data-vnext]`, which

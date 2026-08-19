@@ -169,7 +169,7 @@
   border: 0;
 }
 
-/* Contract 206. A fixture that is not going ahead as printed. Marked rather
+/* Contract 207. A fixture that is not going ahead as printed. Marked rather
    than merely coloured, and in the warning ink rather than the muted one the
    matchweek tag uses: the reader has to be able to tell "Matchweek 5" from
    "Postponed" without reading either. `--amb` is the app-wide caution ink, per

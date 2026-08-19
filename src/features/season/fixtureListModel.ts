@@ -80,7 +80,7 @@ export type FixtureListRow = {
    */
   round: { ordinal: number; name: string }
   /**
-   * THE WORD FOR A FIXTURE THAT IS NOT GOING AHEAD AS PRINTED (contract 206).
+   * THE WORD FOR A FIXTURE THAT IS NOT GOING AHEAD AS PRINTED (contract 207).
    *
    * "Postponed", "Abandoned" or "Void", and null on every ordinary fixture.
    * It is the platform's own `season_fixtures.status`, never a provider's
@@ -195,7 +195,7 @@ function summarise(fixture: SeasonListFixture, kickoff: string | null, mixed: bo
     return `${fixture.home.name} ${fixture.result.home}, ${fixture.away.name} ${fixture.result.away}${round}`
   }
 
-  // CONTRACT 206. Said BEFORE the kickoff and instead of it where there is
+  // CONTRACT 207. Said BEFORE the kickoff and instead of it where there is
   // nothing valid to say: a sentence that ends "kick-off 15:00" about a match
   // that is off is worse than one that does not mention a time at all.
   const abnormal = abnormalWord(fixture.status)
@@ -273,7 +273,7 @@ export function presentFixture(
  */
 function rowOf(fixture: SeasonListFixture, mixed: boolean, timeZone: Zone): FixtureListRow {
   const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
-  // CONTRACT 206. A postponement with no replacement date has an instant on the
+  // CONTRACT 207. A postponement with no replacement date has an instant on the
   // row — where it WAS due — and printing it in the slot a reader scans for a
   // kick-off is the defect this contract exists to remove. `kickoffAt` is
   // untouched beside it, because it is still the ordering fact every day

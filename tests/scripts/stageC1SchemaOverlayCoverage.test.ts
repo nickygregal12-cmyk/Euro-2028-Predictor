@@ -98,7 +98,9 @@ describe('Stage C1 schema overlay coverage', () => {
     // Raised 90 → 92 by contract 192's `get_season_rank_history` and
     // `get_season_rivalry`. Both take `p_tournament_id`, write nothing, and
     // reuse contract 94's ranking rather than adding a competitive authority.
-    expect(reviewedFunctions).toHaveLength(92)
+    // Raised 92 → 93 by contract 206's `get_season_player_profile_by_ref`,
+    // which keeps the same season-scoped/no-auth-ownership disposition.
+    expect(reviewedFunctions).toHaveLength(93)
   })
 
   it('gives every current and proposed relation an overlay disposition', () => {

@@ -127,7 +127,7 @@ describe('workflow supply-chain hardening', () => {
     expect(config).not.toMatch(/^\s*unpinned-uses:\s*false\s*$/m)
   })
 
-  it('holds version updates long enough to reduce supply-chain exposure', () => {
+  it('keeps Dependabot on cooled-down action pins without npm overlap', () => {
     const dependabot = parse(
       readFileSync(resolve(repositoryRoot, '.github/dependabot.yml'), 'utf8'),
     ) as {
@@ -139,7 +139,7 @@ describe('workflow supply-chain hardening', () => {
 
     expect(
       dependabot.updates?.map((update) => update['package-ecosystem']),
-    ).toEqual(expect.arrayContaining(['npm', 'github-actions']))
+    ).toEqual(['github-actions'])
     for (const update of dependabot.updates ?? []) {
       expect(
         update.cooldown?.['default-days'],

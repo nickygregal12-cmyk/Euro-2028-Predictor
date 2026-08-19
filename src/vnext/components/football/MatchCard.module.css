@@ -31,7 +31,7 @@
 
 .postponedFlag {
   color: var(--vnext-text-muted);
-  /* Contract 206: the note stacks under the word rather than beside it. The
+  /* Contract 207: the note stacks under the word rather than beside it. The
      header is a space-between row, so a wide inline note would push whatever
      the competition put on the other end off the card. */
   display: inline-flex;

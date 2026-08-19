@@ -253,7 +253,7 @@ type MatchAggregate = {
  *
  * ============================ WHY `rescheduled` IS A FIELD ================
  *
- * Contract 206. It appears on `scheduled` and on `postponed` because those are
+ * Contract 207. It appears on `scheduled` and on `postponed` because those are
  * the two states a moved fixture can be in, and because the three readings it
  * produces are the three sentences a reader needs:
  *

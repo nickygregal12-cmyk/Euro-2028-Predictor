@@ -373,8 +373,10 @@ blockquotes could never show without being read end to end.
 
 > **Contract 205 stage effect:** the bracket read becomes usable for a Championship that has reached its split. No hub build-stage scope changes.
 
-> **Contract 206 stage effect:** every hub surface that draws a fixture gains a real abnormal state to draw. No hub build-stage scope changes; the state arrives on the existing fixture reads.
+> **Contract 207 stage effect:** every hub surface that draws a fixture gains a real abnormal state to draw. No hub build-stage scope changes; the state arrives on the existing fixture reads.
 
 > **Contract 204 stage effect:** the AI Lab dashboards scope their exclusion count to the league asked about. No hub build-stage scope changes.
 
 > **Contract 203 stage effect:** the Bet Builder reads one authority instead of nine paged logs. No hub build-stage scope changes.
+
+**Contract 206 stage effect:** the weekly player-profile backend can be reached from a season-scoped leaderboard reference by another entrant, with reveal rules unchanged and no auth UUID disclosed. No engineering stage or build order changes.

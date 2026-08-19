@@ -119,7 +119,7 @@ export function MatchCard({
           // longer happening, printed next to the word that says so, still
           // reads as a time to turn up for.
           //
-          // CONTRACT 206 ADDS THE SECOND HALF OF THE SENTENCE. "Postponed" on
+          // CONTRACT 207 ADDS THE SECOND HALF OF THE SENTENCE. "Postponed" on
           // its own leaves the reader's actual question — when is it now? —
           // unanswered, and a card that cannot answer it reads as one that has
           // not been updated. The note is the mapper's, so Home and Matches say

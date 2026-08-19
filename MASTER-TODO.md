@@ -47,7 +47,7 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 - [ ] **#33** — verify the effective Protect Main/ruleset controls and required contexts.
 - [ ] **#272** — independent qualified UK data-protection review; engineering cannot self-approve it.
 - [ ] **#854** — AI Lab first-weekend/operational completion; do not close on one bug fix.
-- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility implementation.
+- [ ] **#863 / PROF-001** — backend same-season profile visibility is in PR #920; closure still requires Development rollout, generated types and the browser consumer/evidence.
 - [ ] **#865** — optional native Supabase passkey Development pilot, subject to current provider capability and RP/domain gates.
 - [ ] **#866** — available-provider anomaly corroboration sentinel.
 - [ ] **#867 / INNOV-012a** — deterministic League Side Honours.
@@ -63,7 +63,7 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 
 ## 5. Release-quality debt that remains real
 
-- [ ] **Apply contract 206 to Development, then confirm the provider lane is alive again.** Until it is applied, Development has imported nothing since 10 August: `ING-001` in the risk register. Confirm by the next `provider_response_consumption` row reading outcome `applied`, and by a postponed fixture appearing as postponed on Matches without anyone touching it. The 13 already-consumed responses do not replay — the recovery arrives with the next poll.
+- [ ] **Apply contract 207 to Development, then confirm the provider lane is alive again.** Until it is applied, Development has imported nothing since 10 August: `ING-001` in the risk register. Confirm by the next `provider_response_consumption` row reading outcome `applied`, and by a postponed fixture appearing as postponed on Matches without anyone touching it. The 13 already-consumed responses do not replay — the recovery arrives with the next poll.
 - [ ] **`ING-002`** — measure SportMonks status tokens `14`–`21` against real payloads, or remove the guessed rows so they fail closed to `unknown`.
 - [ ] **`ING-005`** — decide whether the published prediction deadline is per fixture or per matchweek. Enforcement has been per fixture since contract 119; the card read still publishes the matchweek instant, so a rescheduled fixture reads as locked while the trigger would accept the write.
 - [ ] **`ING-006`** — a postponement can be up to 22 hours stale and the staleness spans the matchweek lock, so a player can be locked into a match already called off. No code change is owed: raise `cadence_minutes` to 360 and `live_lead_minutes` to 720 on the enabled poll target. It is a hosted `update`, so it needs explicit authority for the environment. Arithmetic and cost in the risk register.

@@ -290,7 +290,7 @@ describe('the Overview preview', () => {
 })
 
 /**
- * Contract 206. The two facts a surface used to have to infer from a date.
+ * Contract 207. The two facts a surface used to have to infer from a date.
  *
  * They are decoded here rather than derived anywhere downstream, so every
  * surface reading a fixture gets the SAME answer to "is this time still real?"
@@ -345,7 +345,7 @@ describe('the schedule block', () => {
 })
 
 /**
- * Contract 206, on the surface production is actually serving.
+ * Contract 207, on the surface production is actually serving.
  *
  * The vNext lane draws the same fixture from the same fields, and its tests are
  * in `tests/vnext/matchesIntegration.test.ts`. These are here because the two

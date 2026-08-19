@@ -70,7 +70,7 @@ function PreviewRow({ row }: { row: FixturePreviewRow }) {
           <span className={styles.clubName}>{row.away.name}</span>
         </span>
       </span>
-      {/* Contract 206. Same rule as the full list, and deliberately the same
+      {/* Contract 207. Same rule as the full list, and deliberately the same
           words: a fixture must not describe itself one way on Overview and
           another in Matches. */}
       {row.roundLabel || row.provisional || row.abnormal || row.scheduleNote ? (

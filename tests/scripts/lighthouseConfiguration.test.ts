@@ -58,7 +58,12 @@ describe('the Lighthouse configuration measures this repository', () => {
   })
 
   it('installs and identifies the Chromium binary before CI audits', () => {
-    expect(ciWorkflow).toContain('npx playwright install --with-deps chromium')
+    // Hosted Ubuntu already provides Chromium runtime libraries. Installing the
+    // Playwright browser alone avoids an APT dependency step that has hung on
+    // the Azure mirror, while the executable check below still fails closed if
+    // the runner image ever stops providing a required shared library.
+    expect(ciWorkflow).toContain('npx playwright install chromium')
+    expect(ciWorkflow).not.toContain('npx playwright install --with-deps chromium')
     expect(ciWorkflow).toContain('CHROME_PATH=')
     expect(ciWorkflow.indexOf('CHROME_PATH=')).toBeLessThan(
       ciWorkflow.indexOf('npm run check:lighthouse'),

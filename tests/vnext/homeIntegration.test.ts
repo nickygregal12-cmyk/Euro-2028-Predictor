@@ -942,7 +942,7 @@ describe('the emphasis selector over real state', () => {
 })
 
 /* ------------------------------------------------------------------ *
- * Contract 206 — Home and Matches answer the same question the same way
+ * Contract 207 — Home and Matches answer the same question the same way
  * ------------------------------------------------------------------ */
 
 describe('abnormal fixture state on Home', () => {
@@ -998,7 +998,7 @@ describe('abnormal fixture state on Home', () => {
   })
 
   it('no longer postpones a fixture on a provider kind Matches would refuse', () => {
-    // The divergence contract 206 removed: Home used to promote `live.kind`
+    // The divergence contract 207 removed: Home used to promote `live.kind`
     // 'postponed' on its own, so one payload could read "P–P" here and "15:00"
     // in Matches. Both surfaces now read `status`, and there is one answer.
     const model = buildHomeModel(

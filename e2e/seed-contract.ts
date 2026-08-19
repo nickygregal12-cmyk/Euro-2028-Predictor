@@ -128,7 +128,21 @@
  * created, and against which the three new assertions ERROR rather than fail
  * before the fix.
  *
- * Contract 206 adds two read-only fields to two existing `authenticated` reads
+ * Contract 206 adds the bounded same-season profile read keyed by the season's
+ * `entries.id` playerRef and widens `resolve_season_player.canViewProfile` for
+ * compare reach. It deliberately leaves the legacy UUID profile path, pinned
+ * rivals and Prediction DNA at their narrower boundaries, and it does not add
+ * a new membership or seed prerequisite to the caller's own authenticated
+ * journey.
+ *
+ * The marker is raised on execution evidence, not on that reasoning. At exact
+ * Contract-206 head `bfe9252`, Database parity (`local-supabase`) run
+ * 32285274468 and Browser E2E run 32285274480 both passed against all 206
+ * migrations, including the deterministic seeded authenticated journeys. Later
+ * heads only re-anchored moving main and renamed the byte-identical pgTAP suite;
+ * they did not change the Contract-206 migration or seed requirements.
+ *
+ * Contract 207 adds two read-only fields to two existing `authenticated` reads
  * and one internal table no role can reach. `get_season_fixtures` and
  * `get_season_fixture` keep their signatures, their volatility, their
  * `authenticated`-only grants and their league-season refusal; each gains a
@@ -145,14 +159,13 @@
  * which the seed creates, so no seeded prediction's deadline moves.
  *
  * The marker is raised on the runs, not on that paragraph. Both jobs are
- * expected to run against a database holding all 206 migrations on this
+ * expected to run against a database holding all 207 migrations on this
  * boundary's own pull request, and the run identifiers are recorded here before
  * it merges; if either fails, the marker comes back down rather than the run
- * being explained away. The database-parity run carries pgTAP suite 252, which
+ * being explained away. The database-parity run carries pgTAP suite 253, which
  * drives the whole lifecycle from decoded provider payloads rather than by
- * setting a status by hand.
- */
-export const SEED_REVIEWED_AT_CONTRACT = 206
+ * setting a status by hand. */
+export const SEED_REVIEWED_AT_CONTRACT = 207
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
