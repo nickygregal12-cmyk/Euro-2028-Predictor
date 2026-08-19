@@ -28,6 +28,28 @@ on:
   pull_request:
     paths:
       - 'src/vnext/**'
+      # EXCEPT THE LANE'S OWN PROSE. `src/vnext/AGENTS.md` is instructions to a
+      # reader; it is imported by nothing, bundled into nothing and rendered by
+      # nothing, so no assertion in this suite can observe an edit to it. It
+      # matched `src/vnext/**` all the same, and a one-line documentation change
+      # therefore booted Storybook and spent the better part of half an hour
+      # measuring geometry that had not moved.
+      #
+      # THIS NARROWS THE TRIGGER, NOT THE SUITE. Every assertion is unchanged
+      # and every file that can actually move a rendered frame still runs it —
+      # components, stylesheets, fixtures, tokens, models, the specs, the config
+      # and this workflow. Only a file class that cannot reach the browser is
+      # excluded, and a pull request touching prose *and* code still matches on
+      # the code.
+      #
+      # Order is the mechanism: GitHub applies the patterns in sequence and the
+      # last one to match a path decides it, so these must stay below the
+      # positive pattern they carve out of. Both forms are spelled out because
+      # the lane's only Markdown file today sits at `src/vnext/AGENTS.md`, in
+      # the directory root rather than below it, and a future scoped note in a
+      # subdirectory should not quietly start booting a browser again.
+      - '!src/vnext/*.md'
+      - '!src/vnext/**/*.md'
       - '.storybook/**'
       # A GLOB RATHER THAN A LIST, because the list was already one spec short:
       # `e2e/vnext-predictor.spec.ts` landed in Stage 7 and was never added
