@@ -4,30 +4,27 @@ import { Alert } from '../design-system'
 import { weeklyRoutes } from './weeklyRoutes'
 import type { InboxAction, PlayInbox } from '../features/hub/playInboxModel'
 import type { PersistentPlayerAction } from '../services/supabase/playerActions'
-import type { PersistentActionsStatus } from './usePersistentActions'
+import {
+  usePersistentActions,
+  type PersistentActionsGateway,
+  type PersistentActionsStatus,
+} from './usePersistentActions'
 import styles from './ActionCentre.module.css'
 
 /**
  * Everything the player owes, plus the canonical persistent activity feed.
  *
- * The AppBar badge remains OUTSTANDING work from each game's server read. The
- * persistent feed answers a different question: what server-issued actions has
- * this player seen or dismissed across devices? Keeping those concepts separate
- * prevents an unread counter from masquerading as a deadline/eligibility rule.
- *
- * No deadline, completion or expiry is computed here. `get_my_actions` decides
- * which persistent rows are open; the browser may only mark those rows seen or
- * dismissed through the two bounded commands Contract 162 exposes.
+ * This component is already lazy-loaded from AppShell. The persistent Supabase
+ * service and hook live behind the same boundary so opening the occasional
+ * Action Centre does not make every route pay their entry-chunk cost.
  */
-
 export type ActionCentreProps = {
   open: boolean
   onClose: () => void
   status: 'loading' | 'ready'
   inbox: PlayInbox | null
-  persistentStatus: PersistentActionsStatus
-  persistentActions: readonly PersistentPlayerAction[]
-  onDismissPersistentAction: (actionKey: string) => Promise<void>
+  /** Test seam only; production uses the canonical Supabase gateway. */
+  persistentSource?: PersistentActionsGateway
 }
 
 export function ActionCentre({
@@ -35,11 +32,10 @@ export function ActionCentre({
   onClose,
   status,
   inbox,
-  persistentStatus,
-  persistentActions,
-  onDismissPersistentAction,
+  persistentSource,
 }: ActionCentreProps) {
   const closer = useRef<HTMLButtonElement>(null)
+  const persistent = usePersistentActions(open, persistentSource)
 
   useEffect(() => {
     if (!open) return
@@ -69,18 +65,14 @@ export function ActionCentre({
         aria-labelledby="action-centre-title"
       >
         <header className={styles.head}>
-          <h2 className={styles.title} id="action-centre-title">
-            To do
-          </h2>
+          <h2 className={styles.title} id="action-centre-title">To do</h2>
           <button type="button" className={styles.close} onClick={onClose} ref={closer}>
             Close
           </button>
         </header>
 
         {status === 'loading' || !inbox ? (
-          <p className={styles.note} aria-live="polite">
-            Checking your competitions…
-          </p>
+          <p className={styles.note} aria-live="polite">Checking your competitions…</p>
         ) : (
           <>
             {inbox.unreadable.length > 0 ? (
@@ -88,15 +80,12 @@ export function ActionCentre({
                 {inbox.unreadable.join(', ')}. Anything due there is missing from this list.
               </Alert>
             ) : null}
-
             <Group title="Due soon" actions={inbox.urgent} onNavigate={onClose} urgent />
             <Group title="This week" actions={inbox.thisWeek} onNavigate={onClose} />
             <Group title="Done and waiting" actions={inbox.settled} onNavigate={onClose} />
-
             {inbox.allClear ? (
               <p className={styles.clear}>You are up to date in every competition you play.</p>
             ) : null}
-
             {inbox.empty ? (
               <p className={styles.note}>
                 Nothing to do yet — join a game in a competition and it will appear here.
@@ -106,14 +95,12 @@ export function ActionCentre({
         )}
 
         <PersistentUpdates
-          status={persistentStatus}
-          actions={persistentActions}
-          onDismiss={onDismissPersistentAction}
+          status={persistent.status}
+          actions={persistent.actions}
+          onDismiss={persistent.dismiss}
         />
 
-        <Link className={styles.all} to={weeklyRoutes.play} onClick={onClose}>
-          Open Play
-        </Link>
+        <Link className={styles.all} to={weeklyRoutes.play} onClick={onClose}>Open Play</Link>
       </div>
     </div>
   )
@@ -147,9 +134,7 @@ function Group({
           return (
             <li key={action.key} className={urgent ? styles.itemUrgent : styles.item}>
               {action.href ? (
-                <Link className={styles.action} to={action.href} onClick={onNavigate}>
-                  {body}
-                </Link>
+                <Link className={styles.action} to={action.href} onClick={onNavigate}>{body}</Link>
               ) : (
                 <span className={styles.action}>{body}</span>
               )}
@@ -167,9 +152,8 @@ const ACTION_TITLES: Readonly<Record<string, string>> = {
   cup_penalty_number_due: 'Cup penalty number due',
   matchweek_settled: 'Matchweek settled',
   game_consequence: 'Game update',
-  // This is rendered only if the SERVER supplies a real invitation action. The
-  // current reusable share-code model creates no such row and the client never
-  // manufactures one merely because this vocabulary value exists.
+  // Rendered only if the SERVER supplies a real invitation action. The current
+  // reusable share-code model creates no such row and the client manufactures none.
   league_invitation: 'League invitation',
 }
 
@@ -184,13 +168,9 @@ function PersistentUpdates({
 }) {
   return (
     <section className={styles.updates} aria-labelledby="action-updates-title">
-      <h3 className={styles.groupTitle} id="action-updates-title">
-        Updates
-      </h3>
+      <h3 className={styles.groupTitle} id="action-updates-title">Updates</h3>
       {status === 'idle' || status === 'loading' ? (
-        <p className={styles.note} aria-live="polite">
-          Checking saved updates…
-        </p>
+        <p className={styles.note} aria-live="polite">Checking saved updates…</p>
       ) : null}
       {status === 'error' ? (
         <Alert variant="warning" title="Saved updates could not be checked">
@@ -208,9 +188,7 @@ function PersistentUpdates({
                 <span className={styles.actionTitle}>
                   {ACTION_TITLES[action.actionType] ?? 'Competition update'}
                 </span>
-                <span className={styles.persistentMeta}>
-                  {action.seen ? 'Seen' : 'New'}
-                </span>
+                <span className={styles.persistentMeta}>{action.seen ? 'Seen' : 'New'}</span>
               </span>
               <button
                 type="button"
