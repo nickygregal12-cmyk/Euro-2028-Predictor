@@ -2,11 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextAccount } from '../../src/vnext/account/VNextAccount'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
-import {
-  accountScenarioNames,
-  accountScenarios,
-} from '../../src/vnext/fixtures/account/scenarios'
-import { shellScenarios } from '../../src/vnext/fixtures/shell/scenarios'
+import { accountScenarioNames, accountScenarios, shellScenarios } from '../../src/vnext/fixtures'
 import type { AccountPageModel } from '../../src/vnext/models/account'
 
 function renderAccount(

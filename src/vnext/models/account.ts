@@ -163,7 +163,9 @@ export type HistoryPanel =
    THE PAGE
    ========================================================================== */
 
-export type AccountContext = {
+/** Not exported: nothing outside this file names it, and `AccountPageModel`
+ * carries it. An export nothing imports is a widened surface for free. */
+type AccountContext = {
   /** The player's own display name, where the platform states one. */
   readonly displayName: string | null
 }

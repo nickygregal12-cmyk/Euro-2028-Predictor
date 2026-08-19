@@ -262,6 +262,19 @@ const VNextChampionshipPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's Account surface against real data. It is the first vNext page that
+// is NOT inside a competition — the route matrix keeps platform identity outside
+// the tournament boundary — so it is also the first to exercise a shell built
+// with no competition at all. Every call it makes is a read; the production
+// /account, /profile and /more surfaces are untouched.
+const VNextAccountPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextAccountPreview').then((m) => ({
+        default: m.VNextAccountPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -330,6 +343,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextChampionshipPreview ? (
                   <Route path="/dev/vnext-championship" element={<VNextChampionshipPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextAccountPreview ? (
+                  <Route path="/dev/vnext-account" element={<VNextAccountPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
