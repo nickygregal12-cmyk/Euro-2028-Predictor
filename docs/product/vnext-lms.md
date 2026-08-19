@@ -7,7 +7,8 @@ where they stand, who is left, what the rules are, and the one pick they get.
 **Does not govern:** entry/registration into the game, Match Predictor's
 score-entry surface, Championship brackets, LMS scoring or progression rules,
 settlement, the used-list reset cycle, or any production route.
-**No production surface changed in Stage 11.**
+**Two production FILES changed and no production BEHAVIOUR did** — a
+type-only re-export and a DEV-gated route registration, both itemised in §11.
 
 **Reads consulted:** contract 116 `get_season_lms_round`, contract 164
 `get_season_lms_field`. **Write used:** `save_lms_selection`, the one that
@@ -461,9 +462,27 @@ The vNext production boundary holds: `components → models`, `integration →
 services`, never `components → services`
 (`tests/vnext/vnextProductionBoundary.test.ts`).
 
-**No change outside the lane.** Stage 11 added no service module, no migration
-and no export to a production file — contract 164's gateway and decoder already
-existed for `SeasonLmsField`, and this lane imports them as they are.
+### Two changes outside the lane, and both are itemised rather than waved away
+
+Contract 164's gateway and decoder already existed for `SeasonLmsField`, and
+this lane imports them exactly as they are. But two production files are in the
+diff, and calling the stage "no production change" would be the overstatement
+this document exists to avoid:
+
+1. **`src/services/supabase/seasonLms.ts`** — one `export type` line
+   re-exporting `LmsClub` and `LmsRoundPage` from `lmsRoundModel.ts`. The shapes
+   stay where they are, beside the presentation that first needed them; moving
+   them would churn a working surface for no gain. The line exists so a consumer
+   of THIS gateway can depend on the gateway rather than reach past it into a
+   feature directory, which is the import direction the vNext lane is built on.
+   **Type-only: it emits nothing and changes no behaviour.**
+
+2. **`src/App.tsx`** — the `/dev/vnext-lms` route, behind `import.meta.env.DEV`
+   in exactly the shape Stages 6 through 10 already use. It is tree-shaken out
+   of a production build. It is nonetheless a production file, and worth naming
+   because this harness is the first one that WRITES: pressing a club there
+   calls `save_lms_selection` and spends it for the season. The DEV gate is
+   doing real work, not ceremony.
 
 ### Two lessons from earlier stages, applied structurally
 
@@ -490,6 +509,12 @@ existed for `SeasonLmsField`, and this lane imports them as they are.
 
 ## 13. PRODUCTION ISOLATION
 
-Stage 11 is a parallel lane. **No production route was cut over**, no production
-component was edited, and the production `SeasonLmsPage` continues to serve the
-live game unchanged. Cutover is Stage 14 and requires explicit authority.
+Stage 11 is a parallel lane. **No production route was cut over** and the
+production `SeasonLmsPage` continues to serve the live game unchanged — no
+production component's rendered output differs by a single character.
+
+Two production files are in the diff and both are named in §11: a type-only
+re-export that emits nothing, and a `import.meta.env.DEV`-gated route for the
+harness, tree-shaken out of a production build. Neither reaches a user.
+
+Cutover is Stage 14 and requires explicit authority.
