@@ -169,6 +169,11 @@ describe('browser E2E project gating', () => {
       // lives at the dev-only `/dev/vnext-player` harness — which would need a
       // database holding two players who share a private league to pass.
       'vnext-player-profile.spec.ts',
+      // Stage 11's Last Man Standing. Same terms again: the deterministic
+      // worlds are the review surface, and the connected proof lives at the
+      // dev-only `/dev/vnext-lms` harness — which needs a real round, and
+      // spends a real club to prove the write.
+      'vnext-lms.spec.ts',
       // Stage 7.5's three information-architecture concepts. Same terms again,
       // and the lab adds no dev route at all: it runs on deterministic fixtures,
       // so Storybook is not merely its review surface but its only one.

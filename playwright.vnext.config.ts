@@ -46,6 +46,11 @@ export default defineConfig({
     // coordinates out of the rendered SVG. A rank chart drawn upside down is
     // invisible to every assertion that cannot see geometry.
     'vnext-player-profile.spec.ts',
+    // Stage 11, Last Man Standing. Same terms — and here the browser measures
+    // the thing that costs most: a mis-tap on this surface spends a club for
+    // the season, so the club controls are checked for size and clipping at
+    // every reviewed width rather than trusted.
+    'vnext-lms.spec.ts',
     // Stage 7.5, the three information-architecture concepts. Registered on
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic

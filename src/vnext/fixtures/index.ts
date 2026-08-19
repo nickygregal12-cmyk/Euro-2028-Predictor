@@ -123,3 +123,11 @@ export {
   playerProfileScenarios,
 } from './player/scenarios'
 export type { PlayerProfileScenarioName } from './player/scenarios'
+
+/**
+ * Stage 11's Last Man Standing worlds. Same rule as the other groups: the
+ * option and fixture builders stay module-local, because a review surface
+ * renders a WORLD rather than assembling one.
+ */
+export { lmsScenarioNames, lmsScenarioPremises, lmsScenarios } from './lms/scenarios'
+export type { LmsScenarioName } from './lms/scenarios'

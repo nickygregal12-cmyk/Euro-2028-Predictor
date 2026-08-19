@@ -3,6 +3,28 @@ import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRoundModel'
 
 /**
+ * RE-EXPORTED SO CALLERS OF THIS READ CAN NAME ITS ANSWER.
+ *
+ * The shapes live in `lmsRoundModel.ts` beside the presentation that first
+ * needed them, and moving them would churn a working surface for no gain. But
+ * a consumer of THIS gateway should be able to depend on the gateway rather
+ * than reach past it into a feature directory — which is the import direction
+ * the vNext lane is built on, and the reason this line exists.
+ */
+export type { LmsClub, LmsRoundPage } from '../../features/season/lmsRoundModel'
+
+/**
+ * AND THE REFUSAL AUTHORITY FOR THIS WRITE, for the same reason.
+ *
+ * `lmsRefusal` is the repository's map from `save_lms_selection`'s error codes
+ * to the sentence each one deserves. It exists because these refusals "are the
+ * opposite of" a generic failure — each is a rule the player just met, with a
+ * different thing to do about it — and a caller that classified them itself
+ * would be a second authority over the same RPC.
+ */
+export { isLmsRefusal, lmsRefusal } from '../../features/season/lmsRefusal'
+
+/**
  * The real season Last Man Standing gateway, over contract 116's bounded read
  * and the shared `save_lms_selection` write.
  *
