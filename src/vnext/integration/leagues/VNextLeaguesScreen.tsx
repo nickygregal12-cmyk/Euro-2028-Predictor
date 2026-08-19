@@ -4,6 +4,7 @@ import type { LeaguesIntent } from '../../leagues/VNextLeagues'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { buildLeaguesModel } from './buildLeaguesModel'
 import {
   useVNextLeaguesSource,
@@ -48,6 +49,14 @@ import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
  */
 export type VNextLeaguesScreenProps = VNextLeaguesSourceInput & {
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   readonly onIntent?: ((intent: LeaguesIntent) => void) | undefined
 }
 
@@ -83,9 +92,10 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
             // is outstanding. `null` is "this page cannot say", never zero.
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere: props.shellElsewhere ?? null,
           })
         : null,
-    [state, props.onShellIntent],
+    [state, props.onShellIntent, props.shellElsewhere],
   )
 
   const body =

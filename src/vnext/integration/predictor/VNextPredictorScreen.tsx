@@ -5,6 +5,7 @@ import type { PredictorActions } from '../../models/predictor'
 import type { ShellIntent } from '../../models/shell'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { VNextMatchPredictor } from '../../predictor/VNextMatchPredictor'
 import { buildPredictorModel } from './buildPredictorModel'
 import type { PredictorSource } from './predictorSource'
@@ -68,6 +69,14 @@ export type VNextPredictorScreenProps = VNextPredictorContextInput & {
    * no control rather than an inert one.
    */
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
 }
 
 export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
@@ -91,9 +100,10 @@ export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
             playerName: null,
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere: props.shellElsewhere ?? null,
           })
         : null,
-    [state, props.onShellIntent],
+    [state, props.onShellIntent, props.shellElsewhere],
   )
 
   return shell === null ? (

@@ -301,8 +301,9 @@ a preference: a player can go a season without either of the latter two, and a
 cutover that shipped no way to sign out would strand every shared device. The
 page heads no "Settings" section it cannot fill, and a test asserts it does not.
 
-**The action/attention centre.** `buildShellModel` sets `attention: []` for
-every connected screen, and that is the decision rather than an oversight. The
+**The action/attention centre. BUILT IN STAGE 14 — see the note at the end of
+this sub-section.** `buildShellModel` set `attention: []` for every connected
+screen, and that was the decision rather than an oversight. The
 stage contract scopes this work as "once its backend coverage is truthful
 enough", and the predicate's own wording is the test:
 
@@ -349,6 +350,37 @@ for it, and the loss is real: `/play` exists because "a player should never have
 to choose a competition merely to discover what needs done", and vNext Home is
 competition-scoped, so at cutover a player with games in two competitions has
 nothing that tells them about the second.
+
+### Built, in Stage 14, exactly as costed above
+
+| piece | where |
+| --- | --- |
+| the id carried through the inbox | `InboxAction.tournamentId`, `PlayInboxEntry.tournamentId`, and `PlayInbox.unreadable` is now `{tournamentId, competitionName}` |
+| the mapper | `src/vnext/integration/shell/buildShellAttention.ts` — pure, `PlayInbox → ShellAttentionItem[]` |
+| the source | `ShellSource.elsewhere`: the player's competitions AND the inbox, because the shell drops an item naming a competition it holds no context for |
+| the acquisition | `src/vnext/integration/shell/useVNextShellElsewhere.ts`, over `useGlobalPlayInbox` |
+| the coverage | `tests/vnext/shellAttention.test.ts` (16 cases) and two browser cases in `e2e/vnext-shell.spec.ts` |
+
+**No display-name join anywhere.** `InboxAction.key` used to be built from
+`competitionName`, so two competitions sharing a display name — two seasons of
+one competition, which is legal — produced colliding keys and a mapper written
+against it could only have sent the player to whichever it matched first. The
+key is now built from the tournament id and the test suite carries that exact
+fixture.
+
+**Two of three urgencies, said out loud.** `live` is never emitted, because
+nothing in the inbox reports a match in play. Emitting `urgent` and `soon` is
+the honest subset rather than a strained third.
+
+**Settled actions are never attention.** `presentPlayInbox`'s `settled` list is
+"done, waiting or settled"; an attention layer reporting a finished matchweek
+would be a notification feed.
+
+**It is OPTIONAL and the cost is why.** `useGlobalPlayInbox` issues one
+play-context read plus up to three game reads *per competition*. A host that
+called it per page would pay that on every navigation, so `shellElsewhere` is a
+prop on every connected screen, defaults to the one-competition shape, and is
+meant to be supplied once by the host that owns the shell across routes.
 
 ---
 
