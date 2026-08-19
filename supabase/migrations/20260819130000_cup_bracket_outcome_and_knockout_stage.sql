@@ -22,6 +22,13 @@
 -- change of behaviour, and it is recorded here rather than discovered by
 -- whichever branch merges second.
 --
+-- The pgTAP side of the same coordination is already settled: #920's suite is
+-- `252_same_season_player_profile_visibility.sql` on its branch head — its PR
+-- BODY still describes an earlier 251, which was corrected and not rewritten —
+-- so this contract's suites took 253 and 254 and the two branches do not
+-- collide. `tests/scripts/pgTapSuiteNumbering.test.ts` is what would have
+-- caught it, and a new collision is exactly what that guard is for.
+--
 -- Two corrections to `get_season_cup_bracket`, both of which the vNext
 -- Championship recorded as owed rather than worked around permanently
 -- (`docs/product/vnext-championship.md` §6 and §7).

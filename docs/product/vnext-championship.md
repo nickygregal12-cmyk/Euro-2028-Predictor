@@ -216,7 +216,7 @@ so no join was added — and emitted verbatim beside `entered`. It is the
 construction the Penalty Number uses: a per-seat outcome would turn a draw sheet
 into a disclosure of every entrant's standing. The in-transaction guard asserts
 all three properties against the installed text, and
-`supabase/tests/253_cup_bracket_outcome_and_knockout_stage.sql` proves them
+`supabase/tests/254_cup_bracket_outcome_and_knockout_stage.sql` proves them
 against a competition with four entrants holding four different outcomes.
 
 **Three mapper fallbacks were removed, and the page says LESS in one case.**

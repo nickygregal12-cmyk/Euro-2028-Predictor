@@ -6,7 +6,7 @@ const read = (path: string) => readFileSync(resolve(process.cwd(), path), 'utf8'
 
 const migration = read('supabase/migrations/20260819120000_cup_phase_determinate_membership.sql')
 const previous = read('supabase/migrations/20260811200000_season_cup_initial_group_table.sql')
-const proof = read('supabase/tests/252_cup_phase_determinate_membership.sql')
+const proof = read('supabase/tests/253_cup_phase_determinate_membership.sql')
 
 /**
  * The body of the one function this contract replaces, so an assertion about
