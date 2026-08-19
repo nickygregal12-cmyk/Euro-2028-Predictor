@@ -80,6 +80,32 @@ select is(
 -- be measuring the canonical rule rather than the venue rule this file is about.
 -- Separating them keeps each assertion testing what it was written to test.
 -- ---------------------------------------------------------------------------
+-- Admin context is established HERE rather than after seeding, because the
+-- baseline below calls the same competition-admin reads the assertions do.
+select set_config('request.jwt.claims',
+  json_build_object('sub', md5('q190-admin')::uuid, 'role', 'authenticated',
+    'app_metadata', json_build_object('admin_role', 'super_admin'))::text, true);
+
+-- THE LAB-WIDE BASELINE, captured before this suite seeds anything.
+--
+-- The last two assertions use `admin_ai_evidence_by_market` and
+-- `admin_ai_betting_gate_status`, which take NO league argument and are
+-- lab-wide on purpose -- a publication gate counting one league's settled bets
+-- would be the wrong number to publish on. An absolute expectation against a
+-- lab-wide read is therefore only true on an EMPTY database, and CI's is empty.
+-- Against a disposable copy of Production they read `have: 38 want: 1`, and the
+-- read was right.
+--
+-- What those two assertions are ABOUT is that a synthetic aggregate-priced row
+-- is excluded. A delta says that better than an absolute count does: this suite
+-- seeds one real settled bet and one synthetic one, so the lab-wide count must
+-- rise by exactly ONE. That still fails if the synthetic row is counted, which
+-- is the whole point, and it is true on a populated database too.
+create temporary table lab_wide_baseline on commit drop as
+select
+  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer as market_1x2_settled,
+  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer as gate_settled;
+
 insert into ai.models (id, league, version, family, training_matches, status)
 values (md5('q190-model')::uuid, 'Q190', 'q190-v1', 'poisson', 500, 'challenger');
 
@@ -215,13 +241,15 @@ select is(
 );
 
 select is(
-  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer,
+  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer
+    - (select market_1x2_settled from lab_wide_baseline),
   1,
   'admin market evidence excludes synthetic settled rows'
 );
 
 select is(
-  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer,
+  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer
+    - (select gate_settled from lab_wide_baseline),
   1,
   'publication gate evidence excludes synthetic settled rows'
 );

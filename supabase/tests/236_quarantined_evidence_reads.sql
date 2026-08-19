@@ -20,6 +20,38 @@ begin;
 
 select plan(36);
 
+-- Admin context is established HERE rather than after seeding, because the
+-- baseline below calls the same competition-admin reads the assertions do.
+select set_config('request.jwt.claims',
+  json_build_object('sub', md5('q189-admin')::uuid, 'role', 'authenticated',
+    'app_metadata', json_build_object('admin_role', 'super_admin'))::text, true);
+
+
+-- ---------------------------------------------------------------------------
+-- THE LAB-WIDE BASELINE, captured before this suite seeds anything.
+--
+-- Three of the reads below take NO league argument and are lab-wide on purpose:
+-- `admin_ai_evidence_by_market`, `admin_ai_betting_gate_status` and
+-- `admin_ai_dashboard(null)`. A publication gate that counted only one league's
+-- settled bets would be the wrong number to decide publication on.
+--
+-- Asserting an absolute count against a lab-wide read therefore only holds on
+-- an EMPTY database, and CI's is empty. Against a disposable copy of Production
+-- carrying 37 quarantined forecasts and 80-odd settled bets, these assertions
+-- read `have: 39 want: 2` -- and the READ was right each time.
+--
+-- That is the same vacuous pass that hid the contract-204 defect, with the
+-- blame the other way round: there the read was wrong, here the expectation
+-- was. The fix is not to relax the assertion to `>=`, which would stop it
+-- noticing a read that counts nothing. It is to assert the DELTA this suite is
+-- responsible for, which is exactly what each assertion already meant and is
+-- true on an empty database and a populated one alike.
+create temporary table lab_wide_baseline on commit drop as
+select
+  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer as market_1x2_settled,
+  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer as gate_settled,
+  ((public.admin_ai_dashboard(null) ->> 'quarantined_predictions'))::integer as quarantined_all;
+
 -- ---------------------------------------------------------------------------
 -- A model, a fixture each, and two forecasts
 -- ---------------------------------------------------------------------------
@@ -157,13 +189,15 @@ select is(
 );
 
 select is(
-  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer,
+  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer
+    - (select market_1x2_settled from lab_wide_baseline),
   2,
   'and the 1X2 market evidence counts both'
 );
 
 select is(
-  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer,
+  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer
+    - (select gate_settled from lab_wide_baseline),
   2,
   'and the publication gate counts both — this one never joined ai.bets at all'
 );
@@ -285,7 +319,8 @@ select is(
 );
 
 select is(
-  ((public.admin_ai_dashboard(null) ->> 'quarantined_predictions'))::integer,
+  ((public.admin_ai_dashboard(null) ->> 'quarantined_predictions'))::integer
+    - (select quarantined_all from lab_wide_baseline),
   2,
   'asked about no league in particular it still answers for the whole lab, which is the question that was asked'
 );
@@ -343,13 +378,15 @@ select is(
 );
 
 select is(
-  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer,
+  ((public.admin_ai_evidence_by_market() -> '1X2' ->> 'settled_bets'))::integer
+    - (select market_1x2_settled from lab_wide_baseline),
   1,
   'the per-market evidence counts one'
 );
 
 select is(
-  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer,
+  ((public.admin_ai_betting_gate_status() -> 'settled_bets' ->> 'value'))::integer
+    - (select gate_settled from lab_wide_baseline),
   1,
   'and the publication gate counts one, which is the number that decides whether any of this is shown'
 );
