@@ -331,7 +331,11 @@ This stage has two distinct states:
 
 Before `READY FOR CUTOVER`:
 
-- every Football Hub route has an intentional production behaviour;
+- every Football Hub route has an intentional production behaviour, **and every
+  user-facing CAPABILITY has a stated destination** —
+  [`vnext-cutover-capability-parity.md`](vnext-cutover-capability-parity.md) is
+  where that is recorded, because a route may disappear while every useful
+  capability survives and a route-only audit cannot tell the two apart;
 - no required user journey depends on the workshop/dev harness;
 - production build contains the intended vNext surfaces and only intentional legacy compatibility;
 - auth, refresh, deep-link, navigation and error paths are tested;
