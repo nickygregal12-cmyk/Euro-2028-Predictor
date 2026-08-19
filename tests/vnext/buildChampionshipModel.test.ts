@@ -99,6 +99,9 @@ function source(bracket: SeasonCupBracket | null): ChampionshipSource {
       gameName: 'Predictor Championship',
     },
     bracket: bracket === null ? { kind: 'failed' } : { kind: 'ok', bracket },
+    // Contract 167 is asked for separately and answers separately. Defaulted to
+    // "no group stage" so the bracket tests below say nothing about groups.
+    groupStage: { kind: 'ok', groupStage: { available: false } },
   }
 }
 
@@ -483,5 +486,124 @@ describe('the Penalty Number is mapped from two independent booleans', () => {
 
   it('reports not-required when the read did not answer', () => {
     expect(buildChampionshipModel(source(null)).penaltyNumber).toEqual({ kind: 'not-required' })
+  })
+})
+
+/**
+ * CONTRACT 167 → THE GROUP PANEL. It is carried, never computed: the rank the
+ * server sent is the rank printed, in the position it arrived.
+ */
+describe('the group stage is carried, never recomputed', () => {
+  function groupStage(over: Record<string, unknown> = {}) {
+    return {
+      available: true as const,
+      entered: true as const,
+      competition: {
+        id: 'c-1',
+        name: 'Caledonian Premiership',
+        seasonName: '2027/28',
+        seasonKey: null,
+        visibility: null,
+        completedAt: null,
+      },
+      groupCount: 1,
+      myGroupOrdinal: 1,
+      matchdays: 3,
+      groups: [
+        {
+          groupId: 'g-a',
+          ordinal: 1,
+          size: 2,
+          isMyGroup: true,
+          rows: [
+            {
+              rank: 2,
+              userId: 'u-me',
+              displayName: 'Ada',
+              isMe: true,
+              drawNumber: 1,
+              tablePoints: 4,
+              pointsFor: 6,
+              pointsAgainst: 5,
+              windowPoints: 4,
+              exacts: 1,
+              corrects: 2,
+              scorelineError: null,
+            },
+            {
+              rank: 1,
+              userId: 'u-2',
+              displayName: 'Bo',
+              isMe: false,
+              drawNumber: 2,
+              tablePoints: 7,
+              pointsFor: 9,
+              pointsAgainst: 2,
+              windowPoints: 7,
+              exacts: 2,
+              corrects: 3,
+              scorelineError: 3,
+            },
+          ],
+        },
+      ],
+      ...over,
+    }
+  }
+
+  function withGroups(stage: unknown) {
+    const base = source(entered())
+    return { ...base, groupStage: { kind: 'ok' as const, groupStage: stage as never } }
+  }
+
+  it('prints the rows in the order the server sent them, unsorted', () => {
+    const model = buildChampionshipModel(withGroups(groupStage()))
+    if (model.groups.kind !== 'groups') throw new Error('expected groups')
+    // Rank 2 arrived FIRST. A surface that sorted would put Bo on top; the
+    // standings authority's order is the one printed.
+    expect(model.groups.groups[0]?.rows.map((r) => r.rank)).toEqual([2, 1])
+  })
+
+  it('takes `isYou` from the server flag rather than matching a name', () => {
+    const model = buildChampionshipModel(withGroups(groupStage()))
+    if (model.groups.kind !== 'groups') throw new Error('expected groups')
+    expect(model.groups.groups[0]?.rows.map((r) => r.isYou)).toEqual([true, false])
+  })
+
+  it('keeps a null scoreline error null, because it is not an error of zero', () => {
+    const model = buildChampionshipModel(withGroups(groupStage()))
+    if (model.groups.kind !== 'groups') throw new Error('expected groups')
+    expect(model.groups.groups[0]?.rows[0]?.scorelineError).toBeNull()
+  })
+
+  it('distinguishes holding no group from there being no groups', () => {
+    const model = buildChampionshipModel(withGroups(groupStage({ myGroupOrdinal: null })))
+    if (model.groups.kind !== 'groups') throw new Error('expected groups')
+    expect(model.groups.yourOrdinal).toBeNull()
+    expect(model.groups.groups.length).toBe(1)
+  })
+
+  it('says `no-groups` when the competition has no group stage', () => {
+    expect(buildChampionshipModel(withGroups({ available: false })).groups).toEqual({
+      kind: 'no-groups',
+    })
+  })
+
+  it('says `not-entered` when the caller is not in the group stage', () => {
+    const model = buildChampionshipModel(
+      withGroups({
+        available: true,
+        entered: false,
+        competition: { id: 'c-1', name: 'Caledonian Premiership', seasonName: '2027/28' },
+      }),
+    )
+    expect(model.groups).toEqual({ kind: 'not-entered' })
+  })
+
+  it('says `unavailable` when contract 167 failed, without touching the bracket', () => {
+    const base = source(entered())
+    const model = buildChampionshipModel({ ...base, groupStage: { kind: 'failed' } })
+    expect(model.groups).toEqual({ kind: 'unavailable' })
+    expect(model.bracket.kind).toBe('bracket')
   })
 })

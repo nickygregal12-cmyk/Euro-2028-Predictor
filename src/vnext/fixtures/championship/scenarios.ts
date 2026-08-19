@@ -19,6 +19,8 @@ import type {
   BracketSeat,
   BracketSide,
   ChampionshipPageModel,
+  GroupTable,
+  GroupTableRow,
 } from '../../models/championship'
 
 const CHAMPIONSHIP_NOW = '2027-05-01T12:00:00.000Z'
@@ -72,12 +74,66 @@ const semiFinals: readonly BracketSeat[] = [
 
 const finalSeat = seat('f-1', 22, 'Final', empty, empty, { roundSize: 2, bracketSlot: 1 })
 
+/**
+ * A GROUP TABLE ROW. Ranks are the standings authority's and are written here
+ * in the order and with the numbers a real table carries; nothing sorts them.
+ */
+function row(
+  rank: number,
+  displayName: string,
+  tablePoints: number,
+  over: Partial<GroupTableRow> = {},
+): GroupTableRow {
+  return {
+    rank,
+    userId: `u-${displayName.toLowerCase().replace(/[^a-z]/g, '')}`,
+    displayName,
+    isYou: false,
+    tablePoints,
+    pointsFor: tablePoints * 3,
+    pointsAgainst: 12 - tablePoints,
+    exacts: Math.max(0, rank === 1 ? 3 : 4 - rank),
+    corrects: 6 - rank,
+    scorelineError: rank * 2,
+    ...over,
+  }
+}
+
+const groupA: GroupTable = {
+  groupId: 'g-a',
+  ordinal: 1,
+  isYours: true,
+  rows: [
+    row(1, 'Ada Lovelace', 9, { isYou: true }),
+    row(2, 'Bo Nilsson', 7),
+    row(3, 'Cai Roberts', 4),
+    row(4, 'Dee Okafor', 1),
+  ],
+}
+
+const groupB: GroupTable = {
+  groupId: 'g-b',
+  ordinal: 2,
+  isYours: false,
+  rows: [
+    row(1, 'Eve Zhang', 8),
+    row(2, 'Fay Iqbal', 6),
+    row(3, 'Gil Moreau', 5),
+    // NO SETTLED PREDICTION YET, so no scoreline error — which is not zero.
+    row(4, 'Hal Fraser', 0, { scorelineError: null }),
+  ],
+}
+
 function world(overrides: Partial<ChampionshipPageModel> = {}): ChampionshipPageModel {
   return {
     generatedAt: CHAMPIONSHIP_NOW,
     context: competition,
     standing: { kind: 'stated', outcome: 'qualified' },
     bracket: { kind: 'bracket', seats: [...semiFinals, finalSeat], champion: null },
+    // THE COMMON CASE IS A KNOCKOUT THAT CAME FROM GROUPS, so the default world
+    // carries both. A Championship that never had a group stage is its own
+    // world below, not the default.
+    groups: { kind: 'groups', yourOrdinal: 1, groups: [groupA, groupB] },
     penaltyNumber: { kind: 'open', lane: 'odd', locksAt: '2027-05-02T14:00:00.000Z' },
     ...overrides,
   }
@@ -97,6 +153,9 @@ const drawnBracket = world()
  */
 const lostButNotStated = world({
   standing: { kind: 'not-stated' },
+  // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
+  // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
+  penaltyNumber: { kind: 'not-required' },
   bracket: {
     kind: 'bracket',
     seats: [
@@ -120,6 +179,9 @@ const lostButNotStated = world({
 
 /** A walkover, which carries a decision and NO score and NO reason. */
 const walkover = world({
+  // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
+  // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
+  penaltyNumber: { kind: 'not-required' },
   bracket: {
     kind: 'bracket',
     seats: [
@@ -144,6 +206,9 @@ const walkover = world({
 
 /** Every decision the settlement authority can state, side by side. */
 const everyDecision = world({
+  // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
+  // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
+  penaltyNumber: { kind: 'not-required' },
   bracket: {
     kind: 'bracket',
     seats: [
@@ -176,6 +241,9 @@ const everyDecision = world({
 /** The reader won it. The only world where `champion` names them. */
 const youAreChampion = world({
   standing: { kind: 'stated', outcome: 'champion' },
+  // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
+  // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
+  penaltyNumber: { kind: 'not-required' },
   bracket: {
     kind: 'bracket',
     seats: [
@@ -193,6 +261,9 @@ const youAreChampion = world({
 /** Somebody else won it, and the reader is told who without being told they lost. */
 const someoneElseWon = world({
   standing: { kind: 'stated', outcome: 'qualified' },
+  // NO LIVE TIE, SO NO PENALTY NUMBER. Contract 193 returns `penalty_number`
+  // as null whenever `my_tie` is null, and `my_tie` filters unsettled fixtures.
+  penaltyNumber: { kind: 'not-required' },
   bracket: {
     kind: 'bracket',
     seats: [
@@ -345,6 +416,56 @@ const penaltyLockedUnsubmitted = world({ penaltyNumber: { kind: 'locked', value:
 const penaltyUnscheduled = world({ penaltyNumber: { kind: 'unscheduled' } })
 
 /* ==========================================================================
+   THE GROUP PHASE
+   ========================================================================== */
+
+/**
+ * THE STATE THIS PAGE PREVIOUSLY ANSWERED WITH ONE SENTENCE. A Championship in
+ * its group phase has a REAL TABLE and a bracket that does not exist yet — the
+ * two reads disagreeing exactly as designed. Saying only "the knockout draw has
+ * not been made yet" while contract 167 holds the standings is not a deliberate
+ * empty state; it is a read that was not made.
+ */
+const groupPhase = world({
+  standing: { kind: 'not-stated' },
+  bracket: { kind: 'not-drawn' },
+  penaltyNumber: { kind: 'not-required' },
+})
+
+/** The same phase in a competition drawn as ONE group. */
+const singleGroupPhase = world({
+  standing: { kind: 'not-stated' },
+  bracket: { kind: 'not-drawn' },
+  penaltyNumber: { kind: 'not-required' },
+  groups: { kind: 'groups', yourOrdinal: 1, groups: [{ ...groupA, ordinal: 1 }] },
+})
+
+/**
+ * ENTERED, AND HOLDING NO GROUP. `myGroupOrdinal` is null, which contract 167
+ * distinguishes from there being no groups — so the tables are shown and none
+ * is marked as the reader's.
+ */
+const groupsButNotYours = world({
+  standing: { kind: 'not-stated' },
+  bracket: { kind: 'not-drawn' },
+  penaltyNumber: { kind: 'not-required' },
+  groups: {
+    kind: 'groups',
+    yourOrdinal: null,
+    groups: [
+      { ...groupA, isYours: false, rows: groupA.rows.map((r) => ({ ...r, isYou: false })) },
+      groupB,
+    ],
+  },
+})
+
+/** A knockout that never had a group stage. The panel says nothing, correctly. */
+const noGroupStage = world({ groups: { kind: 'no-groups' } })
+
+/** Contract 193 answered and contract 167 did not. One read's failure, alone. */
+const groupsUnavailable = world({ groups: { kind: 'unavailable' } })
+
+/* ==========================================================================
    THE REGISTRY
    ========================================================================== */
 
@@ -367,6 +488,11 @@ export const championshipScenarios = {
   penaltySubmittedZero,
   penaltyLocked,
   penaltyLockedUnsubmitted,
+  groupPhase,
+  singleGroupPhase,
+  groupsButNotYours,
+  noGroupStage,
+  groupsUnavailable,
   penaltyUnscheduled,
 } as const
 
@@ -382,6 +508,16 @@ export const championshipScenarioPremises: Readonly<
 > = {
   drawnBracket:
     'The ordinary visit. The draw is made, the reader has a tie to play, and the final is still two empty seats.',
+  groupPhase:
+    'The phase this page used to answer with one sentence. The knockout does not exist yet, and contract 167 holds two REAL group tables underneath it — the two reads disagreeing exactly as designed.',
+  singleGroupPhase:
+    'The same phase in a competition drawn as ONE group. Nothing about the surface assumes there are several.',
+  groupsButNotYours:
+    'Entered, and holding no group. Contract 167 distinguishes "you have no group" from "there are no groups", so the tables are shown and none is marked as the reader\u2019s.',
+  noGroupStage:
+    'A knockout that never had a group stage. `available: false` is the server saying so, and the panel stays silent rather than showing an empty table.',
+  groupsUnavailable:
+    'Contract 193 answered and contract 167 did not. ONE read failed, and the bracket beside it is still shown \u2014 which is what independent panel outcomes are for.',
   lostButNotStated:
     'THE binding world. The reader LOST their only tie and has no later one — and the page says NOTHING about elimination, because no season read supplies it. A derivation would print "you are out" here, and would be wrong whenever the competition has not finished eliminating.',
   walkover:

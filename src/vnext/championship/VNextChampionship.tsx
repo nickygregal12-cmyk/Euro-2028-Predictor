@@ -8,7 +8,7 @@ import type {
   TieDecision,
   TieOutcome,
 } from '../models/championship'
-import type { PenaltyNumberPanel } from '../models/championship'
+import type { GroupPanel, GroupTable, PenaltyNumberPanel } from '../models/championship'
 import { bracketRounds, penaltyLaneRule, penaltyValueAllowed } from '../models/championship'
 import { useState } from 'react'
 import { formatKickoffLabel } from '../foundations/format'
@@ -119,6 +119,7 @@ export function VNextChampionship({
 
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
           <Bracket panel={model.bracket} onRetry={onRetry} refreshing={refreshing} />
+          <Groups panel={model.groups} />
         </motion.div>
       </div>
     </VNextShell>
@@ -477,5 +478,116 @@ function Outcome({ outcome }: { readonly outcome: TieOutcome }) {
     <p className={`${text.micro} ${styles.outcome}`} data-decision={outcome.decision}>
       {DECISION_COPY[outcome.decision]}
     </p>
+  )
+}
+
+/* ==========================================================================
+   THE GROUP PHASE
+   ========================================================================== */
+
+/**
+ * THE GROUP TABLES, PRINTED AS THE STANDINGS AUTHORITY SENT THEM.
+ *
+ * A REAL TABLE, NOT A SENTENCE. The Championship spends most of its life in
+ * this phase, and for a while this page answered it with "the knockout draw has
+ * not been made yet" — true, and the whole of what it said, while contract 167
+ * held the standings that phase is actually about.
+ *
+ * IT SORTS NOTHING. `rank` is printed in the position the server sent it, and
+ * the columns are its numbers. A surface that re-ordered would be a second
+ * authority on a table that already has one, and the two would drift on exactly
+ * the tie-breaks that decide who qualifies.
+ *
+ * IT IS A `<table>`, because it is one. Rank, name and five measures per row is
+ * tabular data, and a screen reader navigating it by column needs the headers
+ * a grid of `<div>`s cannot give it.
+ *
+ * `unavailable` RENDERS NOTHING. Contract 167 failing is not a fact about the
+ * competition, and the bracket beside it answered on its own — which is why the
+ * two reads have separate outcomes.
+ */
+function Groups({ panel }: { readonly panel: GroupPanel }) {
+  if (panel.kind === 'unavailable' || panel.kind === 'no-groups') return null
+
+  if (panel.kind === 'not-entered') {
+    return (
+      <p className={`${text.body} ${styles.empty}`} data-vnext-zone="groups-not-entered">
+        You are not in this Championship&rsquo;s group stage.
+      </p>
+    )
+  }
+
+  return (
+    <section className={styles.groups} data-vnext-zone="groups">
+      <h2 className={`${text.h2} ${styles.groupsHeading}`}>Group stage</h2>
+      {panel.yourOrdinal === null ? (
+        <p className={`${text.micro} ${styles.groupsNote}`} data-vnext-zone="groups-none-yours">
+          You do not hold a group in this stage.
+        </p>
+      ) : null}
+      {panel.groups.map((group) => (
+        <GroupTableView key={group.groupId} group={group} />
+      ))}
+    </section>
+  )
+}
+
+function GroupTableView({ group }: { readonly group: GroupTable }) {
+  const caption = `Group ${group.ordinal}`
+  return (
+    <div className={styles.group} data-vnext-group={group.ordinal} data-yours={group.isYours}>
+      <table className={styles.table}>
+        <caption className={`${text.micro} ${styles.caption}`}>
+          {caption}
+          {/* THE SERVER'S FLAG, not a name compared here. */}
+          {group.isYours ? <span className={styles.yoursTag}> · your group</span> : null}
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col" className={styles.numeric}>
+              #
+            </th>
+            <th scope="col">Player</th>
+            <th scope="col" className={styles.numeric}>
+              Pts
+            </th>
+            <th scope="col" className={styles.numeric}>
+              For
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Ag
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Exact
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Correct
+            </th>
+            <th scope="col" className={styles.numeric}>
+              Error
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {group.rows.map((row) => (
+            <tr key={row.userId} data-you={row.isYou || undefined}>
+              <td className={styles.numeric}>{row.rank}</td>
+              <th scope="row" className={styles.player}>
+                {row.displayName}
+                {row.isYou ? <span className={styles.you}> (you)</span> : null}
+              </th>
+              <td className={styles.numeric}>{row.tablePoints}</td>
+              <td className={styles.numeric}>{row.pointsFor}</td>
+              <td className={styles.numeric}>{row.pointsAgainst}</td>
+              <td className={styles.numeric}>{row.exacts}</td>
+              <td className={styles.numeric}>{row.corrects}</td>
+              {/* NO SETTLED PREDICTION IS NOT AN ERROR OF ZERO. An em dash says
+                  there is no number rather than inventing one. */}
+              <td className={styles.numeric}>{row.scorelineError ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }

@@ -309,6 +309,82 @@
   outline-offset: 2px;
 }
 
+/* ---- the group phase --------------------------------------------------------- */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.groupsHeading {
+  margin: 0;
+}
+
+.groupsNote {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.group {
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  /* THE TABLE SCROLLS, THE PAGE DOES NOT. Eight columns do not fit a phone, and
+     the alternative — dropping columns at narrow widths — would decide for the
+     reader which of the standings authority's measures matter. */
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Below this the columns crush rather than scroll. */
+  min-width: 34rem;
+}
+
+.caption {
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  text-align: start;
+  color: var(--vnext-text-secondary);
+}
+
+.yoursTag {
+  color: var(--vnext-text-primary);
+}
+
+.table th,
+.table td {
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  text-align: start;
+  border-top: 1px solid var(--vnext-hairline);
+}
+
+.table thead th {
+  font-weight: 600;
+  color: var(--vnext-text-secondary);
+  white-space: nowrap;
+}
+
+.numeric {
+  text-align: end;
+  /* Digits that do not shift width as the numbers change. */
+  font-variant-numeric: tabular-nums;
+}
+
+.player {
+  font-weight: 500;
+}
+
+.table tbody tr[data-you] {
+  background-color: var(--vnext-surface-raised, var(--vnext-surface));
+}
+
+.you {
+  color: var(--vnext-text-secondary);
+  font-weight: 400;
+}
+
 /* ---- regular ---------------------------------------------------------------- */
 
 @container vnext-page (min-width: 700px) {

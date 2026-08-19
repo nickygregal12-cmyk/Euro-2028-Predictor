@@ -254,12 +254,74 @@ export type PenaltyNumberPanel =
  * put.
  */
 
+/* ==========================================================================
+   THE GROUP PHASE — contract 167, read beside contract 193
+   ========================================================================== */
+
+/**
+ * ONE ROW OF A GROUP TABLE, carried as the standings authority sent it.
+ *
+ * NOTHING HERE IS COMPUTED. `rank` is printed as sent; the points, the goals
+ * either way and the tie-break inputs are all the standings authority's, and
+ * this lane neither orders nor totals. Contract 167's own header states the
+ * rule and this is the surface honouring it.
+ *
+ * `scorelineError` is nullable because a player with no settled prediction has
+ * no error yet — which is a different fact from an error of zero, and is why it
+ * is not defaulted.
+ */
+export type GroupTableRow = {
+  readonly rank: number
+  readonly userId: string
+  readonly displayName: string
+  readonly isYou: boolean
+  readonly tablePoints: number
+  readonly pointsFor: number
+  readonly pointsAgainst: number
+  readonly exacts: number
+  readonly corrects: number
+  readonly scorelineError: number | null
+}
+
+/** One group. `isYours` is the server's, never matched by name. */
+export type GroupTable = {
+  readonly groupId: string
+  readonly ordinal: number
+  readonly isYours: boolean
+  readonly rows: readonly GroupTableRow[]
+}
+
+/**
+ * THE GROUP PHASE PANEL — its own union, resolved from its own read.
+ *
+ * Separate from `BracketPanel` because it comes from a DIFFERENT CONTRACT that
+ * can fail on its own. A Championship in its group phase has a real table and a
+ * bracket that does not exist yet; merging the two behind one "loaded" would
+ * make one read's failure silence the other's answer.
+ *
+ * `no-groups` is a real state and not an error: a Championship drawn as a
+ * single group, or one whose draw has not been made, has no group tables to
+ * show and says so.
+ */
+export type GroupPanel =
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'not-entered' }
+  | { readonly kind: 'no-groups' }
+  | {
+      readonly kind: 'groups'
+      /** Null when the caller holds no group — not the same as there being none. */
+      readonly yourOrdinal: number | null
+      readonly groups: readonly GroupTable[]
+    }
+
 export type ChampionshipPageModel = {
   /** The instant the model describes, supplied rather than read. */
   readonly generatedAt: string
   readonly context: ChampionshipContext
   readonly standing: ChampionshipStanding
   readonly bracket: BracketPanel
+  /** Contract 167's answer, which resolves independently of the bracket's. */
+  readonly groups: GroupPanel
   /** Its own outcome, independent of the bracket. */
   readonly penaltyNumber: PenaltyNumberPanel
 }

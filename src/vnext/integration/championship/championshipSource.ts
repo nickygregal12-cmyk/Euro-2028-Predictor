@@ -1,18 +1,22 @@
 import type { SeasonCupBracket } from '../../../services/supabase/seasonCupBracket'
+import type { SeasonCupGroupStage } from '../../../services/supabase/seasonCupGroupStage'
 
 /**
  * WHAT THE REAL APPLICATION HANDS vNEXT PREDICTOR CHAMPIONSHIP.
  *
  * ============================ THE READS, AND WHAT EACH IS FOR ============
  *
- *   contract 193  `get_season_cup_bracket`   the bracket, the tie, the seed,
- *                                            the Penalty Number, the champion
+ *   contract 193  `get_season_cup_bracket`      the bracket, the tie, the
+ *                                               seed, the Penalty Number,
+ *                                               the champion
+ *   contract 167  `get_season_cup_group_stage`  the group tables
  *
- * More will join it — contract 167's group stage and contract 133's own-group
- * view are the other two the page needs — and each arrives with its OWN
- * outcome, for the reason Stages 10 and 11 both settled: a page assembled from
- * several reads must not have a single "loaded", because the reads do not
- * succeed or fail together and their permissions are not the same.
+ * Each arrives with its OWN outcome, for the reason Stages 10 and 11 both
+ * settled: a page assembled from several reads must not have a single
+ * "loaded", because the reads do not succeed or fail together and their
+ * permissions are not the same. It bites here more than anywhere: a
+ * Championship IN its group phase has a real table and a bracket that does not
+ * exist yet, so the two reads disagree by design.
  *
  * ============================ ELIMINATION IS NOT IN HERE, AND THAT IS THE
  * POINT ===================================================================
@@ -55,8 +59,20 @@ type BracketRead =
   | { readonly kind: 'ok'; readonly bracket: SeasonCupBracket }
   | { readonly kind: 'failed' }
 
+/**
+ * Contract 167's answer, on the same terms.
+ *
+ * `available: false` is INSIDE the payload and is the server saying this
+ * competition has no group stage — a different fact from the read failing, and
+ * the reason `failed` sits outside rather than collapsing into it.
+ */
+type GroupStageRead =
+  | { readonly kind: 'ok'; readonly groupStage: SeasonCupGroupStage }
+  | { readonly kind: 'failed' }
+
 export type ChampionshipSource = {
   readonly generatedAt: string
   readonly context: ChampionshipSourceContext
   readonly bracket: BracketRead
+  readonly groupStage: GroupStageRead
 }

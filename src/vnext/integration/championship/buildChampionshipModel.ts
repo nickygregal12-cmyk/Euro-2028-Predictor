@@ -5,6 +5,7 @@ import type {
   BracketSide,
   ChampionshipPageModel,
   ChampionshipStanding,
+  GroupPanel,
   TieOutcome,
 } from '../../models/championship'
 import type { CupBracketSeat, CupSeatSide } from '../../../services/supabase/seasonCupBracket'
@@ -195,6 +196,54 @@ function penaltyNumberOf(source: ChampionshipSource): PenaltyNumberPanel {
     : { kind: 'submitted', lane: pn.lane, value: pn.value, locksAt: pn.locksAt }
 }
 
+/**
+ * CONTRACT 167'S GROUP STAGE → THE PANEL.
+ *
+ * CARRIED, NOT COMPUTED. `rank` is the standings authority's and is printed as
+ * sent; nothing here orders rows, totals points or breaks a tie. Contract 167's
+ * own header states that rule, and a surface that re-sorted would be the second
+ * authority on a table that already has one.
+ *
+ * `isYou` and `isYours` are the SERVER'S flags, not a name or id compared here
+ * — Stage 9's identity rule, and the same reason the bracket takes its side
+ * from `my_ties[].is_home`.
+ *
+ * THREE PAYLOAD STATES, THREE PANELS. `available: false` means this
+ * competition has no group stage at all; `entered: false` means it has one the
+ * caller is not in; an empty `groups` means drawn-but-not-yet-populated. None
+ * of them is a failure, and none is inferred from another.
+ */
+function groupPanelOf(source: ChampionshipSource): GroupPanel {
+  if (source.groupStage.kind !== 'ok') return { kind: 'unavailable' }
+
+  const answer = source.groupStage.groupStage
+  if (!answer.available) return { kind: 'no-groups' }
+  if (!answer.entered) return { kind: 'not-entered' }
+  if (answer.groups.length === 0) return { kind: 'no-groups' }
+
+  return {
+    kind: 'groups',
+    yourOrdinal: answer.myGroupOrdinal,
+    groups: answer.groups.map((group) => ({
+      groupId: group.groupId,
+      ordinal: group.ordinal,
+      isYours: group.isMyGroup,
+      rows: group.rows.map((row) => ({
+        rank: row.rank,
+        userId: row.userId,
+        displayName: row.displayName,
+        isYou: row.isMe,
+        tablePoints: row.tablePoints,
+        pointsFor: row.pointsFor,
+        pointsAgainst: row.pointsAgainst,
+        exacts: row.exacts,
+        corrects: row.corrects,
+        scorelineError: row.scorelineError,
+      })),
+    })),
+  }
+}
+
 export function buildChampionshipModel(source: ChampionshipSource): ChampionshipPageModel {
   const bracket = bracketPanelOf(source)
   return {
@@ -206,6 +255,7 @@ export function buildChampionshipModel(source: ChampionshipSource): Championship
     },
     standing: standingOf(source, bracket),
     bracket,
+    groups: groupPanelOf(source),
     penaltyNumber: penaltyNumberOf(source),
   }
 }

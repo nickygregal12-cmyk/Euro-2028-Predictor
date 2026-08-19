@@ -185,15 +185,21 @@ export function useVNextChampionshipSource(
         const context = await createSeasonPlayContextGateway().load(competitionSlug, seasonSlug)
         if (!active) return
 
-        const { fetchSeasonCupBracket } = await import(
-          '../../../services/supabase/seasonCupBracket'
-        )
+        const [{ fetchSeasonCupBracket }, { fetchSeasonCupGroupStage }] = await Promise.all([
+          import('../../../services/supabase/seasonCupBracket'),
+          import('../../../services/supabase/seasonCupGroupStage'),
+        ])
 
-        // ITS OWN CATCH, not one wrapped around a set. When the second and
-        // third reads land they are issued concurrently beside this one, and a
-        // `Promise.all` over unguarded promises discards an answer that already
-        // arrived — the defect Stage 11's reviews found.
-        const bracket = await fetchSeasonCupBracket(championshipId).catch(() => null)
+        // A CATCH PER PROMISE, not one wrapped around the pair. The two reads
+        // are issued concurrently and neither is the other's precondition — a
+        // Championship in its group phase has a table and no bracket — so a
+        // `Promise.all` over unguarded promises would discard an answer that
+        // already arrived. That is the defect Stage 11's reviews found, and the
+        // shape they settled on.
+        const [bracket, groupStage] = await Promise.all([
+          fetchSeasonCupBracket(championshipId).catch(() => null),
+          fetchSeasonCupGroupStage(championshipId).catch(() => null),
+        ])
         if (!active) return
 
         loadedIdentity.current = identity
@@ -213,6 +219,8 @@ export function useVNextChampionshipSource(
               gameName,
             },
             bracket: bracket === null ? { kind: 'failed' } : { kind: 'ok', bracket },
+            groupStage:
+              groupStage === null ? { kind: 'failed' } : { kind: 'ok', groupStage },
           },
         })
       } catch {

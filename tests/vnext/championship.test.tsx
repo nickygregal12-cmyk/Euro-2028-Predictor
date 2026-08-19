@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextChampionship } from '../../src/vnext/championship/VNextChampionship'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import {
@@ -70,17 +70,7 @@ describe('every world is one page', () => {
       expect(world.standing.outcome).not.toBe('eliminated')
       if (world.standing.outcome === 'champion') {
         expect(world.bracket.kind).toBe('bracket')
-        // A locked or unscheduled Penalty Number carries no lane, because there is
-    // nothing to submit with — and an open one always does.
-    if (world.penaltyNumber.kind === 'open' || world.penaltyNumber.kind === 'submitted') {
-      expect(['odd', 'even']).toContain(world.penaltyNumber.lane)
-    }
-    // A panel that is not a bracket cannot be offering a live submission.
-    if (world.bracket.kind !== 'bracket') {
-      expect(world.penaltyNumber.kind).toBe('not-required')
-    }
-
-    if (world.bracket.kind === 'bracket') {
+        if (world.bracket.kind === 'bracket') {
           expect(world.bracket.champion?.isYou).toBe(true)
         }
       }
@@ -99,6 +89,23 @@ describe('every world is one page', () => {
     // A panel that is not a bracket cannot be offering a live submission.
     if (world.bracket.kind !== 'bracket') {
       expect(world.penaltyNumber.kind).toBe('not-required')
+    }
+
+    // A PENALTY NUMBER REQUIRES A LIVE TIE OF THE READER'S. Contract 193
+    // returns `penalty_number` only when `my_tie` is non-null, and `my_tie`
+    // filters `winner_user_id is null` — so a reader whose own seats are all
+    // settled has nothing to submit into. Five worlds were shipped offering a
+    // knocked-out or already-crowned reader a submission form, and the rule set
+    // above had no clause that could notice.
+    if (
+      world.bracket.kind === 'bracket' &&
+      world.penaltyNumber.kind !== 'not-required'
+    ) {
+      const live = world.bracket.seats.filter((seat) => {
+        if (seat.outcome.kind !== 'unsettled') return false
+        return [seat.home, seat.away].some((side) => side.kind === 'player' && side.isYou)
+      })
+      expect(live.length).toBeGreaterThan(0)
     }
 
     if (world.bracket.kind === 'bracket') {
@@ -355,5 +362,71 @@ describe('the Penalty Number panel says only what the read stated', () => {
     expect(screen.getByRole('button', { name: /submit/i })).toBeDisabled()
     fireEvent.submit(input.closest('form') as HTMLFormElement)
     expect(onIntent).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * THE GROUP PHASE, RENDERED.
+ *
+ * The Championship spends most of its life here, and this page answered it with
+ * one sentence — "the knockout draw has not been made yet" — while contract 167
+ * held the standings that phase is about. These assert the table is real, is
+ * the server's, and stays silent where the server said nothing.
+ */
+describe('the group phase', () => {
+  it('renders a table for each group, in the server’s row order', () => {
+    renderChampionship(championshipScenarios.groupPhase)
+    const tables = screen.getAllByRole('table')
+    expect(tables).toHaveLength(2)
+    const firstColumn = within(tables[0] as HTMLElement)
+      .getAllByRole('rowheader')
+      .map((cell) => cell.textContent)
+    expect(firstColumn[0]).toContain('Ada Lovelace')
+    expect(firstColumn[3]).toContain('Dee Okafor')
+  })
+
+  it('marks the reader’s own row and their own group', () => {
+    const { container } = renderChampionship(championshipScenarios.groupPhase)
+    expect(container.querySelectorAll('tr[data-you]')).toHaveLength(1)
+    expect(container.querySelectorAll('[data-yours="true"]')).toHaveLength(1)
+  })
+
+  it('shows a group table alongside a bracket that does not exist yet', () => {
+    renderChampionship(championshipScenarios.groupPhase)
+    // BOTH, from two reads that disagree by design.
+    expect(screen.getByText('The knockout draw has not been made yet.')).toBeInTheDocument()
+    expect(screen.getAllByRole('table').length).toBeGreaterThan(0)
+  })
+
+  it('says the reader holds no group without hiding the tables', () => {
+    renderChampionship(championshipScenarios.groupsButNotYours)
+    expect(screen.getByText('You do not hold a group in this stage.')).toBeInTheDocument()
+    expect(screen.getAllByRole('table')).toHaveLength(2)
+  })
+
+  it('prints no table at all when the competition has no group stage', () => {
+    renderChampionship(championshipScenarios.noGroupStage)
+    expect(screen.queryAllByRole('table')).toHaveLength(0)
+  })
+
+  it('renders the bracket when only the group read failed', () => {
+    const { container } = renderChampionship(championshipScenarios.groupsUnavailable)
+    expect(screen.queryAllByRole('table')).toHaveLength(0)
+    // The other read answered, and its panel is untouched.
+    expect(container.querySelector('[data-vnext-zone="bracket"]')).not.toBeNull()
+  })
+
+  it('writes an em dash where a player has no scoreline error yet', () => {
+    renderChampionship(championshipScenarios.groupPhase)
+    const table = screen.getAllByRole('table')[1] as HTMLElement
+    const lastRow = within(table).getAllByRole('row').at(-1) as HTMLElement
+    expect(lastRow.textContent).toContain('—')
+  })
+
+  it('gives every group table a caption naming the group', () => {
+    const { container } = renderChampionship(championshipScenarios.groupPhase)
+    const captions = [...container.querySelectorAll('caption')].map((c) => c.textContent)
+    expect(captions[0]).toContain('Group 1')
+    expect(captions[1]).toContain('Group 2')
   })
 })

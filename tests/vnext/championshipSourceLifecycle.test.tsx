@@ -22,15 +22,27 @@ import { last } from '../support/indexed'
  */
 
 const server = vi.hoisted(() => {
-  const calls = { context: 0, bracket: 0, submit: 0 }
+  const calls = { context: 0, bracket: 0, groupStage: 0, submit: 0 }
   const state = {
     contextFails: false,
     bracketFails: false,
+    groupStageFails: false,
     delayMs: 0,
     /** null | a SQLSTATE the write should raise. */
     submitFails: null as string | null,
   }
-  return { calls, state }
+  /**
+   * WHAT THE WRITE WAS ACTUALLY CALLED WITH. A mock that only counts calls
+   * cannot tell a submission aimed at the read's own window from one aimed at
+   * a fabricated one, and the test named for that distinction was counting.
+   */
+  const submissions: {
+    competitionId: string
+    windowId: string
+    value: number
+    version: number | null
+  }[] = []
+  return { calls, state, submissions }
 })
 
 vi.mock('../../src/services/supabase/seasonPlayContext', () => ({
@@ -89,9 +101,64 @@ vi.mock('../../src/services/supabase/seasonCupBracket', () => ({
   },
 }))
 
+vi.mock('../../src/services/supabase/seasonCupGroupStage', () => ({
+  fetchSeasonCupGroupStage: async () => {
+    if (server.state.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, server.state.delayMs))
+    }
+    server.calls.groupStage += 1
+    if (server.state.groupStageFails) throw new Error('no group stage')
+    return {
+      available: true,
+      entered: true,
+      competition: {
+        id: 'c-1',
+        name: 'Caledonian Premiership',
+        seasonName: '2027/28',
+        seasonKey: null,
+        visibility: null,
+        completedAt: null,
+      },
+      groupCount: 1,
+      myGroupOrdinal: 1,
+      matchdays: 3,
+      groups: [
+        {
+          groupId: 'g-a',
+          ordinal: 1,
+          size: 2,
+          isMyGroup: true,
+          rows: [
+            {
+              rank: 1,
+              userId: 'u-me',
+              displayName: 'Ada',
+              isMe: true,
+              drawNumber: 1,
+              tablePoints: 6,
+              pointsFor: 9,
+              pointsAgainst: 3,
+              windowPoints: 6,
+              exacts: 1,
+              corrects: 2,
+              scorelineError: 4,
+            },
+          ],
+        },
+      ],
+    }
+  },
+}))
+
 vi.mock('../../src/services/supabase/cup', () => ({
-  submitCupPenaltyNumber: async () => {
+  submitCupPenaltyNumber: async (
+    competitionId: string,
+    windowId: string,
+    value: number,
+    version: number | null,
+  ) => {
     server.calls.submit += 1
+    server.submissions.push({ competitionId, windowId, value, version })
     if (server.state.submitFails !== null) {
       throw Object.assign(new Error('declined'), { code: server.state.submitFails })
     }
@@ -134,11 +201,14 @@ function mount(input: VNextChampionshipSourceInput) {
 function reset() {
   server.calls.context = 0
   server.calls.bracket = 0
+  server.calls.groupStage = 0
   server.calls.submit = 0
   server.state.contextFails = false
   server.state.bracketFails = false
+  server.state.groupStageFails = false
   server.state.delayMs = 0
   server.state.submitFails = null
+  server.submissions.length = 0
 }
 
 async function ready(probe: ReturnType<typeof mount>) {
@@ -248,13 +318,54 @@ describe('a re-read keeps the page it is refreshing', () => {
   })
 })
 
+/**
+ * TWO READS, TWO OUTCOMES. A Championship in its group phase has a real table
+ * and no bracket at all, so the two contracts disagree BY DESIGN — and neither
+ * may be able to silence the other. The catch is per promise for that reason,
+ * and a `Promise.all` over unguarded promises would discard the answer that
+ * already arrived.
+ */
+describe('the bracket and the group stage resolve independently', () => {
+  it('keeps the group tables when the bracket read throws', async () => {
+    reset()
+    server.state.bracketFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.bracket.kind).toBe('failed')
+    expect(state.source.groupStage.kind).toBe('ok')
+    probe.unmount()
+  })
+
+  it('keeps the bracket when the group stage read throws', async () => {
+    reset()
+    server.state.groupStageFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.groupStage.kind).toBe('failed')
+    expect(state.source.bracket.kind).toBe('ok')
+    probe.unmount()
+  })
+
+  it('reaches ready when BOTH reads throw', async () => {
+    reset()
+    server.state.bracketFails = true
+    server.state.groupStageFails = true
+    const probe = mount(BASE)
+    const state = await ready(probe)
+    expect(state.source.bracket.kind).toBe('failed')
+    expect(state.source.groupStage.kind).toBe('failed')
+    probe.unmount()
+  })
+})
+
 describe('the states above the read', () => {
-  it('reads one context and one bracket per visit', async () => {
+  it('reads one context, one bracket and one group stage per visit', async () => {
     reset()
     const probe = mount(BASE)
     await ready(probe)
     expect(server.calls.context).toBe(1)
     expect(server.calls.bracket).toBe(1)
+    expect(server.calls.groupStage).toBe(1)
     probe.unmount()
   })
 
@@ -293,13 +404,20 @@ describe('the states above the read', () => {
  * through the hook rather than a copy of it.
  */
 describe('the Penalty Number write', () => {
-  it('submits against the window id the READ supplied', async () => {
+  it('submits against the window id and version the READ supplied', async () => {
     reset()
     const probe = mount(BASE)
     const state = await ready(probe)
     if (state.status !== 'ready') throw new Error('expected ready')
     state.submitPenaltyNumber(7)
     await waitFor(() => expect(server.calls.submit).toBe(1))
+    // THE ARGUMENTS, not the fact of the call. `w-1` and version 3 are what the
+    // mocked read returned; a hook that invented either would submit into the
+    // wrong round or make every submission a PT409, and counting calls could
+    // not tell the difference.
+    expect(server.submissions).toEqual([
+      { competitionId: 'cup-1', windowId: 'w-1', value: 7, version: 3 },
+    ])
     probe.unmount()
   })
 
