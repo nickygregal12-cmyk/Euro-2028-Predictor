@@ -6,8 +6,11 @@
  * `shell.ts` declares a `kind: 'account'` intent and `VNextShell` emits it from
  * both the desktop rail and the mobile top bar — in both cases as a button
  * showing THE SIGNED-IN PLAYER'S OWN INITIALS AND NAME. Nothing has ever
- * answered it, so in every surface Stages 8-12 built a player can press their
- * own name and have nothing happen. This is the answer.
+ * answered it. The seven `/dev` harnesses all route it to the LEGACY
+ * `/account` page, so today a player pressing their own name in a vNext surface
+ * is dropped into the old visual system — which is the exact failure Stage 13's
+ * predicate names ("no longer fall back accidentally to an unrelated visual
+ * system"). This is the answer.
  *
  * It is NOT one of the shell's four destinations (`home | matches | games |
  * leagues`) and must not light one of them up; it renders with

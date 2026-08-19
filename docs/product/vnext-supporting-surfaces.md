@@ -54,7 +54,7 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 
 | Route | Fate in the matrix | Why it is Stage 13's |
 | --- | --- | --- |
-| `/account` | RETAIN | **The shell offers the player their own name and has nowhere to send them.** See §4 |
+| `/account` | RETAIN | **Pressing your own name drops you into the legacy visual system** — the predicate's own words. See §4 |
 | `/profile` | RETAIN + REDESIGN | Platform identity and season history; the matrix says keep it platform-level, outside the tournament boundary |
 | `/tournament/profile`, `/tournament/profile/:playerId` | MERGE | Three profile systems exist; the matrix's rule is that vNext must not add a fourth |
 | `/more` | ABSORB | *"A directory page is a symptom of a navigation that ran out of slots."* None of the three IA concepts has a More |
@@ -81,7 +81,7 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 
 ---
 
-## 4. THE ANCHOR: THE PLAYER'S OWN NAME IS A DEAD BUTTON
+## 4. THE ANCHOR: PRESSING YOUR OWN NAME LEAVES vNEXT
 
 The strongest single finding of the derivation, and the reason Account leads
 this stage rather than trailing it.
@@ -105,14 +105,28 @@ and `VNextShell.tsx` emits it from **two** places — the desktop rail (`:412`)
 and the mobile top bar (`:477`). Both are gated on `player`, and both render
 **the signed-in player's own initials and name** as the button.
 
-Nothing answers it. The only handlers for `kind: 'account'` in the repository
-are the seven `/dev` harnesses, each of which writes a note saying the intent
-fired.
+**No vNext surface answers it.** The only handlers for `kind: 'account'` in the
+repository are the seven `/dev` harnesses, and all seven do the same thing:
 
-**So in every vNext surface Stages 8-12 built, a signed-in player sees their own
-name and avatar, presses it, and nothing happens.** Not a missing
-nice-to-have: the shell offers the player themselves and has nowhere to send
-them.
+```ts
+case 'account':
+  navigate('/account')
+```
+
+— the LEGACY production account page. (An earlier draft of this section said
+they "write a note saying the intent fired". That is what the `default` branch
+does for other intents; the `account` case was checked separately and does not.)
+
+**So in every vNext surface Stages 8-12 built, a signed-in player presses their
+own name and is dropped out of vNext into the old visual system.** That is not
+merely a missing page — it is the exact failure this stage's completion
+predicate names:
+
+> account/discovery/help/error states no longer fall back **accidentally to an
+> unrelated visual system** where the target IA says they belong to vNext.
+
+The escape hatch is doing real work today, which is why it went unnoticed: the
+button is not dead, it just leaves.
 
 ### What that implies for where Account sits
 

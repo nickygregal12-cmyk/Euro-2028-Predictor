@@ -20,8 +20,10 @@ import styles from './account.module.css'
  *
  * `shell.ts` has emitted a `kind: 'account'` intent from every vNext surface
  * since Stage 8 — from the desktop rail and the mobile top bar, both rendered
- * as the signed-in player's own initials and name — and nothing has ever
- * answered it. This is the answer.
+ * as the signed-in player's own initials and name — and no vNext surface has
+ * ever answered it. The dev harnesses route it to the LEGACY `/account` page,
+ * so pressing your own name currently leaves vNext altogether. This is the
+ * answer.
  *
  * IT IS NOT ONE OF THE FOUR DESTINATIONS. `home | matches | games | leagues`
  * are, and none of them should light up while the player is here, so this

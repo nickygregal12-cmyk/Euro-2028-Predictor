@@ -143,3 +143,16 @@ export {
   championshipScenarios,
 } from './championship/scenarios'
 export type { ChampionshipScenarioName } from './championship/scenarios'
+
+/**
+ * Stage 13's Account worlds. Same rule again — and one addition worth naming:
+ * the binding world here is `unnameableFollow`, a follow no read this page
+ * makes can put a name to. A fixture that quietly gave it a name would hide the
+ * one state the surface exists to handle honestly.
+ */
+export {
+  accountScenarioNames,
+  accountScenarioPremises,
+  accountScenarios,
+} from './account/scenarios'
+export type { AccountScenarioName } from './account/scenarios'
