@@ -3,7 +3,7 @@ import { VNextPlayerProfile } from '../../player/VNextPlayerProfile'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildPlayerProfileModel } from './buildPlayerProfileModel'
 import {
   useVNextPlayerProfileSource,

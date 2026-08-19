@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextLeaguesScreen } from '../vnext/integration/leagues/VNextLeaguesScreen'
-import { VNextLoadingRows, VNextNotice } from '../vnext/integration/states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../vnext/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 

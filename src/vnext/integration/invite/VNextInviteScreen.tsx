@@ -3,7 +3,7 @@ import { VNextInvite, type InviteIntent } from '../../invite/VNextInvite'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { useInviteCode, type InviteJoinResult } from '../../../features/leagues/useInviteCode'
 import { buildInviteModel } from './buildInviteModel'
 

@@ -3,7 +3,7 @@ import { VNextDiscovery, type DiscoveryIntent } from '../../discovery/VNextDisco
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildDiscoveryModel } from './buildDiscoveryModel'
 import { useVNextDiscoverySource } from './useVNextDiscoverySource'
 

@@ -3,7 +3,7 @@ import { VNextChampionship, type ChampionshipIntent } from '../../championship/V
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildChampionshipModel } from './buildChampionshipModel'
 import { useVNextChampionshipSource } from './useVNextChampionshipSource'
 import { VNextChampionshipLoading } from './VNextChampionshipStates'

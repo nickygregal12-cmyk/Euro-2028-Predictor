@@ -4,7 +4,7 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextPlayerProfileScreen } from '../vnext/integration/playerProfile/VNextPlayerProfileScreen'
 import { VNextPlayerProfileLoading } from '../vnext/integration/playerProfile/VNextPlayerProfileStates'
-import { VNextNotice } from '../vnext/integration/states/VNextStates'
+import { VNextNotice } from '../vnext/states/VNextStates'
 import type { ShellIntent } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 

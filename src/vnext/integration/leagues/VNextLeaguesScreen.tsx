@@ -9,7 +9,7 @@ import {
   useVNextLeaguesSource,
   type VNextLeaguesSourceInput,
 } from './useVNextLeaguesSource'
-import { VNextLoadingRows, VNextNotice } from '../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 
 /**
  * THE CONNECTED vNEXT LEAGUES SURFACE.

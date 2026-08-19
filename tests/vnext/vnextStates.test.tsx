@@ -5,7 +5,7 @@ import {
   VNextLoadingRows,
   VNextNotFound,
   VNextNotice,
-} from '../../src/vnext/integration/states/VNextStates'
+} from '../../src/vnext/states/VNextStates'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { shellScenarios } from '../../src/vnext/fixtures'
 

@@ -1,7 +1,7 @@
-import { VNextShell } from '../../app/VNextShell'
-import { VNextPageHeader } from '../../app/VNextPageHeader'
-import type { ShellDestinationId } from '../../models/shell'
-import text from '../../foundations/typography.module.css'
+import { VNextShell } from '../app/VNextShell'
+import { VNextPageHeader } from '../app/VNextPageHeader'
+import type { ShellDestinationId } from '../models/shell'
+import text from '../foundations/typography.module.css'
 import styles from './VNextStates.module.css'
 
 /**
@@ -25,6 +25,15 @@ import styles from './VNextStates.module.css'
  *
  * `destination` is now required. There is no default, on purpose: a default
  * would silently reintroduce the same defect for the next surface.
+ *
+ * AND IT IS PRESENTATION, NOT INTEGRATION. It first landed under
+ * `integration/states/`, which was wrong twice over. Nothing here reads: every
+ * one takes props and renders, so it belongs on the presentation side by the
+ * same test every other vNext component is held to. And putting it under
+ * `integration/` made it unreachable from a story — the architecture rule says
+ * only `src/vnext/integration` may reach integration adapters, and stories
+ * count as presentation — which would have left the one module every surface
+ * falls back to as the one module with no visual coverage.
  *
  * ============================ THEY ARE INSIDE THE SHELL ==================
  *

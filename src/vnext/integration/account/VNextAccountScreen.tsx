@@ -3,7 +3,7 @@ import { VNextAccount, type AccountIntent } from '../../account/VNextAccount'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildAccountModel } from './buildAccountModel'
 import { useVNextAccountSource } from './useVNextAccountSource'
 

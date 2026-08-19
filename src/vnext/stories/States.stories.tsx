@@ -4,7 +4,7 @@ import {
   VNextLoadingRows,
   VNextNotFound,
   VNextNotice,
-} from '../integration/states/VNextStates'
+} from '../states/VNextStates'
 import { VNextGameRules } from '../rules/VNextGameRules'
 import { VNextShellProvider } from '../app/VNextShellProvider'
 import { WorkshopCanvas } from '../workshop/WorkshopCanvas'

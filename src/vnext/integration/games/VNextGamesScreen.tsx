@@ -3,7 +3,7 @@ import { VNextGames, type GamesIntent } from '../../games/VNextGames'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextNotice } from '../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildGamesModel } from './buildGamesModel'
 import { useVNextGamesSource } from './useVNextGamesSource'
 
