@@ -42,7 +42,6 @@ describe('resolving the variant', () => {
     expect(resolveSiteVariant('HUB')).toBe('hub')
   })
 
-  // The direction of the failure is the point, not merely that it has one.
   it('fails closed to the Hub, never to Euro', () => {
     expect(DEFAULT_SITE_VARIANT).toBe('hub')
     for (const value of [undefined, null, '', 'euro2028', 'tournament', 'true', 'e']) {
@@ -56,7 +55,7 @@ describe('the two products differ where they are meant to', () => {
   const euro = siteConfiguration('euro', { publicOrigin: EURO_ORIGIN })
 
   it('names itself differently', () => {
-    expect(hub.brand.productName).toBe('Football Prediction Hub')
+    expect(hub.brand.productName).toBe('Predictor Hub')
     expect(euro.brand.productName).toBe('Euro 2028 Predictor')
     expect(siteBrandCopy('hub').description).not.toBe(siteBrandCopy('euro').description)
   })
@@ -74,25 +73,16 @@ describe('the two products differ where they are meant to', () => {
 
   it('leads with the tournament on Euro and offers only the two attachable games', () => {
     expect(primaryGames('euro').map((game) => game.key)).toEqual(['euroPredictor'])
-    // Last Man Standing and the Predictor Championship attach to whatever
-    // competition you enter them in, so offering them beside a tournament is
-    // coherent.
     expect(bonusGames('euro').map((game) => game.key)).toEqual(['lms', 'championship'])
     expect(euro.navigation.bonusGamesLabel).toBe('Bonus Games')
   })
 
   it('does not present domestic Match Predictor as a Euro Bonus Game', () => {
-    // It is not a game you attach to something — it IS a competition season,
-    // and the seasons it runs over are the Premier League and the Scottish
-    // Premiership. Under Euro 2028 it promised a weekly domestic game on a
-    // tournament site with nowhere to send anyone who wanted it.
     expect(bonusGames('euro').map((game) => game.key)).not.toContain('matchPredictor')
     expect(gamesPlayedElsewhere('euro').map((game) => game.key)).toEqual(['matchPredictor'])
   })
 
   it('accounts for every weekly game on the Euro site, one way or the other', () => {
-    // A fourth weekly game must be classified deliberately rather than become a
-    // Bonus Game by omission or vanish by omission.
     const euroWeekly = [
       ...bonusGames('euro'),
       ...gamesPlayedElsewhere('euro'),
@@ -105,22 +95,15 @@ describe('the two products differ where they are meant to', () => {
   })
 
   it('describes each weekly game identically on both sites', () => {
-    // The game FORMAT is the same game in both products. Only its rank moves.
     for (const key of ['matchPredictor', 'lms', 'championship'] as const) {
       const onHub = siteGames('hub').find((game) => game.key === key)
       const onEuro = siteGames('euro').find((game) => game.key === key)
       expect(onHub?.summary).toBe(onEuro?.summary)
       expect(onHub?.name).toBe(onEuro?.name)
-      // The rank moves; nothing else about the game does.
       expect(onHub?.rank).not.toBe(onEuro?.rank)
     }
   })
 
-  // Today's honest value, not the target one. ADR 0026 wants the Hub to stop
-  // serving the tournament's player routes and `EURO-001` records that it has
-  // not; the refusal is built and proven in `TournamentJourney.test.tsx`, and
-  // flipping this is an owner decision that also needs the browser suite
-  // pointed at the Euro build. See the field's own note.
   it('still serves the Euro tournament on both deployments', () => {
     expect(hub.servesEuroTournament).toBe(true)
     expect(euro.servesEuroTournament).toBe(true)
@@ -154,7 +137,6 @@ describe('one site can never carry the other’s origin', () => {
     expect(JSON.stringify(euro)).not.toContain(HUB_ORIGIN)
   })
 
-  // The Hub's permanent domain is not purchased. Absent must stay absent.
   it('has no origin at all when none is configured, and invents none', () => {
     const hub = sitePublicMetadata('hub')
     expect(hub.canonicalOrigin).toBeNull()
@@ -177,13 +159,9 @@ describe('one site can never carry the other’s origin', () => {
 
     const published = sitePublicMetadata('hub', origins)
     expect(published.canonicalOrigin).toBe(HUB_ORIGIN)
-    // The sibling origin must never reach the canonical/OG metadata — and it
-    // cannot, because `sitePublicMetadata` does not read it at all.
     expect(documentHeadTags(published).join('\n')).not.toContain(EURO_ORIGIN)
   })
 
-  // The runtime configuration must not carry the published copy at all: every
-  // byte of it is in the entry chunk that every visitor downloads.
   it('keeps the published copy out of the runtime configuration', () => {
     const serialised = JSON.stringify(siteConfiguration('hub', { publicOrigin: HUB_ORIGIN }))
     expect(serialised).not.toContain(siteBrandCopy('hub').description)
@@ -205,7 +183,7 @@ describe('generated public metadata', () => {
 
   it('omits every absolute-URL tag when the site has no origin', () => {
     const head = documentHeadTags(sitePublicMetadata('hub')).join('\n')
-    expect(head).toContain('<title>Football Prediction Hub</title>')
+    expect(head).toContain('<title>Predictor Hub</title>')
     expect(head).toContain('<meta name="description"')
     expect(head).not.toContain('rel="canonical"')
     expect(head).not.toContain('og:url')
@@ -238,8 +216,6 @@ describe('generated public metadata', () => {
     expect(applied).toContain('<title>Euro 2028 Predictor</title>')
   })
 
-  // A silent no-op would ship whatever the template happened to say, which
-  // before this seam existed was the other product's domain.
   it('refuses a document whose markers have been removed', () => {
     expect(() => applyDocumentHead('<head></head>', sitePublicMetadata('hub'))).toThrow(
       /SITE METADATA/,
