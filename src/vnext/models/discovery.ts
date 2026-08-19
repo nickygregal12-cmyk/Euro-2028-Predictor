@@ -118,6 +118,19 @@ export function offersFollow(season: DiscoverableSeason, knowledge: FollowKnowle
   return knowledge === 'known' && season.follow === 'not-following'
 }
 
+/**
+ * THE `knowledge` GUARD HERE IS BELT AND BRACES, AND KEPT ON PURPOSE.
+ *
+ * The mapper sets every row to `not-following` when the follow state is
+ * unknown, so `follow === 'following'` already implies `knowledge === 'known'`
+ * and removing the first clause changes no behaviour — a mutation that survives
+ * because it is equivalent, not because nothing tests it. It stays because the
+ * implication is the MAPPER's, not this function's: a future mapper that
+ * carried the server's last-known follow state through an unknown read would
+ * make the clause load-bearing again, and the failure mode is an Unfollow
+ * offered against a state nobody knows, which writes a null favourite over a
+ * club the player chose.
+ */
 export function offersUnfollow(season: DiscoverableSeason, knowledge: FollowKnowledge): boolean {
   return knowledge === 'known' && season.follow === 'following'
 }

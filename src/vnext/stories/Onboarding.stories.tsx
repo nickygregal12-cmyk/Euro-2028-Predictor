@@ -110,6 +110,17 @@ function board(
   }
 }
 
+/** One world at one width — the addressable frames the browser suite reads. */
+function frame(scenario: OnboardingScenarioName, viewport: string): Story {
+  return {
+    render: (args) => (
+      <WorkshopCanvas {...args} viewports={[viewport]}>
+        <OnboardingHarness scenario={scenario} />
+      </WorkshopCanvas>
+    ),
+  }
+}
+
 /* ========================================================================== *
  * A. THE FOUR STEPS
  * ========================================================================== */
@@ -143,3 +154,16 @@ export const Failed: Story = board('failed', ['phone-375'], 0.9)
 
 export const Loading: Story = board('loading', ['phone-375'], 0.9)
 export const Unavailable: Story = board('unavailable', ['phone-375'], 0.9)
+
+/* ========================================================================== *
+ * E. ADDRESSABLE FRAMES — one world, one width, for the browser suite
+ * ========================================================================== */
+
+export const FrameFirstStepPhone: Story = frame('firstStep', 'phone-375')
+export const FrameFirstStepTablet: Story = frame('firstStep', 'tablet-768')
+export const FrameFirstStepDesktop: Story = frame('firstStep', 'desktop-1920')
+export const FrameClubsPhone: Story = frame('clubs', 'phone-375')
+export const FrameGamesPhone: Story = frame('games', 'phone-375')
+export const FrameGamesDesktop: Story = frame('games', 'desktop-1920')
+export const FrameReviewPhone: Story = frame('review', 'phone-375')
+export const FramePartialPhone: Story = frame('partial', 'phone-375')

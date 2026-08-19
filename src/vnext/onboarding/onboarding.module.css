@@ -147,7 +147,15 @@
 }
 
 .club {
-  padding: var(--vnext-space-2) var(--vnext-space-3);
+  /* 44px MINIMUM, MEASURED IN A BROWSER RATHER THAN ASSUMED. Padding alone put
+     these chips at 41px tall on a phone — a mis-tap in the one journey made
+     entirely of controls, operated by somebody ninety seconds into the product.
+     jsdom computes no layout and could not have seen it; `vnext-supporting.spec.ts`
+     did, on its first run. */
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--vnext-space-2) var(--vnext-space-4);
   border: 1px solid var(--vnext-hairline);
   border-radius: var(--vnext-radius-pill);
   background-color: var(--vnext-surface-raised);
