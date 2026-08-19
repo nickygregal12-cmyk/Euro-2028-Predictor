@@ -174,7 +174,12 @@ export const RulesLastManStandingWithSettings: Story = board(
 
 export const RulesChampionship: Story = board(
   <VNextGameRules game="championship" />,
-  'No tie-break list: how a drawn tie is settled belongs to the settlement authority, in the words the competition uses for it.',
+  'The table points come from `CUP_TIE_MATCH_POINTS`, and the three deciders are stated in the settlement authority’s own order and vocabulary — a reader who saw “Decided in extra time” on their own tie can find out here what it meant. Neither phase is stated as this competition’s plan, because whether a season ends in a knockout is calendar arithmetic contract 198 computes.',
 )
 
 export const FrameRulesPhone: Story = board(<VNextGameRules />, '', ['phone-375'])
+export const FrameRulesChampionshipPhone: Story = board(
+  <VNextGameRules game="championship" />,
+  '',
+  ['phone-375'],
+)
