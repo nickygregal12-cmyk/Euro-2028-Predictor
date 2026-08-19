@@ -51,7 +51,7 @@ export function VNextAccountPreview() {
 }
 
 function AccountHarness() {
-  const { userId, displayName, loading } = useAuth()
+  const { userId, displayName, loading, signOut } = useAuth()
   const [note, setNote] = useState('')
   const onShellIntent = useShellIntentHost(setNote)
   const navigate = useNavigate()
@@ -89,7 +89,11 @@ function AccountHarness() {
             navigate(`/competitions/${intent.competitionSlug}/${intent.seasonKey}`)
             return
           }
-          setNote(`Intent "${intent.kind}" — reported rather than routed.`)
+          // REALLY SIGNS OUT. The page owns the control and the wording; the
+          // session belongs to the auth provider, and this is the host
+          // performing it — the same division every write in this lane uses.
+          setNote('Signing out…')
+          void signOut()
         }}
       />
     </div>

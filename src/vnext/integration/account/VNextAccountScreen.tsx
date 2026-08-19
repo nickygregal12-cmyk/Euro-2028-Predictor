@@ -56,8 +56,12 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
   const shell = useMemo(
     () =>
       buildShellModel({
-        // NO COMPETITION, AND THAT IS THE ANSWER rather than a placeholder. The
-        // shell renders its cross-competition chrome and no competition mark.
+        // NO COMPETITION, AND THAT IS THE ANSWER rather than a placeholder.
+        // The switcher therefore draws its EMPTY state — "No competition
+        // selected", which is a fact about this page rather than about what
+        // the player follows. It used to read "No competition yet", which told
+        // a player with three follows that they had none, in the chrome above
+        // the page that lists all three.
         competition: null,
         playerName: props.displayName ?? null,
         // An account page counts no outstanding predictions of its own. `null`

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextDiscovery } from '../../src/vnext/discovery/VNextDiscovery'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
@@ -161,5 +162,16 @@ describe('the page never suggests that following gets you into a game', () => {
     // Contract 157's migration refuses to install if following creates a game
     // entry. The copy must not imply the thing the server forbids.
     expect(container.textContent).not.toMatch(/join a game|start playing|enter the/i)
+  })
+})
+
+
+describe('every world passes the accessibility scan', () => {
+  it.each(discoveryScenarioNames)('%s has no critical or serious violation', async (name) => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextDiscovery model={discoveryScenarios[name]} />
+      </VNextShellProvider>,
+    )
   })
 })

@@ -145,7 +145,7 @@ implied.
 | `/admin/euro` | `EuroPublicationPage` | Publish the tournament | Contract 143 | Unchanged | — | **RETAIN** | |
 | `/admin/ai` | `AiLabPage` | Private analytical lab | Contract 185, ADR 0029 | Unchanged | — | **RETAIN** | Hub-only and inside the domestic boundary. |
 | `*` | `NotFoundPage` | Not found | — | Unchanged | — | **RETAIN** | Every concept still needs a deterministic parent from a not-found. |
-| `/dev/**` (11 routes) | Dev harnesses | Real-data review | — | Unchanged | — | **RETAIN** | Behind `import.meta.env.DEV`; eliminated from production builds. Stage 7.5 adds none — the IA lab is fixture-only and reviewed in Storybook. |
+| `/dev/**` (21 routes) | Dev harnesses | Real-data review | — | Unchanged | — | **RETAIN** | Behind `import.meta.env.DEV`; eliminated from production builds. Stage 13 adds five (account, games, discovery, invite, onboarding) and the count is corrected with them — it had read 11 since Stage 7.5. |
 
 ## 5. Counts
 

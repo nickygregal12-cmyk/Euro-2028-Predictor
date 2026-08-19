@@ -6,7 +6,7 @@ import type {
   HistoryPanel,
   PlayedSeason,
 } from '../models/account'
-import { partitionByResult } from '../models/account'
+import { partitionByCompletion } from '../models/account'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -52,9 +52,24 @@ import styles from './account.module.css'
  * saying "archived" beats rendering a link that goes nowhere.
  */
 
+/**
+ * WHAT THIS PAGE ASKS ITS HOST TO DO.
+ *
+ * `manage-follow` USED TO BE HERE AND WAS NEVER EMITTED — a declared intent no
+ * control produced, in a lane whose whole discipline is that a control exists
+ * only where the server would accept it. Following and unfollowing belong to
+ * Discovery, which has the read that knows the current state and the control
+ * that changes it; a second entry point on this page would be a second place
+ * for the same write to disagree about what it was toggling.
+ *
+ * `sign-out` IS PERFORMED BY THE HOST, like every other write this lane draws.
+ * The page owns the control and the wording; the session belongs to the
+ * application's auth provider, and a presentation component that ends a session
+ * is a presentation component that has to know about one.
+ */
 export type AccountIntent =
   | { readonly kind: 'open-season'; readonly competitionSlug: string; readonly seasonKey: string }
-  | { readonly kind: 'manage-follow'; readonly tournamentId: string }
+  | { readonly kind: 'sign-out' }
 
 export type VNextAccountProps = {
   readonly model: AccountPageModel
@@ -82,9 +97,45 @@ export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: V
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
           <History panel={model.history} onRetry={onRetry} onIntent={onIntent} />
+          <Session onIntent={onIntent} />
         </motion.div>
       </div>
     </VNextShell>
+  )
+}
+
+/* ==========================================================================
+   SESSION
+   ========================================================================== */
+
+/**
+ * SIGNING OUT, WHICH IS THE ONE PIECE OF `/account`'s SETTINGS THAT CUTOVER
+ * CANNOT DO WITHOUT.
+ *
+ * The route matrix defines `/account` as "settings, follow/unfollow, favourite
+ * team". Follow and favourite are Discovery's and the competition's; of the
+ * settings proper, changing an email address and the reminder-emails toggle can
+ * wait for their own stage — a player can live a season without either. Not
+ * being able to sign out of the product is different, and a cutover that
+ * shipped it would be a cutover that stranded every shared device.
+ */
+function Session({
+  onIntent,
+}: {
+  readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+}) {
+  if (onIntent === undefined) return null
+  return (
+    <section className={styles.panel} data-vnext-zone="session">
+      <h2 className={`${text.title} ${styles.panelHeading}`}>This device</h2>
+      <button
+        type="button"
+        className={styles.signOut}
+        onClick={() => onIntent({ kind: 'sign-out' })}
+      >
+        Sign out
+      </button>
+    </section>
   )
 }
 
@@ -105,7 +156,7 @@ function Follows({
 }) {
   return (
     <section className={styles.panel} data-vnext-zone="follows">
-      <h2 className={`${text.h2 ?? text.title} ${styles.panelHeading}`}>Competitions you follow</h2>
+      <h2 className={`${text.title} ${styles.panelHeading}`}>Competitions you follow</h2>
 
       {panel.kind === 'unavailable' ? (
         <div className={styles.empty}>
@@ -207,7 +258,7 @@ function History({
 }) {
   return (
     <section className={styles.panel} data-vnext-zone="history">
-      <h2 className={`${text.h2 ?? text.title} ${styles.panelHeading}`}>Your seasons</h2>
+      <h2 className={`${text.title} ${styles.panelHeading}`}>Your seasons</h2>
 
       {panel.kind === 'unavailable' ? (
         <div className={styles.empty}>
@@ -236,9 +287,11 @@ function Seasons({
   readonly panel: Extract<HistoryPanel, { kind: 'seasons' }>
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
 }) {
-  // GROUPED, NOT SORTED. `partitionByResult` keeps the server's order inside
-  // each group; contract 161 ordered its own seasons and nothing here re-ranks.
-  const { finished, ongoing } = partitionByResult(panel.seasons)
+  // GROUPED, NOT SORTED. `partitionByCompletion` keeps the server's order
+  // inside each group; contract 161 ordered its own seasons and nothing here
+  // re-ranks. It groups on the season's own `complete`, never on whether a
+  // Wrapped exists to print — see the model.
+  const { finished, ongoing } = partitionByCompletion(panel.seasons)
 
   return (
     <>

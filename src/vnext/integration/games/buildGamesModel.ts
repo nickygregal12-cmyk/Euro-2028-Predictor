@@ -112,9 +112,9 @@ function gamesPanelOf(source: GamesSource): GamesPanel {
   if (source.games.kind !== 'ok') return { kind: 'unavailable' }
 
   const read = source.games.games
-  // THE COMPETITION'S ANSWER ABOUT THE CALLER, not about the games. A
-  // non-member is told so rather than shown an empty catalogue.
-  if (!read.competitionMember) return { kind: 'not-a-member' }
+  // `competitionMember` IS DELIBERATELY NOT READ HERE. It is a summary of the
+  // per-game memberships below, and gating the catalogue on it would hide every
+  // joinable game from the player with nothing joined. See `models/games.ts`.
   if (read.games.length === 0) return { kind: 'empty' }
 
   // The server's own instant where it supplied one. The host's is the fallback,

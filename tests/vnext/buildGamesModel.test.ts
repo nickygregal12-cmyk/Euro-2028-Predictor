@@ -260,20 +260,15 @@ describe('a rejoin is never decided here', () => {
   })
 })
 
-describe('the panel answers about the caller before the games', () => {
-  it('says `not-a-member` rather than showing an empty catalogue', () => {
-    const model = buildGamesModel(
-      source({
-        games: {
-          kind: 'ok',
-          games: { competitionMember: false, serverNow: SERVER_NOW, games: [] },
-        },
-      }),
-    )
-    expect(model.games).toEqual({ kind: 'not-a-member' })
-  })
-
-  it('says `not-a-member` even when the catalogue has games in it', () => {
+describe('the catalogue is never hidden from the player who needs it', () => {
+  /**
+   * `competition_member` is `exists (… game_memberships … active)` for the
+   * season, and the `games` array beside it is NOT filtered by it. Nor does
+   * `enter_competition_game` require it: joining a game is what makes you a
+   * member. So a mapper that gated on it locked the only door in, and these
+   * assertions exist to stop that being reintroduced.
+   */
+  it('shows the catalogue to a caller with no membership anywhere in the season', () => {
     const model = buildGamesModel(
       source({
         games: {
@@ -282,10 +277,45 @@ describe('the panel answers about the caller before the games', () => {
         },
       }),
     )
-    expect(model.games).toEqual({ kind: 'not-a-member' })
+    expect(model.games.kind).toBe('games')
   })
 
-  it('says `empty` for a member of a competition that runs no games', () => {
+  it('offers entry to that caller, which is the whole point of showing it', () => {
+    const model = buildGamesModel(
+      source({
+        games: {
+          kind: 'ok',
+          games: {
+            competitionMember: false,
+            serverNow: SERVER_NOW,
+            games: [game({ membership: null })],
+          },
+        },
+      }),
+    )
+    if (model.games.kind !== 'games') throw new Error('expected a catalogue')
+    const entry = model.games.entries[0]
+    if (entry === undefined) throw new Error('expected an entry')
+    expect(entry.standing).toEqual({ kind: 'never-joined', registration: 'open' })
+    expect(offersEntry(entry)).toBe(true)
+  })
+
+  it('draws no distinction at all between a member and a non-member', () => {
+    const games = [game()]
+    const asMember = buildGamesModel(
+      source({
+        games: { kind: 'ok', games: { competitionMember: true, serverNow: SERVER_NOW, games } },
+      }),
+    )
+    const asStranger = buildGamesModel(
+      source({
+        games: { kind: 'ok', games: { competitionMember: false, serverNow: SERVER_NOW, games } },
+      }),
+    )
+    expect(asStranger.games).toEqual(asMember.games)
+  })
+
+  it('says `empty` for a competition that runs no games', () => {
     const model = buildGamesModel(
       source({
         games: {

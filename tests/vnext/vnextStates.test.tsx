@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { render, screen } from '@testing-library/react'
 import {
   VNextAccessRefused,
@@ -122,15 +123,44 @@ describe('access refused is its own fact', () => {
     expect(container.textContent).toMatch(/not yours to see/i)
   })
 
-  it('names nothing about what it is refusing', () => {
-    const { container } = renderState(
-      <VNextAccessRefused heading="Last Man Standing" destination="games" />,
+  it('names nothing about what it is refusing, whatever it is refusing', () => {
+    // THE INVARIANT, NOT FOUR ARBITRARY WORDS. Asserting the absence of
+    // "owner|members|invited" left the body free to name the thing being
+    // protected in any other phrasing — "the private league Highland Rivals is
+    // not yours to see" passed. What must actually hold is that the REFUSAL
+    // ITSELF is byte-identical whatever was refused, which is why contract 133
+    // answers an unknown id and a non-member's id identically: a refusal that
+    // varies with its subject is an oracle.
+    //
+    // The heading is excluded because it is the SURFACE the player was already
+    // on, which they knew before they got here — so it is read from the page
+    // header, and the refusal is read from the status region alone.
+    const refusalOf = (root: HTMLElement) =>
+      (root.querySelector('[role="status"]') as HTMLElement | null)?.textContent ?? ''
+
+    const lms = renderState(<VNextAccessRefused heading="Last Man Standing" destination="games" />)
+    const said = refusalOf(lms.container)
+    expect(said).toContain('not yours to see')
+    lms.unmount()
+
+    const league = renderState(
+      <VNextAccessRefused heading="Highland Rivals" destination="leagues" />,
     )
-    // The heading is the SURFACE the player was on, which they already knew.
-    // Nothing describes the thing being protected — a refusal that does is a
-    // disclosure, which is why contract 133 answers an unknown id and a
-    // non-member's id identically.
-    expect(container.textContent).not.toMatch(/owner|members|invited|private league named/i)
+    expect(refusalOf(league.container)).toBe(said)
+    league.unmount()
+
+    // Including the default, which names nothing at all.
+    const bare = renderState(<VNextAccessRefused />)
+    expect(refusalOf(bare.container)).toBe(said)
+    bare.unmount()
+
+    // And a heading long enough to be a real container name must not appear in
+    // the refusal even by accident.
+    const named = renderState(
+      <VNextAccessRefused heading="Ada Lovelace's Analytical Engine XI" destination="leagues" />,
+    )
+    expect(refusalOf(named.container)).not.toContain('Analytical Engine')
+    expect(refusalOf(named.container)).toBe(said)
   })
 })
 
@@ -151,11 +181,86 @@ describe('the skeleton shows no number and no name', () => {
     expect(screen.getByText('Loading games')).toBeInTheDocument()
   })
 
-  it('draws the row count the caller asked for', () => {
-    const { container } = renderState(
-      <VNextLoadingRows heading="Games" destination="games" rows={3} />,
+  it('draws the row count the caller asked for, and not its own', () => {
+    // `toBeGreaterThan(0)` passed for any hard-coded length, including the
+    // default. Two different counts, each asserted exactly, is what makes the
+    // prop load-bearing.
+    // The last aria-hidden block inside the busy region is the table; the two
+    // before it are the control row and the heading bar, whose counts are fixed.
+    const tableRows = (root: HTMLElement) =>
+      root.querySelectorAll('[aria-busy="true"] > div:last-of-type > span')
+
+    const three = renderState(<VNextLoadingRows heading="Games" destination="games" rows={3} />)
+    expect(tableRows(three.container)).toHaveLength(3)
+    three.unmount()
+
+    const seven = renderState(<VNextLoadingRows heading="Games" destination="games" rows={7} />)
+    expect(tableRows(seven.container)).toHaveLength(7)
+    seven.unmount()
+  })
+
+  it('takes the destination it was given rather than a hard-coded one', () => {
+    // THE REGRESSION THIS MODULE WAS EXTRACTED TO FIX. It used to render
+    // `destination="leagues"` with no prop at all, so a Championship that could
+    // not load told the player they were in Leagues. `VNextNotice` is guarded;
+    // this one was not, and hard-coding it back passed the whole file.
+    // `VNextNav` marks the active destination with aria-current="page", which
+    // is the same thing a screen reader is told.
+    const activeIn = (root: HTMLElement) =>
+      Array.from(root.querySelectorAll('[aria-current="page"]')).map((node) =>
+        (node.textContent ?? '').trim(),
+      )
+
+    const games = renderState(
+      <VNextLoadingRows heading="Games" destination="games" label="Loading games" />,
     )
-    const rows = container.querySelectorAll('[aria-hidden="true"] > span')
-    expect(rows.length).toBeGreaterThan(0)
+    expect(activeIn(games.container).join(' ')).toContain('Games')
+    expect(activeIn(games.container).join(' ')).not.toContain('Leagues')
+    games.unmount()
+
+    const leagues = renderState(
+      <VNextLoadingRows heading="Leagues" destination="leagues" label="Loading leagues" />,
+    )
+    expect(activeIn(leagues.container).join(' ')).toContain('Leagues')
+    expect(activeIn(leagues.container).join(' ')).not.toContain('Games')
+  })
+})
+
+describe('every shared state passes the accessibility scan', () => {
+  it('the notice, with and without a retry', async () => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextNotice destination="games" heading="Games" title="We could not load this" body="This is our end, not yours." />
+      </VNextShellProvider>,
+    )
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextNotice destination="games" heading="Games" title="We could not load this" body="This is our end, not yours." onRetry={() => {}} />
+      </VNextShellProvider>,
+    )
+  })
+
+  it('not found', async () => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextNotFound />
+      </VNextShellProvider>,
+    )
+  })
+
+  it('access refused', async () => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextAccessRefused heading="Leagues" destination="leagues" />
+      </VNextShellProvider>,
+    )
+  })
+
+  it('the loading skeleton, which must announce itself', async () => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextLoadingRows heading="Leagues" destination="leagues" label="Loading standings" />
+      </VNextShellProvider>,
+    )
   })
 })

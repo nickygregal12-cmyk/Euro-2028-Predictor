@@ -129,7 +129,6 @@ export const UnnamedGame: Story = board('unnamedGame', ['phone-375'], 0.9)
  * D. THE STATES THAT ARE NOT A CATALOGUE
  * ========================================================================== */
 
-export const NotAMember: Story = board('notAMember', ['phone-375'], 0.9)
 export const NoGames: Story = board('noGames', ['phone-375'], 0.9)
 export const Unavailable: Story = board('unavailable', ['phone-375'], 0.9)
 
@@ -144,5 +143,4 @@ export const FramePlayingOnePhone: Story = frame('playingOne', 'phone-375')
 export const FrameLeftUncertainPhone: Story = frame('leftAndUncertain', 'phone-375')
 export const FrameWidePhone: Story = frame('wideCatalogue', 'phone-375')
 export const FrameWideDesktop: Story = frame('wideCatalogue', 'desktop-1920')
-export const FrameNotAMemberPhone: Story = frame('notAMember', 'phone-375')
 export const FrameUnavailablePhone: Story = frame('unavailable', 'phone-375')

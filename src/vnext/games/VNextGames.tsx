@@ -120,17 +120,6 @@ function Games({
     )
   }
 
-  if (panel.kind === 'not-a-member') {
-    // ABOUT THE CALLER, NOT ABOUT THE GAMES. The competition runs whatever it
-    // runs; this player is not in it, and an empty catalogue would say the
-    // opposite thing.
-    return (
-      <p className={`${text.body} ${styles.empty}`} data-vnext-zone="not-a-member">
-        You are not in this competition, so its games are not yours to play yet.
-      </p>
-    )
-  }
-
   if (panel.kind === 'empty') {
     return (
       <p className={`${text.body} ${styles.empty}`} data-vnext-zone="no-games">

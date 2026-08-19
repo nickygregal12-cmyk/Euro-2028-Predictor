@@ -207,6 +207,12 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           props.onFinish?.({ draft, catalogue })
           return
         case 'retry':
+          // THE CLUB READS GO WITH IT. A retry that re-read the catalogue and
+          // left a failed club list marked as read would leave "we could not
+          // list the clubs" on screen permanently, with a Try again that
+          // visibly did nothing about it.
+          requestedClubs.current = new Set()
+          setClubs({})
           setAttempt((count) => count + 1)
           return
         default:

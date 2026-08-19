@@ -85,10 +85,23 @@ const closed = world({
   details: { ...COMPETITION, action: { kind: 'closed' } },
 })
 
-/** A competition with no season and no game named. */
+/**
+ * A LEAGUE WHOSE GAME IS UNNAMED, which is as bare as a resolved invite gets.
+ *
+ * AN EARLIER DRAFT MADE THIS A COMPETITION WITH BOTH THE SEASON AND THE GAME
+ * NULL. `resolve_invite_code` cannot produce that. Its competition branch is
+ * `from bonus_competitions join tournaments join game_definitions`, and both
+ * `tournaments.name` and `game_definitions.display_name` are `not null` — so a
+ * competition invite that resolved at all carries both, and one that did not
+ * resolve has a null NAME too and decodes to `found: false`.
+ *
+ * The league branch left-joins the competition and its definition, so a league
+ * genuinely can come back with no game name. The season cannot be null in
+ * either branch: `tournaments` is inner-joined in both.
+ */
 const bareInvite = world({
   kind: 'invite',
-  details: { ...COMPETITION, season: null, game: null, action: { kind: 'accept' } },
+  details: { ...LEAGUE, game: null, action: { kind: 'accept' } },
 })
 
 /** Looking the code up. */
@@ -147,7 +160,8 @@ export const inviteScenarioPremises: Readonly<Record<InviteScenarioName, string>
   alreadyIn: 'Already in. Nothing to accept, and no control at all rather than a disabled one.',
   owner: 'The player set it up. Its own sentence, because "already in" is not what a person would say.',
   closed: 'Finished, or an organiser started it. Stated, never joined — and never recomputed from a clock.',
-  bareInvite: 'A competition with no season and no game named. The subtitle disappears rather than showing a separator with nothing round it.',
+  bareInvite:
+    'A league whose underlying game the resolver could not name. The subtitle drops the game rather than showing a separator with nothing round it. A COMPETITION cannot reach this state — its branch inner-joins two not-null names — which is why this world is a league.',
   looking: 'Looking the code up.',
   notFound:
     'The code resolved to nothing. ONE sentence and no diagnosis: unknown, malformed and rotated codes were made indistinguishable by the server, and a client that told them apart would undo that.',

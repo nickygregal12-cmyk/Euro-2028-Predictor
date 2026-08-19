@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextGames } from '../../src/vnext/games/VNextGames'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
@@ -167,13 +168,6 @@ describe('the page names nothing the catalogue did not', () => {
 })
 
 describe('the states that are not a catalogue', () => {
-  it('tells a non-member about themselves, not about the games', () => {
-    renderGames(gamesScenarios.notAMember)
-    expect(zone('not-a-member')?.textContent).toMatch(/not in this competition/i)
-    // An empty catalogue would claim the competition runs nothing.
-    expect(zone('no-games')).toBeNull()
-  })
-
   it('distinguishes a competition running nothing from a failed read', () => {
     renderGames(gamesScenarios.noGames)
     expect(zone('no-games')).not.toBeNull()
@@ -228,7 +222,18 @@ describe('the scoring rules are on the page, not in a directory', () => {
   })
 
   it('shows no rules where there is no catalogue to explain', () => {
-    renderGames(gamesScenarios.notAMember)
+    renderGames(gamesScenarios.noGames)
     expect(zone('rules')).toBeNull()
+  })
+})
+
+
+describe('every world passes the accessibility scan', () => {
+  it.each(gamesScenarioNames)('%s has no critical or serious violation', async (name) => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextGames model={gamesScenarios[name]} onRetry={() => {}} />
+      </VNextShellProvider>,
+    )
   })
 })

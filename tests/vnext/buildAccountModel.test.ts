@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildAccountModel } from '../../src/vnext/integration/account/buildAccountModel'
 import type { AccountSource } from '../../src/vnext/integration/account/accountSource'
-import { partitionByResult, seasonIsOpenable } from '../../src/vnext/models/account'
+import { partitionByCompletion, seasonIsOpenable } from '../../src/vnext/models/account'
 
 /**
  * `AccountSource` → `AccountPageModel`, TESTED WHERE THE PREDICATE BITES.
@@ -77,6 +77,43 @@ function source(over: Partial<AccountSource> = {}): AccountSource {
 describe('a follow is named only where a read supplies a name', () => {
   it('names it from the catalogue, with the route the catalogue stores', () => {
     const model = buildAccountModel(source())
+    if (model.follows.kind !== 'follows') throw new Error('expected follows')
+    expect(model.follows.competitions[0]?.identity).toEqual({
+      kind: 'named',
+      competitionName: 'Caledonian Premiership',
+      seasonName: 'Caledonian Premiership 2027/28',
+      route: { competitionSlug: 'caledonian', seasonKey: '2027-28' },
+    })
+  })
+
+  it('PREFERS the catalogue when both reads can name the same follow', () => {
+    // THE PRECEDENCE IS THE POINT, AND IT NEEDS THE TWO READS TO DISAGREE.
+    // Both fixtures used to carry identical names and slugs, so this assertion
+    // passed from either branch and deleting the catalogue branch entirely left
+    // the suite green. The catalogue wins because it is the read that also
+    // carries a ROUTE, and a name from one read beside a route from another is
+    // how a player is sent to the wrong season.
+    const model = buildAccountModel(
+      source({
+        history: {
+          kind: 'ok',
+          history: {
+            total: 1,
+            limit: 20,
+            offset: 0,
+            hasMore: false,
+            seasons: [
+              historySeason({
+                competitionName: 'The history read’s name',
+                seasonName: 'The history read’s season',
+                competitionSlug: 'history-slug',
+                seasonKey: 'history-key',
+              }),
+            ],
+          },
+        },
+      }),
+    )
     if (model.follows.kind !== 'follows') throw new Error('expected follows')
     expect(model.follows.competitions[0]?.identity).toEqual({
       kind: 'named',
@@ -265,8 +302,8 @@ describe('order and paging are the server’s', () => {
     expect(model.history.hasMore).toBe(true)
   })
 
-  it('partitions by result without reordering either group', () => {
-    const finishedFirst = historySeason({ tournamentId: 'x', seasonName: 'X', final: { points: 1, rank: 1, fieldSize: 2, matchweeksPlayed: 1, finalisedAt: null } })
+  it('partitions by completion without reordering either group', () => {
+    const finishedFirst = historySeason({ tournamentId: 'x', seasonName: 'X', complete: true, final: { points: 1, rank: 1, fieldSize: 2, matchweeksPlayed: 1, finalisedAt: null } })
     const model = buildAccountModel(
       source({
         history: {
@@ -279,9 +316,43 @@ describe('order and paging are the server’s', () => {
       }),
     )
     if (model.history.kind !== 'seasons') throw new Error('expected seasons')
-    const { finished, ongoing } = partitionByResult(model.history.seasons)
+    const { finished, ongoing } = partitionByCompletion(model.history.seasons)
     expect(finished.map((s) => s.seasonName)).toEqual(['X'])
     expect(ongoing.map((s) => s.seasonName)).toEqual(['P', 'Q'])
+  })
+
+  it('files a FINISHED season with no Wrapped under Finished, not Still going', () => {
+    // Contract 161 makes `complete` and `final` independent: `complete` is
+    // `season.status in ('complete','archived')`, and `final` is null whenever
+    // `season_wrapped` holds no row. Partitioning on the result told a player a
+    // season they finished months ago was still running, because nobody had
+    // generated their Wrapped.
+    const model = buildAccountModel(
+      source({
+        history: {
+          kind: 'ok',
+          history: {
+            total: 1, limit: 20, offset: 0, hasMore: false,
+            seasons: [
+              historySeason({
+                tournamentId: 'w',
+                seasonName: 'Wrapped never ran',
+                complete: true,
+                wrappedAvailable: false,
+                final: null,
+              }),
+            ],
+          },
+        },
+      }),
+    )
+    if (model.history.kind !== 'seasons') throw new Error('expected seasons')
+    const { finished, ongoing } = partitionByCompletion(model.history.seasons)
+    expect(finished.map((s) => s.seasonName)).toEqual(['Wrapped never ran'])
+    expect(ongoing).toEqual([])
+    // And it still prints no result, because there is none to print. Being
+    // finished and having a banked total are different facts.
+    expect(finished[0]?.result).toBeNull()
   })
 
   it('drops a game with no name rather than rendering a blank row', () => {

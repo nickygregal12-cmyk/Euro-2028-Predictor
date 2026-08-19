@@ -185,21 +185,34 @@ export type AccountPageModel = {
    ========================================================================== */
 
 /**
- * The seasons that have a result, and those that do not, KEPT APART without
+ * THE SEASONS THAT ARE OVER, AND THOSE STILL RUNNING, KEPT APART without
  * reordering either.
+ *
+ * IT PARTITIONS ON `complete`, NOT ON `result`, AND THE DIFFERENCE IS A REAL
+ * PLAYER'S PAGE. Contract 161 supplies the two as INDEPENDENT facts —
+ * `'complete', season.status in ('complete', 'archived')` and a `final` block
+ * that is null whenever `season_wrapped` holds no row, with the read's own
+ * header saying "a season with no Wrapped it says so". So a finished season
+ * that was never wrapped has `complete: true` and `result: null`, and an
+ * earlier draft of this function filed it under "Still going" — telling a
+ * player a season they finished months ago is still running, because nobody
+ * had generated their Wrapped.
+ *
+ * The result is what a finished row PRINTS, where there is one. It is not what
+ * decides the season is finished.
  *
  * Contract 161 orders its own seasons and nothing here sorts. This partitions
  * in place, so a surface can head two groups while both keep the server's
  * sequence — the same rule the bracket follows.
  */
-export function partitionByResult(
+export function partitionByCompletion(
   seasons: readonly PlayedSeason[],
 ): { readonly finished: readonly PlayedSeason[]; readonly ongoing: readonly PlayedSeason[] } {
   const finished: PlayedSeason[] = []
   const ongoing: PlayedSeason[] = []
   for (const season of seasons) {
-    if (season.result === null) ongoing.push(season)
-    else finished.push(season)
+    if (season.complete) finished.push(season)
+    else ongoing.push(season)
   }
   return { finished, ongoing }
 }

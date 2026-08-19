@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextAccount } from '../../src/vnext/account/VNextAccount'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
@@ -220,5 +221,43 @@ describe('the page never invents an identity', () => {
     const { container } = renderAccount(accountScenarios.noDisplayName)
     expect(container.textContent).not.toMatch(/Ada Lovelace/)
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+  })
+})
+
+
+describe('every world passes the accessibility scan', () => {
+  it.each(accountScenarioNames)('%s has no critical or serious violation', async (name) => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextAccount model={accountScenarios[name]} onRetry={() => {}} />
+      </VNextShellProvider>,
+    )
+  })
+})
+
+describe('signing out', () => {
+  it('offers the control, and asks the host to perform it', () => {
+    const onIntent = vi.fn()
+    renderAccount(accountScenarios.ordinary, { onIntent })
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'sign-out' })
+  })
+
+  it('offers nothing where no host can perform it', () => {
+    // A story or a preview with no `onIntent` gets a page with no sign-out,
+    // rather than a button that silently does nothing. The lane's rule about
+    // controls the server would refuse, applied to a control the HOST would
+    // refuse.
+    renderAccount(accountScenarios.ordinary)
+    expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
+  })
+
+  it('is the only settings action the page claims to have', () => {
+    // The route matrix's `/account` also names changing an email address and
+    // the reminder-emails toggle. Neither is built, and the page must not
+    // imply otherwise by heading a Settings section it cannot fill.
+    renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
+    const page = screen.getByRole('main').textContent ?? ''
+    expect(page).not.toMatch(/change email|reminder emails|settings/i)
   })
 })

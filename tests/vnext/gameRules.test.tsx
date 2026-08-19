@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { VNextGameRules } from '../../src/vnext/rules/VNextGameRules'
 import {
@@ -68,11 +69,21 @@ describe('every number comes from the scoring authority', () => {
     expect(panel).toContain(`+${SEASON_PREDICTOR_POINTS.correctResult}`)
   })
 
-  it('prints both Joker limits from their constants', () => {
+  it('prints both Joker limits from their constants, IN THEIR OWN CLAUSES', () => {
     render(<VNextGameRules game="match-predictor" />)
-    const panel = zone('rules-panel')?.textContent ?? ''
-    expect(panel).toContain(String(SEASON_JOKERS_PER_SEASON))
-    expect(panel).toContain(String(SEASON_JOKERS_PER_HALF))
+    const panel = (zone('rules-panel')?.textContent ?? '').replace(/\s+/g, ' ')
+
+    // NOT `toContain(String(n))`. Both limits are single digits and the panel
+    // is full of them — `+5` from the exact-score row satisfies a bare
+    // `toContain('5')`, so that form passed while the half limit printed 99,
+    // printed the season limit in the half's place, or was deleted outright.
+    // Each number is asserted inside the clause that gives it its meaning.
+    expect(panel).toContain(`You get ${SEASON_JOKERS_PER_SEASON} a season`)
+    expect(panel).toContain(`no more than ${SEASON_JOKERS_PER_HALF} in either half`)
+
+    // And the two are genuinely different numbers, so neither clause can be
+    // satisfied by the other's value.
+    expect(SEASON_JOKERS_PER_SEASON).not.toBe(SEASON_JOKERS_PER_HALF)
   })
 
   it('says the Joker doubles a matchweek rather than a fixture', () => {
@@ -124,4 +135,16 @@ describe('no per-competition setting is invented', () => {
     expect(panel).not.toMatch(/extra time|penalty number/i)
     expect(zone('rules-elsewhere')?.textContent).toMatch(/shown on the tie itself/i)
   })
+})
+
+describe('the rules control passes the accessibility scan', () => {
+  // The segmented control is the one brand-new interactive control this stage
+  // introduced, and it is a radio group with screen-reader-only inputs. That
+  // combination is exactly what an axe gate is for.
+  it.each(['match-predictor', 'last-man-standing', 'championship'] as const)(
+    'the %s panel has no critical or serious violation',
+    async (game) => {
+      await expectNoAxeViolations(<VNextGameRules game={game} />)
+    },
+  )
 })

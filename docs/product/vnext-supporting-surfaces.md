@@ -33,6 +33,16 @@ in the matrix's first column.
 
 **Result: the matrix is complete. No user-facing route is missing from it.**
 
+**The method as first described here was not the method that would work, and
+the correction matters more than the conclusion.** Eighteen of `App.tsx`'s route
+registrations take `path={weeklyRoutes.…}` or `path={weeklyRoutePatterns.…}`
+from `src/app/shellRoutes.ts` — including `/`, `/play`, `/matches`, `/leagues`,
+`/competitions`, `/more` and every `/competitions/:c/:s/*`. An extraction of
+`path="…"` string literals alone would have reported eighteen absences rather
+than the one near-miss recorded below. The inventory behind the conclusion is
+the 43 literals PLUS the 18 resolved through `shellRoutes.ts`, and the
+conclusion was independently re-derived from that full set.
+
 One near-miss is worth recording, because it is how such an omission would
 actually present. A first pass reported `/auth/update-password` as absent. It is
 not: it shares a row with `/auth/reset` (matrix line 139), and the extraction
@@ -174,8 +184,19 @@ Read from the matrix rather than invented. Three current routes converge here:
 
 **`/more` is absorbed rather than redesigned.** The matrix's note is the
 argument and it is a good one: a directory page exists because a navigation ran
-out of slots. vNext's navigation has four slots and one of them is Account, so
-the directory has nothing to do.
+out of slots.
+
+**An earlier draft finished that sentence with "and one of the four slots is
+Account". That is the claim §4 had just retracted two paragraphs earlier, used
+as the premise of the next section's argument.** The four are `home | matches |
+games | leagues`, and Account is none of them.
+
+The argument survives without it, and is better stated: `/more` exists because
+its three links had nowhere else to be. They have somewhere now — Account is a
+permanent control in the masthead and the rail, reachable from every vNext
+surface without a directory, and the scoring rules sit beside the games they
+govern. A directory whose every entry is reachable one press away is a page
+with nothing left to do.
 
 **The tournament profile merges in, and must not become a fourth system.**
 The matrix names the hazard directly: platform, tournament and season profiles
@@ -214,8 +235,11 @@ than from taste.
 Contract 126 changed what the flag means and said so in its own header: it
 *"bites when the competition is running, and not before"*, because ADR 0013
 fixes the field at the first round's lock and a player who left before that
-*"is in precisely the position of one who never joined"*. The installed function
-agrees:
+*"is in precisely the position of one who never joined"*. The installed
+function agrees — and it is `predictor_internal.enter_competition_game`, which
+is where `20260810190000_private_season_lms.sql` moved the branch;
+`join_competition_game` now delegates to it, so a reader looking for this rule
+in the public function will not find it there:
 
 ```sql
 if v_membership.status = 'disqualified' then
@@ -263,6 +287,32 @@ From the contract, and from the two debts carried out of Stage 12:
   Neither may be worked around in presentation here, and the attention/action
   surface in particular *"must only claim event classes the backend can actually
   produce."*
+
+### 6.1 Two things this stage deliberately left, named rather than implied
+
+**The rest of `/account`'s settings.** The matrix defines the row as "settings,
+follow/unfollow, favourite team". Follow and favourite are answered elsewhere by
+design — Discovery owns the follow control, because it holds the read that knows
+the current state, and the favourite is competition-scoped. Of the settings
+proper, **sign out is built** and changing an email address and the
+reminder-emails toggle are **not**. The split is a cutover judgement rather than
+a preference: a player can go a season without either of the latter two, and a
+cutover that shipped no way to sign out would strand every shared device. The
+page heads no "Settings" section it cannot fill, and a test asserts it does not.
+
+**The action/attention centre.** `buildShellModel` sets `attention: []` for
+every connected screen, and that is the decision rather than an oversight. The
+stage contract scopes this work as "once its backend coverage is truthful
+enough", and the predicate's own wording is the test:
+
+> action/attention UI only claims event classes the backend can actually produce
+
+An empty attention list claims none, which passes. Populating it would mean
+inventing event classes across five surfaces from reads that do not carry them,
+which fails. The matrix's ABSORB of `/play` and `/competitions/:c/:s/play` into
+the attention layer therefore remains a recorded fate whose execution waits on
+the backend coverage the contract names — the same treatment the two carried
+debts get, for the same reason.
 
 ---
 

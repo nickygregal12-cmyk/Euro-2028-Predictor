@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextOnboarding, type OnboardingIntent } from '../../src/vnext/onboarding/VNextOnboarding'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
@@ -192,8 +193,8 @@ describe('the favourite club', () => {
 })
 
 describe('skipping is a real control', () => {
-  it('is offered on every step after the first', () => {
-    for (const name of ['clubs', 'games', 'review'] as const) {
+  it('is offered on both optional steps', () => {
+    for (const name of ['clubs', 'games'] as const) {
       const { unmount } = renderOnboarding(onboardingScenarios[name])
       expect(screen.getByRole('button', { name: 'Skip this' })).toBeInTheDocument()
       unmount()
@@ -206,11 +207,23 @@ describe('skipping is a real control', () => {
     expect(screen.queryByRole('button', { name: 'Back' })).toBeNull()
   })
 
-  it('leaves setup from the last step rather than advancing past it', () => {
+  it('is not offered on the review, where it would discard the answers', () => {
+    // The review is the commitment point. A control there reading "Skip this"
+    // would look like skipping a summary and would actually throw away
+    // everything the player had just chosen. Their way out is Back, or Finish
+    // — and finishing with nothing chosen is a complete outcome the page says
+    // so in as many words.
+    renderOnboarding(onboardingScenarios.review)
+    expect(screen.queryByRole('button', { name: 'Skip this' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Finish setup' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Back' })).toBeInTheDocument()
+  })
+
+  it('advances rather than leaving when an optional step is skipped', () => {
     const onIntent = vi.fn()
-    renderOnboarding(onboardingScenarios.review, onIntent)
+    renderOnboarding(onboardingScenarios.clubs, onIntent)
     fireEvent.click(screen.getByRole('button', { name: 'Skip this' }))
-    expect(onIntent).toHaveBeenCalledWith({ kind: 'leave' })
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'continue' })
   })
 })
 
@@ -285,5 +298,16 @@ describe('before the catalogue answers', () => {
     expect(screen.getByText(/your account is fine/i)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: /try again/i }))
     expect(onIntent).toHaveBeenCalledWith({ kind: 'retry' })
+  })
+})
+
+
+describe('every world passes the accessibility scan', () => {
+  it.each(onboardingScenarioNames)('%s has no critical or serious violation', async (name) => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextOnboarding view={onboardingScenarios[name]} />
+      </VNextShellProvider>,
+    )
   })
 })

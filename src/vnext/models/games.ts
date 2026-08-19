@@ -108,14 +108,23 @@ export type GameEntry = {
 /**
  * THE GAMES PANEL.
  *
- * `not-a-member` is the competition's answer about the CALLER, not about the
- * games: `get_competition_games` returns `competition_member` separately, and a
- * player who is not in the competition is told that rather than shown an empty
- * catalogue.
+ * THERE IS NO `not-a-member` STATE, AND ITS ABSENCE IS THE CONTRACT. An earlier
+ * draft had one, gated on `get_competition_games`' `competition_member`, and it
+ * was wrong in the way that mattered most: it hid the catalogue from precisely
+ * the player who needs it.
+ *
+ * `competition_member` is `exists (… game_memberships … status = 'active')` for
+ * the season — a SUMMARY of the memberships this same read already returns
+ * game by game, not a gate. The `games` array beside it is not filtered by it,
+ * so `{competition_member: false, games: [five games]}` is an ordinary payload.
+ * And `predictor_internal.enter_competition_game` has NO competition-membership
+ * precondition at all: auth, availability, `completed_at`, the two registration
+ * windows, then the membership row. Joining a game is what MAKES you a member —
+ * the insert writes `tournament_id` — so a surface that requires membership
+ * before showing a joinable game has locked the only door in.
  */
 export type GamesPanel =
   | { readonly kind: 'unavailable' }
-  | { readonly kind: 'not-a-member' }
   | { readonly kind: 'empty' }
   | { readonly kind: 'games'; readonly entries: readonly GameEntry[] }
 

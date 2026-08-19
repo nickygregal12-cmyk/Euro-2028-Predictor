@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
+import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { VNextInvite } from '../../src/vnext/invite/VNextInvite'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
@@ -154,9 +155,15 @@ describe('the invitation is described in the words the read supplied', () => {
     )
   })
 
-  it('shows no subtitle at all where neither exists', () => {
+  it('drops the game and keeps the season, with no dangling separator', () => {
+    // The old assertion here was that a subtitle disappears when NEITHER exists
+    // — against a fixture that made a competition invite with a null season.
+    // `resolve_invite_code` inner-joins `tournaments` in both branches, so a
+    // resolved invite always has a season; only a league's game can be null.
+    // The reachable case is therefore one part, not none.
     renderInvite(inviteScenarios.bareInvite)
-    expect(zone('subtitle')).toBeNull()
+    expect(zone('subtitle')?.textContent).toBe('Caledonian Premiership 2027/28')
+    expect(zone('subtitle')?.textContent).not.toContain('·')
   })
 
   it('never clips a long name', () => {
@@ -164,5 +171,58 @@ describe('the invitation is described in the words the read supplied', () => {
     expect(container.textContent).toContain(
       'The Royal Caledonian and Borders Office Championship Invitational 2027/28',
     )
+  })
+})
+
+
+describe('every world passes the accessibility scan', () => {
+  it.each(inviteScenarioNames)('%s has no critical or serious violation', async (name) => {
+    await expectNoAxeViolations(
+      <VNextShellProvider model={shellScenarios.oneCompetition}>
+        <VNextInvite model={inviteScenarios[name]} />
+      </VNextShellProvider>,
+    )
+  })
+})
+
+describe('no world depicts a payload the resolver cannot produce', () => {
+  /**
+   * THE LAWFULNESS CHECK the other Stage 13 surfaces carry and this one did
+   * not. `resolve_invite_code`'s competition branch is
+   *
+   *   from bonus_competitions
+   *   join tournaments      on season.id = competition.tournament_id
+   *   join game_definitions on definition.game_key = competition.game_key
+   *
+   * with `tournaments.name` and `game_definitions.display_name` both `not
+   * null`. So a COMPETITION invite that resolved carries both a season and a
+   * game name; one that did not resolve has a null `name` and decodes to
+   * `found: false` long before it reaches a model. The league branch left-joins
+   * the competition and its definition, so only a LEAGUE can come back with an
+   * unnamed game — and `tournaments` is inner-joined in both branches, so
+   * neither can come back with an unnamed season.
+   */
+  it.each(inviteScenarioNames)('%s could have come from the server', (name) => {
+    const panel = inviteScenarios[name].panel
+    if (panel.kind !== 'invite') return
+    const details = panel.details
+
+    expect(details.season).not.toBeNull()
+
+    if (details.container === 'competition') {
+      expect(details.game).not.toBeNull()
+    }
+  })
+})
+
+describe('the lookup announces itself rather than being a silent pause', () => {
+  it('marks the card busy and live while the code is being resolved', () => {
+    // Removing both attributes passed the whole file, which made "it announces
+    // itself" a claim in a comment rather than a property of the component. A
+    // player using a screen reader gets no signal at all without them.
+    renderInvite(inviteScenarios.looking)
+    const card = zone('looking')
+    expect(card).toHaveAttribute('aria-busy', 'true')
+    expect(card).toHaveAttribute('aria-live', 'polite')
   })
 })

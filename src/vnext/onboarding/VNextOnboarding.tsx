@@ -34,9 +34,16 @@ import styles from './onboarding.module.css'
  *
  * ============================ SKIP IS A REAL CONTROL ====================
  *
- * Every step after the first offers "Skip this" beside Continue, with the same
- * weight. A skip hidden as a small grey link is a skip the product does not
- * really mean.
+ * The two optional steps — the club and the games — offer "Skip this" beside
+ * Continue, with the same weight. A skip hidden as a small grey link is a skip
+ * the product does not really mean.
+ *
+ * IT IS NOT OFFERED ON THE FIRST STEP, where there is nothing yet to skip
+ * past, AND NOT ON THE REVIEW. The review is the commitment point: a control
+ * there reading "Skip this" would look like skipping a summary and would
+ * actually discard everything the player had just chosen. Their way out of the
+ * review is Back, or Finish — and finishing with nothing chosen is a complete
+ * outcome the page says so in as many words.
  *
  * ============================ AND FINISH ADMITS WHAT IT DID =============
  *
@@ -452,14 +459,13 @@ function Commit({
           </button>
         )}
 
-        {/* SKIP CARRIES THE SAME WEIGHT AS CONTINUE, and exists on every step
-            after the first. It is not offered on the first because there is
-            nothing yet to skip past. */}
-        {model.back && model.commit.kind !== 'partial' ? (
+        {/* SKIP CARRIES THE SAME WEIGHT AS CONTINUE, on the two steps that are
+            genuinely optional. Never on the review — see the header. */}
+        {model.back && !model.isLast && model.commit.kind !== 'partial' ? (
           <button
             type="button"
             className={styles.secondary}
-            onClick={() => onIntent?.({ kind: model.isLast ? 'leave' : 'continue' })}
+            onClick={() => onIntent?.({ kind: 'continue' })}
           >
             Skip this
           </button>

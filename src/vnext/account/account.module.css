@@ -155,3 +155,26 @@
     align-items: start;
   }
 }
+
+/* SIGN OUT IS A REAL CONTROL, NOT A FOOTNOTE. It is the only settings action
+   the vNext account carries, and hiding it as small grey text is how a player
+   on a shared device ends up staying signed in. */
+.signOut {
+  align-self: flex-start;
+  padding: var(--vnext-space-3) var(--vnext-space-5);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.signOut:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.signOut:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}

@@ -164,6 +164,27 @@ const resultWithoutRank = world({
  * slug, so the row says "archived" and offers no button — which contract 161's
  * own header argues beats a link that goes nowhere.
  */
+const finishedWithoutWrapped = world({
+  history: {
+    kind: 'seasons',
+    seasons: [
+      season({
+        tournamentId: 't-unwrapped',
+        seasonName: 'Harbour League 2026/27',
+        competitionName: 'Harbour League',
+        // COMPLETE AND UNWRAPPED — two independent facts in contract 161, and
+        // the pair an earlier draft got wrong: partitioning on the result filed
+        // this under "Still going".
+        complete: true,
+        result: null,
+        games: [{ gameName: 'Match Predictor', outcome: 'played' }],
+      }),
+    ],
+    total: 1,
+    hasMore: false,
+  },
+})
+
 const archivedSeason = world({
   history: {
     kind: 'seasons',
@@ -269,6 +290,7 @@ export const accountScenarios = {
   finishedSeason,
   resultWithoutRank,
   archivedSeason,
+  finishedWithoutWrapped,
   mixedHistory,
   pagedHistory,
   followsUnavailable,
@@ -296,6 +318,8 @@ export const accountScenarioPremises: Readonly<Record<AccountScenarioName, strin
     'A finished season carrying contract 156’s stored snapshot. Nothing on this page recomputes a total.',
   resultWithoutRank:
     'Finalised with no rank. A null rank is not a last place and is not printed as one.',
+  finishedWithoutWrapped:
+    'Finished, and never wrapped. Contract 161 makes "the season is over" and "a Wrapped exists" independent, so this row belongs under Finished with no result to print — grouping on the result would tell the player it is still running.',
   archivedSeason:
     'Archived. The catalogue no longer publishes it and the server withheld the slug, so there is no button — which beats a link that goes nowhere.',
   mixedHistory: 'Both groups at once, each keeping the server’s own order.',

@@ -142,9 +142,6 @@ const unnamedGame = world({
   },
 })
 
-/** Not in the competition. About the caller, not about the games. */
-const notAMember = world({ games: { kind: 'not-a-member' } })
-
 /** A member of a competition that runs nothing this season. */
 const noGames = world({ games: { kind: 'empty' } })
 
@@ -179,7 +176,6 @@ export const gamesScenarios = {
   everyRegistrationState,
   inactiveGame,
   unnamedGame,
-  notAMember,
   noGames,
   unavailable,
   wideCatalogue,
@@ -205,8 +201,6 @@ export const gamesScenarioPremises: Readonly<Record<GamesScenarioName, string>> 
   inactiveGame: 'A game the catalogue switched off. Not running is not the same as missing.',
   unnamedGame:
     'A game the catalogue did not name. The page does not name it either: turning a key into a title would be this lane naming a game the catalogue already names.',
-  notAMember:
-    'Not in the competition. Said about the caller rather than shown as an empty catalogue, which would claim the opposite thing.',
   noGames: 'A member of a competition running no games this season.',
   unavailable: 'The read did not answer.',
   wideCatalogue: 'Five games and a very long name. The width test.',

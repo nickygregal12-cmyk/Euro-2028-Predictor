@@ -84,7 +84,7 @@ function AccountHarness({ scenario }: { readonly scenario: AccountScenarioName }
             setLastIntent(
               intent.kind === 'open-season'
                 ? `open:${intent.competitionSlug}/${intent.seasonKey}`
-                : `manage:${intent.tournamentId}`,
+                : intent.kind,
             )
           }
         />

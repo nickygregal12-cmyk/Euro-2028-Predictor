@@ -34,14 +34,6 @@ const SEASON_STATUSES: readonly string[] = [
 type SeasonRow = { id: string; name: string; status: string | null }
 
 /**
- * Fetch the caller's real game membership for the named seasons.
- *
- * Returns one entry per season the database actually holds; names it does not
- * hold are simply absent from the result. Any query or RPC failure throws for
- * the whole read — partial truth dressed as the full picture is the exact
- * defect this read exists to remove.
- */
-/**
  * ONE SEASON'S GAME CATALOGUE, and the caller's membership in each.
  *
  * `fetchHubMembership` answers the same question for MANY seasons and is keyed
@@ -60,6 +52,14 @@ export async function fetchSeasonGames(tournamentId: string): Promise<SeasonGame
   return decodeSeasonGames(data)
 }
 
+/**
+ * Fetch the caller's real game membership for the named seasons.
+ *
+ * Returns one entry per season the database actually holds; names it does not
+ * hold are simply absent from the result. Any query or RPC failure throws for
+ * the whole read — partial truth dressed as the full picture is the exact
+ * defect this read exists to remove.
+ */
 export async function fetchHubMembership(
   seasonNames: readonly string[],
 ): Promise<HubSeasonMembership[]> {

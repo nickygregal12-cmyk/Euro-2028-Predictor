@@ -80,6 +80,13 @@
 }
 
 .choice {
+  /* THE CONTAINING BLOCK FOR THE SCREEN-READER-ONLY RADIO INSIDE IT. The input
+     is `position: absolute` (typography's `srOnly`), so without this it is
+     positioned against whatever ancestor happens to be positioned — and a
+     browser scrolling the focused input into view would move the viewport away
+     from the control the player is actually operating. The visible focus ring
+     is handled separately, by `:has(input:focus-visible)` below. */
+  position: relative;
   /* THE WHOLE SEGMENT IS THE TARGET, not the word inside it. */
   display: flex;
   align-items: center;
