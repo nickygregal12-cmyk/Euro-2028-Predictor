@@ -31,6 +31,11 @@ import { userFacingError } from '../../shared/errors/userFacingError'
  *     • the caller holds the ODD lane and submitted an even number;
  *     • the caller holds the EVEN lane and submitted an odd number.
  *
+ *   `23505` for a race the version check cannot see
+ *     • two first submissions for the same `(window_id, user_id)` at once. The
+ *       `for update` ahead of the insert locks nothing when the row does not
+ *       exist, so both reach the insert and the primary key rejects one.
+ *
  * A map claiming to tell those apart would be inventing a distinction the code
  * does not carry. So each sentence below is chosen to be TRUE OF EVERY RULE
  * THAT SHARES ITS CODE, and the precise version is left to the surface, which
@@ -50,9 +55,22 @@ const BY_CODE: Record<string, string> = {
   // sentence names that rather than guessing which of the three it was.
   '55000': 'This round is not taking Penalty Numbers. Reload to see where it stands.',
   // Out of range, or the wrong parity for the caller's lane. Both are about the
-  // NUMBER, and the page knows the lane from the read.
-  check_violation: 'That number is not allowed in your lane. Check the rule beside the box.',
-  '23514': 'That number is not allowed in your lane. Check the rule beside the box.',
+  // NUMBER, and the page knows the lane from the read. NOT "not allowed in your
+  // lane": that implies the OTHER lane would take it, which is false for the
+  // range rule — 150 is allowed in neither — and this sentence must be true of
+  // all three rules that share the code.
+  check_violation: 'That number cannot be used. Check the rule beside the box.',
+  '23514': 'That number cannot be used. Check the rule beside the box.',
+  // TWO FIRST SUBMISSIONS AT ONCE. `select … for update` takes no lock on a row
+  // that does not exist yet, so two concurrent inserts for the same
+  // `(window_id, user_id)` — the table's primary key — both reach the insert
+  // branch and one raises a unique violation. It is a write conflict in
+  // everything but SQLSTATE: `isVersionConflict` matches only `PT409`, so
+  // without this entry it fell through to generic copy telling the reader to
+  // refresh on a page that deliberately does not re-read. Classified here, it
+  // re-reads like the refusal it is.
+  unique_violation: 'Your Penalty Number was being saved already. We have reloaded this round.',
+  '23505': 'Your Penalty Number was being saved already. We have reloaded this round.',
   // No tie in this round for this caller.
   no_data_found: 'You have no tie in this round.',
   '02000': 'You have no tie in this round.',

@@ -430,3 +430,98 @@ describe('the group phase', () => {
     expect(captions[1]).toContain('Group 2')
   })
 })
+
+/**
+ * THE FIELD ITSELF. A Penalty Number is a SEALED BID that cannot be changed
+ * after the round locks, so the value submitted must be the value typed.
+ */
+describe('the Penalty Number field takes digits and nothing else', () => {
+  function field() {
+    return screen.getByLabelText('Your Penalty Number') as HTMLInputElement
+  }
+
+  it.each([
+    ['0x11', '01'],
+    ['1e1', '11'],
+    ['+7', '7'],
+    ['7.5', '75'],
+    [' 9 ', '9'],
+  ])('keeps only the digits of %s', (typed, kept) => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd)
+    fireEvent.change(field(), { target: { value: typed } })
+    expect(field().value).toBe(kept)
+  })
+
+  it('never holds more than two digits, because the range is 0 to 99', () => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd)
+    fireEvent.change(field(), { target: { value: '1234' } })
+    expect(field().value).toBe('12')
+  })
+
+  it('submits the number that is on screen', () => {
+    const onIntent = vi.fn()
+    renderChampionship(championshipScenarios.penaltyOpenOdd, { onIntent })
+    // `0x11` is 17 to `Number`, and 17 is odd — so an unfiltered field would
+    // have accepted it and submitted 17, a bid the reader never typed. Filtered,
+    // the field holds `01` and submits the 1 that is on screen.
+    fireEvent.change(field(), { target: { value: '0x11' } })
+    expect(field().value).toBe('01')
+    fireEvent.click(screen.getByRole('button', { name: 'Submit' }))
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'submit-penalty-number', value: 1 })
+  })
+
+  it('identifies a value this lane will not take, rather than only disabling', () => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd)
+    fireEvent.change(field(), { target: { value: '8' } })
+    expect(field()).toHaveAttribute('aria-invalid', 'true')
+    const describedBy = field().getAttribute('aria-describedby') ?? ''
+    expect(describedBy).toContain('vnext-penalty-error')
+  })
+
+  it('is not marked invalid before anything is typed', () => {
+    renderChampionship(championshipScenarios.penaltyOpenOdd)
+    expect(field()).not.toHaveAttribute('aria-invalid')
+  })
+
+  it('describes the field with the VISIBLE rule, not a hidden second copy', () => {
+    const { container } = renderChampionship(championshipScenarios.penaltyOpenOdd)
+    const described = container.querySelector('#vnext-penalty-rule')
+    expect(described).not.toBeNull()
+    // One element carries the sentence, and the input points at it.
+    expect(container.querySelectorAll('#vnext-penalty-rule')).toHaveLength(1)
+    expect(described?.getAttribute('data-vnext-zone')).toBe('penalty-rule')
+  })
+})
+
+/**
+ * THE REFUSAL SENTENCE OUTLIVES THE PANEL IT WAS EARNED IN.
+ *
+ * The dominant refusal is `55000` — the round locked at its first kickoff — and
+ * the hook re-reads on refusal, so the panel flips to `locked` before the
+ * sentence can be shown. Rendered only inside the submission form, it was
+ * discarded on the one refusal that actually happens.
+ */
+describe('a refusal is shown whatever the panel became', () => {
+  it.each([
+    ['penaltyLocked', 'locked'],
+    ['penaltyUnscheduled', 'unscheduled'],
+    ['penaltyOpenOdd', 'open'],
+  ] as const)('shows it over the %s panel', (name, _state) => {
+    renderChampionship(championshipScenarios[name], {
+      notice: 'Penalty Numbers for this round locked at the first kick-off.',
+    })
+    expect(
+      screen.getByText('Penalty Numbers for this round locked at the first kick-off.'),
+    ).toBeInTheDocument()
+  })
+
+  it('shows it even where there is no Penalty Number to submit', () => {
+    renderChampionship(championshipScenarios.notDrawn, { notice: 'That did not save.' })
+    expect(screen.getByText('That did not save.')).toBeInTheDocument()
+  })
+
+  it('renders no Penalty Number section at all when there is nothing to say', () => {
+    const { container } = renderChampionship(championshipScenarios.notDrawn)
+    expect(container.querySelector('[data-vnext-zone="penalty-number"]')).toBeNull()
+  })
+})

@@ -201,7 +201,29 @@ function PenaltyNumber({
   readonly busy: boolean
   readonly notice?: string | undefined
 }) {
-  if (panel.kind === 'not-required') return null
+  // THE REFUSAL SURVIVES THE PANEL CHANGING UNDER IT. This is not a detail of
+  // the form: the commonest refusal is `55000`, the round having locked at its
+  // first kickoff, and the hook RE-READS on refusal — so by the time the
+  // sentence would be shown the panel has flipped from `open` to `locked` and
+  // the branch that renders it is no longer the branch running. Rendered only
+  // inside the form, the one explanation the reader most needs disappeared
+  // exactly when it was earned.
+  const noticeLine =
+    notice === undefined ? null : (
+      <p className={`${text.body} ${styles.penaltyNotice}`} role="status">
+        {notice}
+      </p>
+    )
+
+  if (panel.kind === 'not-required') {
+    if (noticeLine === null) return null
+    return (
+      <section className={styles.penalty} data-vnext-zone="penalty-number">
+        <h2 className={`${text.micro} ${styles.penaltyHeading}`}>Penalty Number</h2>
+        {noticeLine}
+      </section>
+    )
+  }
 
   if (panel.kind === 'unscheduled') {
     return (
@@ -212,6 +234,7 @@ function PenaltyNumber({
           This round has no kick-off time yet, so it cannot take a Penalty
           Number.
         </p>
+        {noticeLine}
       </section>
     )
   }
@@ -225,6 +248,7 @@ function PenaltyNumber({
             ? 'Penalty Numbers are locked for this round, and you did not submit one.'
             : `Penalty Numbers are locked. Yours was ${panel.value}.`}
         </p>
+        {noticeLine}
       </section>
     )
   }
@@ -273,8 +297,14 @@ function PenaltyNumberForm({
         </p>
       )}
 
-      {/* THE RULE, BEFORE THE REFUSAL. */}
-      <p className={`${text.micro} ${styles.penaltyRule}`} data-vnext-zone="penalty-rule">
+      {/* THE RULE, BEFORE THE REFUSAL — and the SAME element the input points at,
+          rather than a second copy of the sentence hidden beside it. A screen
+          reader heard it twice: once as content, once as the field description. */}
+      <p
+        id="vnext-penalty-rule"
+        className={`${text.micro} ${styles.penaltyRule}`}
+        data-vnext-zone="penalty-rule"
+      >
         {penaltyLaneRule(panel.lane)}
       </p>
 
@@ -297,10 +327,21 @@ function PenaltyNumberForm({
           <input
             className={styles.penaltyInput}
             inputMode="numeric"
+            // DIGITS, AND ONLY DIGITS. `Number('0x11')` is 17 and `Number('1e1')`
+            // is 10, so an unfiltered field submits a sealed bid the reader did
+            // not type — into a tie they cannot resubmit after it locks. Same
+            // treatment as `ScoreEntry`, for the same reason.
+            pattern="[0-9]*"
+            maxLength={2}
             value={entry}
-            onChange={(event) => setEntry(event.target.value)}
+            onChange={(event) => setEntry(event.target.value.replace(/[^0-9]/g, '').slice(0, 2))}
             disabled={busy}
-            aria-describedby="vnext-penalty-rule"
+            aria-invalid={entry.trim() === '' ? undefined : !allowed}
+            aria-describedby={
+              allowed || entry.trim() === ''
+                ? 'vnext-penalty-rule'
+                : 'vnext-penalty-rule vnext-penalty-error'
+            }
           />
         </label>
         <button type="submit" className={styles.penaltySubmit} disabled={!allowed || busy}>
@@ -308,10 +349,18 @@ function PenaltyNumberForm({
         </button>
       </form>
 
-      {/* THE RULE AGAIN, WIRED TO THE INPUT for a screen reader. */}
-      <span id="vnext-penalty-rule" className={text.srOnly}>
-        {penaltyLaneRule(panel.lane)}
-      </span>
+      {/* THE REFUSAL, IDENTIFIED. A disabled button says a value is not
+          submittable; it does not say WHY, and the rule above is phrased as an
+          instruction rather than an error. */}
+      {entry.trim() === '' || allowed ? null : (
+        <p
+          id="vnext-penalty-error"
+          className={`${text.micro} ${styles.penaltyError}`}
+          data-vnext-zone="penalty-error"
+        >
+          {penaltyLaneRule(panel.lane)}
+        </p>
+      )}
 
       {notice === undefined ? null : (
         <p className={`${text.body} ${styles.penaltyNotice}`} role="status">

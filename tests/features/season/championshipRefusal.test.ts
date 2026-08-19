@@ -23,6 +23,8 @@ describe('every refusal the write can raise is classified', () => {
     ['02000', 'the same, by numeric code'],
     ['insufficient_privilege', 'not authenticated'],
     ['42501', 'the same, by numeric code'],
+    ['unique_violation', 'two first submissions racing for the same row'],
+    ['23505', 'the same, by numeric code'],
   ])('%s (%s)', (code) => {
     expect(isChampionshipRefusal(err(code))).toBe(true)
     expect(championshipRefusal(err(code))).not.toMatch(/something went wrong/i)
@@ -70,8 +72,28 @@ describe('a sentence never names one rule out of the several its code covers', (
     expect(sentence).not.toMatch(/0 to 99|1 to 99|0 to 98/)
   })
 
+  /**
+   * "NOT ALLOWED IN YOUR LANE" IS NOT TRUE OF ALL THREE. It implies the other
+   * lane would take the number, which is false for the range rule: 150 is
+   * allowed in neither lane. The sentence must survive all three rules.
+   */
+  it('does not imply the other lane would accept the number', () => {
+    expect(championshipRefusal(err('check_violation'))).not.toMatch(/your lane|other lane/i)
+  })
+
+  /**
+   * `23505` IS A LOST RACE, and the copy must not tell the reader to do
+   * something the page does not do. Classified as a refusal, the hook re-reads
+   * — so the sentence says the round was reloaded, which is what happened.
+   */
+  it('does not tell the reader to refresh a page that reloads itself', () => {
+    const sentence = championshipRefusal(err('23505'))
+    expect(sentence).toMatch(/reloaded/i)
+    expect(sentence).not.toMatch(/refresh and try again/i)
+  })
+
   it('never passes the server’s own message through', () => {
-    for (const code of ['55000', 'check_violation', 'no_data_found']) {
+    for (const code of ['55000', 'check_violation', 'no_data_found', '23505']) {
       expect(championshipRefusal(err(code))).not.toContain('server said so')
     }
   })

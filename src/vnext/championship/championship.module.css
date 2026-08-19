@@ -123,11 +123,23 @@
   border: 1px solid var(--vnext-hairline-strong);
   background-color: var(--vnext-surface);
   color: var(--vnext-text);
+  /* STATED, AND ABOVE 16px. An input with no font-size inherits the browser's
+     default form size, which iOS Safari zooms the whole page to reach — landing
+     the reader mid-submission on a page they now have to scroll back. This is
+     the token `ScoreEntry` uses for the same two-digit field. */
+  font-size: var(--vnext-size-headline);
+  text-align: center;
 }
 
 .penaltyInput:focus-visible {
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
+}
+
+/* THE REFUSAL, when the typed value is not one this lane takes. */
+.penaltyError {
+  margin: 0;
+  color: var(--vnext-text-secondary);
 }
 
 .penaltySubmit {
