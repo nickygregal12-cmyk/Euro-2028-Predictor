@@ -9,7 +9,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.goto('/')
   await expect(page).toHaveURL((url) => url.pathname === '/', { timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'Home', exact: true })).toBeVisible()
-  await expect(page).toHaveTitle('Home | Football Prediction Hub')
+  await expect(page).toHaveTitle('Home | Predictor Hub')
 
   const skipLink = page.getByRole('link', { name: 'Skip to main content' })
   const main = page.locator('#main-content')
@@ -28,7 +28,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
   await page.keyboard.press('Enter')
 
   await expect(page).toHaveURL((url) => url.pathname === '/play')
-  await expect(page).toHaveTitle('Play | Football Prediction Hub')
+  await expect(page).toHaveTitle('Play | Predictor Hub')
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText('Play page loaded')
 
@@ -74,7 +74,7 @@ test('keyboard navigation preserves skip target, route focus and announcements',
     (url) => url.pathname === '/competitions/scottish-premiership/2026-27/play',
   )
   await expect(page).toHaveTitle(
-    'Scottish Premiership 2026/27 Play | Football Prediction Hub',
+    'Scottish Premiership 2026/27 Play | Predictor Hub',
   )
   await expect(main).toBeFocused()
   await expect(page.locator(liveRegion)).toHaveText(
