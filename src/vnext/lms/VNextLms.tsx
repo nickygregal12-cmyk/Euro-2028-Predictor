@@ -222,6 +222,36 @@ function Body({
 }
 
 /**
+ * WHEN PICKS CLOSE, OR CLOSED, OR OPEN — THREE STATES AND THREE SENTENCES.
+ *
+ * SAID, NOT COUNTED. There is no countdown: the browser does not own this
+ * deadline and a ticking number implies it does.
+ *
+ * AND "NOT OPEN YET" IS NOT "CLOSED". An earlier version had two branches —
+ * open, or else closed — so a round that had not started announced "Picks
+ * closed 11:00", telling a player they had missed a deadline that has not
+ * arrived. `e2e/vnext-lms.spec.ts` caught it; no unit test could, because the
+ * markup was perfectly well-formed and merely untrue.
+ */
+function Deadline({ round }: { readonly round: LmsRound }) {
+  // NO DEADLINE IS THE HEADLINE, whatever else is true. An unscheduled window
+  // that announced "Picks open 12:00" would imply picking becomes possible; the
+  // fact a player needs is that no closing time exists yet.
+  const words =
+    round.locksAt === null
+      ? 'No deadline set yet'
+      : round.state === 'not-open'
+        ? round.opensAt === null
+          ? 'This round has not opened yet'
+          : `Picks open ${formatTime(round.opensAt)}`
+        : round.state === 'open'
+          ? `Picks close ${formatTime(round.locksAt)}`
+          : `Picks closed ${formatTime(round.locksAt)}`
+
+  return <p className={`${text.micro} ${styles.deadline}`}>{words}</p>
+}
+
+/**
  * HOW MANY CLUBS ARE LEFT, AND IT MATTERS MOST WHEN IT IS ONE.
  *
  * A separate component only so the singular is impossible to get wrong: "1
@@ -255,15 +285,7 @@ function RoundBody({
     <section className={styles.round} data-vnext-zone="round" data-state={round.state}>
       <div className={styles.roundHead}>
         <h2 className={`${text.title} ${styles.roundLabel}`}>{round.label}</h2>
-        <p className={`${text.micro} ${styles.deadline}`}>
-          {/* SAID, NOT COUNTED. No countdown: the browser does not own this
-              deadline, and a ticking number implies it does. */}
-          {round.locksAt === null
-            ? 'No deadline set yet'
-            : open
-              ? `Picks close ${formatTime(round.locksAt)}`
-              : `Picks closed ${formatTime(round.locksAt)}`}
-        </p>
+        <Deadline round={round} />
       </div>
 
       {pickName === null ? (

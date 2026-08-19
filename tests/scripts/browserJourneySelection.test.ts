@@ -150,6 +150,11 @@ describe('the map cannot rot', () => {
       'vnext-matches.spec.ts',
       'vnext-leagues.spec.ts',
       'vnext-player-profile.spec.ts',
+      // Stage 11's Last Man Standing. Same terms again: the deterministic
+      // worlds are the review surface, and the connected proof lives at the
+      // dev-only `/dev/vnext-lms` harness — which needs a real round, and
+      // spends a real club to prove the write.
+      'vnext-lms.spec.ts',
       'vnext-ia.spec.ts',
       ...parkedEuroSpecs,
     ]

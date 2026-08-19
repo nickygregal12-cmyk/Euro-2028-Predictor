@@ -220,8 +220,22 @@ describe('the deadline is said rather than counted', () => {
   })
 
   it('says there is no deadline rather than inventing one', () => {
+    // THE ABSENT DEADLINE IS THE HEADLINE, even though this round has also not
+    // opened. "Picks open 12:00" would imply picking becomes possible; what a
+    // player needs to know is that no closing time exists yet.
     renderLms(lmsScenarios.unscheduled)
     expect(zone('round').textContent).toContain('No deadline set yet')
+    expect(zone('round').textContent).not.toContain('Picks close')
+    expect(zone('round').textContent).not.toContain('Picks open')
+  })
+
+  it('never tells a player picks CLOSED on a round that has not OPENED', () => {
+    // The browser suite caught this: two branches, open or else closed, made a
+    // round that had not started announce "Picks closed 11:00" — a deadline the
+    // player is told they missed and which has not arrived.
+    renderLms(lmsScenarios.notOpenYet)
+    expect(zone('round').textContent).not.toContain('Picks closed')
+    expect(zone('round').textContent).toContain('Picks open')
   })
 })
 
