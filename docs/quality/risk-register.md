@@ -536,3 +536,38 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 - Current contract truth lives in `config/deployment-contract.json`, `config/development-hosted-contract.json` and [`current-status.md`](current-status.md) — never restated here, because a restated number drifts. The recorded, fail-closed split between environments is a controlled state.
 - A guard blocking incompatible deployment is a safeguard, not a defect to bypass.
 - Historical audits and reconciliations remain immutable; corrections are recorded alongside them rather than rewriting history.
+
+---
+
+## Correction record — 19 August 2026, `UX-005` and `UX-006` closed together
+
+Both were opened by the 19 August programme review and both are now discharged,
+by owner instruction to give vNext a light option and a real icon system.
+
+**`UX-005` — closed.** `src/vnext/foundations/tokens.css` gains a
+`[data-vnext][data-vnext-theme='light']` ramp and `VNextRoot` a `theme` prop
+whose precedence is a choice over the device — the half a `prefers-color-scheme`
+media query cannot do, and the reason the resolution is in the component rather
+than the stylesheet. The vNext Account surface carries the control, as three
+answers rather than a toggle, because the third — *match my device* — is the one
+a player has before they ever open the page.
+
+**`UX-006` — closed, and it found four defects on its first run.** The palette
+had never been measured, and the new
+`tests/vnext/vnextTokenContrast.test.ts` immediately reported
+`--vnext-text-muted` and `--vnext-rank-flat` at **4.45:1** on the interactive
+hover surface, against the 4.5 floor. Both were lifted to `#8d9bb4`.
+
+**One of that test's own assertions was wrong, and the correction is the more
+useful record.** It first floored every state colour on every surface, and its
+loudest failure was `--vnext-text-on-live` on `--vnext-live` at 3.21:1 — a
+pairing **no component renders**. `text-on-live` names the crest monogram and
+the live chip's word; the live fill is a seven-pixel dot. Changing a shipped
+palette to satisfy that would have been correcting the product to match the
+test. The floor now applies to the general text ramp everywhere and to state
+colours on the surfaces a page actually places them on, with the whole matrix
+pinned either way.
+
+`DEC-016` and `DEC-017` move to **decided and implemented** in the deferred
+register. `TEST-002`, `DOC-004`, `OPS-012` and `CI-002` are untouched and stay
+exactly as opened.
