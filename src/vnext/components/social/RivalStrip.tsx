@@ -49,14 +49,14 @@ export function RivalStrip({ rivals, title = 'Your rivals' }: RivalStripProps) {
             </span>
             <span className={styles.detail}>
               <span className={styles.nameRow}>
-                <span className={`${typography.body} ${typography.truncate}`}>
+                <span className={`${typography.body} ${typography.clamp2}`}>
                   {rival.player.name}
                 </span>
                 <span className={styles.relation}>
                   {RELATION_LABEL[rival.relation]}
                 </span>
               </span>
-              <span className={`${typography.micro} ${typography.truncate}`}>
+              <span className={`${typography.micro} ${typography.clamp2}`}>
                 {rival.headline ?? rival.sharedLeagueName}
               </span>
             </span>

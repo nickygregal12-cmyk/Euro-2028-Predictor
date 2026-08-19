@@ -630,3 +630,71 @@ was read from.
 Both directions are mutation-proved: reverting `--vnext-accent` fails four rows,
 and reverting `--vnext-text-on-live` reports **1.33 on `surface-interactive`**,
 the same number axe printed from a real browser.
+
+## Correction record — 19 August 2026, the external UI checklist audit
+
+The owner asked whether `nextlevelbuilder/ui-ux-pro-max-skill` could improve
+what this lane has built. It was read and applied as a checklist. Most of it
+does not reach us — it targets Tailwind, shadcn and native mobile, and this lane
+uses none of them — but three of its rules are stack-agnostic and worth the
+audit it prompted. **One found a real defect.**
+
+**`truncation-strategy` — "prefer wrapping over truncation; when truncating,
+provide the full text" — found a defect, and the lane had already written the
+rule itself.** Seven screen-level stylesheets say it in capitals: *"NO DISPLAY
+NAME IS EVER CLIPPED"* (`leagues.module.css`), *"NO CLUB NAME IS CLIPPED
+ANYWHERE IN THIS FILE"* (`matches.module.css`), *"A truncated name is the
+defect"* (`playerProfile.module.css`). It was nonetheless false.
+`typography.module.css` carried a `.truncate` helper — `white-space: nowrap`
+plus `text-overflow: ellipsis` — whose only three consumers were a rival's
+display name, that rival's league name, and a ladder row's player name. Exactly
+the three strings the doctrine is about. They now use `.clamp2`, which every
+other name in the lane already used, and the helper is gone.
+
+Nothing had a chance of catching it. The class was declared and its key existed,
+so the style-class scan was satisfied; axe has no rule for silent truncation;
+and no story renders a name long enough for the browser suite to see it clip.
+`tests/vnext/vnextNoNameTruncation.test.ts` closes it from the other end — the
+shared typography module may not offer a single-line clipping helper at all —
+and is mutation-proved in both directions.
+
+**Its first assertion was wrong, and the correction is the useful part.** It
+banned `white-space: nowrap` outright and failed on `.srOnly`, which carries it
+as part of the standard visually-hidden pattern on a 1px box that is already
+clipped out of the picture — it cuts nothing a sighted reader sees, and exists
+to give a screen reader the *full* string. The defect was never the property. It
+was clipping a name. `.srOnly` is a named exemption with that reasoning
+attached.
+
+**`color-not-only` — checked, already satisfied.** `FormRun` writes W/D/L and
+carries `role="img"` with a worded label; `PredictionChip` writes "Exact score",
+"Missed", "Not predicted". Neither leans on the hit/miss/warn colour alone.
+
+**`web-target-size` (WCAG 2.2 AA, 24×24) — checked, already enforced, and not by
+us.** axe-core 4.13 runs `target-size` in its default set under the `wcag22aa`
+tag, which is inside the tag list `tests/vnext/vnextAxe.ts` selects and inside
+the Storybook addon's default run. The lane's own 44px promise is stricter and
+is separately asserted by the browser suite.
+
+**`focus-not-obscured` (WCAG 2.2 AA) — NOT verified, and recorded as unproven
+rather than fixed.** `VNextShell.module.css` has a `position: sticky; top: 0`
+masthead and no `scroll-padding-block-start` anywhere in the lane, which reads
+like exposure. It was probed in a real browser and the probe did not stand up:
+its only hit was the masthead's *own* children, whose `top` is naturally above
+the bar's bottom because they are inside it, and after that bug was fixed the
+probe stopped detecting the sticky bar at all between runs. A flaky probe is not
+evidence. It also cannot currently be exercised where it would matter —
+`playwright.vnext.config.ts` states outright that vNext has no application
+route, so the document-level scroll this criterion is about does not exist in
+this lane yet. **`UX-007` is opened** for it below, owned by Stage 14, where the
+shell becomes the production frame and the document becomes the scroller.
+
+**`touch-action: manipulation` — declined, with the reason.** The skill lists it
+against a 300ms tap delay that modern engines removed for any document with
+`width=device-width`, which this application sets. Adding it lane-wide would be
+cargo, not a fix.
+
+| id | risk | status | closes when |
+| --- | --- | --- | --- |
+| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. Not currently reachable, because vNext has no application route. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
+
