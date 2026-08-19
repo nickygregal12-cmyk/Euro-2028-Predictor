@@ -15,7 +15,6 @@ import { useRailCollapsed } from './useRailCollapsed'
 import { outstandingCount } from './outstandingCount'
 import { applyAppBadge } from './appBadge'
 import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
-import { usePersistentActions } from './usePersistentActions'
 
 const ActionCentre = lazy(() =>
   import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
@@ -60,12 +59,6 @@ function SignedInFrame() {
   const { status: inboxStatus, inbox } = useGlobalPlayInbox(player)
   const [actionsOpen, setActionsOpen] = useState(false)
 
-  // Persistent actions are intentionally separate from the outstanding-work
-  // badge. Opening the panel reads the server-owned cross-device feed, marks
-  // unseen rows seen through its bounded command and lets the player dismiss a
-  // server-issued action. It never changes whether a game action is still due.
-  const persistent = usePersistentActions(actionsOpen)
-
   const outstanding = outstandingCount(inbox)
   useEffect(() => {
     if (inboxStatus !== 'ready') return
@@ -101,10 +94,7 @@ function SignedInFrame() {
           onToggleTheme={toggle}
           displayName={displayName}
           onOpenProfile={() => navigate('/profile')}
-          actions={{
-            outstanding,
-            onOpen: () => setActionsOpen(true),
-          }}
+          actions={{ outstanding, onOpen: () => setActionsOpen(true) }}
         />
       }
     >
@@ -118,9 +108,6 @@ function SignedInFrame() {
             onClose={() => setActionsOpen(false)}
             status={inboxStatus === 'ready' ? 'ready' : 'loading'}
             inbox={inbox}
-            persistentStatus={persistent.status}
-            persistentActions={persistent.actions}
-            onDismissPersistentAction={persistent.dismiss}
           />
         </Suspense>
       ) : null}
