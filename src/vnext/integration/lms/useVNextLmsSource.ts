@@ -32,10 +32,22 @@ import type { LmsSource } from './lmsSource'
  *     classifier and it lives beside the write contract it describes; this lane
  *     reuses it rather than writing a second copy, for the reason Stage 10
  *     learned when a privacy predicate nearly got duplicated.
- *   • **refused** — `check_violation` / `23514`. The server declined the pick
- *     on its own rules: the round locked, the club was already spent, the entry
- *     is not eligible. The page's view is STALE rather than wrong, and the
- *     honest response is to re-read rather than to argue.
+ *   • **refused** — the server declined on its own RULES, and there are FIVE
+ *     of them, not one. `save_lms_selection` raises `unique_violation`/23505
+ *     for a club already spent this cycle, `55000` for an eliminated entrant,
+ *     `insufficient_privilege`/42501 for a non-entrant, `no_data_found`/02000
+ *     for a window that is not a live round, and `check_violation`/23514 from
+ *     the row trigger for a locked or unopened round. **This lane classifies
+ *     none of them itself**: `isLmsRefusal` and `lmsRefusal` are the
+ *     repository's existing authority over exactly this RPC, and a second list
+ *     of codes here would drift from that one the first time a refusal was
+ *     added — silently, with the symptom being a player told to retry forever.
+ *
+ *     An earlier version of this file DID keep its own list, and it held only
+ *     `23514`. So the likeliest refusal on the surface — picking a club already
+ *     spent — fell through to `failed` and the page said "Nothing has changed,
+ *     so you can try again." Both halves were untrue, and the retry could never
+ *     succeed. That is what a second authority costs.
  *   • **failed** — anything else. A fault, and the only one where "try again"
  *     is a sensible suggestion on its own.
  *
@@ -44,6 +56,18 @@ import type { LmsSource } from './lmsSource'
  * server decides which picks to ACCEPT. When a clock disagreement puts those
  * two out of step, the player gets a sentence and a fresh read — never a
  * silent no-op, and never a pick they believe landed.
+ *
+ * ============================ A RE-READ DOES NOT TEAR THE PAGE DOWN ======
+ *
+ * Every landed pick re-reads, and a re-read that cleared the state made the
+ * hook report `loading` — so the screen replaced the standing, the pool, the
+ * round, the used list and the competition shell with grey bars, then
+ * reassembled them. On this surface, on a phone, that reads as the page falling
+ * over rather than as the pick landing.
+ *
+ * A re-read of the SAME identity therefore keeps its payload and raises
+ * `refreshing`; only a different identity clears, because only then is what is
+ * on screen about a different round.
  *
  * ============================ A SUCCESSFUL PICK RE-READS =================
  *
@@ -72,8 +96,16 @@ type LmsPickState =
   | { readonly kind: 'saving' }
   /** `PT409`: changed elsewhere. Resolved by re-reading, never by retrying. */
   | { readonly kind: 'conflict' }
-  /** The server declined it on its own rules. The page is stale, not wrong. */
-  | { readonly kind: 'refused' }
+  /**
+   * The server declined it on its own rules. The page is stale, not wrong.
+   *
+   * IT CARRIES THE SENTENCE, because the rules are not interchangeable. "You
+   * have already used that club" and "you have been eliminated" and "that round
+   * is no longer available" are three different things to do next, and a single
+   * generic refusal line would flatten them back into the "something went
+   * wrong" that `lmsRefusal` exists to escape.
+   */
+  | { readonly kind: 'refused'; readonly reason: string }
   | { readonly kind: 'failed' }
 
 export type VNextLmsSourceState =
@@ -88,6 +120,13 @@ export type VNextLmsSourceState =
       /** Submit the one pick. The only write this lane makes. */
       pick: (teamId: string) => void
       picking: LmsPickState
+      /**
+       * A RE-READ IS IN FLIGHT OVER A PAGE THAT IS STILL SHOWN.
+       *
+       * The alternative — dropping to `loading` — tears the whole page down on
+       * the product's primary interaction. See the header.
+       */
+      refreshing: boolean
     }
 
 export type VNextLmsSourceInput = {
@@ -127,8 +166,20 @@ const IDLE: InternalState = { status: 'idle' }
 export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceState {
   const [state, setState] = useState<InternalState>(IDLE)
   const [picking, setPicking] = useState<LmsPickState>({ kind: 'idle' })
+  const [refreshing, setRefreshing] = useState(false)
   const [nonce, setNonce] = useState(0)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
+
+  /**
+   * THE IDENTITY OF THE PAYLOAD CURRENTLY IN STATE, READABLE FROM THE EFFECT.
+   *
+   * A ref rather than the state itself: reading `state` in the effect would
+   * mean depending on something the effect writes, and a functional `setState`
+   * updater cannot answer it either — React invokes updaters during the RENDER
+   * phase, so a flag assigned inside one is still false when the effect reads
+   * it. Stage 10 learned that the hard way and this is the same shape.
+   */
+  const loadedIdentity = useRef<RequestIdentity | null>(null)
 
   const { userId, authLoading, competitionSlug, seasonSlug, gameName } = input
 
@@ -153,7 +204,27 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
     const identity = requestIdentity({ userId, competitionSlug, seasonSlug, gameName })
 
     let active = true
-    setState((current) => (current.status === 'idle' ? current : IDLE))
+
+    // KEEP THE PAGE UP WHILE THE SAME PAGE RELOADS.
+    //
+    // Every landed pick bumps `nonce`, which re-runs this effect. Clearing to
+    // IDLE made the hook report `loading`, and the screen swapped the whole
+    // surface — standing, pool, round, used list AND the competition shell —
+    // for grey bars, then reassembled it. On the single most consequential
+    // interaction in the product, on a phone, that reads as the page falling
+    // over rather than as the pick landing.
+    //
+    // So a re-read of the SAME identity keeps its payload and raises
+    // `refreshing`; only a genuinely different identity clears to IDLE, because
+    // then the payload on screen is about somebody else's round.
+    const kept = loadedIdentity.current === identity
+    if (!kept) loadedIdentity.current = null
+    setState((current) => {
+      if (current.status === 'idle') return current
+      if (current.status === 'loaded' && current.identity === identity) return current
+      return IDLE
+    })
+    setRefreshing(kept)
 
     void (async () => {
       try {
@@ -191,6 +262,8 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
         ])
         if (!active) return
 
+        loadedIdentity.current = identity
+        setRefreshing(false)
         setState({
           status: 'loaded',
           identity,
@@ -210,7 +283,10 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
           },
         })
       } catch {
-        if (active) setState({ status: 'failed', identity })
+        if (!active) return
+        loadedIdentity.current = null
+        setRefreshing(false)
+        setState({ status: 'failed', identity })
       }
     })()
 
@@ -229,6 +305,9 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
         const { isVersionConflict } = await import(
           '../../../services/supabase/writeConflict'
         )
+        const { isLmsRefusal, lmsRefusal } = await import(
+          '../../../services/supabase/seasonLms'
+        )
         try {
           await held.value.pick(teamId)
           // RE-READ RATHER THAN PATCH. The write moved the version, the
@@ -245,10 +324,15 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
             setNonce((value) => value + 1)
             return
           }
-          setPicking(refused(error) ? { kind: 'refused' } : { kind: 'failed' })
-          // A refusal means this page's view of the round is stale — the lock
-          // moved, or the club was spent elsewhere — so it re-reads too.
-          if (refused(error)) setNonce((value) => value + 1)
+          if (isLmsRefusal(error)) {
+            // A refusal means this page's view of the round is stale — the lock
+            // moved, or the club was spent elsewhere — so it re-reads too, and
+            // says which rule it met rather than inviting a doomed retry.
+            setPicking({ kind: 'refused', reason: lmsRefusal(error) })
+            setNonce((value) => value + 1)
+            return
+          }
+          setPicking({ kind: 'failed' })
         }
       })()
     },
@@ -264,19 +348,17 @@ export function useVNextLmsSource(input: VNextLmsSourceInput): VNextLmsSourceSta
     if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
     if (state.status === 'failed') return { status: 'failed', retry }
 
-    return { status: 'ready', source: state.payload, retry, pick, picking }
-  }, [state, picking, authLoading, userId, competitionSlug, seasonSlug, gameName, retry, pick])
-}
-
-/**
- * THE SERVER DECLINED THE PICK ON ITS OWN RULES.
- *
- * `check_violation` / `23514` is what contract 86's trigger raises for a lock,
- * a spent club or an ineligible entry — `writeConflict.ts` documents that
- * split, and it is the reason a conflict and a refusal are told apart at all.
- * Neither is a fault, and neither is answered by pressing the same button.
- */
-function refused(error: unknown): boolean {
-  const code = (error as { code?: unknown } | null)?.code
-  return code === '23514' || code === 'check_violation'
+    return { status: 'ready', source: state.payload, retry, pick, picking, refreshing }
+  }, [
+    state,
+    picking,
+    refreshing,
+    authLoading,
+    userId,
+    competitionSlug,
+    seasonSlug,
+    gameName,
+    retry,
+    pick,
+  ])
 }

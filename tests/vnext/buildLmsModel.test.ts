@@ -80,6 +80,7 @@ function fieldAnswer(
   overrides: {
     windowId?: string
     revealed?: boolean
+    settled?: boolean
     picked?: number | null
     rules?: LmsRules | null
   } = {},
@@ -96,15 +97,16 @@ function fieldAnswer(
       locksAt: AFTER,
       settlesAt: null,
       revealed: overrides.revealed ?? false,
-      settled: false,
+      settled: overrides.settled ?? false,
     },
-    // NOT 83 + 33 = 120. A NULL outcome is counted in neither bucket, so a
-    // mapper deriving one count from the other two fails here rather than
-    // passing by arithmetic luck.
+    // THEY SUM, because `bonus_competition_entrants.outcome` is `not null` and
+    // contract 164 counts `= 'eliminated'` and `<> 'eliminated'` over the same
+    // rows. The non-summing probe is one test below, deliberately, and states
+    // why it is allowed to be impossible.
     field: {
       entrants: 120,
       remaining: 83,
-      eliminated: 33,
+      eliminated: 37,
       picked: overrides.picked === undefined ? null : overrides.picked,
     },
     rules:
@@ -113,6 +115,13 @@ function fieldAnswer(
         : overrides.rules,
     entrants: [],
   }
+}
+
+/** The same answer with a trio that does not add up. See the test that uses it. */
+function disagreeing(): SeasonLmsField {
+  const answer = fieldAnswer()
+  if (!answer.available || !answer.entered) throw new Error('expected a field')
+  return { ...answer, field: { entrants: 120, remaining: 83, eliminated: 33, picked: null } }
 }
 
 function source(
@@ -359,6 +368,45 @@ describe('the server`s lock verdict outranks this machine`s clock', () => {
     expect(model.body.round.state).toBe('not-open')
   })
 
+  /**
+   * THE DEFECT THIS PINS, in the words of the SQL that causes it.
+   *
+   * `lms_outcome_from_fixture` begins `when p_status is distinct from 'played'
+   * then 'postponed'`, so a picked club whose fixture is still scheduled
+   * carries `'postponed'` — a NON-NULL value. `pickOutcome !== null` therefore
+   * means "the player has picked", not "the round produced a result", and the
+   * mapper used to read it as the latter.
+   *
+   * The state below is the ordinary mid-week state of the game: picked on
+   * Tuesday, deadline on Saturday. It used to render `settled` — "Picks closed"
+   * over a live deadline, every other club marked locked, no prompt, no count,
+   * and an amendment the server would have accepted refused by the page.
+   */
+  it('does not call an open round settled just because the player has picked', () => {
+    const model = buildLmsModel(
+      source(
+        page({ pick: { teamId: 'team-celtic' }, pickOutcome: 'postponed' }),
+        NOW,
+        { kind: 'ok', field: fieldAnswer({ revealed: false }) },
+      ),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('open')
+    // And the pick is still a fact the page may state.
+    expect(model.body.pick).toEqual({ clubName: 'Celtic', result: 'postponed' })
+  })
+
+  it('settles a round the server says has settled', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, {
+        kind: 'ok',
+        field: fieldAnswer({ revealed: true, settled: true }),
+      }),
+    )
+    if (model.body.kind !== 'round') throw new Error('expected a round')
+    expect(model.body.round.state).toBe('settled')
+  })
+
   it('leaves a settled round settled even when the server says not revealed', () => {
     const model = buildLmsModel(
       source(page({ pickOutcome: 'won', pick: { teamId: 'team-celtic' } }), NOW, {
@@ -380,11 +428,40 @@ describe('the field is carried rather than counted', () => {
     const model = buildLmsModel(source(page(), NOW, { kind: 'ok', field: fieldAnswer() }))
     expect(model.field).toEqual({
       kind: 'field',
-      // 83 + 33 is 116, not 120. A NULL outcome is in neither bucket, so any
-      // mapper deriving a count from the others is wrong here.
-      counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+      counts: { entrants: 120, remaining: 83, eliminated: 37, picked: null },
       rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
     })
+  })
+
+  /**
+   * A PURE MAPPER CARRIES; IT DOES NOT CORRECT.
+   *
+   * This is the anti-derivation guard, and note where it lives: HERE, and not
+   * in a fixture world. The payload below does not sum, and the real database
+   * cannot emit one that does not — `bonus_competition_entrants.outcome` is
+   * `text not null`, so `remaining + eliminated` is always `entrants`.
+   *
+   * An earlier version of this stage put the non-summing trio in the FIXTURES
+   * instead, on a rationale about NULL outcomes that was false. That made every
+   * Storybook world, every browser world and every rendered page depict a state
+   * the server cannot produce — which is precisely the Stage 10 failure this
+   * lane claims to have fixed structurally.
+   *
+   * The guard belongs at the function boundary, where an impossible input is a
+   * legitimate probe rather than a depiction. If the mapper ever starts
+   * computing one figure from the other two, this fails and nothing else does.
+   */
+  it('does not repair a payload whose counts disagree', () => {
+    const model = buildLmsModel(
+      source(page(), NOW, {
+        kind: 'ok',
+        field: disagreeing(),
+      }),
+    )
+    if (model.field.kind !== 'field') throw new Error('expected a field')
+    expect(model.field.counts.entrants).toBe(120)
+    expect(model.field.counts.remaining).toBe(83)
+    expect(model.field.counts.eliminated).toBe(33)
   })
 
   it('keeps `picked` null before the reveal rather than defaulting it to zero', () => {

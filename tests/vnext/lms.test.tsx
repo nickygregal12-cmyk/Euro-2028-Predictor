@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import type { ReactElement } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { VNextLms } from '../../src/vnext/lms/VNextLms'
+import { VNextLms, type LmsNotice } from '../../src/vnext/lms/VNextLms'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { lmsScenarioNames, lmsScenarios, shellScenarios } from '../../src/vnext/fixtures'
@@ -57,7 +57,7 @@ function renderLms(
     onIntent?: (intent: { kind: 'pick'; teamId: string }) => void
     onRetry?: () => void
     busy?: boolean
-    notice?: 'conflict' | 'refused' | 'failed'
+    notice?: LmsNotice
   } = {},
 ) {
   return render(
@@ -280,20 +280,48 @@ describe('four different sentences about four different subjects', () => {
 
 describe('a write that did not land says which kind it was', () => {
   it('tells a conflict from a refusal from a fault', () => {
-    const conflict = renderLms(lmsScenarios.openRound, { notice: 'conflict' })
+    const conflict = renderLms(lmsScenarios.openRound, { notice: { kind: 'conflict' } })
     expect(document.body.textContent).toContain('changed somewhere else')
     conflict.unmount()
 
-    const refused = renderLms(lmsScenarios.openRound, { notice: 'refused' })
-    expect(document.body.textContent).toContain('would not take that pick')
+    const refused = renderLms(lmsScenarios.openRound, {
+      notice: { kind: 'refused', reason: 'You have already used that club in this cycle. Pick another.' },
+    })
+    expect(document.body.textContent).toContain('already used that club')
     refused.unmount()
 
-    renderLms(lmsScenarios.openRound, { notice: 'failed' })
+    renderLms(lmsScenarios.openRound, { notice: { kind: 'failed' } })
     expect(document.body.textContent).toContain('Nothing has changed')
   })
 
+  /**
+   * THE SENTENCE THAT MAY ONLY EVER APPEAR ON A FAULT.
+   *
+   * "Nothing has changed, so you can try again" is a claim about the SERVER,
+   * and it is true only of a write that never landed. It was once shown for
+   * refusals too — where both halves were false and the retry it invited could
+   * never succeed, because a club spent is spent. That defect reached this
+   * surface through a second refusal classifier in the hook that knew one code
+   * out of five; the classifier is gone, and this pins the copy.
+   */
+  it('never tells a player nothing changed when the server refused on a rule', () => {
+    const refusals = [
+      'You have already used that club in this cycle. Pick another.',
+      'You have been eliminated, so you cannot pick in this round.',
+      'That round is no longer available. Reload to see the current one.',
+    ]
+    for (const reason of refusals) {
+      const { unmount } = renderLms(lmsScenarios.openRound, {
+        notice: { kind: 'refused', reason },
+      })
+      expect(document.body.textContent, reason).toContain(reason)
+      expect(document.body.textContent, reason).not.toContain('Nothing has changed')
+      unmount()
+    }
+  })
+
   it('announces it to a reader who cannot see it', () => {
-    renderLms(lmsScenarios.openRound, { notice: 'conflict' })
+    renderLms(lmsScenarios.openRound, { notice: { kind: 'conflict' } })
     const status = screen.getAllByRole('status')
     expect(status.some((node) => /changed somewhere else/.test(node.textContent ?? ''))).toBe(true)
   })
@@ -343,6 +371,58 @@ describe('no world describes a page the mapper could not build', () => {
     // A PLAYER WHO IS NOT ENTERED HAS NO STANDING, and vice versa: the standing
     // is the entry outcome, and `entered` is that row existing at all.
     if (world.body.kind === 'not-entered') expect(world.standing).toBeNull()
+
+    if (world.body.kind === 'round') {
+      const options = world.body.round.choices.flatMap((c) => [c.home, c.away])
+
+      // THE USED LIST IS BUILT FROM THIS ROUND'S FIXTURES AND FROM NOTHING
+      // ELSE. `buildLmsModel` filters `club.used` over `page.fixtures`, so a
+      // name in the list that plays in no fixture here is a name the mapper
+      // cannot produce.
+      const names = options.map((o) => o.name)
+      for (const used of world.usedClubNamesInRound) {
+        expect(names, `"${used}" is spent but plays in no fixture here`).toContain(used)
+      }
+
+      // AND A CLUB THE PLAYER MAY STILL PICK IS NOT A SPENT ONE. One flag,
+      // `club.used`, decides both the action and the name list, so it cannot
+      // say two things about one club.
+      for (const option of options) {
+        if (option.action.kind === 'pick' || option.action.kind === 'chosen') {
+          expect(world.usedClubNamesInRound, option.name).not.toContain(option.name)
+        }
+      }
+
+      // WHERE NOTHING BLOCKS THE ROUND, the two readings must agree exactly:
+      // a spent club shows `used`, and the list is those clubs. In a BLOCKED
+      // round they cannot be compared this way — `actionFor` returns
+      // `unavailable` for every club before it ever looks at `used` — so the
+      // subset and disjointness rules above are the whole of what holds.
+      const blocked = options.some((o) => o.action.kind === 'unavailable')
+      if (!blocked) {
+        const spent = options.filter((o) => o.action.kind === 'used').map((o) => o.name)
+        expect([...world.usedClubNamesInRound].sort()).toEqual([...spent].sort())
+      }
+
+      // A ROUND IS `settled` BECAUSE THE ROUND SETTLED, and `postponed` is not
+      // a settlement — `lms_outcome_from_fixture` returns it for any fixture
+      // that has not been played, so a picked club before kick-off carries it.
+      if (world.body.pick?.result === 'postponed') {
+        expect(world.body.round.state).not.toBe('settled')
+      }
+    }
+
+    // THE POOL COUNTS SUM, because `bonus_competition_entrants.outcome` is
+    // `not null` and contract 164 counts `= 'eliminated'` and `<> 'eliminated'`
+    // over the same rows. A world where they did not sum would be a page the
+    // database cannot produce.
+    if (world.field.kind === 'field') {
+      const { entrants, remaining, eliminated } = world.field.counts
+      expect(remaining + eliminated, 'the pool counts must sum').toBe(entrants)
+      if (world.field.counts.picked !== null) {
+        expect(world.field.counts.picked).toBeLessThanOrEqual(entrants)
+      }
+    }
   })
 })
 
@@ -356,7 +436,7 @@ describe('every world is one page', () => {
   it('lists the clubs already spent', () => {
     renderLms(lmsScenarios.manyUsed, { onIntent: vi.fn() })
     expect(zone('used').textContent).toContain('Hearts')
-    expect(zone('used').textContent).toContain('Dundee United')
+    expect(zone('used').textContent).toContain('Motherwell')
   })
 
   /**
@@ -383,7 +463,7 @@ describe('every world is one page', () => {
     renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
     const field = zone('field').textContent ?? ''
     expect(field).toContain('83 still in')
-    expect(field).toContain('33 out')
+    expect(field).toContain('37 out')
     expect(field).toContain('120 entered')
     // NOT "83 of 120": in contract 164 a NULL outcome is counted in neither
     // `remaining` nor `eliminated`, so the figures need not sum to `entrants`
@@ -450,6 +530,80 @@ describe('every world is one page', () => {
     // different words would be one fact explained twice.
     renderLms(lmsScenarios.notEntered, { onIntent: vi.fn() })
     expect(document.querySelector('[data-vnext-zone="field"]')).toBeNull()
+  })
+
+  /* ---------------------------------------------------------------- *
+   * Three fixes that shipped with no coverage until a mutation said so
+   * ---------------------------------------------------------------- */
+
+  /**
+   * A DEADLINE NEEDS A DAY. `formatTime` gives "11:00" and nothing else, and an
+   * LMS deadline is routinely days away — so "Picks close 11:00" read on a
+   * Tuesday for a Saturday lock is the worst ambiguity this product can make,
+   * on the one page where missing a deadline costs a season. The surface this
+   * replaces prints "Sat 15 Nov · 11:00".
+   */
+  it('says which day picks close, not just the time', () => {
+    renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
+    const deadline = zone('round').textContent ?? ''
+    expect(deadline).toContain('Picks close')
+    // The world locks on 15 November and is generated on the 14th.
+    expect(deadline).toMatch(/Picks close (Tomorrow|Today|Yesterday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)/)
+  })
+
+  it('says which day a locked round closed', () => {
+    renderLms(lmsScenarios.lockedRound, { onIntent: vi.fn() })
+    expect(zone('round').textContent).toMatch(
+      /Picks closed (Tomorrow|Today|Yesterday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)/,
+    )
+  })
+
+  /**
+   * THE TWO BINDING WORLDS MUST DIFFER ON SCREEN, not only in the model.
+   *
+   * `LmsPick.result` was mapped, fixtured and asserted in the mapper — and
+   * never rendered. So `wonButEliminated` and `lostButAlive`, the pair the
+   * whole stage rests on, were identical on the page apart from the standing
+   * banner, and every test that "proved" the rule read the banner.
+   */
+  it('says what the picked club did, beside what the competition says the player is', () => {
+    const won = renderLms(lmsScenarios.wonButEliminated, { onIntent: vi.fn() })
+    expect(zone('pick-result').textContent).toContain('Your pick won')
+    expect(document.body.textContent).toContain('You have been eliminated')
+    won.unmount()
+
+    renderLms(lmsScenarios.lostButAlive, { onIntent: vi.fn() })
+    expect(zone('pick-result').textContent).toContain('Your pick lost')
+    expect(document.body.textContent).toContain('You are still in')
+  })
+
+  it('says a postponed pick has no result, and does not read it as bad news', () => {
+    renderLms(lmsScenarios.postponedPick, { onIntent: vi.fn() })
+    const said = zone('pick-result').textContent ?? ''
+    expect(said).toContain('no result yet')
+    expect(said).toContain('never eliminates')
+    expect(document.body.textContent).not.toContain('You have been eliminated')
+  })
+
+  /**
+   * AN ELIMINATED PLAYER IS NOT INVITED TO PICK.
+   *
+   * Elimination blocks the PLAYER and leaves the round open, so gating the
+   * prompt on the round's state alone put "Pick one club to win. You cannot use
+   * it again." and then "No clubs left for you to pick in this round" directly
+   * under a banner reading "You have been eliminated."
+   */
+  it('does not invite an eliminated player to pick in an open round', () => {
+    renderLms(lmsScenarios.eliminated, { onIntent: vi.fn() })
+    const round = zone('round').textContent ?? ''
+    expect(document.body.textContent).toContain('You have been eliminated')
+    expect(round).not.toContain('Pick one club to win')
+    expect(round).not.toContain('No clubs left for you to pick')
+  })
+
+  it('still invites a live player in the same open round', () => {
+    renderLms(lmsScenarios.openRound, { onIntent: vi.fn() })
+    expect(zone('round').textContent).toContain('Pick one club to win')
   })
 
   it('counts what is still pickable', () => {

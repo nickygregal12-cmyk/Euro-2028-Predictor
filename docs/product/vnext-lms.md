@@ -71,6 +71,15 @@ player alive with no result at all.
 A derivation gets both backwards and looks completely normal in every other
 world. These two are the binding fixtures for the whole stage.
 
+**And they must differ ON SCREEN, not only in the model.** `LmsPick.result` was
+mapped, fixtured and asserted in the mapper — and then never rendered, so the
+two worlds were identical on the page apart from the standing banner, and every
+test that "proved" the rule was reading the banner. The page now says both
+facts: what the club did, from `lmsRoundModel.ts`'s own copy, beside what the
+competition says the player is. Note the draw case says what happened and not
+what follows — whether a draw eliminates is a rule this surface may state (§5)
+and never apply.
+
 ---
 
 ## 3. AN INELIGIBLE CLUB HAS NOTHING TO PICK WITH
@@ -145,6 +154,45 @@ It answers "has the lock passed", which is equally false of a round that has not
 started. So `opensAt` still decides between `not-open` and `open`, and the
 server's answer is used for the one question it actually answers.
 
+### `settled` is a fact about the ROUND, and `postponed` is not one
+
+An earlier version read `settled` off `pickOutcome !== null`, and that was the
+worst defect in the stage. Contract 116 computes `pick_outcome` through
+`lms_outcome_from_fixture`, whose **first** branch is
+
+```sql
+when p_status is distinct from 'played' then 'postponed'
+```
+
+So a player who has picked a club whose fixture has not kicked off yet gets
+`'postponed'` — which is not null. **`pickOutcome !== null` therefore means "the
+player has picked", not "the round produced a result".**
+
+The consequence was the ordinary mid-week state of the game. Pick on Tuesday for
+a Saturday deadline, and the page called the round settled: "Picks closed" over
+a live deadline, every other club marked `locked`, no prompt, no remaining
+count, and an amendment `save_lms_selection` would have accepted refused by the
+page. It also discarded contract 164's verdict entirely, because that branch ran
+first.
+
+Now `settled` comes from contract 164's `round.settled` — `settles_at <= now()`,
+the server's own comparison, under the same window guard as the lock — and
+otherwise only from a **played** verdict. `postponed` is excluded by name,
+because a round without a standing result never eliminates and is not over.
+
+### The lock fails closed, never open
+
+`seasonLmsFieldModel` decodes `revealed` as `row.revealed === true`, so a
+missing or malformed field arrives as `false` — indistinguishable from a genuine
+"not locked yet". And `false` short-circuits the instants and forces the round
+**open**, which is the wrong direction for a control that spends a club.
+Contract 164's own `lms_round_revealed` fails *closed* on an unknown window and
+says why.
+
+So a verdict is trusted only where the same payload also carried the instant it
+is a verdict about: no `locksAt`, no verdict, fall back to the instants — which
+then read an unscheduled window as `not-open`.
+
 ### The fallback is one comparison, in one place
 
 Where no verdict is available — the field read failed, the caller is not
@@ -169,15 +217,25 @@ that is slightly wrong must cost a player an explanation, never a silent no-op.
 `locksAt` is printed as an instant. **There is no countdown**: the browser does
 not own this deadline and a ticking number implies it does.
 
-Three sentences, and getting to three took two corrections a browser caught:
+**But an instant needs a day.** An earlier version used `formatTime`, which
+gives "11:00" and nothing else — so a Saturday deadline read on a Tuesday said
+"Picks close 11:00", on the one page in the product where missing a deadline
+costs a season. It was also a straight regression: the surface being replaced
+prints "Sat 15 Nov · 11:00", and every other vNext surface already uses a
+day-bearing label. It now uses `formatKickoffLabel`, which takes the instant as
+an argument — the model's own `generatedAt`, the same one the state was judged
+against — so no clock is read and the words and the state can never be relative
+to different moments.
+
+Five sentences, and getting there took three corrections a browser caught:
 
 | the round | what it says |
 | --- | --- |
 | no `locksAt` at all | "No deadline set yet" |
-| not open, with an `opensAt` | "Picks open 12:00" |
+| not open, with an `opensAt` | "Picks open Sat 12:00" |
 | not open, without one | "This round has not opened yet" |
-| open | "Picks close 11:00" |
-| locked or settled | "Picks closed 11:00" |
+| open | "Picks close Tomorrow 11:00" |
+| locked or settled | "Picks closed Sat 11:00" |
 
 An earlier version had two branches — open, else closed — so **a round that had
 not started announced "Picks closed 11:00"**, telling a player they had missed a
@@ -193,7 +251,7 @@ fact is that no closing time exists. Absent deadline is now checked first.
 Stage 11 owns "player pool remaining/league standing context **where real**".
 Contract 164 makes it real, so the page shows it.
 
-### Three counts, and they need not add up
+### Three counts, carried and never derived — and a correction
 
 ```sql
 'entrants',   count(*) where competition_id = ...
@@ -201,17 +259,41 @@ Contract 164 makes it real, so the page shows it.
 'eliminated', count(*) where ... and outcome  = 'eliminated'
 ```
 
-**A NULL outcome satisfies neither predicate.** So `entrants` can exceed
-`remaining + eliminated`, and `entrants - eliminated` is **not** `remaining`.
+**An earlier version of this section, and of four code comments, said these
+need not sum**, on the grounds that a NULL `outcome` satisfies neither
+predicate. Two of those comments added "I read the migration to establish this."
 
-Two consequences, both load-bearing:
+**It is false.** `bonus_competition_entrants.outcome` is declared
 
-1. the surface prints **"83 still in · 33 out · 120 entered"** — three stated
-   figures — and never "83 of 120", a form that reads as a fraction of a whole
-   the database never agreed to;
-2. **every fixture is deliberately non-summing** (120 / 83 / 33), so a mapper
-   that derived one count from the others fails a test rather than passing by
-   arithmetic luck.
+```sql
+outcome text not null default 'active' check (
+  outcome in ('active', 'qualified', 'survived', 'eliminated', 'champion')
+),
+```
+
+and no migration has ever relaxed it. **`entrants` always equals `remaining +
+eliminated`.** What went wrong is worth naming: a true general fact about SQL
+(a NULL satisfies neither `=` nor `<>`) was applied to a column that cannot be
+NULL, and the reasoning stopped one step short of the column definition.
+
+Two consequences, and the second is the one that mattered:
+
+1. the surface still prints **"83 still in · 37 out · 120 entered"** — three
+   stated figures — and never "83 of 120". That phrasing was right for a
+   different reason: a fraction claims one figure is a part of the other, and
+   these are three separate `count(*)`s over three predicates;
+2. **the fixtures were deliberately non-summing, and every one was therefore a
+   page the database cannot produce** — the exact defect class Stage 10 shipped
+   and §11 claims this lane fixed structurally. They now sum, and the
+   anti-derivation guard moved to a mapper test that hands `buildLmsModel` an
+   impossible payload and requires it to carry the figures through unrepaired.
+   That is the right home for it: a fixture world depicts a page, and a mapper
+   test probes a function.
+
+The reason to carry rather than derive is therefore **authority, not
+arithmetic**. A derivation would currently agree. It would stop agreeing the day
+the schema gains a sixth outcome or a soft-deleted entrant, and this lane would
+own a number the database never computed.
 
 ### `picked` is null before the lock, and null is the answer
 
@@ -302,9 +384,26 @@ offers **no retry of its own**: the pool is context, the round is the thing a
 player came for, and a second retry control beside a working page would invite a
 re-read of everything to fix an aside.
 
-**Two reads is the whole count.** It does not grow with fixtures, clubs or
-entrants: a round of ten fixtures costs what a round of two does, and a
-competition of four thousand players costs what one of four does.
+### The read count, stated accurately
+
+**Three RPCs, not two, and the first is serial.** Before either LMS read can
+start, `get_season_play_context` must resolve the season slug to a
+`tournamentId` that both of the others need. So a visit is one round trip and
+then a concurrent pair — not two concurrent reads, as an earlier version of this
+section claimed and as §11's diagram omitted entirely.
+
+**Nothing scales with what is on the page.** No count grows with fixtures,
+clubs, ties or entrants — a round of ten fixtures costs what a round of two
+does, and there is no per-club or per-row request anywhere.
+
+**But the payload does grow with entrants, and honesty requires saying so.**
+Contract 164's `entrants[]` has no `LIMIT`, and the decoder maps every row
+before this lane discards all of them. A four-thousand-entrant competition
+therefore transfers and parses four thousand objects per visit — and again after
+every pick, because the write forces a re-read. Only the *rendering* is
+constant. Bounding that array is a backend change and so out of scope here; it
+is the first thing to raise if this surface is ever put in front of a
+competition that large.
 
 ---
 
@@ -318,11 +417,43 @@ second path, no client-side eligibility check standing in for the server's.
 | outcome | SQLSTATE | what it means | what the page does |
 | --- | --- | --- | --- |
 | **conflict** | `PT409` | changed elsewhere while this page held an older version | says so, **re-reads** — never retries |
-| **refused** | `23514` / `check_violation` | the server declined on its own rules: round locked, club spent, entry ineligible | says so, **re-reads** — the view is stale, not wrong |
+| **refused** | `23505`, `55000`, `42501`, `02000`, `23514` | the server declined on one of its **five** rules | says **which rule**, **re-reads** — the view is stale, not wrong |
 | **failed** | anything else | a fault | says so, and "try again" is a sensible suggestion |
 
-`isVersionConflict` is the **shared** classifier and lives beside the write
-contract it describes; this lane reuses it rather than writing a second copy.
+The five refusals, from `save_lms_selection`:
+
+| SQLSTATE | raised when |
+| --- | --- |
+| `unique_violation` / `23505` | the club is already spent this cycle |
+| `55000` | the entrant has been eliminated |
+| `insufficient_privilege` / `42501` | not an entrant, or not authenticated |
+| `no_data_found` / `02000` | the window is not a live LMS round |
+| `check_violation` / `23514` | from the row trigger: the round is locked or unopened, or no club was sent |
+
+### And this table was wrong, in the way that costs a player most
+
+An earlier version of it said `23514` alone meant "round locked, club spent,
+entry ineligible", and the hook carried **its own classifier** matching that
+belief. So four of the five refusals — including **the likeliest one on this
+surface, picking a club already used** — fell through to `failed`, whose
+sentence is *"We could not save that pick. Nothing has changed, so you can try
+again."*
+
+Both halves were false. Something *had* changed: the used-list had moved. And
+the retry it invited could never succeed, because a spent club stays spent. The
+page also skipped the re-read, so it kept offering the club the server had just
+refused.
+
+**The cause was a second authority.** `src/features/season/lmsRefusal.ts`
+already maps every one of these codes to the sentence it deserves, and exists
+because *"being told to retry a pick that will be refused every time is worse
+than useless"*. This lane wrote a worse second copy — while §7 credited itself
+for reusing `isVersionConflict`.
+
+Both classifiers are now the incumbent's, reached through the gateway:
+`isLmsRefusal` decides, `lmsRefusal` supplies the sentence, and both read the
+same map so they cannot drift. A refusal's sentence travels in the notice, so
+the surface never re-chooses copy the write contract already chose.
 
 **The first two are why the lock preference is safe.** The mapper decides which
 controls to *offer*; the server decides which picks to *accept*. When a clock
@@ -352,7 +483,8 @@ Per the Stage 8 rule: every property classified, nothing fabricated.
 | `available` | REAL + AUTHORITATIVE | the season runs this game at all |
 | `entered` | REAL + AUTHORITATIVE | server-side: an entrant row exists |
 | `entry_outcome` | REAL + AUTHORITATIVE | the settlement job's verdict. The only survival answer |
-| `used_team_ids` | REAL + AUTHORITATIVE | **ids only**, scoped to the caller's current cycle per ADR 0013 |
+| `used_team_ids` | **REAL BUT PARTIAL** | **ids only**, scoped to the caller's **current** cycle. On the round where ADR 0013's reset falls, the read still reports the old cycle while `lms_cycle_for_pick` would accept a new one — so every club can read as spent on the round the reset exists to rescue. Not a Stage 11 regression (the production page has the same input from the same read), but the surface must not say "no clubs left" absolutely, and this row must not read as unqualified authority |
+| `fixtures[].{home,away}.team_id` | REAL + AUTHORITATIVE | **the field the whole stage turns on** — the `used` set-membership test and the only id `LmsPickAction.pick` can carry. §3 argues about it at length and an earlier version of this table omitted it entirely |
 | `window.{id,sequence,label}` | REAL + AUTHORITATIVE | the round |
 | `window.opens_at` / `locks_at` | REAL + AUTHORITATIVE | stored instants. **No verdict** — see §4 |
 | `selection.team_id` | REAL + AUTHORITATIVE | the caller's own pick |
@@ -371,12 +503,17 @@ Per the Stage 8 rule: every property classified, nothing fabricated.
 | property | classification | note |
 | --- | --- | --- |
 | `field.entrants` / `remaining` / `eliminated` | REAL + AUTHORITATIVE | three separate `count(*)`s. **Never derived from each other** |
-| `field.picked` | REAL + AUTHORITATIVE, **null before the lock** | null is the answer, never 0 |
+| `field.picked` | REAL + AUTHORITATIVE, **null before the lock** | null is the answer, never 0. Also null when there is no round at all, because `revealed` is `window_id is not null and …` |
 | `rules.lives` / `saves` | REAL + AUTHORITATIVE | null as a whole when the organiser wrote no setup |
 | `rules.draws_rule` | REAL + AUTHORITATIVE | **stated, never applied** |
 | `rules.endgame_scope` | **NOT CONSUMED** | decoded; no surface for it in this stage |
+| `available`, `entered` | REAL + AUTHORITATIVE | they decide `not-counted`, and they gate the lock verdict |
+| `round.window_id` | REAL + AUTHORITATIVE | **the window-id guard §4 is built on** |
+| `round.{sequence,label,opens_at,locks_at,settles_at}` | REAL + AUTHORITATIVE | `locks_at` is read as the guard on trusting `revealed`; the rest duplicate contract 116, which is the copy this lane reads |
 | `round.revealed` | REAL + AUTHORITATIVE | the server's lock verdict. §4 |
-| `round.settled` | **NOT CONSUMED** | `settles_at <= now()`, a different question from "did my pick produce a result" |
+| `round.settled` | REAL + AUTHORITATIVE | `settles_at <= now()`. **Now consumed** — it is the only round-level settlement answer, and reading it off `pickOutcome` instead was the stage's worst defect |
+| `my_outcome` | REAL, **duplicated** | contract 116's `entry_outcome` is the copy this lane reads |
+| `entrants[].{user_id,display_name,is_me,outcome,still_in}` | REAL + AUTHORITATIVE | not rendered; the array is unbounded and carries no `playerRef`, so its rows could not be navigable |
 | `my_outcome` | REAL, **duplicated** | contract 116's `entry_outcome` is the one this lane reads |
 | `entrants[]` | REAL + AUTHORITATIVE, **not rendered** | unbounded; §5 |
 | `entrants[].{lives,saves,pick,has_picked}` | REAL, **null before the lock** | the reveal boundary. Not rendered at all here |
@@ -407,10 +544,35 @@ Folding `not-offered` into `no-round` would tell somebody the game is between
 rounds when it was never offered. `not-entered` is an **ordinary answer** — this
 game is opt-in — and is not styled as a failure.
 
+### There is no join control, and the reason is scope, not absence
+
+Four places in an earlier draft said a join button *"would be a door onto a
+corridor that has not been built."* **The corridor is built and shipped.**
+`src/features/season/lmsRegistrationModel.ts`, `SeasonLmsRegistration.tsx` and
+`useSeasonLmsRegistration.ts` run over `register_bonus_competition`, and they
+exist precisely because the production page *"has been telling a non-entrant
+'Join Last Man Standing to make a pick' while offering no way to join."*
+`SeasonLmsPage` renders it today.
+
+So the honest statement is the plain one: **Stage 11 does not own entry.** That
+is a legitimate scope boundary, and it has a real cost worth recording rather
+than dressing up — the vNext `not-entered` state is a dead end where the surface
+it replaces is not. Wiring registration in is the first thing Stage 13 or the
+cutover stage should do with this page, and it is a build, not a discovery.
+
 ---
 
 ## 10. ACCESSIBILITY AND PRESENTATION
 
+- **an eliminated player is not invited to pick.** Elimination blocks the
+  *player* and leaves the round *open*, so gating the prompt on the round's
+  state alone put "Pick one club to win" and then "No clubs left for you to
+  pick" directly under "You have been eliminated";
+- **every club state carries a visible mark except `unavailable`**, which
+  deliberately carries none: the reason belongs to the round and the page states
+  it once above, and repeating it on twenty clubs would be twenty copies of one
+  sentence. An earlier version of this list claimed every state carries a mark,
+  which the component itself contradicts;
 - **the standing is the headline.** "You are still in" is the only thing a
   player actually wants to know, so it is the first thing on the page — a word,
   not a colour (§31), with the champion's trophy `aria-hidden`;
@@ -500,9 +662,9 @@ this document exists to avoid:
 
 | route | status |
 | --- | --- |
-| `/vnext/competitions/:competition/:season/games/lms` | the vNext lane |
 | `/dev/vnext-lms` | connected harness. **Pressing a club really spends it** |
 | Storybook `vNext/Last Man Standing` | 25 worlds, the review surface |
+| — | **The vNext lane has no application route of its own**, and an earlier version of this table invented one. It is reached from the harness and from Storybook until the cutover stage. |
 | `/competitions/:competition/:season/games/lms` | **production, untouched** |
 
 ---

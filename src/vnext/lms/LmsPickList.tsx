@@ -129,5 +129,12 @@ function Mark({ action }: { readonly action: LmsPickAction }) {
   if (action.kind === 'used') {
     return <span className={styles.usedMark}>Used</span>
   }
+  // `pick` WITHOUT A HANDLER IS A READ-ONLY RENDER, not a shut club. It happens
+  // wherever the page is shown without `onPick` — a preview, a snapshot — and
+  // without a mark it looked identical to a locked one, which is the opposite
+  // of what it means.
+  if (action.kind === 'pick') {
+    return <span className={styles.availableMark}>Available</span>
+  }
   return null
 }

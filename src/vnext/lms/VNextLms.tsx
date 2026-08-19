@@ -1,10 +1,17 @@
 import { motion } from 'framer-motion'
-import type { LmsFieldPanel, LmsPageModel, LmsRound, LmsRules, LmsStanding } from '../models/lms'
+import type {
+  LmsClubResult,
+  LmsFieldPanel,
+  LmsPageModel,
+  LmsRound,
+  LmsRules,
+  LmsStanding,
+} from '../models/lms'
 import { lmsChampion, lmsPickableCount, lmsRoundIsOpen } from '../models/lms'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
-import { formatNumber, formatTime } from '../foundations/format'
+import { formatKickoffLabel, formatNumber } from '../foundations/format'
 import { LmsPickList } from './LmsPickList'
 import text from '../foundations/typography.module.css'
 import styles from './lms.module.css'
@@ -52,8 +59,22 @@ export type VNextLmsProps = {
   /** A write is in flight. Controls wait rather than queueing a second pick. */
   readonly busy?: boolean | undefined
   /** What the last submitted pick did, where it did not simply land. */
-  readonly notice?: 'conflict' | 'refused' | 'failed' | undefined
+  readonly notice?: LmsNotice | undefined
 }
+
+/**
+ * WHAT THE LAST SUBMITTED PICK DID, WHERE IT DID NOT LAND.
+ *
+ * `refused` CARRIES ITS SENTENCE rather than selecting one here, because the
+ * sentence belongs to the write contract and not to this component.
+ * `lmsRefusal` is the repository's map from `save_lms_selection`'s codes to
+ * copy, and it distinguishes five rules a player can meet. Choosing the words
+ * here would be a second authority over the same RPC.
+ */
+export type LmsNotice =
+  | { readonly kind: 'conflict' }
+  | { readonly kind: 'refused'; readonly reason: string }
+  | { readonly kind: 'failed' }
 
 export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNextLmsProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
@@ -77,7 +98,7 @@ export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNe
       <div className={styles.page}>
         <StandingBanner standing={model.standing} />
 
-        <Field panel={model.field} />
+        <Field panel={model.field} hasRound={model.body.kind === 'round'} />
 
         {notice === undefined ? null : <PickNotice notice={notice} />}
 
@@ -163,7 +184,13 @@ function StandingBanner({ standing }: { readonly standing: LmsStanding | null })
  * phrased as "83 of 120", a form that reads as a fraction of a whole and would
  * be quietly wrong.
  */
-function Field({ panel }: { readonly panel: LmsFieldPanel }) {
+function Field({
+  panel,
+  hasRound,
+}: {
+  readonly panel: LmsFieldPanel
+  readonly hasRound: boolean
+}) {
   if (panel.kind === 'not-counted') {
     // The BODY already says why there is nothing to count — not offered, or not
     // entered. Saying it again here in different words would be a second
@@ -200,7 +227,10 @@ function Field({ panel }: { readonly panel: LmsFieldPanel }) {
         <span>{formatNumber(counts.entrants)} entered</span>
       </p>
 
-      <Picked picked={counts.picked} />
+      {/* THE WITHHELD-COUNT SENTENCE NEEDS A ROUND TO BE WITHHELD BY. "Stays
+          hidden until picks close" is nonsense between rounds and to a
+          champion, where there are no picks to close. */}
+      {hasRound ? <Picked picked={counts.picked} /> : null}
       {panel.rules === null ? null : <Rules rules={panel.rules} />}
     </section>
   )
@@ -273,16 +303,25 @@ function Rules({ rules }: { readonly rules: LmsRules }) {
  * already triggered a re-read, so the page beneath this notice is the fresh
  * one — which is why neither offers a button.
  */
-function PickNotice({ notice }: { readonly notice: 'conflict' | 'refused' | 'failed' }) {
+function PickNotice({ notice }: { readonly notice: LmsNotice }) {
   const copy =
-    notice === 'conflict'
+    notice.kind === 'conflict'
       ? 'Your pick was changed somewhere else, so we have reloaded this round. Check it still says what you want.'
-      : notice === 'refused'
-        ? 'The server would not take that pick — the round or the club moved while this page was open. It has been reloaded.'
-        : 'We could not save that pick. Nothing has changed, so you can try again.'
+      : notice.kind === 'refused'
+        ? // THE SERVER'S OWN RULE, IN THE REPOSITORY'S OWN WORDS. Not a generic
+          // "that was refused": "you have already used that club" and "you have
+          // been eliminated" send a player to different places, and the whole
+          // reason `lmsRefusal` exists is that flattening them is worse than
+          // useless. The page adds only that it has reloaded.
+          `${notice.reason} This round has been reloaded.`
+        : // NOTE WHAT THIS MAY SAY, AND ONLY THIS. "Nothing has changed" is a
+          // claim about the server, and it is only safe for a FAULT — a write
+          // that never landed. It was once shown for refusals too, where both
+          // halves were false and the invited retry could never succeed.
+          'We could not save that pick. Nothing has changed, so you can try again.'
 
   return (
-    <p className={`${text.body} ${styles.notice}`} role="status" data-notice={notice}>
+    <p className={`${text.body} ${styles.notice}`} role="status" data-notice={notice.kind}>
       {copy}
     </p>
   )
@@ -346,7 +385,13 @@ function Body({
   }
 
   return (
-    <RoundBody round={body.round} pickName={body.pick?.clubName ?? null} onIntent={onIntent} busy={busy} />
+    <RoundBody
+      round={body.round}
+      pick={body.pick}
+      now={model.generatedAt}
+      onIntent={onIntent}
+      busy={busy}
+    />
   )
 }
 
@@ -362,20 +407,31 @@ function Body({
  * arrived. `e2e/vnext-lms.spec.ts` caught it; no unit test could, because the
  * markup was perfectly well-formed and merely untrue.
  */
-function Deadline({ round }: { readonly round: LmsRound }) {
-  // NO DEADLINE IS THE HEADLINE, whatever else is true. An unscheduled window
-  // that announced "Picks open 12:00" would imply picking becomes possible; the
-  // fact a player needs is that no closing time exists yet.
+function Deadline({ round, now }: { readonly round: LmsRound; readonly now: string }) {
+  // A DAY, NOT JUST A CLOCK. `formatTime` gives "11:00" and nothing else, and
+  // an LMS deadline is routinely days away — so "Picks close 11:00" read on a
+  // Tuesday for a Saturday lock is the worst ambiguity this product can
+  // produce, on the one page where missing a deadline costs a season. The
+  // surface it replaces prints "Sat 15 Nov · 11:00", and every other vNext
+  // surface already uses a day-bearing label.
+  //
+  // `formatKickoffLabel` TAKES THE INSTANT AS AN ARGUMENT — "Today 11:00",
+  // "Tomorrow 11:00", "Sat 11:00" — so this reads no clock. The instant is the
+  // model's own `generatedAt`, the same one the state was judged against, so
+  // the words and the state can never be relative to different moments.
   const words =
     round.locksAt === null
-      ? 'No deadline set yet'
+      ? // NO DEADLINE IS THE HEADLINE, whatever else is true. An unscheduled
+        // window announcing "Picks open 12:00" would imply picking becomes
+        // possible; the fact a player needs is that no closing time exists yet.
+        'No deadline set yet'
       : round.state === 'not-open'
         ? round.opensAt === null
           ? 'This round has not opened yet'
-          : `Picks open ${formatTime(round.opensAt)}`
+          : `Picks open ${formatKickoffLabel(round.opensAt, now)}`
         : round.state === 'open'
-          ? `Picks close ${formatTime(round.locksAt)}`
-          : `Picks closed ${formatTime(round.locksAt)}`
+          ? `Picks close ${formatKickoffLabel(round.locksAt, now)}`
+          : `Picks closed ${formatKickoffLabel(round.locksAt, now)}`
 
   return <p className={`${text.micro} ${styles.deadline}`}>{words}</p>
 }
@@ -397,37 +453,79 @@ function Remaining({ count }: { readonly count: number }) {
   )
 }
 
+/**
+ * WHAT THE PICKED CLUB DID — CARRIED, NEVER READ AS A VERDICT.
+ *
+ * The stage's binding pair is `wonButEliminated` and `lostButAlive`, and until
+ * this component existed those two worlds were IDENTICAL on screen apart from
+ * the standing banner: `LmsPick.result` was mapped, fixtured and tested, and
+ * then never rendered. So the rule the whole stage is about — a club winning is
+ * not a player surviving — was provable in the mapper and invisible on the
+ * page, and the surface it replaces said more than it did.
+ *
+ * The copy is `lmsRoundModel.ts`'s, because that is where the rule lives. Note
+ * `drew` says what happened and NOT what follows: whether a draw eliminates is
+ * a stored rule this surface may state (from contract 164) and never apply.
+ */
+const RESULT_COPY: Record<LmsClubResult, string> = {
+  won: 'Your pick won.',
+  lost: 'Your pick lost.',
+  drew: 'Your pick drew.',
+  postponed: 'Your pick has no result yet — a round without one never eliminates.',
+}
+
+function PickResult({ result }: { readonly result: LmsClubResult }) {
+  return (
+    <p className={`${text.body} ${styles.pickResult}`} data-vnext-zone="pick-result">
+      {RESULT_COPY[result]}
+    </p>
+  )
+}
+
 function RoundBody({
   round,
-  pickName,
+  pick,
+  now,
   onIntent,
   busy,
 }: {
   readonly round: LmsRound
-  readonly pickName: string | null
+  readonly pick: { readonly clubName: string; readonly result: LmsClubResult | null } | null
+  readonly now: string
   readonly onIntent?: ((intent: LmsIntent) => void) | undefined
   readonly busy: boolean
 }) {
   const open = lmsRoundIsOpen(round)
+  const pickName = pick?.clubName ?? null
+
+  // WHETHER THIS PLAYER CAN PICK, WHICH IS NOT THE SAME AS THE ROUND BEING
+  // OPEN. Elimination blocks the PLAYER and leaves the round open, so gating
+  // the prompt on `open` alone invited an eliminated player to "pick one club
+  // to win" and then told them no clubs were left — directly under a banner
+  // reading "You have been eliminated."
+  const canPick = open && lmsPickableCount(round) > 0
 
   return (
     <section className={styles.round} data-vnext-zone="round" data-state={round.state}>
       <div className={styles.roundHead}>
         <h2 className={`${text.title} ${styles.roundLabel}`}>{round.label}</h2>
-        <Deadline round={round} />
+        <Deadline round={round} now={now} />
       </div>
 
       {pickName === null ? (
-        open ? (
+        canPick ? (
           <p className={`${text.body} ${styles.prompt}`}>
             {/* THE WHOLE GAME, IN ONE LINE. */}
             Pick one club to win. You cannot use it again.
           </p>
         ) : null
       ) : (
-        <p className={`${text.body} ${styles.prompt}`} data-vnext-zone="your-pick">
-          You picked <strong>{pickName}</strong>.
-        </p>
+        <>
+          <p className={`${text.body} ${styles.prompt}`} data-vnext-zone="your-pick">
+            You picked <strong>{pickName}</strong>.
+          </p>
+          {pick?.result == null ? null : <PickResult result={pick.result} />}
+        </>
       )}
 
       <LmsPickList
@@ -438,9 +536,7 @@ function RoundBody({
         busy={busy}
       />
 
-      {open ? (
-        <Remaining count={lmsPickableCount(round)} />
-      ) : null}
+      {canPick ? <Remaining count={lmsPickableCount(round)} /> : null}
     </section>
   )
 }

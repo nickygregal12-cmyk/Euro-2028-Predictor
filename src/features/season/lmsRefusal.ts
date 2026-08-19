@@ -38,8 +38,29 @@ const BY_CODE: Record<string, string> = {
   check_violation: 'Choose a club to pick.',
 }
 
-export function lmsRefusal(error: unknown): string {
+/** The sentence this error's code maps to, or null when it maps to none. */
+function refusalCode(error: unknown): string | null {
   const code = (error as { code?: unknown } | null)?.code
-  if (typeof code === 'string' && BY_CODE[code]) return BY_CODE[code]
-  return userFacingError(error)
+  return typeof code === 'string' ? BY_CODE[code] ?? null : null
+}
+
+export function lmsRefusal(error: unknown): string {
+  const known = refusalCode(error)
+  return known ?? userFacingError(error)
+}
+
+/**
+ * WHETHER THIS IS A RULE THE PLAYER MET, RATHER THAN A FAULT.
+ *
+ * READS THE SAME MAP `lmsRefusal` DOES, and that is the whole point of it being
+ * here rather than in a caller. A refusal and a fault deserve different
+ * treatment — a refusal means the caller's view is stale and re-reading is the
+ * honest response, while a fault means nothing changed and retrying is
+ * sensible — so somebody has to answer "which is this". A caller answering it
+ * with its own list of codes is a second authority that drifts from this one
+ * the first time a refusal is added, and it drifts SILENTLY: the symptom is a
+ * player being told to try again forever.
+ */
+export function isLmsRefusal(error: unknown): boolean {
+  return refusalCode(error) !== null
 }

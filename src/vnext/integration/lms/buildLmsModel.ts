@@ -76,10 +76,25 @@ import type { LmsSource } from './lmsSource'
  * ============================ IT COUNTS NOTHING ==========================
  *
  * The three pool counts are three separate server-side `count(*)`s and are
- * carried as three numbers. `remaining` is `outcome <> 'eliminated'` and
- * `eliminated` is `outcome = 'eliminated'`; in SQL a NULL outcome satisfies
- * NEITHER, so `entrants - eliminated` is NOT `remaining`. Deriving any of them
- * would print a figure the database never agreed to.
+ * carried as three numbers, unmodified.
+ *
+ * AN EARLIER VERSION OF THIS COMMENT JUSTIFIED THAT WITH AN ARGUMENT THAT WAS
+ * SIMPLY FALSE, and it is worth recording rather than quietly deleting. It said
+ * a NULL `outcome` satisfies neither `<> 'eliminated'` nor `= 'eliminated'`, so
+ * the three counts need not sum. The first half is a true fact about SQL; the
+ * second does not follow here, because `bonus_competition_entrants.outcome` is
+ * declared `text not null default 'active'` and no migration has ever relaxed
+ * it. **`entrants` always equals `remaining + eliminated`.**
+ *
+ * So the honest reason to carry rather than derive is not arithmetic — a
+ * derivation would currently agree — it is AUTHORITY. These are three
+ * statements the database chose to make, and re-deriving one makes this lane
+ * responsible for a number it did not compute, on the day the schema gains a
+ * sixth outcome or a soft-deleted entrant. The guard against it is therefore a
+ * mapper test that hands `buildLmsModel` a non-summing payload and requires it
+ * to carry the figures through unrepaired — the mapper's job is to carry, not
+ * to correct — and NOT a fixture world, because a fixture world is a page a
+ * player could really see and those must sum.
  */
 
 /**
@@ -94,6 +109,11 @@ function blockingReason(
   page: LmsRoundPage,
   state: LmsRoundState,
 ): 'locked' | 'not-open' | 'eliminated' | 'not-entered' | null {
+  // NOT REACHABLE FROM `bodyFor`, WHICH RETURNS `not-entered` BEFORE CALLING
+  // THIS — and kept anyway, because the ordering above is the rule and a
+  // function that answers "why can this player not pick" should not have a hole
+  // where the strongest reason goes. The union member it produces is likewise
+  // unconstructible today; both exist so the order survives a caller change.
   if (!page.entered) return 'not-entered'
   if (page.entryOutcome === 'eliminated') return 'eliminated'
   if (state === 'not-open') return 'not-open'
@@ -110,13 +130,38 @@ function blockingReason(
  * than a bare property access: two calls can straddle a lock boundary, and a
  * verdict about window 8 applied to window 7 would be worse than no verdict.
  */
-function serverLocked(source: LmsSource, windowId: string): boolean | null {
+function serverRound(source: LmsSource, windowId: string) {
   if (source.field.kind !== 'ok') return null
   const answer = source.field.field
   if (!answer.available || !answer.entered) return null
   const round = answer.round
   if (round === null || round.windowId !== windowId) return null
+  return round
+}
+
+function serverLocked(source: LmsSource, windowId: string): boolean | null {
+  const round = serverRound(source, windowId)
+  if (round === null) return null
+  // A LOCK FAILS CLOSED, NEVER OPEN. `seasonLmsFieldModel` decodes `revealed`
+  // as `row.revealed === true`, so a missing or malformed field arrives here as
+  // `false` — indistinguishable from a genuine "not locked yet", and `false`
+  // short-circuits the instants below and forces the round OPEN. That is the
+  // wrong direction for a control that spends a club: contract 164's own
+  // `lms_round_revealed` fails closed on an unknown window and says why.
+  //
+  // So a verdict is only trusted where the payload also carried the instant it
+  // is a verdict ABOUT. No `locksAt`, no verdict — fall back to the instants,
+  // which then read an unscheduled window as `not-open`.
+  if (round.locksAt === null) return null
   return round.revealed
+}
+
+/**
+ * WHETHER THE ROUND HAS SETTLED — `settles_at <= now()`, the server's own
+ * comparison, for the same window and under the same guard as the lock.
+ */
+function serverSettled(source: LmsSource, windowId: string): boolean | null {
+  return serverRound(source, windowId)?.settled ?? null
 }
 
 /**
@@ -136,8 +181,30 @@ function roundState(
   page: LmsRoundPage,
   generatedAt: string,
   locked: boolean | null,
+  settled: boolean | null,
 ): LmsRoundState {
-  if (page.pickOutcome !== null) return 'settled'
+  // THE ROUND'S OWN SETTLEMENT, WHERE THE SERVER STATED IT.
+  if (settled === true) return 'settled'
+
+  // AND OTHERWISE ONLY A PLAYED VERDICT, NEVER MERELY A NON-NULL ONE.
+  //
+  // THIS LINE WAS `page.pickOutcome !== null` AND IT WAS BADLY WRONG. Contract
+  // 116 computes `pick_outcome` through `lms_outcome_from_fixture`, whose FIRST
+  // branch is `when p_status is distinct from 'played' then 'postponed'` — so a
+  // player who has picked a club whose fixture has not kicked off yet gets
+  // `'postponed'`, which is not null. `pickOutcome !== null` therefore means
+  // "THE PLAYER HAS PICKED", not "the round produced a result".
+  //
+  // The consequence was the ordinary mid-week state of the game: pick a club on
+  // Tuesday, and the page called the round settled, printed "Picks closed" over
+  // a deadline days away, marked every other club `locked`, hid the prompt and
+  // the remaining count, and refused an amendment `save_lms_selection` would
+  // happily have accepted. It also discarded contract 164's verdict entirely,
+  // because this branch runs first.
+  //
+  // `postponed` is excluded by name. A round without a standing result never
+  // eliminates and is not over — `lmsRoundModel.ts` says so in as many words.
+  if (page.pickOutcome !== null && page.pickOutcome !== 'postponed') return 'settled'
 
   const now = Date.parse(generatedAt)
   const opensAt = page.round?.opensAt ?? null
@@ -220,7 +287,12 @@ function bodyFor(source: LmsSource, page: LmsRoundPage, generatedAt: string): Lm
   if (page.round === null) return { kind: 'no-round' }
   if (!page.entered) return { kind: 'not-entered' }
 
-  const state = roundState(page, generatedAt, serverLocked(source, page.round.windowId))
+  const state = roundState(
+    page,
+    generatedAt,
+    serverLocked(source, page.round.windowId),
+    serverSettled(source, page.round.windowId),
+  )
   const blocked = blockingReason(page, state)
 
   const round: LmsRound = {

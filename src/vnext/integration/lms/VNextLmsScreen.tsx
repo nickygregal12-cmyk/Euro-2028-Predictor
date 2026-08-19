@@ -114,9 +114,10 @@ export function VNextLmsScreen(props: VNextLmsScreenProps) {
         onRetry={state.status === 'ready' ? state.retry : undefined}
         busy={picking.kind === 'saving'}
         notice={
-          picking.kind === 'conflict' || picking.kind === 'refused' || picking.kind === 'failed'
-            ? picking.kind
-            : undefined
+          // CARRIED WHOLE, so the refusal's own sentence travels with it. A
+          // `picking.kind` alone would force the surface to re-choose copy the
+          // write contract already chose.
+          picking.kind === 'idle' || picking.kind === 'saving' ? undefined : picking
         }
       />
     ) : (

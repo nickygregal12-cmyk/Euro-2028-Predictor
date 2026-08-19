@@ -24,11 +24,10 @@ import { expect, test } from '@playwright/test'
  *      the element pressed.
  *   6. THERE IS NO NUMERIC INPUT ANYWHERE — the structural difference from
  *      Match Predictor, checked in the rendered DOM.
- *   7. THE POOL LINE WRAPS RATHER THAN OVERFLOWING at 375. Three figures and
- *      two separators do not fit one 320px line, and a survival count running
- *      off the edge would hide the number the section exists to show. jsdom
- *      computes no layout, so only a browser can say whether the flex wrap
- *      actually happened or the line merely scrolled.
+ *   7. THE POOL LINE STAYS INSIDE ITS BOX at 375, on one or two lines and
+ *      never more. A survival count running off the edge would hide the number
+ *      the section exists to show, and jsdom computes no layout, so only a
+ *      browser can say whether the flex line broke or merely scrolled.
  *
  * THE BROWSER IS THE WRONG SIZE ON PURPOSE. The page opens at 1280×900, which
  * is the width and height of no frame under review.
@@ -397,16 +396,23 @@ test.describe('the states that are not a round', () => {
  * the edge of a 375 phone taking "120 entered" with them.
  */
 test.describe('the field is legible where it is hardest', () => {
-  test('the pool counts wrap rather than running off a 375 phone', async ({ page }) => {
+  test('the pool counts stay inside their box on a 375 phone', async ({ page }) => {
     await open(page, 'frame-open-phone')
     const reading = await read(page)
     expect(reading.pageText).toContain('83 still in')
-    expect(reading.pageText).toContain('33 out')
+    expect(reading.pageText).toContain('37 out')
     expect(reading.pageText).toContain('120 entered')
+    // THE ONLY ASSERTION HERE THAT EVER DID ANY WORK. The line must not run
+    // past its own box, whatever it does about wrapping.
     expect(reading.fieldOverflows, 'the pool line overflows its own box').toBe(false)
-    // Three count spans plus two separators; if they all sat on one line at 375
-    // something is clipping rather than wrapping.
-    expect(reading.fieldLines).toBeGreaterThanOrEqual(1)
+    // AND THE LINE ABOVE USED TO BE `toBeGreaterThanOrEqual(1)`, which every
+    // possible value satisfies — a field panel always has at least one line.
+    // It sat under a comment claiming only a browser could tell wrapping from
+    // clipping, and then did not ask. Three counts and two separators DO fit
+    // one line at 375, so the honest assertion is a bound, not a wrap: the
+    // pool never occupies more than two lines, and never zero.
+    expect(reading.fieldLines).toBeGreaterThan(0)
+    expect(reading.fieldLines).toBeLessThanOrEqual(2)
   })
 
   test('the withheld picked-count is a sentence, never a zero', async ({ page }) => {
@@ -464,5 +470,59 @@ test.describe('one read failing leaves the other usable', () => {
     // The retry belongs to the read that failed, and there is exactly one.
     expect(reading.pageText).toContain('Try again')
     expect(reading.pickControls).toEqual([])
+  })
+})
+
+/**
+ * A DEADLINE WITHOUT A DAY IS THE WORST AMBIGUITY THIS PRODUCT CAN PRODUCE.
+ *
+ * Checked here as well as in jsdom because it is the sentence a player acts on
+ * and the one the surface being replaced already gets right.
+ */
+test.describe('the deadline names a day', () => {
+  test('an open round says which day picks close', async ({ page }) => {
+    await open(page, 'frame-open-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(
+      /Picks close (Today|Tomorrow|Yesterday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)/,
+    )
+  })
+
+  test('a locked round says which day they closed', async ({ page }) => {
+    await open(page, 'frame-locked-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(
+      /Picks closed (Today|Tomorrow|Yesterday|Mon|Tue|Wed|Thu|Fri|Sat|Sun)/,
+    )
+  })
+})
+
+/**
+ * THE TWO BINDING WORLDS MUST LOOK DIFFERENT, not merely model differently.
+ */
+test.describe('the club result is on the page, beside the standing', () => {
+  test('a won pick beside an elimination shows both facts', async ({ page }) => {
+    await open(page, 'frame-won-but-eliminated-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('Your pick won')
+    expect(reading.pageText).toContain('You have been eliminated')
+  })
+
+  test('a lost pick beside a live entry shows both facts', async ({ page }) => {
+    await open(page, 'frame-lost-but-alive-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('Your pick lost')
+    expect(reading.pageText).toContain('You are still in')
+  })
+})
+
+test.describe('an eliminated player is not invited to pick', () => {
+  test('no prompt and no empty-count sentence under the elimination banner', async ({ page }) => {
+    await open(page, 'frame-eliminated-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('You have been eliminated')
+    expect(reading.pickControls).toEqual([])
+    expect(reading.pageText).not.toContain('Pick one club to win')
+    expect(reading.pageText).not.toContain('No clubs left for you to pick')
   })
 })

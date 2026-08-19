@@ -100,15 +100,26 @@ const openChoices: readonly LmsFixtureChoice[] = [
 ]
 
 /**
- * THE ORDINARY FIELD. Note the three counts do not add up, and that is the
- * point: contract 164 counts `remaining` and `eliminated` from `outcome`, and a
- * NULL outcome satisfies neither — so four of these 120 entrants are in neither
- * bucket. A world where 83 + 37 = 120 would let a surface derive one count from
- * the others and pass.
+ * THE ORDINARY FIELD, AND ITS COUNTS SUM — 83 + 37 = 120.
+ *
+ * THEY MUST. An earlier version of this file made them deliberately non-summing
+ * on the theory that a NULL `outcome` is counted in neither bucket. That is a
+ * true fact about SQL and a false one about this schema:
+ * `bonus_competition_entrants.outcome` is `text not null default 'active'` and
+ * no migration has relaxed it, so contract 164 can never emit a non-summing
+ * trio. A fixture world is a page a player could really see, and one showing
+ * "83 still in · 33 out · 120 entered" was a page nobody can ever be shown —
+ * the exact defect class Stage 10 shipped and this lane claims to have fixed.
+ *
+ * The anti-derivation guard moved to where it belongs: a MAPPER test hands
+ * `buildLmsModel` a non-summing payload and requires it to carry the figures
+ * through unrepaired, because a pure mapper's job is to carry rather than to
+ * correct. That test may use an impossible payload precisely because it is
+ * testing a function, not depicting a page.
  */
 const ordinaryField: LmsFieldPanel = {
   kind: 'field',
-  counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+  counts: { entrants: 120, remaining: 83, eliminated: 37, picked: null },
   rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
 }
 
@@ -168,11 +179,23 @@ const lostButAlive = world({
   },
 })
 
+/**
+ * THE PICK HAS NO RESULT AT ALL, AND THE ROUND IS THEREFORE **LOCKED**, NOT
+ * SETTLED.
+ *
+ * This world used to say `settled`, and it was the B1 defect written down as a
+ * fixture. `lms_outcome_from_fixture` returns `'postponed'` for any fixture
+ * that is not `played` — including one still scheduled — so `'postponed'` is
+ * what a picked club carries before kick-off. A round is not over because
+ * somebody picked in it, and a round without a standing result never
+ * eliminates. `locked` is what a passed deadline with no result looks like.
+ */
 const postponedPick = world({
   standing: 'active',
+  usedClubNamesInRound: ['Celtic', 'Hearts'],
   body: {
     kind: 'round',
-    round: round('settled', [
+    round: round('locked', [
       fixture(1, null, shut('fx-1:home', 'Celtic', 'locked'), shut('fx-1:away', 'Hearts', 'locked')),
     ]),
     pick: { clubName: 'Celtic', result: 'postponed' },
@@ -225,17 +248,18 @@ const champion = world({
 
 const survivedLastRound = world({ standing: 'survived' })
 
+/**
+ * FIVE CLUBS SPENT, AND EVERY NAME COMES FROM A CLUB IN THIS ROUND.
+ *
+ * It has to. `buildLmsModel` builds `usedClubNamesInRound` by filtering
+ * `club.used` over THIS round's fixtures, so a name that plays in none of them
+ * is a name the mapper has no way to produce. The earlier version of this world
+ * listed Rangers, St Mirren and Dundee United, none of which appeared in any of
+ * its three fixtures — and the used-heading honesty test rendered exactly that
+ * world, so the test pinned an unreachable page.
+ */
 const manyUsed = world({
-  usedClubNamesInRound: [
-    'Hearts',
-    'Celtic',
-    'Rangers',
-    'Aberdeen',
-    'Hibernian',
-    'Motherwell',
-    'St Mirren',
-    'Dundee United',
-  ],
+  usedClubNamesInRound: ['Celtic', 'Hearts', 'Aberdeen', 'Hibernian', 'Motherwell'],
   body: {
     kind: 'round',
     round: round('open', [
@@ -247,8 +271,15 @@ const manyUsed = world({
   },
 })
 
+/**
+ * ONE PICKABLE CLUB IN THE WHOLE ROUND.
+ *
+ * Hearts is pickable, so Hearts is NOT in the used list. `club.used` decides
+ * both the option's action and the name list, so a club cannot be in one and
+ * not the other — the earlier version had Hearts in both at once.
+ */
 const oneClubLeft = world({
-  usedClubNamesInRound: ['Hearts', 'Celtic', 'Rangers', 'Aberdeen', 'Hibernian'],
+  usedClubNamesInRound: ['Celtic'],
   body: {
     kind: 'round',
     round: round('open', [
@@ -309,7 +340,9 @@ const unscheduled = world({
 })
 
 const longClubNames = world({
-  usedClubNamesInRound: ['Inverness Caledonian Thistle'],
+  // SPARTANS, because Spartans is the club this round marks `used`. Inverness
+  // Caledonian Thistle is pickable below, and a club cannot be both.
+  usedClubNamesInRound: ['Spartans'],
   body: {
     kind: 'round',
     round: round('open', [
@@ -330,7 +363,15 @@ const longClubNames = world({
   },
 })
 
+/**
+ * A ROUND WITH NO FIXTURES PUBLISHED YET — so no spent club can be NAMED.
+ *
+ * The used list is derived from this round's fixtures, and there are none. It
+ * carried `['Hearts']` from the world default, which is a page the mapper
+ * cannot build: nothing to read the name off.
+ */
 const emptyRound = world({
+  usedClubNamesInRound: [],
   body: { kind: 'round', round: round('open', []), pick: null },
 })
 
@@ -350,7 +391,7 @@ const fieldRevealed = world({
   },
   field: {
     kind: 'field',
-    counts: { entrants: 120, remaining: 83, eliminated: 33, picked: 79 },
+    counts: { entrants: 120, remaining: 83, eliminated: 37, picked: 79 },
     rules: { lives: 1, saves: 0, drawsRule: 'A draw counts as a loss' },
   },
 })
@@ -359,7 +400,7 @@ const fieldRevealed = world({
 const fieldWithoutRules = world({
   field: {
     kind: 'field',
-    counts: { entrants: 120, remaining: 83, eliminated: 33, picked: null },
+    counts: { entrants: 120, remaining: 83, eliminated: 37, picked: null },
     rules: null,
   },
 })
@@ -368,7 +409,7 @@ const fieldWithoutRules = world({
 const fieldWithLives = world({
   field: {
     kind: 'field',
-    counts: { entrants: 5000, remaining: 4218, eliminated: 780, picked: null },
+    counts: { entrants: 5000, remaining: 4218, eliminated: 782, picked: null },
     rules: { lives: 2, saves: 1, drawsRule: 'A draw survives' },
   },
 })

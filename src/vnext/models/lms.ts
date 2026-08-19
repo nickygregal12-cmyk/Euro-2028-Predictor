@@ -104,7 +104,7 @@ type LmsContext = {
  * `postponed` is not a result — the fixture produced no standing outcome — and
  * it is a real answer rather than a missing one.
  */
-type LmsClubResult = 'won' | 'lost' | 'drew' | 'postponed'
+export type LmsClubResult = 'won' | 'lost' | 'drew' | 'postponed'
 
 /**
  * WHAT THE COMPETITION SAYS THE PLAYER NOW IS. The only survival verdict, and

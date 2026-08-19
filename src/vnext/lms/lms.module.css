@@ -251,6 +251,12 @@
   overflow-wrap: anywhere;
 }
 
+/* A pickable club rendered without a handler. Marked so it cannot be mistaken
+   for a shut one, and quieter than `Used` because it is not a restriction. */
+.availableMark {
+  color: var(--vnext-text-muted);
+}
+
 /* ---- the field: how many are left, and under what rules --------------------- */
 
 .field {

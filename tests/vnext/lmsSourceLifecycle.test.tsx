@@ -44,8 +44,10 @@ const server = vi.hoisted(() => {
     contextFails: false,
     loadFails: false,
     fieldFails: false,
-    /** null | 'conflict' | 'refused' | 'failed' */
-    pickFails: null as null | 'conflict' | 'refused' | 'failed',
+    /** Real latency, so a transient `loading` is observable at all. */
+    loadDelayMs: 0,
+    /** null, a SQLSTATE the RPC really raises, or a plain fault. */
+    pickFails: null as null | 'conflict' | 'failed' | '23514' | '23505' | '55000' | '42501' | '02000',
   }
 
   function page(): LmsRoundPage {
@@ -127,11 +129,25 @@ vi.mock('../../src/services/supabase/seasonPlayContext', () => ({
   }),
 }))
 
-vi.mock('../../src/services/supabase/seasonLms', () => ({
+vi.mock('../../src/services/supabase/seasonLms', async () => ({
+  // THE REAL REFUSAL CLASSIFIER, not a restatement of it.
+  //
+  // The hook reaches it through the gateway module, so a wholesale mock of that
+  // module would silently remove it — and the symptom is not a failing import
+  // but every write hanging in `saving`. Pulling the actual `lmsRefusal` module
+  // in is safe (it imports only `userFacingError`, no Supabase) and means this
+  // suite exercises the shipped code-to-sentence map rather than a copy of it
+  // that could agree with a broken hook.
+  ...(await vi.importActual<Record<string, unknown>>(
+    '../../src/features/season/lmsRefusal',
+  )),
   createSeasonLmsRpcGateway: () => {
     server.countGateway()
     return {
       load: async () => {
+        if (server.state.loadDelayMs > 0) {
+          await new Promise((resolve) => setTimeout(resolve, server.state.loadDelayMs))
+        }
         server.calls.load += 1
         if (server.state.loadFails) throw new Error('no round')
         return server.page()
@@ -142,10 +158,10 @@ vi.mock('../../src/services/supabase/seasonLms', () => ({
         if (server.state.pickFails === 'conflict') {
           throw Object.assign(new Error('stale'), { code: 'PT409' })
         }
-        if (server.state.pickFails === 'refused') {
-          throw Object.assign(new Error('declined'), { code: '23514' })
-        }
         if (server.state.pickFails === 'failed') throw new Error('network')
+        if (server.state.pickFails !== null) {
+          throw Object.assign(new Error('declined'), { code: server.state.pickFails })
+        }
       },
     }
   },
@@ -199,6 +215,7 @@ function reset() {
   server.state.contextFails = false
   server.state.loadFails = false
   server.state.fieldFails = false
+  server.state.loadDelayMs = 0
   server.state.pickFails = null
 }
 
@@ -269,6 +286,149 @@ describe('the round and the field are read together and fail apart', () => {
   })
 })
 
+/**
+ * A PICK MUST NOT BLANK THE PAGE IT WAS MADE ON.
+ *
+ * The re-read after a landed pick used to clear the hook's state, so the screen
+ * dropped to a skeleton — standing, pool, round, used list and the competition
+ * shell all replaced by grey bars — and then rebuilt itself. It was invisible
+ * to this suite because the mocked gateway resolves in a microtask and React
+ * coalesces the commit, so the observed trail was `loading -> ready` either
+ * way. **The mocked load below is deliberately slow for that reason.**
+ */
+describe('a re-read keeps the page it is refreshing', () => {
+  it('never returns to loading after a pick lands', async () => {
+    reset()
+    server.state.loadDelayMs = 5
+    const probe = mount(BASE)
+    ;(await ready(probe)).pick('team-celtic')
+
+    await waitFor(() => expect(server.calls.load).toBe(2))
+    await waitFor(() => expect(last(probe.seen).status).toBe('ready'))
+
+    const trail: string[] = []
+    for (const seen of probe.seen) {
+      if (trail[trail.length - 1] !== seen.status) trail.push(seen.status)
+    }
+    // ONE loading, at the start. A second would be the skeleton flash.
+    expect(trail.filter((status) => status === 'loading')).toHaveLength(1)
+    probe.unmount()
+  })
+
+  it('says it is refreshing while it does so, rather than pretending to be idle', async () => {
+    reset()
+    server.state.loadDelayMs = 5
+    const probe = mount(BASE)
+    ;(await ready(probe)).pick('team-celtic')
+
+    await waitFor(() => expect(server.calls.load).toBe(2))
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.refreshing).toBe(false)
+    })
+
+    // OVER THE WHOLE TRAIL, not the latest state: `refreshing` is true for the
+    // duration of the re-read, which is one or two renders, and a `waitFor` on
+    // the last state can easily arrive after it has gone.
+    const sawRefreshing = probe.seen.some(
+      (state) => state.status === 'ready' && state.refreshing,
+    )
+    // The page stays `ready` AND admits a read is in flight, so a surface can
+    // announce it without having anything torn out from under the reader.
+    expect(sawRefreshing, 'the re-read was never announced').toBe(true)
+    expect(probe.seen.every((state) => state.status === 'ready' || state.status === 'loading')).toBe(
+      true,
+    )
+    probe.unmount()
+  })
+
+  it('does clear to loading when the identity genuinely changes', async () => {
+    reset()
+    server.state.loadDelayMs = 5
+    const probe = mount(BASE)
+    await ready(probe)
+    probe.unmount()
+
+    // A different season is a different round; keeping the old one on screen
+    // would show somebody the wrong competition's clubs.
+    const other = mount({ ...BASE, seasonSlug: '2028-29' })
+    await ready(other)
+    expect(other.seen.some((state) => state.status === 'loading')).toBe(true)
+    other.unmount()
+  })
+})
+
+/**
+ * EVERY REFUSAL `save_lms_selection` CAN RAISE, NOT JUST THE ONE.
+ *
+ * The hook once carried its own classifier and it knew a single code, `23514`.
+ * Reading the migration shows the RPC raises FIVE:
+ *
+ *   23505 unique_violation      the club is already spent this cycle
+ *   55000                       the entrant has been eliminated
+ *   42501 insufficient_privilege not an entrant / not authenticated
+ *   02000 no_data_found         the window is not a live LMS round
+ *   23514 check_violation       from the row trigger: locked, or no club
+ *
+ * Four of them fell through to `failed`, whose sentence is "Nothing has
+ * changed, so you can try again." Both halves were false — the used-list HAD
+ * moved — and the retry could never succeed. The likeliest refusal on this
+ * surface, picking a club already used, was one of the four.
+ *
+ * The lane no longer classifies these itself; `isLmsRefusal` does, from the
+ * same map that supplies the sentence. This table is the regression guard.
+ */
+describe('every rule the server can refuse on is a refusal, not a fault', () => {
+  const codes = [
+    { code: '23505' as const, says: /already used that club/i },
+    { code: '55000' as const, says: /been eliminated/i },
+    { code: '42501' as const, says: /join last man standing/i },
+    { code: '02000' as const, says: /no longer available/i },
+    { code: '23514' as const, says: /choose a club/i },
+  ]
+
+  it.each(codes)('classifies $code as refused and re-reads', async ({ code, says }) => {
+    reset()
+    server.state.pickFails = code
+    const probe = mount(BASE)
+    ;(await ready(probe)).pick('team-celtic')
+
+    await waitFor(() => expect(last(probe.seen).status).toBe('ready'))
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.picking.kind).toBe('refused')
+    })
+
+    const state = last(probe.seen)
+    if (state.status !== 'ready' || state.picking.kind !== 'refused') {
+      throw new Error('expected a refusal')
+    }
+    // IT CARRIES THE RULE'S OWN SENTENCE, so the page never has to guess which.
+    expect(state.picking.reason).toMatch(says)
+    // AND IT RE-READS, because this page's view of the round is now stale.
+    await waitFor(() => expect(server.calls.load).toBe(2))
+    probe.unmount()
+  })
+
+  it('still calls a network fault a fault, and does not re-read', async () => {
+    reset()
+    server.state.pickFails = 'failed'
+    const probe = mount(BASE)
+    ;(await ready(probe)).pick('team-celtic')
+
+    await waitFor(() => {
+      const state = last(probe.seen)
+      if (state.status !== 'ready') throw new Error('expected ready')
+      expect(state.picking.kind).toBe('failed')
+    })
+    // NOTHING CHANGED, so the page may say so and the retry is honest.
+    expect(server.calls.load).toBe(1)
+    probe.unmount()
+  })
+})
+
 /* ------------------------------------------------------------------ *
  * 1. The write's three failures are three states
  * ------------------------------------------------------------------ */
@@ -289,7 +449,7 @@ describe('a write that does not succeed says which kind it was', () => {
 
   it('reads check_violation as the server declining, not as a fault', async () => {
     reset()
-    server.state.pickFails = 'refused'
+    server.state.pickFails = '23514'
     const probe = mount(BASE)
     ;(await ready(probe)).pick('team-celtic')
 
@@ -326,7 +486,7 @@ describe('a write that does not succeed says which kind it was', () => {
     })
 
     reset()
-    server.state.pickFails = 'refused'
+    server.state.pickFails = '23514'
     const second = mount(BASE)
     ;(await ready(second)).pick('team-celtic')
     await waitFor(() => {
@@ -366,7 +526,7 @@ describe('the page re-reads whenever the server knows more than it does', () => 
 
   it('re-reads after a refusal, because this page`s view is stale', async () => {
     reset()
-    server.state.pickFails = 'refused'
+    server.state.pickFails = '23514'
     const probe = mount(BASE)
     ;(await ready(probe)).pick('team-celtic')
 
