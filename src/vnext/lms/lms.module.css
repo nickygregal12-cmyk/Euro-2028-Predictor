@@ -1,0 +1,308 @@
+/* vNEXT LAST MAN STANDING — one consequential pick.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * sticky masthead, both navigations, the `<main>` landmark and the mobile
+ * bottom spacing are the shell's.
+ *
+ * IT MUST NOT LOOK LIKE MATCH PREDICTOR, and the difference is structural
+ * before it is decorative: there is no numeric input in this file, no score
+ * field, no per-fixture form row. A fixture is two club buttons either side of
+ * a "v", which is a CHOICE rather than an entry.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY on `vnext-page`.
+ *
+ *   compact  (< 640px)   one fixture per row, the two clubs side by side and
+ *                        each at least 44px tall. THE ONE-HANDED CASE: the
+ *                        clubs are the widest targets on the page, because a
+ *                        mis-tap here spends a club for the season.
+ *   regular  (>= 640px)  two fixtures across.
+ *   expanded (>= 1120px) three across, and the used list runs inline.
+ *
+ * NO CLUB NAME IS EVER CLIPPED. No `text-overflow`, no line clamp. A pick list
+ * is a column of club names on a phone and the one thing a player must read
+ * exactly; the button grows instead.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. The standing is a sentence; "Used" and
+ * "Your pick" are words; the round's state changes the words above the list,
+ * not only its hue. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+/* ---- the standing, which is the headline ---------------------------------- */
+
+.standing {
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  color: var(--vnext-text);
+}
+
+/* The colour is an addition to the sentence, never the sentence. */
+.standing[data-standing='eliminated'] {
+  border-color: var(--vnext-miss);
+  background-color: var(--vnext-miss-veil);
+}
+
+.standing[data-standing='champion'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.trophy {
+  font-size: var(--vnext-size-title);
+}
+
+/* ---- what a submitted pick did -------------------------------------------- */
+
+.notice {
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border-radius: var(--vnext-radius-sm);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-raised);
+  color: var(--vnext-text-secondary);
+}
+
+.notice[data-notice='failed'] {
+  border-color: var(--vnext-warn);
+  background-color: var(--vnext-warn-veil);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.empty,
+.prompt {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.prompt strong {
+  color: var(--vnext-text);
+}
+
+/* ---- the round ------------------------------------------------------------- */
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  background-color: var(--vnext-surface);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  min-width: 0;
+}
+
+.roundHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+}
+
+.roundLabel {
+  margin: 0;
+}
+
+.deadline {
+  color: var(--vnext-text-muted);
+}
+
+.remaining {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- the clubs -------------------------------------------------------------- */
+
+.fixtures {
+  display: grid;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fixture {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding: var(--vnext-space-2);
+  background-color: var(--vnext-surface-sunken);
+  border-radius: var(--vnext-radius-sm);
+  min-width: 0;
+}
+
+.kickoff {
+  color: var(--vnext-text-muted);
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: var(--vnext-space-2);
+}
+
+.versus {
+  align-self: center;
+  color: var(--vnext-text-muted);
+}
+
+/* THE WIDEST TARGETS ON THE PAGE, and deliberately: a mis-tap here spends a
+ * club for the season. Height and width both clear the tap target even for a
+ * three-letter club name. */
+.club {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--vnext-tap-target);
+  min-width: var(--vnext-tap-target);
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  color: var(--vnext-text-secondary);
+  text-align: center;
+  /* A club name is the one thing a player must read exactly. */
+  overflow-wrap: anywhere;
+}
+
+.pickable {
+  color: var(--vnext-text);
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline-strong);
+  cursor: pointer;
+}
+
+.pickable:hover:enabled {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.pickable:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.pickable:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* A spent club is TEXT, not a dead control — but it is still legible, because
+ * seeing which clubs are gone is half the game. */
+.club[data-state='used'] {
+  color: var(--vnext-text-muted);
+  border: 1px dashed var(--vnext-hairline);
+}
+
+.club[data-state='chosen'] {
+  color: var(--vnext-text);
+  border: 1px solid var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.usedMark,
+.chosenMark {
+  font-size: var(--vnext-size-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.usedMark {
+  color: var(--vnext-text-muted);
+}
+
+.chosenMark {
+  color: var(--vnext-accent);
+}
+
+/* ---- what has been spent ---------------------------------------------------- */
+
+.used {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.usedHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.usedList {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* ---- a read that did not answer --------------------------------------------- */
+
+.unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+}
+
+.unavailable p {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.retry {
+  min-height: var(--vnext-tap-target);
+  min-width: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  color: var(--vnext-text);
+  background-color: var(--vnext-surface-interactive);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- regular ----------------------------------------------------------------- */
+
+@container vnext-page (min-width: 640px) {
+  .fixtures {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- expanded ------------------------------------------------------------------ */
+
+@container vnext-page (min-width: 1120px) {
+  .fixtures {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .used {
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--vnext-space-3);
+  }
+}
