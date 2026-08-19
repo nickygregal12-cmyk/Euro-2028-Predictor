@@ -125,7 +125,7 @@ describe('workshop matchday fixture', () => {
       expect(['light', 'dark'], team.name).toContain(team.colours.onPrimary)
       expect(team.abbreviation, team.name).toHaveLength(3)
       // No crest source exists yet, and the workshop must not pretend one does.
-      expect(team.crestUrl, team.name).toBeNull()
+      expect(team.officialBadge, team.name).toBeNull()
     }
   })
 })

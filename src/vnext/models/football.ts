@@ -14,6 +14,8 @@
  * has not kicked off has no clock).
  */
 
+import type { OfficialClubBadge } from '../../domain/clubIdentity/officialBadge'
+
 /** How a club's colours are used by presentation. All values are CSS colours. */
 export type TeamColours = {
   readonly primary: string
@@ -28,7 +30,6 @@ export type TeamColours = {
   readonly onPrimary: 'light' | 'dark'
 }
 
-/** Shirt treatments the mock identity can express without a crest asset. */
 /**
  * The kit shapes a club identity may be drawn in.
  *
@@ -56,10 +57,22 @@ export type Team = {
   readonly colours: TeamColours
   readonly kitPattern: TeamKitPattern
   /**
-   * Null in the workshop, and null in production until a crest source is
-   * agreed. Presentation must always be able to fall back to the abbreviation.
+   * AN OFFICIAL BADGE THE POLICY HAS ALREADY ALLOWED, OR NOTHING.
+   *
+   * It is a RESOLVED answer and never a candidate: whether badges are on at
+   * all, whether this provider is approved, whether this competition may show
+   * one and whether the URL is usable are four questions
+   * `src/domain/clubIdentity/officialBadge.ts` answers once, in the adapter.
+   * Presentation receives a badge or it does not, and never a provider name it
+   * has to judge — a component that decided would be the component that decided
+   * differently in the next surface.
+   *
+   * `null` IS A FIRST-CLASS MODE AND NOT A DEGRADED ONE. It is what ADR 0017
+   * decided the product ships as: the club's own colours, kit pattern and
+   * monogram. It is also what a broken image falls back to, which is why the
+   * kit identity is drawn underneath rather than instead.
    */
-  readonly crestUrl: string | null
+  readonly officialBadge: OfficialClubBadge | null
 }
 
 export type FormResult = 'win' | 'draw' | 'loss'

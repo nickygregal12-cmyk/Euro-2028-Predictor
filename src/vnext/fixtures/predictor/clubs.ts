@@ -38,7 +38,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'halves',
-    crestUrl: null,
+    officialBadge: null,
   },
   strathallan: {
     id: 'team-strathallan',
@@ -52,7 +52,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   northmuir: {
     id: 'team-northmuir',
@@ -66,7 +66,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'hoops',
-    crestUrl: null,
+    officialBadge: null,
   },
   lochranza: {
     id: 'team-lochranza',
@@ -82,7 +82,7 @@ export const predictorClubs = {
       onPrimary: 'dark',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
   braemarnock: {
     id: 'team-braemarnock',
@@ -96,7 +96,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   fintryhill: {
     id: 'team-fintryhill',
@@ -110,7 +110,7 @@ export const predictorClubs = {
       onPrimary: 'dark',
     },
     kitPattern: 'halves',
-    crestUrl: null,
+    officialBadge: null,
   },
   garnockside: {
     id: 'team-garnockside',
@@ -124,7 +124,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
   tarbethmoor: {
     id: 'team-tarbethmoor',
@@ -138,7 +138,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'hoops',
-    crestUrl: null,
+    officialBadge: null,
   },
   kilbraneth: {
     id: 'team-kilbraneth',
@@ -152,7 +152,7 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   ardrishmuir: {
     id: 'team-ardrishmuir',
@@ -166,6 +166,6 @@ export const predictorClubs = {
       onPrimary: 'light',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
 } as const satisfies Record<string, Team>

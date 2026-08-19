@@ -28,7 +28,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
   strathkelvin: {
     id: 'team-strathkelvin',
@@ -42,7 +42,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'hoops',
-    crestUrl: null,
+    officialBadge: null,
   },
   carrickvale: {
     id: 'team-carrickvale',
@@ -56,7 +56,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'halves',
-    crestUrl: null,
+    officialBadge: null,
   },
   balmorral: {
     id: 'team-balmorral',
@@ -70,7 +70,7 @@ export const workshopTeams = {
       onPrimary: 'dark',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   invercaledonian: {
     id: 'team-invercaledonian',
@@ -84,7 +84,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   porthaven: {
     id: 'team-porthaven',
@@ -98,7 +98,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
   eastcraig: {
     id: 'team-eastcraig',
@@ -112,7 +112,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'solid',
-    crestUrl: null,
+    officialBadge: null,
   },
   dunveggie: {
     id: 'team-dunveggie',
@@ -126,7 +126,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'hoops',
-    crestUrl: null,
+    officialBadge: null,
   },
   kirktonmuir: {
     id: 'team-kirktonmuir',
@@ -140,7 +140,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'stripes',
-    crestUrl: null,
+    officialBadge: null,
   },
   arbrennan: {
     id: 'team-arbrennan',
@@ -154,7 +154,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'halves',
-    crestUrl: null,
+    officialBadge: null,
   },
   /**
    * THE SASH CLUB. The domain's kit vocabulary has always had five patterns and
@@ -178,7 +178,7 @@ export const workshopTeams = {
       onPrimary: 'light',
     },
     kitPattern: 'sash',
-    crestUrl: null,
+    officialBadge: null,
   },
 } as const satisfies Record<string, Team>
 

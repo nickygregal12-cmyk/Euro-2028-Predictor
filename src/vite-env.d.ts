@@ -25,6 +25,20 @@ interface ImportMetaEnv {
   // Serves the public landing page at `/` to signed-out visitors instead of
   // redirecting them to `/auth/login`.
   readonly VITE_UI_PUBLIC_LANDING?: string
+  // The official club badge kill switch (src/app/clubBadgePolicy.ts). Only the
+  // exact string "true" turns badges on; ADR 0017 ships the product badge-free
+  // and every configured provider disclaims the rights to the images it serves,
+  // so the default is off and turning it on needs a recorded rights decision
+  // and a CSP that admits the provider host.
+  readonly VITE_UI_OFFICIAL_BADGES?: string
+  // Comma-separated approved badge providers: "football-data", "sportmonks",
+  // "api-sports". Unrecognised entries are ignored rather than throwing, and an
+  // empty list approves nobody.
+  readonly VITE_UI_OFFICIAL_BADGE_SOURCES?: string
+  // Comma-separated season ids allowed to show badges. Unset means every
+  // competition once the two switches above allow it; a list is narrower,
+  // because a licence obtained for one competition is a licence for that one.
+  readonly VITE_UI_OFFICIAL_BADGE_COMPETITIONS?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

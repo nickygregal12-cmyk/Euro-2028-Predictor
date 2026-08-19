@@ -1,3 +1,5 @@
+import { clubBadgePolicy } from '../../../app/clubBadgePolicy'
+import { resolveOfficialBadge } from '../../../domain/clubIdentity/officialBadge'
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
 import type {
   SeasonFixtureClub,
@@ -127,7 +129,7 @@ const KIT_PATTERN: Record<string, TeamKitPattern> = {
  * inventing a colour that no club plays in, and `onPrimary` exists precisely
  * because guessing at contrast is how a legibility failure ships.
  */
-function teamOf(club: SeasonFixtureClub): Team {
+function teamOf(club: SeasonFixtureClub, competitionId: string | null): Team {
   const tokens: ClubIdentityTokens = club.tokens
   const primary = tokens.primary
   const secondary = tokens.secondary ?? primary
@@ -149,9 +151,24 @@ function teamOf(club: SeasonFixtureClub): Team {
       onPrimary: tokens.onPrimary ?? 'light',
     },
     kitPattern: KIT_PATTERN[tokens.pattern ?? 'solid'] ?? 'solid',
-    // No crest source is agreed anywhere in the application. The model has
-    // always said so and presentation always falls back to the abbreviation.
-    crestUrl: null,
+    /**
+     * THE POLICY'S ANSWER, NOT THIS FILE'S.
+     *
+     * `resolveOfficialBadge` is the one place badges-on, provider-approved,
+     * competition-allowed and URL-usable are decided, and it is given a
+     * candidate of `null` here because NOTHING IN THIS REPOSITORY DECODES A
+     * PROVIDER BADGE FIELD — by decision rather than omission. The 8 August
+     * 2026 provider capability audit found that all four configured providers
+     * serve an image and disclaim the rights to it, and ADR 0017 decided the
+     * product launches badge-free on that evidence.
+     *
+     * The seam is here so the day that changes, a provider adapter carries a
+     * `ClubBadgeCandidate` into this call and no page changes at all.
+     */
+    officialBadge: resolveOfficialBadge(null, {
+      policy: clubBadgePolicy(),
+      competitionId,
+    }),
   }
 }
 
@@ -173,9 +190,13 @@ const FORM_RESULT: Record<string, FormResult> = {
  * so it does not know where a club sits, and every surface that shows a position
  * already treats null as "do not print one".
  */
-function sideOf(club: SeasonFixtureClub, form: SeasonClubForm | undefined): MatchSide {
+function sideOf(
+  club: SeasonFixtureClub,
+  form: SeasonClubForm | undefined,
+  competitionId: string | null,
+): MatchSide {
   return {
-    team: teamOf(club),
+    team: teamOf(club, competitionId),
     form: (form?.form ?? [])
       .map((letter) => FORM_RESULT[letter])
       .filter((result): result is FormResult => result !== undefined),
@@ -357,8 +378,8 @@ function matchOf(
     // minute. `LiveIndicator` and the ticker both already read a null clock as
     // "say live, say no number", so this costs the design nothing.
     clock: null,
-    home: sideOf(fixture.home, formByName.get(fixture.home.name)),
-    away: sideOf(fixture.away, formByName.get(fixture.away.name)),
+    home: sideOf(fixture.home, formByName.get(fixture.home.name), source.competition.tournamentId),
+    away: sideOf(fixture.away, formByName.get(fixture.away.name), source.competition.tournamentId),
     score: scoreOf(fixture),
     venue: null,
     headToHead: null,

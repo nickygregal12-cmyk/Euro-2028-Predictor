@@ -115,3 +115,31 @@
 .solid {
   background-image: none;
 }
+
+/* THE OFFICIAL BADGE, WHERE THE POLICY ALLOWED ONE.
+
+   ABSOLUTELY POSITIONED, SO IT OWNS NO LAYOUT. The crest's box is already
+   fixed at each size, and the badge fills it from inside — so a badge that
+   loads late, loads never or errors changes nothing about the row's geometry.
+   That is the whole of this product's answer to badge-driven layout shift:
+   there is no reserved space to get wrong, because the space was already the
+   kit's.
+
+   `contain` RATHER THAN `cover`. Provider art is square, circular, tall and
+   wide in the same catalogue; cropping to fill would cut the top off a shield
+   and the sides off a roundel. It sits on the kit, which stays visible around
+   it and is the identity underneath.
+
+   THE KIT IS NOT HIDDEN WHILE IT LOADS. A badge that never arrives leaves a
+   complete club identity rather than an empty square, which is what stops a
+   mixed page — two badges and a promoted club's kit — reading as broken. */
+.badge {
+  position: absolute;
+  inset: 8%;
+  width: 84%;
+  height: 84%;
+  object-fit: contain;
+  /* The monogram beneath stays for assistive technology and for the moment
+     before the image paints; the badge simply covers it once it has. */
+  background-color: transparent;
+}
