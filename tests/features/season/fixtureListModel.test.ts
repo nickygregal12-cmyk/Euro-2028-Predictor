@@ -4,6 +4,7 @@ import {
   previewFixtures,
 } from '../../../src/features/season/fixtureListModel'
 import { mapSeasonFixtureList } from '../../../src/services/supabase/seasonFixtureListModel'
+import { postponedScheduleNote } from '../../../src/shared/fixtures/scheduleNote'
 
 const ZONE = 'Europe/London'
 
@@ -340,5 +341,103 @@ describe('the schedule block', () => {
     const list = mapSeasonFixtureList(raw({ fixtures: [fixture({ status: 'postponed' })] }))
 
     expect(list.fixtures[0]?.schedule.kickoffConfirmed).toBe(false)
+  })
+})
+
+/**
+ * Contract 206, on the surface production is actually serving.
+ *
+ * The vNext lane draws the same fixture from the same fields, and its tests are
+ * in `tests/vnext/matchesIntegration.test.ts`. These are here because the two
+ * generations have separate presenters and a rule proved in one is not proved in
+ * the other — which is exactly how a player ends up being told two things about
+ * one match.
+ */
+describe('a fixture that is not going ahead as printed', () => {
+  it('refuses to print a kick-off that is only a memory', () => {
+    const view = present([
+      fixture({
+        status: 'postponed',
+        schedule: { kickoff_confirmed: false, rescheduled: false, original_kickoff_at: null },
+      }),
+    ])
+    const row = view.days[0]?.rows[0]
+
+    // The defect this contract exists to remove: "Rangers v Opponent, Sat
+    // 15:00" against a kickoff that will not happen.
+    expect(row?.kickoff).toBeNull()
+    expect(row?.abnormal).toBe('Postponed')
+    expect(row?.scheduleNote).toBe('New date to be confirmed')
+    // The instant itself is untouched: it is still the ordering fact every day
+    // heading is built from.
+    expect(row?.kickoffAt).toBe('2026-08-08T14:00:00Z')
+  })
+
+  it('prints the replacement date once there is one, and says it is a replacement', () => {
+    const view = present([
+      fixture({
+        status: 'postponed',
+        kickoff_at: '2026-09-15T18:45:00Z',
+        schedule: {
+          kickoff_confirmed: false,
+          rescheduled: true,
+          original_kickoff_at: '2026-08-08T14:00:00Z',
+        },
+      }),
+    ])
+    const row = view.days[0]?.rows[0]
+
+    expect(row?.kickoff).not.toBeNull()
+    expect(row?.abnormal).toBe('Postponed')
+    expect(row?.scheduleNote?.startsWith('Now due ')).toBe(true)
+  })
+
+  it('marks a fixture that was moved into this day and is going ahead', () => {
+    const view = present([
+      fixture({
+        schedule: {
+          kickoff_confirmed: true,
+          rescheduled: true,
+          original_kickoff_at: '2026-07-25T14:00:00Z',
+        },
+      }),
+    ])
+    const row = view.days[0]?.rows[0]
+
+    expect(row?.abnormal).toBeNull()
+    expect(row?.scheduleNote).toBe('Rescheduled')
+    expect(row?.kickoff).toBe('15:00')
+  })
+
+  it('says nothing at all about an ordinary fixture', () => {
+    const row = present([fixture()]).days[0]?.rows[0]
+
+    expect(row?.abnormal).toBeNull()
+    expect(row?.scheduleNote).toBeNull()
+  })
+
+  it('names each abnormal state differently in the accessible sentence', () => {
+    const summaries = (['postponed', 'abandoned', 'void'] as const).map(
+      (status) => present([fixture({ status })]).days[0]?.rows[0]?.accessibleSummary,
+    )
+
+    // A postponed match must not read the same as a cancelled or an abandoned
+    // one, and none of them may read as a fixture with a kick-off.
+    expect(new Set(summaries).size).toBe(3)
+    for (const summary of summaries) expect(summary).not.toContain('kick-off')
+  })
+
+  it('keeps the same words the vNext lane uses for the same fixture', () => {
+    // Both presenters call `postponedScheduleNote`. This asserts the OUTPUT
+    // rather than the call, because a shared helper that one of them stops
+    // using still compiles.
+    const legacy = present([
+      fixture({
+        status: 'postponed',
+        schedule: { kickoff_confirmed: false, rescheduled: false, original_kickoff_at: null },
+      }),
+    ]).days[0]?.rows[0]?.scheduleNote
+
+    expect(legacy).toBe(postponedScheduleNote(null, false))
   })
 })

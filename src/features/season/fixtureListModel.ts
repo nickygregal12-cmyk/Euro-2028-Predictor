@@ -4,6 +4,7 @@ import type {
 } from '../../services/supabase/seasonFixtureListModel'
 import type { ClubIdentityTokens } from '../../domain/clubIdentity/clubIdentityTypes'
 import { formatKickoffTime, formatMatchDay, matchDayKey } from '../../shared/time/kickoff'
+import { postponedScheduleNote } from '../../shared/fixtures/scheduleNote'
 
 /**
  * A deterministic zone override. Production omits it and the shared authority
@@ -78,6 +79,20 @@ export type FixtureListRow = {
    * the player's card for this fixture needs whether or not the day mixes them.
    */
   round: { ordinal: number; name: string }
+  /**
+   * THE WORD FOR A FIXTURE THAT IS NOT GOING AHEAD AS PRINTED (contract 206).
+   *
+   * "Postponed", "Abandoned" or "Void", and null on every ordinary fixture.
+   * It is the platform's own `season_fixtures.status`, never a provider's
+   * opinion and never a comparison of a kickoff against a clock.
+   */
+  abnormal: string | null
+  /**
+   * A note qualifying the slot: "New date to be confirmed" while a
+   * postponement has no replacement, "Rescheduled" once a moved fixture is
+   * going ahead. Null where the date needs no qualification.
+   */
+  scheduleNote: string | null
   /** "2 - 1" once the platform has settled it. */
   score: string | null
   /** A provider's current score, when there is no official one. Never a result. */
@@ -179,7 +194,50 @@ function summarise(fixture: SeasonListFixture, kickoff: string | null, mixed: bo
   if (fixture.result) {
     return `${fixture.home.name} ${fixture.result.home}, ${fixture.away.name} ${fixture.result.away}${round}`
   }
-  return kickoff ? `${who}, kick-off ${kickoff}${round}` : `${who}, kick-off to be confirmed${round}`
+
+  // CONTRACT 206. Said BEFORE the kickoff and instead of it where there is
+  // nothing valid to say: a sentence that ends "kick-off 15:00" about a match
+  // that is off is worse than one that does not mention a time at all.
+  const abnormal = abnormalWord(fixture.status)
+  if (abnormal !== null) {
+    const note = scheduleNoteOf(fixture)
+    const when = note === null ? '' : `, ${note.toLowerCase()}`
+    return `${who}, ${abnormal.toLowerCase()}${when}${round}`
+  }
+
+  const moved = fixture.schedule.rescheduled ? ', rescheduled' : ''
+  return kickoff
+    ? `${who}${moved}, kick-off ${kickoff}${round}`
+    : `${who}${moved}, kick-off to be confirmed${round}`
+}
+
+/**
+ * The platform's own vocabulary, and only the three values that mean a fixture
+ * is not going ahead as printed. `scheduled` and `played` produce no word:
+ * a time and a score already say what they are.
+ */
+function abnormalWord(status: string): string | null {
+  switch (status) {
+    case 'postponed':
+      return 'Postponed'
+    case 'abandoned':
+      return 'Abandoned'
+    case 'void':
+      return 'Void'
+    default:
+      return null
+  }
+}
+
+/**
+ * The same sentence the vNext lane draws, from the same helper, so one fixture
+ * cannot be described two ways on two generations of the same product.
+ */
+function scheduleNoteOf(fixture: SeasonListFixture): string | null {
+  if (fixture.status === 'postponed') {
+    return postponedScheduleNote(fixture.kickoffAt, fixture.schedule.rescheduled)
+  }
+  return fixture.schedule.rescheduled ? 'Rescheduled' : null
 }
 
 /**
@@ -215,7 +273,15 @@ export function presentFixture(
  */
 function rowOf(fixture: SeasonListFixture, mixed: boolean, timeZone: Zone): FixtureListRow {
   const when = fixture.kickoffAt ? parts(fixture.kickoffAt, timeZone) : null
-  const kickoff = when?.time ?? null
+  // CONTRACT 206. A postponement with no replacement date has an instant on the
+  // row — where it WAS due — and printing it in the slot a reader scans for a
+  // kick-off is the defect this contract exists to remove. `kickoffAt` is
+  // untouched beside it, because it is still the ordering fact every day
+  // heading and preview is built from.
+  const kickoff =
+    fixture.status === 'postponed' && !fixture.schedule.rescheduled
+      ? null
+      : (when?.time ?? null)
   const provisional =
     !fixture.result && fixture.live && fixture.live.home !== null && fixture.live.away !== null
       ? `${fixture.live.home} - ${fixture.live.away}`
@@ -229,6 +295,8 @@ function rowOf(fixture: SeasonListFixture, mixed: boolean, timeZone: Zone): Fixt
     kickoffAt: fixture.kickoffAt,
     roundLabel: mixed ? fixture.round.label : null,
     round: { ordinal: fixture.round.ordinal, name: fixture.round.label },
+    abnormal: abnormalWord(fixture.status),
+    scheduleNote: scheduleNoteOf(fixture),
     score: fixture.result ? `${fixture.result.home} - ${fixture.result.away}` : null,
     // Only where there is no official score, and only when the provider
     // sent both numbers. A one-sided provisional score is not a scoreline.

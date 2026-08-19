@@ -1,5 +1,5 @@
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
-import { postponedScheduleNote } from '../fixtureScheduleNote'
+import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
 import type {
   SeasonFixtureClub,
   SeasonListFixture,
@@ -243,7 +243,9 @@ function statusOf(fixture: SeasonListFixture): MatchStatus {
  * live; in Matches the state carries it and the mark draws a chip.
  */
 function scheduleNoteOf(fixture: SeasonListFixture): string | null {
-  if (fixture.status === 'postponed') return postponedScheduleNote(fixture)
+  if (fixture.status === 'postponed') {
+    return postponedScheduleNote(fixture.kickoffAt, fixture.schedule.rescheduled)
+  }
   // A moved fixture that is going ahead says so; the date beside it is real and
   // needs no qualification, only an explanation of why it is not where the
   // reader last saw it.

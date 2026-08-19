@@ -138,10 +138,22 @@ function Match({
       {/* The matchweek, only where the day carries more than one — which is
           exactly when a reader needs telling. And the provisional marker, only
           where a provisional score is being shown in place of a result. */}
-      {row.roundLabel || row.provisional ? (
+      {/* CONTRACT 206 ADDS THE THIRD REASON THIS LINE EXISTS. A fixture that is
+          not going ahead as printed says so here, beside the matchweek, because
+          the slot above it now shows a dash rather than a kick-off nobody can
+          turn up for — and a dash on its own says nothing. */}
+      {row.roundLabel || row.provisional || row.abnormal || row.scheduleNote ? (
         <span className={styles.rowMeta} aria-hidden="true">
           {row.roundLabel ? <span className={styles.roundTag}>{row.roundLabel}</span> : null}
           {row.provisional ? <span className={styles.provisional}>Provisional</span> : null}
+          {row.abnormal ? (
+            <span className={styles.abnormal}>
+              {row.abnormal}
+              {row.scheduleNote ? ` · ${row.scheduleNote}` : ''}
+            </span>
+          ) : row.scheduleNote ? (
+            <span className={styles.abnormal}>{row.scheduleNote}</span>
+          ) : null}
         </span>
       ) : null}
       </Row>

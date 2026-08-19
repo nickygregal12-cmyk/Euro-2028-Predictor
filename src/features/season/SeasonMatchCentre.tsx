@@ -284,9 +284,23 @@ export function SeasonMatchCentreView({
           <span className={styles.clubName}>{fixture.away.name}</span>
         </span>
       </div>
+      {/* CONTRACT 206. The matchweek, then the kick-off if there is still a
+          valid one, then the reason there is not. `fixture.kickoff` is already
+          null for a postponement with no replacement date — the presenter
+          refuses to format an instant that is only a memory — so this line
+          would otherwise say "Matchweek 5" and leave the page looking like an
+          ordinary fixture that simply has no time yet. */}
       <p className={styles.round}>
         {fixture.round.name}
         {fixture.kickoff ? ` · ${fixture.kickoff}` : ''}
+        {fixture.abnormal ? (
+          <span className={styles.abnormal}>
+            {fixture.abnormal}
+            {fixture.scheduleNote ? ` · ${fixture.scheduleNote}` : ''}
+          </span>
+        ) : fixture.scheduleNote ? (
+          <span className={styles.abnormal}>{fixture.scheduleNote}</span>
+        ) : null}
       </p>
 
       {state.status === 'loading' ? (

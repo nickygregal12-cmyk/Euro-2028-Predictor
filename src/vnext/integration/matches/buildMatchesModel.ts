@@ -19,7 +19,7 @@ import type {
 } from '../../models/matches'
 import { matchPhase } from '../../models/matches'
 import type { MatchesSource } from './matchesSource'
-import { postponedScheduleNote } from '../fixtureScheduleNote'
+import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
 
 /**
  * `MatchesSource` → `MatchesModel`. PURE: no network, no storage, NO CLOCK and
@@ -143,7 +143,7 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
       return {
         kind: 'postponed',
         kickoff,
-        note: postponedScheduleNote(fixture),
+        note: postponedScheduleNote(kickoff, rescheduled),
         rescheduled,
       }
 

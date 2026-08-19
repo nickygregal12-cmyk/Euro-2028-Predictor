@@ -31,7 +31,7 @@
 
 begin;
 
-select plan(36);
+select plan(40);
 
 -- ---------------------------------------------------------------------------
 -- The record this contract adds is evidence, so it is unreachable.
@@ -267,6 +267,79 @@ select is(
   predictor_internal.lms_outcome_from_fixture('postponed', null::smallint, null::smallint, true),
   'postponed',
   'and Last Man Standing survives it, consuming nothing');
+
+-- ---------------------------------------------------------------------------
+-- 4b. And it does not settle a Championship tie either.
+--
+-- `cup_window_settled` is the shared window-settlement authority the Championship
+-- and Last Man Standing both consume, and its season half asks "is any linked
+-- fixture not `played`?". A postponed fixture is not played, so the window stays
+-- outstanding — which is what stops a tie being decided on a match nobody has
+-- yet played.
+--
+-- TWO WINDOWS, BECAUSE ONE PROVES NOTHING. A machinery that always answered
+-- "unsettled" would pass the first assertion and be useless. The second window
+-- links a fixture that HAS been played, over the same competition and the same
+-- elapsed lock, and must settle.
+-- ---------------------------------------------------------------------------
+
+insert into public.teams (tournament_id, name) values
+  (current_setting('test.pfl_season')::uuid, 'Lifecycle Thistle'),
+  (current_setting('test.pfl_season')::uuid, 'Lifecycle Academical');
+
+insert into public.season_fixtures
+  (tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at,
+   status, home_score, away_score)
+select current_setting('test.pfl_season')::uuid, current_setting('test.pfl_round')::uuid,
+       h.id, a.id, now() - interval '3 days', 'played', 2, 0
+from public.teams h, public.teams a
+ where h.tournament_id = current_setting('test.pfl_season')::uuid and h.name = 'Lifecycle Thistle'
+   and a.tournament_id = current_setting('test.pfl_season')::uuid and a.name = 'Lifecycle Academical';
+
+select set_config('test.pfl_played', (select f.id::text from public.season_fixtures f
+  join public.teams h on h.id = f.home_team_id
+  where f.competition_round_id = current_setting('test.pfl_round')::uuid
+    and h.name = 'Lifecycle Thistle'), true);
+
+-- Private, so it cannot collide with whatever public Championship the seeded
+-- season already holds; a fresh competition has no predecessor, so the
+-- successor-window calendar guard has no boundary to enforce.
+insert into public.bonus_competitions
+  (id, tournament_id, game_key, published, draw_required, visibility_kind, name, owner_id)
+values (md5('pfl-cup')::uuid, current_setting('test.pfl_season')::uuid, 'predictor_cup',
+        true, false, 'private', 'Lifecycle Championship', md5('pfl-player')::uuid);
+
+insert into public.bonus_competition_windows
+  (id, competition_id, sequence, label, opens_at, locks_at)
+values
+  (md5('pfl-window-off')::uuid, md5('pfl-cup')::uuid, 971, 'Lifecycle tie (postponed)',
+   now() - interval '4 hours', now() - interval '2 hours'),
+  (md5('pfl-window-on')::uuid, md5('pfl-cup')::uuid, 972, 'Lifecycle tie (played)',
+   now() - interval '4 hours', now() - interval '2 hours');
+
+insert into public.season_cup_window_fixtures (window_id, season_fixture_id) values
+  (md5('pfl-window-off')::uuid, current_setting('test.pfl_moved')::uuid),
+  (md5('pfl-window-on')::uuid, current_setting('test.pfl_played')::uuid);
+
+select is(
+  predictor_internal.cup_season_window_unsettled(md5('pfl-window-off')::uuid),
+  true,
+  'a tie whose fixture is postponed is still outstanding');
+
+select is(
+  predictor_internal.cup_window_settled(md5('pfl-window-off')::uuid),
+  false,
+  'so the window does not settle, however long ago its lock passed');
+
+select is(
+  predictor_internal.cup_season_window_unsettled(md5('pfl-window-on')::uuid),
+  false,
+  'and the same authority calls a played fixture settled -- so the assertion above is not vacuous');
+
+select is(
+  predictor_internal.cup_window_settled(md5('pfl-window-on')::uuid),
+  true,
+  'which is a window that DOES settle, over the same competition and the same elapsed lock');
 
 -- ---------------------------------------------------------------------------
 -- 5. The date is gone, and so is the deadline that depended on it.
