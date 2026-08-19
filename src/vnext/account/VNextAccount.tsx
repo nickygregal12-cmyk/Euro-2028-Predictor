@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import type {
   AccountPageModel,
@@ -77,6 +78,16 @@ export type AccountIntent =
    * my device", which is what a player who has never chosen already has.
    */
   | { readonly kind: 'set-theme'; readonly theme: 'system' | 'dark' | 'light' }
+  /**
+   * THE TWO SETTINGS THE CUTOVER MAKES THIS PAGE RESPONSIBLE FOR.
+   *
+   * Performed by the host for the same reason sign-out and the theme are: both
+   * are writes, and this lane draws. The email change is a Supabase auth call
+   * that sends a confirmation to the NEW address and applies nothing until it
+   * is clicked, which is why the surface never claims the address has changed.
+   */
+  | { readonly kind: 'change-email'; readonly email: string }
+  | { readonly kind: 'set-reminder-emails'; readonly enabled: boolean }
 
 export type VNextAccountProps = {
   readonly model: AccountPageModel
@@ -85,6 +96,18 @@ export type VNextAccountProps = {
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  /** A settings write is in flight. Named so the panel disables only itself. */
+  readonly settingsBusy?: 'email' | 'reminders' | null
+  /**
+   * What a settings write said, where it said anything.
+   *
+   * CARRIED WHOLE, never re-worded here — the same discipline the Championship's
+   * refusal and Discovery's failed follow both follow. An email change that
+   * succeeded is a NOTICE rather than a state change, because the address has
+   * not changed yet: Supabase applies it only once the link in the new address
+   * is clicked, and a page that said "changed" would be wrong until then.
+   */
+  readonly settingsNotice?: string | null
 }
 
 export function VNextAccount({
@@ -93,6 +116,8 @@ export function VNextAccount({
   refreshing = false,
   theme = 'system',
   onIntent,
+  settingsBusy = null,
+  settingsNotice = null,
 }: VNextAccountProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
@@ -112,6 +137,12 @@ export function VNextAccount({
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
           <History panel={model.history} onRetry={onRetry} onIntent={onIntent} />
+          <Settings
+            panel={model.settings}
+            busy={settingsBusy}
+            notice={settingsNotice}
+            onIntent={onIntent}
+          />
           <Session theme={theme} onIntent={onIntent} />
         </motion.div>
       </div>
@@ -433,5 +464,129 @@ function SeasonRow({
         </button>
       )}
     </li>
+  )
+}
+
+/* ==========================================================================
+   SETTINGS — the two `/account` had and this page deferred
+   ==========================================================================
+
+   THE DEFERRAL WAS RIGHT AT A STAGE BOUNDARY AND WRONG AT A CUTOVER. Stage 13
+   left an email-address change and the reminder-emails preference for their own
+   stage, on the reasoning that a player can live a season without either. After
+   the cutover this page IS `/account`: a capability that is not here is one the
+   product no longer has.
+
+   THE EMAIL CHANGE NEVER CLAIMS TO HAVE HAPPENED. Supabase sends a confirmation
+   to the NEW address and applies nothing until the link in it is clicked, so
+   the panel says a confirmation was sent and keeps showing the current address.
+   A pending replacement is named wherever the session reports one — without it,
+   a player who changed their address and has not confirmed sees the old one and
+   assumes the change failed.
+
+   THE REMINDER TOGGLE IS THE SERVER'S ANSWER, NOT AN OPTIMISTIC ONE. It is
+   drawn from the profile read and re-read after the write, so a failed toggle
+   leaves the control where the server actually has it rather than where the
+   player pressed.
+   ========================================================================== */
+
+function Settings({
+  panel,
+  busy,
+  notice,
+  onIntent,
+}: {
+  readonly panel: AccountPageModel['settings']
+  readonly busy: 'email' | 'reminders' | null
+  readonly notice: string | null
+  readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+}) {
+  const [email, setEmail] = useState('')
+
+  // A HOST WITH NOWHERE TO SEND A WRITE GETS NO CONTROL rather than an inert
+  // one — the shell's own rule, and the reason the session block does the same.
+  if (panel === null || onIntent === undefined) return null
+
+  return (
+    <section className={styles.panel} data-vnext-zone="settings">
+      <h2 className={`${text.title} ${styles.panelHeading}`}>Settings</h2>
+
+      {panel.kind === 'unavailable' ? (
+        <p className={`${text.body} ${styles.panelBody}`}>
+          We could not read your settings just now. Your follows and your history above
+          are unaffected.
+        </p>
+      ) : (
+        <>
+          <div className={styles.setting} data-vnext-zone="email">
+            <p className={`${text.body} ${styles.settingLabel}`}>
+              {panel.email === null
+                ? 'We could not read the address on your account.'
+                : `Signed in as ${panel.email}`}
+            </p>
+            {panel.pendingEmail === null ? null : (
+              <p className={`${text.micro} ${styles.settingNote}`} data-vnext-zone="pending-email">
+                Waiting for you to confirm {panel.pendingEmail}. Until you click the link in
+                that message, this account still uses the address above.
+              </p>
+            )}
+            <form
+              className={styles.settingForm}
+              onSubmit={(event) => {
+                event.preventDefault()
+                const next = email.trim()
+                if (next === '' || busy !== null) return
+                onIntent({ kind: 'change-email', email: next })
+                setEmail('')
+              }}
+            >
+              <label className={text.label} htmlFor="vnext-account-email">
+                Change your email address
+              </label>
+              <input
+                id="vnext-account-email"
+                className={styles.settingInput}
+                type="email"
+                autoComplete="email"
+                value={email}
+                disabled={busy === 'email'}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <button
+                type="submit"
+                className={styles.settingAction}
+                disabled={busy === 'email' || email.trim() === ''}
+              >
+                {busy === 'email' ? 'Sending…' : 'Send confirmation'}
+              </button>
+            </form>
+          </div>
+
+          <div className={styles.setting} data-vnext-zone="reminders">
+            <label className={styles.settingToggle}>
+              <input
+                type="checkbox"
+                checked={panel.reminderEmails}
+                disabled={busy === 'reminders'}
+                onChange={(event) =>
+                  onIntent({ kind: 'set-reminder-emails', enabled: event.target.checked })
+                }
+              />
+              <span className={text.body}>Email me before a deadline</span>
+            </label>
+            <p className={`${text.micro} ${styles.settingNote}`}>
+              Deadline reminders for matchweeks and games you are playing. Nothing else is
+              ever sent to this address.
+            </p>
+          </div>
+        </>
+      )}
+
+      {notice === null ? null : (
+        <p className={`${text.micro} ${styles.settingNote}`} role="status" data-vnext-zone="settings-notice">
+          {notice}
+        </p>
+      )}
+    </section>
   )
 }

@@ -70,6 +70,9 @@ function source(over: Partial<AccountSource> = {}): AccountSource {
       history: { total: 1, limit: 20, offset: 0, hasMore: false, seasons: [historySeason()] },
     },
     catalogue: { kind: 'ok', seasons: [catalogueSeason()] },
+    // THE HOST LOADED NO SETTINGS, which is what a mapper test wants: these
+    // cases measure follows and history, and a `null` panel draws nothing.
+    settings: null,
     ...over,
   } as AccountSource
 }

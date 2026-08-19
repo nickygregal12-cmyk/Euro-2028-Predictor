@@ -155,5 +155,20 @@ export function buildAccountModel(source: AccountSource): AccountPageModel {
     context: { displayName: source.displayName },
     follows: followsPanelOf(source),
     history: historyPanelOf(source),
+    // CARRIED, NOT DECIDED. The session states the address, the profile states
+    // the preference, and neither is defaulted here — a settings panel that
+    // drew "reminders on" from a failed read would be showing a player a
+    // preference they may not have.
+    settings:
+      source.settings === null
+        ? null
+        : source.settings.kind === 'failed'
+          ? { kind: 'unavailable' }
+          : {
+              kind: 'ready',
+              email: source.settings.email,
+              pendingEmail: source.settings.pendingEmail,
+              reminderEmails: source.settings.reminderEmails,
+            },
   }
 }

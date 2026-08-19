@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { VNextAccount, type AccountIntent } from '../../account/VNextAccount'
 import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
@@ -60,6 +60,10 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
     authLoading: props.authLoading,
     displayName: props.displayName ?? null,
   })
+  const settings = useAccountSettingsWrites({
+    userId: props.userId,
+    retry: state.status === 'ready' ? state.retry : null,
+  })
 
   const model = useMemo(
     () => (state.status === 'ready' ? buildAccountModel(state.source) : null),
@@ -110,7 +114,18 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
         theme={props.theme ?? 'system'}
-        onIntent={props.onIntent}
+        settingsBusy={settings.busy}
+        settingsNotice={settings.notice}
+        onIntent={(intent: AccountIntent) => {
+          // THE TWO SETTINGS WRITES ARE THIS SCREEN'S. Everything else — sign
+          // out, the theme, opening a season — belongs to the host, because
+          // each of those changes something outside this page.
+          if (intent.kind === 'change-email' || intent.kind === 'set-reminder-emails') {
+            settings.perform(intent)
+            return
+          }
+          props.onIntent?.(intent)
+        }}
       />
     )
 
@@ -119,4 +134,81 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
       {body}
     </VNextConnectedShell>
   )
+}
+
+/* ==========================================================================
+   THE TWO SETTINGS WRITES
+   ==========================================================================
+
+   THEY REUSE THE EXISTING AUTHORITIES AND ADD NOTHING. `updateEmail` is the
+   auth module's own call and `updateReminderEmails` is the profile module's;
+   neither validates here, because neither rule is this lane's. There is no
+   second settings authority — the same two functions the legacy `/account`
+   page calls.
+
+   AN EMAIL CHANGE IS NOT A STATE CHANGE AND IS NOT RE-READ. Supabase sends a
+   confirmation to the NEW address and applies nothing until it is clicked, so
+   the honest answer is a sentence rather than a redraw: the page keeps showing
+   the current address, and the session's `pendingEmail` is what will report the
+   replacement once there is one.
+
+   A PREFERENCE CHANGE IS RE-READ, because it IS a state change and the surface
+   must show the server's answer rather than the press. A failed toggle leaves
+   the control where the server actually has it.
+
+   ONE WRITE AT A TIME, guarded on a ref: a state read inside the callback would
+   be the value from the render that created it.
+   ========================================================================== */
+
+type SettingsWrite = Extract<
+  AccountIntent,
+  { kind: 'change-email' } | { kind: 'set-reminder-emails' }
+>
+
+function useAccountSettingsWrites(options: {
+  readonly userId: string | null
+  readonly retry: (() => void) | null
+}) {
+  const [busy, setBusy] = useState<'email' | 'reminders' | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const inFlight = useRef(false)
+  const { userId, retry } = options
+
+  const perform = useCallback(
+    (intent: SettingsWrite) => {
+      if (inFlight.current || userId === null) return
+      inFlight.current = true
+      setNotice(null)
+      setBusy(intent.kind === 'change-email' ? 'email' : 'reminders')
+
+      void (async () => {
+        try {
+          if (intent.kind === 'change-email') {
+            const { updateEmail } = await import('../../../services/supabase/auth')
+            await updateEmail(intent.email)
+            // NOT "CHANGED". Nothing has changed yet, and saying otherwise is
+            // the one sentence this write must not produce.
+            setNotice(
+              `We have sent a confirmation to ${intent.email}. Your address changes when you click the link in it.`,
+            )
+          } else {
+            const { updateReminderEmails } = await import('../../../services/supabase/profile')
+            await updateReminderEmails(userId, intent.enabled)
+            // THE SERVER'S ANSWER, RE-READ. The checkbox is drawn from the
+            // profile read, so this is what moves it.
+            retry?.()
+          }
+        } catch (error) {
+          const { userFacingError } = await import('../../../shared/errors/userFacingError')
+          setNotice(userFacingError(error))
+        } finally {
+          inFlight.current = false
+          setBusy(null)
+        }
+      })()
+    },
+    [retry, userId],
+  )
+
+  return { busy, notice, perform }
 }

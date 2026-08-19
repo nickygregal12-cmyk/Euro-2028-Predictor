@@ -34,6 +34,14 @@ function world(overrides: Partial<AccountPageModel> = {}): AccountPageModel {
   return {
     generatedAt: ACCOUNT_NOW,
     context: { displayName: 'Ada Lovelace' },
+    // THE DEFAULT WORLD HAS THEM, because the ordinary Account page does. The
+    // worlds that do not are named for what they are missing.
+    settings: {
+      kind: 'ready',
+      email: 'ada@example.com',
+      pendingEmail: null,
+      reminderEmails: true,
+    },
     follows: {
       kind: 'follows',
       competitions: [
@@ -287,6 +295,42 @@ const manyFollows = world({
    THE REGISTRY
    ========================================================================== */
 
+/* ==========================================================================
+   THE SETTINGS THE CUTOVER MADE THIS PAGE RESPONSIBLE FOR
+   ========================================================================== */
+
+/**
+ * A CHANGE ASKED FOR AND NOT YET CONFIRMED — the state a player is most likely
+ * to be in and least likely to be shown. Supabase applies nothing until the
+ * link in the new address is clicked, so a page showing only the old address
+ * looks as though the change failed.
+ */
+const pendingEmail = world({
+  settings: {
+    kind: 'ready',
+    email: 'ada@example.com',
+    pendingEmail: 'ada@newdomain.example',
+    reminderEmails: true,
+  },
+})
+
+/** Reminders off. The preference is the server's answer, not a default. */
+const remindersOff = world({
+  settings: {
+    kind: 'ready',
+    email: 'ada@example.com',
+    pendingEmail: null,
+    reminderEmails: false,
+  },
+})
+
+/**
+ * THE SETTINGS READ FAILED AND THE REST OF THE PAGE DID NOT. Follows and
+ * history above are intact, which is the degradation model every panel here
+ * follows.
+ */
+const settingsUnavailable = world({ settings: { kind: 'unavailable' } })
+
 export const accountScenarios = {
   ordinary,
   newAccount,
@@ -303,6 +347,9 @@ export const accountScenarios = {
   historyUnavailable,
   bothUnavailable,
   noDisplayName,
+  pendingEmail,
+  remindersOff,
+  settingsUnavailable,
   manyFollows,
 } as const
 
@@ -336,4 +383,10 @@ export const accountScenarioPremises: Readonly<Record<AccountScenarioName, strin
   bothUnavailable: 'Both reads failed. The page is still a page and still says who you are.',
   noDisplayName: 'No display name. The header must not invent one.',
   manyFollows: 'Several follows and a very long competition name. The width test.',
+  pendingEmail:
+    'An address change asked for and not yet confirmed. The current address still stands, and the page says which is which.',
+  remindersOff:
+    'Deadline reminders off. The server\u2019s answer, drawn as the server holds it rather than as a default.',
+  settingsUnavailable:
+    'The settings read failed and follows and history did not. One panel degrades, the page does not.',
 }

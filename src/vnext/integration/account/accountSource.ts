@@ -62,10 +62,36 @@ type CatalogueRead =
   | { readonly kind: 'ok'; readonly seasons: readonly PublishedWeeklySeason[] }
   | { readonly kind: 'failed' }
 
+/**
+ * The session's email state and the profile's reminder preference.
+ *
+ * TWO READS, ONE PANEL, AND `failed` IS ONE ANSWER FOR BOTH. They are the two
+ * halves of one settings block and neither is useful without the other — an
+ * address with no preference beside it, or a preference with no address, is a
+ * half-drawn panel that invites a player to change something they cannot see
+ * the state of. `null` means the host did not load them at all.
+ */
+type AccountSettingsRead =
+  | { readonly kind: 'failed' }
+  | {
+      readonly kind: 'ok'
+      readonly email: string | null
+      readonly pendingEmail: string | null
+      readonly reminderEmails: boolean
+    }
+
 export type AccountSource = {
   readonly generatedAt: string
   readonly displayName: string | null
   readonly preferences: PreferencesRead
   readonly history: HistoryRead
   readonly catalogue: CatalogueRead
+  /**
+   * `/account`'s remaining settings. `null` is the host not having loaded them.
+   *
+   * THEY ARE HERE BECAUSE THE CUTOVER MAKES THIS PAGE `/account`. Stage 13
+   * deferred both to their own stage, which was right at a stage boundary and
+   * stops being right at the moment the legacy page they lived on is retired.
+   */
+  readonly settings: AccountSettingsRead | null
 }

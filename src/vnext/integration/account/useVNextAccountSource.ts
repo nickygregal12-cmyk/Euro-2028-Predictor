@@ -120,19 +120,28 @@ export function useVNextAccountSource(
     setRefreshing(kept)
 
     void (async () => {
-      const [preferencesModule, historyModule, catalogueModule] = await Promise.all([
-        import('../../../services/supabase/playerPreferences'),
-        import('../../../services/supabase/seasonHistory'),
-        import('../../../services/supabase/weeklyCatalogue'),
-      ])
+      const [preferencesModule, historyModule, catalogueModule, authModule, profileModule] =
+        await Promise.all([
+          import('../../../services/supabase/playerPreferences'),
+          import('../../../services/supabase/seasonHistory'),
+          import('../../../services/supabase/weeklyCatalogue'),
+          import('../../../services/supabase/auth'),
+          import('../../../services/supabase/profile'),
+        ])
       if (!active) return
 
       // A CATCH PER PROMISE. None of the three is another's precondition, and a
       // catch around the set would throw away answers that already landed.
-      const [preferences, history, catalogue] = await Promise.all([
+      const [preferences, history, catalogue, emailState, account] = await Promise.all([
         preferencesModule.fetchPlayerPreferences().catch(() => null),
         historyModule.fetchMySeasonHistory().catch(() => null),
         catalogueModule.fetchPublishedWeeklySeasons().catch(() => null),
+        // THE TWO SETTINGS THE CUTOVER MAKES THIS PAGE RESPONSIBLE FOR. Caught
+        // on their own like every other read here, and reported as ONE panel:
+        // an address with no preference beside it is a half-drawn settings
+        // block a player cannot act on safely.
+        authModule.getSessionEmailState().catch(() => null),
+        profileModule.fetchMyAccount(userId).catch(() => null),
       ])
       if (!active) return
 
@@ -146,6 +155,15 @@ export function useVNextAccountSource(
           // down as data so the mapper stays pure.
           generatedAt: new Date().toISOString(),
           displayName,
+          settings:
+            emailState === null || account === null
+              ? { kind: 'failed' }
+              : {
+                  kind: 'ok',
+                  email: emailState.email,
+                  pendingEmail: emailState.pendingEmail,
+                  reminderEmails: account.reminderEmails,
+                },
           preferences:
             preferences === null ? { kind: 'failed' } : { kind: 'ok', preferences },
           history: history === null ? { kind: 'failed' } : { kind: 'ok', history },

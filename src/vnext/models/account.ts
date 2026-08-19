@@ -170,6 +170,43 @@ type AccountContext = {
   readonly displayName: string | null
 }
 
+/**
+ * THE TWO SETTINGS `/account` ALREADY HAD AND vNEXT DEFERRED.
+ *
+ * The route matrix defines `/account` as "settings, follow/unfollow, favourite
+ * team". Stage 13 built the surface and deliberately left two of the settings
+ * proper for their own stage — an email-address change and the reminder-emails
+ * preference — on the reasoning that a player can live a season without either.
+ *
+ * That reasoning holds for a stage boundary and NOT for a cutover. After the
+ * cutover this page IS `/account`: the legacy one is gone, so a capability that
+ * is not here is a capability that has been removed from the product. Both are
+ * a field and a checkbox over service functions that already exist, so the
+ * honest answer was to carry them rather than to bridge to a page that will not
+ * be there.
+ *
+ * `unavailable` IS A REAL STATE. The email read is the session's own and the
+ * preference is a profile read; either can fail on its own, and a settings
+ * panel that silently drew a default would be showing a player a preference
+ * they may not have.
+ */
+type AccountSettingsPanel =
+  | { readonly kind: 'unavailable' }
+  | {
+      readonly kind: 'ready'
+      /** The signed-in address. Null where the session did not state one. */
+      readonly email: string | null
+      /**
+       * A replacement the player asked for and has not yet confirmed.
+       *
+       * SAID OUT LOUD WHEREVER IT EXISTS. Supabase applies the change only once
+       * the link in the new address is clicked, so a page that showed only the
+       * old address would look like the change had failed.
+       */
+      readonly pendingEmail: string | null
+      readonly reminderEmails: boolean
+    }
+
 export type AccountPageModel = {
   /** The instant the model describes, supplied rather than read. */
   readonly generatedAt: string
@@ -178,6 +215,14 @@ export type AccountPageModel = {
   readonly follows: FollowsPanel
   /** Contract 161's answer, resolving on its own. */
   readonly history: HistoryPanel
+  /**
+   * The session's email state and the reminder preference.
+   *
+   * `null` MEANS THE HOST DID NOT LOAD THEM, which is the shape a story and a
+   * render test have — and is different from a panel that loaded and could not
+   * answer. The surface draws nothing for `null`.
+   */
+  readonly settings: AccountSettingsPanel | null
 }
 
 /* ==========================================================================

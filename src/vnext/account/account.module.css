@@ -218,3 +218,89 @@
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
 }
+
+/* ---- settings -----------------------------------------------------------
+ * The two `/account` had and this page deferred. They sit in the same panel
+ * shell as Follows and History, because after the cutover they are the same
+ * page's business rather than a bolted-on block.
+ */
+
+.panelBody {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.setting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding-block-start: var(--vnext-space-3);
+}
+
+.setting + .setting {
+  margin-block-start: var(--vnext-space-3);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.settingLabel {
+  margin: 0;
+  color: var(--vnext-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.settingNote {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* WRAPS. A 44px field and a 44px button do not share one line at 320px, and
+   the field is the half that must keep its width. */
+.settingForm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-2);
+}
+
+.settingInput {
+  flex: 1 1 14rem;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text);
+  font: inherit;
+}
+
+.settingInput:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.settingAction {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settingAction:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* The whole row is the target, so the 44px minimum is the label's rather than
+   the checkbox's — a 16px box on a phone is the control nobody can hit. */
+.settingToggle {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  min-height: var(--vnext-tap-target);
+  cursor: pointer;
+}

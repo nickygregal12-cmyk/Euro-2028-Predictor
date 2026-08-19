@@ -261,13 +261,33 @@ describe('signing out', () => {
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
   })
 
-  it('is the only settings action the page claims to have', () => {
-    // The route matrix's `/account` also names changing an email address and
-    // the reminder-emails toggle. Neither is built, and the page must not
-    // imply otherwise by heading a Settings section it cannot fill.
+  it('is no longer the ONLY settings action, and that is the cutover fix', () => {
+    // THIS CASE USED TO REQUIRE THE OPPOSITE, and the reversal is the point.
+    //
+    // The route matrix's `/account` names changing an email address and the
+    // reminder-emails preference. Stage 13 built neither and this case held the
+    // page to saying so — right at a stage boundary, because a player can live
+    // a season without either and a heading over an unfillable section is a
+    // promise.
+    //
+    // The cutover changes the fact. After it, THIS PAGE IS `/account`: the
+    // legacy one is retired, so a capability that is not here is one the
+    // product no longer has. Both are now built, over the same two service
+    // functions the legacy page calls.
     renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
     const page = screen.getByRole('main').textContent ?? ''
-    expect(page).not.toMatch(/change email|reminder emails|settings/i)
+    expect(page).toMatch(/change your email address/i)
+    expect(page).toMatch(/email me before a deadline/i)
+  })
+
+  it('still claims no settings action it cannot perform', () => {
+    // The rule the case above was protecting, kept. `/account`'s settings are
+    // the address, the reminder preference, the appearance and sign-out —
+    // nothing here heads a section for a password, a deletion or a notification
+    // channel this page has no write for.
+    renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
+    const page = screen.getByRole('main').textContent ?? ''
+    expect(page).not.toMatch(/password|delete (my )?account|push notification/i)
   })
 })
 
