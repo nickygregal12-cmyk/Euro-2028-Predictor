@@ -1,0 +1,136 @@
+/* HOW THE GAMES SCORE — a block, not a page.
+ *
+ * IT HAS NO SHELL AND NO HEADER. A game surface places it; nothing navigates to
+ * it. The route matrix absorbs `/more/scoring` for the reason this file exists:
+ * rules belong beside the game they govern.
+ *
+ * ONE GAME AT A TIME. The three games are a segmented control rather than three
+ * stacked lists, because scoring is opened with a specific question and an
+ * answer a player has to scroll past two other games to reach is an answer they
+ * take on trust instead.
+ *
+ * THE SWITCH IS RADIOS WEARING A SEGMENTED CONTROL. The real input is
+ * screen-reader-only and the label is what is painted, so focus, arrow keys and
+ * the spoken selected state are the platform's rather than this file's.
+ *
+ * NUMBERS ARE TABULAR. A points list where "+5" and "+3" sit at different
+ * widths reads as two unrelated facts.
+ */
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.heading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  /* A hairline between rules, never round them: a boxed list of three numbers
+     is heavier than the thing it explains. */
+  border-top: 1px solid var(--vnext-hairline);
+  padding-top: var(--vnext-space-2);
+}
+
+.row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.label {
+  margin: 0;
+  color: var(--vnext-text);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.value {
+  margin: 0;
+  color: var(--vnext-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ---- the switch ------------------------------------------------------------- */
+
+.switcher {
+  /* A fieldset for the grouping a screen reader needs, with none of the border
+     a fieldset brings. */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: var(--vnext-space-1);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-raised);
+}
+
+.choice {
+  /* THE CONTAINING BLOCK FOR THE SCREEN-READER-ONLY RADIO INSIDE IT. The input
+     is `position: absolute` (typography's `srOnly`), so without this it is
+     positioned against whatever ancestor happens to be positioned — and a
+     browser scrolling the focused input into view would move the viewport away
+     from the control the player is actually operating. The visible focus ring
+     is handled separately, by `:has(input:focus-visible)` below. */
+  position: relative;
+  /* THE WHOLE SEGMENT IS THE TARGET, not the word inside it. */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  color: var(--vnext-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.choice[data-selected='true'] {
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-weight: 600;
+}
+
+.choice:hover {
+  color: var(--vnext-text);
+}
+
+/* THE RING FOLLOWS THE REAL INPUT. The input itself is screen-reader-only, so
+   without this a keyboard user moving through the group sees nothing move. */
+.choice:has(input:focus-visible) {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.lead {
+  margin: 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}

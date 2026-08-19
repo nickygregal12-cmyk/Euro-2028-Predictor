@@ -3,18 +3,30 @@
 .intro h2 { margin: 0; color: var(--tx); font-family: var(--font-display); font-size: var(--fs-4); font-weight: 560; }
 .intro p { max-width: 46rem; margin: 0; color: var(--tx2); line-height: 1.55; }
 
-.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); align-items: start; gap: var(--sp-3); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--card); }
-.field { display: grid; gap: .4rem; min-width: 0; margin: 0; padding: 0; border: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
+.controls { display: grid; gap: var(--sp-3); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--card); }
+
+/* The three answers the page is actually asking for -- how much, for what
+   return, over how many legs -- sit on one row above everything else. */
+.primary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); align-items: end; gap: var(--sp-3); }
+.amount { display: grid; gap: .4rem; min-width: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
+.amount input, .amount select { min-width: 0; width: 100%; min-height: var(--tap-min); padding-inline: .7rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; font-size: var(--fs-2); font-weight: 600; font-variant-numeric: tabular-nums; }
+.amount input::placeholder { color: var(--tx3); font-size: var(--fs-1); font-weight: 500; }
+
+/* Says the target back in both currencies -- return and profit -- because one
+   input now stands where a three-way choice used to. */
+.readout { margin: 0 0 var(--sp-1); color: var(--tx2); font-size: var(--fs-1); line-height: 1.5; }
+.field { display: grid; gap: .5rem; min-width: 0; margin: 0; padding: 0; border: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
 .field legend { padding: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
 .field select, .field input, .optionalGrid input { min-height: var(--tap-min); padding-inline: .7rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; font-weight: 500; }
 .field small, .optionalGrid small { color: var(--tx3); font-weight: 500; line-height: 1.45; }
+.field > small { max-width: 46rem; }
 
 .chips { display: flex; flex-wrap: wrap; gap: .35rem; }
 .chips button { min-height: var(--tap-min); padding: .4rem .7rem; border: 1px solid var(--line); border-radius: 999px; background: var(--input-bg); color: var(--tx2); font: inherit; font-size: var(--fs-1); font-weight: 700; cursor: pointer; }
 .chips button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--acc) 55%, var(--line)); background: color-mix(in srgb, var(--acc) 14%, var(--card)); color: var(--acc); }
 .chips button:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 
-.optional { grid-column: 1 / -1; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx2); }
+.optional { padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx2); }
 .optional summary { font-size: var(--fs-1); font-weight: 750; cursor: pointer; }
 .optionalGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
 .optionalGrid label { display: grid; gap: .35rem; font-size: var(--fs-1); font-weight: 700; }

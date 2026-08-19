@@ -102,7 +102,6 @@
     "exports\tsupabase/functions/_shared/notifications/novuAdapter.ts\tinterpretTriggerResponse",
     "exports\ttests/app/importGraph.ts\timportsOf",
     "exports\ttests/app/importGraph.ts\treaches",
-    "exports\ttests/support/indexed.ts\tlast",
     "files\tsrc/features/league/OverallStandingsPage.tsx\tsrc/features/league/OverallStandingsPage.tsx",
     "files\tsrc/features/matches/MatchesPage.tsx\tsrc/features/matches/MatchesPage.tsx",
     "files\tsrc/features/matches/TournamentInfoViews.tsx\tsrc/features/matches/TournamentInfoViews.tsx",

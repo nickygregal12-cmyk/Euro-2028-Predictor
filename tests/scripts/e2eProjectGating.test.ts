@@ -180,6 +180,10 @@ describe('browser E2E project gating', () => {
       // rendered geometry, so the suite measures round rows and columns rather
       // than class names.
       'vnext-championship.spec.ts',
+      // Stage 13's supporting surfaces — Account, the games hub, Discovery, the
+      // invite landing and onboarding. Same terms again, and the gap it closes
+      // is that all five landed with no browser measurement at all.
+      'vnext-supporting.spec.ts',
       // Stage 7.5's three information-architecture concepts. Same terms again,
       // and the lab adds no dev route at all: it runs on deterministic fixtures,
       // so Storybook is not merely its review surface but its only one.

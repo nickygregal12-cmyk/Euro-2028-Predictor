@@ -237,7 +237,11 @@ function useShellIntentHost(report: (message: string) => void) {
           navigate('/competitions')
           return
         case 'account':
-          navigate('/account')
+          // THE ESCAPE HATCH THIS STAGE EXISTS TO CLOSE. This used to route to
+          // the LEGACY `/account`, so pressing your own name inside a vNext
+          // surface dropped you out of vNext entirely. There is a vNext answer
+          // now, and it is where the intent goes.
+          navigate('/dev/vnext-account')
           return
         default:
           report(describeIntent(intent))

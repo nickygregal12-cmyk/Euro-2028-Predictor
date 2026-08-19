@@ -3,7 +3,6 @@ import {
   OBJECTIVE_MEANINGS,
   buildAccumulators,
   defaultRequest,
-  requiredOddsForProfit,
   requiredOddsForTotalReturn,
   type BuiltAccumulator,
   type Objective,
@@ -43,10 +42,22 @@ import styles from './BetBuilderPanel.module.css'
  *   RETURN IS NOT PROFIT. £10 at 5.0 returns £50 and profits £40. Both are
  *   shown and neither is labelled as the other.
  *
- *   THREE OBJECTIVES, THREE MEANINGS. "Safest to reach the target" is the
- *   highest joint probability; "best value" is the highest expected value;
- *   "highest data confidence" is the strongest evidence and is NOT a statement
- *   about the chance of winning. None of them is called "confidence" on its own.
+ *   FOUR RANKINGS, FOUR MEANINGS. "Biggest return" is the highest combined
+ *   odds and says nothing about the chance of winning; "safest" is the highest
+ *   joint probability; "best value" is the highest expected value; "best
+ *   evidenced" is the strongest evidence behind the legs and is also NOT a
+ *   statement about the chance of winning. None is called "confidence" alone.
+ *
+ * The control surface was cut from roughly thirty-five visible controls to
+ * twelve, measured in a browser. What went behind "More filters" is the long
+ * tail — bookmaker, ten league chips, odds and probability floors, excluded
+ * teams — and the panel's summary counts how many of them are active, so a
+ * collapsed filter cannot silently shrink the result list.
+ *
+ * ONE TARGET FIELD REPLACED A THREE-WAY CHOICE. "No target", "minimum total
+ * return" and "minimum profit" were the same constraint written three ways,
+ * since return = profit + stake. The page now asks once and states both
+ * numbers, which is the part that mattered.
  */
 
 const LEG_CHOICES = [
@@ -60,21 +71,28 @@ const LEG_CHOICES = [
 ] as const
 
 const OBJECTIVE_CHOICES: readonly { key: Objective; label: string }[] = [
-  { key: 'safety', label: 'Safest to reach target' },
+  { key: 'return', label: 'Biggest return' },
+  { key: 'safety', label: 'Safest' },
   { key: 'value', label: 'Best value' },
-  { key: 'confidence', label: 'Highest data confidence' },
+  { key: 'confidence', label: 'Best evidenced' },
 ]
 
-type DateWindow = 'today' | 'tomorrow' | 'weekend' | 'week'
+export type DateWindow = 'today' | 'tomorrow' | 'saturday3pm' | 'weekend' | 'week'
 
 const DATE_CHOICES: readonly { key: DateWindow; label: string }[] = [
+  { key: 'week', label: 'Next 7 days' },
   { key: 'today', label: 'Today' },
   { key: 'tomorrow', label: 'Tomorrow' },
-  { key: 'weekend', label: 'Weekend' },
-  { key: 'week', label: 'Next 7 days' },
+  { key: 'saturday3pm', label: 'Saturday 3pm' },
+  { key: 'weekend', label: 'All weekend' },
 ]
 
-type TargetKind = 'none' | 'total_return' | 'profit'
+// The traditional Saturday afternoon slate rather than literally 15:00. A 14:30
+// or 16:30 kick-off belongs to the same block, and a filter that returned an
+// empty list because the only game that day started at half past would be worse
+// than useless.
+const SATURDAY_BLOCK_FROM_HOUR = 14.5
+const SATURDAY_BLOCK_TO_HOUR = 17
 
 function startOfDay(date: Date): Date {
   const copy = new Date(date)
@@ -82,7 +100,7 @@ function startOfDay(date: Date): Date {
   return copy
 }
 
-function windowFor(choice: DateWindow, now: Date): { from: Date; to: Date } {
+export function windowFor(choice: DateWindow, now: Date): { from: Date; to: Date } {
   const today = startOfDay(now)
   if (choice === 'today') {
     const end = new Date(today)
@@ -94,6 +112,22 @@ function windowFor(choice: DateWindow, now: Date): { from: Date; to: Date } {
     from.setDate(from.getDate() + 1)
     const to = new Date(from)
     to.setDate(to.getDate() + 1)
+    return { from, to }
+  }
+  if (choice === 'saturday3pm') {
+    const from = new Date(today)
+    from.setDate(from.getDate() + ((6 - from.getDay() + 7) % 7))
+    const to = new Date(from)
+    from.setHours(Math.floor(SATURDAY_BLOCK_FROM_HOUR), (SATURDAY_BLOCK_FROM_HOUR % 1) * 60, 0, 0)
+    to.setHours(SATURDAY_BLOCK_TO_HOUR, 0, 0, 0)
+    // Asked on a Saturday evening, the block is already over. Rolling to next
+    // Saturday is the only reading that returns fixtures; the alternative is a
+    // window entirely in the past and an empty list that looks like "no value
+    // found" rather than "you have missed it".
+    if (to <= now) {
+      from.setDate(from.getDate() + 7)
+      to.setDate(to.getDate() + 7)
+    }
     return { from, to }
   }
   if (choice === 'weekend') {
@@ -168,9 +202,8 @@ export function BetBuilderPanel() {
   const [dateWindow, setDateWindow] = useState<DateWindow>('week')
   const [stake, setStake] = useState(10)
   const [legs, setLegs] = useState(3)
-  const [objective, setObjective] = useState<Objective>('value')
-  const [targetKind, setTargetKind] = useState<TargetKind>('none')
-  const [targetAmount, setTargetAmount] = useState(50)
+  const [objective, setObjective] = useState<Objective>('return')
+  const [targetAmount, setTargetAmount] = useState<number | null>(null)
   const [minLegProbability, setMinLegProbability] = useState<number | null>(null)
   const [minDataConfidence, setMinDataConfidence] = useState<number | null>(null)
   const [minLegOdds, setMinLegOdds] = useState<number | null>(null)
@@ -230,12 +263,39 @@ export function BetBuilderPanel() {
     [books],
   )
 
+  // One field replaced a three-way "no target / total return / profit" choice
+  // plus its own amount box. Nothing was dropped: a target return and a target
+  // profit are the same constraint written two ways, since return = profit +
+  // stake. The page therefore asks once and SAYS BOTH NUMBERS, which is the
+  // part that actually mattered -- `£10 returning £50` and `£10 profiting £40`
+  // are the same bet, and only one of them can be called the return.
   const requiredOdds = useMemo(() => {
-    if (targetKind === 'none' || stake <= 0) return null
-    return targetKind === 'total_return'
-      ? requiredOddsForTotalReturn(stake, targetAmount)
-      : requiredOddsForProfit(stake, targetAmount)
-  }, [targetKind, stake, targetAmount])
+    if (targetAmount === null || targetAmount <= 0 || stake <= 0) return null
+    return requiredOddsForTotalReturn(stake, targetAmount)
+  }, [stake, targetAmount])
+
+  const targetSentence = useMemo(() => {
+    if (stake <= 0) return 'Enter a stake to see what a combination would return.'
+    if (requiredOdds === null) {
+      return `No target set — showing the ${OBJECTIVE_CHOICES.find((c) => c.key === objective)?.label.toLowerCase() ?? ''} combinations for a ${money(stake)} stake.`
+    }
+    return `${money(stake)} returning ${money(targetAmount ?? 0)} needs combined odds of ${requiredOdds.toFixed(2)} — a profit of ${money(Math.max(0, (targetAmount ?? 0) - stake))} on top of your stake.`
+  }, [stake, targetAmount, requiredOdds, objective])
+
+  // Counted so the collapsed panel cannot hide a filter that is silently
+  // shrinking the result list.
+  const activeFilterCount = useMemo(
+    () =>
+      [
+        leagues.length > 0,
+        minLegProbability !== null,
+        minDataConfidence !== null,
+        minLegOdds !== null,
+        maxLegOdds !== null,
+        excludeTeams.trim() !== '',
+      ].filter(Boolean).length,
+    [leagues, minLegProbability, minDataConfidence, minLegOdds, maxLegOdds, excludeTeams],
+  )
 
   const built = useMemo(() => {
     if (state.kind !== 'ready') return null
@@ -281,141 +341,48 @@ export function BetBuilderPanel() {
       {booksError ? <Alert variant="warning">{booksError}</Alert> : null}
 
       <section className={styles.controls} aria-label="Bet Builder controls">
-        <label className={styles.field}>
-          Bookmaker
-          <select value={bookmaker ?? ''} onChange={(event) => setBookmaker(event.target.value)}>
-            {(books ?? [])
-              .filter((row) => row.isRealPrice)
-              .map((row) => (
-                <option key={row.code} value={row.code}>
-                  {row.name} · {row.legs} selection{row.legs === 1 ? '' : 's'}
+        <div className={styles.primary}>
+          <label className={styles.amount}>
+            Stake
+            <input
+              type="number"
+              min={0.1}
+              step={0.5}
+              value={stake}
+              onChange={(event) => setStake(Number(event.target.value) || 0)}
+            />
+          </label>
+
+          <label className={styles.amount}>
+            Target return
+            <input
+              type="number"
+              min={0}
+              step={5}
+              placeholder="Best available"
+              value={targetAmount ?? ''}
+              onChange={(event) =>
+                setTargetAmount(event.target.value === '' ? null : Number(event.target.value) || 0)
+              }
+            />
+          </label>
+
+          <label className={styles.amount}>
+            Legs
+            <select value={legs} onChange={(event) => setLegs(Number(event.target.value))}>
+              {LEG_CHOICES.map((choice) => (
+                <option key={choice.legs} value={choice.legs}>
+                  {choice.label}
                 </option>
               ))}
-          </select>
-          <small>
-            Aggregates (AVG, MAX) are excluded: their best prices sit at different books, so a
-            combination of them is available nowhere.
-          </small>
-        </label>
+            </select>
+          </label>
+        </div>
+
+        <p className={styles.readout}>{targetSentence}</p>
 
         <fieldset className={styles.field}>
-          <legend>Leagues</legend>
-          <div className={styles.chips}>
-            <button
-              type="button"
-              aria-pressed={leagues.length === 0}
-              onClick={() => setLeagues([])}
-            >
-              All available
-            </button>
-            {AI_LAB_LEAGUES.map((league) => (
-              <button
-                type="button"
-                key={league.key}
-                aria-pressed={leagues.includes(league.key)}
-                onClick={() =>
-                  setLeagues((current) =>
-                    current.includes(league.key)
-                      ? current.filter((key) => key !== league.key)
-                      : [...current, league.key],
-                  )
-                }
-              >
-                {league.name}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className={styles.field}>
-          <legend>Date</legend>
-          <div className={styles.chips}>
-            {DATE_CHOICES.map((choice) => (
-              <button
-                type="button"
-                key={choice.key}
-                aria-pressed={dateWindow === choice.key}
-                onClick={() => setDateWindow(choice.key)}
-              >
-                {choice.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <label className={styles.field}>
-          Stake
-          <input
-            type="number"
-            min={0.1}
-            step={0.5}
-            value={stake}
-            onChange={(event) => setStake(Number(event.target.value) || 0)}
-          />
-          <small>Used only to turn combined odds into money. It is not a bankroll recommendation.</small>
-        </label>
-
-        <fieldset className={styles.field}>
-          <legend>Number of legs</legend>
-          <div className={styles.chips}>
-            {LEG_CHOICES.map((choice) => (
-              <button
-                type="button"
-                key={choice.legs}
-                aria-pressed={legs === choice.legs}
-                onClick={() => setLegs(choice.legs)}
-              >
-                {choice.label}
-              </button>
-            ))}
-          </div>
-        </fieldset>
-
-        <fieldset className={styles.field}>
-          <legend>Target</legend>
-          <div className={styles.chips}>
-            <button
-              type="button"
-              aria-pressed={targetKind === 'none'}
-              onClick={() => setTargetKind('none')}
-            >
-              No target
-            </button>
-            <button
-              type="button"
-              aria-pressed={targetKind === 'total_return'}
-              onClick={() => setTargetKind('total_return')}
-            >
-              Minimum total return
-            </button>
-            <button
-              type="button"
-              aria-pressed={targetKind === 'profit'}
-              onClick={() => setTargetKind('profit')}
-            >
-              Minimum profit
-            </button>
-          </div>
-          {targetKind === 'none' ? null : (
-            <>
-              <input
-                type="number"
-                min={0}
-                step={5}
-                value={targetAmount}
-                onChange={(event) => setTargetAmount(Number(event.target.value) || 0)}
-              />
-              <small>
-                {targetKind === 'total_return'
-                  ? `${money(stake)} returning at least ${money(targetAmount)} needs combined odds of ${(requiredOdds ?? 0).toFixed(2)}. Total return includes the stake.`
-                  : `${money(stake)} profiting at least ${money(targetAmount)} needs combined odds of ${(requiredOdds ?? 0).toFixed(2)}. Profit excludes the stake.`}
-              </small>
-            </>
-          )}
-        </fieldset>
-
-        <fieldset className={styles.field}>
-          <legend>Objective</legend>
+          <legend>Rank by</legend>
           <div className={styles.chips}>
             {OBJECTIVE_CHOICES.map((choice) => (
               <button
@@ -431,9 +398,73 @@ export function BetBuilderPanel() {
           <small>{OBJECTIVE_MEANINGS[objective]}</small>
         </fieldset>
 
+        <fieldset className={styles.field}>
+          <legend>When</legend>
+          <div className={styles.chips}>
+            {DATE_CHOICES.map((choice) => (
+              <button
+                type="button"
+                key={choice.key}
+                aria-pressed={dateWindow === choice.key}
+                onClick={() => setDateWindow(choice.key)}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
         <details className={styles.optional}>
-          <summary>Optional filters</summary>
+          <summary>
+            More filters{activeFilterCount ? ` (${activeFilterCount} active)` : ''}
+          </summary>
           <div className={styles.optionalGrid}>
+            <label className={styles.wide}>
+              Bookmaker
+              <select value={bookmaker ?? ''} onChange={(event) => setBookmaker(event.target.value)}>
+                {(books ?? [])
+                  .filter((row) => row.isRealPrice)
+                  .map((row) => (
+                    <option key={row.code} value={row.code}>
+                      {row.name} · {row.legs} selection{row.legs === 1 ? '' : 's'}
+                    </option>
+                  ))}
+              </select>
+              <small>
+                Aggregates (AVG, MAX) are excluded: their best prices sit at different books, so a
+                combination of them is available nowhere.
+              </small>
+            </label>
+
+            <fieldset className={`${styles.field} ${styles.wide}`}>
+              <legend>Leagues</legend>
+              <div className={styles.chips}>
+                <button
+                  type="button"
+                  aria-pressed={leagues.length === 0}
+                  onClick={() => setLeagues([])}
+                >
+                  All available
+                </button>
+                {AI_LAB_LEAGUES.map((league) => (
+                  <button
+                    type="button"
+                    key={league.key}
+                    aria-pressed={leagues.includes(league.key)}
+                    onClick={() =>
+                      setLeagues((current) =>
+                        current.includes(league.key)
+                          ? current.filter((key) => key !== league.key)
+                          : [...current, league.key],
+                      )
+                    }
+                  >
+                    {league.name}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+
             <label>
               Minimum individual win probability
               <input
@@ -485,12 +516,14 @@ export function BetBuilderPanel() {
                 onChange={(event) => setExcludeTeams(event.target.value)}
               />
             </label>
+
+            <div className={styles.wide}>
+              <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
+                Refresh selections
+              </Button>
+            </div>
           </div>
         </details>
-
-        <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
-          Refresh selections
-        </Button>
       </section>
 
       {state.kind === 'loading' ? <Skeleton height="12rem" /> : null}

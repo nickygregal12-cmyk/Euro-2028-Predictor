@@ -3,7 +3,7 @@ import { VNextChampionship, type ChampionshipIntent } from '../../championship/V
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
-import { VNextLeaguesNotice } from '../leagues/VNextLeaguesStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildChampionshipModel } from './buildChampionshipModel'
 import { useVNextChampionshipSource } from './useVNextChampionshipSource'
 import { VNextChampionshipLoading } from './VNextChampionshipStates'
@@ -79,19 +79,22 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
     state.status === 'loading' ? (
       <VNextChampionshipLoading />
     ) : state.status === 'signedOut' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Predictor Championship"
         title="Sign in to see your Championship"
         body="A Championship belongs to a competition season, and a season is reached from your account."
       />
     ) : state.status === 'noCompetition' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Predictor Championship"
         title="No Championship to show"
         body="Pick a competition, a season and a Championship, and this is where its draw will be."
       />
     ) : state.status === 'failed' ? (
-      <VNextLeaguesNotice
+      <VNextNotice
+        destination="games"
         heading="Predictor Championship"
         title="We could not load this Championship"
         // IT SAYS NOTHING ABOUT THE COMPETITION BEING OVER, and nothing about

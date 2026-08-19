@@ -574,7 +574,11 @@ describe('the platform may be large and the product must feel small', () => {
 
   it('answers a player with no competitions without inventing one', () => {
     renderShell(shellScenarios.noCompetitions)
-    expect(permanentText()).toContain('No competition yet')
+    expect(permanentText()).toContain('No competition selected')
+    // NEVER a claim about what the player follows. The same empty state is
+    // reached by a platform-scoped page that is simply not inside a
+    // competition, and telling that player they follow nothing would be false.
+    expect(permanentText()).not.toContain('No competition yet')
     expect(screen.queryByRole('button', { name: /change competition/i })).toBeNull()
     expect(screen.queryByRole('navigation', { name: 'Your competitions' })).toBeNull()
     // The one thing with something to do.

@@ -62,6 +62,14 @@
 
 /* ---- what a submitted pick did -------------------------------------------- */
 
+/* WHAT A SUBMITTED PICK DID, as its own paragraph. `PickResult` named
+ * `styles.pickResult`, which did not exist, so it was the one paragraph in this
+ * module keeping the browser default margins while every sibling resets them. */
+.pickResult {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
 .notice {
   margin: 0;
   padding: var(--vnext-space-3) var(--vnext-space-4);

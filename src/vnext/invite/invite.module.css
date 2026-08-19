@@ -1,0 +1,92 @@
+/* vNEXT INVITE — one card, one question, at most one action.
+ *
+ * WHAT IS NOT HERE. The canvas, the page bounds, the masthead, both
+ * navigations and the `<main>` landmark are the shell's.
+ *
+ * IT IS NARROW ON PURPOSE. A player arrives from a link somebody sent them,
+ * usually on a phone. A full-width page of chrome around one sentence and one
+ * button is a page that looks like it wants something.
+ *
+ * THERE IS NO DISABLED ACCEPT. Where the server would refuse, the control is
+ * absent and a sentence says why — a greyed-out button teaches a player to
+ * press it again.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  width: 100%;
+  /* Wide enough for a competition's full name, narrow enough to read as one
+     thing rather than as a page. */
+  max-width: 34rem;
+  padding: var(--vnext-space-5);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-raised);
+}
+
+.kind {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.meta {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* NO CLAMP AND NO ELLIPSIS. A player deciding whether to accept must be able to
+   read the whole name of the thing. */
+.card > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.accept,
+.secondary {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-5);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+/* The one control that changes something. */
+.accept {
+  border-color: transparent;
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+.accept:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.secondary:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.accept:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}

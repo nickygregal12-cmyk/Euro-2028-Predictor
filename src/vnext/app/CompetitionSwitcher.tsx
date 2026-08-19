@@ -57,15 +57,26 @@ export function CompetitionSwitcher({
 
   if (!context) {
     /**
-     * NO COMPETITION IS A REAL STATE, not a loading state and not a failure. A
-     * new account that has followed nothing arrives here, and the honest thing
-     * to say is that there is no football context yet — beside an Explore
-     * control that is the only thing on the bar with anything to do.
+     * NO ACTIVE CONTEXT IS A REAL STATE, not a loading state and not a failure,
+     * and it has TWO causes the shell cannot tell apart — which is why the copy
+     * no longer picks one.
+     *
+     * It said "No competition yet". That is a claim about the PLAYER, and the
+     * shell has no read that supports it: `buildShellModel` is handed one
+     * competition or null, and null means "this page is not inside a
+     * competition". Stage 13's platform-scoped pages — Account, Discovery, the
+     * invite landing — are all legitimately outside one, so the old copy told a
+     * player with three follows that they had none, in the chrome above a page
+     * listing all three.
+     *
+     * "No competition selected" is true of the new account that has followed
+     * nothing AND of the page that is simply not in one, and the Explore
+     * control beside it is the right offer in both.
      */
     return (
       <span className={`${styles.switcher} ${styles[variant]}`} data-vnext-switcher="empty">
         <span className={styles.text}>
-          <span className={`${styles.name} ${text.emphasis}`}>No competition yet</span>
+          <span className={`${styles.name} ${text.emphasis}`}>No competition selected</span>
           <span className={styles.meta}>Explore what is published and pick one</span>
         </span>
       </span>
