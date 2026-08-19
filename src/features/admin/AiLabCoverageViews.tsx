@@ -186,7 +186,7 @@ const REFUSAL_LABELS: Readonly<Record<string, string>> = {
   PASS_QUARANTINED: 'Forecast withdrawn',
 }
 
-export function refusalLabel(code: string): string {
+function refusalLabel(code: string): string {
   return REFUSAL_LABELS[code] ?? code
 }
 
