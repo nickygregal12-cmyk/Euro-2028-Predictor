@@ -253,10 +253,24 @@ function groupPanelOf(source: ChampionshipSource): GroupPanel {
   }
 }
 
+/** Contract 193's own clock, where the read answered and the caller is an entrant. */
+function serverNowOf(source: ChampionshipSource): string | null {
+  if (source.bracket.kind !== 'ok') return null
+  const answer = source.bracket.bracket
+  return answer.entered ? answer.serverNow : null
+}
+
 export function buildChampionshipModel(source: ChampionshipSource): ChampionshipPageModel {
   const bracket = bracketPanelOf(source)
   return {
-    generatedAt: source.generatedAt,
+    // THE DATABASE'S INSTANT WHERE THERE IS ONE. Contract 193 returns
+    // `server_now`, and the only thing `generatedAt` is used for is deciding
+    // whether a lock reads as "today" or "tomorrow" — a question about the
+    // server's clock, not this browser's. A device an hour fast printed
+    // "Tomorrow 15:00" for a lock the server places today. The read's own
+    // instant is preferred; `source.generatedAt` remains the fallback for the
+    // states where there is no payload to take one from.
+    generatedAt: serverNowOf(source) ?? source.generatedAt,
     context: {
       competitionName: source.context.competitionName,
       seasonLabel: source.context.seasonLabel,

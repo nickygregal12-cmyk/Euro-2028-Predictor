@@ -630,3 +630,24 @@ describe('a split competition is not reported as drawn', () => {
     expect(model.bracket).toEqual({ kind: 'not-drawn' })
   })
 })
+
+/**
+ * THE INSTANT THE MODEL IS READ AGAINST.
+ *
+ * `generatedAt` decides only whether a lock label says "today" or "tomorrow",
+ * which is a question about the SERVER's clock. Contract 193 returns
+ * `server_now` and the mapper was discarding it in favour of a browser clock,
+ * so a device an hour fast printed the wrong day for the lock.
+ */
+describe('the clock is the database’s where the database supplied one', () => {
+  it('prefers `server_now` over the instant this process stamped', () => {
+    const model = buildChampionshipModel(
+      source(entered({ serverNow: '2027-06-09T09:30:00.000Z' })),
+    )
+    expect(model.generatedAt).toBe('2027-06-09T09:30:00.000Z')
+  })
+
+  it('falls back to the supplied instant when the read did not answer', () => {
+    expect(buildChampionshipModel(source(null)).generatedAt).toBe(NOW)
+  })
+})
