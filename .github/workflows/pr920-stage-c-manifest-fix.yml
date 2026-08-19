@@ -1,0 +1,47 @@
+name: PR 920 Stage C manifest fix
+
+on:
+  push:
+    branches:
+      - agent/same-season-player-profile
+
+permissions:
+  contents: write
+
+jobs:
+  patch-manifest:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Add Contract 206 function to Stage C inventory
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/architecture/stage-c-schema-coverage.md')
+          text = path.read_text()
+          old = "- `get_season_player_profile`\n- `resolve_season_player`"
+          new = "- `get_season_player_profile`\n- `get_season_player_profile_by_ref`\n- `resolve_season_player`"
+          if text.count(old) != 1:
+              raise SystemExit(f'expected exactly one Stage C insertion point, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+          git diff --check
+          git diff -- docs/architecture/stage-c-schema-coverage.md
+      - name: Commit the manifest correction
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No change required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/architecture/stage-c-schema-coverage.md
+          git commit -m 'docs: inventory same-season profile RPC in Stage C'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
