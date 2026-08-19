@@ -89,6 +89,132 @@ def test_two_similar_clubs_in_different_divisions_are_never_confused():
 
 
 # ---------------------------------------------------------------------------
+# 1b. The SECOND doorway, found on 19 August 2026
+#
+# The 13 August repair fixed the Odds API path and left the FIXTURES path
+# exactly as broken. Football-Data ships results and fixtures as two files with
+# two vocabularies: the results file writes `Bradford`, the fixtures file writes
+# `Bradford City`. `canonical_for` is a dict lookup that falls through to
+# itself, so the long spelling was stored verbatim, matched nothing in
+# `ai.raw_matches`, and the club was scored as one that had never played.
+#
+# Measured on Production on 19 August 2026: fifty-four such names in
+# `ai.fixtures` and NONE in `ai.raw_matches`, and of fifty-three scheduled
+# fixtures in the next seven days exactly one carried no forecast at all —
+# EL1 `Sheffield Wed v Bradford City`, 20 August.
+# ---------------------------------------------------------------------------
+
+# Left column is the fixtures file's spelling; right is the name the retained
+# history uses. Each was present in Production's `ai.fixtures` on 19 August.
+FIXTURE_FILE_SPELLINGS = [
+    ("Bradford City", "Bradford"),
+    ("Hull City", "Hull"),
+    ("Coventry City", "Coventry"),
+    ("Ipswich Town", "Ipswich"),
+    ("Leeds United", "Leeds"),
+    ("Dundee FC", "Dundee"),
+    ("Falkirk F.C.", "Falkirk"),
+    ("Sheffield Wednesday", "Sheffield Weds"),
+    ("Queens Park Rangers", "QPR"),
+    ("West Bromwich Albion", "West Brom"),
+    ("Peterborough United", "Peterboro"),
+    ("Bristol Rovers", "Bristol Rvs"),
+]
+
+
+@pytest.mark.parametrize("fixture_file,canonical", FIXTURE_FILE_SPELLINGS)
+def test_a_fixtures_file_spelling_reaches_the_history_s_own_name(
+        fixture_file, canonical):
+    assert aliases.canonical_for_fixture(fixture_file) == canonical
+
+
+def test_the_fixture_that_had_no_forecast_would_now_have_one():
+    """EL1 Sheffield Wed v Bradford City, 20 August 2026 — the single gap.
+
+    Both clubs must land on the name the history holds. Before the fix the
+    away side was stored as `Bradford City`, which `ai.raw_matches` has never
+    held, so the fixture was never forecast at all.
+    """
+    assert aliases.canonical_for_fixture("Sheffield Wed") == "Sheffield Weds"
+    assert aliases.canonical_for_fixture("Bradford City") == "Bradford"
+
+
+def test_the_fixture_path_still_refuses_to_merge_two_different_clubs():
+    """The reason there is no fuzzy fallback, restated for the new doorway.
+
+    `normalise` strips only `fc`/`afc`/`football club` — never `City` — so the
+    shape index cannot collapse these two into one club.
+    """
+    assert aliases.canonical_for_fixture("Bristol City") == "Bristol City"
+    assert aliases.canonical_for_fixture("Bristol Rovers") == "Bristol Rvs"
+    assert (aliases.canonical_for_fixture("Bristol City")
+            != aliases.canonical_for_fixture("Bristol Rovers"))
+
+
+def test_the_fixtures_vocabulary_never_leaks_into_the_shared_authority():
+    """The guard against repeating the original defect while fixing its twin.
+
+    `ai.canonical_from_odds_api` is mirrored in SQL, and the SQL side answers
+    `unmatched` for `Sheffield Wed`. A first attempt at this fix put that name
+    in `HISTORICAL_ALIASES`, which feeds the shape index both sides share — so
+    Python would have known a name SQL did not. That is precisely the "two
+    alias tables that disagreed" failure this project already had, in better
+    handwriting. The fixtures file gets its own map instead.
+    """
+    for name in aliases.FIXTURE_FILE_TO_CANONICAL:
+        assert aliases.canonical_from_odds_api(name) == (None, "unmatched"), (
+            f"{name!r} leaked into the authority SQL mirrors; the SQL side "
+            "does not know it and the two would silently disagree.")
+        assert aliases.canonical_for(name) == name, (
+            f"{name!r} leaked into the history path, which must not change.")
+
+
+def test_history_deliberately_does_not_take_the_fixture_path():
+    """`fetch_history` keeps `canonical_for`, and this is why.
+
+    The shape index answers a forward-looking question. `Wimbledon` resolves to
+    `AFC Wimbledon`, which is right for a fixture next Saturday and is not
+    obviously right for a 1998 result. `ai.raw_matches` held zero long-form
+    names on 19 August, so history needed no repair and must not be given one
+    as a side effect.
+    """
+    assert aliases.canonical_for("Wimbledon") == "Wimbledon"
+    assert aliases.canonical_for_fixture("Wimbledon") == "AFC Wimbledon"
+    assert aliases.canonical_for("Bradford City") == "Bradford City"
+
+
+def test_a_club_the_history_has_never_held_is_reported():
+    """The reporter `source_to_canonical`'s docstring already promised.
+
+    That docstring says the fall-through default is correct and that something
+    tells you when it has quietly gone wrong. No such reporter existed, which is
+    why the Bradford City gap sat through six days of scheduled runs.
+    """
+    history = {"Arsenal", "Bradford", "Hull", "Sheffield Weds"}
+    fixtures = {"Arsenal", "Bradford", "Hull", "Nowhere Athletic"}
+    assert aliases.clubs_without_history(fixtures, history) == ["Nowhere Athletic"]
+
+
+def test_the_reporter_does_not_cry_wolf_over_the_lower_divisions():
+    """The first version of this reporter was wrong and this is the guard.
+
+    It checked the alias tables, not the history. `LIVE_CLUBS` holds thirty-two
+    clubs while the pyramid holds around two hundred and fifty names, so
+    `Barrow`, `Accrington` and most of the lower divisions were reported for
+    passing through correctly — and a reporter that cries wolf on correct rows
+    is worse than none, because it trains the reader to ignore it.
+    """
+    history = {"Barrow", "Accrington", "Bromley", "Sutton"}
+    assert aliases.clubs_without_history(set(history), history) == []
+
+
+def test_the_reporter_ignores_blanks_and_deduplicates():
+    assert aliases.clubs_without_history(["", "  ", "Arsenal"], {"Arsenal"}) == []
+    assert aliases.clubs_without_history(
+        ["Zzz United", "Zzz United"], {"Arsenal"}) == ["Zzz United"]
+
+
+# ---------------------------------------------------------------------------
 # 2. The identity guard — the difference between "new club" and "broken join"
 # ---------------------------------------------------------------------------
 

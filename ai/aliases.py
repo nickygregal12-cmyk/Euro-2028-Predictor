@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Iterable
 
 # platform team name  ->  (canonical, football-data.co.uk name, country)
 LIVE_CLUBS: list[tuple[str, str, str, str]] = [
@@ -93,6 +94,93 @@ def source_to_canonical() -> dict[str, str]:
 
 def canonical_for(source_name: str) -> str:
     return source_to_canonical().get(source_name, source_name)
+
+
+# ---------------------------------------------------------------------------
+# The fixtures file is a FOURTH vocabulary
+#
+# Football-Data ships results and fixtures as two separate files, and they do
+# not always agree with each other. The results file — and so `ai.raw_matches` —
+# writes `Sheffield Weds`; the fixtures file writes `Sheffield Wed`.
+#
+# This map is deliberately NOT merged into `HISTORICAL_ALIASES` or reachable
+# from `canonical_from_odds_api`. Those feed the shape index that the SQL
+# authority mirrors, and `ai.canonical_from_odds_api` answers `unmatched` for
+# `Sheffield Wed`. Teaching the Python side a name the SQL side does not know
+# would recreate the exact defect this project already had once: two alias
+# tables that disagreed. Only the fixtures path, which has no SQL counterpart,
+# reads this.
+# ---------------------------------------------------------------------------
+
+FIXTURE_FILE_TO_CANONICAL: dict[str, str] = {
+    "Sheffield Wed": "Sheffield Weds",
+}
+
+
+def canonical_for_fixture(source_name: str) -> str:
+    """The same question as `canonical_for`, asked of a FORWARD-LOOKING name.
+
+    Football-Data ships results and fixtures as two files with two vocabularies.
+    The results file writes `Bradford`, `Hull`, `Coventry`; the fixtures file
+    writes `Bradford City`, `Hull City`, `Coventry City`. `canonical_for` is a
+    dict lookup that falls through to itself, so a fixtures-file spelling that
+    is not in the map is stored verbatim -- and then matches nothing in
+    `ai.raw_matches`, because the history is under the short name. The club is
+    scored as a club that has never played.
+
+    Measured on Production on 19 August 2026: fifty-four such names existed in
+    `ai.fixtures` and none in `ai.raw_matches`, and EL1 `Sheffield Wed v
+    Bradford City` on 20 August was the one scheduled fixture of fifty-three
+    that carried no forecast at all, for exactly this reason.
+
+    So this consults the same shape index `canonical_from_odds_api` already
+    trusts, which is a stricter authority than it sounds: `normalise` strips
+    only `fc`/`afc`/`football club`, never `City`, so `Bristol City` and
+    `Bristol Rovers` remain two clubs. There is still no fuzzy fallback.
+
+    HISTORY DELIBERATELY DOES NOT USE THIS. `fetch_history` keeps
+    `canonical_for`, because `ai.raw_matches` is already correct and because a
+    shape index applied across decades would answer questions this project has
+    not asked it -- `Wimbledon` resolves to `AFC Wimbledon`, which is right for
+    a fixture next Saturday and is not obviously right for 1998.
+    """
+    if source_name in FIXTURE_FILE_TO_CANONICAL:
+        return FIXTURE_FILE_TO_CANONICAL[source_name]
+    mapped = source_to_canonical().get(source_name)
+    if mapped is not None:
+        return mapped
+    return _canonical_index().get(normalise(source_name), source_name)
+
+
+def clubs_without_history(fixture_names: Iterable[str],
+                          history_names: Iterable[str]) -> list[str]:
+    """Resolved fixture clubs that the retained history holds nothing under.
+
+    `source_to_canonical` says a name it does not hold "falls through to itself,
+    which is the correct default", and that something tells you when that
+    default has quietly gone wrong. Nothing did: the reporter that sentence
+    names was never written, and EL1 `Sheffield Wed v Bradford City` sat
+    forecast-less through six days of scheduled runs with no job saying so.
+
+    The check cannot be made against the alias tables alone, and a first attempt
+    at that was wrong: `LIVE_CLUBS` holds thirty-two clubs while the pyramid in
+    `ai.raw_matches` holds around two hundred and fifty names, so `Barrow`,
+    `Accrington` and most of the lower divisions would have been reported for
+    passing through correctly. Passing through IS the right answer whenever
+    Football-Data's spelling is already canonical.
+
+    The question that actually separates the two cases is the one the feature
+    build will ask a moment later: does the history hold this club under this
+    name? So that is the question asked here, against the names the history
+    really holds.
+
+    Reports rather than raises. A club promoted into the covered divisions for
+    the first time genuinely has no history and looks identical on its first
+    day, and a red sync job would stop every other fixture being written.
+    """
+    history = {str(n).strip() for n in history_names}
+    missing = {str(n).strip() for n in fixture_names if str(n).strip()}
+    return sorted(missing - history)
 
 
 # ---------------------------------------------------------------------------

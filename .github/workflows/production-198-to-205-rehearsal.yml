@@ -392,7 +392,7 @@ jobs:
           if (problems.length) { console.error('REHEARSAL VERIFICATION FAILED:\n - ' + problems.join('\n - ')); process.exit(1) }
           console.log(`Disposable copy reached Contract ${a.migration_count}. Player-facing counts unchanged: entries ${a.entries}, predictions ${a.season_predictions}, scores ${a.season_matchweek_scores}, leagues ${a.leagues}.`)
           console.log(`AI Lab history intact: ${a.ai_bets} bets retained, of which ${a.valid_bets_rows} are canonical evidence over ${a.valid_bets_pairs} fixture/market pairs; ${a.ai_predictions} forecasts and ${a.ai_models_current} current models unchanged.`)
-          console.log('Contract 203 leaves every Championship rule where it found it.')
+          console.log('Contract 205 leaves every Championship rule where it found it.')
           NODE
 
       - name: Record the rehearsal outcome

@@ -22,7 +22,7 @@ from datetime import date, datetime, timezone
 import pandas as pd
 import requests
 
-from aliases import LIVE_CLUBS, canonical_for
+from aliases import LIVE_CLUBS, canonical_for_fixture, clubs_without_history
 from config import (ALL_DIVISIONS, FOOTBALL_DATA_FIXTURES_URL, LEAGUES,
                     strip_bom)
 from db import job, query_df, settle_fixtures_from_history, upsert_fixtures
@@ -86,6 +86,13 @@ def platform_fixture_links() -> dict[tuple[str, str, date], str]:
     return out
 
 
+def history_club_names() -> set[str]:
+    """Every canonical club name `ai.raw_matches` actually holds."""
+    df = query_df("select distinct home_canonical as n from ai.raw_matches "
+                  "union select distinct away_canonical from ai.raw_matches")
+    return set(df["n"].astype(str)) if not df.empty else set()
+
+
 def fetch(divisions=ALL_DIVISIONS, timeout: int = 60) -> list[dict]:
     resp = requests.get(FOOTBALL_DATA_FIXTURES_URL, timeout=timeout,
                         headers={"User-Agent": "ai-lab/0.1"})
@@ -124,8 +131,8 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60) -> list[dict]:
         league_key = DIVISION_TO_LEAGUE.get(division)
         if league_key is None:
             continue
-        home = canonical_for(str(getattr(rec, "HomeTeam")).strip())
-        away = canonical_for(str(getattr(rec, "AwayTeam")).strip())
+        home = canonical_for_fixture(str(getattr(rec, "HomeTeam")).strip())
+        away = canonical_for_fixture(str(getattr(rec, "AwayTeam")).strip())
         rows.append({
             "division": division,
             "season": season_code(when),
@@ -154,6 +161,29 @@ def main() -> int:
             linked += r["season_fixture_id"] is not None
         for div, n in sorted(by_div.items()):
             print(f"  {div:4} {n:>4} upcoming")
+
+        # The reporter `source_to_canonical`'s docstring has always promised.
+        # A club listed here resolved to a name the retained history holds
+        # nothing under, so the feature build is about to score it as a club
+        # that has never played -- which is how EL1 `Sheffield Wed v Bradford
+        # City` came to be the one scheduled fixture of fifty-three carrying no
+        # forecast at all on 19 August 2026. Printed and recorded rather than
+        # raised: a club promoted into a covered division genuinely has no
+        # history on its first day, and a red sync job would stop every other
+        # fixture being written.
+        resolved_names = {r["home_canonical"] for r in rows}
+        resolved_names |= {r["away_canonical"] for r in rows}
+        # Skipped rather than queried when there is nothing to check: a
+        # header-only fixtures.csv is Football-Data's ordinary state between
+        # rounds, and it should not cost a scan of the whole history.
+        without_history = (clubs_without_history(resolved_names,
+                                                 history_club_names())
+                           if resolved_names else [])
+        if without_history:
+            print(f"  CLUBS WITH NO HISTORY UNDER THAT NAME "
+                  f"({len(without_history)}): {', '.join(without_history)}")
+            print("  each will be forecast as a club that has never played; "
+                  "check the alias tables before trusting those fixtures")
         print(f"  {linked} of {len(rows)} linked to public.season_fixtures "
               f"(the rest need no such link)")
 
@@ -164,7 +194,9 @@ def main() -> int:
         written = upsert_fixtures(rows)
         settled = settle_fixtures_from_history()
         state["rows"] = written
-        state["detail"] = {"divisions": by_div, "linked": linked, "settled": settled}
+        state["detail"] = {"divisions": by_div, "linked": linked,
+                           "settled": settled,
+                           "clubs_without_history": without_history}
         print(f"\nupserted {written} fixtures; settled {settled} from results already held")
     return 0
 
