@@ -52,7 +52,7 @@ const VARIANT_BY_ORIGIN = new Map<string, ProductionVariant>([
 
 const PRODUCT = {
   hub: {
-    appName: 'Football Prediction Hub',
+    appName: 'Predictor Hub',
     // `LandingPage.tsx`'s hero.
     landingHeading: 'Make every match mean more.',
   },
