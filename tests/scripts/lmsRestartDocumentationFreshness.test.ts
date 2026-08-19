@@ -7,12 +7,11 @@ const read = (path: string) =>
 
 // Contracts 107–109 form one lifecycle: successor creation, past-window
 // refusal, then authoritative future-window scheduling. Keep those roles distinct
-// in the domain authorities without forcing root/design routers to carry the
+// in domain authorities without forcing live backlog/root routers to carry the
 // historical contract narrative.
 describe('LMS restart documentation freshness', () => {
   it('records Contract 108 as the guard and Contract 109 as the scheduler in domain authorities', () => {
     for (const path of [
-      'MASTER-TODO.md',
       'docs/roadmap.md',
       'docs/competition-structure.md',
       'docs/architecture/programme-plan.md',
@@ -28,9 +27,6 @@ describe('LMS restart documentation freshness', () => {
       expect(read(path), path).toMatch(/[Cc]ontracts?[-\s][\d\s–—-]*109/)
     }
 
-    expect(read('MASTER-TODO.md')).toContain(
-      '[x] Add the separate calendar authority/driver',
-    )
     expect(read('docs/roadmap.md')).not.toContain(
       'Schedule the LMS restart successor',
     )
@@ -39,6 +35,17 @@ describe('LMS restart documentation freshness', () => {
         'docs/adr/0025-lms-restart-lifecycle-cup-split-persistence-and-reveal-scope.md',
       ),
     ).toContain('- **Status:** Implemented')
+  })
+
+  it('keeps completed LMS checklist history recoverable without making it live work', () => {
+    const archived = read(
+      'docs/history/context-reset-2026-08-19/MASTER-TODO.pre-reconciliation.txt',
+    )
+    expect(archived).toContain('[x] Add the separate calendar authority/driver')
+    expect(archived).toMatch(/[Cc]ontracts?[-\s][\d\s–—-]*109/)
+    expect(read('MASTER-TODO.md')).not.toContain(
+      '[x] Add the separate calendar authority/driver',
+    )
   })
 
   it('keeps the LMS contract history out of default root and design routers', () => {
