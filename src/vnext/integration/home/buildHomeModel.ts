@@ -97,15 +97,19 @@ import type { HomeSource, HomeSourceLeague } from './homeSource'
 /**
  * vNext expresses four shirt treatments; the domain expresses five.
  *
- * A `sash` becomes `solid`, which loses a detail and claims nothing. Teaching
- * `TeamCrest` a fifth pattern is a design change and this is not the stage for
- * one; drawing a sash as halves would be presentation inventing a kit.
+ * A `sash` is now drawn as one. It used to become `solid` — honest, and a lost
+ * detail — because `TeamCrest` knew four patterns and the domain had five; the
+ * crest learned the fifth for Stage 14, so the map carries it across rather
+ * than flattening it. Anything the domain adds beyond these still falls to
+ * `solid`, because drawing an unknown pattern as a known one would be
+ * presentation inventing a kit.
  */
 const KIT_PATTERN: Record<string, TeamKitPattern> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
+  sash: 'sash',
 }
 
 /**

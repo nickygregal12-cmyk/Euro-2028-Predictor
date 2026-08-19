@@ -99,6 +99,19 @@
   );
 }
 
+/* A diagonal band, at the angle a real sash is worn — steeper than 45° so it
+   reads as a sash rather than as a corner-to-corner split, and the same 115°
+   the legacy `ClubIdentity` settled on so one club cannot look like two
+   different clubs in two parts of the product. */
+.sash {
+  background-image: linear-gradient(
+    115deg,
+    transparent 0 38%,
+    var(--vnext-team-secondary) 38% 62%,
+    transparent 62% 100%
+  );
+}
+
 .solid {
   background-image: none;
 }

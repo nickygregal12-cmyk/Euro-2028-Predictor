@@ -156,6 +156,30 @@ export const workshopTeams = {
     kitPattern: 'halves',
     crestUrl: null,
   },
+  /**
+   * THE SASH CLUB. The domain's kit vocabulary has always had five patterns and
+   * the owner's reference data uses all five, but no workshop club wore the
+   * fifth — so the one treatment with a diagonal, the one most likely to clash
+   * with a monogram and the one most likely to look wrong at 24px had no board
+   * to be reviewed on.
+   *
+   * Its colours are a deliberately hard pair: a mid-tone primary with a light
+   * band across it, which is where a sash is most likely to swallow the code.
+   */
+  braemarloch: {
+    id: 'team-braemarloch',
+    name: 'Braemarloch Academical',
+    shortName: 'Braemarloch',
+    abbreviation: 'BRA',
+    colours: {
+      primary: '#2B4C7E',
+      secondary: '#E4B363',
+      accent: '#7FA6D9',
+      onPrimary: 'light',
+    },
+    kitPattern: 'sash',
+    crestUrl: null,
+  },
 } as const satisfies Record<string, Team>
 
 export const workshopTeamList: readonly Team[] = Object.values(workshopTeams)

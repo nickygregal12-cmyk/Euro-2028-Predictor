@@ -352,15 +352,21 @@ function stageOf(fixture: SeasonListFixture): MatchStageRef {
  * both roles rather than a highlight derived here, because a derived colour is
  * a colour no club plays in.
  */
+/**
+ * The domain's five kit shapes, carried across unflattened.
+ *
+ * A `sash` used to become `solid` here — honest, and a lost detail — because
+ * `TeamCrest` knew four patterns and the domain had five. The crest learned the
+ * fifth for Stage 14, so a sash club is drawn as one. Anything the domain adds
+ * beyond these still falls to `solid`, because drawing an unknown pattern as a
+ * known one would be presentation inventing a kit.
+ */
 const KIT_PATTERN: Readonly<Record<string, TeamKitPattern>> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
-  // The domain has a fifth pattern the presentation lane does not draw. It
-  // resolves to solid rather than being dropped, because a club with no crest
-  // still needs a mark.
-  sash: 'solid',
+  sash: 'sash',
 }
 
 function teamOf(club: SeasonFixtureClub): Team {

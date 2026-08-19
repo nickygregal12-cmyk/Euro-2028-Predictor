@@ -29,7 +29,21 @@ export type TeamColours = {
 }
 
 /** Shirt treatments the mock identity can express without a crest asset. */
-export type TeamKitPattern = 'solid' | 'stripes' | 'hoops' | 'halves'
+/**
+ * The kit shapes a club identity may be drawn in.
+ *
+ * `sash` COMPLETES THE SET the domain already had. `ClubKitPattern` in
+ * `src/domain/clubIdentity/clubIdentityTypes.ts` has carried five since the
+ * identity work landed, and the owner's reference data uses all five — Crystal
+ * Palace is a sash. This lane declared four, so a sash club arrived here as
+ * `solid` and lost the one thing that told it apart from every other blue-and-
+ * red club.
+ *
+ * They are all centuries-old football conventions owned by nobody, which is
+ * exactly why ADR 0017 chose them: a generic kit pattern is legally clean where
+ * a crest is not.
+ */
+export type TeamKitPattern = 'solid' | 'stripes' | 'hoops' | 'halves' | 'sash'
 
 export type Team = {
   readonly id: string

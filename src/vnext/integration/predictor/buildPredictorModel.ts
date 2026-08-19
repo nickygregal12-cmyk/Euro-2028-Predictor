@@ -72,16 +72,20 @@ import type { PredictorSource } from './predictorSource'
  * ------------------------------------------------------------------ */
 
 /**
- * vNext expresses four shirt treatments; the domain expresses five. A `sash`
- * becomes `solid`, which loses a detail and claims nothing — the same decision
- * `buildHomeModel` made, for the same reason: drawing a sash as halves would be
- * presentation inventing a kit.
+ * The domain's five kit shapes, carried across unflattened.
+ *
+ * A `sash` used to become `solid` here — honest, and a lost detail — because
+ * `TeamCrest` knew four patterns and the domain had five. The crest learned the
+ * fifth for Stage 14, so a sash club is drawn as one. Anything the domain adds
+ * beyond these still falls to `solid`, because drawing an unknown pattern as a
+ * known one would be presentation inventing a kit.
  */
 const KIT_PATTERN: Record<string, TeamKitPattern> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
+  sash: 'sash',
 }
 
 /**
