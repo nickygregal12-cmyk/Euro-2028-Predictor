@@ -307,12 +307,33 @@ enough", and the predicate's own wording is the test:
 
 > action/attention UI only claims event classes the backend can actually produce
 
-An empty attention list claims none, which passes. Populating it would mean
-inventing event classes across five surfaces from reads that do not carry them,
-which fails. The matrix's ABSORB of `/play` and `/competitions/:c/:s/play` into
-the attention layer therefore remains a recorded fate whose execution waits on
-the backend coverage the contract names — the same treatment the two carried
-debts get, for the same reason.
+An empty attention list claims none, which passes, and leaving it empty is
+correct for THIS stage — nothing here has an attention story to tell.
+
+**But the sentence that followed here was wrong, and the correction matters
+because it changes what Stage 14 is allowed to assume.** It said populating the
+layer "would mean inventing event classes across five surfaces from reads that
+do not carry them". That is true of PER-SURFACE attention — what needs doing on
+the page you are on — and false of the cross-competition half, which is the half
+the route matrix actually depends on.
+
+`useGlobalPlayInbox` and `playInboxModel` build the cross-competition inbox
+TODAY, in production, from reads that already exist: each competition's week,
+loaded concurrently from `PlayerCompetitions` and settled independently, with no
+new capability of any kind. `InboxAction` carries `competitionName`, `gameName`,
+`title`, `locksAt` and `outstanding`; `ShellAttentionItem` wants `contextId`,
+`game`, `headline`, `detail` and `urgency`. That is a mapper, not a backend
+delta. The one field with no source is the `live` urgency, and the honest
+handling is to emit `urgent` and `soon` only — which satisfies the predicate's
+rule rather than straining it.
+
+So the ABSORB of `/play` and `/competitions/:c/:s/play` is a recorded fate whose
+execution is **available to Stage 14**, not one waiting on the carried debts.
+Stating it the other way would have let a cutover ship the loss with a citation
+for it, and the loss is real: `/play` exists because "a player should never have
+to choose a competition merely to discover what needs done", and vNext Home is
+competition-scoped, so at cutover a player with games in two competitions has
+nothing that tells them about the second.
 
 ---
 
