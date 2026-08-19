@@ -125,7 +125,7 @@ describe('the Euro signup gate', () => {
       expect(screen.getByRole('heading', { name: /registration is not open/i })).toBeTruthy(),
     )
     expect(
-      screen.getByRole('link', { name: /Create an account on Football Prediction Hub/i }),
+      screen.getByRole('link', { name: /Create an account on Predictor Hub/i }),
     ).toHaveAttribute('href', `${HUB_ORIGIN}/auth/signup`)
   })
 
