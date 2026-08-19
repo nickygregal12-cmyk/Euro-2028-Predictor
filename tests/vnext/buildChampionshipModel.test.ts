@@ -64,7 +64,7 @@ function entered(over: Partial<Extract<SeasonCupBracket, { entered: true }>> = {
   return {
     entered: true as const,
     serverNow: NOW,
-    // Contract 207. `null` is the pre-208 database and is the honest default
+    // Contract 208. `null` is the pre-208 database and is the honest default
     // here: the standing tests below assert what the surface says when the read
     // states nothing, which is still a state a hosted environment can be in.
     yourOutcome: null,
@@ -408,7 +408,7 @@ describe('elimination is never derived', () => {
     // in reach: every world below is shaped like a defeat or a victory, and
     // none of them carries an outcome. The standing must be silent in all of
     // them, which is what stops a fallback creeping back in the day a hosted
-    // environment sits behind contract 207.
+    // environment sits behind contract 208.
     const worlds = [
       entered({ qualification: { drawn: true, qualifiers: 4, yourSeed: null, youQualified: false } }),
       entered({ bracket: [seat({ winnerUserId: 'u-2', decidedBy: 'walkover', isYours: true })] }),

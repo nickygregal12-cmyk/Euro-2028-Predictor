@@ -4,6 +4,7 @@ import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildChampionshipModel } from './buildChampionshipModel'
 import { useVNextChampionshipSource } from './useVNextChampionshipSource'
@@ -46,6 +47,7 @@ export type VNextChampionshipScreenProps = {
 }
 
 export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextChampionshipSource({
     userId: props.userId,
     authLoading: props.authLoading,
@@ -77,10 +79,10 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
             // `null` is "this page cannot say", never zero.
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent, props.shellElsewhere],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const write = state.status === 'ready' ? state.penaltyNumber : { kind: 'idle' as const }

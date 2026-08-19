@@ -4,6 +4,7 @@ import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { useInviteCode, type InviteJoinResult } from '../../../features/leagues/useInviteCode'
 import { buildInviteModel } from './buildInviteModel'
@@ -46,6 +47,7 @@ export type VNextInviteScreenProps = {
 }
 
 export function VNextInviteScreen(props: VNextInviteScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const { state, joining, resolve, accept } = useInviteCode()
   const [generatedAt] = useState(() => new Date().toISOString())
   const { userId, authLoading, code } = props
@@ -69,9 +71,9 @@ export function VNextInviteScreen(props: VNextInviteScreenProps) {
         playerName: null,
         outstandingPredictions: null,
         canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
       }),
-    [props.onShellIntent, props.shellElsewhere],
+    [props.onShellIntent, elsewhere],
   )
 
   const body =

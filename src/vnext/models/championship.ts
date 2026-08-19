@@ -64,7 +64,7 @@
  * 120 — so this surface said nothing at all about survival and the gap was
  * carried as a backend debt rather than reinterpreted as completeness.
  *
- * **Contract 207 closed it.** `get_season_cup_bracket` now returns
+ * **Contract 208 closed it.** `get_season_cup_bracket` now returns
  * `your_outcome`: `bonus_competition_entrants.outcome`, verbatim, for the
  * caller alone. `ChampionshipStanding` is that column and nothing else.
  *
@@ -74,7 +74,7 @@
  * wrong whenever a competition has not finished eliminating.
  *
  * `not-stated` SURVIVES AND STILL MEANS SOMETHING. It is now "this database
- * has not reached contract 207", which is a real state for as long as a hosted
+ * has not reached contract 208", which is a real state for as long as a hosted
  * environment sits behind the repository. It is NOT decoded as `active`:
  * "cannot say" and "you are fine" are different sentences.
  *

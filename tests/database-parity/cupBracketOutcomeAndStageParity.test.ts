@@ -22,7 +22,7 @@ function bracketBody(source: string): string {
   return source.slice(start, end)
 }
 
-describe('contract 207 Championship outcome and knockout stage', () => {
+describe('contract 208 Championship outcome and knockout stage', () => {
   describe('the elimination gap', () => {
     it('reads the outcome from the entrant row and emits it unchanged', () => {
       const body = bracketBody(migration)

@@ -163,7 +163,7 @@ function bracketPanelOf(source: ChampionshipSource): BracketPanel {
  *   • `youQualified` → `qualified`. A fact about the DRAW wearing the
  *     settlement vocabulary's word. It is now `seededIntoKnockout`.
  *   • nothing → `not-stated`. Unchanged, and now means "this database is behind
- *     contract 207" rather than "no read anywhere carries this".
+ *     contract 208" rather than "no read anywhere carries this".
  *
  * A pre-208 database therefore says less here than it did, and that is the
  * point: what it used to say was two other facts wearing this one's name.

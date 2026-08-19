@@ -1,5 +1,5 @@
 -- ===========================================================================
--- Contract 207 — contract 193 states the caller's outcome, and means
+-- Contract 208 — contract 193 states the caller's outcome, and means
 --                "knockout" when it says so
 -- ===========================================================================
 --
@@ -12,15 +12,16 @@
 -- `contractVersion === requiredMigrationCount === the file count`. So the
 -- number a migration holds is decided by what else is in the chain beside it.
 --
--- Against `main` at `7b8339c` this file is the 206th migration and the one
--- beside it is the 207th, which is what they are called throughout.
+-- Against `main` at `d7a09e8` — which carries PR #920's
+-- `20260819110000_same_season_player_profile.sql` as contract 206 — the
+-- determinate-membership file beside this one is the 207th migration and this
+-- one is the 208th, which is what they are called throughout.
 --
--- **PR #920 is open and its own records call its migration contract 206.** Its
--- timestamp (`20260819110000`) sorts BEFORE both of these, so if it lands first
--- these two become 207 and 208 and the two numbers in this pair of files must
--- be swept forward. That is a mechanical rename of a stated number, not a
--- change of behaviour, and it is recorded here rather than discovered by
--- whichever branch merges second.
+-- **PR #920 LANDED FIRST.** Its timestamp (`20260819110000`) sorts BEFORE both
+-- of these, so the pair was swept forward from 206/207 to 207/208 when this
+-- branch was re-anchored. That was a mechanical rename of a stated number, not
+-- a change of behaviour, and it was recorded here before it happened rather
+-- than discovered by whichever branch merged second.
 --
 -- The pgTAP side of the same coordination is already settled: #920's suite is
 -- `252_same_season_player_profile_visibility.sql` on its branch head — its PR

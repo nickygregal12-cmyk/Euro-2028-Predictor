@@ -9,6 +9,7 @@ import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildAccountModel } from './buildAccountModel'
 import { useVNextAccountSource } from './useVNextAccountSource'
@@ -108,6 +109,7 @@ async function run(
 }
 
 export function VNextAccountScreen(props: VNextAccountScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextAccountSource({
     userId: props.userId,
     authLoading: props.authLoading,
@@ -194,9 +196,9 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         // is "this page cannot say", never zero.
         outstandingPredictions: null,
         canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
       }),
-    [props.displayName, props.onShellIntent, props.shellElsewhere],
+    [props.displayName, props.onShellIntent, elsewhere],
   )
 
   const body =

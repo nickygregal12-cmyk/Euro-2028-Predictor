@@ -31,7 +31,7 @@ function membershipLookup(source: string): string {
   return body.slice(start, body.indexOf(';', start))
 }
 
-describe('contract 206 determinate Championship phase membership', () => {
+describe('contract 207 determinate Championship phase membership', () => {
   it('names the phase, so the primary key identifies exactly one row', () => {
     // THE ASSERTION THIS FILE EXISTS FOR. `bonus_cup_members` is keyed
     // (competition_id, user_id, phase_kind); a predicate naming only the first
@@ -102,9 +102,9 @@ describe('contract 206 determinate Championship phase membership', () => {
 
   it('proves the property against the installed text, not against this file', () => {
     expect(migration).toContain("pg_get_functiondef('public.get_season_cup_phase(uuid)'::regprocedure)")
-    expect(migration).toContain('Contract 206: the membership lookup is not pinned to a phase')
+    expect(migration).toContain('Contract 207: the membership lookup is not pinned to a phase')
     expect(migration).toContain(
-      'Contract 206: the membership lookup resolves by ordering, not by key',
+      'Contract 207: the membership lookup resolves by ordering, not by key',
     )
   })
 

@@ -4,6 +4,7 @@ import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildPlayerProfileModel } from './buildPlayerProfileModel'
 import {
@@ -63,6 +64,7 @@ export type VNextPlayerProfileScreenProps = VNextPlayerProfileSourceInput & {
 }
 
 export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextPlayerProfileSource(props)
 
   const tournamentId = state.status === 'ready' ? state.source.context.tournamentId : null
@@ -132,10 +134,10 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
             // count what is outstanding. `null` is "this page cannot say".
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent, props.shellElsewhere],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const body =

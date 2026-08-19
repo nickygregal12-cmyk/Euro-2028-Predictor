@@ -78,7 +78,7 @@ is to check those, not the counts.
 | Compare with one rival | `/h2h/:rivalId` (weekly) | a panel inside the profile | **B** | Contract 192's rivalry, not contract 129 per matchweek |
 | Mark somebody as a rival | Hub Rival Watch pin | the profile's pin control | **B** | **Built in Stage 14** over `set_pinned_rival`, which has been in production since contract 157 |
 | See the players I have pinned, by name | **nowhere** | **not built** | **F** | `PROF-002`. `get_my_preferences` returns pinned rivals as bare ids — no name, no season ref. The smallest safe read is proposed in [`vnext-player-profiles.md`](vnext-player-profiles.md) §8.5 |
-| Open a same-season entrant I share no private league with | **refused** | **still refused on `main`** | **F** | `PROF-001` / ADR 0031 § 2 decided YES; the backend is in PR #920 and is **not on `main`**. See §8 below |
+| Open a same-season entrant I share no private league with | **refused** | **the backend permits it; the browser does not ask yet** | **F** | `PROF-001` / ADR 0031 § 2 decided YES. Contract 206 (`get_season_player_profile_by_ref`) is on this branch; the vNext consumer is not built and hosted Development has not applied it. See §8 |
 | A Euro-tournament private league | `/league/:id` | unchanged | **E** | Stage 15's Euro adoption, deliberately not done early |
 | A Euro-tournament profile | `/tournament/profile[/:id]` | unchanged | **E** | Three profile systems exist; vNext must not add a fourth, and must not rebuild the Euro ones out of order |
 
@@ -128,18 +128,24 @@ what a cutover would ship without.
 ### `PROF-001` — a same-season entrant with no shared private league
 
 ADR 0031 § 2 decided **YES**: same-season entrants may view each other's
-bounded, reveal-safe profiles. The backend is written — PR #920, contract 206 on
-that branch, adding `get_season_player_profile_by_ref` — and **it is not on
-`main`**. So today `buildLeaguesModel.destinationOf` returns
-`closed / not-shared` for a `compare` row, which is the correct behaviour
-against the database that exists.
+bounded, reveal-safe profiles. **Contract 206 —
+`get_season_player_profile_by_ref`, from PR #920 — is on this branch.** Three
+things still stand between that and the capability:
+
+1. **no vNext consumer.** `buildLeaguesModel.destinationOf` still returns
+   `closed / not-shared` for a `compare` row, and the player profile still asks
+   the UUID-addressed contract 151 read. Widening the first without building the
+   second would put a door on a corridor;
+2. **hosted Development has not applied it.** Repository, Development and
+   Production reach a contract on their own schedules;
+3. **generated Supabase types.** `PROF-001`'s own acceptance names them.
 
 **It is not a cutover blocker and must not be treated as one.** The vNext
-Leagues table already behaves correctly for both answers, and the legacy product
-refuses the same reader today — so cutover loses nothing here. What it does mean
-is that the journey *league table → player → rank over time → comparison* stops
-at the first step for a non-league-mate until #920 lands, reaches hosted
-Development, and its consumer is built.
+Leagues table behaves correctly for both answers, and the legacy product refuses
+the same reader today — so cutover loses nothing here. What it means is that the
+journey *league table → player → rank over time → comparison* stops at the first
+step for a non-league-mate until the consumer is built on a database that has
+the read.
 
 ### `PROF-002` — "people you follow"
 
