@@ -37,7 +37,7 @@ describe('RouteAccessibility', () => {
     )
 
     await waitFor(() => {
-      expect(document.title).toBe('Matches | Football Prediction Hub')
+      expect(document.title).toBe('Matches | Predictor Hub')
     })
 
     const announcement = screen.getByText('Matches page loaded')
@@ -53,14 +53,14 @@ describe('RouteAccessibility', () => {
     )
 
     await waitFor(() => {
-      expect(document.title).toBe('Matches | Football Prediction Hub')
+      expect(document.title).toBe('Matches | Predictor Hub')
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Open Premier League LMS' }))
 
     await waitFor(() => {
       expect(document.title).toBe(
-        'Premier League 2026/27 Last Man Standing | Football Prediction Hub',
+        'Premier League 2026/27 Last Man Standing | Predictor Hub',
       )
       expect(document.activeElement).toBe(screen.getByRole('main'))
     })

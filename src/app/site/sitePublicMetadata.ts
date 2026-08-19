@@ -54,9 +54,9 @@ export type SitePublicMetadata = {
 }
 
 const HUB: { productName: string; brand: SiteBrandCopy } = {
-  productName: 'Football Prediction Hub',
+  productName: 'Predictor Hub',
   brand: {
-    shortName: 'Prediction Hub',
+    shortName: 'Predictor Hub',
     monogram: 'PH',
     tagline: 'Three games. Every matchweek. One private league to settle it.',
     description:

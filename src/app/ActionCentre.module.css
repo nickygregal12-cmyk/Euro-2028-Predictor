@@ -10,8 +10,6 @@
 .root {
   position: fixed;
   inset: 0;
-  /* The action centre is a modal surface: it covers navigation and takes focus,
-     so it sits on the modal layer rather than inventing a number above it. */
   z-index: var(--z-modal);
   display: flex;
   align-items: flex-end;
@@ -56,8 +54,6 @@
   }
 }
 
-/* Desktop: dock right, full height. The list is identical; only the frame
-   changes, which is what keeps one component honest at both widths. */
 @media (min-width: 900px) {
   .root {
     align-items: stretch;
@@ -89,7 +85,8 @@
   color: var(--tx);
 }
 
-.close {
+.close,
+.dismiss {
   min-height: var(--tap-min);
   padding: var(--sp-2) var(--sp-3);
   border: 1px solid var(--line);
@@ -101,7 +98,8 @@
   cursor: pointer;
 }
 
-.close:focus-visible {
+.close:focus-visible,
+.dismiss:focus-visible {
   outline: 2px solid var(--acc);
   outline-offset: 2px;
 }
@@ -114,10 +112,16 @@
   color: var(--tx2);
 }
 
-.group {
+.group,
+.updates {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
+}
+
+.updates {
+  padding-top: var(--sp-3);
+  border-top: 1px solid var(--line);
 }
 
 .groupTitle {
@@ -130,7 +134,8 @@
   color: var(--tx3);
 }
 
-.list {
+.list,
+.persistentList {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -140,13 +145,12 @@
 }
 
 .item,
-.itemUrgent {
+.itemUrgent,
+.persistentItem {
   border-radius: var(--radius-input);
   background: var(--chip);
 }
 
-/* Urgency is a left rule rather than a colour fill: it has to read in both
-   themes and must not compete with the accent the primary action uses. */
 .itemUrgent {
   border-left: var(--bar-w) solid var(--amb);
 }
@@ -177,11 +181,33 @@ a.action:focus-visible {
   overflow-wrap: anywhere;
 }
 
-.actionWhere {
+.actionWhere,
+.persistentMeta {
   font-family: var(--font-body);
   font-size: var(--fs-1);
   color: var(--tx2);
   overflow-wrap: anywhere;
+}
+
+.persistentItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+}
+
+.persistentCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dismiss {
+  flex: 0 0 auto;
+  min-height: 36px;
+  font-size: var(--fs-1);
 }
 
 .all {

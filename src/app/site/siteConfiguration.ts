@@ -165,7 +165,7 @@ export function normaliseOrigin(value: string | undefined | null): string | null
 function hubConfiguration(origins: SiteOrigins): SiteConfiguration {
   return {
     variant: 'hub',
-    brand: { productName: 'Football Prediction Hub' },
+    brand: { productName: 'Predictor Hub' },
     navigation: {
       // The 10 August 2026 navigation authority's four, in its order.
       destinations: [
@@ -211,7 +211,7 @@ function euroConfiguration(origins: SiteOrigins): SiteConfiguration {
     routes: {
       signedInHome: '/',
       siblingSiteOrigin: normaliseOrigin(origins.siblingOrigin),
-      siblingSiteName: 'Football Prediction Hub',
+      siblingSiteName: 'Predictor Hub',
     },
     servesEuroTournament: true,
     // The weekly tree belongs to the Hub. See the field's note.

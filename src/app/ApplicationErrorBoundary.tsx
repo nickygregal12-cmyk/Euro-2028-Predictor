@@ -6,6 +6,7 @@ import {
   correlationReference,
   recordFailure,
 } from './fatalRecovery'
+import { currentSiteConfiguration } from './site/currentSite'
 
 interface ApplicationErrorBoundaryProps {
   readonly children: ReactNode
@@ -93,6 +94,7 @@ export class ApplicationErrorBoundary extends Component<
     if (!this.state.failed) return this.props.children
 
     const { offerRecovery, reference, recovered } = this.state
+    const productName = currentSiteConfiguration().brand.productName
 
     return (
       <main
@@ -109,7 +111,7 @@ export class ApplicationErrorBoundary extends Component<
           aria-labelledby="application-error-title"
           style={{ width: 'min(100%, 32rem)', textAlign: 'center' }}
         >
-          <p style={{ margin: 0, opacity: 0.72 }}>Football Prediction Hub</p>
+          <p style={{ margin: 0, opacity: 0.72 }}>{productName}</p>
           <h1 id="application-error-title">Something went wrong</h1>
 
           {offerRecovery ? (

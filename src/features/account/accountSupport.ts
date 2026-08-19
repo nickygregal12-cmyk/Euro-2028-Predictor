@@ -8,12 +8,13 @@ export function normaliseSupportEmail(value: string | null | undefined): string 
 export function buildAdminSupportHref(
   supportEmail: string | null | undefined,
   accountEmail: string | null | undefined,
+  productName = 'Predictor Hub',
 ): string | null {
   const recipient = normaliseSupportEmail(supportEmail)
   if (!recipient) return null
 
   const account = accountEmail?.trim() || 'Unavailable'
-  const subject = 'Football Prediction Hub support'
+  const subject = `${productName} support`
   const body = `Account email: ${account}\n\nHow can we help?`
 
   return `mailto:${recipient}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`

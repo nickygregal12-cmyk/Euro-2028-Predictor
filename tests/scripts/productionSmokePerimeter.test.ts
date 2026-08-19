@@ -162,7 +162,7 @@ describe('each production origin must serve its own product', () => {
 
   it('derives the expected product from the origin rather than hard-coding one', () => {
     expect(smoke).toContain("['https://euro28predictor.com', 'Euro 2028 Predictor']")
-    expect(smoke).toContain("['https://predictorhub.netlify.app', 'Football Prediction Hub']")
+    expect(smoke).toContain("['https://predictorhub.netlify.app', 'Predictor Hub']")
     expect(smoke).toContain('assertServesItsOwnProduct(root.body)')
   })
 
