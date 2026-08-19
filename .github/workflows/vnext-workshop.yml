@@ -2,91 +2,45 @@ name: vNext workshop browser checks
 
 # THE ONE CHECK jsdom CANNOT DO FOR vNext.
 #
-# The vNext frame's whole claim is that a 375px shell inside a wide desktop
-# browser reviews as a phone. Container queries keep that claim and jsdom
-# evaluates none of them, so every Vitest guard on this lane reads the
-# stylesheet and reasons about it. This workflow opens the five workshop widths
-# in Chromium and asserts the composition each one actually produces.
-#
-# Storybook is the server, not the application: vNext is deliberately
-# unreachable from `src/main.tsx`, so the app build contains none of the code
-# under test here.
-#
-# No screenshots, so no baselines and no runner-specific images. The frame
-# suite asserts structure — regions, column counts, sticky behaviour,
-# horizontal overflow — which is what has to survive a redesign on top of it.
-#
-# The concept suite runs beside it and asserts LESS on purpose: the three Home
-# concepts exist to be compared and then mostly discarded, so it checks only
-# what is true of any acceptable concept — no sideways overflow, one real
-# navigation, 44px targets, and a desktop composition that is not the phone
-# stretched — and never their markup.
+# vNext is reviewed in Storybook rather than through an application route. The
+# browser suite measures rendered geometry and interaction structure at the
+# workshop widths. Keep the tests themselves unchanged; this workflow only
+# distributes that existing corpus across runners and merges the evidence back
+# into one gate-owned report.
 
 on:
-  # Scoped to what can move the frame. The workshop is not on any application
-  # route, so an application-only change cannot break it.
   pull_request:
     paths:
       - 'src/vnext/**'
-      # EXCEPT THE LANE'S OWN PROSE. `src/vnext/AGENTS.md` is instructions to a
-      # reader; it is imported by nothing, bundled into nothing and rendered by
-      # nothing, so no assertion in this suite can observe an edit to it. It
-      # matched `src/vnext/**` all the same, and a one-line documentation change
-      # therefore booted Storybook and spent the better part of half an hour
-      # measuring geometry that had not moved.
-      #
-      # THIS NARROWS THE TRIGGER, NOT THE SUITE. Every assertion is unchanged
-      # and every file that can actually move a rendered frame still runs it —
-      # components, stylesheets, fixtures, tokens, models, the specs, the config
-      # and this workflow. Only a file class that cannot reach the browser is
-      # excluded, and a pull request touching prose *and* code still matches on
-      # the code.
-      #
-      # Order is the mechanism: GitHub applies the patterns in sequence and the
-      # last one to match a path decides it, so these must stay below the
-      # positive pattern they carve out of. Both forms are spelled out because
-      # the lane's only Markdown file today sits at `src/vnext/AGENTS.md`, in
-      # the directory root rather than below it, and a future scoped note in a
-      # subdirectory should not quietly start booting a browser again.
       - '!src/vnext/*.md'
       - '!src/vnext/**/*.md'
       - '.storybook/**'
-      # A GLOB RATHER THAN A LIST, because the list was already one spec short:
-      # `e2e/vnext-predictor.spec.ts` landed in Stage 7 and was never added
-      # here, so a change to it alone did not run the workshop that owns it.
-      # Stage 7.5 adds a fourth, and a list that has to be edited for every new
-      # spec is a list that will be one short again.
       - 'e2e/vnext-*.spec.ts'
       - 'playwright.vnext.config.ts'
       - 'package-lock.json'
       - '.github/workflows/vnext-workshop.yml'
   workflow_dispatch:
 
+# vNext is one of the repository's longest PR checks. Do not spend four runners
+# finishing evidence for a commit that a newer commit on the same PR replaced.
+# Manual runs stay unique and are never cancelled by this policy.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
 jobs:
-  layout:
+  shard:
+    name: vNext shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
     runs-on: ubuntu-latest
-    # THE SUITE OUTGREW TWENTY MINUTES, AND THE BUDGET HAS TO SAY SO.
-    #
-    # This runs the whole vNext Playwright suite serially — `workers: 1` and
-    # `fullyParallel: false`, because every spec shares one Storybook server and
-    # measures laid-out geometry. Stage 9 took it from 289 tests to 327, and a
-    # local full run of the 289 already took 21 minutes. At roughly 3.9s per
-    # test the suite cannot fit twenty minutes on any runner; the one green run
-    # at that ceiling finished in 17m24s only because it drew a fast one, and
-    # the next attempt was killed at 20m21s mid-measurement.
-    #
-    # A wall-clock ceiling is a resource budget, not a correctness gate, and
-    # this raise does not relax a single assertion: the gate is still "every
-    # vNext browser check passes". A suite that is killed part-way proves
-    # nothing at all, which is the weaker position of the two.
-    #
-    # 35 minutes is headroom rather than a new target — `browser-e2e` already
-    # allows 40 and `storybook` 25. If this suite ever approaches it, the answer
-    # is to parallelise the runner or split the specs, not to raise it again.
     timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -104,16 +58,113 @@ jobs:
       - name: Install Chromium and system dependencies
         run: npx playwright install --with-deps chromium
 
-      - name: Measure the workshop frames and the Home concepts
-        run: npm run test:e2e:vnext
+      - name: Measure the workshop frames and Home surfaces
+        run: >-
+          npm run test:e2e:vnext --
+          --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+          --reporter=blob
 
-      - name: Upload failure evidence
-        if: ${{ failure() }}
+      - name: Upload shard blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vnext-workshop-blob-${{ matrix.shardIndex }}
+          if-no-files-found: error
+          retention-days: 14
+          path: blob-report/
+
+  layout:
+    name: vNext merged browser gate
+    if: ${{ !cancelled() }}
+    needs: [shard]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download every shard blob report
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: all-blob-reports
+          pattern: vnext-workshop-blob-*
+          merge-multiple: true
+
+      - name: Discover the unsharded test count
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/vnext-unsharded-list.json
+        run: >-
+          npx playwright test
+          --config=playwright.vnext.config.ts
+          --list
+          --reporter=json
+
+      - name: Merge shard reports
+        env:
+          PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-vnext
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/vnext-merged-report.json
+        run: >-
+          npx playwright merge-reports
+          --reporter=html,json
+          ./all-blob-reports
+
+      - name: Refuse a partial merged report
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+
+          const read = (path) => JSON.parse(readFileSync(path, 'utf8'))
+          const count = (report) => {
+            let specs = 0
+            let tests = 0
+            const visit = (suite) => {
+              for (const spec of suite.specs ?? []) {
+                specs += 1
+                tests += (spec.tests ?? []).length
+              }
+              for (const child of suite.suites ?? []) visit(child)
+            }
+            for (const suite of report.suites ?? []) visit(suite)
+            return { specs, tests }
+          }
+
+          const expected = count(read('test-results/vnext-unsharded-list.json'))
+          const merged = count(read('test-results/vnext-merged-report.json'))
+          if (expected.specs !== merged.specs || expected.tests !== merged.tests) {
+            console.error(
+              `ERROR: merged report is partial: expected ${expected.specs} specs/${expected.tests} tests, ` +
+              `got ${merged.specs} specs/${merged.tests} tests.`,
+            )
+            process.exit(1)
+          }
+          console.log(
+            `Merged report covers the full unsharded corpus: ${merged.specs} specs/${merged.tests} tests.`,
+          )
+          NODE
+
+      - name: Upload the combined browser report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: vnext-workshop-browser
-          if-no-files-found: ignore
+          if-no-files-found: error
           retention-days: 14
           path: |
-            test-results/
             playwright-report-vnext/
+            test-results/vnext-merged-report.json
+
+      - name: Propagate shard failures to the gate
+        if: ${{ needs.shard.result != 'success' }}
+        run: |
+          echo 'ERROR: at least one vNext shard failed; the merged report above is evidence, not a pass.'
+          exit 1
