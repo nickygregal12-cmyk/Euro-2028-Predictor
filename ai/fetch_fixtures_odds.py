@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 import pandas as pd
 import requests
 
-from aliases import canonical_for
+from aliases import canonical_for_fixture
 from config import (AH_MARKET_COLUMNS, ALL_DIVISIONS,
                     FOOTBALL_DATA_FIXTURES_URL, ODDS_COLUMNS,
                     OU_MARKET_COLUMNS, strip_bom)
@@ -76,8 +76,8 @@ def fetch(divisions=ALL_DIVISIONS, timeout: int = 60,
         base = {
             "division": str(getattr(rec, "Div")).strip(),
             "match_date": when,
-            "home_canonical": canonical_for(str(getattr(rec, "HomeTeam")).strip()),
-            "away_canonical": canonical_for(str(getattr(rec, "AwayTeam")).strip()),
+            "home_canonical": canonical_for_fixture(str(getattr(rec, "HomeTeam")).strip()),
+            "away_canonical": canonical_for_fixture(str(getattr(rec, "AwayTeam")).strip()),
             "captured_at": captured,
         }
         for code in WANTED_BOOKS:

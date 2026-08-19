@@ -140,6 +140,27 @@ def test_fixture_sync_parser() -> None:
     print(f"  [pass] 15:00 UK on 5 Sep -> {elgin['kickoff_at']:%H:%MZ} (BST handled)")
 
 
+def test_the_fixture_parser_stores_the_name_the_history_uses() -> None:
+    """The 19 August 2026 defect, at the parser rather than in the alias table.
+
+    Football-Data's fixtures file writes `Bradford City`; its results file — and
+    so `ai.raw_matches` — writes `Bradford`. The parser used to store the long
+    spelling verbatim, which matched no history, and the club was scored as one
+    that had never played.
+    """
+    import sync_fixtures as S
+    row = (FIXTURES_HEADER + "\n"
+           + "E3,20/08/2026,19:00,Sheffield Wed,Bradford City\n")
+    with mock.patch.object(S.requests, "get", return_value=_fake_response(row)), \
+         mock.patch.object(S, "platform_fixture_links", return_value={}):
+        rows = S.fetch()
+
+    assert len(rows) == 1, f"expected one fixture, got {rows}"
+    assert rows[0]["home_canonical"] == "Sheffield Weds"
+    assert rows[0]["away_canonical"] == "Bradford", (
+        "'Bradford City' must reach 'Bradford', the name ai.raw_matches holds")
+
+
 def test_history_parser() -> None:
     import fetch_history as H
     csv = SEASON_HEADER + "\n" + "\n".join(SEASON_ROWS) + "\n"
