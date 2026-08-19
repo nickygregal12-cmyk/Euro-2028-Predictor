@@ -56,6 +56,12 @@ const WORLDS = [
   { story: 'frame-not-drawn-phone', label: 'an undrawn knockout at 375' },
   { story: 'frame-not-entered-phone', label: 'a non-entrant at 375' },
   { story: 'frame-unavailable-phone', label: 'a read that did not answer at 375' },
+  { story: 'frame-penalty-open-phone', label: 'an open Penalty Number at 375' },
+  { story: 'frame-penalty-open-tablet', label: 'an open Penalty Number at 768' },
+  { story: 'frame-penalty-zero-phone', label: 'a submitted Penalty Number of zero at 375' },
+  { story: 'frame-penalty-locked-phone', label: 'a locked Penalty Number at 375' },
+  { story: 'frame-penalty-unsubmitted-phone', label: 'a locked round never submitted to at 375' },
+  { story: 'frame-penalty-unscheduled-phone', label: 'an unscheduled Penalty Number at 375' },
 ] as const
 
 type Reading = {
@@ -74,6 +80,12 @@ type Reading = {
   /** Any svg, line or path inside the bracket. Must always be zero. */
   connectors: number
   pageText: string
+  /** The bracket's own text, for assertions about what a SEAT may say. */
+  bracketText: string
+  /** The intent the harness last recorded, so a press is observed at the seam. */
+  lastIntent: string
+  /** Whether the submit control is currently disabled. */
+  submitDisabled: boolean | null
 }
 
 async function read(page: import('@playwright/test').Page): Promise<Reading> {
@@ -146,6 +158,17 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
       roundCount: rounds.length,
       connectors: bracket?.querySelectorAll('svg, line, path').length ?? 0,
       pageText: ((frame ?? document.body).textContent ?? '').replace(/\s+/g, ' ').trim(),
+      bracketText: (bracket?.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      lastIntent:
+        scope.querySelector('[data-vnext-championship-host]')?.getAttribute(
+          'data-vnext-last-intent',
+        ) ?? '',
+      submitDisabled: (() => {
+        const button = scope.querySelector(
+          '[data-vnext-zone="penalty-number"] button[type="submit"]',
+        ) as HTMLButtonElement | null
+        return button === null ? null : button.disabled
+      })(),
     }
   })
 }
@@ -233,11 +256,21 @@ test.describe('the page says only what the read stated', () => {
     expect(reading.pageText).not.toMatch(/eliminated|knocked out|you are out/i)
   })
 
+  /**
+   * SCOPED TO THE BRACKET, and it has to be.
+   *
+   * An earlier version swept the whole page, which passed only until something
+   * legitimate put a colon between two numbers on it — the Penalty Number
+   * panel's "Locks Tomorrow 15:00" did exactly that. A clock time is not a
+   * scoreline, and an assertion that cannot tell them apart is measuring the
+   * wrong region rather than the wrong thing. A SEAT is where a scoreline would
+   * appear, so a seat is what this reads.
+   */
   test('renders no scoreline on a fully settled bracket', async ({ page }) => {
     await open(page, 'frame-every-decision-phone')
     const reading = await read(page)
-    expect(reading.pageText).toContain('Decided by Penalty Number')
-    expect(reading.pageText).not.toMatch(/\d+\s*[-–:]\s*\d+/)
+    expect(reading.bracketText).toContain('Decided by Penalty Number')
+    expect(reading.bracketText).not.toMatch(/\d+\s*[-–:]\s*\d+/)
   })
 
   test('says why a walkover was awarded only as far as the server did', async ({ page }) => {
@@ -287,4 +320,89 @@ test.describe('the states that are not a bracket', () => {
     await open(page, 'frame-not-drawn-phone')
     expect((await read(page)).pageText).not.toContain('Try again')
   })
+})
+
+/**
+ * THE PENALTY NUMBER, IN A REAL ENGINE.
+ *
+ * Two of these need a browser rather than jsdom: whether the control actually
+ * refuses a value the lane forbids once a person types it, and whether a 44px
+ * input and a 44px button coexist at 320px without either being squeezed under
+ * the target size. The rest are here because this is the page's one write, and
+ * the sealed bid is the one thing on it that must never leak.
+ */
+test.describe('the Penalty Number states its rule and enforces it', () => {
+  test('prints the lane rule beside the box', async ({ page }) => {
+    await open(page, 'frame-penalty-open-phone')
+    expect((await read(page)).pageText).toContain('odd number from 1 to 99')
+  })
+
+  test('refuses a value the lane forbids, once a person types it', async ({ page }) => {
+    await open(page, 'frame-penalty-open-phone')
+    const input = page.locator('[data-vnext-zone="penalty-number"] input')
+    await input.fill('8')
+    // Even, in the odd lane. The server would refuse it; the page does not send
+    // it, because the constraint was knowable before the write.
+    expect((await read(page)).submitDisabled).toBe(true)
+  })
+
+  test('accepts one the lane allows, and emits the value pressed', async ({ page }) => {
+    await open(page, 'frame-penalty-open-phone')
+    const input = page.locator('[data-vnext-zone="penalty-number"] input')
+    await input.fill('7')
+    expect((await read(page)).submitDisabled).toBe(false)
+    await page.locator('[data-vnext-zone="penalty-number"] button[type="submit"]').click()
+    await expect
+      .poll(async () => (await read(page)).lastIntent)
+      .toBe('penalty:7')
+  })
+
+  test('shows a submitted ZERO as a submission rather than an empty prompt', async ({ page }) => {
+    await open(page, 'frame-penalty-zero-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(/Your Penalty Number is 0/)
+    expect(reading.pageText).toContain('even number from 0 to 98')
+  })
+
+  test('calls an unscheduled round unscheduled rather than closed', async ({ page }) => {
+    await open(page, 'frame-penalty-unscheduled-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('no kick-off time yet')
+    // Nothing has been missed, so it must not read as a deadline gone by.
+    expect(reading.pageText).not.toMatch(/too late/i)
+    // And it offers no control at all.
+    expect(reading.submitDisabled).toBeNull()
+  })
+
+  test('shows the reader their own locked value and offers no control', async ({ page }) => {
+    await open(page, 'frame-penalty-locked-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toContain('37')
+    expect(reading.submitDisabled).toBeNull()
+  })
+})
+
+/**
+ * THE SEALED BID, SWEPT ACROSS EVERY PENALTY WORLD.
+ *
+ * Contract 193 returns neither the opponent's value nor whether they have
+ * submitted, and the model has no field for either. This is the assertion that
+ * would catch a future field being added and rendered.
+ */
+test.describe('the opponent’s Penalty Number is nowhere on any page', () => {
+  for (const story of [
+    'frame-penalty-open-phone',
+    'frame-penalty-zero-phone',
+    'frame-penalty-locked-phone',
+    'frame-penalty-unsubmitted-phone',
+    'frame-penalty-unscheduled-phone',
+  ]) {
+    test(story, async ({ page }) => {
+      await open(page, story)
+      const reading = await read(page)
+      expect(reading.pageText).not.toMatch(
+        /their (penalty|number)|opponent.s (penalty|number)|they have submitted|has submitted/i,
+      )
+    })
+  }
 })

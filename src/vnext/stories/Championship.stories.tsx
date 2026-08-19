@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { Meta, StoryObj } from '@storybook/react-vite'
 import { VNextChampionship } from '../championship/VNextChampionship'
 import { VNextShellProvider } from '../app/VNextShellProvider'
@@ -11,7 +12,7 @@ import type { ChampionshipScenarioName } from '../fixtures'
  *
  * ============================ WHAT A REVIEWER IS BEING ASKED ==============
  *
- * Not "does it render". Fourteen worlds, each with the reason it exists written
+ * Not "does it render". Nineteen worlds, each with the reason it exists written
  * into its description, and the questions they settle are:
  *
  *   1. IS THE BRACKET READABLE AT 375? Open `WideDraw` at the narrow frames
@@ -29,6 +30,12 @@ import type { ChampionshipScenarioName } from '../fixtures'
  *   6. can the reader find themselves in a draw of sixteen? (`WideDraw`, and
  *      the "Your tie" and "(you)" marks)
  *   7. do two forty-character names survive 375 without clipping? (`LongNames`)
+ *   8. does the Penalty Number state its LANE RULE before a refusal rather than
+ *      after one? (`PenaltyOpenOdd` beside `PenaltySubmittedZero`)
+ *   9. is a round with no kick-off time called unscheduled rather than closed?
+ *      (`PenaltyUnscheduled` — a player there has missed nothing)
+ *  10. can you find anywhere on any of these pages that the OPPONENT has
+ *      submitted, or what they submitted? (You cannot. There is no field.)
  *
  * ============================ THERE ARE NO CONNECTOR LINES ===============
  *
@@ -68,12 +75,23 @@ const ALL_WIDTHS = [
   'desktop-1920',
 ] as const
 
-/** The page inside a world. The harness renders no second shell. */
+/**
+ * The page inside a world. The harness renders no second shell.
+ *
+ * Submitting records the intent on the wrapper so a browser test can observe
+ * the EMISSION rather than re-reading the control it pressed — the shape Stage
+ * 9 settled. Nothing is written: these worlds have no server behind them.
+ */
 function ChampionshipHarness({ scenario }: { readonly scenario: ChampionshipScenarioName }) {
+  const [lastIntent, setLastIntent] = useState('')
   return (
     <VNextShellProvider model={shellScenarios.oneCompetition}>
-      <div data-vnext-championship-host="">
-        <VNextChampionship model={championshipScenarios[scenario]} onRetry={() => {}} />
+      <div data-vnext-championship-host="" data-vnext-last-intent={lastIntent}>
+        <VNextChampionship
+          model={championshipScenarios[scenario]}
+          onRetry={() => {}}
+          onIntent={(intent) => setLastIntent(`penalty:${intent.value}`)}
+        />
       </div>
     </VNextShellProvider>
   )
@@ -191,6 +209,44 @@ export const NotEntered: Story = board('notEntered', ALL_WIDTHS, 0.42)
 export const Unavailable: Story = board('unavailable', ALL_WIDTHS, 0.42)
 
 /* ========================================================================== *
+ * D2. THE PENALTY NUMBER — the one secret, and the one thing to do
+ * ========================================================================== */
+
+/**
+ * THE ODD LANE, NOTHING SUBMITTED.
+ *
+ * The lane rule sits BESIDE the box, not behind a refusal. The server rejects
+ * the wrong parity with `check_violation`, and that is knowable in advance —
+ * so the control declines to send it. Type an even number and watch the button
+ * stay disabled.
+ */
+export const PenaltyOpenOdd: Story = board('penaltyOpenOdd', ALL_WIDTHS, 0.42)
+
+/**
+ * THE EVEN LANE, ALREADY SUBMITTED, AND THE VALUE IS ZERO.
+ *
+ * `0` is a legal Penalty Number. A page choosing its case on truthiness rather
+ * than on `value !== null` shows this player an empty box and tells them they
+ * have not submitted — which is why this world exists rather than a tidier one.
+ */
+export const PenaltySubmittedZero: Story = board('penaltySubmittedZero', ALL_WIDTHS, 0.42)
+
+/** Locked, with a value. The reader sees their own — and nobody else's. */
+export const PenaltyLocked: Story = board('penaltyLocked', ALL_WIDTHS, 0.42)
+
+/** Locked, and they never submitted. Said plainly rather than left blank. */
+export const PenaltyLockedUnsubmitted: Story = board('penaltyLockedUnsubmitted', ALL_WIDTHS, 0.42)
+
+/**
+ * NEITHER LOCKED NOR OPEN.
+ *
+ * Contract 193 returns both booleans false when the round has no scheduled
+ * kick-off, so this proves the surface reads them independently rather than as
+ * complements. It must NOT say closed: this player has missed nothing.
+ */
+export const PenaltyUnscheduled: Story = board('penaltyUnscheduled', ALL_WIDTHS, 0.42)
+
+/* ========================================================================== *
  * E. THE WORST STRINGS
  * ========================================================================== */
 
@@ -237,3 +293,10 @@ export const FrameLongNamesTablet: Story = frame('longNames', 'tablet-768')
 export const FrameNotDrawnPhone: Story = frame('notDrawn', 'phone-375')
 export const FrameNotEnteredPhone: Story = frame('notEntered', 'phone-375')
 export const FrameUnavailablePhone: Story = frame('unavailable', 'phone-375')
+
+export const FramePenaltyOpenPhone: Story = frame('penaltyOpenOdd', 'phone-375')
+export const FramePenaltyOpenTablet: Story = frame('penaltyOpenOdd', 'tablet-768')
+export const FramePenaltyZeroPhone: Story = frame('penaltySubmittedZero', 'phone-375')
+export const FramePenaltyLockedPhone: Story = frame('penaltyLocked', 'phone-375')
+export const FramePenaltyUnsubmittedPhone: Story = frame('penaltyLockedUnsubmitted', 'phone-375')
+export const FramePenaltyUnscheduledPhone: Story = frame('penaltyUnscheduled', 'phone-375')
