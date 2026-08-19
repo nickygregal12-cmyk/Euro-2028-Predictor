@@ -288,6 +288,19 @@ const VNextGamesPreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's Discovery surface against real data. Unlike the other Stage 13
+// harnesses this one WRITES: Follow and Unfollow call set_competition_follow
+// against the signed-in account. Following never enters a game — contract 157's
+// migration refuses to install if it ever could — but unfollowing deletes the
+// follow row and any favourite club on it, and the harness says so on the page.
+const VNextDiscoveryPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextDiscoveryPreview').then((m) => ({
+        default: m.VNextDiscoveryPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -362,6 +375,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextGamesPreview ? (
                   <Route path="/dev/vnext-games" element={<VNextGamesPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextDiscoveryPreview ? (
+                  <Route path="/dev/vnext-discovery" element={<VNextDiscoveryPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

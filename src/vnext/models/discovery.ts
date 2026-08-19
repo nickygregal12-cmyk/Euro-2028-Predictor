@@ -46,8 +46,12 @@
  * where the club list is already read.
  */
 
-/** What this player has to do with a listed season. The server's, never inferred. */
-export type FollowState = 'following' | 'not-following'
+/**
+ * What this player has to do with a listed season. The server's, never
+ * inferred. Not exported: nothing outside this file names it, and
+ * `DiscoverableSeason` carries it.
+ */
+type FollowState = 'following' | 'not-following'
 
 export type DiscoverableSeason = {
   /** The season row id every season read is addressed by. */

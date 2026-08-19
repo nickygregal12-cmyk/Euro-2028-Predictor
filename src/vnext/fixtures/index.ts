@@ -169,3 +169,17 @@ export {
   gamesScenarios,
 } from './games/scenarios'
 export type { GamesScenarioName } from './games/scenarios'
+
+/**
+ * Stage 13's Discovery worlds. The binding world is `followUnknown`: the
+ * preferences read failed, so the page draws no follow control at all. A
+ * fixture that resolved that into a yes or a no would hide the state this
+ * surface is careful about — following is an upsert, and a follow re-sent for a
+ * competition already followed clears the player's favourite club.
+ */
+export {
+  discoveryScenarioNames,
+  discoveryScenarioPremises,
+  discoveryScenarios,
+} from './discovery/scenarios'
+export type { DiscoveryScenarioName } from './discovery/scenarios'
