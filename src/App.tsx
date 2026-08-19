@@ -251,8 +251,9 @@ const VNextLmsPreview = import.meta.env.DEV
 // FIRST CALLER — nothing in the application has ever invoked
 // `get_season_cup_bracket`. Every payload shape the decoder handles was
 // established by reading the migration, so this is where that reading meets a
-// real database. Unlike Stage 11's harness it writes nothing. The production
-// Championship surfaces are untouched.
+// real database. Like Stage 11's harness it can WRITE: the Penalty Number form
+// it renders submits a real sealed bid, and the harness says so on the page.
+// The production Championship surfaces are untouched.
 const VNextChampionshipPreview = import.meta.env.DEV
   ? lazy(() =>
       import('./dev/VNextChampionshipPreview').then((m) => ({

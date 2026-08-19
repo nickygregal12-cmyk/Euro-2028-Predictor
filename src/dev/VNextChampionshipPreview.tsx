@@ -35,11 +35,21 @@ import styles from './VNextHomePreview.module.css'
  * shape where contract 193 offers a LEAGUE FIXTURE as a knockout tie, and no
  * fixture can prove the filter catches a real one.
  *
- * ============================ IT READS AND DOES NOT WRITE ================
+ * ============================ IT WRITES. READ THIS ONE. ==================
  *
- * Unlike Stage 11's harness, pressing nothing here changes anything. The
- * Penalty Number write is not wired yet; when it is, this docblock gains the
- * warning that one carries.
+ * THE PENALTY NUMBER FORM IS LIVE. It renders the Stage 12 surface unchanged,
+ * and that surface's one intent is wired straight through
+ * `VNextChampionshipScreen` to `submit_cup_penalty_number` against the
+ * database this harness is pointed at.
+ *
+ * A Penalty Number is a SEALED BID in a real tie. Submitting one here is
+ * indistinguishable from submitting one in the product: it is stored against
+ * the caller's own user id, it is what the settlement authority reads when the
+ * tie goes to a Penalty Number, and there is no undo. It locks at the round's
+ * first kickoff and cannot be changed after.
+ *
+ * So: point this at a Championship whose result you are willing to be bound
+ * by, or leave the field alone. Every other control here is a read.
  *
  * ============================ IT IS `/dev` AND NOT A ROUTE ================
  *
@@ -87,7 +97,14 @@ function PreviewBody() {
         <p className={styles.note}>
           Development harness. Reads contract 193
           <code> get_season_cup_bracket</code> and renders the Stage 12 surface
-          unchanged. Not a product route, and it writes nothing.
+          unchanged. Not a product route.
+        </p>
+        <p className={styles.warning}>
+          <strong>The Penalty Number form below is live.</strong> It submits a
+          real sealed bid, against your own account, in whatever Championship
+          you point this at — the same write the product makes. It locks at the
+          round&rsquo;s first kickoff and cannot be undone. Everything else on
+          this page only reads.
         </p>
         <p className={styles.note}>
           <strong>This is contract 193&rsquo;s first caller.</strong> The most
