@@ -40,6 +40,12 @@ const FRAMES = [
   { id: 'vnext-account--frame-new-account-phone', label: 'a new account at 375', width: 375 },
   { id: 'vnext-account--frame-both-unavailable-phone', label: 'both reads failed at 375', width: 375 },
   { id: 'vnext-account--frame-finished-phone', label: 'a finished season at 375', width: 375 },
+  // The settings the cutover could not leave behind. The pending-email row is
+  // the longest thing on the page and the one most likely to overflow a phone.
+  { id: 'vnext-account--frame-email-pending-phone', label: 'an email change pending at 375', width: 375 },
+  { id: 'vnext-account--frame-email-pending-desktop', label: 'an email change pending at 1920', width: 1920 },
+  { id: 'vnext-account--frame-settings-unavailable-phone', label: 'the details read failed at 375', width: 375 },
+  { id: 'vnext-account--frame-no-support-phone', label: 'no administrator configured at 375', width: 375 },
 
   // The games hub.
   { id: 'vnext-games--frame-all-open-phone', label: 'the games hub at 375', width: 375 },

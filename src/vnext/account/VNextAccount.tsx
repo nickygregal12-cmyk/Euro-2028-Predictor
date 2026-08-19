@@ -1,6 +1,11 @@
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
+import { ChevronRight } from 'lucide-react'
 import type {
   AccountPageModel,
+  AccountRules,
+  AccountSettingsPanel,
+  AccountSupport,
   FollowedCompetition,
   FollowsPanel,
   HistoryPanel,
@@ -9,6 +14,7 @@ import type {
 import { partitionByCompletion } from '../models/account'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
+import { ShellOverlay } from '../app/ShellOverlay'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import text from '../foundations/typography.module.css'
 import styles from './account.module.css'
@@ -71,14 +77,52 @@ export type AccountIntent =
   | { readonly kind: 'open-season'; readonly competitionSlug: string; readonly seasonKey: string }
   | { readonly kind: 'sign-out' }
 
+/**
+ * WHAT A WRITE ANSWERED, IN THE TWO SHAPES A SHEET CAN DRAW.
+ *
+ * A refusal carries the application's own sentence. The page states the
+ * constraints it was given as NUMBERS — a length, a minimum — and everything
+ * else is the server's answer repeated, because the display-name moderation
+ * policy is mirrored by a database trigger and a second copy here would be the
+ * one that went stale.
+ */
+export type AccountWriteResult = { readonly ok: true } | { readonly ok: false; readonly message: string }
+
+/**
+ * THE WRITES, PERFORMED BY THE HOST — Stage 7's rule, applied to a settings
+ * surface.
+ *
+ * The page owns the control, the wording, the local checks it can state and the
+ * busy and error presentation. The application owns the request, the policy and
+ * the session. A presentation component that called `updateEmail` would be a
+ * presentation component that had to know about an auth provider.
+ *
+ * `undefined` IS "THIS HOST CANNOT DO THAT", and the row is not drawn. A
+ * control that exists and refuses teaches a player the product is broken.
+ */
+export type AccountActions = {
+  readonly setDisplayName?: ((name: string) => Promise<AccountWriteResult>) | undefined
+  readonly setPassword?: ((password: string) => Promise<AccountWriteResult>) | undefined
+  readonly setEmail?: ((email: string) => Promise<AccountWriteResult>) | undefined
+  readonly setReminderEmails?: ((on: boolean) => Promise<AccountWriteResult>) | undefined
+}
+
 export type VNextAccountProps = {
   readonly model: AccountPageModel
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  /** The writes this host can perform. Absent members draw no control. */
+  readonly actions?: AccountActions | undefined
 }
 
-export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: VNextAccountProps) {
+export function VNextAccount({
+  model,
+  onRetry,
+  refreshing = false,
+  onIntent,
+  actions,
+}: VNextAccountProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
 
@@ -95,8 +139,18 @@ export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: V
     >
       <div className={styles.page}>
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
+          {/* YOU FIRST. The page is an overview of a person, and the person is
+              the first thing on it — name, address, and the short list of
+              things they can change about themselves. */}
+          <Settings
+            panel={model.settings}
+            displayName={context.displayName}
+            actions={actions}
+            onRetry={onRetry}
+          />
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
           <History panel={model.history} onRetry={onRetry} onIntent={onIntent} />
+          <PrivacyAndSupport support={model.support} />
           <Session onIntent={onIntent} />
         </motion.div>
       </div>
@@ -135,6 +189,494 @@ function Session({
       >
         Sign out
       </button>
+    </section>
+  )
+}
+
+/* ==========================================================================
+   SETTINGS — a short list of rows, and one sheet at a time
+   ========================================================================== */
+
+/**
+ * WHAT A PLAYER MAY CHANGE ABOUT THEMSELVES, WITHOUT BECOMING A SETTINGS PAGE.
+ *
+ * ============================ WHY ROWS AND NOT FORMS =====================
+ *
+ * The legacy `/account` opens four forms at once and the result is a column of
+ * empty inputs where a player came to check one thing. A row STATES WHAT IT
+ * HOLDS — the name they are known by, the address the emails go to — which is
+ * most of what the visit was for, and it opens a sheet only when they want to
+ * change it.
+ *
+ * ============================ ONE SHEET, ONE JOB =========================
+ *
+ * Pressing "Email address" opens a sheet about the email address. Three fields
+ * behind one backdrop would be the legacy page with a scrim in front of it, and
+ * it would make a player choosing a new password read past two inputs that have
+ * nothing to do with them.
+ *
+ * ============================ A PREFERENCE IS A SWITCH ===================
+ *
+ * Reminder emails toggles in place and saves immediately. A one-tap choice put
+ * behind a sheet, a field and a Save button is a one-tap choice turned into a
+ * task. It reports its own failure beside itself and RETURNS TO WHERE IT WAS —
+ * a switch left in the position the write refused is a switch lying about a
+ * stored preference.
+ *
+ * ============================ AND NOTHING IS OFFERED THAT CANNOT BE DONE =
+ *
+ * A row exists only where the host supplied its action AND the read behind it
+ * landed. The whole panel is absent when the read failed, which is why the
+ * switch is never drawn off by default: `false` would be a decision shown to a
+ * player who never made it.
+ */
+
+type SettingsJob = 'display-name' | 'password' | 'email'
+
+const JOB_TITLES: Readonly<Record<SettingsJob, string>> = {
+  'display-name': 'Change your display name',
+  password: 'Change your password',
+  email: 'Change your email address',
+}
+
+/**
+ * A VERB AND ITS OBJECT, never a bare "Save".
+ *
+ * Written out rather than derived from the title by string surgery: a label a
+ * player reads is not a place for a `replace()` that quietly produces something
+ * ungrammatical the first time a title is reworded.
+ */
+const JOB_SUBMIT: Readonly<Record<SettingsJob, string>> = {
+  'display-name': 'Change display name',
+  password: 'Change password',
+  email: 'Change email address',
+}
+
+function Settings({
+  panel,
+  displayName,
+  actions,
+  onRetry,
+}: {
+  readonly panel: AccountSettingsPanel
+  readonly displayName: string | null
+  readonly actions?: AccountActions | undefined
+  readonly onRetry?: (() => void) | undefined
+}) {
+  const [job, setJob] = useState<SettingsJob | null>(null)
+
+  if (panel.kind === 'unavailable') {
+    return (
+      <section className={styles.panel} data-vnext-zone="settings">
+        <h2 className={`${text.title} ${styles.panelHeading}`}>Your details</h2>
+        {/* NOT A PANEL OF EMPTY FIELDS, and above all not a switch drawn off.
+            "We could not read your settings" and "reminder emails are off" are
+            different sentences and only one of them is about the player. */}
+        <div className={styles.empty}>
+          <p className={text.body}>We could not load your account details just now.</p>
+          {onRetry === undefined ? null : (
+            <button type="button" className={styles.retry} onClick={onRetry}>
+              Try again
+            </button>
+          )}
+        </div>
+      </section>
+    )
+  }
+
+  const rows: readonly { job: SettingsJob; label: string; value: string }[] = [
+    ...(actions?.setDisplayName
+      ? [
+          {
+            job: 'display-name' as const,
+            label: 'Display name',
+            // The name other players see. `null` is a real state — the profile
+            // read has no name — and it is said rather than left blank.
+            value: displayName ?? 'Not set',
+          },
+        ]
+      : []),
+    ...(actions?.setPassword
+      ? [{ job: 'password' as const, label: 'Password', value: '••••••••' }]
+      : []),
+    ...(actions?.setEmail && panel.email.kind === 'known'
+      ? [{ job: 'email' as const, label: 'Email address', value: panel.email.address }]
+      : []),
+  ]
+
+  const pending = panel.email.kind === 'known' ? panel.email.pending : null
+
+  // NO HEADING OVER NOTHING. A host that supplied no writes gets no "Your
+  // details" section at all rather than an empty one — Stage 13's rule that the
+  // page must not head a section it cannot fill, kept now that it can fill one.
+  if (rows.length === 0 && !actions?.setReminderEmails) return null
+
+  return (
+    <section className={styles.panel} data-vnext-zone="settings">
+      <h2 className={`${text.title} ${styles.panelHeading}`}>Your details</h2>
+
+      {rows.length === 0 ? null : (
+        <ul className={styles.rows}>
+          {rows.map((row) => (
+            <li key={row.job}>
+              <button
+                type="button"
+                className={styles.row}
+                data-vnext-setting={row.job}
+                // THE NAME IS WRITTEN OUT. Three text nodes joined with no
+                // separator would be announced as one run-on string, and
+                // "Change" alone would be the vague button the brief names.
+                aria-label={`${row.label}: ${row.value}. Change`}
+                onClick={() => setJob(row.job)}
+              >
+                <span className={styles.rowText}>
+                  <span className={`${text.micro} ${styles.rowLabel}`}>{row.label}</span>
+                  <span className={`${text.body} ${styles.rowValue}`}>{row.value}</span>
+                </span>
+                <ChevronRight size={18} strokeWidth={1.75} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* BOTH ADDRESSES ARE REAL IN THIS WINDOW. Saying only the old one tells
+          the player their change did not happen; saying only the new one tells
+          them it has. */}
+      {pending === null ? null : (
+        <p className={`${text.micro} ${styles.note}`} data-vnext-zone="email-pending">
+          {pending} is waiting to be confirmed. Open the link we sent there to
+          finish the change — until then, emails still go to your current
+          address.
+        </p>
+      )}
+
+      {panel.email.kind === 'unknown' && actions?.setEmail ? (
+        <p className={`${text.micro} ${styles.note}`} data-vnext-zone="email-unknown">
+          We could not read which email address this account uses.
+        </p>
+      ) : null}
+
+      {actions?.setReminderEmails ? (
+        <ReminderSwitch
+          on={panel.reminderEmails}
+          save={actions.setReminderEmails}
+        />
+      ) : null}
+
+      {job === null ? null : (
+        <SettingsSheet
+          job={job}
+          rules={panel.rules}
+          currentName={displayName}
+          actions={actions}
+          onClose={() => setJob(null)}
+        />
+      )}
+    </section>
+  )
+}
+
+/**
+ * THE PREFERENCE, AS A SWITCH THAT TELLS THE TRUTH.
+ *
+ * It moves optimistically, because a control that waits for a round trip feels
+ * broken — and it MOVES BACK when the write refuses, because the position of
+ * this switch is a claim about a stored preference and a wrong one is worse
+ * than a slow one.
+ *
+ * `aria-busy` rather than `disabled` while saving: disabling a control the
+ * moment it is pressed takes focus off it in some browsers, and a player who
+ * pressed it twice has told the server twice, which is idempotent here.
+ */
+function ReminderSwitch({
+  on,
+  save,
+}: {
+  readonly on: boolean
+  readonly save: (next: boolean) => Promise<AccountWriteResult>
+}) {
+  const [shown, setShown] = useState(on)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // The model is the authority. When a reload brings a new stored value, the
+  // switch follows it rather than keeping whatever it was last set to here.
+  const [seen, setSeen] = useState(on)
+  if (seen !== on) {
+    setSeen(on)
+    setShown(on)
+  }
+
+  return (
+    <div className={styles.switchRow} data-vnext-zone="reminder-emails">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={shown}
+        aria-busy={busy}
+        className={styles.switch}
+        onClick={() => {
+          const next = !shown
+          setShown(next)
+          setError(null)
+          setBusy(true)
+          void save(next)
+            .then((result) => {
+              if (result.ok) return
+              // BACK TO WHERE IT WAS. The switch states a stored fact.
+              setShown(!next)
+              setError(result.message)
+            })
+            .catch(() => {
+              setShown(!next)
+              setError('We could not save that just now.')
+            })
+            .finally(() => setBusy(false))
+        }}
+      >
+        <span className={styles.switchTrack} aria-hidden="true">
+          <span className={styles.switchThumb} />
+        </span>
+        <span className={styles.switchText}>
+          <span className={`${text.body} ${styles.rowValue}`}>Reminder emails</span>
+          <span className={`${text.micro} ${styles.rowLabel}`}>
+            A nudge before your predictions lock.
+          </span>
+        </span>
+      </button>
+      {error === null ? null : (
+        <p className={`${text.micro} ${styles.error}`} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+/**
+ * ONE SHEET, ONE JOB.
+ *
+ * `ShellOverlay` IS REUSED RATHER THAN REBUILT, and its own header says why: a
+ * real `dialog` with a real name, focus that enters, Escape that closes, focus
+ * that returns to the control that was pressed, and a scrim that is not a
+ * control. Writing that a fourth time is how the fourth one ends up without an
+ * Escape handler. It is a bottom sheet on a phone and a centred panel on a
+ * desktop, decided in CSS against the shell's container.
+ *
+ * THE CHECKS IT MAKES ARE THE ONES IT WAS TOLD. A length and a minimum, both
+ * numbers on the model, plus "the two passwords match" — which is a fact about
+ * this form and about nothing on the server. Everything else is the write's own
+ * refusal, printed verbatim.
+ */
+function SettingsSheet({
+  job,
+  rules,
+  currentName,
+  actions,
+  onClose,
+}: {
+  readonly job: SettingsJob
+  readonly rules: AccountRules
+  readonly currentName: string | null
+  readonly actions?: AccountActions | undefined
+  readonly onClose: () => void
+}) {
+  const [value, setValue] = useState(job === 'display-name' ? (currentName ?? '') : '')
+  const [confirm, setConfirm] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState<string | null>(null)
+  const fieldRef = useRef<HTMLInputElement>(null)
+
+  const localError = ((): string | null => {
+    const trimmed = value.trim()
+    if (trimmed.length === 0) return null
+    if (job === 'display-name' && trimmed.length > rules.displayNameMaxLength) {
+      return `Keep it to ${rules.displayNameMaxLength} characters or fewer.`
+    }
+    if (job === 'password') {
+      if (value.length < rules.passwordMinLength) {
+        return `Use at least ${rules.passwordMinLength} characters.`
+      }
+      if (confirm.length > 0 && confirm !== value) return 'The two passwords do not match.'
+    }
+    return null
+  })()
+
+  const ready =
+    value.trim().length > 0 &&
+    localError === null &&
+    (job !== 'password' || confirm === value)
+
+  function submit() {
+    const run =
+      job === 'display-name'
+        ? actions?.setDisplayName?.(value.trim())
+        : job === 'password'
+          ? actions?.setPassword?.(value)
+          : actions?.setEmail?.(value.trim())
+    if (!run) return
+
+    setBusy(true)
+    setError(null)
+    void run
+      .then((result) => {
+        if (result.ok) {
+          setDone(
+            job === 'email'
+              ? 'Check the new address for a confirmation link. Nothing changes until you open it.'
+              : 'Saved.',
+          )
+          return
+        }
+        setError(result.message)
+      })
+      .catch(() => setError('We could not save that just now.'))
+      .finally(() => setBusy(false))
+  }
+
+  return (
+    <ShellOverlay title={JOB_TITLES[job]} initialFocusRef={fieldRef} onClose={onClose}>
+      {done === null ? (
+        <form
+          className={styles.sheet}
+          data-vnext-zone="settings-sheet"
+          data-job={job}
+          onSubmit={(event) => {
+            event.preventDefault()
+            if (ready && !busy) submit()
+          }}
+        >
+          <label className={styles.field}>
+            <span className={`${text.micro} ${styles.rowLabel}`}>
+              {job === 'display-name'
+                ? 'New display name'
+                : job === 'password'
+                  ? 'New password'
+                  : 'New email address'}
+            </span>
+            <input
+              ref={fieldRef}
+              className={styles.input}
+              type={job === 'password' ? 'password' : job === 'email' ? 'email' : 'text'}
+              value={value}
+              // The constraint is stated before the refusal rather than learnt
+              // from it — the same rule the Penalty Number lane follows.
+              maxLength={job === 'display-name' ? rules.displayNameMaxLength : undefined}
+              autoComplete={
+                job === 'password' ? 'new-password' : job === 'email' ? 'email' : 'nickname'
+              }
+              onChange={(event) => setValue(event.target.value)}
+            />
+          </label>
+
+          {job === 'password' ? (
+            <label className={styles.field}>
+              <span className={`${text.micro} ${styles.rowLabel}`}>Repeat new password</span>
+              <input
+                className={styles.input}
+                type="password"
+                value={confirm}
+                autoComplete="new-password"
+                onChange={(event) => setConfirm(event.target.value)}
+              />
+            </label>
+          ) : null}
+
+          {job === 'password' ? (
+            <p className={`${text.micro} ${styles.note}`}>
+              At least {rules.passwordMinLength} characters.
+            </p>
+          ) : null}
+
+          {localError === null ? null : (
+            <p className={`${text.micro} ${styles.error}`}>{localError}</p>
+          )}
+          {error === null ? null : (
+            <p className={`${text.micro} ${styles.error}`} role="alert">
+              {error}
+            </p>
+          )}
+
+          <div className={styles.sheetActions}>
+            <button type="button" className={styles.secondary} onClick={onClose}>
+              Cancel
+            </button>
+            {/* A player reading this button out of context still knows what it
+                will do. See `JOB_SUBMIT`. */}
+            <button type="submit" className={styles.primary} disabled={!ready || busy}>
+              {busy ? 'Saving…' : JOB_SUBMIT[job]}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className={styles.sheet} data-vnext-zone="settings-done">
+          <p className={text.body} role="status">
+            {done}
+          </p>
+          <div className={styles.sheetActions}>
+            <button type="button" className={styles.primary} onClick={onClose}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+    </ShellOverlay>
+  )
+}
+
+/* ==========================================================================
+   PRIVACY AND SUPPORT
+   ========================================================================== */
+
+/**
+ * WHAT OTHER PLAYERS CAN SEE, AND HOW TO ASK A HUMAN.
+ *
+ * ============================ WHY IT IS HERE AND NOT IN A DIRECTORY ======
+ *
+ * "Who can see my predictions?" is a question about YOU, and this is the page
+ * about you. The legacy answer lived on `/account` beside the settings and was
+ * also reachable from `/more`; the matrix absorbs the directory, and putting
+ * the answer anywhere else would mean a player has to know it is a "help" topic
+ * before they can find out whether their predictions are private.
+ *
+ * ============================ THE THREE SENTENCES ARE THE REVEAL RULE ====
+ *
+ * They are not reassurance copy. Contract 151's per-matchweek reveal boundary
+ * is what the first two describe, and the season player surface enforces it by
+ * ABSENCE. If that rule ever changes these sentences are wrong, which is why
+ * they are three short facts and not a paragraph that could stay vaguely true.
+ *
+ * ============================ AND THE LINK IS REAL OR IT IS ABSENT =======
+ *
+ * `unconfigured` renders a sentence, not a disabled button. A player who cannot
+ * reach an administrator should be told that plainly rather than pressing
+ * something that does nothing.
+ */
+function PrivacyAndSupport({ support }: { readonly support: AccountSupport }) {
+  return (
+    <section className={styles.panel} data-vnext-zone="privacy">
+      <h2 className={`${text.title} ${styles.panelHeading}`}>Privacy and help</h2>
+      <ul className={styles.privacy}>
+        <li className={text.body}>Before entries lock, only you can see your predictions.</li>
+        <li className={text.body}>
+          After lock, signed-in players can inspect frozen entries, profiles and points
+          breakdowns, so the leaderboard can be checked.
+        </li>
+        <li className={text.body}>
+          Your email address and account settings are never shown on a profile.
+        </li>
+      </ul>
+      {support.kind === 'available' ? (
+        <a className={styles.support} href={support.href} data-vnext-zone="support">
+          Email an administrator
+        </a>
+      ) : (
+        <p className={`${text.micro} ${styles.note}`} data-vnext-zone="support-absent">
+          No administrator address has been set up for this deployment yet.
+        </p>
+      )}
     </section>
   )
 }

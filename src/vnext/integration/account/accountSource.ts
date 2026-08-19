@@ -11,6 +11,10 @@ import type { PublishedWeeklySeason } from '../../../services/supabase/weeklyCat
  *   contract 161  `get_my_season_history`         seasons this player PLAYED
  *   contract 147  `get_published_weekly_seasons`  the catalogue, used ONLY to
  *                                                 put a name on a follow
+ *   `fetchMyAccount` + `getSessionEmailState`     the display name, the stored
+ *                                                 reminder-email preference,
+ *                                                 the email address and the one
+ *                                                 awaiting confirmation
  *
  * Each arrives with its OWN outcome, for the reason every stage since 10 has
  * settled: a page assembled from several reads must not have a single
@@ -62,10 +66,42 @@ type CatalogueRead =
   | { readonly kind: 'ok'; readonly seasons: readonly PublishedWeeklySeason[] }
   | { readonly kind: 'failed' }
 
+/**
+ * The profile row and the session's email state, which arrive together because
+ * a single failure of either leaves the same panel unable to draw itself: an
+ * email row with no address and a switch in an unknown position are not two
+ * independently useful halves.
+ *
+ * `rules` ARE NUMBERS THE HOST READ FROM THE POLICY MODULE. They are carried
+ * rather than imported because the policy lives in `src/features/`, which no
+ * presentation module may reach, and because a second copy of a moderation list
+ * is a second thing to keep in step.
+ */
+type SettingsRead =
+  | {
+      readonly kind: 'ok'
+      readonly email: string | null
+      readonly pendingEmail: string | null
+      readonly reminderEmails: boolean
+      readonly displayNameMaxLength: number
+      readonly passwordMinLength: number
+    }
+  | { readonly kind: 'failed' }
+
 export type AccountSource = {
   readonly generatedAt: string
   readonly displayName: string | null
   readonly preferences: PreferencesRead
   readonly history: HistoryRead
   readonly catalogue: CatalogueRead
+  readonly settings: SettingsRead
+  /**
+   * The deployment's configured administrator address as a ready `mailto:`, or
+   * `null` where none is configured or the configured one is not an address.
+   *
+   * BUILT BY THE HOST, because the subject line names the product and the body
+   * carries the player's own email — both of which are the application's facts.
+   * A presentation module composing a support link would be inventing one.
+   */
+  readonly supportHref: string | null
 }

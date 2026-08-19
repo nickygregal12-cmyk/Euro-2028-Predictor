@@ -1,5 +1,6 @@
 import type {
   AccountPageModel,
+  AccountSettingsPanel,
   FavouriteClub,
   FollowIdentity,
   FollowsPanel,
@@ -155,5 +156,49 @@ export function buildAccountModel(source: AccountSource): AccountPageModel {
     context: { displayName: source.displayName },
     follows: followsPanelOf(source),
     history: historyPanelOf(source),
+    settings: settingsPanelOf(source),
+    support:
+      source.supportHref === null
+        ? { kind: 'unconfigured' }
+        : { kind: 'available', href: source.supportHref },
+  }
+}
+
+/**
+ * THE SETTINGS PANEL, CARRIED AND NOT DEFAULTED.
+ *
+ * A failed read is `unavailable` and NOT a panel of empty fields with the
+ * switch off. `reminderEmails` is a stored choice: drawing it off because the
+ * read did not land would show the player a decision they never made, in a
+ * control that looks exactly like one they could have.
+ *
+ * The email is `unknown` where the session read has no address, which is a
+ * different thing again from the panel failing — the profile answered and the
+ * session did not.
+ */
+function settingsPanelOf(source: AccountSource): AccountSettingsPanel {
+  if (source.settings.kind !== 'ok') return { kind: 'unavailable' }
+  const read = source.settings
+
+  return {
+    kind: 'ready',
+    email:
+      read.email === null
+        ? { kind: 'unknown' }
+        : {
+            kind: 'known',
+            address: read.email,
+            // A PENDING ADDRESS EQUAL TO THE CURRENT ONE IS NOT PENDING. The
+            // session reports the two independently and there is nothing for a
+            // player to confirm when they match.
+            pending: read.pendingEmail === null || read.pendingEmail === read.email
+              ? null
+              : read.pendingEmail,
+          },
+    reminderEmails: read.reminderEmails,
+    rules: {
+      displayNameMaxLength: read.displayNameMaxLength,
+      passwordMinLength: read.passwordMinLength,
+    },
   }
 }
