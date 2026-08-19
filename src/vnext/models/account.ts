@@ -1,5 +1,5 @@
 /**
- * vNEXT ACCOUNT / YOU — the shell's fourth permanent destination.
+ * vNEXT ACCOUNT / YOU — platform identity, outside the four destinations.
  *
  * ============================ WHY THIS EXISTS AT ALL =====================
  *

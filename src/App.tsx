@@ -313,6 +313,18 @@ const VNextInvitePreview = import.meta.env.DEV
     )
   : null
 
+// Stage 13's onboarding harness. READ-ONLY: the vNext screen writes nothing —
+// not the progress stamp, not the follows, not the game entries — because the
+// commit order lives in OnboardingJourney and this lane keeps no second copy.
+// The production /welcome route is untouched and still runs that journey.
+const VNextOnboardingPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextOnboardingPreview').then((m) => ({
+        default: m.VNextOnboardingPreview,
+      })),
+    )
+  : null
+
 function SessionlessChrome() {
   return (
     <>
@@ -393,6 +405,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextInvitePreview ? (
                   <Route path="/dev/vnext-invite" element={<VNextInvitePreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextOnboardingPreview ? (
+                  <Route path="/dev/vnext-onboarding" element={<VNextOnboardingPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />

@@ -366,3 +366,48 @@ The rationale for all of it is in [`vnext-lms.md`](vnext-lms.md).
    reinterpret the requirement. See [`vnext-championship.md`](vnext-championship.md) §6.
 
 The rationale for all of it is in [`vnext-championship.md`](vnext-championship.md).
+
+---
+
+## 12. Resolved by Stage 13
+
+The supporting surfaces around the games. The full derivation — including the
+check that no user-facing route is missing from this matrix — is in
+[`vnext-supporting-surfaces.md`](vnext-supporting-surfaces.md).
+
+1. **`/account`, `/profile`, `/more` — RETAIN, REDESIGN, ABSORB, all three
+   built as one platform-scoped surface.** The finding that ordered the stage
+   was not a missing page: `VNextShell` emits a `kind: 'account'` intent from
+   two places, showing the signed-in player's own name, and **no vNext surface
+   answered it** — so in every surface Stages 8–12 built, pressing your own name
+   dropped you out of vNext into the production visual system. The escape hatch
+   worked, which is why it went unnoticed.
+
+2. **`/competitions/:c/:s/games` — REDESIGN, built as the peer hub.** Every game
+   is the same size at every width, and the only grouping is whether the PLAYER
+   is in one. **No rejoin control exists in any world**, including the ones
+   where a rejoin would certainly succeed: `allow_rejoin` bites only once a
+   competition is running, and `competition_is_running` is revoked from
+   `authenticated`, so no browser can learn the fact a rejoin control would have
+   to assume.
+
+3. **`/more/scoring` — ABSORB, and it is a control rather than a page.** The
+   three games' rules sit beside the games, one game at a time behind a
+   segmented control, with the numbers imported from `src/domain/season/scoring.ts`
+   rather than retyped.
+
+4. **`/welcome` — REDESIGN, and the row's own scoping was the right one.** vNext
+   presentation over the existing journey: same four steps, same resume from
+   contract 157. **The commit was deliberately not written a second time** —
+   `OnboardingJourney` owns the only copy of the follows/entries/completion
+   order, so the vNext screen writes nothing and hands `finish` to its host.
+
+5. **`/tournament/profile` and `/tournament/profile/:playerId` — MERGE, and
+   still not performed.** §9's reasoning stands unchanged: performing the merge
+   is Stage 15's Euro adoption. Stage 13 records the fate rather than executing
+   it, which is what its predicate asks for.
+
+6. **`…/games/match-predictor/standings` — ABSORB, and now genuinely absorbed.**
+   Nothing in Stage 13 was needed for it; the row is discharged by Stage 9's
+   league table and Stage 10's player surface, and this is recorded so the row
+   is not mistaken for outstanding work.

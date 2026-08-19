@@ -1,0 +1,252 @@
+/* vNEXT ONBOARDING — one column, one question at a time.
+ *
+ * WHAT IS NOT HERE. The canvas, the page bounds, the masthead, both navigations
+ * and the `<main>` landmark are the shell's.
+ *
+ * THERE IS NO PROGRESS METER. "Step 2 of 4" is in the header and nothing fills
+ * up: a meter implies a race, and three of the four steps are skippable.
+ *
+ * EVERY CHOICE IS THE SAME SIZE. A competition, a club and a game are all one
+ * row of the same height at every width. Drawing one larger is how a hub tells
+ * a player which answer it wanted, and that is exactly the failure the games
+ * hub was built to stop repeating.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  width: 100%;
+  /* Narrow enough that the eye does not have to travel across a full desktop
+     width to read one question and its answers. */
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.step h2 {
+  margin: 0;
+}
+
+.note,
+.empty,
+.pending {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.meta {
+  color: var(--vnext-text-muted);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.group h3 {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ONE ROW, WHETHER IT IS A COMPETITION OR A GAME. */
+.choice {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-raised);
+  cursor: pointer;
+  transition:
+    border-color var(--vnext-duration-fast) ease,
+    background-color var(--vnext-duration-fast) ease;
+}
+
+.choice:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.choice[data-selected='true'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+/* THE FOCUS RING FOLLOWS THE HIDDEN INPUT ONTO THE ROW. The checkbox is
+   screen-reader-only, so without this a keyboard player would move through the
+   list with nothing visible changing. */
+.choice:focus-within {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.choiceBody {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.tick {
+  flex: none;
+  width: 1.25rem;
+  color: var(--vnext-accent);
+  text-align: center;
+}
+
+/* A GAME ALREADY JOINED, OR NOT YET OPEN. Same row, no control, and visibly
+   quieter so it does not read as something waiting to be pressed. */
+.joined {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px dashed var(--vnext-hairline);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-secondary);
+}
+
+.clubs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.club {
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-raised);
+  color: var(--vnext-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.club[data-selected='true'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.club:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+.summary h3 {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding-left: var(--vnext-space-5);
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.refused {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-warn);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-warn-veil);
+}
+
+.error {
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-miss);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-miss-veil);
+  color: var(--vnext-text);
+}
+
+/* SKIP SITS BESIDE CONTINUE AT THE SAME SIZE. See the component header. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: center;
+}
+
+.primary,
+.secondary {
+  padding: var(--vnext-space-3) var(--vnext-space-5);
+  border-radius: var(--vnext-radius-pill);
+  font: inherit;
+  cursor: pointer;
+}
+
+.primary {
+  border: 1px solid var(--vnext-accent);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+.primary[disabled] {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.secondary {
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: transparent;
+  color: var(--vnext-text);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}

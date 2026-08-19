@@ -196,3 +196,17 @@ export {
   inviteScenarios,
 } from './invite/scenarios'
 export type { InviteScenarioName } from './invite/scenarios'
+
+/**
+ * Stage 13's onboarding worlds. The binding world is `games`: it holds a game
+ * the player has ALREADY JOINED beside one they can choose, because those two
+ * must never look alike — an unticked box would invite a player to choose what
+ * they already have, and a ticked one would make Finish look like it were about
+ * to join them twice.
+ */
+export {
+  onboardingScenarioNames,
+  onboardingScenarioPremises,
+  onboardingScenarios,
+} from './onboarding/scenarios'
+export type { OnboardingScenarioName } from './onboarding/scenarios'

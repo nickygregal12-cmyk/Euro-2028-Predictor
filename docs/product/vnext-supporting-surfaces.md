@@ -56,7 +56,7 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 | --- | --- | --- |
 | `/account` | RETAIN | **Pressing your own name drops you into the legacy visual system** — the predicate's own words. See §4 |
 | `/profile` | RETAIN + REDESIGN | Platform identity and season history; the matrix says keep it platform-level, outside the tournament boundary |
-| `/tournament/profile`, `/tournament/profile/:playerId` | MERGE | Three profile systems exist; the matrix's rule is that vNext must not add a fourth |
+| `/tournament/profile`, `/tournament/profile/:playerId` | MERGE | **Not built here — see §3.1.** The fate is intentional and recorded; performing the merge is Stage 15's |
 | `/more` | ABSORB | *"A directory page is a symptom of a navigation that ran out of slots."* None of the three IA concepts has a More |
 | `/more/scoring` | ABSORB | *"Rules belong beside the game they govern"* — placement, not a page |
 | `/competitions` | RETAIN + HIDE | Deliberate discovery over the published catalogue; keeps its address, changes how it is reached |
@@ -65,6 +65,29 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 | `/join/:code` | RETAIN | A pending invitation must survive authentication and onboarding |
 | `/welcome` | REDESIGN | Onboarding exists and is routed in production; what Stage 13 owes is its vNext presentation and the coherence the predicate names |
 | `*` | RETAIN | *"Every concept still needs a deterministic parent from a not-found."* |
+
+### 3.1 The tournament profile is targeted, not merged here
+
+**An earlier draft of the table above put `/tournament/profile` in Stage 13's
+build list. That was wrong and is corrected here.**
+
+The matrix already decided it, in §9: those two rows are *"the tournament
+profile system, and merging them into the season surface would be Stage 15's
+Euro adoption pulled forward and out of order — the same reasoning Stage 9
+applied to `/league/:id`."* Stage 10 deliberately left them, and Stage 13 has
+been given no authority the matrix withheld from Stage 10.
+
+The stage's predicate asks for something narrower than a completed merge, and
+the distinction is the whole point of the wording:
+
+> every remaining user-facing route in the migration matrix has an **intentional
+> target fate**
+
+`MERGE`, into the player surface Stage 10 built, is that fate. It is recorded,
+it is not a placeholder, and nothing in this stage contradicts it. What the
+predicate does NOT ask is that every fate be performed in Stage 13 — several are
+explicitly Stage 14's and Stage 15's, and performing this one early would be a
+stage taking work the programme assigned elsewhere.
 
 ### Not Stage 13's, and why
 
@@ -253,9 +276,95 @@ From the contract, and from the two debts carried out of Stage 12:
    `*` row asks for *a deterministic parent from a not-found*, which is a
    statement about the shell as much as the page.
 4. **Discovery, join and rules placement** — `/competitions`, `/join/:code`,
-   `/more/scoring`.
+   `/more/scoring`. **DONE**; the scoring rules are a segmented control beside
+   the games rather than one long list, because a page that explains three
+   games at once explains none of them.
+5. **Onboarding** — `/welcome`. **DONE**; see §8.
 
 Each lands with its own model, mapper, source, tests and Storybook worlds, on
 the presentation architecture the lane has used since Stage 8: reads → source →
 pure mapper → model → visual component, with the production boundary test
 holding `components → models` and `integration → services`.
+
+---
+
+## 8. ONBOARDING — AND THE COMMIT THIS LANE DID NOT WRITE TWICE
+
+The matrix marks `/welcome` **REDESIGN** and scopes it in the row itself: the
+four-step journey is *"built and routed"*, so what is owed is **vNext
+presentation over an existing flow, not a flow to be written**. The predicate
+then names the outcome:
+
+> new-user onboarding → competition/game entry is coherent
+
+Coherent means one visual system from the first screen through to the games hub.
+A cutover that left `/welcome` on the production design would make a new
+player's VERY FIRST screen the one place vNext does not reach — the Account
+defect of §4, at the worse end of the journey.
+
+### What was built
+
+`models/onboarding.ts` → `integration/onboarding/` → `onboarding/VNextOnboarding.tsx`,
+with fourteen Storybook worlds, a `/dev/vnext-onboarding` harness and two test
+files. The four steps are the same four steps, in the same order, resumed from
+the same contract 157 fields.
+
+### What was deliberately NOT built, and this is the binding decision
+
+**The commit.** Finishing onboarding writes follows, then game entries, then
+completion, and reports which parts were refused without abandoning the parts
+that worked. `OnboardingJourney` already does that, has done since contract 157,
+and is the only place in the repository that does.
+
+So this lane does not do it a second time. `finish` is an **intent** carrying
+the draft and the catalogue it was made against; the host performs it, and at
+Stage 14 the host is the page that already owns the commit. The screen therefore
+writes **nothing at all** — not the progress stamp, not the follows, not the
+entries — and the `/dev` harness reports the draft it would have committed
+rather than committing it.
+
+Two copies of a three-authority commit order would be three chances to disagree
+about which of follows, entries and completion is allowed to fail, in a lane
+that has not cut over and can gain nothing by holding the second copy.
+
+### The step list is restated, and pinned
+
+`ONBOARDING_STEP_ORDER` in the model duplicates `ONBOARDING_STEPS`, because the
+production boundary forbids a vNext model from importing `src/features` — a
+model that does drags the application into every story and fixture that touches
+it. `tests/vnext/buildOnboardingModel.test.ts` asserts the two are identical, so
+a build that adds a fifth step on one side only fails there. The same treatment
+covers the catalogue's game keys.
+
+### And the production route is untouched
+
+`WelcomePage` still runs `OnboardingJourney`, still gates on `welcomed_at` and
+still consumes the pending invite across sign-up. Repointing it is routing, and
+routing is Stage 14's.
+
+---
+
+## 9. RECONCILIATION AGAINST THE STAGE 13 PREDICATE
+
+Item by item, with what discharges it.
+
+| Predicate item | Status | Evidence |
+| --- | --- | --- |
+| Every remaining user-facing route has an intentional target fate | Met | §2's derivation over every `path=` in `src/App.tsx`; §3's table; §3.1 for the two rows whose fate is recorded and whose execution is Stage 15's |
+| Retained/merged/absorbed journeys needed for cutover have viable vNext presentation | Met | Account (§4–5), Games hub (§5.5), Discovery, Invite, generic states, scoring rules, onboarding (§8). `/more` and `/more/scoring` are ABSORBED, so their presentation is the surface that absorbed them |
+| New-user onboarding → competition/game entry is coherent | Met | §8. The journey and the hub it hands off to are one visual system, and the hub is the surface where the three games are peers |
+| Account/discovery/help/error states no longer fall back accidentally to an unrelated visual system | Met | §4 was the defect; `VNextAccountScreen` answers `kind: 'account'`, and the shared `src/vnext/states/` module carries a REQUIRED `destination` so a failing page never mislabels where the player is |
+| Action/attention UI only claims event classes the backend can produce | Met | §5.5 — no rejoin control exists in any world, because `competition_is_running` is revoked from `authenticated`; the surface states the rule and never a verdict |
+| No legally blocked or absent backend capability is papered over | Met | The two carried debts (`config/vnext-programme.json` → `carriedDebt`) are stated, not worked around: the elimination read and contract 120's membership lookup remain another session's backend work |
+| Exact-head tests / browser / CI and independent review are green | Tracked on the pull request | Not a claim this document can make |
+
+### `…/games/match-predictor/standings` — ABSORB, and it is absorbed
+
+Worth stating because it is the one row whose fate is discharged by earlier
+stages rather than by anything in this one. The matrix's note already records
+why the row was blocked and why it no longer is: contract 191 supplies
+`playerRef`, `reach` and `playerId`, Stage 9's league table links a player where
+the server allows it, and Stage 10 built what is behind the link. A game's
+standings and a private league's table are the same question at two scopes, and
+both scopes now have a vNext surface. Nothing further is owed here; performing
+the absorption on the live address is Stage 14's.
