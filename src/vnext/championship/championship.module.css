@@ -1,0 +1,427 @@
+/* vNEXT PREDICTOR CHAMPIONSHIP — the bracket, and where the reader is in it.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * sticky masthead, both navigations, the `<main>` landmark and the mobile
+ * bottom spacing are the shell's.
+ *
+ * THE BRACKET IS NOT A TREE, AND THAT IS A LAYOUT DECISION RATHER THAN A
+ * STYLING ONE. A knockout tree at 375px is four unreadable columns; rounds as
+ * sections are readable at every width, and widening turns them into the
+ * columns a bracket is usually drawn as. See `VNextChampionship.tsx`.
+ *
+ * THERE ARE NO CONNECTOR LINES, at any width, and none may be added: an edge
+ * between two seats asserts which feeds which, and contract 193 supplies no
+ * such edge. Drawing one would be reconstructing the bracket.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY on `vnext-page`.
+ *
+ *   compact  (< 700px)    one round per row, read downwards.
+ *   regular  (>= 700px)   two rounds across.
+ *   expanded (>= 1180px)  rounds as columns.
+ *
+ * NO NAME IS EVER CLIPPED. No `text-overflow`, no line clamp — a seat grows
+ * instead. A player scanning a draw for their own name must be able to read it.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. The standing is a sentence, "Your tie" and
+ * "(you)" are words, the winner carries a screen-reader "— won", and every
+ * outcome is stated in the settlement authority's own vocabulary. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+/* ---- where the player stands ------------------------------------------------ */
+
+.standing {
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-raised);
+  border: 1px solid var(--vnext-hairline);
+  color: var(--vnext-text);
+}
+
+.standing[data-standing='eliminated'] {
+  border-color: var(--vnext-miss);
+  background-color: var(--vnext-miss-veil);
+}
+
+.standing[data-standing='champion'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+}
+
+.trophy {
+  font-size: var(--vnext-size-title);
+}
+
+/* ---- the Penalty Number ----------------------------------------------------- */
+
+.penalty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface-raised);
+}
+
+.penaltyHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.penaltyBody {
+  margin: 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.penaltyRule,
+.penaltyNotice {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.penaltyNotice {
+  color: var(--vnext-text-secondary);
+}
+
+.penaltyForm {
+  /* WRAPS, so a 44px input and a 44px button never squeeze each other on a
+     320px phone. */
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  align-items: center;
+}
+
+.penaltyField {
+  display: block;
+  min-width: 0;
+}
+
+.penaltyInput {
+  min-height: var(--vnext-tap-target);
+  /* Wide enough for two digits with room to spare, and no wider: this is a
+     number from 0 to 99 and a long box would suggest otherwise. */
+  width: 6rem;
+  padding: 0 var(--vnext-space-3);
+  border-radius: var(--vnext-radius-sm);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text);
+  /* STATED, AND ABOVE 16px. An input with no font-size inherits the browser's
+     default form size, which iOS Safari zooms the whole page to reach — landing
+     the reader mid-submission on a page they now have to scroll back. This is
+     the token `ScoreEntry` uses for the same two-digit field. */
+  font-size: var(--vnext-size-headline);
+  text-align: center;
+}
+
+.penaltyInput:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* THE REFUSAL, when the typed value is not one this lane takes. */
+.penaltyError {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.penaltySubmit {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.penaltySubmit:hover:not(:disabled) {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.penaltySubmit:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.penaltySubmit:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the bracket ------------------------------------------------------------ */
+
+.bracket {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.champion {
+  margin: 0;
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.rounds {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.roundHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.seats {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding: var(--vnext-space-3);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+  min-width: 0;
+}
+
+/* The reader's own tie. Border weight BESIDE the "Your tie" line, never
+   instead of it. */
+.seat[data-yours='yes'] {
+  border-color: var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-raised);
+}
+
+.sides {
+  /* WRAPS. Two long display names and a "v" do not fit one line at 320px, and
+     a name that ran off the edge is the one thing a draw must not hide. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.side {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.side[data-side='won'] {
+  color: var(--vnext-text);
+  font-weight: 600;
+}
+
+.side[data-side='empty'] {
+  color: var(--vnext-text-muted);
+  font-style: italic;
+}
+
+.youMark {
+  color: var(--vnext-text-muted);
+}
+
+.versus {
+  color: var(--vnext-text-muted);
+}
+
+.outcome,
+.yours {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.yours {
+  color: var(--vnext-text-secondary);
+  font-weight: 600;
+}
+
+/* ---- the states that are not a bracket -------------------------------------- */
+
+.empty {
+  margin: 0;
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text-secondary);
+}
+
+.unavailable {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+}
+
+.retry {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the group phase --------------------------------------------------------- */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.groupsHeading {
+  margin: 0;
+}
+
+.groupsNote {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.group {
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  /* THE TABLE SCROLLS, THE PAGE DOES NOT. Eight columns do not fit a phone, and
+     the alternative — dropping columns at narrow widths — would decide for the
+     reader which of the standings authority's measures matter. */
+  overflow-x: auto;
+}
+
+/* IT IS FOCUSABLE, SO IT MUST SHOW FOCUS. See the component: the box takes
+   `tabindex="0"` so a keyboard can scroll it, and a focusable element with no
+   visible ring is worse than one that was never reachable. */
+.group:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  /* Below this the columns crush rather than scroll. */
+  min-width: 34rem;
+}
+
+.caption {
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  text-align: start;
+  color: var(--vnext-text-secondary);
+}
+
+.yoursTag {
+  color: var(--vnext-text);
+}
+
+.table th,
+.table td {
+  padding: var(--vnext-space-2) var(--vnext-space-3);
+  text-align: start;
+  border-top: 1px solid var(--vnext-hairline);
+}
+
+.table thead th {
+  font-weight: 600;
+  color: var(--vnext-text-secondary);
+  white-space: nowrap;
+}
+
+.numeric {
+  text-align: end;
+  /* Digits that do not shift width as the numbers change. */
+  font-variant-numeric: tabular-nums;
+}
+
+.player {
+  font-weight: 500;
+}
+
+.table tbody tr[data-you] {
+  background-color: var(--vnext-surface-raised, var(--vnext-surface));
+}
+
+.you {
+  color: var(--vnext-text-secondary);
+  font-weight: 400;
+}
+
+/* ---- regular ---------------------------------------------------------------- */
+
+@container vnext-page (min-width: 700px) {
+  .rounds {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- expanded --------------------------------------------------------------- */
+
+@container vnext-page (min-width: 1180px) {
+  /* ROUNDS AS COLUMNS — the shape a bracket is usually drawn in, reached by
+     widening rather than by shrinking a tree. `auto-fit` rather than a fixed
+     count because the number of rounds is the SERVER'S, and a fixed column
+     count would be this file deciding how many rounds a Championship has. */
+  .rounds {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start;
+  }
+}

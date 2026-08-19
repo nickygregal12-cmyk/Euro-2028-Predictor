@@ -40,6 +40,21 @@
   max-width: 80ch;
 }
 
+/* THE HARNESS WRITES, and one of its harnesses says so. Loud on purpose: the
+   sentence it carries is the difference between a reviewer reading a page and
+   a reviewer filing a sealed bid in someone's live tie. */
+.warning {
+  margin: 0;
+  padding: var(--sp-3);
+  font-size: var(--fs-2);
+  color: var(--text-1);
+  max-width: 80ch;
+  border: 1px solid var(--danger-6, var(--border-strong));
+  border-left-width: 4px;
+  border-radius: var(--radius-input);
+  background: var(--surface-raised);
+}
+
 .form {
   display: flex;
   flex-wrap: wrap;
