@@ -31,7 +31,7 @@
 
 begin;
 
-select plan(44);
+select plan(49);
 
 -- ---------------------------------------------------------------------------
 -- The record this contract adds is evidence, so it is unreachable.
@@ -542,6 +542,110 @@ select is(
     (select buffer_minutes from public.game_definitions where game_key = 'main_predictor')),
   '-infinity'::timestamptz,
   'a voided fixture is locked whatever its kickoff says');
+
+-- ---------------------------------------------------------------------------
+-- 9b. THE FIXTURE THE FEED HAS NOT MOVED YET.
+--
+-- On 19 August 2026 the audit found four Scottish Premiership fixtures carrying
+-- SportMonks token `10` and one — Rangers v St. Mirren — still carrying token
+-- `1`. That one is not a defect on this side: the provider has not moved it.
+-- The owner's decision is to leave it as the feed reports it, on the condition
+-- that it flips ON ITS OWN the moment the feed says so.
+--
+-- This is that condition, written as a PROVIDER CONTRACT and not as those two
+-- clubs. It drives the real SportMonks token through the real applier: a
+-- fixture the feed still calls not-started is left alone, and the SAME fixture
+-- becomes postponed on the next response that says `10`, with no operator
+-- action between the two. Naming Rangers here would prove something about a
+-- row rather than about the pipeline, which `FINDING G §I` refuses.
+--
+-- It also drives SportMonks rather than football-data deliberately. Everything
+-- above uses football-data's published vocabulary; the token this whole finding
+-- turned on is a SportMonks numeric state, and a vocabulary entry asserted only
+-- by `provider_status_kind` is not the same as one proved through the applier.
+-- ---------------------------------------------------------------------------
+
+insert into public.teams (tournament_id, name) values
+  (current_setting('test.pfl_season')::uuid, 'Lifecycle Sporting'),
+  (current_setting('test.pfl_season')::uuid, 'Lifecycle Corinthians');
+
+insert into public.provider_entity_map
+  (provider, entity_kind, provider_id, tournament_id, competition_round_id, team_id, evidence_ref)
+values
+  ('sportmonks', 'round', 'PFL-SM-R1', current_setting('test.pfl_season')::uuid,
+   current_setting('test.pfl_round')::uuid, null, '252_provider_fixture_lifecycle.sql'),
+  ('sportmonks', 'team', 'PFL-SM-T1', current_setting('test.pfl_season')::uuid, null,
+   (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
+     and name = 'Lifecycle Sporting'), '252_provider_fixture_lifecycle.sql'),
+  ('sportmonks', 'team', 'PFL-SM-T2', current_setting('test.pfl_season')::uuid, null,
+   (select id from public.teams where tournament_id = current_setting('test.pfl_season')::uuid
+     and name = 'Lifecycle Corinthians'), '252_provider_fixture_lifecycle.sql');
+
+insert into public.season_fixtures
+  (tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
+select current_setting('test.pfl_season')::uuid, current_setting('test.pfl_round')::uuid,
+       h.id, a.id, now() + interval '3 days', 'scheduled'
+from public.teams h, public.teams a
+ where h.tournament_id = current_setting('test.pfl_season')::uuid and h.name = 'Lifecycle Sporting'
+   and a.tournament_id = current_setting('test.pfl_season')::uuid and a.name = 'Lifecycle Corinthians';
+
+select set_config('test.pfl_feed', (select f.id::text from public.season_fixtures f
+  join public.teams h on h.id = f.home_team_id
+  where f.competition_round_id = current_setting('test.pfl_round')::uuid
+    and h.name = 'Lifecycle Sporting'), true);
+
+create function pg_temp.pfl_sm(p_status text)
+returns jsonb language sql stable as $$
+  select jsonb_build_array(jsonb_build_object(
+    'provider', 'sportmonks',
+    'providerFixtureId', 'PFL-SM-F1',
+    'seasonProviderId', 'PFL-SM-S1',
+    'roundProviderId', 'PFL-SM-R1',
+    'homeTeamProviderId', 'PFL-SM-T1',
+    'homeTeamName', 'Lifecycle Sporting',
+    'awayTeamProviderId', 'PFL-SM-T2',
+    'awayTeamName', 'Lifecycle Corinthians',
+    'kickoffAt', to_char((now() + interval '3 days') at time zone 'UTC',
+                         'YYYY-MM-DD"T"HH24:MI:SS"Z"'),
+    'status', p_status,
+    'homeScore', null,
+    'awayScore', null));
+$$;
+
+-- Poll one: the feed still calls it not started. This is the state Rangers v
+-- St. Mirren was in when the audit ran.
+select is(
+  (predictor_internal.apply_provider_fixture_lifecycle(
+     'sportmonks', current_setting('test.pfl_season')::uuid, pg_temp.pfl_sm('1')
+   ) ->> 'postponed')::integer,
+  0,
+  'a fixture the feed still calls not-started is left exactly as it is');
+
+select is(
+  (select status from public.season_fixtures where id = current_setting('test.pfl_feed')::uuid),
+  'scheduled',
+  'so the site keeps showing it as an ordinary fixture, which is what the feed says');
+
+-- Poll two: the feed moves. Nothing else changes -- no operator, no approval,
+-- no migration, no second mapping.
+select is(
+  (predictor_internal.apply_provider_fixture_lifecycle(
+     'sportmonks', current_setting('test.pfl_season')::uuid, pg_temp.pfl_sm('10')
+   ) ->> 'postponed')::integer,
+  1,
+  'and the NEXT response that says token 10 postpones it, with nothing done in between');
+
+select is(
+  (select status from public.season_fixtures where id = current_setting('test.pfl_feed')::uuid),
+  'postponed',
+  'which is what every surface reads, because every surface reads this column');
+
+select is(
+  (select t.provider || ' ' || t.provider_status || ' -> ' || t.new_status
+     from predictor_internal.season_fixture_lifecycle_transitions t
+    where t.season_fixture_id = current_setting('test.pfl_feed')::uuid),
+  'sportmonks 10 -> postponed',
+  'and the reason is recorded as the provider token it came from, not as a decision somebody took');
 
 -- ---------------------------------------------------------------------------
 -- 10. The reads carry the schedule, so no surface has to infer it from a date.
