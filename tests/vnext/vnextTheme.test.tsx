@@ -75,3 +75,35 @@ describe('the vNext theme', () => {
     window.matchMedia = original
   })
 })
+
+describe('the workshop board does not follow the machine', () => {
+  it('pins dark by default, so a screenshot does not depend on the reviewer OS', async () => {
+    const { WorkshopCanvas } = await import('../../src/vnext/workshop/WorkshopCanvas')
+    // The device says light. A review board that followed it would render light
+    // here and dark on another machine, and every visual baseline would depend
+    // on the runner rather than on the change under review.
+    window.matchMedia = matchMedia(true)
+    const { container } = render(
+      <WorkshopCanvas viewports={['phone-375']}>
+        <p>content</p>
+      </WorkshopCanvas>,
+    )
+    const roots = [...container.querySelectorAll('[data-vnext]')]
+    expect(roots.length).toBeGreaterThan(0)
+    for (const node of roots) {
+      expect(node.getAttribute('data-vnext-theme')).toBeNull()
+    }
+  })
+
+  it('renders light when a board asks for it', async () => {
+    const { WorkshopCanvas } = await import('../../src/vnext/workshop/WorkshopCanvas')
+    window.matchMedia = matchMedia(false)
+    const { container } = render(
+      <WorkshopCanvas viewports={['phone-375']} theme="light">
+        <p>content</p>
+      </WorkshopCanvas>,
+    )
+    const node = container.querySelector('[data-vnext]')
+    expect(node?.getAttribute('data-vnext-theme')).toBe('light')
+  })
+})
