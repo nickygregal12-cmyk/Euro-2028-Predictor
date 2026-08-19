@@ -51,6 +51,18 @@ export default defineConfig({
     // the season, so the club controls are checked for size and clipping at
     // every reviewed width rather than trusted.
     'vnext-lms.spec.ts',
+    // Stage 12, the Predictor Championship. Same terms — and here the browser
+    // carries the stage predicate itself rather than a house rule: a bracket
+    // layout that works on phone and desktop without becoming unreadable is a
+    // claim about rendered geometry, so the suite measures round rows and
+    // columns. Rounds-as-sections versus a scaled tree is exactly the
+    // difference jsdom cannot see.
+    //
+    // NO APOSTROPHES OR QUOTES IN THIS COMMENT, and none anywhere in this
+    // array: `e2eProjectGating.test.ts` scans the file for single-quoted spec
+    // names, so a stray apostrophe opens a string that swallows the next entry
+    // whole. Every comment above avoids them for the same reason.
+    'vnext-championship.spec.ts',
     // Stage 7.5, the three information-architecture concepts. Registered on
     // the same terms as the other three: Storybook is the review surface, and
     // the lab has no application route at all — it runs on deterministic

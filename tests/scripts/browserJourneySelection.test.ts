@@ -155,6 +155,12 @@ describe('the map cannot rot', () => {
       // dev-only `/dev/vnext-lms` harness — which needs a real round, and
       // spends a real club to prove the write.
       'vnext-lms.spec.ts',
+      // Stage 12's Predictor Championship. Same terms again — and here the
+      // browser carries the stage's own predicate: a bracket that "works on
+      // phone and desktop without becoming unreadable" is a claim about
+      // rendered geometry, so the suite measures round rows and columns rather
+      // than class names.
+      'vnext-championship.spec.ts',
       'vnext-ia.spec.ts',
       ...parkedEuroSpecs,
     ]
