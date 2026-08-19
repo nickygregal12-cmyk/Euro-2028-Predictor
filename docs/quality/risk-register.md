@@ -469,6 +469,63 @@ contract 206: the presenter refuses to format an instant that is only a memory,
 and the three surfaces say which state it is in, in the same words the vNext
 lane uses and from the same shared helper.
 
+## Correction record — 19 August 2026, the postponement replayed against the real response
+
+`FINDING G §I` asks for proof that a FUTURE postponement flows through on its
+own, rather than proof that two known fixtures were corrected. The evidence is a
+differential replay of Development's own archived response — the one processed
+at `2026-08-19T15:40:03Z` — on a scratch PostgreSQL 16 carrying Development's
+season key (`501/28275`), its twelve SportMonks team identifiers, its Matchweek 3
+round mapping, its six fixtures and contract 146's stored poll path verbatim.
+
+**Before contract 206**, with the committed pre-206 resolvers installed, both
+arms fail on that exact response: `resolve_provider_season('sportmonks','28275')`
+returns null, and the request URL `LIKE` the stored path is false. The response
+resolves to no season, which is the `unresolved_season` outcome Development has
+recorded 13 times.
+
+**After contract 206**, with nothing else changed, the same response resolves,
+and one run of `consume_provider_responses()` — the function `pg_cron` calls —
+reports `applied: 1` and leaves:
+
+| Fixture | Held as |
+| --- | --- |
+| St. Johnstone v Celtic | **postponed** |
+| Motherwell v Aberdeen | **postponed** |
+| Hibernian v Kilmarnock | **postponed** |
+| Falkirk v Hearts | **postponed** |
+| Rangers v St. Mirren | scheduled |
+| Dundee United v Dundee | scheduled |
+
+with four `season_fixture_lifecycle_transitions` rows naming SportMonks token
+`10`, and **zero** calendar proposals — the queue is not asked to decide
+something already decided.
+
+Two further polls were replayed on the same fixture. A response naming
+16 September 18:45 while still reporting token `10` moved the kickoff onto the
+SAME fixture, recorded one revision, left it postponed, and answered a deadline
+of 17:45 on 16 September which is open. A response reporting token `1` reinstated
+it to `scheduled`. Six fixtures throughout: no duplicate was created at any
+point.
+
+**Rangers v St. Mirren is the honest exception, and it is case 1 of `§G`.**
+SportMonks still reports token `1` for it, so it is scheduled in the replay
+because it is scheduled in the feed. For the Celtic fixture the failure was
+ours; for the Rangers fixture the provider has not moved yet. When it does, this
+replay is what that poll will do.
+
+**What was real and what was stood in for.** Every function contract 206 writes
+or redefines ran as its committed text: both resolvers, the poll-path pattern,
+the kickoff importer, the lifecycle applier, the change detector, the driver and
+the lock authority — as did `season_fixtures`' own status and
+score-matching CHECK constraints. The functions contract 206 does not touch were
+stubbed: `apply_provider_fixture_facts`, `stage_provider_fixture_proposals`,
+`provider_mapping_gaps`, `refresh_round_play_windows` and
+`season_matchweek_lock_at`. So this is evidence about the ingestion path and the
+lifecycle, and it is not evidence about result writing. The full schema runs in
+CI, where `supabase/tests/252_provider_fixture_lifecycle.sql` drives the same
+transitions against every real constraint and trigger.
+
 ## Correction record — 10 August 2026, `DATA-007` partly acted on
 
 The 6 August audit record above says `DATA-007` was "deliberately not acted on" because it requires a migration, and the 9 August record above says it stayed open when `DB-005` was fixed in the same limiter. Contract 145 is the migration, and it takes **one** of the four things `DATA-007`'s closure asks for. The earlier records are left exactly as written; this one says what changed and what did not.
@@ -529,7 +586,7 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 
 | ID | Finding | Current status | Evidence / required closure |
 | --- | --- | --- | --- |
-| `ING-001` | Provider ingestion resolved no season for nine days, so nothing was imported at all | **Repository-fixed at contract 206; hosted Development still carries the outage.** Both arms of `resolve_provider_response_season` were broken — an equality lookup against a composite season key, and a URL compared against a path still holding contract 146's `{{date:+N}}` placeholders. 13 consecutive responses consumed `unresolved_season`. | Apply contract 206 to Development, then confirm the next consumption records outcome `applied` and that `season_fixture_live_state` gains rows again. **A backlog does not replay itself:** `provider_response_consumption` is keyed by processing id, so the 13 already-consumed responses stay consumed and the recovery arrives with the next poll rather than from history. |
+| `ING-001` | Provider ingestion resolved no season for nine days, so nothing was imported at all | **Repository-fixed at contract 206 and replayed against the real archived response; hosted Development still carries the outage.** Both arms of `resolve_provider_response_season` were broken — an equality lookup against a composite season key, and a URL compared against a path still holding contract 146's `{{date:+N}}` placeholders. 13 consecutive responses consumed `unresolved_season`. | Apply contract 206 to Development, then confirm the next consumption records outcome `applied` and that `season_fixture_live_state` gains rows again. **A backlog does not replay itself:** `provider_response_consumption` is keyed by processing id, so the 13 already-consumed responses stay consumed and the recovery arrives with the next poll rather than from history. |
 | `ING-002` | The provider status vocabulary is measured for four tokens and guessed for eight | **Partly closed at contract 206.** SportMonks `10` is now measured from retained payloads. SportMonks `14`–`21` were seeded by contract 135 from published documentation rather than from a payload, and the evidence now contradicts one of them: `10` is what this provider actually sends for a postponement, while `14` is mapped `postponed` on no measurement at all. | Measure each of `14`, `15`, `16`, `17`, `18`, `20` and `21` against a real payload before relying on it, or remove it so it fails closed to `unknown`. Contract 206 deliberately removed none: replacing one guess with another is not an improvement, and an `unknown` token is recorded in `provider_status_observations` where it can be measured. |
 | `ING-007` | The legacy production fixture surfaces had no representation of an abnormal fixture status | **Closed at contract 206, repository-side.** `fixtureListModel` carried `played` and nothing else, so a postponed, abandoned or voided fixture rendered as an ordinary row at a kickoff that would not happen — on the generation of the UI production serves today, not the flagged vNext one. | Regression-tested in `tests/features/season/fixtureListModel.test.ts`, including that the three abnormal states produce three different accessible sentences, that none of them says "kick-off", and that the wording matches the vNext lane's from the same shared helper. Reopen if a fourth surface starts formatting `kickoffAt` itself instead of reading `row.kickoff`. |
 | `ING-005` | Prediction deadlines are enforced per fixture but published per matchweek | **Open; predates contract 206 and is not made worse by it.** Contract 119 made ENFORCEMENT per fixture for a rescheduled match; `get_season_matchweek_card` still publishes the matchweek instant. A rescheduled or postponed fixture therefore reads as locked on the Match Predictor while the trigger would accept the write — the surface is stricter than the rule, so nothing illegal is possible, but a player is told they cannot do something they can. | Publish the per-fixture lock instant on the card read and have the Match Predictor draw it, or accept the matchweek instant as the product rule and reverse contract 119. Not both. |
