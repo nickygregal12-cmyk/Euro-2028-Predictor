@@ -29,6 +29,7 @@ export default defineConfig({
     'vnext-leagues.spec.ts',
     'vnext-player-profile.spec.ts',
     'vnext-lms.spec.ts',
+    'vnext-championship.spec.ts',
     'vnext-ia.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',

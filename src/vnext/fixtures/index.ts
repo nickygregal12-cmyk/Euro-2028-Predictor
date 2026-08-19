@@ -131,3 +131,15 @@ export type { PlayerProfileScenarioName } from './player/scenarios'
  */
 export { lmsScenarioNames, lmsScenarioPremises, lmsScenarios } from './lms/scenarios'
 export type { LmsScenarioName } from './lms/scenarios'
+
+/**
+ * Stage 12's Predictor Championship worlds. Same rule again: the seat and side
+ * builders stay module-local, because a review surface renders a WORLD rather
+ * than assembling one.
+ */
+export {
+  championshipScenarioNames,
+  championshipScenarioPremises,
+  championshipScenarios,
+} from './championship/scenarios'
+export type { ChampionshipScenarioName } from './championship/scenarios'
