@@ -6,6 +6,9 @@ import { presentPlayerCompetitions } from '../../../features/hub/playerCompetiti
 import { draftFromPreferences, resumeStep } from '../../../features/onboarding/onboardingResume'
 import type { OnboardingDraft } from '../../../features/onboarding/onboardingDraft'
 import type { OnboardingStep } from '../../../features/onboarding/onboardingResume'
+import type { HubSeasonMembership } from '../../../services/supabase/competitionGames'
+import type { RegistrationOutlook } from '../../models/games'
+import { registrationOutlookOf } from '../games/registrationOutlook'
 
 /**
  * WHAT ONBOARDING NEEDS BEFORE IT CAN ASK ANYTHING.
@@ -33,6 +36,16 @@ import type { OnboardingStep } from '../../../features/onboarding/onboardingResu
  * exactly what a brand-new player sees and is the correct fallback for someone
  * whose stored progress could not be read. Only the catalogue is load-bearing.
  *
+ * ============================ THE ENTRY RULE COMES FROM THE SAME READ ===
+ *
+ * `fetchHubMembership` returns each season's raw game rows, registration
+ * windows and all, and `catalogueFromPublishedSeasons` then reduces them to a
+ * display catalogue that keeps only `active`. So the catalogue alone cannot say
+ * whether a game can still be ENTERED — and an earlier draft of this lane, which
+ * had only the catalogue, offered a tick box for a game whose registration had
+ * closed. The windows are read here, from the rows that carry them, and mapped
+ * by the same `registrationOutlookOf` the games hub uses.
+ *
  * ============================ AND IT WRITES NOTHING =====================
  *
  * No progress stamp, no follows, no game entries. See `models/onboarding.ts`:
@@ -44,6 +57,8 @@ export type OnboardingReadResult = {
   readonly catalogue: readonly HubCompetition[]
   readonly draft: OnboardingDraft
   readonly step: OnboardingStep
+  /** Per season row name, per game key. See the header. */
+  readonly entry: Readonly<Record<string, Readonly<Record<string, RegistrationOutlook>>>>
 }
 
 export type OnboardingReads = {
@@ -73,5 +88,33 @@ export async function readOnboarding(reads: OnboardingReads): Promise<Onboarding
     catalogue: player.catalogue,
     draft: draftFromPreferences(preferences, player.catalogue),
     step: resumeStep(preferences),
+    entry: entryOutlook(seasons),
   }
+}
+
+/**
+ * WHERE REGISTRATION STANDS FOR EVERY GAME THE READ CARRIED.
+ *
+ * Keyed on the season's NAME because that is what the catalogue keys on and
+ * what the draft keys on; the membership read supplies the same name.
+ *
+ * A SEASON WHOSE READ CARRIED NO SERVER CLOCK IS OMITTED ENTIRELY, and the
+ * mapper's absence rule then fails it closed. Resolving a registration window
+ * against a device clock would offer a game that has closed to a player whose
+ * laptop is slow — the one failure `serverNow` exists to prevent.
+ */
+function entryOutlook(
+  seasons: readonly HubSeasonMembership[],
+): Record<string, Record<string, RegistrationOutlook>> {
+  const bySeason: Record<string, Record<string, RegistrationOutlook>> = {}
+  for (const season of seasons) {
+    const serverNow = season.seasonGames.serverNow
+    if (serverNow === null) continue
+    const games: Record<string, RegistrationOutlook> = {}
+    for (const game of season.seasonGames.games) {
+      games[game.gameKey] = registrationOutlookOf(game, serverNow)
+    }
+    bySeason[season.seasonName] = games
+  }
+  return bySeason
 }

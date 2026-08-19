@@ -229,7 +229,15 @@ describe('every world passes the accessibility scan', () => {
   it.each(accountScenarioNames)('%s has no critical or serious violation', async (name) => {
     await expectNoAxeViolations(
       <VNextShellProvider model={shellScenarios.oneCompetition}>
-        <VNextAccount model={accountScenarios[name]} onRetry={() => {}} />
+        {/* `onIntent` is supplied so the sign-out section is IN the scan. It
+            renders only for a host that can perform the intent, so scanning
+            without one silently excluded the stage's only new account
+            control. */}
+        <VNextAccount
+          model={accountScenarios[name]}
+          onRetry={() => {}}
+          onIntent={() => {}}
+        />
       </VNextShellProvider>,
     )
   })

@@ -3,13 +3,9 @@ import type {
   GameStanding,
   GamesPageModel,
   GamesPanel,
-  RegistrationOutlook,
   RejoinOutlook,
 } from '../../models/games'
-import {
-  presentLmsRegistration,
-  MAIN_PREDICTOR_REGISTRATION_COPY,
-} from '../../../features/season/lmsRegistrationModel'
+import { registrationOutlookOf } from './registrationOutlook'
 import type { CompetitionGame } from '../../../services/supabase/competitionGamesModel'
 import type { GamesSource } from './gamesSource'
 
@@ -37,40 +33,6 @@ import type { GamesSource } from './gamesSource'
  * revoked from `authenticated`. The mapper reports the rule and not a verdict.
  */
 
-/**
- * WHERE REGISTRATION STANDS, from the shared authority.
- *
- * `entered` is passed as false unconditionally: this branch is only reached for
- * a player with no membership row, and passing their real membership would ask
- * the authority a question this mapper has already answered.
- */
-function registrationOf(game: CompetitionGame, serverNow: string): RegistrationOutlook {
-  const presented = presentLmsRegistration(
-    {
-      competitionId: game.id,
-      entered: false,
-      joinedAt: null,
-      registrationOpensAt: game.registrationOpensAt,
-      registrationClosesAt: game.registrationClosesAt,
-      completedAt: game.completedAt,
-      serverNow,
-    },
-    MAIN_PREDICTOR_REGISTRATION_COPY,
-  )
-
-  switch (presented.state) {
-    case 'finished':
-      return 'finished'
-    case 'not_open':
-      return 'not-open'
-    case 'closed':
-      return 'closed'
-    default:
-      // `entered` is false above, so `entered` is unreachable and `open` is the
-      // only state left. Named rather than defaulted silently.
-      return 'open'
-  }
-}
 
 /**
  * WHETHER A REJOIN IS DETERMINATE.
@@ -86,7 +48,7 @@ function rejoinOf(game: CompetitionGame): RejoinOutlook {
 function standingOf(game: CompetitionGame, serverNow: string): GameStanding {
   const membership = game.membership
   if (membership === null) {
-    return { kind: 'never-joined', registration: registrationOf(game, serverNow) }
+    return { kind: 'never-joined', registration: registrationOutlookOf(game, serverNow) }
   }
 
   // THE STATUS IS THE SERVER'S WORD. The catalogue's own check constraint fixes

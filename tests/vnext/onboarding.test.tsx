@@ -9,6 +9,7 @@ import {
   onboardingScenarios,
   shellScenarios,
 } from '../../src/vnext/fixtures'
+import { ONBOARDING_STEP_ORDER } from '../../src/vnext/models/onboarding'
 import type { OnboardingView } from '../../src/vnext/models/onboarding'
 
 /**
@@ -76,6 +77,13 @@ describe('the fixtures cannot depict a state the surface cannot reach', () => {
     const view = onboardingScenarios[name]
     if (view.kind !== 'ready') return
     const model = view.model
+
+    // TIED TO THE STEP, NOT MERELY SELF-CONSISTENT. An earlier version checked
+    // only that `isLast` and `back` agreed with `position`, so a world could
+    // sit on the games step claiming to be step two — a shape the mapper cannot
+    // produce — and stay green.
+    expect(model.position).toBe(ONBOARDING_STEP_ORDER.indexOf(model.panel.step) + 1)
+    expect(model.total).toBe(ONBOARDING_STEP_ORDER.length)
     expect(model.isLast).toBe(model.position === model.total)
     expect(model.back).toBe(model.position > 1)
   })

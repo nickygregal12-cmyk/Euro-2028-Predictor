@@ -13,6 +13,7 @@ import {
   type OnboardingStep,
 } from '../../../features/onboarding/onboardingResume'
 import type { SeasonClub } from '../../../services/supabase/seasonClubs'
+import type { RegistrationOutlook } from '../../models/games'
 import { VNextOnboarding, type OnboardingIntent } from '../../onboarding/VNextOnboarding'
 import { VNextNotice } from '../../states/VNextStates'
 import type { OnboardingCommit } from '../../models/onboarding'
@@ -62,17 +63,29 @@ export type VNextOnboardingScreenProps = {
   /** Leave setup, keeping whatever the host already saved. */
   readonly onLeave?: (() => void) | undefined
   /**
-   * Which step the player moved to. The host owns contract 157's progress
-   * stamp; this screen only says that it happened.
+   * Which step the player moved to, AND WHICH WAY.
+   *
+   * The host owns contract 157's progress stamp and this screen only reports
+   * the move — but a host that stamped every report would walk a player's
+   * stored progress BACKWARDS the moment they pressed Back, and would then
+   * resume them there on their next sign-in. `direction` is what lets the host
+   * stamp forward moves only, without this screen deciding the host's rule for
+   * it.
    */
-  readonly onStep?: ((step: OnboardingStep) => void) | undefined
+  readonly onStep?:
+    | ((step: OnboardingStep, direction: 'forward' | 'back') => void)
+    | undefined
   readonly readClubs?: ((tournamentId: string) => Promise<readonly SeasonClub[]>) | undefined
 }
 
 type LoadState =
   | { status: 'loading' }
   | { status: 'failed' }
-  | { status: 'ready'; catalogue: readonly HubCompetition[] }
+  | {
+      status: 'ready'
+      catalogue: readonly HubCompetition[]
+      entry: Readonly<Record<string, Readonly<Record<string, RegistrationOutlook>>>>
+    }
 
 export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
   const { userId, authLoading, onStep } = props
@@ -83,10 +96,40 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
   const [attempt, setAttempt] = useState(0)
   const [generatedAt] = useState(() => new Date().toISOString())
 
+  /**
+   * MOUNTED, NOT "IS THIS PARTICULAR EFFECT RUN STILL CURRENT".
+   *
+   * This was a per-run `active` flag, and it lost reads. The club effect marks
+   * a competition as asked-for BEFORE it awaits, so a read still in flight when
+   * the effect tore down — pressing Back on the club step, or any host that
+   * passes an inline `readClubs` and re-renders — had its answer discarded by
+   * `if (!active) return` while the key stayed marked. Nothing re-asked, and
+   * the step sat on "Loading clubs…" for the rest of the session.
+   *
+   * A club list is keyed, immutable and idempotent: an answer that arrives
+   * after the step changed is still the right answer for that competition, and
+   * storing it costs nothing. The only thing that must not happen is a setState
+   * after unmount, so that — and only that — is what this guards.
+   */
+  const mounted = useRef(true)
+  useEffect(
+    () => () => {
+      mounted.current = false
+    },
+    [],
+  )
+
+  const requestedClubs = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     if (authLoading || userId === null) return
-    let active = true
     setLoad({ status: 'loading' })
+    // THE CLUB LISTS BELONG TO THE PREVIOUS READ, NOT TO THE NEXT ONE. They are
+    // keyed on a season row name, which a different account can follow too, so
+    // carrying them across a re-read would show one player the lists fetched
+    // for another. Cheap to re-read and impossible to reason about otherwise.
+    requestedClubs.current = new Set()
+    setClubs({})
     void (async () => {
       try {
         const [weekly, games, preferences] = await Promise.all([
@@ -99,18 +142,15 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           fetchHubMembership: games.fetchHubMembership,
           fetchPlayerPreferences: preferences.fetchPlayerPreferences,
         })
-        if (!active) return
-        setLoad({ status: 'ready', catalogue: result.catalogue })
+        if (!mounted.current) return
+        setLoad({ status: 'ready', catalogue: result.catalogue, entry: result.entry })
         // Resume, rather than restart. Both halves come from the server.
         setDraft(result.draft)
         setStep(result.step)
       } catch {
-        if (active) setLoad({ status: 'failed' })
+        if (mounted.current) setLoad({ status: 'failed' })
       }
     })()
-    return () => {
-      active = false
-    }
   }, [authLoading, userId, attempt])
 
   const catalogue = load.status === 'ready' ? load.catalogue : []
@@ -124,13 +164,9 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
   )
 
   const readClubs = props.readClubs
-  // WHAT HAS BEEN ASKED FOR, rather than what has arrived. Keying the guard on
-  // the answers would re-issue every outstanding read each time one of them
-  // landed, because the answers are also what the effect watches.
-  const requestedClubs = useRef<Set<string>>(new Set())
+
   useEffect(() => {
     if (step !== 'clubs') return
-    let active = true
     void (async () => {
       const fetchClubs =
         readClubs ??
@@ -141,27 +177,24 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
         requestedClubs.current.add(entry.key)
         try {
           const rows = await fetchClubs(entry.tournamentId)
-          if (!active) return
+          if (!mounted.current) return
           setClubs((held) => ({ ...held, [entry.key]: rows }))
         } catch {
           // The step says it could not list them for that competition and the
           // player carries on; a favourite is optional and nothing depends on
           // it. Empty is how the model distinguishes read-and-none from
           // not-read-yet.
-          if (!active) return
+          if (!mounted.current) return
           setClubs((held) => ({ ...held, [entry.key]: [] }))
         }
       }
     })()
-    return () => {
-      active = false
-    }
   }, [step, followedIds, readClubs])
 
   const goTo = useCallback(
-    (target: OnboardingStep) => {
+    (target: OnboardingStep, direction: 'forward' | 'back') => {
       setStep(target)
-      onStep?.(target)
+      onStep?.(target, direction)
     },
     [onStep],
   )
@@ -171,6 +204,7 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
       buildOnboardingModel({
         catalogue:
           load.status === 'failed' ? 'failed' : load.status === 'loading' ? null : load.catalogue,
+        entry: load.status === 'ready' ? load.entry : {},
         draft,
         step,
         clubs,
@@ -195,12 +229,12 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           return
         case 'back': {
           const target = previousStep(step)
-          if (target !== null) goTo(target)
+          if (target !== null) goTo(target, 'back')
           return
         }
         case 'continue': {
           const target = nextStep(step)
-          if (target !== null) goTo(target)
+          if (target !== null) goTo(target, 'forward')
           return
         }
         case 'finish':

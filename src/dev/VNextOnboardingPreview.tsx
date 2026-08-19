@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextOnboardingScreen } from '../vnext/integration/onboarding/VNextOnboardingScreen'
+import { VNextShellProvider } from '../vnext/app/VNextShellProvider'
+import { buildShellModel } from '../vnext/integration/shell/buildShellModel'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -73,6 +75,25 @@ function OnboardingHarness() {
         {note ? <p className={styles.note}>{note}</p> : null}
       </header>
 
+      {/* A SHELL MODEL, SO THE CHROME IS REAL. Without one the shell resolves
+          to null, no player is known, and neither account button renders — so
+          this harness could not exercise the very intent Stage 13 exists to
+          answer, and the structural scan had nothing to check it against. */}
+      <VNextShellProvider
+        model={buildShellModel({
+          competition: null,
+          playerName: displayName,
+          outstandingPredictions: null,
+          canNavigateAway: true,
+        })}
+        onIntent={(intent) => {
+          if (intent.kind === 'account') {
+            navigate('/dev/vnext-account')
+            return
+          }
+          setNote(`Shell intent "${intent.kind}" — reported rather than routed.`)
+        }}
+      >
       <VNextOnboardingScreen
         userId={userId}
         authLoading={loading}
@@ -94,6 +115,7 @@ function OnboardingHarness() {
         }}
         onLeave={() => navigate('/dev/vnext-games')}
       />
+      </VNextShellProvider>
     </div>
   )
 }
