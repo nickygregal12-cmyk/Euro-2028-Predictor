@@ -21,6 +21,17 @@ const migrationsDirectory = resolve(repositoryRoot, 'supabase/migrations')
 const testsDirectory = resolve(repositoryRoot, 'supabase/tests')
 
 const CONTRACT_193 = '20260817140000_season_cup_bracket_read.sql'
+/**
+ * CONTRACT 205 REPLACES THE FUNCTION, so it — not 193 — is what a database
+ * actually installs. Every structural assertion below therefore reads the
+ * LATEST definition; a guard pointed at a superseded migration is a guard that
+ * cannot fail, and would have gone on passing while the installed object
+ * drifted underneath it.
+ *
+ * 193 is still read, for one assertion that is about 205 rather than about the
+ * read: that the correction changed the seed lookup and nothing else.
+ */
+const CONTRACT_205 = '20260819100000_cup_bracket_seed_initial_phase.sql'
 const SUITE_193 = '241_season_cup_bracket_read.sql'
 
 function read(directory: string, file: string): string {
@@ -35,7 +46,8 @@ function executable(text: string): string {
     .trim()
 }
 
-const body = executable(read(migrationsDirectory, CONTRACT_193))
+const body = executable(read(migrationsDirectory, CONTRACT_205))
+const supersededBody = executable(read(migrationsDirectory, CONTRACT_193))
 
 /**
  * The function definition WITHOUT the in-transaction guard block, for the same
@@ -44,6 +56,10 @@ const body = executable(read(migrationsDirectory, CONTRACT_193))
  * a correct implementation.
  */
 const definition = body.slice(0, body.indexOf('do $$ declare v_read'))
+const supersededDefinition = supersededBody.slice(
+  0,
+  supersededBody.indexOf('do $$ declare v_read'),
+)
 
 const suite = read(testsDirectory, SUITE_193)
 
@@ -133,5 +149,55 @@ describe('nothing here writes', () => {
     // `submit_cup_penalty_number` was already season-capable through contract
     // 98. Redefining it here would be a rule change dressed as a read.
     expect(definition).not.toContain('submit_cup_penalty_number')
+  })
+})
+
+/**
+ * CONTRACT 205 — the read survives a split.
+ *
+ * Contract 102 keyed `bonus_cup_members` `(competition_id, user_id,
+ * phase_kind)` so one entrant may hold both an `initial` and a `split` row, and
+ * contract 124's split transition inserts the second without deleting the
+ * first. A scalar subquery filtered by competition and user alone therefore
+ * matched two rows once a competition split, and raised — failing the WHOLE
+ * read rather than one field.
+ *
+ * The behavioural proof is in `241_season_cup_bracket_read.sql`, which seeds an
+ * entrant holding both memberships. These hold the structural property.
+ */
+describe('the seed lookup names the phase it means', () => {
+  it('pins the caller’s seed to their initial membership', () => {
+    expect(definition).toContain("member.phase_kind = 'initial'")
+  })
+
+  it('leaves no unqualified single-row read of the membership table', () => {
+    // `select member.seed ... user_id = v_uid` with nothing after it is the
+    // defect's exact shape. The two sibling lookups are an aggregate and an
+    // `exists`, neither of which can raise on multiple rows.
+    expect(definition).not.toMatch(
+      /select member\.seed from public\.bonus_cup_members member where member\.competition_id = p_competition_id and member\.user_id = v_uid\)/,
+    )
+  })
+
+  it('is guarded inside the migration, so a restated body cannot drop it', () => {
+    const guard = body.slice(body.indexOf('do $$ declare v_read'))
+    expect(guard).toContain('The seed lookup must be pinned to the initial membership')
+  })
+
+  it('changes the seed lookup and nothing else about the read', () => {
+    // Every other structural property carried across verbatim. If 205 had
+    // rewritten more than the one lookup, these would diverge.
+    for (const property of [
+      'pn.user_id = v_uid',
+      'cup_window_first_kickoff',
+      'bonus_competition_entrants',
+      'bonus_cup_launches',
+      'fixture.bracket_slot',
+    ]) {
+      expect(definition).toContain(property)
+      expect(supersededDefinition).toContain(property)
+    }
+    // And the correction is genuinely absent from the definition it replaces.
+    expect(supersededDefinition).not.toContain("member.phase_kind = 'initial'")
   })
 })

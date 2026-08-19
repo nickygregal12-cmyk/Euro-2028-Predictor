@@ -282,6 +282,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 202 programme effect:** the private AI Lab's stated invariant — last Saturday reaches next Saturday's forecast — becomes true in practice rather than only in the README. No programme reordering.
 
+> **Contract 205 programme effect:** the canonical Championship bracket read stops throwing for split competitions, which is a precondition for Stage 12 consuming it. No programme reordering.
+
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.
