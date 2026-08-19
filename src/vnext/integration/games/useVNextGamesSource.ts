@@ -15,12 +15,27 @@ import type { GamesSource } from './gamesSource'
  * one, and the mapper prefers the server's instant. A device an hour fast would
  * otherwise offer a registration that has closed.
  *
- * ============================ THE WRITE IS NOT HERE YET =================
+ * ============================ THE WRITE, AND WHERE ITS RULES LIVE =======
  *
- * `join_competition_game` is the authority for entry and this hook does not
- * call it. The surface emits `join-game` and the host decides — which is what
- * lets the hub be reviewed, and pointed at real data, before anything can be
- * joined from it by accident.
+ * `join_competition_game` is the authority for entry, and this hook calls it
+ * and adds NOTHING to it. Every registration rule — the window, rejoin,
+ * disqualification, private containers, rate limiting — is the server's, and
+ * the surface only ever offers Join where the SERVER's own registration
+ * outlook said it was open. Re-deciding any of that here would be a second
+ * answer, and it would be the copy that goes stale.
+ *
+ * NO REGISTRATION IS INFERRED FROM A BROWSER CLOCK. The outlook the button is
+ * drawn from resolves against `server_now`, and this hook never compares one.
+ *
+ * A SUCCESSFUL JOIN RE-READS. The row becomes "You are playing" because
+ * `get_competition_games` says the membership exists, not because this lane
+ * patched its own copy — the same discipline Discovery's follow write follows,
+ * and the reason a join that half-succeeded cannot leave a row claiming
+ * otherwise.
+ *
+ * DUPLICATE PRESSES ARE SUPPRESSED IN FLIGHT. One join at a time, named by the
+ * game, so a second press on the same row does nothing and a press on another
+ * row is not blocked by the first.
  */
 
 export type VNextGamesSourceInput = {
@@ -29,6 +44,20 @@ export type VNextGamesSourceInput = {
   readonly competitionSlug: string | undefined
   readonly seasonSlug: string | undefined
 }
+
+/**
+ * Not exported: it is reachable through `VNextGamesSourceState`, and an export
+ * nothing imports is a widened surface for free.
+ */
+type GamesWriteState =
+  | { readonly kind: 'idle' }
+  | { readonly kind: 'joining'; readonly gameId: string }
+  /**
+   * THE FAILURE NAMES ITS ROW, for the same reason the busy state does: a
+   * message with no game attached can only be drawn somewhere general, and the
+   * row is where the player pressed.
+   */
+  | { readonly kind: 'failed'; readonly gameId: string; readonly message: string }
 
 export type VNextGamesSourceState =
   | { status: 'loading' }
@@ -40,6 +69,8 @@ export type VNextGamesSourceState =
       source: GamesSource
       retry: () => void
       refreshing: boolean
+      join: (gameId: string) => void
+      write: GamesWriteState
     }
 
 type RequestIdentity = string
@@ -59,8 +90,16 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
   const [state, setState] = useState<InternalState>(IDLE)
   const [refreshing, setRefreshing] = useState(false)
   const [nonce, setNonce] = useState(0)
+  const [write, setWrite] = useState<GamesWriteState>({ kind: 'idle' })
   const retry = useCallback(() => setNonce((value) => value + 1), [])
   const loadedIdentity = useRef<RequestIdentity | null>(null)
+  /**
+   * IN FLIGHT, IN A REF AND NOT IN STATE. `write` is what the surface draws;
+   * this is what the second press is tested against, and a state read inside
+   * the callback would be the value from the render that created it — so two
+   * fast presses would both pass the guard and send two joins.
+   */
+  const joining = useRef<string | null>(null)
 
   const { userId, authLoading, competitionSlug, seasonSlug } = input
 
@@ -127,6 +166,34 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
     }
   }, [authLoading, userId, competitionSlug, seasonSlug, nonce])
 
+  const join = useCallback((gameId: string) => {
+    // ONE AT A TIME. A double press, or a press on a second row while the first
+    // is still out, sends nothing — `join_competition_game` is not idempotent
+    // in what it reports back, and two entries into one game is not a state the
+    // player asked for.
+    if (joining.current !== null) return
+    joining.current = gameId
+    setWrite({ kind: 'joining', gameId })
+
+    void (async () => {
+      try {
+        const { joinCompetitionGame } = await import(
+          '../../../services/supabase/competitionGames'
+        )
+        await joinCompetitionGame(gameId)
+        joining.current = null
+        // SUCCESS CLEARS THE OLD ANSWER AND RE-READS. The row becomes "You are
+        // playing" because the catalogue says so.
+        setWrite({ kind: 'idle' })
+        setNonce((value) => value + 1)
+      } catch (error) {
+        const { userFacingError } = await import('../../../shared/errors/userFacingError')
+        joining.current = null
+        setWrite({ kind: 'failed', gameId, message: userFacingError(error) })
+      }
+    })()
+  }, [])
+
   return useMemo<VNextGamesSourceState>(() => {
     if (authLoading) return { status: 'loading' }
     if (!userId) return { status: 'signedOut' }
@@ -134,11 +201,11 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
 
     const identity = requestIdentity(userId, competitionSlug, seasonSlug)
     if (state.status === 'loaded' && state.identity === identity) {
-      return { status: 'ready', source: state.payload, retry, refreshing }
+      return { status: 'ready', source: state.payload, retry, refreshing, join, write }
     }
     if (state.status === 'failed' && state.identity === identity) {
       return { status: 'failed', retry }
     }
     return { status: 'loading' }
-  }, [authLoading, userId, competitionSlug, seasonSlug, state, retry, refreshing])
+  }, [authLoading, userId, competitionSlug, seasonSlug, state, retry, refreshing, join, write])
 }
