@@ -125,9 +125,9 @@ export function MatchScoreMark({
     const showKickoff = state.kind === 'scheduled' || state.kind === 'live'
     return (
       <span
-        className={`${size === 'hero' ? styles.heroScore : styles.score} ${text.numeric} ${
-          styles.scoreEmpty
-        }`}
+        className={`${styles.score} ${size === 'hero' ? styles.heroScore : ''} ${
+          text.numeric
+        } ${styles.scoreEmpty}`}
       >
         {showKickoff && kickoffLabel ? kickoffLabel : showKickoff ? 'TBC' : '—'}
       </span>
@@ -136,9 +136,13 @@ export function MatchScoreMark({
 
   return (
     <span
-      className={`${size === 'hero' ? styles.heroScore : styles.score} ${text.numeric} ${
-        claim.basis === 'provisional' ? styles.scoreProvisional : styles.scoreOfficial
-      }`}
+      // BOTH CLASSES AT THE HERO SIZE, never one instead of the other: the
+      // hero is the same score drawn larger, so it modifies rather than
+      // replaces. See `.heroScore` in the stylesheet for what replacing it
+      // silently cost.
+      className={`${styles.score} ${size === 'hero' ? styles.heroScore : ''} ${
+        text.numeric
+      } ${claim.basis === 'provisional' ? styles.scoreProvisional : styles.scoreOfficial}`}
     >
       <span aria-hidden="true">{formatScoreline(claim.score.home, claim.score.away)}</span>
       {/* The visible glyph is a scoreline; what assistive technology gets is a

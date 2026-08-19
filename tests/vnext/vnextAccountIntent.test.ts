@@ -29,7 +29,14 @@ const harnesses = readdirSync(DEV)
   .filter((name) => name.startsWith('VNext') && name.endsWith('Preview.tsx'))
   .map((name) => ({ name, source: readFileSync(join(DEV, name), 'utf8') }))
 
-const answering = harnesses.filter((file) => file.source.includes("case 'account':"))
+/**
+ * A harness ANSWERS the intent if it names it at all, in any syntax. Keying on
+ * the literal `case 'account':` let an `if (intent.kind === 'account')` harness
+ * fall out of the checked set entirely and still satisfy the floor below — the
+ * scan would have been silent about exactly the file that reintroduced the
+ * defect.
+ */
+const answering = harnesses.filter((file) => /['"]account['"]/.test(file.source))
 
 describe('every vNext harness that answers the account intent keeps it inside vNext', () => {
   it('finds harnesses to check at all, so the scan cannot pass vacuously', () => {

@@ -160,9 +160,10 @@ const resultWithoutRank = world({
 })
 
 /**
- * ARCHIVED. The catalogue no longer publishes it and the server withheld the
- * slug, so the row says "archived" and offers no button — which contract 161's
- * own header argues beats a link that goes nowhere.
+ * FINISHED, AND NEVER WRAPPED. Contract 161 makes "the season is over" and "a
+ * Wrapped exists" independent facts, so this row belongs under Finished with no
+ * result to print. Grouping on the result — which an earlier draft did — told
+ * the player it was still running.
  */
 const finishedWithoutWrapped = world({
   history: {
@@ -185,6 +186,11 @@ const finishedWithoutWrapped = world({
   },
 })
 
+/**
+ * ARCHIVED. The catalogue no longer publishes it and the server withheld the
+ * slug, so the row says "archived" and offers no button — which contract 161's
+ * own header argues beats a link that goes nowhere.
+ */
 const archivedSeason = world({
   history: {
     kind: 'seasons',

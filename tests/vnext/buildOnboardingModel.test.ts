@@ -65,6 +65,7 @@ function source(over: Partial<OnboardingSource> = {}): OnboardingSource {
     draft: EMPTY_DRAFT,
     step: 'competitions',
     clubs: {},
+    entry: { 'Caledonian Premiership 2027/28': { main_predictor: 'open' } },
     displayName: 'Ada',
     commit: { kind: 'idle' },
     generatedAt: NOW,

@@ -328,6 +328,20 @@
   white-space: nowrap;
 }
 
+/* THE HERO VARIANT MODIFIES `.score`, IT DOES NOT REPLACE IT.
+ *
+ * `MatchState` selected `styles.heroScore` INSTEAD of `styles.score` for the
+ * Match Centre headline — and the class did not exist, so that element got the
+ * string "undefined" as its class and lost the display font, the weight, the
+ * size, the tight leading and the `white-space: nowrap` all at once. The
+ * headline number on the page rendered as body text, and nothing failed: a CSS
+ * module resolves an unknown key to undefined, which is a perfectly ordinary
+ * class name to a renderer. `tests/vnext/vnextStyleClasses.test.ts` is the gate
+ * that now catches it. */
+.heroScore {
+  font-size: var(--vnext-size-display);
+}
+
 .scoreOfficial {
   color: var(--vnext-text);
 }

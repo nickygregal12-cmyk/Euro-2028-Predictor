@@ -307,12 +307,47 @@ enough", and the predicate's own wording is the test:
 
 > action/attention UI only claims event classes the backend can actually produce
 
-An empty attention list claims none, which passes. Populating it would mean
-inventing event classes across five surfaces from reads that do not carry them,
-which fails. The matrix's ABSORB of `/play` and `/competitions/:c/:s/play` into
-the attention layer therefore remains a recorded fate whose execution waits on
-the backend coverage the contract names — the same treatment the two carried
-debts get, for the same reason.
+An empty attention list claims none, which passes, and leaving it empty is
+correct for THIS stage — nothing here has an attention story to tell.
+
+**But the sentence that followed here was wrong, and the correction matters
+because it changes what Stage 14 is allowed to assume.** It said populating the
+layer "would mean inventing event classes across five surfaces from reads that
+do not carry them". That is true of PER-SURFACE attention — what needs doing on
+the page you are on — and false of the cross-competition half, which is the half
+the route matrix actually depends on.
+
+`useGlobalPlayInbox` and `playInboxModel` build the cross-competition inbox
+TODAY, in production, from reads that already exist: each competition's week,
+loaded concurrently from `PlayerCompetitions` and settled independently, with no
+new capability of any kind. `InboxAction` carries `competitionName`, `gameName`,
+`title`, `locksAt` and `outstanding`; `ShellAttentionItem` wants `contextId`,
+`game`, `headline`, `detail` and `urgency`.
+
+**One field short, and the shortfall is worth naming rather than discovering in
+Stage 14.** No type in the inbox model carries a tournament id — `InboxAction`
+identifies its competition by NAME, and even its `key` is built from that name.
+`ShellAttentionItem.contextId` has to match `contexts[].competition.id`, which
+is the tournament id. So a mapper written against `InboxAction` alone could only
+join on a display name, and deriving identity from a name is the one thing this
+codebase refuses everywhere else it comes up.
+
+The join is available without that: `presentPlayInbox` is fed entries the caller
+builds from `PlayerCompetitions`, which holds the tournament id beside each
+competition. So the work is a mapper PLUS carrying `tournamentId` through
+`PlayInboxEntry` and `InboxAction` — a small change to a production presentation
+model, not a backend delta, and not a name join.
+
+The only other gap is the `live` urgency, which has no source; emitting `urgent`
+and `soon` only satisfies the predicate's rule rather than straining it.
+
+So the ABSORB of `/play` and `/competitions/:c/:s/play` is a recorded fate whose
+execution is **available to Stage 14**, not one waiting on the carried debts.
+Stating it the other way would have let a cutover ship the loss with a citation
+for it, and the loss is real: `/play` exists because "a player should never have
+to choose a competition merely to discover what needs done", and vNext Home is
+competition-scoped, so at cutover a player with games in two competitions has
+nothing that tells them about the second.
 
 ---
 
@@ -418,3 +453,70 @@ the server allows it, and Stage 10 built what is behind the link. A game's
 standings and a private league's table are the same question at two scopes, and
 both scopes now have a vNext surface. Nothing further is owed here; performing
 the absorption on the live address is Stage 14's.
+
+---
+
+## 10. THE SECOND REVIEW ROUND, AND WHAT IT FOUND AFTER THE MERGE
+
+Stage 13 merged as #923 while round two was still running. Its findings are
+therefore recorded here and carried in a follow-up change rather than in the
+stage's own pull request — which is the honest place for them, because two of
+them are defects the stage shipped.
+
+Round two **confirmed all eight corrections** from round one, each by applying
+the mutation itself rather than by reading the commit messages. It then found
+three things in the code round one never saw:
+
+### The club read that was abandoned and never re-issued
+
+`VNextOnboardingScreen` marked a competition as asked-for *before* awaiting its
+club list, and discarded the answer if the effect had since torn down. The key
+stayed marked, so nothing re-asked. Pressing **Back** on the favourite step
+while a read was in flight, then **Continue**, left that competition on
+"Loading clubs…" for the rest of the session — and the docblock claimed the
+opposite in as many words.
+
+The fix is not a smarter guard but a smaller one. A club list is keyed,
+immutable and idempotent: an answer arriving after the step changed is still
+the right answer, so it is stored. The only thing that must not happen is a
+setState after unmount, and that is now the only thing guarded.
+
+### Two Stage 13 surfaces disagreed about whether a game could be entered
+
+The games hub refuses to offer a game whose registration has closed, because
+`registrationOutlookOf` resolves the stored windows against the server's clock.
+The onboarding games step had only the display catalogue, which keeps `active`
+and discards the windows — so it drew a tick box for a closed or finished game
+and promised Finish would enter the player, which `enter_competition_game`
+refuses outright.
+
+**The rule now has one home.** `registrationOutlookOf` moved into its own module
+and both mappers call it; onboarding reads the windows from the same membership
+rows the hub uses, and a season whose read carried no `serverNow` is omitted
+entirely so the absence fails closed. A game the server would refuse gets no
+control, the sentence names which refusal it is, and the review summary stops
+listing it as something Finish will do.
+
+### The connected screen had no tests at all
+
+Every onboarding test targeted the presentational component against fixed
+fixtures, or the pure mapper. All of the read and effect logic was untested,
+and the blocker above was the direct consequence.
+`tests/vnext/onboardingScreen.test.tsx` now covers the resume, the failure
+fallback, the entry rule reaching the step, the fail-closed clock and the
+abandoned-read regression — the last of which fails if the old guard returns.
+
+### And a defect class no gate covered
+
+Round one found `text.h2`, a typography class that has never existed, rendering
+`class="undefined"` in the Championship. Generalising that scan to **every** CSS
+module in the lane found two more, both in surfaces that had already shipped:
+`styles.heroScore` in the Match Centre, so the headline score lost its display
+font, weight, size and `white-space: nowrap` and rendered as body text; and
+`styles.pickResult` in Last Man Standing, so the one paragraph saying what a
+submitted pick did kept the browser's default margins.
+
+Neither is visible to lint, typecheck, the unit suites, the axe scan or the
+browser suite, because the markup is *fine* — a CSS module resolves an unknown
+key to `undefined`, which is a perfectly ordinary class name to a renderer.
+`tests/vnext/vnextStyleClasses.test.ts` is the gate that now catches it.
