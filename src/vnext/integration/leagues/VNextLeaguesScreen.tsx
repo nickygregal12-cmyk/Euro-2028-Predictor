@@ -5,6 +5,7 @@ import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { buildLeaguesModel } from './buildLeaguesModel'
 import {
   useVNextLeaguesSource,
@@ -61,6 +62,7 @@ export type VNextLeaguesScreenProps = VNextLeaguesSourceInput & {
 }
 
 export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextLeaguesSource(props)
 
   // The mapping is pure, so it is memoised on the source rather than re-run on
@@ -92,10 +94,10 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
             // is outstanding. `null` is "this page cannot say", never zero.
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent, props.shellElsewhere],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const body =

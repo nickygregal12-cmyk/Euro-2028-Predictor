@@ -288,6 +288,14 @@ const VNextGamesPreview = import.meta.env.DEV
     )
   : null
 
+const VNextHubPreview = import.meta.env.DEV
+  ? lazy(() =>
+      import('./dev/VNextHubPreview').then((m) => ({
+        default: m.VNextHubPreview,
+      })),
+    )
+  : null
+
 // Stage 13's Discovery surface against real data. Unlike the other Stage 13
 // harnesses this one WRITES: Follow and Unfollow call set_competition_follow
 // against the signed-in account. Following never enters a game — contract 157's
@@ -399,6 +407,9 @@ export default function App() {
                 ) : null}
                 {import.meta.env.DEV && VNextGamesPreview ? (
                   <Route path="/dev/vnext-games" element={<VNextGamesPreview />} />
+                ) : null}
+                {import.meta.env.DEV && VNextHubPreview ? (
+                  <Route path="/dev/vnext-hub" element={<VNextHubPreview />} />
                 ) : null}
                 {import.meta.env.DEV && VNextDiscoveryPreview ? (
                   <Route path="/dev/vnext-discovery" element={<VNextDiscoveryPreview />} />

@@ -5,6 +5,7 @@ import type { HomeModel } from '../../models/home'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { buildHomeModel } from './buildHomeModel'
 import { useVNextHomeSource, type VNextHomeSourceInput } from './useVNextHomeSource'
 import { VNextHomeLoading, VNextHomeNotice } from './VNextHomeStates'
@@ -61,6 +62,7 @@ export type VNextHomeScreenProps = VNextHomeSourceInput & {
 }
 
 export function VNextHomeScreen(props: VNextHomeScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextHomeSource(props)
 
   // The mapping is pure, so it is memoised on the source rather than re-run on
@@ -94,10 +96,10 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
               ? model.primaryAction.progress.total - model.primaryAction.progress.completed
               : null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, model, props.onShellIntent, props.shellElsewhere],
+    [state, model, props.onShellIntent, elsewhere],
   )
 
   return shell === null ? (

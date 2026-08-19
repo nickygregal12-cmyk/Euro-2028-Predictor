@@ -86,7 +86,7 @@
  * 208". It is not `active`: an environment that cannot say must not be decoded
  * into the one outcome that reads as "you are fine".
  */
-export type CupEntrantOutcome =
+type CupEntrantOutcome =
   | 'active'
   | 'qualified'
   | 'survived'
