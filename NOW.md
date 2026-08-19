@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **205** | latest `20260819100000_cup_bracket_seed_initial_phase.sql` |
 | Development hosted | **205** | at `20260819100000_cup_bracket_seed_initial_phase.sql`, verified `2026-08-19T11:30:00.000Z`, fast-lane run `32246603342` |
-| Production | **198** | promotion **not authorised** |
+| Production | **205** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or

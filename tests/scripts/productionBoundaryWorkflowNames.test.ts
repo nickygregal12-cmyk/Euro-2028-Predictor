@@ -154,6 +154,51 @@ describe('a promotion workflow names migrations that exist', () => {
       ).toEqual([])
     })
 
+    it(`${workflow} has balanced parentheses in every embedded jsonb_build_object`, () => {
+      // The 198-to-205 ROLLOUT applied all seven migrations to Production and
+      // then failed, because its postflight measurement carried one closing
+      // parenthesis too many:
+      //
+      //   'pass_codes_explained',(select ... not like 'No explanation%')),
+      //
+      // That closed jsonb_build_object early, so psql reported "syntax error at
+      // or near )" against the LAST line of a 64-line statement, 60 lines from
+      // the actual mistake. Production was left correctly migrated with its own
+      // verification never having run -- the worst moment for a check to be
+      // unrunnable, and entirely detectable from the file.
+      //
+      // SQL line comments are stripped BEFORE counting. The first version of
+      // this guard did not, so an apostrophe inside a comment ("the boundary's
+      // own count") flipped the string state and it reported both files
+      // unbalanced -- including one already proven to execute end to end. A
+      // guard that cries wolf on correct files is worse than none.
+      for (const block of source.matchAll(/select jsonb_build_object\(/g)) {
+        const rest = source.slice(block.index!)
+        const end = rest.indexOf('\n          SQL')
+        const raw = end === -1 ? rest : rest.slice(0, end)
+        const text = raw
+          .split('\n')
+          .map((line) => line.replace(/^\s*--.*$/, ''))
+          .join('\n')
+        let depth = 0
+        let inString = false
+        for (let i = 0; i < text.length; i += 1) {
+          const ch = text[i]
+          if (ch === "'") {
+            if (inString && text[i + 1] === "'") { i += 1; continue }
+            inString = !inString
+          } else if (!inString && ch === '(') depth += 1
+          else if (!inString && ch === ')') depth -= 1
+        }
+        expect(
+          depth,
+          `${workflow} has an unbalanced jsonb_build_object block (depth ${depth}). ` +
+            'A stray parenthesis closes the object early and psql blames the last ' +
+            'line of the statement, not the line that is wrong.',
+        ).toBe(0)
+      }
+    })
+
     for (const edge of ['SOURCE', 'TARGET'] as const) {
       const version = envValue(source, `${edge}_VERSION`)
       const name = envValue(source, `${edge}_NAME`)
