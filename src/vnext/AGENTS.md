@@ -19,6 +19,18 @@ It holds the vNext design workshop: a Storybook-reviewed presentation lane runni
 3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
 4. The exact domain/service contract for the data the component actually needs.
 
+**Known open findings against this lane** are recorded at
+[`../../docs/quality/audits/2026-08-19-vnext-programme-review.md`](../../docs/quality/audits/2026-08-19-vnext-programme-review.md),
+with their live status in
+[`../../docs/quality/risk-register.md`](../../docs/quality/risk-register.md) and
+[`../../docs/quality/deferred-decisions.md`](../../docs/quality/deferred-decisions.md):
+`TEST-002` — the surface conformance checklist is duplicated across the eight
+browser specs and has drifted between them; `UX-006` — this lane's palette has no
+contrast matrix while the legacy one does; `TEST-003` — nothing states how drawn
+geometry is verified; `DEC-016` and `DEC-017` — the light theme and the icon
+system are undecided. They are **evidence and known defects, not authority.**
+They add no scope to an ordinary task, and current code and tests outrank them.
+
 ## What is here
 
 | Directory | Holds |
