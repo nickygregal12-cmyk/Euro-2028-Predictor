@@ -295,6 +295,34 @@ parts, because the split is the point:
   mapper, and drawing an empty module or a row of zeroes would make the page look
   finished and make the product a liar.
 - **Do not truncate a club name.** Home stopped at two lines then ellipsised; the browser suite caught that clipping "Strathallan Caledonian Thistle" in a ~150px scoreboard column. The predictor has no line clamp on a club name at all — the row grows, `overflow-wrap: anywhere` stops a long word widening it, and with nothing hiding overflow the defect cannot reopen.
+- **A DRAWING IS MEASURED IN A BROWSER, AND THE MEASUREMENT READS THE
+  COORDINATES BACK.** A picture is the one thing here that can be completely
+  wrong and completely green: jsdom gives an `<svg>` no geometry, a render test
+  sees the elements and not where they went, and a unit test of the scaling
+  function proves the function rather than the screen. A rank chart drawn upside
+  down throws nothing. So anything positioned by a computed coordinate — a
+  chart, a bracket, a connector, a track, a meter — obeys three rules together:
+  - **the geometry comes from the model, in ONE calculation.** `rankPlot`
+    returns the fractions and `rankBounds` returns the numbers the axis is
+    labelled with, from the same place, because a chart scaled by one rule and
+    captioned by another is upside down in exactly the way nobody notices.
+    `RankChart` turns fractions into a viewBox and does no min, max, sort or
+    scale of its own;
+  - **a browser spec reads the rendered coordinates out of the document** and
+    asserts the RELATIONSHIPS against what the page itself states — a climb is a
+    decreasing `cy`, the series advances in `cx`, the extremes sit where the
+    table beside the chart says. `min(cy) < max(cy)` is not that assertion: it
+    is true of a chart drawn upside down, which is how an earlier version of
+    this measurement passed;
+  - **the drawing is the illustration and something semantic is the
+    authority.** The SVG is `aria-hidden` and a real `<table>` carries the same
+    series, rendered from the same array so they cannot drift.
+
+  `tests/vnext/vnextDrawnGeometry.test.ts` holds the registry: a component that
+  draws by computed coordinate names the spec that measures it, checked in both
+  directions so neither an unmeasured drawing nor a stale entry survives. A
+  drawing whose coordinates are all literals — a static icon — is not a
+  calculation and is deliberately outside the rule.
 
 ## Context budget
 
