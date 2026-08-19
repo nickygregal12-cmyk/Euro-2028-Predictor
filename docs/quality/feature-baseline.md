@@ -350,6 +350,10 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 
 > **Contract 202:** records a backend correctness fix: a private AI Lab forecast for a fixture more than two days away was frozen at the first run of the week, so results imported afterwards never reached it. Predictions remain immutable — the fix is more horizon buckets, not an overwrite. No frontend feature baseline changes.
 
+> **Contract 208:** moves a baseline feature. A season Championship surface can now state that a player has been ELIMINATED, which no season read supplied before; and a `single_group` competition that has reached its split is no longer offered a league fixture as a knockout tie with a Penalty Number lane. The vNext Championship consumes the first; the second removes a presentation workaround from being the only defence.
+
+> **Contract 207:** records a correctness fix in a read PRODUCTION calls. `get_season_cup_phase`'s membership lookup matched both of a split entrant's rows and `select ... into` took one silently, so `src/services/supabase/seasonCup.ts` showed a split entrant their pre-split group, its members and its table. No baseline feature is removed; one starts being answered correctly.
+
 > **Contract 205:** records a correctness fix in a read no surface calls yet. `get_season_cup_bracket`'s seed lookup was a scalar subquery over a table keyed by `(competition_id, user_id, phase_kind)`, so it raised — failing the whole read — for every entrant in a Championship that had split. No baseline feature moves: the read is unconsumed today, and it is fixed because Stage 12 is about to be its first caller.
 
 > **Contract 204:** records a read-model correctness fix in the private AI Lab: two league-scoped dashboards reported a lab-wide quarantine count beside league-scoped numbers. Scoped through a new custody view, `ai.quarantined_predictions`. No public surface, no threshold moves, and nothing in the browser reads the field today — it is fixed because the next surface to use it would have inherited the defect.

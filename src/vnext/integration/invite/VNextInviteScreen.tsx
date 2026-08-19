@@ -3,6 +3,8 @@ import { VNextInvite, type InviteIntent } from '../../invite/VNextInvite'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { useInviteCode, type InviteJoinResult } from '../../../features/leagues/useInviteCode'
 import { buildInviteModel } from './buildInviteModel'
@@ -31,12 +33,21 @@ export type VNextInviteScreenProps = {
   readonly authLoading: boolean
   readonly code: string | undefined
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   readonly onJoined?: ((result: InviteJoinResult) => void) | undefined
   readonly onGoHome?: (() => void) | undefined
   readonly onOpenGame?: (() => void) | undefined
 }
 
 export function VNextInviteScreen(props: VNextInviteScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const { state, joining, resolve, accept } = useInviteCode()
   const [generatedAt] = useState(() => new Date().toISOString())
   const { userId, authLoading, code } = props
@@ -60,8 +71,9 @@ export function VNextInviteScreen(props: VNextInviteScreenProps) {
         playerName: null,
         outstandingPredictions: null,
         canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere,
       }),
-    [props.onShellIntent],
+    [props.onShellIntent, elsewhere],
   )
 
   const body =

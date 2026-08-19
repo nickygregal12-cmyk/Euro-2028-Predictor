@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { expectNoAxeViolations } from './vnextAxe'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { VNextGameRules } from '../../src/vnext/rules/VNextGameRules'
+import { CUP_TIE_MATCH_POINTS } from '../../src/domain/season/cupTieSettlement'
 import {
   SEASON_JOKERS_PER_HALF,
   SEASON_JOKERS_PER_SEASON,
@@ -26,7 +27,7 @@ describe('one game is on screen at a time', () => {
   it('opens on the game the caller is in', () => {
     render(<VNextGameRules game="championship" />)
     expect(zone('rules')?.getAttribute('data-game')).toBe('championship')
-    expect(zone('rules-panel')?.textContent).toMatch(/head-to-head fixture/i)
+    expect(zone('rules-panel')?.textContent).toMatch(/head-to-head tie/i)
     // The other games' rules are not also on screen.
     expect(zone('rules-panel')?.textContent).not.toMatch(/one club a round/i)
   })
@@ -129,11 +130,59 @@ describe('no per-competition setting is invented', () => {
     expect(zone('rules-panel')?.textContent).not.toMatch(/draw/i)
   })
 
-  it('does not list the Championship’s tie-breaks, which are another authority’s', () => {
+  it('prints the Championship’s table points from the settlement authority', () => {
+    // NOT RETYPED. The same three constants `cupTieSettlement.ts` awards and
+    // `cupGroupTable.ts` totals, so a rule change moves the copy with it.
+    render(<VNextGameRules game="championship" />)
+    const panel = zone('rules-panel')!
+    expect(panel.querySelector('[data-vnext-rule="Win a tie"]')?.textContent).toContain(
+      `+${CUP_TIE_MATCH_POINTS.win}`,
+    )
+    expect(panel.querySelector('[data-vnext-rule="Draw a tie"]')?.textContent).toContain(
+      `+${CUP_TIE_MATCH_POINTS.draw}`,
+    )
+    expect(panel.querySelector('[data-vnext-rule="Lose a tie"]')?.textContent).toContain(
+      `+${CUP_TIE_MATCH_POINTS.loss}`,
+    )
+  })
+
+  it('states the three deciders in the settlement authority’s own order', () => {
+    // WHY THIS REPLACED "does not list the tie-breaks". Stage 13 left them out
+    // on the grounds that they were another authority's, and the result was a
+    // player who read "Decided in extra time" on their own tie with nowhere to
+    // find out what that meant. The order is the settler's: closer scorelines,
+    // then the sealed number, then a walkover — and asserting the ORDER is what
+    // stops the block quietly becoming a second settlement rule.
+    render(<VNextGameRules game="championship" />)
+    const steps = [...(zone('rules-panel')?.querySelectorAll('ol li') ?? [])].map(
+      (node) => node.textContent ?? '',
+    )
+    expect(steps).toHaveLength(3)
+    expect(steps[0]).toMatch(/extra time/i)
+    expect(steps[1]).toMatch(/penalty number/i)
+    expect(steps[2]).toMatch(/walkover/i)
+    // The lane rule, stated where it can be understood in advance rather than
+    // learnt from a `check_violation`.
+    expect(steps[1]).toMatch(/odd/i)
+    expect(steps[1]).toMatch(/even/i)
+  })
+
+  it('says a Joker never reaches a Championship tie', () => {
+    // The non-obvious rule and the one worth the space: `cupTieSettlement.ts`
+    // REJECTS fixture points outside the raw scale rather than trusting a
+    // caller not to have doubled them.
+    render(<VNextGameRules game="championship" />)
+    expect(zone('rules-panel')?.textContent).toMatch(/Joker.*never your tie/i)
+  })
+
+  it('states neither Championship phase as this competition’s plan', () => {
+    // Whether a season ends in a knockout is calendar arithmetic contract 198
+    // computes, not a fact a rules block can know. It describes the split and
+    // says the Championship page holds the real answer.
     render(<VNextGameRules game="championship" />)
     const panel = zone('rules-panel')?.textContent ?? ''
-    expect(panel).not.toMatch(/extra time|penalty number/i)
-    expect(zone('rules-elsewhere')?.textContent).toMatch(/shown on the tie itself/i)
+    expect(panel).toMatch(/nobody is knocked out by the split/i)
+    expect(panel).toMatch(/says whether yours has one/i)
   })
 })
 

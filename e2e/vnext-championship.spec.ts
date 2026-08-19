@@ -306,11 +306,42 @@ test.describe('the page says only what the read stated', () => {
     expect(reading.pageText).not.toMatch(/\bbye\b/i)
   })
 
-  test('names the champion without telling the reader they lost', async ({ page }) => {
+  test('names the champion, and says the reader is out because the READ said so', async ({ page }) => {
+    // THIS CASE CHANGED WITH CONTRACT 208, AND THE CHANGE IS THE POINT.
+    //
+    // It used to require that the page say NOTHING about elimination here,
+    // because no season read carried the fact and naming somebody else as
+    // champion is not the same sentence as "you lost". That was right while the
+    // gap existed.
+    //
+    // Contract 208 puts `bonus_competition_entrants.outcome` on the read, and
+    // this world's `standing` is now a STATED `eliminated`. Staying silent
+    // would mean withholding what the settlement authority actually said.
+    //
+    // The property that has not changed is the one immediately above, on
+    // `frame-lost-phone`: a reader who lost their only tie and whose read
+    // carries no outcome is still told nothing. Together the two cases say what
+    // matters — elimination is the column's value, never an inference from a
+    // lost tie, an absent fixture, a missing seed or somebody else's name on
+    // the final.
     await open(page, 'frame-someone-else-won-phone')
     const reading = await read(page)
     expect(reading.pageText).toContain('Bo Nilsson')
-    expect(reading.pageText).not.toMatch(/eliminated/i)
+    expect(reading.pageText).toMatch(/eliminated/i)
+  })
+
+  test('states elimination where nothing on the page looks like a defeat', async ({
+    page,
+  }) => {
+    // THE WORLD CONTRACT 208 EXISTS FOR, and the sharpest of the three. Group
+    // phase, no knockout, no settled tie and no seed — the reader is TOP of
+    // their group — and they are told they are out. Every inference the surface
+    // could have made returns "still in" here, so the sentence can only have
+    // come from the settlement authority's column.
+    await open(page, 'frame-eliminated-in-groups-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(/You have been eliminated/i)
+    expect(reading.pageText).not.toMatch(/Your tie/i)
   })
 })
 

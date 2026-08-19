@@ -147,27 +147,41 @@ function bracketPanelOf(source: ChampionshipSource): BracketPanel {
 }
 
 /**
- * THE COMPETITION'S VERDICT ON THIS PLAYER — WHERE ONE WAS STATED.
+ * THE COMPETITION'S VERDICT ON THIS PLAYER — CONTRACT 207's COLUMN, CARRIED.
  *
- * Contract 193 carries `you_qualified`, which is a fact about the DRAW and not
- * about survival. It is honest to say "you qualified"; it would not be honest
- * to read its absence as elimination, because a player who has not qualified
- * may still be playing the group phase.
+ * ONE SOURCE AND NO FALLBACKS. `yourOutcome` is
+ * `bonus_competition_entrants.outcome`, which is the settlement authority's own
+ * answer. Absent, the surface says nothing.
  *
- * So `champion` is stated where the server names one, `qualified` where the
- * server says so, and everything else is `not-stated`. No season read supplies
- * `eliminated` at all.
+ * THE THREE FALLBACKS THIS FUNCTION USED TO HAVE, AND WHY EACH IS GONE:
+ *
+ *   • `panel.champion?.isYou` → `champion`. The bracket naming you as the
+ *     final's winner is a fact about a FIXTURE; the competition's verdict is a
+ *     fact about an ENTRANT, and the settlement job is what moves one to the
+ *     other. The champion is still announced — by the bracket panel, which is
+ *     where a fixture fact belongs.
+ *   • `youQualified` → `qualified`. A fact about the DRAW wearing the
+ *     settlement vocabulary's word. It is now `seededIntoKnockout`.
+ *   • nothing → `not-stated`. Unchanged, and now means "this database is behind
+ *     contract 208" rather than "no read anywhere carries this".
+ *
+ * A pre-208 database therefore says less here than it did, and that is the
+ * point: what it used to say was two other facts wearing this one's name.
  */
-function standingOf(source: ChampionshipSource, panel: BracketPanel): ChampionshipStanding {
+function standingOf(source: ChampionshipSource): ChampionshipStanding {
   if (source.bracket.kind !== 'ok') return { kind: 'not-stated' }
   const answer = source.bracket.bracket
   if (!answer.entered) return { kind: 'not-stated' }
+  return answer.yourOutcome === null
+    ? { kind: 'not-stated' }
+    : { kind: 'stated', outcome: answer.yourOutcome }
+}
 
-  if (panel.kind === 'bracket' && panel.champion?.isYou === true) {
-    return { kind: 'stated', outcome: 'champion' }
-  }
-  if (answer.qualification.youQualified) return { kind: 'stated', outcome: 'qualified' }
-  return { kind: 'not-stated' }
+/** Contract 193's draw fact, carried as a boolean and never as a verdict. */
+function seededIntoKnockoutOf(source: ChampionshipSource): boolean {
+  if (source.bracket.kind !== 'ok') return false
+  const answer = source.bracket.bracket
+  return answer.entered && answer.qualification.youQualified
 }
 
 /**
@@ -276,7 +290,8 @@ export function buildChampionshipModel(source: ChampionshipSource): Championship
       seasonLabel: source.context.seasonLabel,
       gameName: source.context.gameName,
     },
-    standing: standingOf(source, bracket),
+    standing: standingOf(source),
+    seededIntoKnockout: seededIntoKnockoutOf(source),
     bracket,
     groups: groupPanelOf(source),
     penaltyNumber: penaltyNumberOf(source),

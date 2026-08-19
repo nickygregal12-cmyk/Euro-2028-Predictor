@@ -85,6 +85,8 @@ function OnboardingHarness() {
           playerName: displayName,
           outstandingPredictions: null,
           canNavigateAway: true,
+          // The onboarding preview is one screen with no competitions behind it.
+          elsewhere: null,
         })}
         onIntent={(intent) => {
           if (intent.kind === 'account') {

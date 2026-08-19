@@ -64,21 +64,25 @@ describe('every world is one page', () => {
   it.each(championshipScenarioNames)('%s pairs its panels lawfully', (name) => {
     const world = championshipScenarios[name]
 
-    // The mapper can only state `champion` when the bracket names one, and can
-    // never produce `eliminated` at all — no season read supplies it.
+    // CONTRACT 207. The standing is `bonus_competition_entrants.outcome`, so
+    // every one of the five stored values is a lawful world and NONE of them
+    // has to agree with the bracket — a competition can record a player as
+    // eliminated with no knockout drawn at all, which `eliminatedInGroups` is.
     if (world.standing.kind === 'stated') {
-      expect(world.standing.outcome).not.toBe('eliminated')
-      if (world.standing.outcome === 'champion') {
-        expect(world.bracket.kind).toBe('bracket')
-        if (world.bracket.kind === 'bracket') {
-          expect(world.bracket.champion?.isYou).toBe(true)
-        }
-      }
+      expect(['active', 'qualified', 'survived', 'eliminated', 'champion']).toContain(
+        world.standing.outcome,
+      )
     }
 
-    // A panel that is not a bracket carries no standing the bracket implied.
-    if (world.bracket.kind !== 'bracket') {
-      expect(world.standing.kind).toBe('not-stated')
+    // WHAT MUST STILL AGREE: a world claiming the READER won it must also carry
+    // the bracket that says who won, because the page announces the winner from
+    // the bracket panel and a champion with no bracket would be a page saying
+    // "you won" beside no final.
+    if (world.standing.kind === 'stated' && world.standing.outcome === 'champion') {
+      expect(world.bracket.kind).toBe('bracket')
+      if (world.bracket.kind === 'bracket') {
+        expect(world.bracket.champion?.isYou).toBe(true)
+      }
     }
 
     // A locked or unscheduled Penalty Number carries no lane, because there is
@@ -122,19 +126,35 @@ describe('every world is one page', () => {
   })
 })
 
-describe('elimination is never printed', () => {
-  it('says nothing when the reader lost their only tie', () => {
+describe('elimination is stated by the server, and never derived', () => {
+  it('says nothing about elimination when the reader lost their only tie', () => {
+    // The world where the inference is most available: a settled defeat, no
+    // later tie, and a read that carried no outcome. `lostButNotStated` is now
+    // a database behind contract 208, and the page must be as silent as it was
+    // when no read anywhere held the fact.
     renderChampionship(championshipScenarios.lostButNotStated)
     const page = document.body.textContent ?? ''
     expect(page).not.toMatch(/eliminated|knocked out|you are out/i)
-    // And no standing banner at all, rather than an empty one.
-    expect(document.querySelector('[data-vnext-zone="standing"]')).toBeNull()
+    // The draw fact is still stated, and it is the only thing in the block.
+    expect(zone('standing').textContent).toBe('You were seeded into the knockout draw.')
+    expect(document.querySelector('[data-vnext-zone="seeded"]')).not.toBeNull()
   })
 
-  it('names the winner without telling the reader they are out', () => {
+  it('states elimination where nothing on the page looks like a defeat', () => {
+    // THE WORLD CONTRACT 207 EXISTS FOR. Group phase, no knockout, no settled
+    // tie and no seed — every inference the surface could make returns "still
+    // in", and the competition has recorded the reader as out.
+    renderChampionship(championshipScenarios.eliminatedInGroups)
+    expect(zone('standing').textContent).toContain('You have been eliminated')
+    expect(document.querySelector('[data-vnext-zone="seeded"]')).toBeNull()
+  })
+
+  it('names the winner AND states the reader is out, from two different facts', () => {
     renderChampionship(championshipScenarios.someoneElseWon)
+    // The bracket panel announces the fixture's winner.
     expect(zone('champion').textContent).toContain('Bo Nilsson')
-    expect(document.body.textContent ?? '').not.toMatch(/eliminated/i)
+    // The standing states the entrant's outcome. Neither produced the other.
+    expect(zone('standing').textContent).toContain('You have been eliminated')
   })
 
   it('states champion where the server named the reader', () => {
@@ -567,19 +587,27 @@ describe('a refusal is shown whatever the panel became', () => {
  * round one saw it above the seat recording their defeat.
  */
 describe('the qualification line is a draw fact, not a survival claim', () => {
-  it('does not tell a knocked-out reader they are in the knockout', () => {
+  it('does not let the draw fact contradict the verdict above it', () => {
+    // Contract 208's separation, at its sharpest: eliminated AND once seeded
+    // are both true of the same reader. The verdict leads; the draw fact
+    // follows it in the past tense and never stands in for it.
     const { container } = renderChampionship({
       ...championshipScenarios.lostButNotStated,
-      standing: { kind: 'stated', outcome: 'qualified' },
+      standing: { kind: 'stated', outcome: 'eliminated' },
     })
     const standing = container.querySelector('[data-vnext-zone="standing"]')
-    expect(standing?.textContent).toBe('You were seeded into the knockout draw.')
+    expect(standing?.textContent).toBe(
+      'You have been eliminated.You were seeded into the knockout draw.',
+    )
     // Nothing on the page claims they are still in it.
     expect(screen.queryByText(/still in/i)).toBeNull()
   })
 
-  it('still says nothing at all where no authority stated a standing', () => {
-    const { container } = renderChampionship(championshipScenarios.lostButNotStated)
+  it('draws no verdict at all where the read carried none', () => {
+    const { container } = renderChampionship({
+      ...championshipScenarios.lostButNotStated,
+      seededIntoKnockout: false,
+    })
     expect(container.querySelector('[data-vnext-zone="standing"]')).toBeNull()
   })
 })

@@ -77,7 +77,7 @@ export function ActionCentre({
           <>
             {inbox.unreadable.length > 0 ? (
               <Alert variant="warning" title="Some competitions could not be checked">
-                {inbox.unreadable.join(', ')}. Anything due there is missing from this list.
+                {inbox.unreadable.map((entry) => entry.competitionName).join(', ')}. Anything due there is missing from this list.
               </Alert>
             ) : null}
             <Group title="Due soon" actions={inbox.urgent} onNavigate={onClose} urgent />

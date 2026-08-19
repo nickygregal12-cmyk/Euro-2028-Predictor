@@ -50,6 +50,16 @@ export type VNextAccountSourceInput = {
   readonly authLoading: boolean
   /** The player's own display name, where the host knows one. */
   readonly displayName?: string | null
+  /**
+   * A ready `mailto:` for the deployment's administrator, or `null`/absent
+   * where none is configured.
+   *
+   * THE HOST BUILDS IT. The subject names the product and the body carries the
+   * player's own address, both of which are the application's facts — the site
+   * brand and the session. A presentation module composing one would be
+   * inventing an address and a product name.
+   */
+  readonly supportHref?: string | null
 }
 
 export type VNextAccountSourceState =
@@ -99,6 +109,7 @@ export function useVNextAccountSource(
 
   const { userId, authLoading } = input
   const displayName = input.displayName ?? null
+  const supportHref = input.supportHref ?? null
 
   useEffect(() => {
     if (authLoading || !userId) {
@@ -120,19 +131,36 @@ export function useVNextAccountSource(
     setRefreshing(kept)
 
     void (async () => {
-      const [preferencesModule, historyModule, catalogueModule] = await Promise.all([
-        import('../../../services/supabase/playerPreferences'),
-        import('../../../services/supabase/seasonHistory'),
-        import('../../../services/supabase/weeklyCatalogue'),
-      ])
+      const [preferencesModule, historyModule, catalogueModule, profileModule, authModule, policy] =
+        await Promise.all([
+          import('../../../services/supabase/playerPreferences'),
+          import('../../../services/supabase/seasonHistory'),
+          import('../../../services/supabase/weeklyCatalogue'),
+          import('../../../services/supabase/profile'),
+          import('../../../services/supabase/auth'),
+          import('../../../features/auth/authValidation'),
+        ])
       if (!active) return
 
-      // A CATCH PER PROMISE. None of the three is another's precondition, and a
+      // A CATCH PER PROMISE. None of the four is another's precondition, and a
       // catch around the set would throw away answers that already landed.
-      const [preferences, history, catalogue] = await Promise.all([
+      //
+      // The account row and the session's email state are the ONE pair that is
+      // caught together, because the settings panel cannot draw itself from
+      // half of them: an email row with no address and a switch in an unknown
+      // position are not two independently useful halves.
+      const [preferences, history, catalogue, settings] = await Promise.all([
         preferencesModule.fetchPlayerPreferences().catch(() => null),
         historyModule.fetchMySeasonHistory().catch(() => null),
         catalogueModule.fetchPublishedWeeklySeasons().catch(() => null),
+        Promise.all([
+          profileModule.fetchMyAccount(userId),
+          authModule.getSessionEmailState(),
+        ])
+          .then(([account, emails]) =>
+            account === null ? null : { account, emails },
+          )
+          .catch(() => null),
       ])
       if (!active) return
 
@@ -150,6 +178,21 @@ export function useVNextAccountSource(
             preferences === null ? { kind: 'failed' } : { kind: 'ok', preferences },
           history: history === null ? { kind: 'failed' } : { kind: 'ok', history },
           catalogue: catalogue === null ? { kind: 'failed' } : { kind: 'ok', seasons: catalogue },
+          settings:
+            settings === null
+              ? { kind: 'failed' }
+              : {
+                  kind: 'ok',
+                  email: settings.emails.email,
+                  pendingEmail: settings.emails.pendingEmail,
+                  reminderEmails: settings.account.reminderEmails,
+                  // THE NUMBERS ONLY. The moderation list stays in one place —
+                  // it is mirrored by a database trigger, and a second copy
+                  // would be the one that went stale.
+                  displayNameMaxLength: policy.DISPLAY_NAME_MAX,
+                  passwordMinLength: policy.PASSWORD_MIN,
+                },
+          supportHref,
         },
       })
     })()
@@ -157,7 +200,7 @@ export function useVNextAccountSource(
     return () => {
       active = false
     }
-  }, [authLoading, userId, displayName, nonce])
+  }, [authLoading, userId, displayName, supportHref, nonce])
 
   return useMemo<VNextAccountSourceState>(() => {
     if (authLoading) return { status: 'loading' }

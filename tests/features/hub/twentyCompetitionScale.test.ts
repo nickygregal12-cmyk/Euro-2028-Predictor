@@ -102,6 +102,7 @@ describe('a twenty-competition platform, for a player who plays in three', () =>
     // an available game is discovery, never an action.
     const inbox = presentPlayInbox(
       player.mine.map((entry) => ({
+        tournamentId: entry.competition.tournamentId,
         competitionName: entry.competition.name,
         seasonLabel: entry.competition.seasonLabel,
         week: {
@@ -130,8 +131,14 @@ describe('a twenty-competition platform, for a player who plays in three', () =>
   it('names a competition it could not read rather than dropping it', () => {
     const inbox = presentPlayInbox(
       [
-        { competitionName: 'Premier League', seasonLabel: '2026/27', week: null },
         {
+          tournamentId: 't-premier-league',
+          competitionName: 'Premier League',
+          seasonLabel: '2026/27',
+          week: null,
+        },
+        {
+          tournamentId: 't-champions-league',
           competitionName: 'Champions League',
           seasonLabel: '2026/27',
           week: { primary: null, secondary: [], actions: [], allClear: true, empty: false },
@@ -141,7 +148,11 @@ describe('a twenty-competition platform, for a player who plays in three', () =>
     )
     // "Nothing to do" and "we could not check" are different sentences, and
     // only one of them is safe while a lock is passing.
-    expect(inbox.unreadable).toEqual(['Premier League'])
+    // NAMED AND ADDRESSED. A surface that can only say which competition broke
+    // cannot offer to take the player there.
+    expect(inbox.unreadable).toEqual([
+      { tournamentId: 't-premier-league', competitionName: 'Premier League' },
+    ])
     expect(inbox.allClear).toBe(true)
   })
 

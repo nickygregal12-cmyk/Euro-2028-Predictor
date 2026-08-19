@@ -68,12 +68,21 @@ export function useGlobalPlayInbox(player: PlayerCompetitions | null): GlobalPla
         const competition = player.mine[index]?.competition
         if (result.status === 'fulfilled') {
           return {
+            // The play context's own answer, which is the id every season read
+            // is addressed by. It is preferred over the catalogue's copy for
+            // the same reason the week is: it came back with this answer.
+            tournamentId: result.value.loaded.tournamentId,
             competitionName: result.value.entry.competition.name,
             seasonLabel: result.value.entry.competition.seasonLabel,
             week: result.value.loaded.week,
           }
         }
         return {
+          // THE FAILED CASE STILL HAS AN ID, because it comes from the
+          // catalogue rather than from the read that failed. That is what lets
+          // a surface offer to take the player to the competition it could not
+          // read, instead of only naming it.
+          tournamentId: competition?.tournamentId ?? '',
           competitionName: competition?.name ?? 'A competition',
           seasonLabel: competition?.seasonLabel ?? '',
           week: null,

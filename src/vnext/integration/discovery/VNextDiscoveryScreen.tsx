@@ -3,6 +3,8 @@ import { VNextDiscovery, type DiscoveryIntent } from '../../discovery/VNextDisco
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildDiscoveryModel } from './buildDiscoveryModel'
 import { useVNextDiscoverySource } from './useVNextDiscoverySource'
@@ -24,12 +26,21 @@ export type VNextDiscoveryScreenProps = {
   readonly userId: string | null
   readonly authLoading: boolean
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   readonly onOpenSeason?:
     | ((route: { competitionSlug: string; seasonKey: string }) => void)
     | undefined
 }
 
 export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextDiscoverySource({
     userId: props.userId,
     authLoading: props.authLoading,
@@ -47,8 +58,9 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
         playerName: null,
         outstandingPredictions: null,
         canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere,
       }),
-    [props.onShellIntent],
+    [props.onShellIntent, elsewhere],
   )
 
   const body =

@@ -130,15 +130,31 @@ words "withdrew" and "disqualified" never appear.
 
 ---
 
-## 6. THE ELIMINATION GAP — a recorded backend debt, not a satisfied predicate
+## 6. THE ELIMINATION GAP — CLOSED BY CONTRACT 207
+
+**Status: RESOLVED, 19 August 2026, by
+`supabase/migrations/20260819130000_cup_bracket_outcome_and_knockout_stage.sql`.**
+The section below is kept because it is the reasoning the correction was
+derived from, and because the discipline it argues for — silence over
+inference — is what the surface still does where the read carries nothing. What
+changed is that the read now carries something.
+
+`get_season_cup_bracket` returns `your_outcome`:
+`bonus_competition_entrants.outcome`, verbatim, for the caller alone.
+`ChampionshipStanding` is that column and nothing else, and the mapper's three
+former fallbacks are gone — see §6.1.
+
+---
+
+### The gap as it stood
 
 The predicate requires:
 
 > eliminated/champion/no-action-required states are **complete**.
 
-**`champion` is present. `eliminated` is returned by no season Championship read
-this surface can call** — not contract 193, not 133, not 167, not 120. The
-authoritative fact is `bonus_competition_entrants.outcome`.
+**`champion` was present. `eliminated` was returned by no season Championship
+read this surface could call** — not contract 193, not 133, not 167, not 120.
+The authoritative fact is `bonus_competition_entrants.outcome`.
 
 Two TOURNAMENT-scoped reads do expose it — `get_bonus_games`
 (`20260805140000:163`) and `get_my_cup` (`20260804263000:715`) — and an earlier
@@ -176,21 +192,57 @@ The copy now names the draw — *"You were seeded into the knockout draw."* — 
 is what the field knows and claims nothing about survival. This is a smaller
 correction than the gap below and does not close it.
 
-### This asymmetry does NOT satisfy the predicate
+### That asymmetry did NOT satisfy the predicate, and was not called complete
 
-Stating it plainly, because the tempting move is to call truthful silence
+Stated plainly, because the tempting move was to call truthful silence
 "complete":
 
 > The contract asks for these states to be complete. Truthful silence is the
 > correct behaviour given the current backend, and it is **not** completeness.
 
-**Therefore Stage 12 owes a backend delta**: the smallest appropriate read
-change that exposes a canonical season-wide elimination fact. Adding
-`entrants.outcome` to contract 193's payload is the obvious candidate — it is
-one column, already joined for entrancy, and already the vocabulary
-`ChampionshipStanding` is modelled on. That delta is **not yet written**, and
-until it is, this document records the stage as incomplete on this point rather
-than reinterpreting the requirement.
+**Stage 12 therefore owed a backend delta**: the smallest read change exposing a
+canonical season-wide elimination fact. Contract 208 wrote exactly the candidate
+this section named — `entrants.outcome` on contract 193's payload, one column,
+already joined for entrancy, already the vocabulary `ChampionshipStanding` is
+modelled on.
+
+---
+
+## 6.1 What the correction changed, and what it deliberately narrowed
+
+`your_outcome` is read by the entrancy gate — which already looked the row up,
+so no join was added — and emitted verbatim beside `entered`. It is the
+**caller's own** and is reached exactly once, scoped to `v_uid`, the same
+construction the Penalty Number uses: a per-seat outcome would turn a draw sheet
+into a disclosure of every entrant's standing. The in-transaction guard asserts
+all three properties against the installed text, and
+`supabase/tests/254_cup_bracket_outcome_and_knockout_stage.sql` proves them
+against a competition with four entrants holding four different outcomes.
+
+**Three mapper fallbacks were removed, and the page says LESS in one case.**
+`standingOf` used to reach for `panel.champion?.isYou` and then for
+`youQualified`. Both are gone:
+
+| was | why it went |
+| --- | --- |
+| the bracket names you as the final's winner → `champion` | a fact about a FIXTURE standing in for a fact about an ENTRANT. The settlement job is what moves one to the other. The champion is still announced — by the bracket panel, where a fixture fact belongs |
+| `you_qualified` → `qualified` | a fact about the DRAW wearing the settlement vocabulary's word. It is now `seededIntoKnockout`, rendered beneath the verdict in the past tense, because it becomes true when a seed is dealt and **never becomes false** when the player is knocked out |
+| nothing → `not-stated` | unchanged, and now means "this database is behind contract 208" rather than "no read anywhere carries this" |
+
+So a database at contract 205 or earlier now shows no standing where it
+previously showed two other facts under this one's name. That is the correction,
+not a regression: `lostButNotStated` remains a shipped world for exactly that
+case, and the page is as silent in it as it was when the fact existed nowhere.
+
+`ChampionshipOutcome` carries all **five** constrained values, `survived`
+included. The column is shared with Last Man Standing, and a record keyed on the
+four the Championship happens to write throws on the fifth — a crash where a
+sentence belongs.
+
+**`eliminatedInGroups` is the binding world now.** Group phase, no knockout, no
+settled tie, no seed: every inference the old surface could have made returns
+"still in", and the reader is told they are out because the settlement authority
+says so.
 
 ---
 
@@ -217,9 +269,9 @@ not a tie-break: `bonus_cup_members_split_metadata_empty` requires a split row
 to carry `seed` as NULL, so the initial row is the only one that can hold the
 value being asked for.
 
-### A second, separate defect is worked around rather than fixed
+### A second, separate defect — FIXED BY CONTRACT 207
 
-Contract 193 uses `stage <> 'group'` in **four** places, where contracts 194 and
+Contract 193 used `stage <> 'group'` in **four** places, where contracts 194 and
 195 use `stage in ('playoff','knockout')` — and 194 *asserts against* the broad
 form reappearing. Contract 195's own SQL says why:
 
@@ -227,15 +279,29 @@ form reappearing. Contract 195's own SQL says why:
 > table row with no Penalty Number.
 
 A split fixture can never settle, so `my_tie`'s `winner_user_id is null` filter
-does not exclude it: a `single_group` Championship that reaches its split would
-be offered a **league fixture as a knockout tie**, with null `round_size` and
-`bracket_slot`, and a Penalty Number lane for a fixture that has none.
+does not exclude it: a `single_group` Championship that reached its split was
+offered a **league fixture as a knockout tie**, with null `round_size` and
+`bracket_slot`, and a Penalty Number lane for a fixture that has none — and
+`qualification.drawn` reported `true` with an empty bracket.
 
-**The decoder filters to `playoff | knockout` itself**, and drops the Penalty
-Number when the tie it belonged to was dropped. That is a workaround for a read
-defect, recorded here rather than buried, and deliberately not folded into
-contract 205 — that migration's job was to stop an exception, and combining two
-unrelated corrections would make both harder to review and to revert.
+It was deliberately not folded into contract 205, whose job was to stop an
+exception. **Contract 208 narrows all four**, and its guard fails if the broad
+form returns or if fewer than four predicates name the knockout stages. Proved
+by A/B against the previous definition on PostgreSQL 16:
+
+```
+BEFORE  my_tie.stage        -> split
+AFTER   my_tie              -> null
+BEFORE  qualification.drawn -> true
+AFTER   qualification.drawn -> false
+```
+
+**The decoder's own `playoff | knockout` filter stays**, and its status changes
+rather than its code. It was the authority; it is now the second of two. A
+hosted environment reaches a contract on its own schedule, so a decoder that
+trusted an unapplied migration would render the defect in exactly the
+environments that still have it. `seasonCupBracketModel.ts` says so, and the
+filter may be retired once every hosted environment is at 208 or later.
 
 ---
 
@@ -247,11 +313,11 @@ unrelated corrections would make both harder to review and to revert.
 | `server_now` | REAL + AUTHORITATIVE | the database's own clock, carried |
 | `format.kind` | REAL + AUTHORITATIVE | from the launch record, not inferred |
 | `format.produces_knockout` | **REAL BUT UNRELIABLE FOR ONE FORMAT** | computed as `v_launch.format_kind = 'groups'` — a **format-name check** standing in for a calendar fact. Contract 198 states the underlying truth plainly: *"whether a single group ends in a knockout depends on how the league rounds happen to divide the calendar, so neighbouring field sizes end differently. Over 38 matchweeks 18 entrants reach a knockout and 19 do not."* So a `single_group` Championship that **does** reach one reports `false` here. Not consumed by this lane; see §8.1 |
-| `qualification.drawn` | **REAL BUT BROADER THAN ITS NAME** | `exists(fixture.stage <> 'group')`, not `exists(knockout)` — one of the four broad-form uses §7 enumerates. A `single_group` competition that has merely reached its SPLIT has `split` fixtures and reports `drawn: true` with no knockout in existence. Consumed, but never alone; see §8.1 |
+| `qualification.drawn` | REAL + AUTHORITATIVE **since contract 208** | was `exists(fixture.stage <> 'group')` — one of the four broad-form uses §7 enumerates — so a `single_group` competition that had merely reached its SPLIT reported `drawn: true` with no knockout in existence. Now `exists(stage in ('playoff','knockout'))`. Still consumed beside the seat list rather than alone; see §8.1 |
 | `qualification.qualifiers` | REAL + AUTHORITATIVE | aggregate; safe across a split |
 | `qualification.your_seed` | REAL + AUTHORITATIVE | **only since contract 205**; §7 |
 | `qualification.you_qualified` | REAL + AUTHORITATIVE | `exists`; safe across a split |
-| `my_tie.*` | REAL + AUTHORITATIVE | **filtered** to `playoff\|knockout`; §7 |
+| `my_tie.*` | REAL + AUTHORITATIVE | **server-filtered** to `playoff\|knockout` since contract 208; the decoder's own filter is retained as defence in depth for hosted environments behind it. §7 |
 | `my_tie.locks_at` | REAL + AUTHORITATIVE | `cup_window_first_kickoff` |
 | `penalty_number.locked` / `.open` | REAL + AUTHORITATIVE | **server-evaluated, and not complements** — an unscheduled round returns both `false` |
 | `penalty_number.value` | REAL + AUTHORITATIVE | the caller's own only; `0` is legal, so null never defaults |
@@ -260,7 +326,8 @@ unrelated corrections would make both harder to review and to revert.
 | `my_ties[].decided_by` | REAL + AUTHORITATIVE | the settlement vocabulary |
 | `my_ties[].settled_at` | REAL, **not yet rendered** | `bracket[]` carries no equivalent |
 | `bracket[]` | REAL + AUTHORITATIVE | ordered server-side; **unbounded**, but a bracket is bounded by its own draw |
-| `champion` | REAL + AUTHORITATIVE | the final's winner |
+| `champion` | REAL + AUTHORITATIVE | the final's winner. A fact about a FIXTURE — it is NOT the reader's standing, which is `your_outcome`; §6.1 |
+| `your_outcome` | REAL + AUTHORITATIVE | **contract 208.** `bonus_competition_entrants.outcome`, verbatim, the caller's own only. The one authority for elimination |
 | `visibility_kind`, `availability_status` | **NOT CONSUMED** | no surface for them in this stage |
 
 ### 8.1 Why `produces_knockout` is decoded and not used
@@ -306,7 +373,7 @@ and it is worth a later contract stating the reserved depth in the payload.
 
 | the stage wanted | status |
 | --- | --- |
-| a season-wide **eliminated** fact | **ABSENT.** §6 — a backend delta is owed |
+| a season-wide **eliminated** fact | **PRESENT since contract 208** as `your_outcome`, the caller's own. §6 |
 | **why** a walkover happened | **ABSENT.** §5 |
 | the group table / group stage | **NOT YET READ.** Contracts 167 and 133 are the next reads this lane takes |
 | the qualification **cut line** | **ABSENT.** `cup_group_automatic_places` and `cup_group_qualifying_limit` are revoked from `authenticated` and reached by no public read. The page may say whether YOU qualified; it may not draw a line on a table |
@@ -501,7 +568,7 @@ get_season_cup_bracket ──→ ChampionshipSource ──→ buildChampionshipM
 | `src/vnext/integration/championship/buildChampionshipModel.ts` | the **only** mapper. Pure: no network, storage, clock or React |
 | `src/vnext/integration/championship/useVNextChampionshipSource.ts` | acquisition and classification |
 | `src/vnext/championship/VNextChampionship.tsx` | the visual surface |
-| `src/vnext/fixtures/championship/scenarios.ts` | 24 deterministic worlds, each a premise |
+| `src/vnext/fixtures/championship/scenarios.ts` | 25 deterministic worlds, each a premise |
 
 **Reads get independent outcomes** — and here for a reason beyond "they can fail
 separately": `get_season_cup_phase` selects the caller's membership row with no
@@ -543,7 +610,7 @@ and keeps its address.
 | route | status |
 | --- | --- |
 | `/dev/vnext-championship` | connected harness. **Contract 193's first caller** |
-| Storybook `vNext/Predictor Championship` | 24 worlds, the review surface |
+| Storybook `vNext/Predictor Championship` | 25 worlds, the review surface |
 | `/competitions/:c/:s/games/championship/*` | **production, untouched** |
 
 ---
