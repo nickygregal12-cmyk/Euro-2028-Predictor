@@ -5,7 +5,7 @@ import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextNotice } from '../../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 import { buildGamesModel } from './buildGamesModel'
 import { useVNextGamesSource } from './useVNextGamesSource'
 
@@ -120,8 +120,16 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
         onRetry={state.retry}
       />
     ) : model === null ? (
-      <VNextNotice
-        destination="games" heading="Games" title="Loading this season’s games" body="One moment." />
+      // THE SHAPE OF THE HUB, NOT A SENTENCE ABOUT WAITING. "One moment."
+      // told a player nothing and settled into a catalogue of cards, so the
+      // page jumped the moment it arrived.
+      <VNextLoadingRows
+        destination="games"
+        heading="Games"
+        label="Loading this season’s games"
+        shape="cards"
+        rows={3}
+      />
     ) : (
       <VNextGames
         model={model}

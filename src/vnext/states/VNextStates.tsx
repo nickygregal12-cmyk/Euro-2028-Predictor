@@ -155,32 +155,93 @@ export function VNextAccessRefused({
  * plausible total on the right is a placeholder somebody will read as a rank —
  * and a rank is the thing a player is most likely to believe at a glance and
  * act on. Bars only, and none of them wide enough to look like a person.
+ *
+ * ============================ AND THE GEOMETRY IS THE SURFACE'S ==========
+ *
+ * Home's own loading state settled the pattern this follows: keep the shell,
+ * and make the shape inside `<main>` resemble the page that is coming, so
+ * nothing reflows when it arrives. One generic skeleton on nine different
+ * surfaces would satisfy the letter of that and none of its point — a catalogue
+ * of joinable games and a standings table settle into different shapes, and a
+ * placeholder that settles into the wrong one is a jump with extra steps.
+ *
+ * So `shape` names the surface's geometry rather than a style:
+ *
+ *   * `table` — two controls, a heading and rows inside one bordered block.
+ *     Leagues and any other standings surface.
+ *   * `catalogue` — free-standing rows, each a title, a meta line and a
+ *     trailing control. Discovery's competition list.
+ *   * `cards` — a group heading and taller cards with a trailing action.
+ *     The Games hub, whose rows carry Join.
+ *   * `panels` — stacked bordered panels, each with a heading and a few lines.
+ *     Account, which is two independent reads drawn as two panels.
+ *
+ * A surface with a shape of its own that none of these fit keeps its own
+ * states file, which is why Home, the Match Predictor, Matches, the player
+ * profile, Last Man Standing and the Championship still have theirs.
  */
+export type VNextLoadingShape = 'table' | 'catalogue' | 'cards' | 'panels'
+
 export function VNextLoadingRows({
   heading,
   destination,
   label = 'Loading',
   rows = 5,
+  shape = 'table',
 }: {
   readonly heading: string
   readonly destination: ShellDestinationId | 'none'
   readonly label?: string
   readonly rows?: number
+  readonly shape?: VNextLoadingShape
 }) {
   return (
     <VNextShell destination={destination} header={<VNextPageHeader title={heading} />}>
       <div className={styles.page} aria-busy="true" aria-live="polite">
         <span className={text.srOnly}>{label}</span>
-        <div className={styles.barRow} aria-hidden="true">
-          <span className={`${styles.bar} ${styles.barControl}`} />
-          <span className={`${styles.bar} ${styles.barControl}`} />
-        </div>
-        <span className={`${styles.bar} ${styles.barHeading}`} aria-hidden="true" />
-        <div className={styles.table} aria-hidden="true">
-          {Array.from({ length: rows }, (_, index) => (
-            <span key={index} className={`${styles.bar} ${styles.barRowItem}`} />
-          ))}
-        </div>
+        {shape === 'table' ? (
+          <>
+            <div className={styles.barRow} aria-hidden="true">
+              <span className={`${styles.bar} ${styles.barControl}`} />
+              <span className={`${styles.bar} ${styles.barControl}`} />
+            </div>
+            <span className={`${styles.bar} ${styles.barHeading}`} aria-hidden="true" />
+            <div className={styles.table} aria-hidden="true">
+              {Array.from({ length: rows }, (_, index) => (
+                <span key={index} className={`${styles.bar} ${styles.barRowItem}`} />
+              ))}
+            </div>
+          </>
+        ) : shape === 'panels' ? (
+          <div className={styles.panels} aria-hidden="true">
+            {Array.from({ length: 2 }, (_, panel) => (
+              <div key={panel} className={styles.panel}>
+                <span className={`${styles.bar} ${styles.barHeading}`} />
+                {Array.from({ length: 3 }, (_, line) => (
+                  <span key={line} className={`${styles.bar} ${styles.barLine}`} />
+                ))}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <span className={`${styles.bar} ${styles.barHeading}`} aria-hidden="true" />
+            <div className={styles.stack} aria-hidden="true">
+              {Array.from({ length: rows }, (_, index) => (
+                <div
+                  key={index}
+                  className={shape === 'cards' ? styles.cardItem : styles.catalogueItem}
+                >
+                  <span className={styles.itemMain}>
+                    <span className={`${styles.bar} ${styles.barTitle}`} />
+                    <span className={`${styles.bar} ${styles.barMeta}`} />
+                  </span>
+                  <span className={`${styles.bar} ${styles.barControl}`} />
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </VNextShell>
   )

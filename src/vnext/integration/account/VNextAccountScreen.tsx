@@ -5,7 +5,7 @@ import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextNotice } from '../../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 import { buildAccountModel } from './buildAccountModel'
 import { useVNextAccountSource } from './useVNextAccountSource'
 
@@ -95,8 +95,15 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         body="Your competitions, your seasons and your settings live with your account."
       />
     ) : model === null ? (
-      <VNextNotice
-        destination="none" heading="You" title="Loading your account" body="One moment." />
+      // TWO PANELS, BECAUSE ACCOUNT IS TWO INDEPENDENT READS. Follows and
+      // season history resolve separately and are drawn separately, so the
+      // placeholder is the pair rather than one undifferentiated list.
+      <VNextLoadingRows
+        destination="none"
+        heading="You"
+        label="Loading your account"
+        shape="panels"
+      />
     ) : (
       <VNextAccount
         model={model}

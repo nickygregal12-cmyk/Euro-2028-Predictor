@@ -5,7 +5,7 @@ import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextNotice } from '../../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 import { buildDiscoveryModel } from './buildDiscoveryModel'
 import { useVNextDiscoverySource } from './useVNextDiscoverySource'
 
@@ -78,11 +78,13 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
         body="Following a competition keeps it on your Home. It does not enter you into any of its games."
       />
     ) : model === null ? (
-      <VNextNotice
+      // The catalogue's own shape: a column of competitions, each with its
+      // controls, so nothing moves when the real list lands.
+      <VNextLoadingRows
         destination="none"
         heading="Competitions"
-        title="Loading competitions"
-        body="One moment."
+        label="Loading competitions"
+        shape="catalogue"
       />
     ) : (
       <VNextDiscovery
