@@ -177,6 +177,50 @@ navigation, another level, a More menu, a duplicated destination, or renaming
 either noun from intuition. A comprehension question answered with structure is
 how a navigation acquires a fifth slot.
 
+
+---
+
+## 11. Stage 14 readiness, measured against its own predicate
+
+The stage contract's `READY FOR CUTOVER` predicate, item by item, with what is
+true rather than what is intended.
+
+| Predicate | State | Evidence |
+| --- | --- | --- |
+| every Football Hub route has an intentional production behaviour | **Met** | The route matrix, all 39 rows, none unresolved |
+| every user-facing CAPABILITY has a stated destination | **Met, with two named `F` rows** | This page. `PROF-001` and `PROF-002` are the whole of what is not `A`/`B`/`C`/`D`/`E`, and neither loses a capability the legacy product has |
+| no required user journey depends on the workshop or a dev harness | **Met** | Every `/dev/*` route is behind `import.meta.env.DEV` and absent from a production build. No row above resolves to one |
+| production build contains the intended vNext surfaces and only intentional legacy compatibility | **NOT YET — and this is the stage's remaining work** | vNext is still a parallel lane: no route is repointed, and the connected surfaces are reachable only from `/dev/*`. The cutover implementation itself is what closes this |
+| auth, refresh, deep-link, navigation and error paths are tested | **Partially** | The vNext lane's own paths are; the repointed production routing does not exist yet to be tested |
+| accessibility/performance/bundle regression acceptable | **Met for what exists** | Axe gates per surface, the CSS-module guard, the bundle budget and Lighthouse gates all green |
+| monitoring and rollback ready | **Not this batch's scope** | Named by the stage contract and untouched here |
+| current required CI/review green | **Met at this head** | See the branch's own checks |
+
+### The two backend debts Stage 12 carried are paid
+
+`config/vnext-programme.json` carried both past their own completion predicate,
+on explicit authority and with the gap recorded rather than reinterpreted. Both
+are now under `resolvedDebt`:
+
+- **the elimination gap** — contract 208 puts the canonical entrant outcome on
+  contract 193, so the Championship states elimination rather than staying
+  silent, and the mapper's three former fallbacks are gone;
+- **contract 120's indeterminate membership lookup** — contract 207 pins it to
+  the caller's current phase. This one reached the PRODUCTION Football Hub, not
+  only the vNext lane.
+
+**Both are repository-only.** Hosted Development and Production are at contract
+205 and each is a separately authorised rollout. A cutover cannot claim the
+Championship is truth-complete until the environment it runs against has them.
+
+### The honest verdict
+
+**CUTOVER BLOCKED ONLY BY EXPLICIT PRODUCTION AUTHORITY — and by the cutover
+implementation itself, which is Stage 14's remaining engineering.** The product
+gaps that would have made a cutover lossy are closed; the routing switch, its
+rollback plan and the hosted rollouts are not this batch's work and are not
+claimed to be done.
+
 ---
 
 ## 10. How to use this page
