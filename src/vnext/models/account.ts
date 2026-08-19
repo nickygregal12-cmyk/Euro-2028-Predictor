@@ -4,8 +4,15 @@
  * ============================ WHY THIS EXISTS AT ALL =====================
  *
  * `shell.ts` declares a `kind: 'account'` intent and `VNextShell` emits it from
- * both the desktop rail and the mobile bar. Every surface Stages 8-12 built
- * therefore offers four destinations. Three resolved. This is the fourth.
+ * both the desktop rail and the mobile top bar — in both cases as a button
+ * showing THE SIGNED-IN PLAYER'S OWN INITIALS AND NAME. Nothing has ever
+ * answered it, so in every surface Stages 8-12 built a player can press their
+ * own name and have nothing happen. This is the answer.
+ *
+ * It is NOT one of the shell's four destinations (`home | matches | games |
+ * leagues`) and must not light one of them up; it renders with
+ * `destination="none"`, which is consistent with the route matrix keeping
+ * platform identity outside the tournament boundary.
  *
  * ============================ THREE ROUTES CONVERGE HERE =================
  *

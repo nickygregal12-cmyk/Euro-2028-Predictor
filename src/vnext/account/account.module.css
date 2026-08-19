@@ -1,0 +1,157 @@
+/* vNEXT ACCOUNT / YOU — the player's own platform identity.
+ *
+ * WHAT IS NOT HERE. The canvas, the page bounds, the masthead, both
+ * navigations, the `<main>` landmark and the mobile bottom spacing are the
+ * shell's.
+ *
+ * NO NAME IS EVER CLIPPED. No `text-overflow`, no line clamp — a row grows
+ * instead. A competition a player follows must be readable.
+ *
+ * COLOUR NEVER CARRIES A FACT ALONE. "Archived" is a word, a follow this page
+ * cannot name says so in a sentence, and a season with no route simply has no
+ * button rather than a greyed-out one.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+/* ---- a panel ---------------------------------------------------------------- */
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+.panelHeading {
+  margin: 0;
+}
+
+.groupHeading {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---- one row ---------------------------------------------------------------- */
+
+.row {
+  /* WRAPS. A long competition name and a 44px button do not share one line at
+     320px, and the name is the half that must not be pushed off. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  /* Lets the text block shrink inside the flex row rather than forcing overflow. */
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.rowTitle {
+  margin: 0;
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.rowMeta {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* A follow this page cannot name reads differently, and says why in words. */
+.row[data-vnext-follow='unnamed'] .rowTitle {
+  color: var(--vnext-text-secondary);
+}
+
+.archived {
+  margin: 0;
+  color: var(--vnext-text-muted);
+}
+
+.rowAction {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.rowAction:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.rowAction:focus-visible,
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- the states that are not a list ----------------------------------------- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  margin: 0;
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-md);
+  border: 1px solid var(--vnext-hairline);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text-secondary);
+}
+
+.retry {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border-radius: var(--vnext-radius-pill);
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+/* ---- regular ---------------------------------------------------------------- */
+
+@container vnext-page (min-width: 700px) {
+  /* TWO PANELS SIDE BY SIDE once there is room for both to stay readable.
+     Follows is the shorter list, so it takes the narrower column. */
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    gap: var(--vnext-space-5);
+    align-items: start;
+  }
+}

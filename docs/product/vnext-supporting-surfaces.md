@@ -54,7 +54,7 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 
 | Route | Fate in the matrix | Why it is Stage 13's |
 | --- | --- | --- |
-| `/account` | RETAIN | **The shell's fourth permanent destination has nothing behind it.** See §4 |
+| `/account` | RETAIN | **The shell offers the player their own name and has nowhere to send them.** See §4 |
 | `/profile` | RETAIN + REDESIGN | Platform identity and season history; the matrix says keep it platform-level, outside the tournament boundary |
 | `/tournament/profile`, `/tournament/profile/:playerId` | MERGE | Three profile systems exist; the matrix's rule is that vNext must not add a fourth |
 | `/more` | ABSORB | *"A directory page is a symptom of a navigation that ran out of slots."* None of the three IA concepts has a More |
@@ -81,26 +81,47 @@ contains. A row is Stage 13's if its fate is undelivered and its stage is not
 
 ---
 
-## 4. THE ANCHOR: A NAVIGATION SLOT WITH NOTHING BEHIND IT
+## 4. THE ANCHOR: THE PLAYER'S OWN NAME IS A DEAD BUTTON
 
 The strongest single finding of the derivation, and the reason Account leads
 this stage rather than trailing it.
 
-`src/vnext/models/shell.ts:393` declares a shell intent:
+**An earlier draft of this section called Account "the shell's fourth permanent
+destination". That was wrong and is corrected here.** The four destinations are
+`home | matches | games | leagues` (`shell.ts:236`), and Account is none of
+them. Getting it right matters, because it changes where Account belongs: it is
+*not* a navigation slot, which is consistent with the matrix keeping platform
+identity outside the tournament boundary.
+
+What is actually true is narrower and, if anything, worse.
+
+`shell.ts:393` declares a separate shell intent:
 
 ```ts
 | { readonly kind: 'account' }
 ```
 
-`VNextShell.tsx` emits it from **two** places — the desktop rail and the mobile
-bar — so it is one of the four permanent destinations a player can press in
-every vNext surface built so far. Home, Games and Leagues resolve. Account does
-not: the only handlers for `kind: 'account'` in the entire repository are the
-seven `/dev` harnesses, each of which writes a note saying the intent fired.
+and `VNextShell.tsx` emits it from **two** places — the desktop rail (`:412`)
+and the mobile top bar (`:477`). Both are gated on `player`, and both render
+**the signed-in player's own initials and name** as the button.
 
-**So vNext currently ships a navigation that promises four destinations and
-delivers three.** That is not a missing nice-to-have; it is the shell making a
-claim the application cannot honour, in every single surface Stages 8–12 built.
+Nothing answers it. The only handlers for `kind: 'account'` in the repository
+are the seven `/dev` harnesses, each of which writes a note saying the intent
+fired.
+
+**So in every vNext surface Stages 8-12 built, a signed-in player sees their own
+name and avatar, presses it, and nothing happens.** Not a missing
+nice-to-have: the shell offers the player themselves and has nowhere to send
+them.
+
+### What that implies for where Account sits
+
+Because Account is not one of the four, it must not light one of them up while
+the player is there. `VNextShellProps.destination` therefore takes `'none'` for
+a page legitimately outside the four — the navigation compares
+`item.id === activeId` and matches nothing, which is the wanted behaviour.
+Stated in the shell's own prop docs so the next page outside the four does not
+reach for one of them at random.
 
 ---
 
