@@ -70,15 +70,30 @@ import styles from './account.module.css'
 export type AccountIntent =
   | { readonly kind: 'open-season'; readonly competitionSlug: string; readonly seasonKey: string }
   | { readonly kind: 'sign-out' }
+  /**
+   * WHICH THEME THE PLAYER WANTS. Performed by the host because the choice is
+   * persisted, and persistence is a write — the same division sign-out uses.
+   * `system` is a real third answer, not the absence of one: it means "follow
+   * my device", which is what a player who has never chosen already has.
+   */
+  | { readonly kind: 'set-theme'; readonly theme: 'system' | 'dark' | 'light' }
 
 export type VNextAccountProps = {
   readonly model: AccountPageModel
+  /** Which appearance the player has chosen. Defaults to following the device. */
+  readonly theme?: 'system' | 'dark' | 'light'
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
 }
 
-export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: VNextAccountProps) {
+export function VNextAccount({
+  model,
+  onRetry,
+  refreshing = false,
+  theme = 'system',
+  onIntent,
+}: VNextAccountProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
 
@@ -97,7 +112,7 @@ export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: V
         <motion.div variants={rise} initial="hidden" animate="visible" className={styles.body}>
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
           <History panel={model.history} onRetry={onRetry} onIntent={onIntent} />
-          <Session onIntent={onIntent} />
+          <Session theme={theme} onIntent={onIntent} />
         </motion.div>
       </div>
     </VNextShell>
@@ -119,15 +134,45 @@ export function VNextAccount({ model, onRetry, refreshing = false, onIntent }: V
  * being able to sign out of the product is different, and a cutover that
  * shipped it would be a cutover that stranded every shared device.
  */
+const THEMES = [
+  { id: 'system', label: 'Match my device' },
+  { id: 'dark', label: 'Dark' },
+  { id: 'light', label: 'Light' },
+] as const
+
 function Session({
+  theme,
   onIntent,
 }: {
+  readonly theme: 'system' | 'dark' | 'light'
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
 }) {
   if (onIntent === undefined) return null
   return (
     <section className={styles.panel} data-vnext-zone="session">
       <h2 className={`${text.title} ${styles.panelHeading}`}>This device</h2>
+
+      {/* A RADIO GROUP, NOT A TOGGLE. There are three answers and a toggle can
+          only hold two — and the one it drops is "follow my device", which is
+          what most people actually want and what they have before they ever
+          open this page. */}
+      <fieldset className={styles.themeChoice}>
+        <legend className={text.label}>Appearance</legend>
+        {THEMES.map((entry) => (
+          <label key={entry.id} className={styles.themeOption} data-selected={theme === entry.id}>
+            <input
+              type="radio"
+              name="vnext-theme"
+              value={entry.id}
+              checked={theme === entry.id}
+              onChange={() => onIntent({ kind: 'set-theme', theme: entry.id })}
+              className={text.srOnly}
+            />
+            <span>{entry.label}</span>
+          </label>
+        ))}
+      </fieldset>
+
       <button
         type="button"
         className={styles.signOut}

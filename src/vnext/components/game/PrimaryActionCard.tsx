@@ -1,3 +1,4 @@
+import { VNextClockIcon } from '../../foundations/VNextIcon'
 import { useId } from 'react'
 import { motion } from 'framer-motion'
 import type { PrimaryAction } from '../../models/home'
@@ -77,7 +78,7 @@ export function PrimaryActionCard({
       <div className={styles.actions}>
         {countdown ? (
           <span className={`${styles.deadline} ${typography.numeric}`}>
-            <span aria-hidden="true">⏱</span> {countdown} left
+            <VNextClockIcon /> {countdown} left
             {action.deadline ? (
               <span className={typography.srOnly}>
                 , deadline {formatTime(action.deadline)}
