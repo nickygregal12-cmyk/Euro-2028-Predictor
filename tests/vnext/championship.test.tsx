@@ -428,6 +428,33 @@ describe('the group phase', () => {
     expect(lastRow.textContent).toContain('—')
   })
 
+  /**
+   * A SCROLLING BOX A KEYBOARD CANNOT REACH HIDES ITS CONTENT.
+   *
+   * `overflow-x: auto` makes the group container a scrollable region. Without a
+   * tab stop, the columns past the fold are unreachable by keyboard on every
+   * phone — which is exactly where the table scrolls. The axe gate caught this
+   * across 42 stories; this holds it at the unit level too.
+   */
+  it('gives each scrolling group table a tab stop and a name', () => {
+    const { container } = renderChampionship(championshipScenarios.groupPhase)
+    const boxes = [...container.querySelectorAll('[data-vnext-group]')]
+    expect(boxes.length).toBe(2)
+    for (const box of boxes) {
+      expect(box.getAttribute('tabindex')).toBe('0')
+      expect(box.getAttribute('role')).toBe('region')
+      expect(box.getAttribute('aria-label')).toMatch(/^Group \d+$/)
+    }
+  })
+
+  it('names each scrollable region distinctly, because they are landmarks', () => {
+    const { container } = renderChampionship(championshipScenarios.groupPhase)
+    const names = [...container.querySelectorAll('[data-vnext-group]')].map((box) =>
+      box.getAttribute('aria-label'),
+    )
+    expect(new Set(names).size).toBe(names.length)
+  })
+
   it('gives every group table a caption naming the group', () => {
     const { container } = renderChampionship(championshipScenarios.groupPhase)
     const captions = [...container.querySelectorAll('caption')].map((c) => c.textContent)

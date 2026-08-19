@@ -348,6 +348,14 @@
   overflow-x: auto;
 }
 
+/* IT IS FOCUSABLE, SO IT MUST SHOW FOCUS. See the component: the box takes
+   `tabindex="0"` so a keyboard can scroll it, and a focusable element with no
+   visible ring is worse than one that was never reachable. */
+.group:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

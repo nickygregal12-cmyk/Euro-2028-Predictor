@@ -592,7 +592,21 @@ function Groups({ panel }: { readonly panel: GroupPanel }) {
 function GroupTableView({ group }: { readonly group: GroupTable }) {
   const caption = `Group ${group.ordinal}`
   return (
-    <div className={styles.group} data-vnext-group={group.ordinal} data-yours={group.isYours}>
+    // THE SCROLLING BOX IS FOCUSABLE, and that is not decoration. `overflow-x`
+    // makes this a scrollable region; a region a mouse can scroll and a
+    // keyboard cannot is content a keyboard user simply cannot reach — the
+    // right-hand columns of every group table, on every phone. `tabindex="0"`
+    // gives them the arrow keys, `role="region"` plus a name tells a screen
+    // reader what they have landed in, and `championship.module.css` gives it
+    // a focus ring so sighted keyboard users can see where they are.
+    <div
+      className={styles.group}
+      data-vnext-group={group.ordinal}
+      data-yours={group.isYours}
+      tabIndex={0}
+      role="region"
+      aria-label={caption}
+    >
       <table className={styles.table}>
         <caption className={`${text.micro} ${styles.caption}`}>
           {caption}

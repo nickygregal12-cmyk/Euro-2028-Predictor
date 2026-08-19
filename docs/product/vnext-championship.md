@@ -360,6 +360,41 @@ to zero both fail.
 not in), `no-groups` (`available: false`, or a drawn stage with no tables yet)
 and `groups`.
 
+### Contract 167 is the INITIAL group stage, and that is a scope limit
+
+Read from the function rather than its name. `get_season_cup_group_stage` pins
+three things to `phase_kind = 'initial'`:
+
+```sql
+select member.group_id into v_my_group ...  and member.phase_kind = 'initial';
+from public.bonus_cup_groups cup_group     where ... cup_group.phase_kind = 'initial'
+'group_count', (select count(*) ...        where ... g.phase_kind = 'initial')
+```
+
+and its own comment says so: *"Contract 167, amended by contract 169. The
+**initial** group stage of a Predictor Championship."*
+
+So a competition that has SPLIT still shows its INITIAL groups here. That is the
+contract's stated scope, not a defect, and it is the honest thing to render —
+the initial table is a real table that really happened. But it is **not the
+reader's current group** once a split exists.
+
+**Contract 133 (`get_season_cup_player_view`) is what answers the split**, and
+it is NOT consumed by this stage. It returns `phase_kind` explicitly, resolves
+`split` groups, and carries the caller's own group FIXTURES (`is_my_fixture`,
+`matchday`, `home_points`/`away_points`, `opens_at`/`locks_at`) — facts contract
+167 does not hold at all.
+
+**Recorded as deliberate scope, not as done.** Stage 12 renders the group phase
+from contract 167 because that closes the predicate's gap — the phase now has a
+real UI state rather than one sentence. Two things remain open and are named
+here so neither is mistaken for shipped:
+
+1. a split competition's CURRENT group table, and
+2. the reader's group-phase fixtures.
+
+Both are frontend consumption of an existing read; neither needs a migration.
+
 ### It is a `<table>`
 
 Rank, name and five measures per row is tabular data. A screen reader navigating
