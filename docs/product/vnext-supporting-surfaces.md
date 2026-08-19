@@ -161,6 +161,71 @@ platform-scoped one. Neither may grow a copy of the other.
 
 ---
 
+## 5.5 THE GAMES HUB — and the rejoin it must not predict
+
+The matrix resolved `/competitions/:c/:s/games` at Stage 7.6 as one of the four
+permanent destinations, and gave the reason: **the only surface where Match
+Predictor, Last Man Standing and the Predictor Championship are PEERS.** That is
+not a layout preference. Last Man Standing was under-scoped for a whole
+programme because nothing put it beside its peers, and a hub that draws one game
+larger is doing the same thing again with better spacing. So every row is the
+same size at every width, and the only grouping is whether the PLAYER is in a
+game — a fact about them, not a ranking of the games.
+
+### The entry rule is not restated here
+
+`src/features/season/lmsRegistrationModel.ts` already resolves where
+registration stands, and it is game-neutral by design. Its own words:
+
+> `join_competition_game` governs entry for every game key, so a second copy of
+> this logic per game would be three chances to disagree about one rule.
+
+The mapper calls it and takes only its `state`. The WORDS are vNext's, because
+that module's copy belongs to the production surfaces it was written for.
+
+### `allow_rejoin` is not the rejoin rule
+
+This is the stage's second binding refusal, and it comes from the SQL rather
+than from taste.
+
+Contract 126 changed what the flag means and said so in its own header: it
+*"bites when the competition is running, and not before"*, because ADR 0013
+fixes the field at the first round's lock and a player who left before that
+*"is in precisely the position of one who never joined"*. The installed function
+agrees:
+
+```sql
+if v_membership.status = 'disqualified' then
+  raise exception 'A disqualified game entry cannot be rejoined'
+...
+if not v_definition.allow_rejoin
+   and predictor_internal.competition_is_running(v_availability.id)
+then
+  raise exception 'This game cannot be rejoined once it has started'
+```
+
+And:
+
+```sql
+revoke all on function predictor_internal.competition_is_running(uuid)
+  from public, anon, authenticated, service_role;
+```
+
+**No browser can learn whether a competition is running.** A hub rendering
+"Rejoin" from `allow_rejoin` alone would be guessing at a fact the server
+deliberately withholds, and would be wrong for exactly the player who left a
+game that has since started.
+
+So `RejoinOutlook` carries the RULE — *"it only takes you back if it has not
+started yet"* — and the surface offers **no rejoin control at all**, in any
+world, including the one where a rejoin would certainly succeed. Rejoining
+belongs beside the game, with the flow that owns the write.
+
+Disqualification is different and is stated absolutely: the server refuses it
+*above* the flag, so there is nothing conditional to say.
+
+---
+
 ## 6. WHAT THIS STAGE MUST NOT DO
 
 From the contract, and from the two debts carried out of Stage 12:
@@ -180,9 +245,10 @@ From the contract, and from the two debts carried out of Stage 12:
 
 ## 7. ORDER OF WORK
 
-1. **Account / You** — the slot with nothing behind it (§4).
+1. **Account / You** — the button that leaves vNext (§4). **DONE.**
 2. **Games hub** — the one surface where the three games are peers, and the
    thing that stopped Last Man Standing being under-scoped a second time.
+   **DONE**; see §5.5.
 3. **Generic states** — not-found, access-refused, error, empty. The matrix's
    `*` row asks for *a deterministic parent from a not-found*, which is a
    statement about the shell as much as the page.
