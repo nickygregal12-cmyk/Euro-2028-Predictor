@@ -127,8 +127,22 @@
  * `split` membership — the defect's own precondition, which no existing suite
  * created, and against which the three new assertions ERROR rather than fail
  * before the fix.
+ *
+ * Contract 206 adds the bounded same-season profile read keyed by the season's
+ * `entries.id` playerRef and widens `resolve_season_player.canViewProfile` for
+ * compare reach. It deliberately leaves the legacy UUID profile path, pinned
+ * rivals and Prediction DNA at their narrower boundaries, and it does not add
+ * a new membership or seed prerequisite to the caller's own authenticated
+ * journey.
+ *
+ * The marker is raised on execution evidence, not on that reasoning. At exact
+ * Contract-206 head `bfe9252`, Database parity (`local-supabase`) run
+ * 32285274468 and Browser E2E run 32285274480 both passed against all 206
+ * migrations, including the deterministic seeded authenticated journeys. Later
+ * heads only re-anchored moving main and renamed the byte-identical pgTAP suite;
+ * they did not change the Contract-206 migration or seed requirements.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 205
+export const SEED_REVIEWED_AT_CONTRACT = 206
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

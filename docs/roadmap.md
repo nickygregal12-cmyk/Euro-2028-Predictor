@@ -472,3 +472,5 @@ same paragraph existed in seven places at once.
 > advances, the reason is audit evidence, no score or prediction points are
 > invented, and a tie neither may contest refuses rather than fabricating a
 > winner. **`CUP-006` is the remaining Championship work.**
+
+**Contract 206 delivery effect:** `PROF-001` gains its backend boundary: a season entrant can address another entrant's bounded profile by the season-scoped `playerRef` without receiving the target auth UUID. The requirement remains open until Development rollout, generated types and the browser consumer are proven; this contract does not reorder the roadmap.

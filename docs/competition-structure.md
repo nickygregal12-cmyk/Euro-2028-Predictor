@@ -206,3 +206,5 @@ same paragraph existed in seven places at once.
 > **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
 
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.
+
+**Contract 206:** does not change competition, game, scoring or membership structure. It makes one existing season entrant addressable to another for the bounded competitive profile through `entries.id`; no cross-competition identity or directory is introduced.

@@ -47,7 +47,7 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 - [ ] **#33** — verify the effective Protect Main/ruleset controls and required contexts.
 - [ ] **#272** — independent qualified UK data-protection review; engineering cannot self-approve it.
 - [ ] **#854** — AI Lab first-weekend/operational completion; do not close on one bug fix.
-- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility implementation.
+- [ ] **#863 / PROF-001** — backend same-season profile visibility is in PR #920; closure still requires Development rollout, generated types and the browser consumer/evidence.
 - [ ] **#865** — optional native Supabase passkey Development pilot, subject to current provider capability and RP/domain gates.
 - [ ] **#866** — available-provider anomaly corroboration sentinel.
 - [ ] **#867 / INNOV-012a** — deterministic League Side Honours.

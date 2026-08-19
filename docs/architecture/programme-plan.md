@@ -287,3 +287,5 @@ blockquotes could never show without being read end to end.
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.
+
+**Contract 206 programme effect:** the backend now supports ADR 0031's same-season bounded player-profile visibility without publishing an auth UUID. No programme phase, product gate or external-review dependency moves.
