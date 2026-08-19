@@ -581,11 +581,37 @@ move this number again and the baseline needs to be a real one.
 ### What this does not yet do
 
 The predicate is not met and nothing here claims it is. Still outstanding for
-READY FOR CUTOVER: the other eleven destinations; the `/play` attention layer,
-which needs a mapper and `tournamentId` carried through `PlayInboxEntry` and
-`InboxAction`; auth, refresh and error-path coverage at the real routes; bundle,
-performance and accessibility regression; monitoring and rollback readiness; and
-`UX-007`, the suspected focus-obscured exposure behind the sticky masthead,
-which only becomes exercisable once the shell is the production frame.
+READY FOR CUTOVER: the other eleven destinations; auth, refresh and error-path
+coverage at the real routes; performance and accessibility regression;
+monitoring and rollback readiness; and `UX-007`, the suspected focus-obscured
+exposure behind the sticky masthead, which only becomes exercisable once the
+shell is the production frame.
+
+**The `/play` attention layer is NOT on that list, and an earlier draft of this
+section wrongly put it there.** It is built in PR #930, on
+`claude/vnext-precutover-gaps-fdxai5`, by another session:
+`buildShellAttention.ts`, `useVNextShellElsewhere.ts`,
+`VNextShellElsewhereHost.tsx` and a `buildShellModel` that accepts several
+contexts. Recording it as outstanding here would have invited a second
+implementation of a surface that already exists — the precise duplication this
+matrix is supposed to prevent.
+
+### The one seam between this change and PR #930
+
+They do not overlap in code — #930's `src/App.tsx` edit is confined to the
+`/dev/**` harness routes and this one is in the competition-scoped table — but
+they meet at a real seam, and whichever lands second owns closing it.
+
+#930 adds an **optional** `shellElsewhere` prop to `VNextMatchesScreen` and
+`VNextMatchCentreScreen`, and says of the acquisition that *"the expensive
+acquisition is meant to be mounted once above page navigation, which is the
+host's job and is not claimed here."*
+
+`src/app/vnext/VNextMatchesDestination.tsx` is the first real host. Because the
+prop is optional, nothing breaks in either merge order: this adapter compiles
+and runs against #930's screens untouched. What it does not yet do is SUPPLY the
+attention, so until the seam is closed the production Matches route would show a
+player nothing about the competitions they are not looking at. That is a
+follow-up with a named owner, not a defect in either branch.
 
 *Fate counts are unchanged.* Stage 14 moves no row — it implements them.
