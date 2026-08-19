@@ -328,10 +328,7 @@ export default function App() {
                   <Route path="/dev/vnext-lms" element={<VNextLmsPreview />} />
                 ) : null}
                 {import.meta.env.DEV && VNextChampionshipPreview ? (
-                  <Route
-                    path="/dev/vnext-championship"
-                    element={<VNextChampionshipPreview />}
-                  />
+                  <Route path="/dev/vnext-championship" element={<VNextChampionshipPreview />} />
                 ) : null}
 
                 <Route path="*" element={<NotFoundPage />} />
