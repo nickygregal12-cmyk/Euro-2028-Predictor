@@ -224,6 +224,14 @@
   to = "/index.html"
   status = 200
 
+# About & Disclaimer. Public, and a deep link a rights holder or an app store
+# reviewer may arrive at directly, so it answers 200 rather than a 404 that
+# happens to render.
+[[redirects]]
+  from = "/about"
+  to = "/index.html"
+  status = 200
+
 [[redirects]]
   from = "/league/:id"
   to = "/index.html"

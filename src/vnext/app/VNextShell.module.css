@@ -475,3 +475,54 @@
     padding-block-end: var(--vnext-space-6);
   }
 }
+
+/* ---- the platform footer -------------------------------------------------
+ * ADR 0017: "Publish an unambiguous non-affiliation statement in the footer and
+ * terms." One line, at the foot of every vNext page.
+ *
+ * QUIET, NOT HIDDEN. Micro size and secondary text — it is permanent chrome
+ * rather than content, and it must not compete with a fixture list for
+ * attention on every page a player ever opens. It is still full contrast
+ * against the canvas, still selectable, still a real 44px target, and it is
+ * never `display: none` at any width: a disclaimer that disappears on a phone
+ * is a disclaimer that is not published.
+ *
+ * IT COSTS NO LAYOUT ABOVE IT. A block at the end of the page column, after
+ * `<main>`, so nothing about the page's own geometry changes.
+ */
+.platformFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-2) var(--vnext-space-3);
+  margin-block-start: var(--vnext-space-6);
+  padding-block: var(--vnext-space-3);
+  padding-inline: var(--vnext-page-inset);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.platformFooterLine {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  font-size: var(--vnext-size-micro);
+  line-height: var(--vnext-leading-micro);
+}
+
+.platformFooterLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--vnext-text-primary);
+  font: inherit;
+  font-size: var(--vnext-size-micro);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.platformFooterLink:hover {
+  color: var(--vnext-accent-strong);
+}

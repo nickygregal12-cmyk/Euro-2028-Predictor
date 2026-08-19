@@ -1,3 +1,4 @@
+import { NON_AFFILIATION_SHORT } from '../../vnext/models/about'
 import type { ReactElement } from 'react'
 import { Link } from 'react-router'
 import { useTheme } from '../../app/providers/ThemeProvider'
@@ -664,9 +665,18 @@ function LandingFooter(): ReactElement {
         </span>
         <nav className={s.footerLinks} aria-label="Footer">
           <a href="#how">How it works</a>
+          {/* ADR 0017 asks for the non-affiliation statement to be reachable
+              from the footer. The full position is one page; this is the
+              compact route to it, beside the two conversion actions rather
+              than instead of them. */}
+          <Link to="/about">About &amp; Disclaimer</Link>
           <Link to="/auth/login">Sign in</Link>
           <Link to="/auth/signup">Create account</Link>
         </nav>
+        {/* THE POSITION ITSELF, IN ONE LINE. A visitor who never opens the page
+            still reads the claim that matters, and it is the SAME sentence the
+            page and the signed-in shell carry — one fact, one wording. */}
+        <p className={s.footerNote}>{NON_AFFILIATION_SHORT}</p>
       </div>
     </footer>
   )

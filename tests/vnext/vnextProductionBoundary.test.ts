@@ -71,15 +71,97 @@ describe('the vNext workshop', () => {
     expect(productionGraph.size).toBeGreaterThan(100)
   })
 
-  it('is unreachable from the production entry', () => {
+  /**
+   * THE ONE PRODUCTION SURFACE, AND WHY IT IS ONE RATHER THAN NONE.
+   *
+   * `/about` is a real route. ADR 0017 asks for *"an unambiguous non-affiliation
+   * statement in the footer and terms"* and the product has published neither —
+   * an obligation the product owes as it stands, signed in and signed out,
+   * rather than one that waits for a cutover. It is an ADDITION: no legacy
+   * journey loses an address, no redirect changes and no existing route serves
+   * anything different.
+   *
+   * So the blanket rule becomes a BOUNDED one rather than being deleted, and
+   * the bound is the interesting half. What may ship is the shell, the
+   * foundations, the models and the About surface itself. What may NOT is any
+   * vNext PAGE — Home, Matches, the Match Predictor, Leagues, the player
+   * profile, Last Man Standing, the Championship, Games, Discovery, Invite,
+   * onboarding — because those are the surfaces the cutover decides, and one of
+   * them arriving in the production graph is precisely the accident this suite
+   * was written to catch.
+   *
+   * A wildcard would have made this vacuous. The list is by directory and the
+   * page directories are named, so adding a page import to a production surface
+   * still fails here.
+   */
+  const PRODUCTION_ADMITTED = [
+    '/src/vnext/about/',
+    '/src/vnext/app/',
+    '/src/vnext/components/',
+    '/src/vnext/foundations/',
+    '/src/vnext/models/',
+    '/src/vnext/states/',
+    '/src/vnext/fixtures/about/',
+    '/src/vnext/integration/about/',
+    '/src/vnext/integration/shell/',
+  ]
+
+  const FORBIDDEN_IN_PRODUCTION = [
+    '/src/vnext/home/',
+    '/src/vnext/matches/',
+    '/src/vnext/predictor/',
+    '/src/vnext/leagues/',
+    '/src/vnext/player/',
+    '/src/vnext/lms/',
+    '/src/vnext/championship/',
+    '/src/vnext/games/',
+    '/src/vnext/discovery/',
+    '/src/vnext/invite/',
+    '/src/vnext/onboarding/',
+    '/src/vnext/account/',
+    '/src/vnext/ia/',
+    '/src/vnext/workshop/',
+    '/src/vnext/stories/',
+  ]
+
+  it('reaches production only through the one routed vNext surface', () => {
     const reachable = vnextFiles.filter((file) => productionGraph.has(file))
+    const unexpected = reachable.filter(
+      (file) => !PRODUCTION_ADMITTED.some((tree) => file.includes(tree)),
+    )
 
     expect(
-      reachable.map(fromRoot),
-      'these vNext modules are reachable from src/main.tsx — a production ' +
-        'surface has imported one, which ships an unapproved design language ' +
-        'and its tokens in the production bundle',
+      unexpected.map(fromRoot),
+      'these vNext modules are reachable from src/main.tsx and are not part of ' +
+        'the routed About surface — a production surface has imported one, ' +
+        'which ships an unapproved design language and its tokens in the ' +
+        'production bundle',
     ).toEqual([])
+  })
+
+  it('keeps every vNext PAGE out of the production graph', () => {
+    // The half that still holds the cutover. The stage that repoints Home,
+    // Matches, Games and Leagues is the stage that changes this case, and it
+    // will be doing so on purpose.
+    const leaked = vnextFiles.filter(
+      (file) =>
+        productionGraph.has(file) &&
+        FORBIDDEN_IN_PRODUCTION.some((tree) => file.includes(tree)),
+    )
+
+    expect(
+      leaked.map(fromRoot),
+      'a vNext PAGE is reachable from src/main.tsx — the Football Hub cutover ' +
+        'is Stage 14 work under explicit authority, not something a route ' +
+        'addition performs by accident',
+    ).toEqual([])
+  })
+
+  it('proves the About surface really is routed, so the allowance is not dead', () => {
+    // If `/about` were removed, the allowance above would silently become a
+    // permission nothing uses — and the next route addition would inherit it.
+    const about = resolve(repositoryRoot, 'src/vnext/about/VNextAbout.tsx')
+    expect(productionGraph.has(about), 'src/vnext/about is not routed').toBe(true)
   })
 
   it('keeps a presentation lane that never reaches the application', () => {

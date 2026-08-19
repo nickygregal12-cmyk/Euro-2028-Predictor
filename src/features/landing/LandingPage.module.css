@@ -1423,3 +1423,16 @@
   outline-offset: 2px;
   border-radius: var(--radius-input);
 }
+
+/* The non-affiliation line, under the footer's own links.
+ *
+ * A WHOLE ROW OF ITS OWN, so it never competes with Sign in and Create account
+ * for the same line at 320px — and so it is never the thing that wraps into
+ * them. Quiet, and permanently present: a disclaimer that disappears on a phone
+ * is a disclaimer that is not published. */
+.footerNote {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-1);
+}

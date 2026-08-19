@@ -103,6 +103,11 @@ const SeasonPlayerProfileRoute = lazy(() =>
 )
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
+// PUBLIC, AND NOT BEHIND THE CUTOVER. ADR 0017's non-affiliation statement is
+// owed by the product as it stands, signed in and signed out, so `/about` is a
+// real route rather than a `/dev` harness. It repoints nothing: the address did
+// not exist before.
+const AboutPage = lazy(() => import('./features/about/AboutPage').then((m) => ({ default: m.AboutPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
   import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
@@ -446,6 +451,7 @@ export default function App() {
 
                 <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
                 <Route path="/join/:code" element={<JoinLandingPage />} />
+                <Route path="/about" element={<AboutPage />} />
 
                 <Route element={<RequireAuth />}>
                   <Route path="/welcome" element={<WelcomePage />} />

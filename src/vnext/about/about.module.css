@@ -1,0 +1,76 @@
+/* ABOUT & DISCLAIMER.
+ *
+ * WHAT IS NOT HERE. The canvas, the page bounds, the masthead, both
+ * navigations, the `<main>` landmark and the mobile bottom spacing are the
+ * shell's, like every other vNext page.
+ *
+ * A MEASURE, NOT A WIDTH. This is the only vNext surface that is mostly prose,
+ * and prose has a readable line length whatever the viewport is — so the column
+ * stops at ~68 characters and the desktop space around it is deliberate rather
+ * than unfilled. Every other page fills the width because a fixture list and a
+ * table want to.
+ *
+ * NOTHING IS SMALL PRINT. Full body size, full text contrast, ordinary spacing.
+ * A disclaimer set two sizes down and one step greyer is a disclaimer designed
+ * not to be read, which is the opposite of what it is for.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  max-width: 68ch;
+}
+
+/* The whole position, above the detail. Slightly heavier than the body it sits
+   over, because it is the one sentence a reader who reads nothing else gets. */
+.summary {
+  margin: 0;
+  color: var(--vnext-text-primary);
+  font-weight: var(--vnext-weight-emphasis);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.heading {
+  margin: 0;
+  color: var(--vnext-text-primary);
+}
+
+.paragraph {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+  /* A long trademark name or a mailto address must wrap rather than push the
+     card sideways at 320px. */
+  overflow-wrap: anywhere;
+}
+
+/* Policies and the rights-enquiry route. WRAPS, and every target clears 44px,
+   because these are the links most likely to be reached on a phone by somebody
+   who needs them. */
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+}
+
+.link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--vnext-text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.link:hover {
+  color: var(--vnext-accent-strong);
+}
