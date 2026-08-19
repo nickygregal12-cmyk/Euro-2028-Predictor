@@ -607,3 +607,26 @@ describe('the group stage is carried, never recomputed', () => {
     expect(model.bracket.kind).toBe('bracket')
   })
 })
+
+/**
+ * `qualification.drawn` IS BROADER THAN ITS NAME, and both halves of the
+ * not-drawn check are load-bearing. Contract 193 computes it as
+ * `exists(fixture.stage <> 'group')`, which a `split` fixture satisfies.
+ */
+describe('a split competition is not reported as drawn', () => {
+  it('says not-drawn when the server says drawn and no seat survived the filter', () => {
+    // What a split `single_group` competition sends: `drawn` true, because
+    // `split` fixtures exist — and no seats, because the decoder drops them.
+    const model = buildChampionshipModel(
+      source(entered({ qualification: { drawn: true, qualifiers: 4, yourSeed: 2, youQualified: true }, bracket: [] })),
+    )
+    expect(model.bracket).toEqual({ kind: 'not-drawn' })
+  })
+
+  it('says not-drawn when the server says undrawn, whatever else arrived', () => {
+    const model = buildChampionshipModel(
+      source(entered({ qualification: { drawn: false, qualifiers: 4, yourSeed: 2, youQualified: true } })),
+    )
+    expect(model.bracket).toEqual({ kind: 'not-drawn' })
+  })
+})

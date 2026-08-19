@@ -149,13 +149,18 @@ describe('an empty seat is a hole, not a person and not a bye', () => {
     expect(zone('bracket').textContent).toContain('To be decided')
   })
 
-  it('never prints the literal name contract 193 returns for a hole', () => {
-    renderChampionship(championshipScenarios.halfFilledSeat)
-    // Contract 193 coalesces an unfilled seat to the display name 'Player'.
-    // Our own fixture names are "Ada Lovelace" etc, so a bare "Player" on the
-    // page could only have come from trusting that coalesce.
-    expect(zone('bracket').textContent).not.toMatch(/\bPlayer\b/)
-  })
+  // Contract 193 coalesces an unfilled seat to the display name 'Player'. No
+  // fixture uses that word as a real entrant's name — `wideDraw` used to name
+  // sixteen of them that way, which is exactly the world with the most seats
+  // for a sentinel to hide in — so a bare "Player" anywhere could only have
+  // come from trusting that coalesce.
+  it.each(championshipScenarioNames)(
+    'never prints the literal name contract 193 returns for a hole (%s)',
+    (name) => {
+      const { container } = renderChampionship(championshipScenarios[name])
+      expect(container.textContent).not.toMatch(/\bPlayer\b/)
+    },
+  )
 
   it('does not call it a bye or a walkover', () => {
     renderChampionship(championshipScenarios.halfFilledSeat)
@@ -523,5 +528,50 @@ describe('a refusal is shown whatever the panel became', () => {
   it('renders no Penalty Number section at all when there is nothing to say', () => {
     const { container } = renderChampionship(championshipScenarios.notDrawn)
     expect(container.querySelector('[data-vnext-zone="penalty-number"]')).toBeNull()
+  })
+})
+
+/**
+ * THE STANDING SLOT SAYS WHAT THE FIELD KNOWS, AND NO MORE.
+ *
+ * `you_qualified` is `exists(member.seed is not null)` — permanently true from
+ * the moment a seed is dealt, and never false once a player is knocked out. In
+ * the standing slot it read as a current status, so a player eliminated in
+ * round one saw it above the seat recording their defeat.
+ */
+describe('the qualification line is a draw fact, not a survival claim', () => {
+  it('does not tell a knocked-out reader they are in the knockout', () => {
+    const { container } = renderChampionship({
+      ...championshipScenarios.lostButNotStated,
+      standing: { kind: 'stated', outcome: 'qualified' },
+    })
+    const standing = container.querySelector('[data-vnext-zone="standing"]')
+    expect(standing?.textContent).toBe('You were seeded into the knockout draw.')
+    // Nothing on the page claims they are still in it.
+    expect(screen.queryByText(/still in/i)).toBeNull()
+  })
+
+  it('still says nothing at all where no authority stated a standing', () => {
+    const { container } = renderChampionship(championshipScenarios.lostButNotStated)
+    expect(container.querySelector('[data-vnext-zone="standing"]')).toBeNull()
+  })
+})
+
+/**
+ * THE DOCUMENT'S COUNT AND THE REGISTRY'S, HELD TOGETHER.
+ *
+ * The authority claimed fourteen worlds in two places while nineteen were
+ * shipped. A number written by hand in prose drifts the first time a world is
+ * added; asserting it is cheaper than remembering.
+ */
+describe('the authority states the number of worlds that exist', () => {
+  it('matches `docs/product/vnext-championship.md`', async () => {
+    const { readFileSync } = await import('node:fs')
+    const doc = readFileSync('docs/product/vnext-championship.md', 'utf8')
+    const claimed = [...doc.matchAll(/(\d+)\s+(?:deterministic\s+)?worlds/g)].map((m) =>
+      Number(m[1]),
+    )
+    expect(claimed.length).toBeGreaterThan(0)
+    for (const count of claimed) expect(count).toBe(championshipScenarioNames.length)
   })
 })

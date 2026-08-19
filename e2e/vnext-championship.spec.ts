@@ -126,7 +126,12 @@ async function read(page: import('@playwright/test').Page): Promise<Reading> {
     }
 
     const smallTargets: string[] = []
-    for (const control of scope.querySelectorAll<HTMLElement>('button, a[href], [role="button"]')) {
+    // INPUTS ARE CONTROLS. The Penalty Number field is the one thing this page
+    // asks a reader to touch, and it was the one control the sweep did not
+    // measure while a docblock said it did.
+    for (const control of scope.querySelectorAll<HTMLElement>(
+      'button, a[href], [role="button"], input:not([type="hidden"])',
+    )) {
       if (!rendered(control)) continue
       if (getComputedStyle(control).clipPath !== 'none') continue
       // Layout boxes, not client rects: the workshop scales frames with a CSS
@@ -326,10 +331,14 @@ test.describe('the states that are not a bracket', () => {
  * THE PENALTY NUMBER, IN A REAL ENGINE.
  *
  * Two of these need a browser rather than jsdom: whether the control actually
- * refuses a value the lane forbids once a person types it, and whether a 44px
- * input and a 44px button coexist at 320px without either being squeezed under
- * the target size. The rest are here because this is the page's one write, and
- * the sealed bid is the one thing on it that must never leak.
+ * refuses a value the lane forbids once a person types it, and whether the
+ * input and the button both hold their target size once real layout runs. The
+ * target sweep in `read()` measures the input as well as the buttons — it did
+ * not until this stage's review, while this docblock claimed it did. The
+ * narrowest frame the suite renders is 375, not 320.
+ *
+ * The rest are here because this is the page's one write, and the sealed bid is
+ * the one thing on it that must never leak.
  */
 test.describe('the Penalty Number states its rule and enforces it', () => {
   test('prints the lane rule beside the box', async ({ page }) => {

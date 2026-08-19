@@ -137,7 +137,15 @@ export function VNextChampionship({
  */
 const STANDING_COPY: Record<'active' | 'qualified' | 'eliminated' | 'champion', string> = {
   active: 'You are still in.',
-  qualified: 'You qualified for the knockout.',
+  // A FACT ABOUT THE DRAW, PHRASED AS ONE. `you_qualified` is
+  // `exists(member.seed is not null)` — permanently true from the moment a seed
+  // is dealt, and it never becomes false when the player is knocked out. "You
+  // qualified for the knockout" sits in the standing slot and reads as a
+  // CURRENT status, so a player eliminated in round one saw it above the very
+  // seat recording their defeat. Naming the draw is the honest version: it says
+  // the thing the field actually knows and claims nothing about survival, which
+  // no season read supplies.
+  qualified: 'You were seeded into the knockout draw.',
   eliminated: 'You have been eliminated.',
   champion: 'You won the Championship.',
 }

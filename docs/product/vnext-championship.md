@@ -137,9 +137,17 @@ The predicate requires:
 > eliminated/champion/no-action-required states are **complete**.
 
 **`champion` is present. `eliminated` is returned by no season Championship read
-at all** — not contract 193, not 133, not 167, not 120. The authoritative fact
-is `bonus_competition_entrants.outcome`, and it reaches a player only through
-the private-container workspace read.
+this surface can call** — not contract 193, not 133, not 167, not 120. The
+authoritative fact is `bonus_competition_entrants.outcome`.
+
+Two TOURNAMENT-scoped reads do expose it — `get_bonus_games`
+(`20260805140000:163`) and `get_my_cup` (`20260804263000:715`) — and an earlier
+draft of this section said no read anywhere returned it, which was broader than
+what had been checked. Neither is usable here, and the reason is structural
+rather than a matter of taste: `get_my_cup` selects into a single record with no
+limit and raises for a season running several Championship instances, which is
+precisely the case this surface exists for. So the gap below stands, but it is
+"no read this page can make", not "no read exists".
 
 ### What this lane does, and does not do
 
@@ -154,6 +162,19 @@ later one, and the page says nothing. The inference is available, looks
 conclusive, and is **wrong whenever a competition has not finished
 eliminating** — and it would sit exactly where a real verdict goes, which is
 what makes it the guess a reader would believe.
+
+### The qualification line is a draw fact, and is phrased as one
+
+`you_qualified` is `exists(member.seed is not null)`. It becomes true when a
+seed is dealt and **never becomes false** — being knocked out does not retract
+it. Rendered in the standing slot it read as a CURRENT status, so a player
+eliminated in round one saw "You qualified for the knockout" above the very seat
+recording their defeat: not a derived claim, but a true sentence in a place that
+made it say something untrue.
+
+The copy now names the draw — *"You were seeded into the knockout draw."* — which
+is what the field knows and claims nothing about survival. This is a smaller
+correction than the gap below and does not close it.
 
 ### This asymmetry does NOT satisfy the predicate
 
@@ -226,7 +247,7 @@ unrelated corrections would make both harder to review and to revert.
 | `server_now` | REAL + AUTHORITATIVE | the database's own clock, carried |
 | `format.kind` | REAL + AUTHORITATIVE | from the launch record, not inferred |
 | `format.produces_knockout` | **REAL BUT UNRELIABLE FOR ONE FORMAT** | computed as `v_launch.format_kind = 'groups'` — a **format-name check** standing in for a calendar fact. Contract 198 states the underlying truth plainly: *"whether a single group ends in a knockout depends on how the league rounds happen to divide the calendar, so neighbouring field sizes end differently. Over 38 matchweeks 18 entrants reach a knockout and 19 do not."* So a `single_group` Championship that **does** reach one reports `false` here. Not consumed by this lane; see §8.1 |
-| `qualification.drawn` | REAL + AUTHORITATIVE | knockout fixtures exist |
+| `qualification.drawn` | **REAL BUT BROADER THAN ITS NAME** | `exists(fixture.stage <> 'group')`, not `exists(knockout)` — one of the four broad-form uses §7 enumerates. A `single_group` competition that has merely reached its SPLIT has `split` fixtures and reports `drawn: true` with no knockout in existence. Consumed, but never alone; see §8.1 |
 | `qualification.qualifiers` | REAL + AUTHORITATIVE | aggregate; safe across a split |
 | `qualification.your_seed` | REAL + AUTHORITATIVE | **only since contract 205**; §7 |
 | `qualification.you_qualified` | REAL + AUTHORITATIVE | `exists`; safe across a split |
@@ -254,10 +275,29 @@ exists to compute (`cup_knockout_rounds`) and which a format name cannot stand
 in for. A page that printed "no knockout" from this field would be wrong for
 exactly the single-group competitions that reach one.
 
-**`qualification.drawn` is the honest signal** for the question a reader
-actually has — is there a bracket to look at — because it is `exists(knockout
-fixtures)` rather than a prediction about whether there will be. The surface
-uses that.
+**`qualification.drawn` is the better signal**, because it is a fact about
+fixtures that exist rather than a prediction about whether any will. But it is
+NOT `exists(knockout fixtures)`, as an earlier draft of this document claimed.
+The SQL is:
+
+```sql
+'drawn', exists (
+  select 1 from public.bonus_cup_fixtures fixture
+   where fixture.competition_id = p_competition_id
+     and fixture.stage <> 'group'),
+```
+
+— the same broad `stage <> 'group'` form §7 catalogues, and it counts `split`
+fixtures as evidence of a draw. So a `single_group` competition that has reached
+its split reports `drawn: true` while its bracket is empty.
+
+**So the surface consumes it beside the decoded seat list, not alone.**
+`bracketPanelOf` answers `not-drawn` when `drawn` is false OR when the filtered
+bracket is empty, and the second half is what makes the split case correct: the
+decoder drops `split` fixtures, so a split-only competition arrives with zero
+seats and is reported as not drawn. Dropping the length check on the strength of
+"drawn is the server's word" would render an empty bracket panel to every split
+competition.
 
 This is a `NOT CONSUMED` classification with a reason rather than an oversight,
 and it is worth a later contract stating the reserved depth in the payload.
@@ -270,6 +310,63 @@ and it is worth a later contract stating the reserved depth in the payload.
 | **why** a walkover happened | **ABSENT.** §5 |
 | the group table / group stage | **NOT YET READ.** Contracts 167 and 133 are the next reads this lane takes |
 | the qualification **cut line** | **ABSENT.** `cup_group_automatic_places` and `cup_group_qualifying_limit` are revoked from `authenticated` and reached by no public read. The page may say whether YOU qualified; it may not draw a line on a table |
+
+---
+
+## 8.5 THE GROUP PHASE — contract 167, read beside contract 193
+
+The Championship spends most of its life BEFORE the knockout exists. For four
+commits this page answered that phase with a single sentence — *"The knockout
+draw has not been made yet."* — which is true, and was the whole of what it said
+about the phase.
+
+Contract 167 (`get_season_cup_group_stage`) has held those standings since it
+shipped alongside contract 166's draw. Production reads it
+(`SeasonCupGroupStage.tsx`); this lane did not. Unlike the elimination gap
+above, this needed **no backend delta at all** — only the read.
+
+### The two reads disagree by design
+
+A Championship in its group phase has a REAL TABLE and NO BRACKET. That is not
+an error state; it is the ordinary shape of the competition for most of a
+season. So the two reads:
+
+- are issued **concurrently**, with a **catch per promise** rather than one
+  around the pair — a `Promise.all` over unguarded promises discards an answer
+  that already arrived;
+- resolve into **separate panel unions**, so neither read's failure can silence
+  the other's answer.
+
+`championshipSourceLifecycle.test.tsx` holds all three cases: bracket fails and
+groups survive, groups fail and the bracket survives, and both fail and the page
+still reaches `ready`.
+
+### What the panel carries, and what it refuses to compute
+
+| Fact | Source | Rule |
+| --- | --- | --- |
+| `rank` | the standings authority | printed in the position it arrived; **nothing sorts** |
+| `tablePoints`, `pointsFor`, `pointsAgainst`, `exacts`, `corrects` | the same | carried, never totalled here |
+| `scorelineError` | the same | **nullable, and stays null** — no settled prediction is not an error of zero |
+| `isYou` | contract 167's `is_me` | the server's flag; no name or id is compared |
+| `isYours` | contract 167's `is_my_group` | the same |
+| `yourOrdinal` | `my_group_ordinal` | **null is a real answer** — holding no group is not the same as there being no groups |
+
+A mutation that sorts the rows by rank and one that defaults the scoreline error
+to zero both fail.
+
+`GroupPanel` has four states and none is inferred from another: `unavailable`
+(the read failed), `not-entered` (`entered: false` — a competition the caller is
+not in), `no-groups` (`available: false`, or a drawn stage with no tables yet)
+and `groups`.
+
+### It is a `<table>`
+
+Rank, name and five measures per row is tabular data. A screen reader navigating
+by column needs headers a grid of `<div>`s cannot supply. Eight columns do not
+fit a phone, so the TABLE scrolls inside its own container and the page does
+not — dropping columns at narrow widths would be this file deciding which of the
+standings authority's measures matter.
 
 ---
 
@@ -316,7 +413,7 @@ get_season_cup_bracket ──→ ChampionshipSource ──→ buildChampionshipM
 | `src/vnext/integration/championship/buildChampionshipModel.ts` | the **only** mapper. Pure: no network, storage, clock or React |
 | `src/vnext/integration/championship/useVNextChampionshipSource.ts` | acquisition and classification |
 | `src/vnext/championship/VNextChampionship.tsx` | the visual surface |
-| `src/vnext/fixtures/championship/scenarios.ts` | 14 deterministic worlds, each a premise |
+| `src/vnext/fixtures/championship/scenarios.ts` | 24 deterministic worlds, each a premise |
 
 **Reads get independent outcomes** — and here for a reason beyond "they can fail
 separately": `get_season_cup_phase` selects the caller's membership row with no
@@ -358,7 +455,7 @@ and keeps its address.
 | route | status |
 | --- | --- |
 | `/dev/vnext-championship` | connected harness. **Contract 193's first caller** |
-| Storybook `vNext/Predictor Championship` | 14 worlds, the review surface |
+| Storybook `vNext/Predictor Championship` | 24 worlds, the review surface |
 | `/competitions/:c/:s/games/championship/*` | **production, untouched** |
 
 ---

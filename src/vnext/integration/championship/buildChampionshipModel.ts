@@ -98,8 +98,17 @@ function bracketPanelOf(source: ChampionshipSource): BracketPanel {
   const answer = source.bracket.bracket
   if (!answer.entered) return { kind: 'not-entered' }
 
-  // DRAWN IS THE SERVER'S WORD, not "the array is non-empty". A competition can
-  // be drawn with the caller's own view of it still filtering to nothing.
+  // BOTH HALVES ARE LOAD-BEARING, and neither is redundant.
+  //
+  // `drawn` is BROADER THAN ITS NAME. Contract 193 computes it as
+  // `exists(fixture.stage <> 'group')`, not `exists(knockout)` — so a
+  // `single_group` competition that has merely reached its SPLIT reports
+  // `drawn: true` with no knockout in existence.
+  //
+  // The seat list is what corrects it: the decoder drops `split` fixtures, so
+  // that competition arrives with zero seats. Trusting `drawn` alone would show
+  // it an empty bracket; trusting the length alone would call a genuinely drawn
+  // competition undrawn while its own view of the draw filtered to nothing.
   if (!answer.qualification.drawn || answer.bracket.length === 0) {
     return { kind: 'not-drawn' }
   }

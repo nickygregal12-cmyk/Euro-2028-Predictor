@@ -235,3 +235,87 @@ describe('the seed is an answer or an absence, never a zero', () => {
     expect(model.qualification.qualifiers).toBe(0)
   })
 })
+
+/**
+ * THE FIELDS THAT WERE DECODED AND ASSERTED NOWHERE.
+ *
+ * A mutation setting `server_now` to a literal, negating `produces_knockout`
+ * and replacing `group_stage_last_sequence` with 4242 passed 148 tests. A field
+ * carried through a decoder with nothing checking it is a field the decoder is
+ * free to get wrong.
+ */
+describe('the clock and the format are carried as sent', () => {
+  it('carries the DATABASE’s own instant, not one this process made', () => {
+    const read = mapSeasonCupBracket(payload({ server_now: '2027-06-09T09:30:00.000Z' }))
+    if (!read.entered) throw new Error('expected an entrant')
+    expect(read.serverNow).toBe('2027-06-09T09:30:00.000Z')
+  })
+
+  it('carries the launch record’s format, unaltered', () => {
+    const read = mapSeasonCupBracket(
+      payload({
+        format: { kind: 'single_group', produces_knockout: false, group_stage_last_sequence: 38 },
+      }),
+    )
+    if (!read.entered) throw new Error('expected an entrant')
+    expect(read.format).toEqual({
+      kind: 'single_group',
+      producesKnockout: false,
+      groupStageLastSequence: 38,
+    })
+  })
+})
+
+/**
+ * THE `my_ties` STAGE FILTER. One of the four the module header names, and the
+ * one no test covered: replacing its rejection with a default to `'knockout'`
+ * passed every test in this file.
+ */
+describe('my_ties drops a split fixture rather than calling it a knockout', () => {
+  function tie(overrides: Record<string, unknown> = {}) {
+    return {
+      fixture_id: 'mt-1',
+      stage: 'knockout',
+      window_sequence: 21,
+      window_label: 'Semi-finals',
+      is_home: true,
+      opponent: { user_id: 'u-2', display_name: 'Bo' },
+      settled: true,
+      you_won: true,
+      decided_by: 'points',
+      settled_at: '2027-05-02T18:00:00.000Z',
+      ...overrides,
+    }
+  }
+
+  it('keeps knockout and playoff ties', () => {
+    const read = mapSeasonCupBracket(
+      payload({ my_ties: [tie(), tie({ fixture_id: 'mt-2', stage: 'playoff' })] }),
+    )
+    if (!read.entered) throw new Error('expected an entrant')
+    expect(read.myTies.map((t) => t.stage)).toEqual(['knockout', 'playoff'])
+  })
+
+  it.each(['split', 'group', 'league', null, undefined, 42])(
+    'drops a tie whose stage is %s rather than defaulting it',
+    (stage) => {
+      const read = mapSeasonCupBracket(payload({ my_ties: [tie({ stage })] }))
+      if (!read.entered) throw new Error('expected an entrant')
+      expect(read.myTies).toEqual([])
+    },
+  )
+
+  it('carries `is_home`, which is how the surface knows which side is the caller', () => {
+    const read = mapSeasonCupBracket(
+      payload({ my_ties: [tie({ is_home: false }), tie({ fixture_id: 'mt-2', is_home: true })] }),
+    )
+    if (!read.entered) throw new Error('expected an entrant')
+    expect(read.myTies.map((t) => t.isHome)).toEqual([false, true])
+  })
+
+  it('treats a missing `is_home` as false rather than as true', () => {
+    const read = mapSeasonCupBracket(payload({ my_ties: [tie({ is_home: undefined })] }))
+    if (!read.entered) throw new Error('expected an entrant')
+    expect(read.myTies[0]?.isHome).toBe(false)
+  })
+})

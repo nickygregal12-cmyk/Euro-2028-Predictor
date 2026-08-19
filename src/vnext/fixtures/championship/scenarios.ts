@@ -324,7 +324,15 @@ const unlabelledRound = world({
   },
 })
 
-/** A deep draw: four rounds, sixteen seats. The width test. */
+/**
+ * A deep draw: four rounds, sixteen seats. The width test.
+ *
+ * THE ENTRANTS ARE NOT CALLED "Player". `Player` is contract 193's own
+ * `coalesce` sentinel for a seat whose profile is missing, and a world that
+ * names sixteen real entrants with it would make the test asserting the
+ * sentinel never reaches a reader pass for the wrong reason on the one world
+ * where the most seats could hide it.
+ */
 const wideDraw = world({
   bracket: {
     kind: 'bracket',
@@ -334,8 +342,8 @@ const wideDraw = world({
           `r16-${index}`,
           19,
           'Round of 16',
-          player(`Player ${index * 2 + 1}`, index === 0),
-          player(`Player ${index * 2 + 2}`),
+          player(`Entrant ${index * 2 + 1}`, index === 0),
+          player(`Entrant ${index * 2 + 2}`),
           { roundSize: 16, bracketSlot: index + 1, isYours: index === 0 },
         ),
       ),
