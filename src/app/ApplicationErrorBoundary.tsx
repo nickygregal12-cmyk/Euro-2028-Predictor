@@ -14,6 +14,7 @@ interface ApplicationErrorBoundaryProps {
 
 interface ApplicationErrorBoundaryState {
   readonly failed: boolean
+  /** Set once the fault has proved deterministic — see `fatalRecovery`. */
   readonly offerRecovery: boolean
   readonly reference: string | null
   readonly recovered: boolean
@@ -27,9 +28,20 @@ const INITIAL: ApplicationErrorBoundaryState = {
 }
 
 /**
- * The last line of defence. The product label is resolved from the same site
- * configuration as the rest of the application, because this boundary sits
- * outside `SiteProvider` and otherwise became a hidden hard-coded Hub brand.
+ * The last line of defence.
+ *
+ * Reload remains the FIRST remedy and is unchanged: most faults are transient
+ * and a reload is the cheapest thing that clears them. What is new is the
+ * second: a fault that survives a reload is deterministic, and offering the
+ * same remedy again is the loop `UX-004` records. After the second consecutive
+ * failure this offers a local sign-out instead, which discards the one piece of
+ * browser-persisted state that can carry a fault across reloads.
+ *
+ * Everything destructive lives in `fatalRecovery.ts` and is pure, because the
+ * one thing worse than an application that cannot recover is a recovery path
+ * that removes something the user wanted. Nothing here touches the network:
+ * this code runs precisely when the application has stopped working, so any
+ * remedy that needs the application to work is not a remedy.
  */
 export class ApplicationErrorBoundary extends Component<
   ApplicationErrorBoundaryProps,
@@ -42,6 +54,10 @@ export class ApplicationErrorBoundary extends Component<
   }
 
   public componentDidCatch(): void {
+    // Storage can throw or be absent — a private-mode browser, a blocked
+    // origin, a disabled cookie policy. A recovery path that itself throws
+    // leaves the user with nothing at all, so every access here is guarded and
+    // the fallback is the previous behaviour: reload only.
     try {
       const { offerRecovery } = recordFailure(window.sessionStorage)
       this.setState({
@@ -54,6 +70,9 @@ export class ApplicationErrorBoundary extends Component<
   }
 
   private readonly recover = (): void => {
+    // Each store is handled separately. Failure to read one must not prevent
+    // the other narrow cleanup, and neither operation may clear unrelated
+    // same-origin state.
     try {
       clearLocalSession(window.localStorage)
     } catch {
@@ -62,9 +81,12 @@ export class ApplicationErrorBoundary extends Component<
     try {
       clearFailureCount(window.sessionStorage)
     } catch {
-      // Continue to restart even when storage itself is unavailable.
+      // Nothing to do but continue to the restart below: if storage cannot be
+      // read it cannot be relied on as part of recovery either.
     }
     this.setState({ recovered: true })
+    // Origin root rather than history: the failing route is a candidate cause,
+    // so returning to it would be the same loop by another name.
     window.location.assign('/')
   }
 
