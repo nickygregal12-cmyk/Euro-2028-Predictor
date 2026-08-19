@@ -5,6 +5,7 @@ import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { buildMatchCentreModel } from './buildMatchCentreModel'
 import {
   useVNextMatchCentreSource,
@@ -42,6 +43,7 @@ export type VNextMatchCentreScreenProps = VNextMatchCentreSourceInput & {
 }
 
 export function VNextMatchCentreScreen(props: VNextMatchCentreScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextMatchCentreSource(props)
 
   const model = useMemo(
@@ -62,10 +64,10 @@ export function VNextMatchCentreScreen(props: VNextMatchCentreScreenProps) {
             playerName: null,
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, model, props.onShellIntent, props.shellElsewhere],
+    [state, model, props.onShellIntent, elsewhere],
   )
 
   const body =

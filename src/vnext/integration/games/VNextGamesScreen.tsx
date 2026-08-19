@@ -4,6 +4,7 @@ import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextNotice } from '../../states/VNextStates'
 import { buildGamesModel } from './buildGamesModel'
 import { useVNextGamesSource } from './useVNextGamesSource'
@@ -45,6 +46,7 @@ export type VNextGamesScreenProps = {
 }
 
 export function VNextGamesScreen(props: VNextGamesScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextGamesSource({
     userId: props.userId,
     authLoading: props.authLoading,
@@ -74,10 +76,10 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
             // Predictor's own fact. `null` is "this page cannot say".
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent, props.shellElsewhere],
+    [state, props.onShellIntent, elsewhere],
   )
 
   const body =

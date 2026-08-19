@@ -43,6 +43,19 @@ import type { PlayInbox } from '../../../features/hub/playInboxModel'
  * COMPETITION, and a host that mounted it per page would pay that on every
  * navigation. It belongs to a shell-level host, mounted once.
  *
+ * ======================== AND WHAT IS STILL DEFERRED, ON PURPOSE ==========
+ *
+ * **`games` AND `leagues` ON A CONTEXT STAY EMPTY, AND THAT IS THE DECISION.**
+ * They are the input to Jump and to the shortcut group, which the shell only
+ * draws when a context carries them — so an empty list draws nothing rather
+ * than drawing something inert. Filling them honestly would mean a games read
+ * and a private-league read PER COMPETITION, on top of the inbox's own
+ * per-competition cost, and Stage 14's contract asks for a safe cutover rather
+ * than a wider one. Jump is an OPTIONAL accelerator in the selected
+ * architecture (`docs/product/vnext-shell-ia.md`), not part of its minimum, so
+ * deferring it removes no journey: every game and every league is still one
+ * press away through the destination that owns it.
+ *
  * NOTHING HERE IS FABRICATED TO MAKE AN AFFORDANCE LIGHT UP. A second context
  * invented from the catalogue, or an attention item derived from a deadline in
  * the page's own model, would both be presentation asserting something the
@@ -72,7 +85,7 @@ export type ShellSourceCompetition = {
  * competition share a display name, and a shell that keyed a context on the
  * name would switch the player to the wrong one.
  */
-export type ShellSourceOtherCompetition = {
+type ShellSourceOtherCompetition = {
   readonly tournamentId: string
   readonly name: string
   readonly seasonLabel: string

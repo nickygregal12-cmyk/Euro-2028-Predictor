@@ -6,6 +6,7 @@ import type { ShellIntent } from '../../models/shell'
 import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { VNextMatchPredictor } from '../../predictor/VNextMatchPredictor'
 import { buildPredictorModel } from './buildPredictorModel'
 import type { PredictorSource } from './predictorSource'
@@ -80,6 +81,7 @@ export type VNextPredictorScreenProps = VNextPredictorContextInput & {
 }
 
 export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextPredictorContext(props)
   const createGateway = useGatewayFactory()
 
@@ -100,10 +102,10 @@ export function VNextPredictorScreen(props: VNextPredictorScreenProps) {
             playerName: null,
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
-            elsewhere: props.shellElsewhere ?? null,
+            elsewhere,
           })
         : null,
-    [state, props.onShellIntent, props.shellElsewhere],
+    [state, props.onShellIntent, elsewhere],
   )
 
   return shell === null ? (
