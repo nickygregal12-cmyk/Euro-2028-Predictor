@@ -162,13 +162,13 @@ describe('the tournament page presents the weekly games as Bonus Games', () => {
     // but under the Hub's heading and pointing at the Hub, because it is a
     // competition season rather than a game attached to this tournament.
     const elsewhere = screen.getByRole('heading', {
-      name: /Played on Football Prediction Hub/,
+      name: /Played on Predictor Hub/,
     })
     expect(elsewhere).toBeInTheDocument()
     const body = document.body.textContent ?? ''
     expect(body.indexOf('Match Predictor')).toBeGreaterThan(body.indexOf('Bonus Games'))
     expect(
-      screen.getByRole('link', { name: /play it on Football Prediction Hub/i }),
+      screen.getByRole('link', { name: /play it on Predictor Hub/i }),
     ).toHaveAttribute('href', HUB_ORIGIN)
   })
 
