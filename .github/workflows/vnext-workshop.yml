@@ -190,8 +190,12 @@ jobs:
       - name: Report success where no vNext path changed
         if: ${{ needs.changes.result == 'success' && needs.changes.outputs.vnext != 'true' }}
         run: |
+          # NO BACKTICKS. These lines go to a plain job log rather than to
+          # `$GITHUB_STEP_SUMMARY`, so markdown notation buys nothing here — and
+          # a backtick inside single quotes is a command substitution that will
+          # never run, which is exactly what shellcheck's SC2016 is for.
           echo 'No vNext path changed on this pull request.'
-          echo 'The browser corpus measures rendered geometry in `src/vnext/`,'
+          echo 'The browser corpus measures rendered geometry in src/vnext/,'
           echo 'and nothing this change touches can move it. Reporting success'
           echo 'so the gate stays a stable required context.'
 
