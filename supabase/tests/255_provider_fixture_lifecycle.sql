@@ -353,10 +353,17 @@ select set_config('test.pfl_played', (select f.id::text from public.season_fixtu
 -- Private, so it cannot collide with whatever public Championship the seeded
 -- season already holds; a fresh competition has no predecessor, so the
 -- successor-window calendar guard has no boundary to enforce.
+--
+-- The invite code is supplied rather than left to the registration trigger:
+-- `bonus_competitions_private_identity` requires name, owner AND invite_code to
+-- be present on the row itself, and it is a CHECK, so it is evaluated before
+-- any AFTER trigger could fill one in.
 insert into public.bonus_competitions
-  (id, tournament_id, game_key, published, draw_required, visibility_kind, name, owner_id)
+  (id, tournament_id, game_key, published, draw_required, visibility_kind,
+   name, owner_id, invite_code)
 values (md5('pfl-cup')::uuid, current_setting('test.pfl_season')::uuid, 'predictor_cup',
-        true, false, 'private', 'Lifecycle Championship', md5('pfl-player')::uuid);
+        true, false, 'private', 'Lifecycle Championship', md5('pfl-player')::uuid,
+        'PFL209');
 
 insert into public.bonus_competition_windows
   (id, competition_id, sequence, label, opens_at, locks_at)

@@ -1396,6 +1396,186 @@ revoke all on function public.get_season_fixture(uuid) from public, anon, servic
 grant execute on function public.get_season_fixture(uuid) to authenticated;
 
 -- ===========================================================================
+-- 7b. The calendar read says it too, because it is the SAME fixture
+-- ===========================================================================
+--
+-- Contract 197 added `get_my_football_calendar` beside `get_season_fixtures`
+-- and pinned the two together with a DIFFERENTIAL: its suite seeds one season,
+-- calls both over the same window and requires the per-fixture objects to be
+-- IDENTICAL, field for field. That pin is the reason this section exists, and
+-- it is the reason it exists as a section rather than as an afterthought — the
+-- first draft of contract 209 added `schedule` to the two single-season reads
+-- and not to this one, and `245_my_football_calendar.sql` failed exactly as it
+-- was designed to.
+--
+-- A player would otherwise have seen a postponement on a competition's own
+-- Matches page and an ordinary fixture, at a kickoff that will not happen, in
+-- the cross-competition calendar on the same screen refresh.
+--
+-- Redefined at its existing signature with ONE added object and no other
+-- change.
+-- ===========================================================================
+
+create or replace function public.get_my_football_calendar(
+  p_from timestamptz default null,
+  p_to timestamptz default null
+)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $calendar$
+declare
+  v_uid uuid := (select auth.uid());
+  v_from timestamptz;
+  v_to timestamptz;
+  v_competitions jsonb;
+  v_fixtures jsonb;
+begin
+  if v_uid is null then
+    raise exception 'Authentication is required' using errcode = '42501';
+  end if;
+
+  -- Contract 111's window and bounds, unchanged. See the header for why they
+  -- matter more on a read that spans every season the player has entered.
+  v_from := coalesce(p_from, now() - interval '7 days');
+  v_to := coalesce(p_to, now() + interval '14 days');
+
+  if v_to <= v_from then
+    raise exception 'The window must end after it starts' using errcode = '22023';
+  end if;
+
+  if v_to - v_from > interval '120 days' then
+    raise exception 'A fixture window may not exceed 120 days' using errcode = '22023';
+  end if;
+
+  -- The seasons in scope: the ones this player has ENTERED. `public.entries` is
+  -- the authority every season read already uses for that question, so no
+  -- membership rule is added here and none can be widened.
+  --
+  -- `league_season` only, exactly as `get_season_fixtures` refuses anything
+  -- else. A tournament has its own fixture surfaces and its own lock and reveal
+  -- model; folding it in silently would be a product decision.
+  with mine as (
+    select season.id,
+           competition.name as competition_name,
+           competition.slug,
+           season.season_key,
+           season.display_timezone
+      from public.entries entry
+      join public.tournaments season on season.id = entry.tournament_id
+      join public.competitions competition on competition.id = season.competition_id
+     where entry.user_id = v_uid
+       and season.kind = 'league_season'
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'id', mine.id,
+           'name', mine.competition_name,
+           'slug', mine.slug,
+           'season_key', mine.season_key,
+           'time_zone', mine.display_timezone) order by mine.competition_name, mine.id),
+         '[]'::jsonb)
+    into v_competitions
+    from mine;
+
+  select coalesce(jsonb_agg(entry order by sort_kickoff, entry->>'id'), '[]'::jsonb)
+    into v_fixtures
+    from (
+      select
+        -- Ordered by when it is actually played, ACROSS competitions, which is
+        -- the whole point. A fixture with no kickoff yet sorts last rather than
+        -- first, because an unscheduled match is not the next thing to happen.
+        coalesce(fixture.kickoff_at, 'infinity'::timestamptz) as sort_kickoff,
+        jsonb_build_object(
+          -- The one field the single-season read does not need, because there
+          -- the competition is the whole payload's subject.
+          'competition_id', fixture.tournament_id,
+
+          'id', fixture.id,
+          'kickoff_at', fixture.kickoff_at,
+          'status', fixture.status,
+
+          -- The round is a LABEL, not the grouping key: contract 111's
+          -- projection, and the owner's amendment stated in the payload.
+          'round', jsonb_build_object(
+            'id', round.id,
+            'ordinal', round.ordinal,
+            'label', round.label),
+
+          -- CONTRACT 209. Field for field with contract 139's list entry,
+          -- because contract 197's suite requires exactly that.
+          'schedule', jsonb_build_object(
+            'kickoff_confirmed', fixture.status <> 'postponed',
+            'rescheduled', exists (
+              select 1 from predictor_internal.season_fixture_revisions revision
+               where revision.season_fixture_id = fixture.id),
+            'original_kickoff_at', (
+              select revision.previous_kickoff_at
+                from predictor_internal.season_fixture_revisions revision
+               where revision.season_fixture_id = fixture.id
+               order by revision.applied_at, revision.id
+               limit 1)),
+
+          'home', jsonb_build_object(
+            'name', home.name,
+            'short_code', home_identity.short_code,
+            'club_colours', home_identity.club_colours),
+          'away', jsonb_build_object(
+            'name', away.name,
+            'short_code', away_identity.short_code,
+            'club_colours', away_identity.club_colours),
+
+          -- What settled. Null until it did.
+          'result', case when fixture.status = 'played' then jsonb_build_object(
+            'home', fixture.home_score,
+            'away', fixture.away_score) end,
+
+          -- What a provider currently says, which is a different thing and is
+          -- kept in a different field on purpose.
+          'live', case when live.season_fixture_id is not null then jsonb_build_object(
+            'kind', live.kind,
+            'home', live.home_score,
+            'away', live.away_score,
+            'observed_at', live.observed_at) end
+        ) as entry
+        from public.season_fixtures fixture
+        join public.entries mine_entry
+          on mine_entry.tournament_id = fixture.tournament_id
+         and mine_entry.user_id = v_uid
+        join public.tournaments season
+          on season.id = fixture.tournament_id
+         and season.kind = 'league_season'
+        join public.competition_rounds round on round.id = fixture.competition_round_id
+        join public.teams home on home.id = fixture.home_team_id
+        join public.teams away on away.id = fixture.away_team_id
+        left join predictor_internal.club_identity_reference home_identity
+          on home_identity.normalised_name
+           = predictor_internal.normalised_club_name(home.name)
+        left join predictor_internal.club_identity_reference away_identity
+          on away_identity.normalised_name
+           = predictor_internal.normalised_club_name(away.name)
+        left join predictor_internal.season_fixture_live_state live
+          on live.season_fixture_id = fixture.id
+       where fixture.kickoff_at >= v_from
+         and fixture.kickoff_at < v_to
+       order by coalesce(fixture.kickoff_at, 'infinity'::timestamptz), fixture.id
+       limit 500) windowed;
+
+  return jsonb_build_object(
+    'window', jsonb_build_object('from', v_from, 'to', v_to),
+    'server_now', now(),
+    'competitions', v_competitions,
+    'fixtures', v_fixtures);
+end;
+$calendar$;
+
+revoke all on function public.get_my_football_calendar(timestamptz, timestamptz)
+  from public, anon, service_role;
+grant execute on function public.get_my_football_calendar(timestamptz, timestamptz)
+  to authenticated;
+
+-- ===========================================================================
 -- 8. The driver, with the lifecycle in it
 -- ===========================================================================
 --
