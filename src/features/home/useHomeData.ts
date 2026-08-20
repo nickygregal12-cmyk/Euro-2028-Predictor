@@ -23,6 +23,7 @@ import { computeHubStatus } from '../predict/hubStatus'
 import { buildBracketPipeline } from '../bracket/bracketPipeline'
 import { todayISO } from '../../app/time'
 import { resolveHomeCompetitionContext } from './homeCompetitionContext'
+import { loadLeagueStandingsConcurrently } from './loadLeagueStandings'
 
 export type TodayFixture = {
   matchId: string
@@ -227,26 +228,10 @@ export function useHomeData(): HomeState {
       try {
         const leagues = await fetchMyLeagues(tournamentId!)
         hasAnyLeague = leagues.length > 0
-        const standings: LeagueStanding[] = []
-        let memberReadFailed = false
-
-        for (const league of leagues) {
-          try {
-            const page = await fetchLeagueMembersPage(league.id, { limit: 1 })
-            const meInLeague = page.you
-            const topPoints = page.rows[0]?.totalPoints ?? 0
-            standings.push({
-              id: league.id,
-              name: league.name,
-              memberCount: league.memberCount,
-              rank: meInLeague?.rank ?? null,
-              gapToTop: meInLeague ? topPoints - meInLeague.totalPoints : null,
-              lastActivityMs: Date.parse(league.lastActivityAt ?? '') || 0,
-            })
-          } catch {
-            memberReadFailed = true
-          }
-        }
+        const { standings, memberReadFailed } = await loadLeagueStandingsConcurrently(
+          leagues,
+          (leagueId) => fetchLeagueMembersPage(leagueId, { limit: 1 }),
+        )
 
         if (memberReadFailed) unavailable.add('leagues')
         bestLeague = selectBestLeague(standings)
