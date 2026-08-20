@@ -288,3 +288,96 @@ describe('createSeasonMatchPredictorRpcGateway — apply', () => {
     })
   })
 })
+
+describe('createSeasonMatchPredictorRpcGateway — the per-fixture lock (contract 212, ING-005)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('carries the published instant and locked flag through, per fixture', async () => {
+    // The divergence is the whole point: FIXTURE_A is an ordinary fixture on
+    // the matchweek instant, FIXTURE_B has moved and answers for itself.
+    mocks.rpc.mockResolvedValueOnce({
+      data: basePayload({
+        fixtures: [
+          {
+            id: FIXTURE_A,
+            kickoff_at: '2027-01-20T15:00:00Z',
+            status: 'scheduled',
+            home_name: 'Home FC',
+            away_name: 'Away FC',
+            lock_at: '2027-01-20T15:00:00Z',
+            locked: false,
+            result_home: null,
+            result_away: null,
+            prediction: null,
+          },
+          {
+            id: FIXTURE_B,
+            kickoff_at: '2027-02-10T19:45:00Z',
+            status: 'postponed',
+            home_name: 'Third FC',
+            away_name: 'Fourth FC',
+            lock_at: '2027-02-10T19:45:00Z',
+            locked: false,
+            result_home: null,
+            result_away: null,
+            prediction: null,
+          },
+        ],
+      }),
+      error: null,
+    })
+
+    const page = await gateway().load(10)
+
+    expect(page.fixtures[0]?.lockAt).toBe('2027-01-20T15:00:00Z')
+    expect(page.fixtures[0]?.locked).toBe(false)
+    // Not the matchweek instant. This is the field ING-005 said was missing.
+    expect(page.fixtures[1]?.lockAt).toBe('2027-02-10T19:45:00Z')
+    expect(page.fixtures[1]?.locked).toBe(false)
+  })
+
+  it('publishes no instant but an open fixture for a postponement with no known date', async () => {
+    // `season_prediction_lock_at` answers `infinity` here, which has nothing to
+    // print. The card sends a null instant and `locked` false, and the surface
+    // must not turn that absence into a lock.
+    mocks.rpc.mockResolvedValueOnce({
+      data: basePayload({
+        fixtures: [
+          {
+            id: FIXTURE_A,
+            kickoff_at: '2027-01-20T15:00:00Z',
+            status: 'postponed',
+            home_name: 'Home FC',
+            away_name: 'Away FC',
+            lock_at: null,
+            locked: false,
+            result_home: null,
+            result_away: null,
+            prediction: null,
+          },
+        ],
+      }),
+      error: null,
+    })
+
+    const page = await gateway().load(10)
+
+    expect(page.fixtures[0]?.lockAt).toBeNull()
+    expect(page.fixtures[0]?.locked).toBe(false)
+  })
+
+  it('leaves locked undefined when the database has not crossed contract 212', async () => {
+    // The rollout gap, asserted rather than assumed. A database at contract 211
+    // answers without these fields, and `undefined` is what makes the page fall
+    // back to the matchweek lock it drew before — the OLD behaviour, which is
+    // the stricter of the two and therefore the safe thing to fall back to.
+    mocks.rpc.mockResolvedValueOnce({ data: basePayload(), error: null })
+
+    const page = await gateway().load(10)
+
+    expect(page.fixtures[0]?.locked).toBeUndefined()
+    expect(page.fixtures[0]?.lockAt).toBeNull()
+  })
+})

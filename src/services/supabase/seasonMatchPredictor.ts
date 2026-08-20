@@ -58,6 +58,11 @@ type CardPayload = {
     away_short_code?: string | null
     home_club_colours?: string | null
     away_club_colours?: string | null
+    // Contract 212. The per-fixture lock the trigger enforces, published at
+    // last. Optional in this type because a database still at contract 211
+    // answers without them, and the page falls back to the matchweek lock.
+    lock_at?: string | null
+    locked?: boolean
     result_home: number | null
     result_away: number | null
     prediction: { home: number; away: number; version: number } | null
@@ -182,6 +187,13 @@ export function createSeasonMatchPredictorRpcGateway(options: {
               ? { home: fixture.result_home, away: fixture.result_away }
               : null,
           points: null,
+          // Contract 212, closing ING-005. The instant is the DATABASE'S, not a
+          // second derivation: `resolveLockState` below still decides the
+          // matchweek-wide lock from kickoffs, and these two fields decide only
+          // this fixture. Where a fixture has not moved the two agree exactly;
+          // where it has, this is the one the trigger would enforce.
+          lockAt: fixture.lock_at ?? null,
+          locked: fixture.locked,
         })),
         cardStatus: card.card_status,
         lock,

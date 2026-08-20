@@ -213,6 +213,8 @@ same paragraph existed in seven places at once.
 
 > **Contract 211:** does not alter competition structure either. It adds a second polling tier on `provider_poll_targets` so the same deadline coverage costs a third as much. No competition, group, round, fixture or scoring relation is touched, and what a deadline IS remains untouched.
 
+> **Contract 212:** does not alter competition structure. It changes what `get_season_matchweek_card` publishes about a fixture — its own lock instant and whether that has passed — and what a deadline IS remains exactly what contract 119 made it. No competition, group, round, fixture or scoring relation is touched.
+
 > **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
 
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.

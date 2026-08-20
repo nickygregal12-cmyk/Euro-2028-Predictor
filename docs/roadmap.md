@@ -409,6 +409,14 @@ same paragraph existed in seven places at once.
 > Same coverage, 77 calls instead of 252, and a fix nobody has to watch the cost of is a fix that
 > stays switched on.
 
+> Contract 212 fixes the other half of the same complaint, on the surface rather than in the feed.
+> Predictions have been ENFORCED per fixture since contract 119, and published per matchweek ever
+> since — so the Match Predictor told a player their rescheduled or postponed fixture was locked
+> while the database would have taken the write. The card now publishes each fixture's own lock
+> instant and whether it has passed, taken from the enforcement authority itself rather than
+> derived a second time, and the surface draws each fixture against its own. Contract 119 is not
+> reversed: this makes the read honest, it does not make the rule looser.
+
 > Contract 208 pays off the second of Stage 12's carried backend debts. It puts
 > the canonical entrant outcome on the Championship bracket read, so elimination
 > is stated by the settlement authority instead of being absent, and it narrows

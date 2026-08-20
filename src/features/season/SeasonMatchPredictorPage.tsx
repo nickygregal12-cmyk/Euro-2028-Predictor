@@ -7,7 +7,11 @@ import { SeasonClosestMisses } from './SeasonClosestMisses'
 import { SubmissionReceipt } from './SubmissionReceipt'
 import { MAIN_PREDICTOR_REGISTRATION_COPY } from './lmsRegistrationModel'
 import type { SeasonLmsRegistrationGateway } from './lmsRegistrationModel'
-import { commandRefusal, type MatchPredictorGateway } from './matchPredictorModel'
+import {
+  commandRefusal,
+  fixtureEditable,
+  type MatchPredictorGateway,
+} from './matchPredictorModel'
 import { SeasonCompetitionShell, type SeasonShellSection } from './SeasonCompetitionShell'
 import { SeasonGameSubNav } from './SeasonGameSubNav'
 import { SeasonConsensusPanel } from './SeasonConsensusPanel'
@@ -323,16 +327,19 @@ export function SeasonMatchPredictorPage({
           </Alert>
         ) : (
           <div className={styles.fixtures}>
-            {page.fixtures.map((fixture) => (
+            {page.fixtures.map((fixture) => {
+              // Contract 212, closing ING-005. Each fixture is drawn against
+              // ITS OWN published lock rather than the card's. For everything
+              // that has not moved the two are the same instant, which is why
+              // this looks like a no-op on an ordinary matchweek; for a
+              // rescheduled or postponed fixture it is the difference between
+              // offering a player a legal move and telling them they cannot
+              // make it.
+              const editable = fixtureEditable(presentation, fixture)
+              return (
               <ClubMatchCard
                 key={fixture.fixtureId}
-                state={
-                  fixture.result !== null
-                    ? 'scored'
-                    : presentation.editable
-                      ? 'editable'
-                      : 'locked'
-                }
+                state={fixture.result !== null ? 'scored' : editable ? 'editable' : 'locked'}
                 matchweek={page.matchweek.number}
                 // `ClubMatchCard.kickoff` is a LABEL, not an instant. This page
                 // shipped passing `kickoffAt` straight through, so a player on
@@ -348,7 +355,7 @@ export function SeasonMatchPredictorPage({
                 homeScore={fixture.prediction?.home ?? null}
                 awayScore={fixture.prediction?.away ?? null}
                 onHomeScoreChange={
-                  presentation.editable
+                  editable
                     ? (value) =>
                         view.setPrediction(
                           fixture.fixtureId,
@@ -359,7 +366,7 @@ export function SeasonMatchPredictorPage({
                     : undefined
                 }
                 onAwayScoreChange={
-                  presentation.editable
+                  editable
                     ? (value) =>
                         view.setPrediction(
                           fixture.fixtureId,
@@ -373,7 +380,8 @@ export function SeasonMatchPredictorPage({
                 onRetrySave={() => view.retrySave(fixture.fixtureId)}
                 result={fixture.result ?? undefined}
               />
-            ))}
+              )
+            })}
           </div>
         )}
 

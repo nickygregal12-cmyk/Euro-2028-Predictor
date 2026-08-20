@@ -211,3 +211,90 @@ describe('no control on the card is disabled', () => {
     expect(screen.queryByRole('button', { name: 'Card confirmed' })).toBeNull()
   })
 })
+
+describe('the per-fixture lock the card publishes (contract 212, ING-005)', () => {
+  /**
+   * A gateway that publishes what contract 212 publishes: a matchweek whose
+   * deadline has passed, containing one fixture that MOVED and whose own lock
+   * has not.
+   *
+   * This is the shape the fault lived in. Enforcement has been per fixture
+   * since contract 119, so the database would take a prediction on the moved
+   * fixture; the page drew every fixture against the matchweek instant and
+   * showed a padlock on all of them. What is asserted below is that the padlock
+   * is now on the fixtures that are actually locked and the score boxes are on
+   * the one that is not.
+   */
+  function publishedGateway(options: { movedLocked: boolean }) {
+    const club = (name: string, mono: string) => ({
+      name,
+      shortName: name,
+      tokens: { monogram: mono, primary: '#111111' },
+    })
+    return {
+      load: async () => ({
+        competition: { name: 'Premier League', seasonLabel: '2026/27', timeZone: 'Europe/London' },
+        matchweek: { number: 1, of: 38 },
+        cardStatus: 'provisional' as const,
+        lock: {
+          status: 'locked' as const,
+          locked: true,
+          lockAt: '2027-08-14T14:00:00.000Z',
+          reason: 'scope_lock_reached' as const,
+        },
+        joker: { playedHere: false, remainingThisHalf: 5, playable: true },
+        settledPoints: null,
+        fixtures: [
+          {
+            fixtureId: 'ordinary',
+            kickoffAt: '2027-08-14T14:00:00.000Z',
+            home: club('Ordinary Home', 'OH'),
+            away: club('Ordinary Away', 'OA'),
+            prediction: null,
+            result: null,
+            points: null,
+            lockAt: '2027-08-14T14:00:00.000Z',
+            locked: true,
+          },
+          {
+            fixtureId: 'moved',
+            kickoffAt: '2027-09-30T19:45:00.000Z',
+            home: club('Moved Home', 'MH'),
+            away: club('Moved Away', 'MA'),
+            prediction: null,
+            result: null,
+            points: null,
+            lockAt: options.movedLocked ? '2027-08-14T14:00:00.000Z' : '2027-09-30T19:45:00.000Z',
+            locked: options.movedLocked,
+          },
+        ],
+      }),
+      apply: async () => {},
+    }
+  }
+
+  it('offers score boxes on a fixture whose own lock has not passed, on a locked matchweek', async () => {
+    renderPage({ gateway: publishedGateway({ movedLocked: false }) })
+
+    // The moved fixture accepts input...
+    await waitFor(() => {
+      expect(screen.getByLabelText('Moved Home score')).toBeTruthy()
+    })
+    expect(screen.getByLabelText('Moved Away score')).toBeTruthy()
+
+    // ...while the fixture that did not move is still locked, so this is a
+    // per-fixture answer rather than the whole card being reopened.
+    expect(screen.queryByLabelText('Ordinary Home score')).toBeNull()
+    expect(screen.getAllByTitle('Predictions locked').length).toBe(1)
+  })
+
+  it('locks every fixture when the database says every fixture is locked', async () => {
+    renderPage({ gateway: publishedGateway({ movedLocked: true }) })
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle('Predictions locked').length).toBe(2)
+    })
+    expect(screen.queryByLabelText('Moved Home score')).toBeNull()
+    expect(screen.queryByLabelText('Ordinary Home score')).toBeNull()
+  })
+})

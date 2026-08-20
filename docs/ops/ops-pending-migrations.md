@@ -2,11 +2,38 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 211, Production 211, Development 211 (20 August 2026)
+## Current state — repository 212, Production 211, Development 211 (20 August 2026)
 
-**There are no pending hosted migrations: repository, Development and Production are level at Contract 211.**
+**Repository contract 212 is pending on both hosted environments.** Development and Production are level with each other at **211** — which is the resting state a promotion leaves behind, not a permission — and both take contract 212 as the next boundary, Development first and Production second, the order the workflows refuse to invert.
 
-Repository contract **211** is the head of the committed migration chain, and both hosted environments now hold it. Production took contract 210 and contract 211 as a single boundary, Development first and Production second, which is the order the workflows refuse to invert.
+> **Contract 212 repository candidate — the matchweek card publishes the lock it
+> is enforced against (20 August 2026):**
+> `20260820130000_matchweek_card_publishes_the_fixture_lock.sql` closes `ING-005`.
+> It claims **no** Development or Production rollout yet.
+>
+> **What was wrong.** Contract 119 made ENFORCEMENT per fixture;
+> `get_season_matchweek_card` still published only kickoffs, so every client
+> derived ONE matchweek instant from the earliest of them. For an unmoved fixture
+> the two agree exactly — which is why this sat unnoticed — and they diverge only
+> for the fixture that MOVED, which is the only one anyone needed them to be
+> right about. The surface was therefore STRICTER than the rule: nothing illegal
+> was ever possible, but a player with a rescheduled or postponed fixture was
+> told they could not predict it while the trigger would have taken the write.
+>
+> **What it changes:** two published fields per fixture, `lock_at` and `locked`,
+> both derived from `predictor_internal.season_prediction_lock_at` rather than
+> re-implemented, at the buffer the enforcement trigger itself reads through a
+> new `predictor_internal.season_prediction_buffer_minutes`. Both fields, because
+> two of the authority's answers have no printable instant — `-infinity` for a
+> void fixture, `infinity` for a postponement with no announced date. A null
+> derivation publishes `locked` TRUE, so the card fails closed rather than
+> inviting an edit the trigger would refuse. Contract 119 is not reversed and no
+> enforcement line moves.
+>
+> pgTAP suite **258** asserts the RELATIONSHIP — that the card publishes what the
+> trigger would enforce, including for a fixture whose own lock diverges from its
+> matchweek's — rather than a constant, because a suite of ordinary fixtures
+> would have passed against the broken card.
 
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |

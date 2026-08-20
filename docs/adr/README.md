@@ -134,6 +134,8 @@ same paragraph existed in seven places at once.
 
 > **Contract 211:** adds no rule and changes no ADR. It keeps contract 210's coverage and changes what pays for it, moving the long reach onto an hourly deadline watch so the ten-minute live tier is spent only on matches actually being played.
 
+> **Contract 212:** adds no rule and changes no ADR. It makes a READ tell the truth about a rule that already existed: contract 119's per-fixture enforcement is now published on the matchweek card rather than left for a client to approximate from kickoffs. Contract 119 is not reversed, and no decision recorded here moves.
+
 > **Contract 210:** adds no rule and changes no ADR. It upholds the amendment above by making it reachable in time. ADR 0020's ingestion rule is worth nothing if the feed is not read before the deadline it protects, and the live poll window opened fifteen minutes before a kickoff while an ordinary fixture locks at the matchweek's FIRST kickoff. Contract 210 widens that window to the constraint maximum so the deadline falls inside it. The rule is unchanged; only the looking is.
 
 > **Contract 204:** adds no rule and changes no ADR. It extends the existing custody pattern rather than relaxing it — `ai.valid_predictions` is custody for forecasts that still count, `ai.quarantined_predictions` is custody for those that stopped, and `236_quarantined_evidence_reads.sql`'s rule that no admin read touches `ai.predictions` directly is upheld rather than excepted.
