@@ -1,11 +1,16 @@
-import { useCallback, useMemo, useRef, useState } from 'react'
-import { VNextAccount, type AccountIntent } from '../../account/VNextAccount'
+import { useMemo } from 'react'
+import {
+  VNextAccount,
+  type AccountActions,
+  type AccountIntent,
+  type AccountWriteResult,
+} from '../../account/VNextAccount'
 import { VNextConnectedShell } from '../shell/VNextConnectedShell'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
+import { VNextNotice } from '../../states/VNextStates'
 import { buildAccountModel } from './buildAccountModel'
 import { useVNextAccountSource } from './useVNextAccountSource'
 
@@ -32,6 +37,24 @@ import { useVNextAccountSource } from './useVNextAccountSource'
  * read owns the page: preferences failing and history failing are two different
  * panels saying so. The only way this screen shows nothing is being signed out,
  * which is a fact about the caller rather than about their account.
+ *
+ * ============================ AND THE WRITES ARE PERFORMED HERE ==========
+ *
+ * Stage 7's rule: a command goes out through the application's own function.
+ * The page owns the control, the wording, the checks it was given as numbers
+ * and the busy and error presentation; this file calls `updateMyDisplayName`,
+ * `updatePassword`, `updateEmail` and `updateReminderEmails`, and it is where
+ * the DISPLAY-NAME MODERATION POLICY runs — `checkDisplayName` mirrors a
+ * database trigger, and a copy in the presentation lane would be a second list
+ * to keep in step and the one that went stale.
+ *
+ * A REFUSAL IS TRANSLATED ONCE, HERE. `friendlyAuthError` and `userFacingError`
+ * are the application's own vocabulary for what went wrong; the sheet prints
+ * the sentence it is handed and composes none of its own.
+ *
+ * AN ACTION IS ABSENT WHERE IT CANNOT RUN. Every one of these needs a signed-in
+ * user id, so a signed-out caller gets no controls rather than controls that
+ * would throw.
  */
 
 export type VNextAccountScreenProps = {
@@ -51,6 +74,40 @@ export type VNextAccountScreenProps = {
   /** The player's appearance choice, held by the host that persists it. */
   readonly theme?: 'system' | 'dark' | 'light'
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  /**
+   * A ready `mailto:` for the deployment's administrator, or absent where none
+   * is configured. Built by the host, because the subject names the product and
+   * the body carries the player's own address.
+   */
+  readonly supportHref?: string | null
+  /**
+   * Called after a write that changes something the SESSION holds — a display
+   * name the auth provider caches, or an email change the session now has
+   * pending. The screen re-reads its own source either way; this is how the
+   * application's own copy is refreshed too.
+   */
+  readonly onSaved?: (() => void) | undefined
+}
+
+/**
+ * ONE PLACE THAT TURNS A THROWN ERROR INTO A SENTENCE THE SHEET CAN PRINT.
+ *
+ * Four writes with four different failure vocabularies, and the alternative is
+ * four `try`/`catch` blocks that drift. The message comes from the
+ * application's own translator in every case; nothing here composes one.
+ */
+async function run(
+  write: () => Promise<unknown>,
+  message: (error: unknown) => string,
+  afterwards?: (() => void) | undefined,
+): Promise<AccountWriteResult> {
+  try {
+    await write()
+    afterwards?.()
+    return { ok: true }
+  } catch (error) {
+    return { ok: false, message: message(error) }
+  }
 }
 
 export function VNextAccountScreen(props: VNextAccountScreenProps) {
@@ -59,11 +116,67 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
     userId: props.userId,
     authLoading: props.authLoading,
     displayName: props.displayName ?? null,
+    supportHref: props.supportHref ?? null,
   })
-  const settings = useAccountSettingsWrites({
-    userId: props.userId,
-    retry: state.status === 'ready' ? state.retry : null,
-  })
+
+  const { userId, onSaved } = props
+  const actions = useMemo<AccountActions | undefined>(() => {
+    if (userId === null) return undefined
+
+    return {
+      setDisplayName: async (name) => {
+        const [{ checkDisplayName }, { updateMyDisplayName }, { userFacingError }] =
+          await Promise.all([
+            import('../../../features/auth/displayNamePolicy'),
+            import('../../../services/supabase/profile'),
+            import('../../../shared/errors/userFacingError'),
+          ])
+        // THE POLICY RUNS HERE, once. The server trigger is the real gate; this
+        // is the friendly first line, and it lives beside the one copy of the
+        // list rather than beside a second one in the presentation lane.
+        const refusal = checkDisplayName(name)
+        if (refusal) return { ok: false, message: refusal }
+        return run(
+          () => updateMyDisplayName(userId, name),
+          (error) => userFacingError(error, 'We could not change your display name.'),
+          onSaved,
+        )
+      },
+      setPassword: async (password) => {
+        const [{ updatePassword }, { friendlyAuthError }] = await Promise.all([
+          import('../../../services/supabase/auth'),
+          import('../../../features/auth/authErrors'),
+        ])
+        return run(
+          () => updatePassword(password),
+          // `'update'`, which is the vocabulary this authority uses for a
+          // change to an existing credential rather than a sign-in attempt.
+          (error) => friendlyAuthError(error, 'update'),
+        )
+      },
+      setEmail: async (email) => {
+        const [{ updateEmail }, { friendlyAuthError }] = await Promise.all([
+          import('../../../services/supabase/auth'),
+          import('../../../features/auth/authErrors'),
+        ])
+        return run(
+          () => updateEmail(email),
+          (error) => friendlyAuthError(error, 'update'),
+          onSaved,
+        )
+      },
+      setReminderEmails: async (on) => {
+        const [{ updateReminderEmails }, { userFacingError }] = await Promise.all([
+          import('../../../services/supabase/profile'),
+          import('../../../shared/errors/userFacingError'),
+        ])
+        return run(
+          () => updateReminderEmails(userId, on),
+          (error) => userFacingError(error, 'We could not save that preference.'),
+        )
+      },
+    }
+  }, [userId, onSaved])
 
   const model = useMemo(
     () => (state.status === 'ready' ? buildAccountModel(state.source) : null),
@@ -99,33 +212,16 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         body="Your competitions, your seasons and your settings live with your account."
       />
     ) : model === null ? (
-      // TWO PANELS, BECAUSE ACCOUNT IS TWO INDEPENDENT READS. Follows and
-      // season history resolve separately and are drawn separately, so the
-      // placeholder is the pair rather than one undifferentiated list.
-      <VNextLoadingRows
-        destination="none"
-        heading="You"
-        label="Loading your account"
-        shape="panels"
-      />
+      <VNextNotice
+        destination="none" heading="You" title="Loading your account" body="One moment." />
     ) : (
       <VNextAccount
         model={model}
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
         theme={props.theme ?? 'system'}
-        settingsBusy={settings.busy}
-        settingsNotice={settings.notice}
-        onIntent={(intent: AccountIntent) => {
-          // THE TWO SETTINGS WRITES ARE THIS SCREEN'S. Everything else — sign
-          // out, the theme, opening a season — belongs to the host, because
-          // each of those changes something outside this page.
-          if (intent.kind === 'change-email' || intent.kind === 'set-reminder-emails') {
-            settings.perform(intent)
-            return
-          }
-          props.onIntent?.(intent)
-        }}
+        onIntent={props.onIntent}
+        actions={actions}
       />
     )
 
@@ -134,81 +230,4 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
       {body}
     </VNextConnectedShell>
   )
-}
-
-/* ==========================================================================
-   THE TWO SETTINGS WRITES
-   ==========================================================================
-
-   THEY REUSE THE EXISTING AUTHORITIES AND ADD NOTHING. `updateEmail` is the
-   auth module's own call and `updateReminderEmails` is the profile module's;
-   neither validates here, because neither rule is this lane's. There is no
-   second settings authority — the same two functions the legacy `/account`
-   page calls.
-
-   AN EMAIL CHANGE IS NOT A STATE CHANGE AND IS NOT RE-READ. Supabase sends a
-   confirmation to the NEW address and applies nothing until it is clicked, so
-   the honest answer is a sentence rather than a redraw: the page keeps showing
-   the current address, and the session's `pendingEmail` is what will report the
-   replacement once there is one.
-
-   A PREFERENCE CHANGE IS RE-READ, because it IS a state change and the surface
-   must show the server's answer rather than the press. A failed toggle leaves
-   the control where the server actually has it.
-
-   ONE WRITE AT A TIME, guarded on a ref: a state read inside the callback would
-   be the value from the render that created it.
-   ========================================================================== */
-
-type SettingsWrite = Extract<
-  AccountIntent,
-  { kind: 'change-email' } | { kind: 'set-reminder-emails' }
->
-
-function useAccountSettingsWrites(options: {
-  readonly userId: string | null
-  readonly retry: (() => void) | null
-}) {
-  const [busy, setBusy] = useState<'email' | 'reminders' | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
-  const inFlight = useRef(false)
-  const { userId, retry } = options
-
-  const perform = useCallback(
-    (intent: SettingsWrite) => {
-      if (inFlight.current || userId === null) return
-      inFlight.current = true
-      setNotice(null)
-      setBusy(intent.kind === 'change-email' ? 'email' : 'reminders')
-
-      void (async () => {
-        try {
-          if (intent.kind === 'change-email') {
-            const { updateEmail } = await import('../../../services/supabase/auth')
-            await updateEmail(intent.email)
-            // NOT "CHANGED". Nothing has changed yet, and saying otherwise is
-            // the one sentence this write must not produce.
-            setNotice(
-              `We have sent a confirmation to ${intent.email}. Your address changes when you click the link in it.`,
-            )
-          } else {
-            const { updateReminderEmails } = await import('../../../services/supabase/profile')
-            await updateReminderEmails(userId, intent.enabled)
-            // THE SERVER'S ANSWER, RE-READ. The checkbox is drawn from the
-            // profile read, so this is what moves it.
-            retry?.()
-          }
-        } catch (error) {
-          const { userFacingError } = await import('../../../shared/errors/userFacingError')
-          setNotice(userFacingError(error))
-        } finally {
-          inFlight.current = false
-          setBusy(null)
-        }
-      })()
-    },
-    [retry, userId],
-  )
-
-  return { busy, notice, perform }
 }

@@ -146,13 +146,46 @@
 /* ---- regular ---------------------------------------------------------------- */
 
 @container vnext-page (min-width: 700px) {
-  /* TWO PANELS SIDE BY SIDE once there is room for both to stay readable.
-     Follows is the shorter list, so it takes the narrower column. */
+  /* A DESKTOP COMPOSITION, NOT A PHONE STACK WIDENED.
+     Two columns with two subjects: the LEFT is the person — their details,
+     what other players can see, and the way out — and the RIGHT is their
+     football. A five-panel column stretched to 1440 puts a sign-out button
+     three screens below the fold; side by side, everything a visit is for is
+     on the first screen.
+
+     PHONE ORDER IS THE DOM ORDER and stays that way, because the areas are
+     assigned rather than the markup being reordered: details, follows, seasons,
+     privacy, sign out. */
   .body {
     display: grid;
     grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+    grid-template-areas:
+      'settings follows'
+      'privacy history'
+      'session history';
     gap: var(--vnext-space-5);
     align-items: start;
+    align-content: start;
+  }
+
+  .body > [data-vnext-zone='settings'] {
+    grid-area: settings;
+  }
+
+  .body > [data-vnext-zone='follows'] {
+    grid-area: follows;
+  }
+
+  .body > [data-vnext-zone='history'] {
+    grid-area: history;
+  }
+
+  .body > [data-vnext-zone='privacy'] {
+    grid-area: privacy;
+  }
+
+  .body > [data-vnext-zone='session'] {
+    grid-area: session;
   }
 }
 
@@ -175,6 +208,264 @@
 }
 
 .signOut:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- your details: rows, a switch, a sheet ---------------------------------- */
+
+/* A ROW STATES WHAT IT HOLDS. That is most of what a player came to check, and
+   it is why this is a list of facts rather than a column of empty inputs. */
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.row:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* NOTHING IS CLIPPED. A long address wraps and the row grows, which is the
+     same rule the follow rows above follow for a competition's name. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowLabel {
+  color: var(--vnext-text-secondary);
+}
+
+.rowValue {
+  color: var(--vnext-text);
+}
+
+.note {
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.error {
+  margin: 0;
+  color: var(--vnext-miss);
+}
+
+/* A PREFERENCE IS A SWITCH. One tap, saved immediately, and it moves back if
+   the write refuses — its position is a claim about a stored fact. */
+
+.switchRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3) var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+  color: var(--vnext-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.switch:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+.switchTrack {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 26px;
+  padding: 3px;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-sunken);
+  border: 1px solid var(--vnext-hairline-strong);
+  /* MOTION IS A POSITION CHANGE AND NOTHING ELSE, and it is removed entirely
+     under reduced motion — a control that must be trusted should not travel. */
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.switch[aria-checked='true'] .switchTrack {
+  background-color: var(--vnext-accent);
+  border-color: var(--vnext-accent);
+}
+
+.switchThumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: var(--vnext-surface-raised);
+  transition: transform var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.switch[aria-checked='true'] .switchThumb {
+  transform: translateX(18px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switchTrack,
+  .switchThumb {
+    transition: none;
+  }
+}
+
+.switchText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+/* THE SHEET. `ShellOverlay` owns the scrim, the panel, the dialog semantics and
+   whether it is a bottom sheet or a centred panel; this is only its contents. */
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.input {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text);
+  font: inherit;
+  /* 16px or larger, because iOS Safari zooms the page on focus below it and a
+     zoomed sheet is a sheet the player has to pinch back out of. */
+  font-size: var(--vnext-size-body);
+}
+
+.input:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 1px;
+}
+
+.sheetActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  justify-content: flex-end;
+}
+
+.primary,
+.secondary {
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-5);
+  border-radius: var(--vnext-radius-pill);
+  font: inherit;
+  cursor: pointer;
+}
+
+.primary {
+  border: 1px solid var(--vnext-accent);
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+/* A DISABLED PRIMARY MUST NOT STILL LOOK LIKE THE ACCENT. Dimming a filled
+   accent button leaves a large coloured target that still reads as "press me",
+   and the player presses it and nothing happens. Unavailable is drawn as a
+   different KIND of control — no fill, a hairline, muted text — so the
+   difference is legible before the press rather than after it. */
+.primary:disabled {
+  cursor: not-allowed;
+  border-color: var(--vnext-hairline);
+  background-color: transparent;
+  color: var(--vnext-text-muted);
+}
+
+.secondary {
+  border: 1px solid var(--vnext-hairline-strong);
+  background-color: transparent;
+  color: var(--vnext-text);
+}
+
+.primary:focus-visible,
+.secondary:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* ---- privacy and help -------------------------------------------------------- */
+
+.privacy {
+  margin: 0;
+  padding-inline-start: var(--vnext-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  color: var(--vnext-text-secondary);
+  /* A READABLE MEASURE. Three facts across a 1920px workspace would be three
+     single lines a reader's eye has to travel the whole page for. */
+  max-width: 62ch;
+}
+
+.support {
+  align-self: flex-start;
+  min-height: var(--vnext-tap-target);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--vnext-space-5);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  color: var(--vnext-text);
+  text-decoration: none;
+}
+
+.support:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.support:focus-visible {
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
 }
@@ -217,90 +508,4 @@
 .themeOption:focus-within {
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
-}
-
-/* ---- settings -----------------------------------------------------------
- * The two `/account` had and this page deferred. They sit in the same panel
- * shell as Follows and History, because after the cutover they are the same
- * page's business rather than a bolted-on block.
- */
-
-.panelBody {
-  margin: 0;
-  color: var(--vnext-text-secondary);
-}
-
-.setting {
-  display: flex;
-  flex-direction: column;
-  gap: var(--vnext-space-2);
-  padding-block-start: var(--vnext-space-3);
-}
-
-.setting + .setting {
-  margin-block-start: var(--vnext-space-3);
-  border-block-start: 1px solid var(--vnext-hairline);
-}
-
-.settingLabel {
-  margin: 0;
-  color: var(--vnext-text);
-  overflow-wrap: anywhere;
-}
-
-.settingNote {
-  margin: 0;
-  color: var(--vnext-text-secondary);
-  overflow-wrap: anywhere;
-}
-
-/* WRAPS. A 44px field and a 44px button do not share one line at 320px, and
-   the field is the half that must keep its width. */
-.settingForm {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--vnext-space-2);
-}
-
-.settingInput {
-  flex: 1 1 14rem;
-  min-height: var(--vnext-tap-target);
-  padding-inline: var(--vnext-space-3);
-  border: 1px solid var(--vnext-hairline-strong);
-  border-radius: var(--vnext-radius-md);
-  background-color: var(--vnext-surface-sunken);
-  color: var(--vnext-text);
-  font: inherit;
-}
-
-.settingInput:focus-visible {
-  outline: 2px solid var(--vnext-focus);
-  outline-offset: 2px;
-}
-
-.settingAction {
-  min-height: var(--vnext-tap-target);
-  padding-inline: var(--vnext-space-4);
-  border: 1px solid var(--vnext-hairline-strong);
-  border-radius: var(--vnext-radius-pill);
-  background-color: var(--vnext-surface-interactive);
-  color: var(--vnext-text);
-  font: inherit;
-  cursor: pointer;
-}
-
-.settingAction:disabled {
-  cursor: default;
-  opacity: 0.6;
-}
-
-/* The whole row is the target, so the 44px minimum is the label's rather than
-   the checkbox's — a 16px box on a phone is the control nobody can hit. */
-.settingToggle {
-  display: flex;
-  align-items: center;
-  gap: var(--vnext-space-3);
-  min-height: var(--vnext-tap-target);
-  cursor: pointer;
 }

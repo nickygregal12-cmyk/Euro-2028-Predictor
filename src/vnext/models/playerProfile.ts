@@ -88,6 +88,27 @@
  * cross-competition identity. Nothing here defines a permission, a rank, a
  * points total or a reveal boundary — every one of those is a server answer
  * this file carries.
+ *
+ * ============================ AND A PIN IS NOT A FOLLOW ===================
+ *
+ * `PinPanel` exists over an authority that has been in production since
+ * contract 157: `pinned_rivals`, written by `set_pinned_rival` and read back on
+ * `get_my_preferences`. It is deliberately NOT a follow graph, and the server
+ * is what makes that true rather than this file's restraint:
+ *
+ *   • it is SEASON-SCOPED — `(user_id, tournament_id, rival_user_id)` — so
+ *     pinning somebody here says nothing about them anywhere else;
+ *   • `set_pinned_rival` REFUSES anyone the caller cannot already see. It
+ *     requires `season_player_reach = 'profile'`, which is a shared private
+ *     league, and its own comment says why: "a pin that worked on any
+ *     same-season entrant would be user discovery by another name";
+ *   • it is a NOTE TO SELF. Nothing tells the person they were pinned, no count
+ *     is published anywhere, and there is no reciprocal state;
+ *   • it grants NOTHING. Prediction DNA, the profile read and the comparison
+ *     all keep the permissions they had; a pin cannot widen one.
+ *
+ * So the control belongs exactly where the profile read already succeeded,
+ * because that read succeeding IS the boundary the write enforces.
  */
 
 /* ==========================================================================
@@ -361,6 +382,31 @@ export type RivalryPanel =
   | { readonly kind: 'unavailable' }
 
 /* ==========================================================================
+   PINNING A RIVAL — the one thing this page lets a reader DO
+   ========================================================================== */
+
+/**
+ * WHETHER THIS PLAYER CAN BE PINNED, AND WHETHER THEY ARE.
+ *
+ * `unavailable` IS NOT `not-pinned`. The preference read is what knows the
+ * current state, and a control drawn "off" from a failed read would report a
+ * choice the player never made and would then TOGGLE THE WRONG WAY when they
+ * pressed it.
+ *
+ * `not-offered` covers the three cases the server would refuse or the page
+ * cannot address: the reader looking at themselves (`set_pinned_rival` raises
+ * `23514`), a profile the reader may not open, and a host that supplied no
+ * write. One case rather than three, because the page's answer is the same in
+ * all of them — no control — and inventing three sentences for an absent
+ * control would be explaining something that is not there.
+ */
+export type PinPanel =
+  | { readonly kind: 'pinned' }
+  | { readonly kind: 'not-pinned' }
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'not-offered' }
+
+/* ==========================================================================
    THE PAGE
    ========================================================================== */
 
@@ -372,6 +418,8 @@ export type PlayerProfileModel = {
   readonly profile: PlayerProfilePanel
   readonly rankHistory: RankHistoryPanel
   readonly rivalry: RivalryPanel
+  /** Contract 157's `pinned_rivals`, for this season and this player. */
+  readonly pin: PinPanel
 }
 
 /* ==========================================================================

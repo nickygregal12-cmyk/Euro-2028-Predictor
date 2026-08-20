@@ -372,6 +372,69 @@ rather than one error screen standing in for three different failures.
 
 ---
 
+## 8.5 PINNING A RIVAL — Stage 14, over an authority that already existed
+
+The vNext programme carried "player following" as an intended experience that
+fell between stage scopes. Audited against the schema rather than designed from
+the phrase, and the finding is that **half of it already had a backend and half
+of it still has none.**
+
+### What exists, and what makes it safe
+
+`pinned_rivals` has been in production since contract 157, written by
+`public.set_pinned_rival(tournament_id, rival_user_id, pinned)` and read back on
+`get_my_preferences`. It is not a follow graph, and the SERVER is what makes
+that true rather than any restraint in this lane:
+
+| property | how the server holds it |
+| --- | --- |
+| season-scoped | keyed `(user_id, tournament_id, rival_user_id)` — pinning here says nothing about that person anywhere else |
+| bounded to people the caller can already see | `set_pinned_rival` requires `season_player_reach = 'profile'` — a shared private league — and its own comment says why: *"a pin that worked on any same-season entrant would be user discovery by another name"* |
+| a note to self | the pinned player is told nothing, no count is published, and there is no reciprocal state |
+| grants nothing | Prediction DNA, the profile read and the comparison all keep the permissions they had |
+| refuses self | `23514`, in terms |
+
+### The control, and where it may appear
+
+**`PinPanel` is decided by the PROFILE READ.** Contract 151's profile read and
+`set_pinned_rival` require the same shared private league, so a control drawn
+where `profile.kind === 'profile'` is a control the write will accept, and this
+lane evaluates no boundary of its own. A `compare`-reach reader — who may plot
+this player and compare with them under contract 192 — gets no pin, because the
+narrower of the two boundaries governs the control.
+
+`unavailable` is a fourth state and not a synonym for `not-pinned`: the
+preference read is what knows the current position, and a button drawn off from
+a failed read reports a choice the player never made and then **toggles the
+wrong way** the first time it is pressed. So it draws no control at all and says
+why. The pressed state moves back if the write refuses, for the same reason.
+
+### The half that is still a gap — `PROF-002`
+
+> **"People you follow"** — a list, on `You` or in a people context, of the
+> players a reader has pinned.
+
+**Not built, and not fakeable.** `get_my_preferences` returns `pinned_rivals` as
+`(tournament_id, rival_user_id)` pairs and NOTHING ELSE: no display name, no
+season-scoped ref, no standing. A list surface would therefore either render
+uuids, or issue one profile read per pinned rival per competition — the N+1
+Stage 9 forbids by type — or fabricate names, which is the failure contract 191
+exists to remove.
+
+**It is recorded as a backend gap rather than removed from the programme.** The
+smallest safe contract that would close it:
+
+> a read returning the caller's own pinned rivals for one season, each with the
+> display name and the season-scoped `playerRef` contract 191 already issues, on
+> the same `season_player_reach = 'profile'` boundary the WRITE already
+> enforces — so it discloses nothing the reader cannot already open, and adds no
+> directory, no search and no cross-competition identity.
+
+Nothing in this lane persists a pin locally, and no surface lists pinned rivals
+by name today.
+
+---
+
 ## 9. WHAT IS NOT HERE, AND WHY
 
 - **No player search and no directory.** Stage 10 does not own one, and this

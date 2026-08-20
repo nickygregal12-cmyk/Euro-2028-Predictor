@@ -329,6 +329,20 @@ test.describe('the page says only what the read stated', () => {
     expect(reading.pageText).toContain('Bo Nilsson')
     expect(reading.pageText).toMatch(/eliminated/i)
   })
+
+  test('states elimination where nothing on the page looks like a defeat', async ({
+    page,
+  }) => {
+    // THE WORLD CONTRACT 208 EXISTS FOR, and the sharpest of the three. Group
+    // phase, no knockout, no settled tie and no seed — the reader is TOP of
+    // their group — and they are told they are out. Every inference the surface
+    // could have made returns "still in" here, so the sentence can only have
+    // come from the settlement authority's column.
+    await open(page, 'frame-eliminated-in-groups-phone')
+    const reading = await read(page)
+    expect(reading.pageText).toMatch(/You have been eliminated/i)
+    expect(reading.pageText).not.toMatch(/Your tie/i)
+  })
 })
 
 test.describe('the reader can find themselves in a draw of sixteen', () => {

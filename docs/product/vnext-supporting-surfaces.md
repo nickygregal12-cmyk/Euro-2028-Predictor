@@ -291,15 +291,50 @@ From the contract, and from the two debts carried out of Stage 12:
 
 ### 6.1 Two things this stage deliberately left, named rather than implied
 
-**The rest of `/account`'s settings.** The matrix defines the row as "settings,
-follow/unfollow, favourite team". Follow and favourite are answered elsewhere by
-design — Discovery owns the follow control, because it holds the read that knows
-the current state, and the favourite is competition-scoped. Of the settings
-proper, **sign out is built** and changing an email address and the
-reminder-emails toggle are **not**. The split is a cutover judgement rather than
-a preference: a player can go a season without either of the latter two, and a
-cutover that shipped no way to sign out would strand every shared device. The
-page heads no "Settings" section it cannot fill, and a test asserts it does not.
+**The rest of `/account`'s settings. BUILT IN STAGE 14 — see below.** The matrix
+defines the row as "settings, follow/unfollow, favourite team". Follow and
+favourite are answered elsewhere by design — Discovery owns the follow control,
+because it holds the read that knows the current state, and the favourite is
+competition-scoped. Of the settings proper, **sign out was built** and changing
+an email address and the reminder-emails toggle were **not**. The split was a
+cutover judgement rather than a preference: a player can go a season without
+either of the latter two, and a cutover that shipped no way to sign out would
+strand every shared device. The page headed no "Settings" section it could not
+fill, and a test asserted it did not.
+
+### Stage 14 filled it, and the rule about not heading an empty section stands
+
+A cutover cannot leave a player unable to change their own name, password or
+email address, or unable to reach an administrator. So `You` now carries all of
+it — **as a capability list rather than as the legacy layout**:
+
+| capability | where it went | authority |
+| --- | --- | --- |
+| display name | a ROW under "Your details" stating the current name, opening a sheet | `updateMyDisplayName` + `checkDisplayName`, run in the screen |
+| password | the same, one sheet of its own | `updatePassword` |
+| email address | the same, and the row names BOTH addresses while one is pending | `updateEmail` + `getSessionEmailState` |
+| reminder emails | a SWITCH that saves on one press and moves back if the write refuses | `fetchMyAccount` + `updateReminderEmails` |
+| privacy / what others can see | a short block at the bottom of `You`, where the question is asked | contract 151's reveal boundary, stated as three facts |
+| contact admin | a real link where `VITE_SUPPORT_EMAIL` is configured, a stated absence where it is not | `buildAdminSupportHref` |
+| sign out | unchanged | the auth provider, via the host |
+
+**What was deliberately NOT copied.** The legacy page opens four forms at once
+down one column. Here a row STATES what it holds — which is most of what a visit
+is for — and opens a sheet only when a player wants to change it; one sheet does
+one job, because three fields behind one backdrop is the legacy page with a
+scrim in front of it; and the preference is a switch, because a one-tap choice
+behind a form and a Save button is a one-tap choice made into a task.
+
+**The empty-section rule is kept, not dropped.** A host that supplies no writes
+gets no "Your details" section at all, and the settings panel has its own
+`unavailable` case separate from follows and history — where the profile read
+fails the switch is NOT drawn off, because `false` would be a stored decision
+shown to a player who never made it.
+
+**Desktop is a composition, not the phone stack widened.** At and above 700px
+the page is two columns with two subjects — the person on the left (details,
+privacy, the way out) and their football on the right (follows, seasons) — with
+the areas assigned in CSS so the phone keeps its own reading order.
 
 **The action/attention centre. BUILT IN STAGE 14 — see the note at the end of
 this sub-section.** `buildShellModel` set `attention: []` for every connected

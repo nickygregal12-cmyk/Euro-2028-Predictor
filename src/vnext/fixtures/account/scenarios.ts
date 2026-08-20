@@ -34,14 +34,6 @@ function world(overrides: Partial<AccountPageModel> = {}): AccountPageModel {
   return {
     generatedAt: ACCOUNT_NOW,
     context: { displayName: 'Ada Lovelace' },
-    // THE DEFAULT WORLD HAS THEM, because the ordinary Account page does. The
-    // worlds that do not are named for what they are missing.
-    settings: {
-      kind: 'ready',
-      email: 'ada@example.com',
-      pendingEmail: null,
-      reminderEmails: true,
-    },
     follows: {
       kind: 'follows',
       competitions: [
@@ -58,6 +50,15 @@ function world(overrides: Partial<AccountPageModel> = {}): AccountPageModel {
       ],
     },
     history: { kind: 'seasons', seasons: [season()], total: 1, hasMore: false },
+    settings: {
+      kind: 'ready',
+      email: { kind: 'known', address: 'ada@example.test', pending: null },
+      reminderEmails: true,
+      // The real numbers: `DISPLAY_NAME_MAX` and `PASSWORD_MIN`. A world that
+      // invented friendlier ones would review a sheet nobody will see.
+      rules: { displayNameMaxLength: 40, passwordMinLength: 6 },
+    },
+    support: { kind: 'available', href: 'mailto:help@example.test?subject=Support' },
     ...overrides,
   }
 }
@@ -73,6 +74,69 @@ const ordinary = world()
 const newAccount = world({
   follows: { kind: 'empty' },
   history: { kind: 'empty' },
+})
+
+/**
+ * AN EMAIL CHANGE AWAITING CONFIRMATION. Both addresses are real during this
+ * window: showing only the old one says the change did not happen and showing
+ * only the new one says it has.
+ */
+const emailPending = world({
+  settings: {
+    kind: 'ready',
+    email: {
+      kind: 'known',
+      address: 'ada@example.test',
+      pending: 'ada.lovelace@example.test',
+    },
+    reminderEmails: true,
+    rules: { displayNameMaxLength: 40, passwordMinLength: 6 },
+  },
+})
+
+/** Reminder emails OFF. The switch's other position, which is a stored choice. */
+const remindersOff = world({
+  settings: {
+    kind: 'ready',
+    email: { kind: 'known', address: 'ada@example.test', pending: null },
+    reminderEmails: false,
+    rules: { displayNameMaxLength: 40, passwordMinLength: 6 },
+  },
+})
+
+/**
+ * THE PROFILE READ DID NOT ANSWER, AND THE OTHER TWO DID.
+ *
+ * The whole reason each panel carries its own outcome. Follows and history are
+ * drawn; the settings rows are not, and the switch is NOT drawn off — a stored
+ * choice shown in a position the player never put it in is worse than no
+ * control at all.
+ */
+const settingsUnavailable = world({
+  settings: { kind: 'unavailable' },
+})
+
+/**
+ * NO ADMINISTRATOR CONFIGURED. Stated, not hidden: a player who cannot find a
+ * way to ask for help should be told there is not one here rather than left
+ * hunting for a link that was silently removed.
+ */
+const noSupportAddress = world({
+  support: { kind: 'unconfigured' },
+})
+
+/**
+ * THE SESSION KNOWS NO ADDRESS. Different again from the panel failing — the
+ * profile answered and the session did not, so the reminder switch and the
+ * name row are real and the email row cannot state what it holds.
+ */
+const emailUnknown = world({
+  settings: {
+    kind: 'ready',
+    email: { kind: 'unknown' },
+    reminderEmails: true,
+    rules: { displayNameMaxLength: 40, passwordMinLength: 6 },
+  },
 })
 
 /**
@@ -295,42 +359,6 @@ const manyFollows = world({
    THE REGISTRY
    ========================================================================== */
 
-/* ==========================================================================
-   THE SETTINGS THE CUTOVER MADE THIS PAGE RESPONSIBLE FOR
-   ========================================================================== */
-
-/**
- * A CHANGE ASKED FOR AND NOT YET CONFIRMED — the state a player is most likely
- * to be in and least likely to be shown. Supabase applies nothing until the
- * link in the new address is clicked, so a page showing only the old address
- * looks as though the change failed.
- */
-const pendingEmail = world({
-  settings: {
-    kind: 'ready',
-    email: 'ada@example.com',
-    pendingEmail: 'ada@newdomain.example',
-    reminderEmails: true,
-  },
-})
-
-/** Reminders off. The preference is the server's answer, not a default. */
-const remindersOff = world({
-  settings: {
-    kind: 'ready',
-    email: 'ada@example.com',
-    pendingEmail: null,
-    reminderEmails: false,
-  },
-})
-
-/**
- * THE SETTINGS READ FAILED AND THE REST OF THE PAGE DID NOT. Follows and
- * history above are intact, which is the degradation model every panel here
- * follows.
- */
-const settingsUnavailable = world({ settings: { kind: 'unavailable' } })
-
 export const accountScenarios = {
   ordinary,
   newAccount,
@@ -347,10 +375,12 @@ export const accountScenarios = {
   historyUnavailable,
   bothUnavailable,
   noDisplayName,
-  pendingEmail,
+  manyFollows,
+  emailPending,
   remindersOff,
   settingsUnavailable,
-  manyFollows,
+  noSupportAddress,
+  emailUnknown,
 } as const
 
 export type AccountScenarioName = keyof typeof accountScenarios
@@ -359,6 +389,16 @@ export const accountScenarioNames = Object.keys(accountScenarios) as AccountScen
 
 export const accountScenarioPremises: Readonly<Record<AccountScenarioName, string>> = {
   ordinary: 'The ordinary visit. One competition followed and one season in progress.',
+  emailPending:
+    'An email change awaiting confirmation. BOTH addresses are real during that window, so the row states the one in use and the one being moved to \u2014 showing either alone tells the player something untrue about their own change.',
+  remindersOff:
+    'The reminder switch in its other position. A stored choice, drawn where the player put it.',
+  settingsUnavailable:
+    'The profile read did not answer and the other two did. The settings rows are absent \u2014 and the switch is NOT drawn off, because a stored choice shown in a position nobody chose is worse than no control.',
+  noSupportAddress:
+    'No administrator address configured for this deployment. Stated rather than hidden: a player who cannot find a way to ask for help should be told there is not one here.',
+  emailUnknown:
+    'The profile answered and the session did not. The name row and the switch are real; the email row cannot state what it holds and says so instead of showing a blank.',
   newAccount:
     'A brand-new account. Both panels are EMPTY, and empty is an answer — "you follow nothing" and "we could not find out" send a player to different screens.',
   unnameableFollow:
@@ -383,10 +423,4 @@ export const accountScenarioPremises: Readonly<Record<AccountScenarioName, strin
   bothUnavailable: 'Both reads failed. The page is still a page and still says who you are.',
   noDisplayName: 'No display name. The header must not invent one.',
   manyFollows: 'Several follows and a very long competition name. The width test.',
-  pendingEmail:
-    'An address change asked for and not yet confirmed. The current address still stands, and the page says which is which.',
-  remindersOff:
-    'Deadline reminders off. The server\u2019s answer, drawn as the server holds it rather than as a default.',
-  settingsUnavailable:
-    'The settings read failed and follows and history did not. One panel degrades, the page does not.',
 }

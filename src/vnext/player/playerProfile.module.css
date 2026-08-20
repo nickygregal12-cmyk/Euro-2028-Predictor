@@ -431,3 +431,54 @@
     grid-column: 1 / -1;
   }
 }
+
+/* ---- pinning a rival --------------------------------------------------------- */
+
+/* A NOTE TO SELF, DRAWN AS ONE. It sits above the panels rather than inside
+   any of them, because it is about the person rather than about one of the
+   three reads — and it is a quiet outline rather than a filled accent, because
+   marking a rival is not the reason anybody opened this page. */
+
+.pinRow {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-2);
+}
+
+.pin {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-height: var(--vnext-tap-target);
+  padding: 0 var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.pin:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.pin:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+/* THE PRESSED STATE IS NOT COLOUR ALONE. The label already changes to "Pinned
+   as a rival" and `aria-pressed` carries it to a screen reader; the fill is the
+   third signal rather than the only one. */
+.pin[aria-pressed='true'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+  color: var(--vnext-text);
+}
+
+.pinError {
+  margin: 0;
+  color: var(--vnext-miss);
+}

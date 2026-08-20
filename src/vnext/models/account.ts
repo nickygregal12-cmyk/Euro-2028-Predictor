@@ -32,6 +32,41 @@
  * SEASON-scoped player surface. This is the PLATFORM-scoped one, deliberately
  * outside the tournament boundary, and neither may grow a copy of the other.
  * Nothing here is addressed by a competition or a season.
+ *
+ * ============================ AND IT IS NOT A SETTINGS PAGE ==============
+ *
+ * Stage 13 shipped follows, season history and sign out, and named the rest of
+ * `/account`'s settings as deliberately left. A cutover cannot leave them: a
+ * player must still be able to change their display name, their password and
+ * their email address, control the reminder-email preference, read what other
+ * players can see, and reach an administrator.
+ *
+ * **THAT IS A CAPABILITY LIST, NOT A LAYOUT.** The legacy page answers it with
+ * four stacked forms and two cards down one column, and reproducing that here
+ * would be the vNext lane becoming a reskin of the thing it exists to replace.
+ * The placement instead follows this lane's own rules:
+ *
+ *   • the page stays an OVERVIEW — who you are, what you follow, your seasons;
+ *   • the changeable things are a short list of ROWS, not four open forms.
+ *     A row states what it holds now, which is most of what a player came to
+ *     check, and opens a sheet only when they want to change it;
+ *   • ONE SHEET, ONE JOB. Pressing "Email address" opens a sheet about the
+ *     email address. Three fields in one sheet is the legacy page with a
+ *     backdrop behind it;
+ *   • a PREFERENCE IS A SWITCH AND NOT A FORM. Reminder emails toggles in
+ *     place, because a one-tap choice that needs a sheet and a Save button is a
+ *     one-tap choice made into a task;
+ *   • privacy and support sit at the BOTTOM of You, where "who can see my
+ *     predictions?" is actually asked, rather than in a directory somewhere.
+ *
+ * ============================ NOTHING IS OFFERED THAT CANNOT BE DONE =====
+ *
+ * The same rule as every other surface in this lane. Each editable row exists
+ * only where the read behind it landed; the whole settings panel has its own
+ * `unavailable` case, separate from follows and from history, because it is its
+ * own read. Contact admin renders as a real link where the deployment
+ * configured an address and as a stated absence where it did not — never as a
+ * button that does nothing.
  */
 
 /* ==========================================================================
@@ -160,6 +195,83 @@ export type HistoryPanel =
     }
 
 /* ==========================================================================
+   SETTINGS — the platform identity a player can change
+   ========================================================================== */
+
+/**
+ * THE PLAYER'S EMAIL ADDRESS, AND THE ONE THEY ARE MOVING TO.
+ *
+ * A change of address is not immediate: the auth authority holds the new one as
+ * PENDING until it is confirmed from the inbox, and both addresses are real
+ * during that window. A surface showing only one of them either tells the
+ * player their change did not happen or tells them it has when it has not.
+ *
+ * `unknown` is the session read not landing. It is not an empty address.
+ */
+/* Not exported: `AccountSettingsPanel` carries it and nothing outside this file
+ * names it. An export nothing imports is a widened surface for free — the same
+ * reason `AccountContext` is not one. */
+type AccountEmail =
+  | {
+      readonly kind: 'known'
+      readonly address: string
+      /** The address awaiting confirmation, where one is. Never the current one. */
+      readonly pending: string | null
+    }
+  | { readonly kind: 'unknown' }
+
+/**
+ * THE CONSTRAINTS THE PAGE MAY STATE BEFORE THE SERVER REFUSES.
+ *
+ * Only the ones that are NUMBERS. The display-name moderation policy is a list
+ * of banned names mirrored by a database trigger, and it lives in one place on
+ * purpose — a copy here would be a second list to keep in step, and it would be
+ * the one that went stale. So the page states the length and the minimum, and
+ * every other refusal arrives as the write's own message.
+ *
+ * They arrive as data rather than as an import because this file is the
+ * presentation model and the policy lives in `src/features/`, which no
+ * presentation module may reach.
+ */
+export type AccountRules = {
+  readonly displayNameMaxLength: number
+  readonly passwordMinLength: number
+}
+
+/**
+ * WHAT A PLAYER MAY CHANGE ABOUT THEMSELVES.
+ *
+ * ITS OWN READ AND THEREFORE ITS OWN OUTCOME. Follows, history and this are
+ * three reads that do not succeed or fail together, and a page with one
+ * "loaded" would blank two panels because a third did not answer.
+ *
+ * `reminderEmails` IS THE STORED PREFERENCE AND NOT A DEFAULT. There is no
+ * `false` here standing in for "we did not ask" — the whole panel is
+ * `unavailable` in that case, so a switch is never drawn in a position the
+ * player did not put it in.
+ */
+export type AccountSettingsPanel =
+  | {
+      readonly kind: 'ready'
+      readonly email: AccountEmail
+      readonly reminderEmails: boolean
+      readonly rules: AccountRules
+    }
+  | { readonly kind: 'unavailable' }
+
+/**
+ * HOW TO REACH AN ADMINISTRATOR, WHERE THE DEPLOYMENT CONFIGURED ONE.
+ *
+ * `unconfigured` is a real state and is stated rather than hidden: a player who
+ * cannot find a way to ask for help should be told there isn't one here, not
+ * left hunting. It is never a control that does nothing — the same rule
+ * `PlayerReach` records for a name with no address.
+ */
+export type AccountSupport =
+  | { readonly kind: 'available'; readonly href: string }
+  | { readonly kind: 'unconfigured' }
+
+/* ==========================================================================
    THE PAGE
    ========================================================================== */
 
@@ -170,43 +282,6 @@ type AccountContext = {
   readonly displayName: string | null
 }
 
-/**
- * THE TWO SETTINGS `/account` ALREADY HAD AND vNEXT DEFERRED.
- *
- * The route matrix defines `/account` as "settings, follow/unfollow, favourite
- * team". Stage 13 built the surface and deliberately left two of the settings
- * proper for their own stage — an email-address change and the reminder-emails
- * preference — on the reasoning that a player can live a season without either.
- *
- * That reasoning holds for a stage boundary and NOT for a cutover. After the
- * cutover this page IS `/account`: the legacy one is gone, so a capability that
- * is not here is a capability that has been removed from the product. Both are
- * a field and a checkbox over service functions that already exist, so the
- * honest answer was to carry them rather than to bridge to a page that will not
- * be there.
- *
- * `unavailable` IS A REAL STATE. The email read is the session's own and the
- * preference is a profile read; either can fail on its own, and a settings
- * panel that silently drew a default would be showing a player a preference
- * they may not have.
- */
-type AccountSettingsPanel =
-  | { readonly kind: 'unavailable' }
-  | {
-      readonly kind: 'ready'
-      /** The signed-in address. Null where the session did not state one. */
-      readonly email: string | null
-      /**
-       * A replacement the player asked for and has not yet confirmed.
-       *
-       * SAID OUT LOUD WHEREVER IT EXISTS. Supabase applies the change only once
-       * the link in the new address is clicked, so a page that showed only the
-       * old address would look like the change had failed.
-       */
-      readonly pendingEmail: string | null
-      readonly reminderEmails: boolean
-    }
-
 export type AccountPageModel = {
   /** The instant the model describes, supplied rather than read. */
   readonly generatedAt: string
@@ -215,14 +290,10 @@ export type AccountPageModel = {
   readonly follows: FollowsPanel
   /** Contract 161's answer, resolving on its own. */
   readonly history: HistoryPanel
-  /**
-   * The session's email state and the reminder preference.
-   *
-   * `null` MEANS THE HOST DID NOT LOAD THEM, which is the shape a story and a
-   * render test have — and is different from a panel that loaded and could not
-   * answer. The surface draws nothing for `null`.
-   */
-  readonly settings: AccountSettingsPanel | null
+  /** The profile and session reads, resolving on their own. */
+  readonly settings: AccountSettingsPanel
+  /** The deployment's configured administrator address, or its absence. */
+  readonly support: AccountSupport
 }
 
 /* ==========================================================================
