@@ -33,10 +33,12 @@ divergence needs a second table rather than a footnote.
 
 | Context | Supabase target | Declared hosted contract |
 | --- | --- | ---: |
-| `dev` | Development | 178 |
-| `branch-deploy` | Development | 178 |
-| `deploy-preview` | Development | 178 |
-| `production` | Production | 178 |
+| `dev` | Development | 208 |
+| `branch-deploy` | Development | 208 |
+| `deploy-preview` | Development | 208 |
+| `production` | Production | 208 |
+
+A direct Netlify environment read on **20 August 2026** confirmed all four active build-context declarations at **208 on both projects**. Development, branch-deploy and deploy-preview moved only after Development Supabase was verified at 208. Production remained at 205 until guarded Production rollout run `32318082186` and an independent read-only Production query both confirmed Contract 208; only then were the two Production declarations raised to 208 and read back. This environment-variable change is configuration evidence, not proof that a new application bundle has been published.
 
 A direct Netlify environment read and write on **12 August 2026** set all four
 values on both projects, and each moved **after** the database it names, never
@@ -61,7 +63,9 @@ The declaration must never be raised ahead of the hosted database or used to man
 
 The blank `dev-server` override is a Netlify configuration debt. Remove it or set it deliberately before relying on Netlify Dev as hosted-contract evidence.
 
-## Published production artifact
+## Last fully smoke-verified published production artifact (12 August 2026)
+
+> **Historical release evidence, not current deploy identity.** This table is retained because both artifacts were fully smoke-verified at the same commit. Current deploy identity must be read directly from Netlify; the live compatibility declarations are the table above.
 
 **There are two of them**, and from 12 August 2026 they are the pair below. Both
 were built by Netlify's own repository build on the push to `main`, both carry
