@@ -244,7 +244,7 @@
 
 .settingLabel {
   margin: 0;
-  color: var(--vnext-text-primary);
+  color: var(--vnext-text);
   overflow-wrap: anywhere;
 }
 

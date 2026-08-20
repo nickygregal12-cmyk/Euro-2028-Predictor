@@ -5,13 +5,16 @@ import {
   HOW_STEPS,
   LANDING_NAV,
   LANDING_SECTION_ORDER,
-  PREVIEW_CONTEXT_SLOTS,
-  PREVIEW_LEAGUE_ROWS,
+  LEGAL_LINKS,
 } from '../../../src/features/landing/landingContent'
 import {
-  PREVIEW_FRAMES,
-  previewFrameAt,
+  PREVIEW_STEPS,
+  previewStepAt,
 } from '../../../src/features/landing/landingPreviewScript'
+import {
+  MARKETING_PHASES,
+  marketingPhaseAt,
+} from '../../../src/vnext/fixtures/marketing/story'
 
 /**
  * The landing page's content model, against the authority that fixes it.
@@ -105,76 +108,116 @@ describe('the landing page content model', () => {
     expect(Math.max(...lengths) / Math.min(...lengths)).toBeLessThan(1.6)
   })
 
-  it('gives the desktop preview exactly three contextual slots (E.7)', () => {
-    // E.7 names the count and the three kinds. A fourth slot is a design
-    // decision that has to be taken in the authority first, not in a component.
-    expect(PREVIEW_CONTEXT_SLOTS).toHaveLength(3)
-    expect(PREVIEW_CONTEXT_SLOTS.map((slot) => slot.kind)).toEqual([
-      'time-critical',
-      'live',
-      'social',
-    ])
+  it('pairs every caption with the phase it describes, one for one', () => {
+    // THE DEFECT THIS WHOLE REBUILD EXISTS TO END, in its smallest form. The
+    // product half of the preview and the words around it are two files now, and
+    // a caption that had drifted off its phase would describe the wrong picture
+    // — the same failure as the old page's, at a smaller scale.
+    expect(PREVIEW_STEPS.map((step) => step.id)).toEqual(
+      MARKETING_PHASES.map((phase) => phase.id),
+    )
+  })
 
-    // AND EVERY SCRIPTED FRAME OBEYS IT. The preview is a sequence now, so the
-    // count is a property of each frame rather than of one array — and without
-    // this, adding a fourth slot to one frame would sail past the assertion
-    // above while changing the very thing E.7 bounds.
-    for (const frame of PREVIEW_FRAMES) {
-      expect(frame.context, `${frame.id} does not carry three slots`).toHaveLength(3)
-      expect(frame.context.map((slot) => slot.kind)).toEqual([
-        'time-critical',
-        'live',
-        'social',
-      ])
+  it('moves around the Competition Deck rather than sitting on one screen', () => {
+    // A five-phase story that never left Home would render perfectly and say
+    // nothing about the product's shape, which is the thing the page exists to
+    // show. All four destinations appear, and none of them is Hub, Predict or
+    // More — the information architecture the product retired and the old
+    // preview was still advertising.
+    const visited = new Set(MARKETING_PHASES.map((phase) => phase.destination))
+    expect([...visited].sort()).toEqual(['games', 'home', 'leagues', 'matches'])
+  })
+
+  it('describes every phase as a preview, for assistive technology', () => {
+    // The device is a picture of the product carrying an invented competition,
+    // table and points. Its accessible name is the only thing standing between a
+    // screen-reader user and hearing those numbers as their own standings, so
+    // each phase has to say what it is — and because the device changes, EACH
+    // PHASE has to, not just the first.
+    for (const step of PREVIEW_STEPS) {
+      expect(step.description, `${step.id} is not described as a preview`).toMatch(
+        /^Preview of the signed-in product on (Home|Matches|Games|Leagues)/,
+      )
+      expect(step.description.length).toBeGreaterThan(80)
     }
   })
 
-  it('describes every preview frame as a preview, for assistive technology', () => {
-    // The previews are pictures of the product carrying invented ranks and
-    // points. Their accessible name is the only thing standing between a
-    // screen-reader user and hearing those numbers as their own standings, so
-    // each has to say what it is — and because the device now changes, EACH
-    // FRAME has to, not just the first.
-    for (const frame of PREVIEW_FRAMES) {
-      expect(frame.description, `${frame.id} is not described as a preview`).toMatch(
-        /^Preview of the signed-in Hub/,
-      )
-      expect(frame.description.length).toBeGreaterThan(80)
+  it('says what CHANGED at every step, so the motion is not decoration', () => {
+    for (const step of PREVIEW_STEPS) {
+      expect(step.step.length, `${step.id} has no caption`).toBeGreaterThan(8)
+      expect(step.headline.length, `${step.id} does not say what changed`).toBeGreaterThan(24)
     }
   })
 
   it('runs a deterministic script with no clock and no randomness', () => {
-    // The whole reason the preview may exist on a public page: it reads
-    // nothing. Two visitors, two renders and a screenshot runner see the same
-    // sequence in the same order, which is also what makes a visual baseline
-    // possible at all.
-    expect(PREVIEW_FRAMES.length).toBeGreaterThanOrEqual(2)
-    const ids = PREVIEW_FRAMES.map((frame) => frame.id)
+    // The whole reason the preview may exist on a public page: it reads nothing.
+    // Two visitors, two renders and a screenshot runner see the same sequence in
+    // the same order, which is also what makes a visual baseline possible.
+    expect(PREVIEW_STEPS.length).toBe(5)
+    const ids = PREVIEW_STEPS.map((step) => step.id)
     expect(new Set(ids).size).toBe(ids.length)
-    // Total by construction, including from a negative step.
-    expect(previewFrameAt(0)).toBe(PREVIEW_FRAMES[0])
-    expect(previewFrameAt(PREVIEW_FRAMES.length)).toBe(PREVIEW_FRAMES[0])
-    expect(previewFrameAt(-1)).toBe(PREVIEW_FRAMES[PREVIEW_FRAMES.length - 1])
+    // Total by construction, including from a negative step, on both halves.
+    expect(previewStepAt(0)).toBe(PREVIEW_STEPS[0])
+    expect(previewStepAt(PREVIEW_STEPS.length)).toBe(PREVIEW_STEPS[0])
+    expect(previewStepAt(-1)).toBe(PREVIEW_STEPS[PREVIEW_STEPS.length - 1])
+    expect(marketingPhaseAt(0)).toBe(MARKETING_PHASES[0])
+    expect(marketingPhaseAt(MARKETING_PHASES.length)).toBe(MARKETING_PHASES[0])
+    expect(marketingPhaseAt(-1)).toBe(MARKETING_PHASES[MARKETING_PHASES.length - 1])
   })
 
   it('never previews another player\u2019s unrevealed prediction', () => {
-    // A marketing page must not teach a visitor to expect the product to break
-    // a reveal rule. The league frame is a SETTLED matchweek, which is when the
-    // real product reveals; nothing in the script shows a named rival's pick
-    // before its lock.
-    const joined = PREVIEW_FRAMES.map((frame) =>
-      [frame.summary, frame.action.body, ...frame.context.map((slot) => slot.detail)].join(' '),
-    ).join(' ')
-    expect(joined).not.toMatch(/predicted \d+\s?[-\u2013]\s?\d+/i)
+    // A marketing page must not teach a visitor to expect the product to break a
+    // reveal rule. The league phase is a SETTLED matchweek, which is when the
+    // real product reveals.
+    const leagues = MARKETING_PHASES.find((phase) => phase.destination === 'leagues')
+    expect(leagues?.surface.kind).toBe('leagues')
+    if (leagues?.surface.kind === 'leagues') {
+      expect(leagues.surface.model.private?.movementSettled).toBe(true)
+    }
   })
 
-  it('keeps the preview league table obviously illustrative', () => {
-    // One viewer row, invented names, and a size no real league is pinned to.
-    // If a real standing ever reaches this page it must come from the standings
-    // authority instead — a second source of ranked football numbers is what
-    // ADR 0011 forbids.
-    expect(PREVIEW_LEAGUE_ROWS.filter((row) => row.isViewer)).toHaveLength(1)
-    expect(PREVIEW_LEAGUE_ROWS.map((row) => row.position)).toEqual([1, 2, 3, 4, 5])
+  it('names no real person as a player', () => {
+    // The workshop's signed-in player carries the repository owner's own name,
+    // which is unremarkable in a private review surface and wrong on a public
+    // page: a stranger reads a named individual as a real person with a real
+    // standing. `MARKETING_PLAYER` replaces it everywhere the viewer is drawn,
+    // and this is the case that notices when a new phase forgets to.
+    for (const phase of MARKETING_PHASES) {
+      expect(phase.shell.player.name).toBe('Rowan Adeyemi')
+      if (phase.surface.kind === 'home') {
+        expect(phase.surface.model.user.name).toBe('Rowan Adeyemi')
+      }
+      if (phase.surface.kind === 'leagues') {
+        const you = phase.surface.model.private?.you
+        if (you) expect(you.player.displayName).toBe('Rowan Adeyemi')
+      }
+    }
+  })
+
+  it('previews a ONE-competition product, which is what a new player gets', () => {
+    // The shell's binding product test, applied to the acquisition page. A
+    // visitor deciding whether to sign up should see the small product, because
+    // that is the one they will get — not a twenty-competition dashboard with
+    // one thing selected.
+    for (const phase of MARKETING_PHASES) {
+      expect(phase.shell.contexts).toHaveLength(1)
+      expect(phase.shell.attention).toEqual([])
+    }
+  })
+
+  it('draws no legal link to a document that does not exist', () => {
+    // A footer link that answers Not Found reads as a document that exists and
+    // was withheld, which is worse than an absent one. Privacy and Terms are
+    // DECLARED so the deferral is visible and publishing either is a one-line
+    // change — and they carry no route until there is one.
+    expect(LEGAL_LINKS.map((link) => link.label)).toEqual([
+      'About & Disclaimer',
+      'Privacy',
+      'Terms',
+    ])
+    expect(LEGAL_LINKS.find((link) => link.label === 'About & Disclaimer')?.to).toBe('/about')
+    expect(LEGAL_LINKS.find((link) => link.label === 'Privacy')?.to).toBeNull()
+    expect(LEGAL_LINKS.find((link) => link.label === 'Terms')?.to).toBeNull()
   })
 
   it('only offers navigation to sections the page actually renders', () => {

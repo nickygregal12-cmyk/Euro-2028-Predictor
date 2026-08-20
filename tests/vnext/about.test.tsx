@@ -14,6 +14,7 @@ import {
   workshopAboutModel,
 } from '../../src/vnext/fixtures/about/content'
 import { NON_AFFILIATION_SHORT } from '../../src/vnext/models/about'
+import { LEGAL_LINKS } from '../../src/features/landing/landingContent'
 
 /**
  * ABOUT & DISCLAIMER — the position, and the places it is reachable from.
@@ -194,8 +195,16 @@ describe('the position is reachable from everywhere it needs to be', () => {
       resolve(process.cwd(), 'src/features/landing/LandingPage.tsx'),
       'utf8',
     )
-    expect(landing).toContain('to="/about"')
+    // The route now comes from the landing page's own legal-link declaration
+    // rather than being written into the footer's JSX, so Privacy and Terms can
+    // join it the moment they exist. The address is asserted where it is
+    // declared; the footer is asserted to render what is declared.
+    expect(landing).toContain('LEGAL_LINKS.map')
     expect(landing).toContain('NON_AFFILIATION_SHORT')
+    expect(
+      LEGAL_LINKS.find((link) => link.label === 'About & Disclaimer')?.to,
+      'the public footer no longer routes to the About page',
+    ).toBe('/about')
   })
 
   it('answers 200 as a deep link rather than a rendered 404', () => {

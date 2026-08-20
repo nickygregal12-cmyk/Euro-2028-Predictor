@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import type {
   MatchesFilter,
@@ -95,6 +95,13 @@ export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
+  // `useId` prefixed rather than a bare data key. An id built from data alone is
+  // unique only while the data is, and the public landing page's product preview
+  // mounts this surface more than once in a document — at which point
+  // `aria-labelledby` points at whichever of two identical ids the browser finds
+  // first. `duplicate-id-aria` is a critical axe rule, and this is the property
+  // that satisfies it by construction.
+  const dayIds = useId()
   const [filter, setFilter] = useState<MatchesFilter>(initialView?.filter ?? 'all')
 
   const days = useMemo(() => filterMatchDays(model, filter), [model, filter])
@@ -166,9 +173,9 @@ export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps
                 key={day.key}
                 className={styles.day}
                 variants={rise}
-                aria-labelledby={`vnext-day-${day.key}`}
+                aria-labelledby={`${dayIds}-${day.key}`}
               >
-                <h2 id={`vnext-day-${day.key}`} className={`${text.label} ${styles.dayHeading}`}>
+                <h2 id={`${dayIds}-${day.key}`} className={`${text.label} ${styles.dayHeading}`}>
                   {day.label}
                   <span className={`${styles.dayCount} ${text.numeric}`}>
                     {day.matches.length}

@@ -1,0 +1,73 @@
+/* The device frame around a real vNext surface.
+ *
+ * THIS FILE STYLES THE FRAME AND NEVER THE PRODUCT. Everything inside
+ * `.viewport` is vNext, and vNext declares every one of its own values on
+ * `[data-vnext]` — so a rule here that reached inside would be the landing page
+ * restyling the product a visitor is being shown. The only properties below
+ * that cross the boundary are size and clipping, which is what a device frame
+ * is.
+ *
+ * Values come from `src/styles/tokens.css`, like the rest of the landing page.
+ */
+
+.stage {
+  /* The box is sized by the device's own aspect ratio, so its height is known
+     from its width alone — before the scale has been measured, and unchanged
+     when it changes. That is why this preview cannot shift the layout. */
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--preview-w) / var(--preview-h);
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sheet);
+  background: var(--bg);
+  /* A device sitting on the page rather than printed on it. One shadow, no
+     gloss, no perspective: the product is the subject. */
+  box-shadow: 0 24px 60px -32px rgb(0 0 0 / 55%);
+  contain: paint;
+}
+
+/* The phone is a phone, not a wide box: it takes its natural width up to the
+   column and centres, rather than stretching to fill one. */
+.stagePhone {
+  width: min(390px, 100%);
+  margin-inline: auto;
+  border-radius: calc(var(--radius-sheet) * 1.6);
+}
+
+.viewport {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: scale(var(--preview-scale, 1));
+  transform-origin: top left;
+  animation: previewPhaseIn var(--duration-sheet) var(--ease-out) both;
+}
+
+/* The change between phases, and nothing more than that.
+ *
+ * A short fade with four pixels of rise. Small on purpose: the product inside
+ * the frame runs its OWN entrance motion on every phase change, and a device
+ * that also slid would be two animations explaining one event. What this adds
+ * is continuity — without it the frame would cut, and a cut between two full
+ * product screens reads as a page reloading. */
+@keyframes previewPhaseIn {
+  from {
+    opacity: 0;
+    transform: scale(var(--preview-scale, 1)) translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(var(--preview-scale, 1));
+  }
+}
+
+/* A REQUEST NOT TO ANIMATE IS ANSWERED, NOT SOFTENED. The phase still changes —
+   the content is the point and withholding it would be worse — it simply
+   arrives rather than travels. */
+@media (prefers-reduced-motion: reduce) {
+  .viewport {
+    animation: none;
+  }
+}

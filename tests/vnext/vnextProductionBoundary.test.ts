@@ -72,27 +72,35 @@ describe('the vNext workshop', () => {
   })
 
   /**
-   * THE ONE PRODUCTION SURFACE, AND WHY IT IS ONE RATHER THAN NONE.
+   * THE TWO PRODUCTION SURFACES, AND WHY THE RULE IS BOUNDED RATHER THAN GONE.
    *
    * `/about` is a real route. ADR 0017 asks for *"an unambiguous non-affiliation
    * statement in the footer and terms"* and the product has published neither —
    * an obligation the product owes as it stands, signed in and signed out,
-   * rather than one that waits for a cutover. It is an ADDITION: no legacy
-   * journey loses an address, no redirect changes and no existing route serves
-   * anything different.
+   * rather than one that waits for a cutover.
    *
-   * So the blanket rule becomes a BOUNDED one rather than being deleted, and
-   * the bound is the interesting half. What may ship is the shell, the
-   * foundations, the models and the About surface itself. What may NOT is any
-   * vNext PAGE — Home, Matches, the Match Predictor, Leagues, the player
-   * profile, Last Man Standing, the Championship, Games, Discovery, Invite,
-   * onboarding — because those are the surfaces the cutover decides, and one of
-   * them arriving in the production graph is precisely the accident this suite
-   * was written to catch.
+   * THE PUBLIC LANDING PAGE IS THE SECOND, AND IT IS A DIFFERENT KIND OF CASE.
+   * It does not ROUTE to a vNext page; it MOUNTS four of them inside an inert
+   * device frame, as the picture of the product an anonymous visitor is shown
+   * before they have an account to look at. It had to: the page it replaced drew
+   * its own miniature of a "Hub / Predict / More" navigation the product had
+   * stopped having, which is the failure mode a hand-drawn preview always
+   * eventually reaches. Mounting the real surfaces is what makes the marketing
+   * page unable to go stale, and it is why these four directories are admitted
+   * here rather than a fifth copy of them being written.
    *
-   * A wildcard would have made this vacuous. The list is by directory and the
-   * page directories are named, so adding a page import to a production surface
-   * still fails here.
+   * ============================ THE HALF THAT STILL HOLDS THE CUTOVER ======
+   *
+   * The interesting bound is no longer "no vNext page is in the bundle" — the
+   * landing page put four of them there on purpose. It is the case below:
+   * NO vNEXT PAGE IS REACHABLE FROM THE APPLICATION'S OWN ROUTES. Walking from
+   * `src/main.tsx` while refusing to enter the landing page's own directory
+   * leaves the graph the signed-in product is served from, and a vNext page
+   * appearing THERE is the cutover happening by accident, which is what this
+   * suite exists to refuse.
+   *
+   * A wildcard would have made this vacuous. Both lists are by directory and
+   * every page directory is named in one of them.
    */
   const PRODUCTION_ADMITTED = [
     '/src/vnext/about/',
@@ -104,9 +112,51 @@ describe('the vNext workshop', () => {
     '/src/vnext/fixtures/about/',
     '/src/vnext/integration/about/',
     '/src/vnext/integration/shell/',
+    // The public landing page's product preview, and the deterministic world it
+    // renders. `fixtures/marketing/` reaches the other fixture families, which
+    // is why the whole fixtures tree is admitted rather than one directory of
+    // it: a marketing world assembled from anything OTHER than the review lane's
+    // own curated worlds would be the second copy this change exists to delete.
+    '/src/vnext/fixtures/',
+    '/src/vnext/home/',
+    '/src/vnext/matches/',
+    '/src/vnext/leagues/',
+    '/src/vnext/games/',
+    // Games composes the scoring explainer, so it comes with it. That is the
+    // right answer rather than a concession: "what do I get for the right
+    // score?" is the question an acquisition page most owes an answer to, and
+    // the answer a visitor reads is the one the product gives — it reads the
+    // domain's own `SEASON_PREDICTOR_POINTS` rather than restating it.
+    '/src/vnext/rules/',
   ]
 
+  /**
+   * The page directories that may not reach production AT ALL, landing page
+   * included. Four of the twelve moved to `PRODUCTION_ADMITTED` above; these
+   * eight did not, and nothing on a public page has any business showing a
+   * player's profile, an invite, an onboarding flow or an account.
+   */
   const FORBIDDEN_IN_PRODUCTION = [
+    '/src/vnext/predictor/',
+    '/src/vnext/player/',
+    '/src/vnext/lms/',
+    '/src/vnext/championship/',
+    '/src/vnext/discovery/',
+    '/src/vnext/invite/',
+    '/src/vnext/onboarding/',
+    '/src/vnext/account/',
+    '/src/vnext/ia/',
+    '/src/vnext/workshop/',
+    '/src/vnext/stories/',
+  ]
+
+  /**
+   * Every vNext PAGE, whatever it is admitted to. The cutover case below walks
+   * this list rather than `FORBIDDEN_IN_PRODUCTION`, because the question it
+   * asks is different: not "may this ship at all" but "is the signed-in product
+   * being served from it yet".
+   */
+  const EVERY_VNEXT_PAGE = [
     '/src/vnext/home/',
     '/src/vnext/matches/',
     '/src/vnext/predictor/',
@@ -119,9 +169,6 @@ describe('the vNext workshop', () => {
     '/src/vnext/invite/',
     '/src/vnext/onboarding/',
     '/src/vnext/account/',
-    '/src/vnext/ia/',
-    '/src/vnext/workshop/',
-    '/src/vnext/stories/',
   ]
 
   it('reaches production only through the one routed vNext surface', () => {
@@ -139,10 +186,7 @@ describe('the vNext workshop', () => {
     ).toEqual([])
   })
 
-  it('keeps every vNext PAGE out of the production graph', () => {
-    // The half that still holds the cutover. The stage that repoints Home,
-    // Matches, Games and Leagues is the stage that changes this case, and it
-    // will be doing so on purpose.
+  it('keeps the pages nothing public may show out of the production graph', () => {
     const leaked = vnextFiles.filter(
       (file) =>
         productionGraph.has(file) &&
@@ -151,10 +195,53 @@ describe('the vNext workshop', () => {
 
     expect(
       leaked.map(fromRoot),
-      'a vNext PAGE is reachable from src/main.tsx — the Football Hub cutover ' +
-        'is Stage 14 work under explicit authority, not something a route ' +
-        'addition performs by accident',
+      'a vNext surface that is neither routed nor part of the landing preview ' +
+        'is reachable from src/main.tsx',
     ).toEqual([])
+  })
+
+  it('keeps every vNext PAGE out of the APPLICATION, which is what holds the cutover', () => {
+    // THE CASE THAT MATTERS MOST NOW. The landing page legitimately mounts four
+    // vNext pages inside an inert device frame, so "is a page in the bundle" no
+    // longer answers the question anybody cares about. This one does: stop the
+    // walk at the landing page's own directory and what remains is the graph the
+    // SIGNED-IN product is served from. A vNext page reachable there is the
+    // Football Hub cutover having happened, and it is Stage 14 work under
+    // explicit authority rather than something a route addition performs by
+    // accident.
+    //
+    // The stage that repoints Home, Matches, Games and Leagues is the stage that
+    // changes this case, and it will be doing so on purpose.
+    const applicationGraph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
+      stopAt: ['/src/dev/', '/src/features/landing/'],
+    })
+    const leaked = vnextFiles.filter(
+      (file) =>
+        applicationGraph.has(file) && EVERY_VNEXT_PAGE.some((tree) => file.includes(tree)),
+    )
+
+    expect(
+      leaked.map(fromRoot),
+      'a vNext PAGE is reachable from an application route — the Football Hub ' +
+        'cutover is Stage 14 work under explicit authority',
+    ).toEqual([])
+  })
+
+  it('proves the landing preview really does mount the four, so the allowance is not dead', () => {
+    // The mirror of the About case below. If the preview were deleted or quietly
+    // reduced to a picture again, the four allowances above would become
+    // permissions nothing uses — and the next import would inherit them.
+    for (const page of [
+      'src/vnext/home/VNextHome.tsx',
+      'src/vnext/matches/VNextMatches.tsx',
+      'src/vnext/leagues/VNextLeagues.tsx',
+      'src/vnext/games/VNextGames.tsx',
+    ]) {
+      expect(
+        productionGraph.has(resolve(repositoryRoot, page)),
+        `${page} is not in the landing preview`,
+      ).toBe(true)
+    }
   })
 
   it('proves the About surface really is routed, so the allowance is not dead', () => {

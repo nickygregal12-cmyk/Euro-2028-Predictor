@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { motion } from 'framer-motion'
 import type { AboutModel } from '../models/about'
 import { VNextShell } from '../app/VNextShell'
@@ -48,6 +49,13 @@ export type VNextAboutProps = {
 }
 
 export function VNextAbout({ model }: VNextAboutProps) {
+  // `useId` prefixed rather than a bare data key. An id built from data alone is
+  // unique only while the data is, and the public landing page's product preview
+  // mounts this surface more than once in a document — at which point
+  // `aria-labelledby` points at whichever of two identical ids the browser finds
+  // first. `duplicate-id-aria` is a critical axe rule, and this is the property
+  // that satisfies it by construction.
+  const sectionIds = useId()
   const rise = useVNextMotion(vnextMotion.riseIn)
   const links = model.links.filter((link) => link.href !== null)
 
@@ -70,10 +78,10 @@ export function VNextAbout({ model }: VNextAboutProps) {
           <section
             key={section.id}
             className={styles.section}
-            aria-labelledby={`about-${section.id}`}
+            aria-labelledby={`${sectionIds}-${section.id}`}
             data-vnext-zone={section.id}
           >
-            <h2 id={`about-${section.id}`} className={`${text.title} ${styles.heading}`}>
+            <h2 id={`${sectionIds}-${section.id}`} className={`${text.title} ${styles.heading}`}>
               {section.heading}
             </h2>
             {section.paragraphs.map((paragraph, index) => (
