@@ -178,10 +178,20 @@
  * branches are reachable only from `postponed`, `void` and `abandoned`, none of
  * which the seed creates, so no seeded prediction's deadline moves.
  *
- * **THE RUNS FOR 209 ARE OWED TOO.** Its evidence outside CI is a replay of
- * Development's own archived provider response and pgTAP suite 255, neither of
- * which is a CI run. Fill in the Database-parity and Browser-E2E run ids here
- * once they are green at the exact head, or lower this marker back.
+ * **THE RUNS ARE CITED, AND THEY COVER 207 AND 208 TOO.** At exact head
+ * `24973e9`, Database parity (`local-supabase`) run 32316849588 and Browser E2E
+ * (`authenticated-browser`) run 32317284166 both passed. The parity job rebuilds
+ * from EVERY committed migration and runs the whole pgTAP corpus, and the
+ * browser job rebuilds and reseeds the same way, so the runs owed by 207 and 208
+ * above are discharged by these rather than still outstanding — those two
+ * migrations are in the chain these runs built.
+ *
+ * What that run proved that nothing local could: pgTAP suite 255's 49
+ * assertions against the real schema, and three failures no stub could show —
+ * `get_my_football_calendar` had been left without the `schedule` object that
+ * contract 197's differential requires, `apply_provider_fixture_lifecycle` was
+ * an unnamed fifth writer of a public relation, and suite 255's own private
+ * Championship omitted an invite code. All three are fixed at this head.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 209
 
