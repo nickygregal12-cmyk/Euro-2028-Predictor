@@ -192,6 +192,21 @@
  * contract 197's differential requires, `apply_provider_fixture_lifecycle` was
  * an unnamed fifth writer of a public relation, and suite 255's own private
  * Championship omitted an invite code. All three are fixed at this head.
+ *
+ * **RE-PROVEN AFTER `main` LANDED ON TOP OF THAT HEAD, TWICE.** `24973e9` is no
+ * longer the branch tip: the Production 205-to-208 promotion's ops commits and
+ * then #932's Stage 14 Matches cutover were both merged in, and #932 is real
+ * application code — it routes production Matches at the vNext build and edits
+ * `src/vnext/foundations/format.ts` and `src/shared/time/kickoff.ts`, which the
+ * schedule work also touches. So the suites were re-run rather than assumed. At
+ * exact head `1f0a29e`, Database parity (`local-supabase` and
+ * `migration-transition`) run 32320124503 and Browser E2E
+ * (`authenticated-browser`) run 32320125032 both passed, alongside the four
+ * vNext shards, the visual contracts and CodeQL.
+ *
+ * `1f0a29e` is the parent of the commit carrying this paragraph, and that is the
+ * closest an in-repository citation can get to its own head: the only change
+ * above the cited head is this comment. Nothing the cited runs built moves.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 209
 
