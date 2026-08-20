@@ -2,7 +2,7 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 209, Development 209, Production 208 (20 August 2026)
+## Current state — repository 209, Production 208, Development 209 (20 August 2026)
 
 Repository contract **209** is the head of the committed migration chain.
 | Environment | Recorded contract | Authority |
