@@ -196,6 +196,13 @@ insert into ingestion_functions (name, permitted_writes) values
    'match is near enough to poll often, and writes nothing. It reads no '
    'prediction, entry or score event: how often we talk to a provider is not '
    'allowed to depend on who is playing our games.'),
+  ('provider_target_awaits_deadline',
+   'contract 211. Reads season_fixtures kickoff and score to decide whether a '
+   'match''s PREDICTION DEADLINE is still ahead, and writes nothing. It is the '
+   'sibling of provider_target_is_live and answers the other question: not "is '
+   'this being played" but "is this still happening". Same boundary, same '
+   'reason -- how often we talk to a provider is not allowed to depend on who '
+   'is playing our games.'),
   ('provider_poll_endpoint',           'resolves an endpoint; writes nothing.'),
   ('touch_provider_poll_target',       'the poll target row''s own updated_at trigger.'),
   ('touch_provider_entity_map',        'the identity map row''s own updated_at trigger.'),

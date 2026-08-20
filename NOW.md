@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **210** | latest `20260820070000_provider_live_window_covers_the_deadline.sql` |
+| Repository | **211** | latest `20260820090000_provider_deadline_watch_tier.sql` |
 | Development hosted | **209** | at `20260819200000_provider_fixture_lifecycle.sql`, verified `2026-08-20T05:24:08.424Z`, fast-lane run `32322676610` |
 | Production | **209** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260820070000_provider_live_window_covers_the_deadline.sql`
+**Pending development migrations:** 2 — `20260820070000_provider_live_window_covers_the_deadline.sql`, `20260820090000_provider_deadline_watch_tier.sql`
 
-**Next free contract number:** 211. Check open pull requests
+**Next free contract number:** 212. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags
