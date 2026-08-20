@@ -1,5 +1,5 @@
 import type { IaModel } from '../models/ia'
-import type { FeedbackPreference } from './feedback'
+import type { FeedbackPreference } from '../foundations/feedback'
 import { ConceptA } from './conceptA/ConceptA'
 import { ConceptB } from './conceptB/ConceptB'
 import { ConceptC } from './conceptC/ConceptC'

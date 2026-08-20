@@ -27,6 +27,7 @@ function renderAccount(
     onIntent?: (intent: { kind: string }) => void
     actions?: AccountActions
     theme?: 'system' | 'dark' | 'light'
+    haptics?: 'system' | 'on' | 'off'
   } = {},
 ) {
   return render(
@@ -483,21 +484,26 @@ describe('privacy and help', () => {
 })
 
 describe('appearance', () => {
+  // SCOPED TO THE GROUP, because "This device" now holds two of these and the
+  // second one is haptics. An unscoped `getAllByRole('radio')` would count both
+  // and would have passed either way once the second group existed, which is
+  // the sort of assertion that stops meaning anything the moment it matters.
+  const group = (name: string) => within(screen.getByRole('group', { name }))
+
   it('offers all three answers, with the current one marked', () => {
     renderAccount(accountScenarios.ordinary, { onIntent: vi.fn(), theme: 'light' })
-    const chosen = screen
-      .getAllByRole('radio')
-      .filter((node) => (node as HTMLInputElement).checked)
+    const radios = group('Appearance').getAllByRole('radio')
+    const chosen = radios.filter((node) => (node as HTMLInputElement).checked)
     expect(chosen).toHaveLength(1)
     expect(chosen[0]).toHaveAccessibleName('Light')
-    expect(screen.getAllByRole('radio')).toHaveLength(3)
+    expect(radios).toHaveLength(3)
   })
 
   it('offers "match my device" as a real answer, not the absence of one', () => {
     // A toggle can hold two answers and would drop this one — which is the
     // answer a player has before they ever open this page.
     renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
-    const chosen = screen
+    const chosen = group('Appearance')
       .getAllByRole('radio')
       .filter((node) => (node as HTMLInputElement).checked)
     expect(chosen[0]).toHaveAccessibleName('Match my device')
@@ -506,7 +512,27 @@ describe('appearance', () => {
   it('asks the host to perform the choice rather than persisting it here', () => {
     const onIntent = vi.fn()
     renderAccount(accountScenarios.ordinary, { onIntent })
-    fireEvent.click(screen.getByRole('radio', { name: 'Light' }))
+    fireEvent.click(group('Appearance').getByRole('radio', { name: 'Light' }))
     expect(onIntent).toHaveBeenCalledWith({ kind: 'set-theme', theme: 'light' })
+  })
+
+  it('offers the same three answers about being buzzed, as its own preference', () => {
+    // A SEPARATE PREFERENCE FROM MOTION AND FROM APPEARANCE. A vestibular
+    // preference and a preference about being vibrated are held by different
+    // people for different reasons, and nothing in this product's authority
+    // says one implies the other.
+    renderAccount(accountScenarios.ordinary, { onIntent: vi.fn(), haptics: 'off' })
+    const radios = group('Haptic feedback').getAllByRole('radio')
+    expect(radios).toHaveLength(3)
+    const chosen = radios.filter((node) => (node as HTMLInputElement).checked)
+    expect(chosen).toHaveLength(1)
+    expect(chosen[0]).toHaveAccessibleName('Off')
+  })
+
+  it('asks the host to persist the haptic choice too', () => {
+    const onIntent = vi.fn()
+    renderAccount(accountScenarios.ordinary, { onIntent })
+    fireEvent.click(group('Haptic feedback').getByRole('radio', { name: 'Off' }))
+    expect(onIntent).toHaveBeenCalledWith({ kind: 'set-haptics', haptics: 'off' })
   })
 })

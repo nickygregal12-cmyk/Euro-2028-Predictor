@@ -7,6 +7,7 @@ import {
   shellActiveContext,
   shellSwitchable,
 } from '../models/shell'
+import { useVNextFeedback } from '../foundations/feedbackContext'
 import { CompetitionMark } from './CompetitionMark'
 import text from '../foundations/typography.module.css'
 import styles from './CompetitionSwitcher.module.css'
@@ -231,12 +232,21 @@ function SheetRow({
   readonly onChoose: (contextId: string) => void
 }) {
   const needsAttention = contextNeedsAttention(model, context.competition.id)
+  const feedback = useVNextFeedback()
   return (
     <button
       type="button"
       className={styles.row}
       aria-current={active ? 'true' : undefined}
-      onClick={() => onChoose(context.competition.id)}
+      onClick={() => {
+        // A DELIBERATE CHANGE OF SUBJECT, WHICH IS NOT NAVIGATION. Moving
+        // between Home, Matches, Games and Leagues is the movement this product
+        // expects constantly and none of it is felt; choosing which football
+        // you are looking at is a decision, and `selection` is the lightest
+        // mark there is.
+        feedback('selection')
+        onChoose(context.competition.id)
+      }}
     >
       <CompetitionMark competition={context.competition} />
       <span className={styles.rowText}>

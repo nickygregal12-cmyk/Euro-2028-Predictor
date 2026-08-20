@@ -1,12 +1,19 @@
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
+import { useVNextFeedback } from '../foundations/feedbackContext'
 import { formatCountdown, formatDayHeading, formatDayKey } from '../foundations/format'
 import surfaces from '../foundations/surfaces.module.css'
 import typography from '../foundations/typography.module.css'
-import type { PredictorActions, PredictorLock, PredictorModel } from '../models/predictor'
+import type {
+  PredictorActions,
+  PredictorFixture,
+  PredictorLock,
+  PredictorModel,
+  PredictorSaveState,
+} from '../models/predictor'
 import { FixtureDecision } from './FixtureDecision'
 import { MatchweekBrief } from './MatchweekBrief'
 import { MatchweekOutcome } from './MatchweekOutcome'
@@ -62,7 +69,46 @@ export type VNextMatchPredictorProps = {
   actions: PredictorActions
 }
 
+/**
+ * THE HAPTIC HALF OF A PREDICTION LANDING.
+ *
+ * ============================ IT FOLLOWS THE SERVER, NOT THE KEYSTROKE ===
+ *
+ * The only transition it reacts to is a fixture whose save state moved from
+ * `saving` to `saved`, which is the SAVE COORDINATOR reporting that the write
+ * came back. A buzz on the keystroke would be the product telling a player
+ * their prediction is in before anybody has agreed that it is — and a failed
+ * save would then have been felt as a success.
+ *
+ * ============================ AND THE LAST ONE IS A DIFFERENT MOMENT =====
+ *
+ * A prediction landing is `success`. The prediction that leaves NOTHING
+ * outstanding is `important` — a double tap rather than a single one, because
+ * finishing a matchweek is the thing the page exists for and it is worth
+ * feeling different from the eight saves before it.
+ *
+ * Nothing here is the only way to know either fact: the row states "Saved" and
+ * the brief states what remains, on every device, whatever this returns.
+ */
+function usePredictionSaveFeedback(fixtures: readonly PredictorFixture[]): void {
+  const feedback = useVNextFeedback()
+  const previous = useRef(new Map<string, PredictorSaveState>())
+
+  useEffect(() => {
+    let landed = false
+    for (const fixture of fixtures) {
+      if (previous.current.get(fixture.id) === 'saving' && fixture.save === 'saved') {
+        landed = true
+      }
+      previous.current.set(fixture.id, fixture.save)
+    }
+    if (!landed) return
+    feedback(fixtures.some((fixture) => fixture.prediction === null) ? 'success' : 'important')
+  }, [fixtures, feedback])
+}
+
 export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps) {
+  usePredictionSaveFeedback(model.fixtures)
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 

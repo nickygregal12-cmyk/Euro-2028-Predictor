@@ -1,6 +1,8 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { MotionConfig } from 'framer-motion'
 import { VNextReducedMotionContext } from './motion'
+import { VNextFeedbackContext } from './feedbackContext'
+import type { FeedbackPreference } from './feedback'
 import './tokens.css'
 import styles from './VNextRoot.module.css'
 
@@ -35,6 +37,20 @@ export type VNextRootProps = {
    * production `ThemeProvider` uses.
    */
   theme?: VNextThemeSetting
+  /**
+   * WHETHER THE PLAYER WANTS TO BE BUZZED.
+   *
+   * `system` is the default and means "not chosen", which resolves to on — see
+   * `feedback.ts`. It is provided here rather than passed to each surface
+   * because a preference threaded through twenty components is one that gets
+   * dropped on the way to one of them, and a dropped preference is
+   * indistinguishable from a setting that does not work.
+   *
+   * IT IS NOT `motion`. A vestibular preference and a preference about being
+   * vibrated are different preferences held by different people for different
+   * reasons, and no product authority here says otherwise.
+   */
+  haptics?: FeedbackPreference
   /** Fills its container instead of the viewport. Used inside device frames. */
   fill?: boolean
 }
@@ -51,6 +67,7 @@ export function VNextRoot({
   children,
   motion = 'system',
   theme = 'system',
+  haptics = 'system',
   fill = false,
 }: VNextRootProps) {
   const override = motion === 'system' ? null : motion === 'reduced'
@@ -65,6 +82,7 @@ export function VNextRoot({
 
   return (
     <VNextReducedMotionContext.Provider value={override}>
+      <VNextFeedbackContext.Provider value={haptics}>
       {/* MotionConfig covers Framer's own defaults; the context above covers the
           variants this codebase writes by hand. Both are needed: one without the
           other leaves half the motion unreduced. */}
@@ -82,6 +100,7 @@ export function VNextRoot({
           {children}
         </div>
       </MotionConfig>
+      </VNextFeedbackContext.Provider>
     </VNextReducedMotionContext.Provider>
   )
 }

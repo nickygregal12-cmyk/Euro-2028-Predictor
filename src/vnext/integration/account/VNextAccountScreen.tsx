@@ -73,6 +73,8 @@ export type VNextAccountScreenProps = {
   readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   /** The player's appearance choice, held by the host that persists it. */
   readonly theme?: 'system' | 'dark' | 'light'
+  /** The player's haptic choice, held by the host that persists it. */
+  readonly haptics?: 'system' | 'on' | 'off'
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
   /**
    * A ready `mailto:` for the deployment's administrator, or absent where none
@@ -220,6 +222,7 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
         theme={props.theme ?? 'system'}
+        haptics={props.haptics ?? 'system'}
         onIntent={props.onIntent}
         actions={actions}
       />

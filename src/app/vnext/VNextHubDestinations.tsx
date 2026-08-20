@@ -1,13 +1,18 @@
+import { useCallback, useMemo } from 'react'
 import { useSearchParams, useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { buildAdminSupportHref } from '../../features/account/accountSupport'
+import { useHapticsPreference } from '../providers/HapticsProvider'
+import { useTheme } from '../providers/ThemeProvider'
+import { useSite } from '../site/SiteProvider'
 import { useSeasonGameCompetitionId } from '../../features/hub/useSeasonGameCompetitionId'
-import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextHomeScreen } from '../../vnext/integration/home/VNextHomeScreen'
 import { VNextGamesScreen } from '../../vnext/integration/games/VNextGamesScreen'
 import { VNextLeaguesScreen } from '../../vnext/integration/leagues/VNextLeaguesScreen'
 import { VNextPlayerProfileScreen } from '../../vnext/integration/playerProfile/VNextPlayerProfileScreen'
 import { VNextDiscoveryScreen } from '../../vnext/integration/discovery/VNextDiscoveryScreen'
 import { VNextAccountScreen } from '../../vnext/integration/account/VNextAccountScreen'
+import type { AccountIntent } from '../../vnext/account/VNextAccount'
 import { VNextPredictorScreen } from '../../vnext/integration/predictor/VNextPredictorScreen'
 import { VNextLmsScreen } from '../../vnext/integration/lms/VNextLmsScreen'
 import { VNextChampionshipScreen } from '../../vnext/integration/championship/VNextChampionshipScreen'
@@ -17,6 +22,7 @@ import {
   competitionRoute,
 } from '../weeklyRoutes'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
+import { VNextAppRoot } from './VNextAppRoot'
 
 /**
  * THE REST OF THE COMPETITION DECK, AT ITS REAL ADDRESSES.
@@ -67,7 +73,7 @@ export function VNextHomeDestination() {
   )
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextHomeScreen
         userId={userId}
         displayName={displayName}
@@ -77,7 +83,7 @@ export function VNextHomeDestination() {
         gameCompetitionId={gameCompetitionId}
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -104,7 +110,7 @@ export function VNextGamesDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextGamesScreen
         userId={userId}
         authLoading={loading}
@@ -119,7 +125,7 @@ export function VNextGamesDestination() {
           navigate(competitionGameRoute({ competitionSlug, seasonSlug }, route))
         }}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -158,7 +164,7 @@ export function VNextLeaguesDestination() {
   )
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextLeaguesScreen
         userId={userId}
         authLoading={loading}
@@ -189,7 +195,7 @@ export function VNextLeaguesDestination() {
           )
         }}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -211,7 +217,7 @@ export function VNextPlayerProfileDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextPlayerProfileScreen
         userId={userId}
         authLoading={loading}
@@ -222,7 +228,7 @@ export function VNextPlayerProfileDestination() {
         gameName="Match Predictor"
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -240,7 +246,7 @@ export function VNextDiscoveryDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextDiscoveryScreen
         userId={userId}
         authLoading={loading}
@@ -256,7 +262,7 @@ export function VNextDiscoveryDestination() {
           )
         }
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -269,18 +275,71 @@ export function VNextDiscoveryDestination() {
  */
 export function VNextAccountDestination() {
   useViewerFormatting()
-  const { userId, loading, displayName } = useAuth()
+  const { userId, loading, displayName, signOut, refreshProfile } = useAuth()
   const onShellIntent = useShellIntentNavigation()
+  const navigate = useNavigate()
+  const site = useSite()
+  const { choice, setChoice } = useTheme()
+  const { preference, setPreference } = useHapticsPreference()
+
+  // `buildAdminSupportHref` returns null for an unset or malformed address,
+  // which is what produces the surface's STATED ABSENCE rather than a dead
+  // link. The account's own address is not threaded in: the page reads it for
+  // itself and the host does not have it, which is the same shape the `/dev`
+  // harness has always had.
+  const supportHref = useMemo(
+    () => buildAdminSupportHref(import.meta.env.VITE_SUPPORT_EMAIL, null, site.brand.productName),
+    [site.brand.productName],
+  )
+
+  const onIntent = useCallback(
+    (intent: AccountIntent) => {
+      switch (intent.kind) {
+        case 'set-theme':
+          setChoice(intent.theme)
+          return
+        case 'set-haptics':
+          setPreference(intent.haptics)
+          return
+        case 'open-season':
+          navigate(
+            competitionRoute({
+              competitionSlug: intent.competitionSlug,
+              // `seasonKey` IS the season's route segment. Contract 161 names
+              // it a key because it is one; the router calls the same value a
+              // slug.
+              seasonSlug: intent.seasonKey,
+            }),
+          )
+          return
+        default:
+          // SIGN OUT IS NOT AWAITED HERE AND NOTHING IS NAVIGATED AFTER IT.
+          // `AuthProvider` clears the session and `RequireAuth` answers the
+          // next render, which is one authority deciding where a signed-out
+          // visitor goes rather than two.
+          void signOut()
+      }
+    },
+    [navigate, setChoice, setPreference, signOut],
+  )
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextAccountScreen
         userId={userId}
         authLoading={loading}
         displayName={displayName}
+        theme={choice}
+        haptics={preference}
+        supportHref={supportHref}
+        onIntent={onIntent}
+        // The auth provider caches the display name and holds the session's
+        // pending email. A change made here has to reach both, or the shell
+        // above goes on greeting the player by the name they just replaced.
+        onSaved={refreshProfile}
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -303,7 +362,7 @@ export function VNextPredictorDestination() {
   const matchweek = Number.isInteger(requested) && requested > 0 ? requested : undefined
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextPredictorScreen
         userId={userId}
         authLoading={loading}
@@ -312,7 +371,7 @@ export function VNextPredictorDestination() {
         matchweek={matchweek}
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -324,7 +383,7 @@ export function VNextLmsDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextLmsScreen
         userId={userId}
         authLoading={loading}
@@ -333,7 +392,7 @@ export function VNextLmsDestination() {
         gameName="Last Man Standing"
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -355,7 +414,7 @@ export function VNextChampionshipDestination() {
   const championshipId = (rest ?? '').split('/').filter(Boolean)[0]
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextChampionshipScreen
         userId={userId}
         authLoading={loading}
@@ -365,6 +424,6 @@ export function VNextChampionshipDestination() {
         gameName="Predictor Championship"
         onShellIntent={onShellIntent}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }

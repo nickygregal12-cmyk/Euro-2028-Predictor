@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
+import { HapticsProvider } from './app/providers/HapticsProvider'
 import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
 import { isNextUi } from './app/routeFlags'
@@ -582,6 +583,11 @@ export default function App() {
     // at all. Fails closed to the weekly platform.
     <SiteProvider>
       <ThemeProvider>
+        {/* WHETHER THIS DEVICE BUZZES. Above the router like the theme, and for
+            the same reason: it is a property of the device rather than of a
+            page, and every vNext surface below reads it through
+            `VNextAppRoot`. */}
+        <HapticsProvider>
         <BrowserRouter>
           <Suspense fallback={<RouteFallback />}>
             <Routes>
@@ -1117,6 +1123,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
+        </HapticsProvider>
       </ThemeProvider>
     </SiteProvider>
   )

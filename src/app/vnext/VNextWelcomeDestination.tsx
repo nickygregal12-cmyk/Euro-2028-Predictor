@@ -6,7 +6,6 @@ import { AuthSplash } from '../../features/auth/AuthSplash'
 import { commitOnboarding } from '../../features/onboarding/commitOnboarding'
 import { useWelcomeHost } from '../../features/welcome/useWelcomeHost'
 import { userFacingError } from '../../shared/errors/userFacingError'
-import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextShellProvider } from '../../vnext/app/VNextShellProvider'
 import { buildShellModel } from '../../vnext/integration/shell/buildShellModel'
 import {
@@ -17,6 +16,7 @@ import type { OnboardingCommit } from '../../vnext/models/onboarding'
 import { useSite } from '../site/SiteProvider'
 import { weeklyRoutes } from '../weeklyRoutes'
 import { useViewerFormatting } from './seam'
+import { VNextAppRoot } from './VNextAppRoot'
 
 /**
  * FIRST SIGN-IN, IN THE PRODUCT THE PLAYER IS ABOUT TO BE IN.
@@ -126,7 +126,7 @@ export function VNextWelcomeDestination() {
   }
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       {/* A SHELL WITH NO COMPETITION IN IT, which is the truth of this moment:
           choosing competitions is what the page is for. `canNavigateAway` is
           false because there is nowhere to navigate to yet — the player has no
@@ -151,6 +151,6 @@ export function VNextWelcomeDestination() {
           onLeave={host.finish}
         />
       </VNextShellProvider>
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }

@@ -2,10 +2,10 @@ import { Navigate, useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthSplash } from '../../features/auth/AuthSplash'
 import { useInviteLanding } from '../../features/leagues/useInviteLanding'
-import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextInviteScreen } from '../../vnext/integration/invite/VNextInviteScreen'
 import { weeklyRoutes } from '../weeklyRoutes'
 import { useViewerFormatting } from './seam'
+import { VNextAppRoot } from './VNextAppRoot'
 
 /**
  * THE INVITE DEEP LINK, `/join/:code`, IN THE PRODUCT IT LEADS INTO.
@@ -54,7 +54,7 @@ export function VNextJoinDestination() {
   const landOn = landing.landOn
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextInviteScreen
         userId={userId}
         authLoading={loading}
@@ -70,6 +70,6 @@ export function VNextJoinDestination() {
         // container id, so there is nothing to open BY. A player who is already
         // in is sent to their private play, which is where it is.
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }

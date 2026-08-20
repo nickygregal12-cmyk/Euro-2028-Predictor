@@ -9,6 +9,7 @@ import type {
 } from '../models/lms'
 import { lmsChampion, lmsPickableCount, lmsRoundIsOpen } from '../models/lms'
 import { VNextTrophyIcon } from '../foundations/VNextIcon'
+import { useFeedbackOnLatch } from '../foundations/feedbackContext'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -78,6 +79,13 @@ export type LmsNotice =
   | { readonly kind: 'failed' }
 
 export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNextLmsProps) {
+  // A DELIBERATE CHOICE THAT LANDED, which is exactly what `selection` is for.
+  // The edge is the write COMING BACK with nothing to say — a refusal, a
+  // conflict or a failure all carry a notice, and none of them is a selection.
+  // Spending a club for the season is the most consequential single press in
+  // this product and the lightest mark there is is the right one: the page
+  // already states the verdict in words.
+  useFeedbackOnLatch(!busy && notice === undefined && model.body.kind === 'round' && model.body.pick !== null, 'selection')
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
 
