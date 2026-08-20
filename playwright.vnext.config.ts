@@ -75,6 +75,10 @@ export default defineConfig({
     // costs a player their setup rather than a scroll position.
     'vnext-supporting.spec.ts',
     'vnext-ia.spec.ts',
+    // THE CANONICAL SCREENSHOT SUITE. It compares nothing — see its header —
+    // and exists so a passing build leaves behind something a person can look
+    // at, at the three widths where the composition changes shape.
+    'vnext-visual-contract.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),

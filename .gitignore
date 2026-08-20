@@ -41,6 +41,7 @@ production-backups/
 *.backup.zip.gpg
 # Playwright browser-test output
 playwright-report/
+playwright-report-vnext/
 test-results/
 
 # Coverage output (npm run test:coverage:domain)

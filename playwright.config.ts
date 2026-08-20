@@ -35,6 +35,7 @@ export default defineConfig({
     'vnext-championship.spec.ts',
     'vnext-supporting.spec.ts',
     'vnext-ia.spec.ts',
+    'vnext-visual-contract.spec.ts',
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',

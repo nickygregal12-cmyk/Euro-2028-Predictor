@@ -145,6 +145,26 @@ jobs:
           retention-days: 14
           path: blob-report/
 
+      # THE PICTURES, ON A PASS AS WELL AS A FAILURE.
+      #
+      # A blob report carries results and not files, so the canonical
+      # screenshots `vnext-visual-contract.spec.ts` writes have to travel
+      # separately — and they are the whole point of that suite: a passing build
+      # should leave behind something a person can open and look at, which is
+      # what the programme's own acceptance asks for and what no assertion can
+      # provide.
+      #
+      # `ignore` rather than `error` on an empty directory, because a shard that
+      # drew none of those tests legitimately produces none.
+      - name: Upload this shard's canonical screenshots
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vnext-visual-contract-${{ matrix.shardIndex }}
+          if-no-files-found: ignore
+          retention-days: 14
+          path: playwright-report-vnext/visual-contract/
+
   layout:
     name: vNext merged browser gate
     # ALWAYS. This is the context a ruleset can require, so it has to exist on
@@ -196,6 +216,16 @@ jobs:
         with:
           path: all-blob-reports
           pattern: vnext-workshop-blob-*
+          merge-multiple: true
+
+      # Gathered back into one place so the combined artifact below carries the
+      # whole contract rather than a quarter of it per shard.
+      - name: Download every shard's screenshots
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          path: playwright-report-vnext/visual-contract
+          pattern: vnext-visual-contract-*
           merge-multiple: true
 
       - name: Discover the unsharded test count
