@@ -18,6 +18,32 @@
 --     `record_season_fixture_result`, which numbers the revision, records what
 --     it replaced and cannot be rewritten. The applier writes no `public`
 --     relation of its own (assertion 8);
+--
+-- AMENDED AGAIN 19 AUGUST 2026 BY OWNER DECISION (contract 209), and this is
+-- the amendment this file most needed to be made loudly. A SECOND unattended
+-- function may now write a `public` competition relation:
+-- `apply_provider_fixture_lifecycle` sets `season_fixtures.status` to
+-- `postponed`, and back to `scheduled`, on a provider's word and with no human
+-- in the loop.
+--
+-- That is a real widening of this boundary and it is admitted rather than
+-- absorbed. What makes it acceptable is not that a postponement is small, but
+-- that it is REVERSIBLE AND SUBTRACTIVE: a postponed fixture cannot carry a
+-- score (`season_fixtures_scores_match_status`), does not settle its matchweek
+-- (contract 87), and survives Last Man Standing consuming nothing (contract
+-- 85). Applying it wrongly delays a settlement; the next poll that disagrees
+-- undoes it. The transitions are constrained to exactly those two by a CHECK
+-- on the evidence row the applier must write first, so this function cannot
+-- void, abandon, create or delete a fixture even by mistake.
+--
+-- Cancellation and abandonment are NOT included, deliberately: they are
+-- terminal, they change what the competition consists of, and they stay with
+-- `admin_decide_provider_change_proposal`.
+--
+-- The measured reason the line moved: requiring a human for a postponement
+-- meant, in practice, that no postponement was ever shown at all. Assertion 5
+-- now names five writers rather than four, so a SIXTH still has to argue for
+-- itself here.
 --   * that writer still reaches no score, total, lock, progression, standing or
 --     player prediction. A result is the ONLY official truth the provider path
 --     can now produce; everything downstream still derives from it through the
@@ -228,7 +254,25 @@ insert into ingestion_functions (name, permitted_writes) values
    '125''s confirmation gate is untouched.'),
   ('block_provider_change_proposal_rewrite',
    'refuses rewrite or deletion of staged change evidence, and refuses a second '
-   'decision on a decided proposal; writes nothing.');
+   'decision on a decided proposal; writes nothing.'),
+  -- Contract 209. Registered here because THIS GUARD CAUGHT IT AGAIN, and this
+  -- time it caught the thing it was written for: a NEW WRITER of a public
+  -- competition relation, arriving unattended.
+  ('apply_provider_fixture_lifecycle',
+   'contract 209. season_fixtures.status, and the append-only lifecycle '
+   'transition record. It is the SECOND unattended function permitted to write '
+   'a public competition relation, and the permission is deliberately narrow: '
+   'the ONLY transitions it can make are scheduled -> postponed and postponed '
+   '-> scheduled, enforced by a CHECK on the evidence row it must write first. '
+   'It cannot void, abandon, create or delete a fixture -- those stay with '
+   'admin_decide_provider_change_proposal -- it refuses any fixture carrying a '
+   'score, and it writes no result, lock, standing or prediction. A postponement '
+   'removes nothing and is reversed by the next poll that disagrees, which is '
+   'why it is allowed to be automatic at all.'),
+  ('provider_poll_path_pattern',
+   'contract 209. Turns a stored poll path into a LIKE pattern so a dispatched '
+   'URL can be matched back to the target that produced it. Immutable, reads no '
+   'relation and writes nothing.');
 
 -- ---------------------------------------------------------------------------
 -- 1. Every reviewed function exists.
@@ -341,15 +385,14 @@ select is(
           and p.prokind = 'f'
           and pg_get_functiondef(p.oid) ~* '(insert\s+into|update|delete\s+from)\s+public\.'
      ) writer),
-  '["admin_approve_initial_provider_fixtures", "admin_decide_provider_change_proposal", "dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
-  'exactly four reviewed provider-path functions write a public relation: '
+  '["admin_approve_initial_provider_fixtures", "admin_decide_provider_change_proposal", "apply_provider_fixture_lifecycle", "dispatch_due_provider_polls", "import_provider_fixture_revisions"]'::jsonb,
+  'exactly five reviewed provider-path functions write a public relation: '
   'contract 132 explicit admin publication, contract 174 explicit admin '
-  'decision on a staged calendar change, contract 117 kickoff import, and '
-  'the poll dispatcher metadata stamp. The fourth arrived at contract 174 and '
-  'is the same SHAPE as the first: an administrator, deciding one thing at a '
-  'time, with the decision and its effect recorded. What would be a defect is a '
-  'writer that is not one of those -- and detect_provider_calendar_changes, the '
-  'unattended half of that contract, is deliberately absent from this list');
+  'decision on a staged calendar change, contract 117 kickoff import, the poll '
+  'dispatcher metadata stamp, and contract 209 postponement lifecycle. What '
+  'would be a defect is a writer that is not one of those -- and '
+  'detect_provider_calendar_changes, the unattended half of contract 174, is '
+  'deliberately absent from this list');
 
 -- ---------------------------------------------------------------------------
 -- 6. And what it writes there is the fixture, not the round.

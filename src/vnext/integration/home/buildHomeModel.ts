@@ -1,4 +1,5 @@
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
+import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
 import type {
   SeasonFixtureClub,
   SeasonListFixture,
@@ -215,11 +216,40 @@ function statusOf(fixture: SeasonListFixture): MatchStatus {
       return 'live'
     case 'final':
       return 'fullTime'
-    case 'postponed':
-      return 'postponed'
     default:
+      // CONTRACT 209 REMOVED A `live.kind === 'postponed'` CASE FROM HERE, and
+      // the removal is the point rather than a tidy-up. Home used to promote a
+      // provider's postponement on its own while `buildMatchesModel` refused
+      // to — so the same fixture could read "P–P" on Home and "15:00" in
+      // Matches, from one payload, with nothing saying which was right.
+      //
+      // The provider's word now reaches `season_fixtures.status` through the
+      // ingestion boundary, where it is recorded and reversible, so the first
+      // line of this function already answers it. Both surfaces read the
+      // platform, and there is one answer.
       return 'upcoming'
   }
+}
+
+/**
+ * THE SENTENCE FOR A SLOT THAT IS NOT WHAT IT LOOKS LIKE.
+ *
+ * The postponed half comes from `postponedScheduleNote`, which Matches uses
+ * too: one fixture must not be described in two ways on two surfaces.
+ *
+ * The going-ahead half is Home's own, and it is a different sentence rather
+ * than the same one shortened. `Match` has no marker for a moved fixture the
+ * way `MatchState` does, so on Home the note is the only place the fact can
+ * live; in Matches the state carries it and the mark draws a chip.
+ */
+function scheduleNoteOf(fixture: SeasonListFixture): string | null {
+  if (fixture.status === 'postponed') {
+    return postponedScheduleNote(fixture.kickoffAt, fixture.schedule.rescheduled)
+  }
+  // A moved fixture that is going ahead says so; the date beside it is real and
+  // needs no qualification, only an explanation of why it is not where the
+  // reader last saw it.
+  return fixture.schedule.rescheduled ? 'Rescheduled' : null
 }
 
 /**
@@ -348,6 +378,7 @@ function matchOf(
     // the type lie, and the caller filters these out.
     kickoff: fixture.kickoffAt ?? '',
     status: statusOf(fixture),
+    scheduleNote: scheduleNoteOf(fixture),
     // No minute anywhere. `season_fixture_live_state` carries a status, a score
     // and an observation instant — no clock — so Home shows LIVE without a
     // minute. `LiveIndicator` and the ticker both already read a null clock as

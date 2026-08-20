@@ -161,8 +161,54 @@
  * own outcome. Both migrations' in-transaction guards and negative controls
  * were exercised. Fill in the Database-parity and Browser-E2E run ids here once
  * they are green at the exact head, or lower this marker back to 206.
+ *
+ * Contract 209 adds two read-only fields to two existing `authenticated` reads
+ * and one internal table no role can reach. `get_season_fixtures` and
+ * `get_season_fixture` keep their signatures, their volatility, their
+ * `authenticated`-only grants and their league-season refusal; each gains a
+ * `schedule` object built from columns the same query already joins, and
+ * `predictor_internal.season_fixture_lifecycle_transitions` is created with row
+ * level security on and every grant revoked, as the pinned invariant in
+ * `schemaSecurityInvariants.test.ts` now records.
+ *
+ * NO SEEDED JOURNEY CHANGES SHAPE. The deterministic seed holds no postponed
+ * fixture and no kickoff revision, so every seeded fixture reads
+ * `{kickoff_confirmed: true, rescheduled: false, original_kickoff_at: null}` —
+ * the same fixture, with one more field on it. The lock authority's two new
+ * branches are reachable only from `postponed`, `void` and `abandoned`, none of
+ * which the seed creates, so no seeded prediction's deadline moves.
+ *
+ * **THE RUNS ARE CITED, AND THEY COVER 207 AND 208 TOO.** At exact head
+ * `24973e9`, Database parity (`local-supabase`) run 32316849588 and Browser E2E
+ * (`authenticated-browser`) run 32317284166 both passed. The parity job rebuilds
+ * from EVERY committed migration and runs the whole pgTAP corpus, and the
+ * browser job rebuilds and reseeds the same way, so the runs owed by 207 and 208
+ * above are discharged by these rather than still outstanding — those two
+ * migrations are in the chain these runs built.
+ *
+ * What that run proved that nothing local could: pgTAP suite 255's 49
+ * assertions against the real schema, and three failures no stub could show —
+ * `get_my_football_calendar` had been left without the `schedule` object that
+ * contract 197's differential requires, `apply_provider_fixture_lifecycle` was
+ * an unnamed fifth writer of a public relation, and suite 255's own private
+ * Championship omitted an invite code. All three are fixed at this head.
+ *
+ * **RE-PROVEN AFTER `main` LANDED ON TOP OF THAT HEAD, TWICE.** `24973e9` is no
+ * longer the branch tip: the Production 205-to-208 promotion's ops commits and
+ * then #932's Stage 14 Matches cutover were both merged in, and #932 is real
+ * application code — it routes production Matches at the vNext build and edits
+ * `src/vnext/foundations/format.ts` and `src/shared/time/kickoff.ts`, which the
+ * schedule work also touches. So the suites were re-run rather than assumed. At
+ * exact head `1f0a29e`, Database parity (`local-supabase` and
+ * `migration-transition`) run 32320124503 and Browser E2E
+ * (`authenticated-browser`) run 32320125032 both passed, alongside the four
+ * vNext shards, the visual contracts and CodeQL.
+ *
+ * `1f0a29e` is the parent of the commit carrying this paragraph, and that is the
+ * closest an in-repository citation can get to its own head: the only change
+ * above the cited head is this comment. Nothing the cited runs built moves.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 208
+export const SEED_REVIEWED_AT_CONTRACT = 209
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
