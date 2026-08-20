@@ -34,6 +34,10 @@ import { canToggleJoker } from '../../domain/tournament/jokerPolicy'
 import { JOKER_ALLOWANCE } from '../../domain/tournament/scoringConfig'
 import type { SaveStatus as CoordinatorStatus } from '../../domain/saveCoordinator'
 import { createSaveController, type SaveController } from './saveController'
+import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../../services/observability/operationFailure'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { useTournamentData } from './TournamentDataProvider'
 import { useReturnToForeground } from './useReturnToForeground'
@@ -205,6 +209,15 @@ export function PredictionsProvider({ children }: { children: ReactNode }) {
       // A version conflict is terminal + non-retryable (server row changed
       // elsewhere); the controller surfaces 'conflict' instead of auto-retrying.
       isConflict: isVersionConflict,
+      // `C1` — a save that has stopped trying is reported. The key is an
+      // opaque prefix plus an id (`m:`, `t:`, the bracket and Golden Boot
+      // keys); no scoreline, team or player name goes anywhere near this.
+      onTerminalFailure: (_key, error, outcome) => {
+        reportOperationFailure('prediction.save', {
+          outcome: outcome === 'conflict' ? 'conflict' : 'failed',
+          serverCode: serverCodeOf(error),
+        })
+      },
     })
   }
   const controller = controllerRef.current

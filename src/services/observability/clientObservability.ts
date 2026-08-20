@@ -11,6 +11,13 @@ export type ClientErrorSource =
    * `installCspViolationCapture`.
    */
   | 'csp-violation'
+  /**
+   * A competitive action that failed and was CAUGHT — a prediction save, a
+   * Joker, a Last Man Standing pick, a join. These reach neither
+   * `window.onerror` nor an unhandled rejection, so without their own source
+   * they were invisible. See `operationFailure.ts`.
+   */
+  | 'operation-failure'
 
 export interface SafeClientError {
   readonly name: string
