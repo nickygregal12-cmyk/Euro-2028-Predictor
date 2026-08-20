@@ -113,7 +113,29 @@ export function WorkshopCanvas({
                     defaults it to `none` — is how a sticky rail bounds itself
                     to the device shell instead of to the browser window
                     showing the workshop. */}
-                <div
+                {/* A `<section>`, AND THAT ELEMENT IS LOAD-BEARING RATHER THAN
+                    a tidier `<div>`.
+
+                    A canvas renders the same surface in two or more device
+                    frames inside ONE document, and the shell it renders has a
+                    `<header>` and a `<footer>`. HTML makes those `banner` and
+                    `contentinfo` landmarks only when they are not inside an
+                    `article`, `aside`, `main`, `nav` or `section` — so two
+                    frames put two `contentinfo` landmarks in one document, and
+                    `landmark-no-duplicate-contentinfo` fails every canvas story
+                    at once. That is the accessibility scan being RIGHT: one
+                    document may have one of each, and the frames are not
+                    separate documents however much they look like devices.
+
+                    Scoping each frame demotes its header and footer to generic
+                    WITHIN THE CANVAS ONLY. The product is untouched: a real
+                    route renders one shell with no `<section>` above it, so its
+                    landmarks are landmarks, and `e2e/` scans them there.
+
+                    Deliberately unnamed, because a named `<section>` is a
+                    `region` landmark and this would trade one duplicate-landmark
+                    failure for another. */}
+                <section
                   className={styles.scroller}
                   style={
                     {
@@ -122,7 +144,7 @@ export function WorkshopCanvas({
                   }
                 >
                   {children}
-                </div>
+                </section>
               </VNextRoot>
             </div>
           </div>
