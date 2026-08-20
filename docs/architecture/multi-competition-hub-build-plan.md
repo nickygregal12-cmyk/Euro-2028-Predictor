@@ -385,6 +385,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 212 stage effect:** none on any hub surface. The hub's week panel is about a CARD and keeps reading the matchweek instant, which is the right one for a matchweek-level fact; only the Match Predictor's own fixture rows read the new per-fixture lock. No hub read, shape or build-stage scope changes.
 
+> **Contract 213 stage effect:** none on any hub surface. It changes the provider status vocabulary, which no hub read touches. No read, shape or build-stage scope changes.
+
 > **Contract 204 stage effect:** the AI Lab dashboards scope their exclusion count to the league asked about. No hub build-stage scope changes.
 
 > **Contract 203 stage effect:** the Bet Builder reads one authority instead of nine paged logs. No hub build-stage scope changes.

@@ -215,6 +215,8 @@ same paragraph existed in seven places at once.
 
 > **Contract 212:** does not alter competition structure. It changes what `get_season_matchweek_card` publishes about a fixture — its own lock instant and whether that has passed — and what a deadline IS remains exactly what contract 119 made it. No competition, group, round, fixture or scoring relation is touched.
 
+> **Contract 213:** does not alter competition structure. It deletes seven rows from `predictor_internal.provider_status_kinds`, the provider status vocabulary. No competition, group, round, fixture or scoring relation is touched, and the only behavioural change is that an unmeasured token now resolves `unknown` and moves nothing.
+
 > **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
 
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.

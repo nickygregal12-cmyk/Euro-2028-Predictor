@@ -2,9 +2,16 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 212, Production 211, Development 211 (20 August 2026)
+## Current state — repository 213, Production 211, Development 211 (20 August 2026)
 
-**Repository contract 212 is pending on both hosted environments.** Development and Production are level with each other at **211** — which is the resting state a promotion leaves behind, not a permission — and both take contract 212 as the next boundary, Development first and Production second, the order the workflows refuse to invert.
+**Repository contracts 212 and 213 are pending on both hosted environments.** Development and Production are level with each other at **211** — which is the resting state a promotion leaves behind, not a permission — and both take contract 212 and contract 213 as the next boundary, Development first and Production second, the order the workflows refuse to invert.
+
+> **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
+> lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
+> rows from `predictor_internal.provider_status_kinds`. It goes through
+> `development-migration-rollout.yml`, the guarded lane, which names the boundary
+> by filename and requires the destructive batch to be acknowledged. Seven seeded
+> reference rows is exactly the sort of loss a snapshot exists for.
 
 > **Contract 212 repository candidate — the matchweek card publishes the lock it
 > is enforced against (20 August 2026):**
@@ -34,6 +41,38 @@
 > trigger would enforce, including for a fixture whose own lock diverges from its
 > matchweek's — rather than a constant, because a suite of ordinary fixtures
 > would have passed against the broken card.
+
+> **Contract 213 repository candidate — the unmeasured SportMonks tokens fail
+> closed (20 August 2026):** `20260820150000_drop_unmeasured_sportmonks_tokens.sql`
+> closes the second half of `ING-002`. It claims **no** Development or Production
+> rollout yet.
+>
+> **What it removes and why removal rather than a remap.** Contract 135 seeded
+> SportMonks `14`–`21` from the provider's published documentation. Contract 209
+> then MEASURED that this provider sends `10` for a postponement, while `14` — the
+> token the documentation calls "postponed" — has never appeared in a payload. So
+> two tokens mapped `postponed`, one observed and one documented, with nothing but
+> a note between them. Contract 209 deliberately remapped none, because replacing
+> one guess with another is not an improvement. Removal is: an unmapped token
+> resolves to `unknown`, an `unknown` is recorded in `provider_status_observations`
+> where it can be measured against a real payload, and nothing downstream acts on a
+> fixture from a status the system has never seen.
+>
+> **The evidence check came first and could have stopped this.** Read-only against
+> both hosted environments on 20 August 2026: Development holds 440 retained
+> SportMonks responses (2026-08-05 to 2026-08-19) containing `state_id` values
+> `1, 2, 3, 5, 10, 22`; Production holds 21 (2026-08-10 to 2026-08-19) containing
+> `1, 5, 10`. **Not one of `14`–`21` appears on either.** Nothing was kept back.
+>
+> **One finding recorded rather than acted on:** token `4` ("break", mapped
+> `in_play`) did not appear either. It is NOT dropped — the retained window is two
+> weeks of pre-season, thin for a token that only occurs during a stoppage, and `4`
+> sits between two observed tokens in a contiguous in-play run. It is written into
+> the `ING-002` row as the next thing to measure.
+>
+> pgTAP suite **259** asserts the behaviour rather than the row count: a dropped
+> token postpones nothing and records no transition, the measured token still
+> postpones, and an unknown is OBSERVED rather than swallowed.
 
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |

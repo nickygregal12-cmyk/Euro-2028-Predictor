@@ -232,7 +232,7 @@
  * creates no poll target, and no browser journey queries that table. No relation
  * a seeded user reads is touched, so again there is no new gate to fail.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 212
+export const SEED_REVIEWED_AT_CONTRACT = 213
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

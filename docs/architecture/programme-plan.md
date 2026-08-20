@@ -296,6 +296,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 212 programme effect:** none on sequencing. It closes `ING-005` by publishing the per-fixture lock the card was already enforced against, so the Match Predictor stops refusing a move the database would accept. No programme reordering.
 
+> **Contract 213 programme effect:** none on sequencing. It closes the second half of `ING-002` by dropping the SportMonks tokens that were seeded from documentation and never observed, so they fail closed rather than silently moving a fixture. It is DESTRUCTIVE and routes through the guarded development lane rather than the fast lane.
+
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.

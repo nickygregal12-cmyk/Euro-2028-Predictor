@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **212** | latest `20260820130000_matchweek_card_publishes_the_fixture_lock.sql` |
+| Repository | **213** | latest `20260820150000_drop_unmeasured_sportmonks_tokens.sql` |
 | Development hosted | **211** | at `20260820090000_provider_deadline_watch_tier.sql`, verified `2026-08-20T09:54:01.756Z`, fast-lane run `32353837721` |
 | Production | **211** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260820130000_matchweek_card_publishes_the_fixture_lock.sql`
+**Pending development migrations:** 2 — `20260820130000_matchweek_card_publishes_the_fixture_lock.sql`, `20260820150000_drop_unmeasured_sportmonks_tokens.sql`
 
-**Next free contract number:** 213. Check open pull requests
+**Next free contract number:** 214. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

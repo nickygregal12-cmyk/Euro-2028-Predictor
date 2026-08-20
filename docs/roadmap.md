@@ -417,6 +417,15 @@ same paragraph existed in seven places at once.
 > derived a second time, and the surface draws each fixture against its own. Contract 119 is not
 > reversed: this makes the read honest, it does not make the rule looser.
 
+> Contract 213 finishes what contract 209 started on the provider's vocabulary. Contract 135 seeded
+> SportMonks tokens `14`–`21` from published documentation; contract 209 then MEASURED that this
+> provider sends `10` for a postponement, while `14` — the token the documentation calls
+> "postponed" — has never appeared in a payload on either environment. Contract 213 removes the
+> seven unobserved tokens rather than remapping them, because replacing one guess with another is
+> not an improvement and the absence is: an unmapped token resolves `unknown`, an `unknown` is
+> recorded where it can be measured, and nothing acts on a fixture from a status the system has
+> never seen.
+
 > Contract 208 pays off the second of Stage 12's carried backend debts. It puts
 > the canonical entrant outcome on the Championship bracket read, so elimination
 > is stated by the settlement authority instead of being absent, and it narrows
