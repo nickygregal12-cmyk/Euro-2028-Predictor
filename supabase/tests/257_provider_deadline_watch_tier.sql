@@ -20,7 +20,7 @@
 
 begin;
 
-select plan(14);
+select plan(13);
 
 create temporary table c211 (
   label text primary key,
