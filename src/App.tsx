@@ -362,6 +362,11 @@ const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').
 // real route rather than a `/dev` harness. It repoints nothing: the address did
 // not exist before.
 const AboutPage = lazy(() => import('./features/about/AboutPage').then((m) => ({ default: m.AboutPage })))
+// PUBLIC POLICY DOCUMENTS. Like About, these are real read-only routes outside
+// the auth gate and behind no cutover flag: signed-in and signed-out readers get
+// the same current-service wording, and neither document depends on player data.
+const PrivacyPage = lazy(() => import('./features/legal/LegalPage').then((m) => ({ default: m.PrivacyPage })))
+const TermsPage = lazy(() => import('./features/legal/LegalPage').then((m) => ({ default: m.TermsPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
   import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
@@ -727,6 +732,8 @@ export default function App() {
                   }
                 />
                 <Route path="/about" element={<AboutPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/terms" element={<TermsPage />} />
 
                 <Route element={<RequireAuth />}>
                   {/* FIRST SIGN-IN, AND THE JOURNEY STAGE 13 BUILT AND
