@@ -48,6 +48,7 @@ export function SignUpForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({})
+  const [captchaValidation, setCaptchaValidation] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaKey, setCaptchaKey] = useState(0)
   // The breach lookup is a network round trip, so the button has to show it is
@@ -59,9 +60,15 @@ export function SignUpForm({
   useEffect(() => {
     if (error && turnstileEnabled) {
       setCaptchaToken(null)
+      setCaptchaValidation(null)
       setCaptchaKey((k) => k + 1)
     }
   }, [error])
+
+  function handleCaptchaToken(token: string | null) {
+    setCaptchaToken(token)
+    if (token) setCaptchaValidation(null)
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -70,7 +77,14 @@ export function SignUpForm({
     const errors = validateSignUp(values)
     setFieldErrors(errors)
     if (hasErrors(errors)) return
-    if (turnstileEnabled && !captchaToken) return
+
+    if (turnstileEnabled && !captchaToken) {
+      setCaptchaValidation(
+        'Complete the security check before creating your account. If it did not load, use the retry option above.',
+      )
+      return
+    }
+    setCaptchaValidation(null)
 
     // The breach check runs LAST, after the cheap local checks and the Turnstile
     // gate. A password that is too short is rejected without spending a request,
@@ -131,19 +145,20 @@ export function SignUpForm({
           required
         />
         {/* Renders nothing when Turnstile is off, and — when it is on but
-            cannot load — explains that and offers a retry rather than
-            leaving submit disabled with nothing on screen. */}
+            cannot load — explains that and offers a retry rather than leaving
+            the visitor with an inert form. */}
         <TurnstileField
           resetKey={captchaKey}
-          onToken={setCaptchaToken}
+          onToken={handleCaptchaToken}
           className={s.turnstile}
         />
+        {captchaValidation ? <Alert variant="error">{captchaValidation}</Alert> : null}
         <Button
           type="submit"
           variant="primary"
           fullWidth
           loading={submitting || checkingPassword}
-          disabled={turnstileEnabled && !captchaToken}
+          disabled={submitting || checkingPassword}
         >
           Create account
         </Button>
