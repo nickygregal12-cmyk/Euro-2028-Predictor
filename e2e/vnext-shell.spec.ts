@@ -566,6 +566,78 @@ test.describe('the platform may be large and the product must feel small', () =>
       expect(reading.currentDestinations).toEqual(['Home'])
     }
   })
+
+  /**
+   * ONE PRESS, AND IT LANDS IN THE RIGHT COMPETITION AND THE RIGHT GAME.
+   *
+   * The whole point of the layer. "Go and do this" is one intention, and a row
+   * that changed the football context and left the player to find the game
+   * would be the shell charging them for its own architecture.
+   *
+   * The story host renders the intent it received into the page header's
+   * `context` slot as `<competition> · <game>`, and it resolves the competition
+   * NAME by looking `intent.contextId` up in `contexts`. So this assertion also
+   * proves the id round-tripped: a mapper that had joined on a display name
+   * would put the wrong competition's name here, in a row that looked correct.
+   */
+  test('takes the player to the competition AND the game in one press', async ({
+    page,
+  }) => {
+    await open(page, 'four-1440')
+
+    // `:visible`, because EVERY OPENER EXISTS TWICE — a rail copy and a bar
+    // copy, one of which is `display: none` at any width. `.first()` picks
+    // whichever is earlier in the document, which at some widths is the hidden
+    // one. The suite already records this twin as a real defect class.
+    await page.locator('[data-vnext-attention="control"]:visible').first().click()
+    const rows = page.locator('[role="dialog"] [data-urgency]')
+    await rows.first().waitFor()
+
+    // The urgent one first — `attentionElsewhere` orders by urgency, and the
+    // world's urgent item is Euro 2028's Match Predictor, not the SPFL's
+    // Championship, which is the one that appears first in the model's array.
+    await expect(rows.first()).toContainText('Euro 2028')
+    await expect(rows.first()).toContainText('Match Predictor')
+    await rows.first().click()
+
+    const header = page.locator('[data-vnext-shell] header')
+    await expect(header).toContainText('Euro 2028 · Match Predictor')
+    // The football context moved with it: the masthead now says the competition
+    // the player was sent to, not the one they pressed from.
+    await expect(header).not.toContainText('Premier League · 2026/27')
+  })
+
+  test('names the competition and the game apart on every row', async ({ page }) => {
+    // The three dimensions rule, measured where it is visible. A row reading
+    // "Euro 2028 Predictor" would be a competition and a game collapsed into
+    // one thing, which is the failure the model exists to prevent.
+    await open(page, 'four-375')
+    await page.locator('[data-vnext-attention="control"]:visible').first().click()
+    const rows = page.locator('[role="dialog"] [data-urgency]')
+    await rows.first().waitFor()
+
+    const boxes = await rows.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const context = node.querySelector('[class*="rowContext"]')
+        const game = node.querySelector('[class*="rowGame"]')
+        return {
+          contextTop: context?.getBoundingClientRect().top ?? 0,
+          gameTop: game?.getBoundingClientRect().top ?? 0,
+          contextText: context?.textContent ?? '',
+          gameText: game?.textContent ?? '',
+        }
+      }),
+    )
+    expect(boxes.length).toBeGreaterThan(0)
+    for (const box of boxes) {
+      // Two separate lines, not one run-together label.
+      expect(box.gameTop).toBeGreaterThan(box.contextTop)
+      expect(box.contextText.length).toBeGreaterThan(0)
+      expect(box.gameText.length).toBeGreaterThan(0)
+      // The competition's name does not appear inside the game line.
+      expect(box.gameText).not.toContain(box.contextText)
+    }
+  })
 })
 
 /* ========================================================================== *

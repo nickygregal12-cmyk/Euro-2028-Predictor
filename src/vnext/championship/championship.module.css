@@ -59,6 +59,23 @@
   background-color: var(--vnext-accent-veil);
 }
 
+/* The verdict and the draw fact, stacked. Two facts of different weights, so
+   the block spaces them rather than the page treating them as siblings. */
+.standingBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+/* THE DRAW FACT IS QUIETER THAN THE VERDICT, on purpose. It is permanently
+   true once a seed is dealt and never retracts, so given the same weight it
+   reads as a current status beside a verdict that contradicts it. */
+.standingNote {
+  margin: 0;
+  padding-inline: var(--vnext-space-4);
+  color: var(--vnext-text-muted);
+}
+
 .trophy {
   /* AN SVG SIZED IN `em`, NOT A GLYPH. It was an emoji, which the design system
      forbids and which rendered as a different typeface on every platform. The

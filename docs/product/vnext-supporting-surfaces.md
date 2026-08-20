@@ -283,25 +283,62 @@ From the contract, and from the two debts carried out of Stage 12:
 - **No production routing cutover.** That is Stage 14.
 - **No admin redesign.**
 - **No papering over an absent backend capability.** Stage 12 carried two owed
-  backend items into this stage (`config/vnext-programme.json` → `carriedDebt`).
-  Neither may be worked around in presentation here, and the attention/action
-  surface in particular *"must only claim event classes the backend can actually
-  produce."*
+  backend items into this stage (`config/vnext-programme.json`). Neither was
+  worked around in presentation here; **both were written as migrations in
+  Stage 14** (contracts 207 and 208) and are now under `resolvedDebt`. The
+  attention/action surface's rule stands unchanged: it *"must only claim event
+  classes the backend can actually produce."*
 
 ### 6.1 Two things this stage deliberately left, named rather than implied
 
-**The rest of `/account`'s settings.** The matrix defines the row as "settings,
-follow/unfollow, favourite team". Follow and favourite are answered elsewhere by
-design — Discovery owns the follow control, because it holds the read that knows
-the current state, and the favourite is competition-scoped. Of the settings
-proper, **sign out is built** and changing an email address and the
-reminder-emails toggle are **not**. The split is a cutover judgement rather than
-a preference: a player can go a season without either of the latter two, and a
-cutover that shipped no way to sign out would strand every shared device. The
-page heads no "Settings" section it cannot fill, and a test asserts it does not.
+**The rest of `/account`'s settings. BUILT IN STAGE 14 — see below.** The matrix
+defines the row as "settings, follow/unfollow, favourite team". Follow and
+favourite are answered elsewhere by design — Discovery owns the follow control,
+because it holds the read that knows the current state, and the favourite is
+competition-scoped. Of the settings proper, **sign out was built** and changing
+an email address and the reminder-emails toggle were **not**. The split was a
+cutover judgement rather than a preference: a player can go a season without
+either of the latter two, and a cutover that shipped no way to sign out would
+strand every shared device. The page headed no "Settings" section it could not
+fill, and a test asserted it did not.
 
-**The action/attention centre.** `buildShellModel` sets `attention: []` for
-every connected screen, and that is the decision rather than an oversight. The
+### Stage 14 filled it, and the rule about not heading an empty section stands
+
+A cutover cannot leave a player unable to change their own name, password or
+email address, or unable to reach an administrator. So `You` now carries all of
+it — **as a capability list rather than as the legacy layout**:
+
+| capability | where it went | authority |
+| --- | --- | --- |
+| display name | a ROW under "Your details" stating the current name, opening a sheet | `updateMyDisplayName` + `checkDisplayName`, run in the screen |
+| password | the same, one sheet of its own | `updatePassword` |
+| email address | the same, and the row names BOTH addresses while one is pending | `updateEmail` + `getSessionEmailState` |
+| reminder emails | a SWITCH that saves on one press and moves back if the write refuses | `fetchMyAccount` + `updateReminderEmails` |
+| privacy / what others can see | a short block at the bottom of `You`, where the question is asked | contract 151's reveal boundary, stated as three facts |
+| contact admin | a real link where `VITE_SUPPORT_EMAIL` is configured, a stated absence where it is not | `buildAdminSupportHref` |
+| sign out | unchanged | the auth provider, via the host |
+
+**What was deliberately NOT copied.** The legacy page opens four forms at once
+down one column. Here a row STATES what it holds — which is most of what a visit
+is for — and opens a sheet only when a player wants to change it; one sheet does
+one job, because three fields behind one backdrop is the legacy page with a
+scrim in front of it; and the preference is a switch, because a one-tap choice
+behind a form and a Save button is a one-tap choice made into a task.
+
+**The empty-section rule is kept, not dropped.** A host that supplies no writes
+gets no "Your details" section at all, and the settings panel has its own
+`unavailable` case separate from follows and history — where the profile read
+fails the switch is NOT drawn off, because `false` would be a stored decision
+shown to a player who never made it.
+
+**Desktop is a composition, not the phone stack widened.** At and above 700px
+the page is two columns with two subjects — the person on the left (details,
+privacy, the way out) and their football on the right (follows, seasons) — with
+the areas assigned in CSS so the phone keeps its own reading order.
+
+**The action/attention centre. BUILT IN STAGE 14 — see the note at the end of
+this sub-section.** `buildShellModel` set `attention: []` for every connected
+screen, and that was the decision rather than an oversight. The
 stage contract scopes this work as "once its backend coverage is truthful
 enough", and the predicate's own wording is the test:
 
@@ -348,6 +385,37 @@ for it, and the loss is real: `/play` exists because "a player should never have
 to choose a competition merely to discover what needs done", and vNext Home is
 competition-scoped, so at cutover a player with games in two competitions has
 nothing that tells them about the second.
+
+### Built, in Stage 14, exactly as costed above
+
+| piece | where |
+| --- | --- |
+| the id carried through the inbox | `InboxAction.tournamentId`, `PlayInboxEntry.tournamentId`, and `PlayInbox.unreadable` is now `{tournamentId, competitionName}` |
+| the mapper | `src/vnext/integration/shell/buildShellAttention.ts` — pure, `PlayInbox → ShellAttentionItem[]` |
+| the source | `ShellSource.elsewhere`: the player's competitions AND the inbox, because the shell drops an item naming a competition it holds no context for |
+| the acquisition | `src/vnext/integration/shell/useVNextShellElsewhere.ts`, over `useGlobalPlayInbox` |
+| the coverage | `tests/vnext/shellAttention.test.ts` (16 cases) and two browser cases in `e2e/vnext-shell.spec.ts` |
+
+**No display-name join anywhere.** `InboxAction.key` used to be built from
+`competitionName`, so two competitions sharing a display name — two seasons of
+one competition, which is legal — produced colliding keys and a mapper written
+against it could only have sent the player to whichever it matched first. The
+key is now built from the tournament id and the test suite carries that exact
+fixture.
+
+**Two of three urgencies, said out loud.** `live` is never emitted, because
+nothing in the inbox reports a match in play. Emitting `urgent` and `soon` is
+the honest subset rather than a strained third.
+
+**Settled actions are never attention.** `presentPlayInbox`'s `settled` list is
+"done, waiting or settled"; an attention layer reporting a finished matchweek
+would be a notification feed.
+
+**It is OPTIONAL and the cost is why.** `useGlobalPlayInbox` issues one
+play-context read plus up to three game reads *per competition*. A host that
+called it per page would pay that on every navigation, so `shellElsewhere` is a
+prop on every connected screen, defaults to the one-competition shape, and is
+meant to be supplied once by the host that owns the shell across routes.
 
 ---
 
@@ -440,7 +508,7 @@ Item by item, with what discharges it.
 | New-user onboarding → competition/game entry is coherent | Met | §8. The journey and the hub it hands off to are one visual system, and the hub is the surface where the three games are peers |
 | Account/discovery/help/error states no longer fall back accidentally to an unrelated visual system | Met | §4 was the defect; `VNextAccountScreen` answers `kind: 'account'`, and the shared `src/vnext/states/` module carries a REQUIRED `destination` so a failing page never mislabels where the player is |
 | Action/attention UI only claims event classes the backend can produce | Met | §5.5 — no rejoin control exists in any world, because `competition_is_running` is revoked from `authenticated`; the surface states the rule and never a verdict |
-| No legally blocked or absent backend capability is papered over | Met | The two carried debts (`config/vnext-programme.json` → `carriedDebt`) are stated, not worked around: the elimination read and contract 120's membership lookup remain another session's backend work |
+| No legally blocked or absent backend capability is papered over | Met | The two carried debts were stated rather than worked around, and were closed in Stage 14 by contracts 207 and 208 (`config/vnext-programme.json` → `resolvedDebt`) |
 | Exact-head tests / browser / CI and independent review are green | Browser evidence exists; the rest is tracked on the pull request | `e2e/vnext-supporting.spec.ts` measures all five surfaces in a real engine — 34 checks for sideways scroll, clipped text, 44px targets and the one-main-one-h1 contract, plus the hub's no-promotion rule. It earned its place immediately: it found the onboarding club chips at 41px on a phone, which no jsdom test can see |
 
 ### `…/games/match-predictor/standings` — ABSORB, and it is absorbed

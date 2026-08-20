@@ -1,5 +1,7 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router'
+import { buildAdminSupportHref } from '../features/account/accountSupport'
+import { useSite } from '../app/site/SiteProvider'
 import { VNextAccountScreen } from '../vnext/integration/account/VNextAccountScreen'
 import type { ShellIntent } from '../vnext/models/shell'
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
@@ -25,13 +27,18 @@ import styles from './VNextHomePreview.module.css'
  *   B. does contract 161 return a season with a null slug — an archived season
  *      whose row must offer no button?
  *
- * ============================ IT READS AND DOES NOT WRITE ===============
+ * ============================ IT WRITES. REALLY. ========================
  *
- * Every read here is a read. `setCompetitionFollow`, `setPinnedRival` and
- * `setOnboardingProgress` all exist beside the preferences read and NONE of
- * them is reachable from this page — the surface emits `open-season` and
- * nothing else. If a write is ever wired in, this docblock gains the warning
- * Stage 12's Championship harness carries, and the page gains a visible one.
+ * **PRESSING SAVE IN A SHEET HERE CHANGES YOUR REAL ACCOUNT.** Your display
+ * name, your password and your email address are the live ones, and the
+ * reminder-email switch stores a real preference. The email change sends a real
+ * confirmation to the address you type.
+ *
+ * That is the same warning `/dev/vnext-lms` carries for a pick that cannot be
+ * taken back, and it is on the page as well as in this docblock. What is still
+ * NOT reachable from here: `setCompetitionFollow`, `setPinnedRival` and
+ * `setOnboardingProgress`, which belong to Discovery and to the season
+ * surfaces.
  *
  * ============================ IT IS `/dev` AND NOT A ROUTE ==============
  *
@@ -62,10 +69,28 @@ function AccountHarness({
   readonly theme: VNextThemeSetting
   readonly onTheme: (theme: VNextThemeSetting) => void
 }) {
-  const { userId, displayName, loading, signOut } = useAuth()
+  const { userId, displayName, loading, signOut, refreshProfile } = useAuth()
+  const site = useSite()
   const [note, setNote] = useState('')
   const onShellIntent = useShellIntentHost(setNote)
   const navigate = useNavigate()
+
+  // THE HOST BUILDS THE SUPPORT LINK, because the subject names the product and
+  // the body carries the player's own address — the site brand and the session,
+  // neither of which a presentation module may reach.
+  // `VITE_SUPPORT_EMAIL` is the same environment value the production account
+  // page reads, and `buildAdminSupportHref` returns `null` for an unset or
+  // malformed one — which is what produces the surface's stated absence rather
+  // than a dead link.
+  const supportHref = useMemo(
+    () =>
+      buildAdminSupportHref(
+        import.meta.env.VITE_SUPPORT_EMAIL,
+        null,
+        site.brand.productName,
+      ),
+    [site.brand.productName],
+  )
 
   return (
     <div className={styles.page}>
@@ -78,7 +103,13 @@ function AccountHarness({
           <code> get_my_season_history</code> and contract 147
           <code> get_published_weekly_seasons</code>, and renders the Stage 13
           surface unchanged. Not a product route, and every call it makes is a
-          read.
+          read, apart from the four writes named below.
+        </p>
+        <p className={styles.note}>
+          <strong>This page WRITES.</strong> The sheets under “Your details”
+          change your real display name, password and email address, and the
+          reminder switch stores a real preference. Changing the address sends a
+          real confirmation email to whatever you type.
         </p>
         <p className={styles.note}>
           <strong>The state worth looking for is an unnameable follow.</strong>{' '}
@@ -94,6 +125,10 @@ function AccountHarness({
         userId={userId}
         authLoading={loading}
         displayName={displayName}
+        supportHref={supportHref}
+        // A NAME THE AUTH PROVIDER CACHES. Changing it here without this leaves
+        // the shell's own account control showing the old one until a reload.
+        onSaved={refreshProfile}
         theme={theme}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {

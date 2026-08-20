@@ -8,6 +8,7 @@ import type {
   SeasonRivalrySide,
 } from '../../../services/supabase/seasonRivalryModel'
 import type {
+  PinPanel,
   PlayerAccuracy,
   PlayerProfileDetail,
   PlayerProfileModel,
@@ -256,5 +257,30 @@ export function buildPlayerProfileModel(source: PlayerProfileSource): PlayerProf
     profile: profilePanel(source),
     rankHistory: rankHistoryPanel(source),
     rivalry: rivalryPanel(source),
+    pin: pinPanelOf(source),
   }
+}
+
+/**
+ * WHETHER A PIN MAY BE OFFERED AT ALL, AND WHETHER IT IS SET.
+ *
+ * THE PROFILE READ SUCCEEDING IS THE PERMISSION. `set_pinned_rival` requires
+ * `season_player_reach = 'profile'` — a shared private league — and contract
+ * 151's profile read requires exactly the same thing. So a control drawn where
+ * `profile.kind === 'profile'` is a control the write will accept, and one
+ * drawn anywhere else would be an offer the server declines. Nothing here
+ * evaluates the boundary; it reads the answer another read already gave.
+ *
+ * SELF IS `not-offered` AND NOT AN ERROR. `set_pinned_rival` raises `23514`
+ * for it in terms — "You cannot pin yourself as a rival" — so the page simply
+ * has no control on its own profile.
+ */
+function pinPanelOf(source: PlayerProfileSource): PinPanel {
+  if (source.pinned === null) return { kind: 'not-offered' }
+  if (source.target.isYou) return { kind: 'not-offered' }
+  // Not entered, refused, or the read failed: no profile, so no reach to pin
+  // with. `unavailable` is reserved for "the pin state itself is unknown".
+  if (source.profile.kind !== 'ok') return { kind: 'not-offered' }
+  if (source.pinned.kind !== 'ok') return { kind: 'unavailable' }
+  return source.pinned.pinned ? { kind: 'pinned' } : { kind: 'not-pinned' }
 }

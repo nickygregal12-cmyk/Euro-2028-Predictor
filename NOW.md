@@ -13,8 +13,8 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **206** | latest `20260819110000_same_season_player_profile.sql` |
-| Development hosted | **205** | at `20260819100000_cup_bracket_seed_initial_phase.sql`, verified `2026-08-19T11:30:00.000Z`, fast-lane run `32246603342` |
+| Repository | **208** | latest `20260819130000_cup_bracket_outcome_and_knockout_stage.sql` |
+| Development hosted | **208** | at `20260819130000_cup_bracket_outcome_and_knockout_stage.sql`, verified `2026-08-19T23:32:57.276619Z`, fast-lane run `32312618799` |
 | Production | **205** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 1 — `20260819110000_same_season_player_profile.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
-**Next free contract number:** 207. Check open pull requests
+**Next free contract number:** 209. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

@@ -4,7 +4,20 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { VNextAccount } from '../../src/vnext/account/VNextAccount'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { accountScenarioNames, accountScenarios, shellScenarios } from '../../src/vnext/fixtures'
+import type { AccountActions } from '../../src/vnext/account/VNextAccount'
 import type { AccountPageModel } from '../../src/vnext/models/account'
+
+/** A host that can do everything, so a case can be about the page. */
+function allActions(over: Partial<AccountActions> = {}): AccountActions {
+  const ok = async () => ({ ok: true }) as const
+  return {
+    setDisplayName: ok,
+    setPassword: ok,
+    setEmail: ok,
+    setReminderEmails: ok,
+    ...over,
+  }
+}
 
 function renderAccount(
   model: AccountPageModel,
@@ -12,6 +25,7 @@ function renderAccount(
     onRetry?: () => void
     refreshing?: boolean
     onIntent?: (intent: { kind: string }) => void
+    actions?: AccountActions
     theme?: 'system' | 'dark' | 'light'
   } = {},
 ) {
@@ -261,13 +275,210 @@ describe('signing out', () => {
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
   })
 
-  it('is the only settings action the page claims to have', () => {
-    // The route matrix's `/account` also names changing an email address and
-    // the reminder-emails toggle. Neither is built, and the page must not
-    // imply otherwise by heading a Settings section it cannot fill.
+  it('heads no details section a host supplied no writes for', () => {
+    // Stage 13's rule, kept now that the section can be filled: a host that
+    // cannot perform a write gets no control for it and no heading over the
+    // space where one would be. An empty "Your details" is worse than none.
     renderAccount(accountScenarios.ordinary, { onIntent: vi.fn() })
+    expect(document.querySelector('[data-vnext-zone="settings"]')).toBeNull()
     const page = screen.getByRole('main').textContent ?? ''
-    expect(page).not.toMatch(/change email|reminder emails|settings/i)
+    expect(page).not.toMatch(/reminder emails|display name|change your/i)
+  })
+})
+
+/* ==========================================================================
+   YOUR DETAILS — capability parity without the legacy layout
+   ========================================================================== */
+
+describe('the details a player can change', () => {
+  it('states what each one holds now, rather than opening a form for it', () => {
+    // WHY THIS IS THE ASSERTION. The legacy page opens four forms at once, and
+    // a player who came to check which address their emails go to has to read
+    // past three empty inputs to find out. A row STATES the value.
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    const panel = zone('settings')!
+    expect(within(panel).getByText('ada@example.test')).toBeInTheDocument()
+    expect(within(panel).getByText('Ada Lovelace')).toBeInTheDocument()
+    // And no form is open until one is asked for.
+    expect(document.querySelector('[data-vnext-zone="settings-sheet"]')).toBeNull()
+    expect(within(panel).queryByRole('textbox')).toBeNull()
+  })
+
+  it('opens ONE sheet about ONE thing', () => {
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    fireEvent.click(document.querySelector('[data-vnext-setting="email"]') as HTMLElement)
+
+    const sheet = zone('settings-sheet')!
+    expect(sheet.dataset.job).toBe('email')
+    // ONE field. Three behind one backdrop would be the legacy page with a
+    // scrim in front of it.
+    expect(within(sheet).getAllByRole('textbox')).toHaveLength(1)
+    expect(screen.getByRole('dialog', { name: 'Change your email address' })).toBeInTheDocument()
+  })
+
+  it('names the button after the job, never just "Save"', () => {
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    fireEvent.click(document.querySelector('[data-vnext-setting="password"]') as HTMLElement)
+    const sheet = zone('settings-sheet')!
+    expect(within(sheet).getByRole('button', { name: 'Change password' })).toBeInTheDocument()
+    expect(within(sheet).queryByRole('button', { name: 'Save' })).toBeNull()
+  })
+
+  it('states the constraints it was given before the server refuses them', () => {
+    // A constraint learnt from an error is a constraint the page could have
+    // told you — the Penalty Number lane's rule, applied to a form.
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    fireEvent.click(document.querySelector('[data-vnext-setting="password"]') as HTMLElement)
+    const sheet = zone('settings-sheet')!
+    expect(sheet.textContent).toContain('At least 6 characters')
+
+    const [password, repeat] = within(sheet).getAllByLabelText(/password/i)
+    fireEvent.change(password!, { target: { value: 'abc' } })
+    expect(sheet.textContent).toContain('Use at least 6 characters')
+    expect(within(sheet).getByRole('button', { name: 'Change password' })).toBeDisabled()
+
+    fireEvent.change(password!, { target: { value: 'abcdefg' } })
+    fireEvent.change(repeat!, { target: { value: 'abcdefh' } })
+    expect(sheet.textContent).toContain('do not match')
+    expect(within(sheet).getByRole('button', { name: 'Change password' })).toBeDisabled()
+
+    fireEvent.change(repeat!, { target: { value: 'abcdefg' } })
+    expect(within(sheet).getByRole('button', { name: 'Change password' })).toBeEnabled()
+  })
+
+  it('caps the display name at the length the model stated', () => {
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    fireEvent.click(document.querySelector('[data-vnext-setting="display-name"]') as HTMLElement)
+    const field = within(zone('settings-sheet')!).getByRole('textbox') as HTMLInputElement
+    expect(field.maxLength).toBe(40)
+  })
+
+  it('repeats the write’s own refusal rather than inventing a reason', async () => {
+    // The display-name moderation policy is a list mirrored by a database
+    // trigger. A copy here would be the copy that went stale, so the page has
+    // none and prints what the write said.
+    renderAccount(accountScenarios.ordinary, {
+      actions: allActions({
+        setDisplayName: async () => ({ ok: false, message: 'That display name isn’t available.' }),
+      }),
+    })
+    fireEvent.click(document.querySelector('[data-vnext-setting="display-name"]') as HTMLElement)
+    const sheet = zone('settings-sheet')!
+    fireEvent.change(within(sheet).getByRole('textbox'), { target: { value: 'admin' } })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Change display name' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('That display name isn’t available.')
+  })
+
+  it('says an email change is not finished until the link is opened', async () => {
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    fireEvent.click(document.querySelector('[data-vnext-setting="email"]') as HTMLElement)
+    const sheet = zone('settings-sheet')!
+    fireEvent.change(within(sheet).getByRole('textbox'), { target: { value: 'new@example.test' } })
+    fireEvent.click(within(sheet).getByRole('button', { name: 'Change email address' }))
+
+    const done = await screen.findByRole('status')
+    expect(done).toHaveTextContent('Nothing changes until you open it')
+  })
+
+  it('names BOTH addresses while one is waiting to be confirmed', () => {
+    // Saying only the old one tells the player their change did not happen;
+    // saying only the new one tells them it has.
+    renderAccount(accountScenarios.emailPending, { actions: allActions() })
+    expect(zone('settings')!.textContent).toContain('ada@example.test')
+    expect(zone('email-pending')!.textContent).toContain('ada.lovelace@example.test')
+  })
+
+  it('offers only the writes the host can perform', () => {
+    renderAccount(accountScenarios.ordinary, {
+      actions: { setEmail: async () => ({ ok: true }) },
+    })
+    expect(document.querySelector('[data-vnext-setting="email"]')).not.toBeNull()
+    expect(document.querySelector('[data-vnext-setting="password"]')).toBeNull()
+    expect(document.querySelector('[data-vnext-setting="display-name"]')).toBeNull()
+    expect(zone('reminder-emails')).toBeNull()
+  })
+
+  it('draws no details at all when the read behind them failed', () => {
+    // AND ABOVE ALL NO SWITCH. `false` would be a stored decision shown to a
+    // player who never made it.
+    renderAccount(accountScenarios.settingsUnavailable, { actions: allActions() })
+    expect(zone('reminder-emails')).toBeNull()
+    expect(document.querySelector('[data-vnext-setting="email"]')).toBeNull()
+    expect(zone('settings')!.textContent).toContain('could not load your account details')
+    // The other panels are untouched: three reads, three outcomes.
+    expect(zone('follows')).not.toBeNull()
+    expect(zone('history')).not.toBeNull()
+  })
+
+  it('draws no email row when the session could not say what the address is', () => {
+    renderAccount(accountScenarios.emailUnknown, { actions: allActions() })
+    expect(document.querySelector('[data-vnext-setting="email"]')).toBeNull()
+    expect(zone('email-unknown')).not.toBeNull()
+    // The rest of the panel is real, because the profile read answered.
+    expect(document.querySelector('[data-vnext-setting="display-name"]')).not.toBeNull()
+    expect(zone('reminder-emails')).not.toBeNull()
+  })
+})
+
+describe('the reminder preference is a switch', () => {
+  it('is a switch in the position the server stored', () => {
+    renderAccount(accountScenarios.ordinary, { actions: allActions() })
+    expect(screen.getByRole('switch', { name: /Reminder emails/ })).toBeChecked()
+    render(<></>)
+  })
+
+  it('draws the other stored position too', () => {
+    renderAccount(accountScenarios.remindersOff, { actions: allActions() })
+    expect(screen.getByRole('switch', { name: /Reminder emails/ })).not.toBeChecked()
+  })
+
+  it('saves on one press, with no sheet and no Save button', async () => {
+    const setReminderEmails = vi.fn(async () => ({ ok: true }) as const)
+    renderAccount(accountScenarios.ordinary, { actions: allActions({ setReminderEmails }) })
+
+    fireEvent.click(screen.getByRole('switch', { name: /Reminder emails/ }))
+    expect(setReminderEmails).toHaveBeenCalledWith(false)
+    expect(document.querySelector('[data-vnext-zone="settings-sheet"]')).toBeNull()
+  })
+
+  it('MOVES BACK when the write refuses, because its position is a claim', async () => {
+    // THE ASSERTION THIS BLOCK EXISTS FOR. A switch left where the player put
+    // it after the server declined is a switch lying about a stored preference,
+    // and the player has no way to find out.
+    renderAccount(accountScenarios.ordinary, {
+      actions: allActions({
+        setReminderEmails: async () => ({ ok: false, message: 'We could not save that.' }),
+      }),
+    })
+    const control = screen.getByRole('switch', { name: /Reminder emails/ })
+    expect(control).toBeChecked()
+
+    fireEvent.click(control)
+    expect(await screen.findByRole('alert')).toHaveTextContent('We could not save that.')
+    expect(screen.getByRole('switch', { name: /Reminder emails/ })).toBeChecked()
+  })
+})
+
+describe('privacy and help', () => {
+  it('says what other players can see, on the page about you', () => {
+    renderAccount(accountScenarios.ordinary)
+    const panel = zone('privacy')!
+    expect(panel.textContent).toContain('only you can see your predictions')
+    expect(panel.textContent).toContain('After lock')
+    expect(panel.textContent).toContain('never shown on a profile')
+  })
+
+  it('offers a real way to reach an administrator where one is configured', () => {
+    renderAccount(accountScenarios.ordinary)
+    const link = zone('support') as HTMLAnchorElement
+    expect(link.getAttribute('href')).toContain('mailto:')
+  })
+
+  it('states the absence rather than drawing a control that does nothing', () => {
+    renderAccount(accountScenarios.noSupportAddress)
+    expect(zone('support')).toBeNull()
+    expect(zone('support-absent')!.textContent).toContain('No administrator address')
   })
 })
 

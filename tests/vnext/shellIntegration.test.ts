@@ -42,6 +42,9 @@ const SOURCE: ShellSource = {
   playerName: 'Rowan Adeyemi',
   outstandingPredictions: 3,
   canNavigateAway: true,
+  // The page-scoped host's answer, and the shape every case below asserts
+  // against. The cross-competition cases build their own source.
+  elsewhere: null,
 }
 
 describe('the connected shell states one football context', () => {

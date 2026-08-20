@@ -371,6 +371,10 @@ blockquotes could never show without being read end to end.
 
 > **Contract 202 stage effect:** a private AI Lab forecast is refreshed as results arrive instead of being frozen at the first run of the week. No hub build-stage scope changes.
 
+> **Contract 208 stage effect:** the bracket read states the caller's own outcome and stops offering a split fixture as a knockout tie. No hub build-stage scope changes.
+
+> **Contract 207 stage effect:** the phase read answers about a split entrant's current group rather than their pre-split one. No hub build-stage scope changes.
+
 > **Contract 205 stage effect:** the bracket read becomes usable for a Championship that has reached its split. No hub build-stage scope changes.
 
 > **Contract 204 stage effect:** the AI Lab dashboards scope their exclusion count to the league asked about. No hub build-stage scope changes.

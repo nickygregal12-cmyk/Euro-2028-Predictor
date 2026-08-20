@@ -38,11 +38,19 @@
  * offered as a knockout tie, with `round_size` and `bracket_slot` null, and a
  * Penalty Number lane for a fixture that has none.
  *
- * So this decoder filters `stage` to `playoff | knockout` itself. That is a
- * workaround for a defect in the read, not a design choice, and it is reported
- * upstream rather than buried: see `docs/product/vnext-championship.md`. It is
- * deliberately NOT the same defect contract 205 fixed — that one raised an
- * exception; this one returns the wrong rows.
+ * So this decoder filters `stage` to `playoff | knockout` itself.
+ *
+ * **CONTRACT 207 FIXED THE READ.** All four predicates now name the knockout
+ * stages, so the server no longer offers a split fixture as a tie. The filter
+ * below is therefore no longer the authority — it is the second of two, kept
+ * because the environments this code runs against reach a contract on their own
+ * schedule and a decoder that trusted an unapplied migration would render the
+ * defect. It may be retired once every hosted environment is at 208 or later;
+ * until then, deleting it would restore the bug in exactly the environments
+ * that still have it.
+ *
+ * It was deliberately NOT the same defect contract 205 fixed — that one raised
+ * an exception; this one returned the wrong rows.
  *
  * ============================ AN EMPTY SEAT IS NOT A PERSON CALLED "PLAYER"
  * ========================================================================
@@ -63,6 +71,27 @@
  * object, so the same situation arrives as `{user_id: null, display_name:
  * 'Player'}`. Same concept, two encodings; both are handled.
  */
+
+/**
+ * THE CALLER'S OWN STANDING IN THE COMPETITION, and the only authority for it.
+ *
+ * `bonus_competition_entrants.outcome`, constrained to these five values since
+ * the games platform was founded and added to this read by contract 208. Before
+ * that, no season Championship read returned elimination at all: a surface
+ * could say who WON and not who was OUT, and every available inference — lost
+ * your only tie, hold no later fixture, hold no seed — is conclusive-looking
+ * and wrong whenever the competition has not finished eliminating.
+ *
+ * `null` IS A REAL ANSWER AND MEANS "THIS DATABASE HAS NOT REACHED CONTRACT
+ * 208". It is not `active`: an environment that cannot say must not be decoded
+ * into the one outcome that reads as "you are fine".
+ */
+type CupEntrantOutcome =
+  | 'active'
+  | 'qualified'
+  | 'survived'
+  | 'eliminated'
+  | 'champion'
 
 type CupTieDecision =
   | 'points'
@@ -113,6 +142,11 @@ export type SeasonCupBracket =
       entered: true
       /** The database's own clock, returned so a caller need not read one. */
       serverNow: string
+      /**
+       * Contract 208. The caller's own outcome, verbatim, or `null` where the
+       * database predates the contract. Never derived here and never defaulted.
+       */
+      yourOutcome: CupEntrantOutcome | null
       format: {
         kind: string | null
         producesKnockout: boolean
@@ -185,6 +219,22 @@ function side(value: unknown): CupSeatSide {
   return { userId, displayName: stringOrNull(row.display_name) ?? 'Player' }
 }
 
+/**
+ * The stored vocabulary, or `null`. An unrecognised string is `null` rather
+ * than a guess: the constraint is the server's and a value this code has not
+ * been taught about is a value it must not classify.
+ */
+function entrantOutcome(value: unknown): CupEntrantOutcome | null {
+  const text = stringOrNull(value)
+  return text === 'active' ||
+    text === 'qualified' ||
+    text === 'survived' ||
+    text === 'eliminated' ||
+    text === 'champion'
+    ? text
+    : null
+}
+
 function decision(value: unknown): CupTieDecision | null {
   const text = stringOrNull(value)
   return text === 'points' ||
@@ -241,6 +291,10 @@ export function mapSeasonCupBracket(payload: unknown): SeasonCupBracket {
   return {
     entered: true,
     serverNow: stringOrNull(root.server_now) ?? '',
+    // CARRIED, NEVER COMPUTED. There is no fallback to `champion` when
+    // `root.champion` names the caller, and none to `eliminated` when they hold
+    // no live tie — both would be this file becoming a settlement authority.
+    yourOutcome: entrantOutcome(root.your_outcome),
     format: {
       kind: stringOrNull(format.kind),
       producesKnockout: format.produces_knockout === true,

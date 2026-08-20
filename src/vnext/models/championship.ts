@@ -56,25 +56,39 @@
  * false`; this type makes the same promise structurally rather than by
  * discipline.
  *
- * ============================ ELIMINATION IS ABSENT, AND SAYS SO =========
+ * ============================ ELIMINATION IS NOW STATED (CONTRACT 207) ====
  *
  * The predicate asks for eliminated/champion/no-action-required states to be
- * complete. `champion` is present. **`eliminated` is returned by NO season
- * Championship read** — not by contract 193, 133, 167 or 120; the
- * authoritative fact lives in `bonus_competition_entrants.outcome` and reaches
- * a player only through the private-container workspace read.
+ * complete. For four stages `champion` was present and **`eliminated` was
+ * returned by NO season Championship read** — not by contract 193, 133, 167 or
+ * 120 — so this surface said nothing at all about survival and the gap was
+ * carried as a backend debt rather than reinterpreted as completeness.
  *
- * The tempting inference — "a settled tie you did not win, with no later tie"
- * — is exactly the derivation the headline predicate forbids, and it is wrong
- * in the cases that matter: a player can lose a tie in a competition that has
- * not finished eliminating.
+ * **Contract 208 closed it.** `get_season_cup_bracket` now returns
+ * `your_outcome`: `bonus_competition_entrants.outcome`, verbatim, for the
+ * caller alone. `ChampionshipStanding` is that column and nothing else.
  *
- * So `ChampionshipStanding` has a `not-stated` case, and it is an ORDINARY
- * ANSWER rather than a failure. Where an authority supplies elimination the
- * surface says it; where none does, the surface stays silent. **That asymmetry
- * is recorded as a backend capability gap and does NOT satisfy the predicate**
- * — closing it needs the smallest appropriate read delta before Stage 12 can
- * be called complete.
+ * NOTHING HERE INFERS IT, AND THAT HAS NOT CHANGED. Not from a lost tie, not
+ * from an absent later fixture, not from a missing seed, and not from the
+ * bracket naming somebody else as champion. Each looks conclusive and each is
+ * wrong whenever a competition has not finished eliminating.
+ *
+ * `not-stated` SURVIVES AND STILL MEANS SOMETHING. It is now "this database
+ * has not reached contract 208", which is a real state for as long as a hosted
+ * environment sits behind the repository. It is NOT decoded as `active`:
+ * "cannot say" and "you are fine" are different sentences.
+ *
+ * ============================ AND `qualified` IS NO LONGER THE DRAW =======
+ *
+ * The standing used to be filled from contract 193's `you_qualified`, which is
+ * `exists(member.seed is not null)` — a fact about the DRAW that becomes true
+ * when a seed is dealt and never becomes false when the player is knocked out.
+ * It sat in the verdict slot and read as a current status.
+ *
+ * The two are now separate fields, because they are separate facts: the
+ * competition's verdict is `standing`, and being seeded is
+ * `seededIntoKnockout`. `qualified` in the standing is now the SETTLEMENT
+ * vocabulary's own `qualified`, which is a different claim from the same word.
  */
 
 /* ==========================================================================
@@ -110,12 +124,25 @@ export type TieDecision =
 /**
  * WHAT THE COMPETITION SAYS THE PLAYER IS.
  *
- * `not-stated` IS THE COMMON CASE TODAY and is not a failure — see the header.
- * It means no read on this page carried the fact, and the surface must
- * therefore say nothing about elimination rather than working it out.
+ * The five values are `bonus_competition_entrants.outcome`'s own check
+ * constraint, carried whole. `survived` belongs to it too — it is the
+ * vocabulary a Last Man Standing competition writes into the same column — and
+ * it is listed here because the type mirrors the constraint rather than the
+ * subset one game happens to use. A surface that met it and had no copy for it
+ * would render nothing at all.
+ *
+ * `not-stated` means the read carried no outcome: a database behind contract
+ * 208. It is not a failure and it is not `active`.
  */
+export type ChampionshipOutcome =
+  | 'active'
+  | 'qualified'
+  | 'survived'
+  | 'eliminated'
+  | 'champion'
+
 export type ChampionshipStanding =
-  | { readonly kind: 'stated'; readonly outcome: 'active' | 'qualified' | 'eliminated' | 'champion' }
+  | { readonly kind: 'stated'; readonly outcome: ChampionshipOutcome }
   | { readonly kind: 'not-stated' }
 
 /* ==========================================================================
@@ -319,6 +346,12 @@ export type ChampionshipPageModel = {
   readonly generatedAt: string
   readonly context: ChampionshipContext
   readonly standing: ChampionshipStanding
+  /**
+   * Contract 193's `you_qualified` — `exists(member.seed is not null)`. A fact
+   * about the DRAW, kept out of `standing` because it never retracts: a player
+   * knocked out in round one is still, truthfully, someone who was seeded.
+   */
+  readonly seededIntoKnockout: boolean
   readonly bracket: BracketPanel
   /** Contract 167's answer, which resolves independently of the bracket's. */
   readonly groups: GroupPanel

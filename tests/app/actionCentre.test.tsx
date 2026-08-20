@@ -9,7 +9,7 @@ import type { PersistentPlayerAction } from '../../src/services/supabase/playerA
 
 function action(overrides: Partial<InboxAction> = {}): InboxAction {
   return {
-    key: 'k1', kind: 'match_predictor', competitionName: 'Premier League', seasonLabel: '2026/27',
+    key: 'k1', kind: 'match_predictor', tournamentId: 't-premier-league', competitionName: 'Premier League', seasonLabel: '2026/27',
     gameName: 'Match Predictor', title: 'Predict matchweek 4', locksAt: '2026-08-15T11:30:00Z',
     href: '/competitions/premier-league/2026-27/games/match-predictor', outstanding: true, ...overrides,
   }
@@ -93,7 +93,11 @@ describe('the action centre panel', () => {
   })
 
   it('names a competition it could not check rather than implying all is well', () => {
-    open(inbox({ unreadable: ['Scottish Premiership'] }))
+    open(
+      inbox({
+        unreadable: [{ tournamentId: 't-scottish', competitionName: 'Scottish Premiership' }],
+      }),
+    )
     expect(screen.getByText(/Scottish Premiership/)).toBeInTheDocument()
     expect(screen.getByText(/missing from this list/)).toBeInTheDocument()
   })

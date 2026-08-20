@@ -4,6 +4,8 @@ import type { MatchesIntent, MatchesView } from '../../matches/VNextMatches'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
+import type { ShellSourceElsewhere } from '../shell/shellSource'
+import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
 import { buildMatchesModel } from './buildMatchesModel'
 import {
   useVNextMatchesSource,
@@ -38,11 +40,20 @@ import { VNextMatchesLoading, VNextMatchesNotice } from './VNextMatchesStates'
  */
 export type VNextMatchesScreenProps = VNextMatchesSourceInput & {
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * The player's OTHER competitions and what is waiting in them, where the host
+   * loads them. `undefined` is the one-competition shape: the shell states this
+   * page's competition and says nothing about any other, which is what a
+   * page-scoped host should pass. The inbox costs reads per competition, so it
+   * belongs to a host that mounts it once above the pages.
+   */
+  readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   readonly onIntent?: ((intent: MatchesIntent) => void) | undefined
   readonly initialView?: MatchesView | undefined
 }
 
 export function VNextMatchesScreen(props: VNextMatchesScreenProps) {
+  const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextMatchesSource(props)
 
   // The mapping is pure, so it is memoised on the source rather than re-run on
@@ -72,9 +83,10 @@ export function VNextMatchesScreen(props: VNextMatchesScreenProps) {
             // outstanding. `null` is "this page cannot say" and is never zero.
             outstandingPredictions: null,
             canNavigateAway: props.onShellIntent !== undefined,
+            elsewhere,
           })
         : null,
-    [state, model, props.onShellIntent],
+    [state, model, props.onShellIntent, elsewhere],
   )
 
   const body =

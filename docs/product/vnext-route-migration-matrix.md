@@ -84,6 +84,15 @@ first.
 `STAGE` names the vNext stage that owns the work. `—` means no vNext work is
 implied.
 
+> **A capability-based companion exists.** This page is keyed on the ROUTE and
+> is a dated Stage 7.5 deliverable. Stage 14 needs the other question — *what
+> can a player still DO, and where did each of those things go?* — because a
+> route may disappear while every useful capability survives, and that is the
+> point. That matrix is
+> [`vnext-cutover-capability-parity.md`](vnext-cutover-capability-parity.md),
+> and it is the live one: a capability whose class changes is edited there, and
+> this page is not rewritten to look current.
+
 ---
 
 ## 1. Global signed-in destinations

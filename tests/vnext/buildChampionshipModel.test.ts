@@ -64,6 +64,10 @@ function entered(over: Partial<Extract<SeasonCupBracket, { entered: true }>> = {
   return {
     entered: true as const,
     serverNow: NOW,
+    // Contract 208. `null` is the pre-208 database and is the honest default
+    // here: the standing tests below assert what the surface says when the read
+    // states nothing, which is still a state a hosted environment can be in.
+    yourOutcome: null,
     format: { kind: 'groups', producesKnockout: true, groupStageLastSequence: 20 },
     qualification: { drawn: true, qualifiers: 4, yourSeed: 2, youQualified: true },
     myTie: {
@@ -349,8 +353,19 @@ describe('elimination is never derived', () => {
     })
   }
 
-  it('states champion after the final, where there is no live tie left', () => {
+  it('does NOT call the reader champion from the bracket alone', () => {
+    // CONTRACT 207 CHANGED THIS ON PURPOSE, and it is a narrowing rather than
+    // a loss. Winning the final is a fact about a FIXTURE; being the champion
+    // is a fact about an ENTRANT, and the settlement job is what moves one to
+    // the other. The bracket panel still announces the winner — see the
+    // `champion` assertion below — but the VERDICT slot now speaks only for the
+    // settlement authority's own column.
     const model = buildChampionshipModel(source(afterTheFinal()))
+    expect(model.standing).toEqual({ kind: 'not-stated' })
+  })
+
+  it('states champion when the settlement authority says so', () => {
+    const model = buildChampionshipModel(source(afterTheFinal({ yourOutcome: 'champion' })))
     expect(model.standing).toEqual({ kind: 'stated', outcome: 'champion' })
   })
 
@@ -374,20 +389,62 @@ describe('elimination is never derived', () => {
         }),
       ),
     )
-    // They qualified, which the server did say. They are not the champion.
-    expect(model.standing).toEqual({ kind: 'stated', outcome: 'qualified' })
+    // Somebody else's name on the final says nothing about this reader, and
+    // the read carried no outcome here.
+    expect(model.standing).toEqual({ kind: 'not-stated' })
   })
 
-  it('never produces `eliminated`, because no read supplies it', () => {
+  it('carries every one of the five stored outcomes, verbatim', () => {
+    // The check constraint's whole vocabulary, so a mapper that recognised four
+    // and dropped the fifth fails here rather than on a live competition.
+    for (const outcome of ['active', 'qualified', 'survived', 'eliminated', 'champion'] as const) {
+      const model = buildChampionshipModel(source(entered({ yourOutcome: outcome })))
+      expect(model.standing).toEqual({ kind: 'stated', outcome })
+    }
+  })
+
+  it('never produces an outcome the read did not carry', () => {
+    // THE ASSERTION THIS BLOCK EXISTS FOR, unchanged in intent and now stronger
+    // in reach: every world below is shaped like a defeat or a victory, and
+    // none of them carries an outcome. The standing must be silent in all of
+    // them, which is what stops a fallback creeping back in the day a hosted
+    // environment sits behind contract 208.
     const worlds = [
       entered({ qualification: { drawn: true, qualifiers: 4, yourSeed: null, youQualified: false } }),
       entered({ bracket: [seat({ winnerUserId: 'u-2', decidedBy: 'walkover', isYours: true })] }),
       entered({ champion: { userId: 'u-2', displayName: 'Bo' }, qualification: { drawn: true, qualifiers: 4, yourSeed: null, youQualified: false } }),
+      afterTheFinal(),
     ]
     for (const world of worlds) {
-      const model = buildChampionshipModel(source(world))
-      expect(model.standing.kind === 'stated' && model.standing.outcome).not.toBe('eliminated')
+      expect(buildChampionshipModel(source(world)).standing).toEqual({ kind: 'not-stated' })
     }
+  })
+
+  it('keeps the draw fact out of the verdict and still reports it', () => {
+    // `you_qualified` is `exists(member.seed is not null)` — permanently true
+    // once a seed is dealt and never false again. An eliminated player who was
+    // seeded is BOTH, and the model has a field for each.
+    const model = buildChampionshipModel(
+      source(
+        entered({
+          yourOutcome: 'eliminated',
+          qualification: { drawn: true, qualifiers: 4, yourSeed: 2, youQualified: true },
+        }),
+      ),
+    )
+    expect(model.standing).toEqual({ kind: 'stated', outcome: 'eliminated' })
+    expect(model.seededIntoKnockout).toBe(true)
+  })
+
+  it('reports no draw fact where the server did not state one', () => {
+    const model = buildChampionshipModel(
+      source(
+        entered({
+          qualification: { drawn: false, qualifiers: 0, yourSeed: null, youQualified: false },
+        }),
+      ),
+    )
+    expect(model.seededIntoKnockout).toBe(false)
   })
 })
 

@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import axe from 'axe-core'
 import type { ReactElement } from 'react'
@@ -76,14 +76,29 @@ async function scan(ui: ReactElement) {
  * gives the document two `<main>` landmarks. The world reaches the page's own
  * shell through the provider, exactly as the connected integration does.
  */
-function renderProfile(model: PlayerProfileModel, onRetry?: () => void, refreshing = false) {
+function renderProfile(
+  model: PlayerProfileModel,
+  onRetry?: () => void,
+  refreshing = false,
+  actions?: { setPinned?: (pinned: boolean) => Promise<{ ok: boolean; message?: string }> },
+) {
   return render(
     <VNextRoot>
       <VNextShellProvider model={shellScenarios.oneCompetition}>
-        <VNextPlayerProfile model={model} onRetry={onRetry} refreshing={refreshing} />
+        <VNextPlayerProfile
+          model={model}
+          onRetry={onRetry}
+          refreshing={refreshing}
+          actions={actions}
+        />
       </VNextShellProvider>
     </VNextRoot>,
   )
+}
+
+/** A host that accepts every pin, so a case can be about the control. */
+const PINS: { setPinned: (pinned: boolean) => Promise<{ ok: boolean }> } = {
+  setPinned: async () => ({ ok: true }),
 }
 
 function panel(zone: string): HTMLElement {
@@ -553,5 +568,83 @@ describe('the accessibility floor', () => {
         </VNextShellProvider>
       </VNextRoot>,
     )
+  })
+})
+
+/* ==========================================================================
+   PINNING A RIVAL — a note to self, over an authority that already exists
+   ========================================================================== */
+
+describe('pinning a rival', () => {
+  it('offers it where the profile read answered, and says which state it is in', () => {
+    renderProfile(playerProfileScenarios.openProfile, undefined, false, PINS)
+    const control = screen.getByRole('button', { name: 'Pin as a rival' })
+    // `aria-pressed` carries the toggle; the LABEL carries it too, because a
+    // button reading "Pin" in both positions leaves a sighted reader guessing.
+    expect(control).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('says so where it is already pinned', () => {
+    renderProfile(playerProfileScenarios.alreadyPinned, undefined, false, PINS)
+    const control = screen.getByRole('button', { name: 'Pinned as a rival' })
+    expect(control).toHaveAttribute('aria-pressed', 'true')
+  })
+
+  it('draws nothing on the reader’s own profile', () => {
+    // `set_pinned_rival` raises in terms for it, so there is no control rather
+    // than one that errors.
+    renderProfile(playerProfileScenarios.yourOwnProfile, undefined, false, PINS)
+    expect(document.querySelector('[data-vnext-zone="pin"]')).toBeNull()
+  })
+
+  it('draws nothing where the profile was refused', () => {
+    // The reader may still plot and compare — contract 192 needs only
+    // `compare` — and may not pin. The narrower boundary governs the control,
+    // and the two panels that ARE permitted stay.
+    renderProfile(playerProfileScenarios.profileRefused, undefined, false, PINS)
+    expect(document.querySelector('[data-vnext-zone="pin"]')).toBeNull()
+    expect(panel('rank')).not.toBeNull()
+  })
+
+  it('draws nothing where the host supplied no write', () => {
+    renderProfile(playerProfileScenarios.openProfile)
+    expect(document.querySelector('[data-vnext-zone="pin"]')).toBeNull()
+  })
+
+  it('draws no control at all when the read that knows the state failed', () => {
+    // THE ASSERTION THIS BLOCK EXISTS FOR. A button drawn off from a failed
+    // read toggles the WRONG WAY the first time it is pressed.
+    renderProfile(playerProfileScenarios.pinUnavailable, undefined, false, PINS)
+    expect(document.querySelector('[data-vnext-zone="pin"]')).toBeNull()
+    expect(document.querySelector('[data-vnext-zone="pin-unavailable"]')).not.toBeNull()
+  })
+
+  it('asks the host to store it, and does not decide the boundary itself', async () => {
+    const setPinned = vi.fn(async () => ({ ok: true }))
+    renderProfile(playerProfileScenarios.openProfile, undefined, false, { setPinned })
+    fireEvent.click(screen.getByRole('button', { name: 'Pin as a rival' }))
+    expect(setPinned).toHaveBeenCalledWith(true)
+    expect(await screen.findByRole('button', { name: 'Pinned as a rival' })).toBeInTheDocument()
+  })
+
+  it('moves back when the write refuses, and says why', async () => {
+    renderProfile(playerProfileScenarios.openProfile, undefined, false, {
+      setPinned: async () => ({ ok: false, message: 'You can only pin a rival you share a private league with' }),
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Pin as a rival' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('share a private league')
+    expect(screen.getByRole('button', { name: 'Pin as a rival' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    )
+  })
+
+  it('is a note to self and never a social graph', () => {
+    // The rule the whole feature turns on: nothing counts followers, nothing
+    // names other people who pinned this player, nothing is reciprocal, and no
+    // permission is claimed to have been granted.
+    renderProfile(playerProfileScenarios.alreadyPinned, undefined, false, PINS)
+    const page = screen.getByRole('main').textContent ?? ''
+    expect(page).not.toMatch(/follower|following|friend|request|mutual/i)
   })
 })

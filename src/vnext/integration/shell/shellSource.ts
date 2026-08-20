@@ -1,3 +1,5 @@
+import type { PlayInbox } from '../../../features/hub/playInboxModel'
+
 /**
  * WHAT THE REAL APPLICATION CAN HONESTLY TELL THE SHELL TODAY.
  *
@@ -19,12 +21,40 @@
  *   answers something close for the legacy `/play` surface; whether that is the
  *   right shape for this contract is a Stage 8+ question.
  *
- * SO THE CONNECTED SHELL STATES ONE FOOTBALL CONTEXT AND SAYS NOTHING ELSE.
- * That is not a degraded mode: it is the ONE-COMPETITION SHAPE, which is the
- * shape the architecture is most confident about and the one the brief makes a
- * binding contract. No switcher, no shortcut group, no attention layer, no Jump
- * — because the application has not claimed there is anything to switch to,
- * anything waiting, or anything to jump past.
+ * ======================== AND WHAT STAGE 14 CLOSED ========================
+ *
+ * The last two paragraphs were the answer for Stages 8 to 13 and they are no
+ * longer the whole answer.
+ *
+ * The route matrix ABSORBS `/play`, and `/play` exists because *"a player
+ * should never have to choose a competition merely to discover what needs
+ * doing"*. vNext Home is competition-scoped, so a cutover that shipped an empty
+ * attention layer would ship that loss with a citation for it. `elsewhere`
+ * below is the answer, and it needed NO new capability: `useGlobalPlayInbox`
+ * builds the cross-competition inbox in production today, from each
+ * competition's own week, and `features/hub/playerCompetitions.ts` holds the
+ * player's list with the tournament id beside each competition.
+ *
+ * **IT IS OPTIONAL, AND `null` IS STILL A REAL ANSWER.** A host that does not
+ * load the inbox passes `null` and gets exactly the one-competition shape this
+ * file has always described — no switcher, no shortcut group, no attention
+ * layer, no Jump. That is what a page-scoped host should pass, because the
+ * inbox costs one play-context read plus up to three game reads PER
+ * COMPETITION, and a host that mounted it per page would pay that on every
+ * navigation. It belongs to a shell-level host, mounted once.
+ *
+ * ======================== AND WHAT IS STILL DEFERRED, ON PURPOSE ==========
+ *
+ * **`games` AND `leagues` ON A CONTEXT STAY EMPTY, AND THAT IS THE DECISION.**
+ * They are the input to Jump and to the shortcut group, which the shell only
+ * draws when a context carries them — so an empty list draws nothing rather
+ * than drawing something inert. Filling them honestly would mean a games read
+ * and a private-league read PER COMPETITION, on top of the inbox's own
+ * per-competition cost, and Stage 14's contract asks for a safe cutover rather
+ * than a wider one. Jump is an OPTIONAL accelerator in the selected
+ * architecture (`docs/product/vnext-shell-ia.md`), not part of its minimum, so
+ * deferring it removes no journey: every game and every league is still one
+ * press away through the destination that owns it.
  *
  * NOTHING HERE IS FABRICATED TO MAKE AN AFFORDANCE LIGHT UP. A second context
  * invented from the catalogue, or an attention item derived from a deadline in
@@ -45,6 +75,40 @@ export type ShellSourceCompetition = {
    * arriving by the only honest route: from the model that already chose it.
    */
   readonly colours: { readonly primary: string; readonly accent: string } | null
+}
+
+/**
+ * One competition the player is relevant to, as `PlayerCompetitions` states it.
+ *
+ * `tournamentId` IS THE IDENTITY AND `name` IS A LABEL. It is the same
+ * discipline `LeaguePlayer` records for a person: two seasons of one
+ * competition share a display name, and a shell that keyed a context on the
+ * name would switch the player to the wrong one.
+ */
+type ShellSourceOtherCompetition = {
+  readonly tournamentId: string
+  readonly name: string
+  readonly seasonLabel: string
+}
+
+/**
+ * WHAT IS WAITING IN THE PLAYER'S OTHER COMPETITIONS.
+ *
+ * The two halves arrive together because neither is usable alone: the inbox
+ * says what needs doing and names the competition by id, and `competitions`
+ * is what turns that id into a context the shell can draw and switch to.
+ * `attentionElsewhere` drops any item naming a competition the shell holds no
+ * context for, so an inbox without its competition list renders nothing.
+ */
+export type ShellSourceElsewhere = {
+  /** Every competition the player is relevant to, the player's own list. */
+  readonly competitions: readonly ShellSourceOtherCompetition[]
+  /**
+   * The cross-competition action inbox, or `null` where it has not landed yet.
+   * `null` is "still loading or failed", and it is not an empty inbox — an
+   * empty one means "nothing is waiting", which is a claim.
+   */
+  readonly inbox: PlayInbox | null
 }
 
 export type ShellSource = {
@@ -86,4 +150,13 @@ export type ShellSource = {
    * inert one.
    */
   readonly canNavigateAway: boolean
+  /**
+   * The player's OTHER competitions and what is waiting in them.
+   *
+   * `null` is the one-competition shape and is what a page-scoped host passes:
+   * the shell then states one football context and says nothing else, exactly
+   * as it did from Stage 8 to Stage 13. See this file's header for why that is
+   * a cost decision rather than a capability gap.
+   */
+  readonly elsewhere: ShellSourceElsewhere | null
 }

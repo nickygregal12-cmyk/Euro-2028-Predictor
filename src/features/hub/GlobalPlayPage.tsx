@@ -175,7 +175,7 @@ export function GlobalPlayPage() {
 
       {inbox.unreadable.length > 0 ? (
         <Alert variant="warning" title="Some competitions could not be read">
-          {inbox.unreadable.join(', ')} could not be checked just now, so anything they need is
+          {inbox.unreadable.map((entry) => entry.competitionName).join(', ')} could not be checked just now, so anything they need is
           missing from this list. Nothing has changed in them.
         </Alert>
       ) : null}
