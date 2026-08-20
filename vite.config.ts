@@ -10,8 +10,23 @@ import {
   robotsTxt,
   sitemapXml,
 } from './src/app/site/documentMetadata.js'
+import {
+  SITE_ICON_FILES,
+  faviconSvg,
+  siteIconDirectory,
+  siteIconMark,
+} from './src/app/site/siteIcons.js'
 import { sitePublicMetadata } from './src/app/site/sitePublicMetadata.js'
 import { resolveSiteVariant } from './src/app/site/siteVariant.js'
+import {
+  WEB_APP_MANIFEST_PATH,
+  webAppManifestJson,
+} from './src/app/site/webAppManifest.js'
+import {
+  SERVICE_WORKER_PATH,
+  buildServiceWorker,
+  serviceWorkerVersion,
+} from './src/app/pwa/buildServiceWorker.js'
 
 interface DeploymentContract {
   readonly contractVersion: number
@@ -85,18 +100,36 @@ export default defineConfig(({ command, mode }) => {
     },
   )
 
+  // Development only; a production build emits the same set from
+  // `generateBundle`. Built once per config so the middleware closes over it.
+  const siteFile = siteFileFactory(site)
+
   return {
     plugins: [
       react(),
       {
-        // The document head, sitemap and robots.txt are per-site facts, so
-        // they are generated from one authority rather than authored three
-        // times. See src/app/site/documentMetadata.ts for why an unconfigured
-        // origin emits nothing rather than a default.
+        // The document head, sitemap, robots.txt, icons and web app manifest
+        // are per-site facts, so they are generated from one authority rather
+        // than authored several times. See src/app/site/documentMetadata.ts for
+        // why an unconfigured origin emits nothing rather than a default, and
+        // src/app/site/siteIcons.ts for why the icons cannot live in public/.
         name: 'euro28-site-metadata',
         transformIndexHtml: {
           order: 'pre' as const,
           handler: (html: string) => applyDocumentHead(html, site),
+        },
+        // `public/` is copied verbatim into BOTH deployments, so the per-variant
+        // files are served from here in development too. Without this the dev
+        // server 404s the manifest and every icon, and the install experience
+        // would be untestable anywhere but a production build.
+        configureServer(server) {
+          server.middlewares.use((request, response, next) => {
+            const path = (request.url ?? '').split('?')[0]
+            const bytes = siteFile(path)
+            if (!bytes) return next()
+            response.setHeader('Content-Type', contentTypeOf(path))
+            response.end(bytes)
+          })
         },
         generateBundle() {
           const sitemap = sitemapXml(site)
@@ -104,6 +137,93 @@ export default defineConfig(({ command, mode }) => {
             this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemap })
           }
           this.emitFile({ type: 'asset', fileName: 'robots.txt', source: robotsTxt(site) })
+          this.emitFile({
+            type: 'asset',
+            fileName: WEB_APP_MANIFEST_PATH.slice(1),
+            source: webAppManifestJson(site),
+          })
+          this.emitFile({
+            type: 'asset',
+            fileName: 'favicon.svg',
+            source: faviconSvg(siteIconMark(site.variant), site.productName),
+          })
+          for (const file of SITE_ICON_FILES) {
+            this.emitFile({
+              type: 'asset',
+              fileName: file,
+              source: readFileSync(
+                fileURLToPath(
+                  new URL(
+                    `./${siteIconDirectory(site.variant)}/${file}`,
+                    import.meta.url,
+                  ),
+                ),
+              ),
+            })
+          }
+        },
+      },
+      {
+        // ADR 0016 Phase 1's offline shell. AFTER the site-metadata plugin, so
+        // the manifest and favicon it precaches have already been emitted.
+        //
+        // WHAT GOES IN, AND WHY IT IS NOT EVERYTHING. The document, the entry
+        // chunk and its static imports, the single stylesheet and the latin
+        // font subsets — the bytes a cold start needs before it can render
+        // anything at all. Lazily-imported route chunks are NOT precached:
+        // there are over a hundred of them, most players open a handful in a
+        // week, and an install that downloads the whole application is a worse
+        // trade than a route that has to be online the first time it is opened.
+        // They are cached on first use instead, by the same worker.
+        //
+        // The `latin-ext` font subsets are left out for the same reason: they
+        // exist for accented names the browser requests only when it meets one,
+        // and precaching them adds nearly a hundred kilobytes to every install
+        // for glyphs most matchweeks never show.
+        name: 'euro28-service-worker',
+        // POST, so the single stylesheet exists. Vite's own CSS plugin emits it
+        // during `generateBundle`, which means an ordinary plugin can run
+        // before the asset it needs to name is in the bundle — and a shell
+        // precached without its stylesheet renders unstyled offline.
+        enforce: 'post' as const,
+        async generateBundle(_options, bundle) {
+          const files = Object.values(bundle)
+          const entry = files.find(
+            (file) => file.type === 'chunk' && file.isEntry,
+          )
+          const staticGraph = new Set<string>()
+          const walk = (fileName: string) => {
+            if (staticGraph.has(fileName)) return
+            staticGraph.add(fileName)
+            const chunk = bundle[fileName]
+            if (chunk && chunk.type === 'chunk') chunk.imports.forEach(walk)
+          }
+          if (entry) walk(entry.fileName)
+
+          const precache = [
+            '/index.html',
+            ...[...staticGraph].map((fileName) => `/${fileName}`),
+            ...files
+              .filter(
+                (file) =>
+                  file.type === 'asset' &&
+                  (file.fileName.endsWith('.css') ||
+                    (file.fileName.endsWith('.woff2') &&
+                      !file.fileName.includes('latin-ext'))),
+              )
+              .map((file) => `/${file.fileName}`),
+            WEB_APP_MANIFEST_PATH,
+            '/favicon.svg',
+          ].sort()
+
+          this.emitFile({
+            type: 'asset',
+            fileName: SERVICE_WORKER_PATH.slice(1),
+            source: await buildServiceWorker({
+              precache,
+              version: serviceWorkerVersion(releaseMetadata.commit, precache),
+            }),
+          })
         },
       },
       {
@@ -267,4 +387,37 @@ function projectRefFromUrl(value: string): string | null {
   } catch {
     return null
   }
+}
+
+/**
+ * One of this build's generated per-site files, or null for any other path.
+ *
+ * Development only. A production build emits these through `generateBundle`;
+ * this is the same set answered from memory so `npm run dev`, the Playwright
+ * suites and a local install test all see the site they are building rather
+ * than a 404.
+ */
+function siteFileFactory(
+  site: ReturnType<typeof sitePublicMetadata>,
+): (path: string) => Buffer | string | null {
+  return (path: string) => {
+    if (path === WEB_APP_MANIFEST_PATH) return webAppManifestJson(site)
+    if (path === '/favicon.svg') {
+      return faviconSvg(siteIconMark(site.variant), site.productName)
+    }
+    const file = SITE_ICON_FILES.find((name) => path === `/${name}`)
+    if (!file) return null
+    return readFileSync(
+      fileURLToPath(
+        new URL(`./${siteIconDirectory(site.variant)}/${file}`, import.meta.url),
+      ),
+    )
+  }
+}
+
+function contentTypeOf(path: string): string {
+  if (path.endsWith('.webmanifest')) return 'application/manifest+json'
+  if (path.endsWith('.svg')) return 'image/svg+xml'
+  if (path.endsWith('.ico')) return 'image/x-icon'
+  return 'image/png'
 }

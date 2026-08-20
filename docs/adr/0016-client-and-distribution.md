@@ -1,6 +1,6 @@
 # ADR 0016 — Client and distribution strategy
 
-- **Status:** Accepted direction — unimplemented
+- **Status:** Accepted direction — Phase 1 partially implemented
 - **Date:** 29 July 2026
 
 ## Context
@@ -30,6 +30,57 @@ The layer laws already keep business rules pure in `src/domain/**` and data acce
 **Every routing, authentication-redirect, deep-link and storage decision from now on must work inside a webview**, whether or not the shell exists yet.
 
 > **Clarified by [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026:** one codebase may emit **two domain-specific web deployments** — the weekly platform and Euro 2028 — before any of the phases above begin. The shared delivery pipeline and common application foundations this record depends on are unchanged: two builds of one codebase differing in configuration, one test suite, one deployment of domain logic. The webview constraint above now applies to **two origins rather than one**, which makes it more important rather than less: an authentication redirect or deep link must name which site it means, and the redirect allow-list must carry both production domains (`SITE-006`). Whether the eventual native shell wraps one site or two is not decided here and is not on this record's critical path.
+
+## Implementation progress — 20 August 2026
+
+**Phase 1's installable web application exists; Phase 1's web push does not.** The
+distinction is the whole of this note, because "installable PWA" is routinely
+read as the whole phase and the retention mechanism this record was written for
+is the notification, not the icon.
+
+What landed:
+
+- **A generated web app manifest per deployment.** `src/app/site/webAppManifest.ts`,
+  emitted by `vite.config.ts` beside the sitemap and `robots.txt` and linked from
+  the generated document head. It is generated rather than committed for the same
+  reason the head is: `public/` is copied verbatim into both builds, so one
+  manifest there would install the Hub under the tournament's name.
+- **An icon set per deployment**, in `assets/site-icons/<variant>/`, redrawn from
+  `scripts/og/generate-site-icons.mjs`. `favicon.svg`, `favicon.ico` and
+  `apple-touch-icon.png` left `public/` at the same time: they had been one
+  Euro-branded set shipping to both products, which is the same defect in the
+  strongest possible place — an installed icon outlives the tab.
+- **A conservative service worker and offline shell**, `src/app/pwa/serviceWorker.ts`.
+  It precaches the document, the entry chunk and its static imports, the
+  stylesheet and the latin font subsets; it serves lazily-imported route chunks
+  cache-first once they have been fetched; and it refuses three things by
+  construction — any non-`GET` request, any cross-origin request, and any form of
+  queue, replay or background sync. `tests/app/serviceWorker.test.ts` executes the
+  built artefact against a fake worker scope and asserts each refusal, because a
+  worker that could answer a write is a worker that could report a prediction as
+  saved when the server never saw it.
+- **An install experience and an update flow**, `src/app/pwa/`. Nothing is offered
+  on a first visit; a dismissal is honoured for two months; iOS gets Safari's own
+  steps rather than a button pretending to be an install API; and a new build
+  waits rather than taking over a page, so no player is refreshed mid-edit.
+
+What this does NOT close, named rather than implied:
+
+- **Web push.** No `PushManager` subscription, no VAPID keys, no delivery. The
+  weekly deadline notification this record calls "the single strongest retention
+  mechanism available" is still theoretical, and the phase is not finished
+  without it. `docs/ops/notification-delivery.md` remains the authority.
+- **Offline reads.** Nothing private is cached, deliberately, so an offline
+  application shows its own failure and empty states rather than yesterday's
+  standings. Labelling stale competitive data is a product decision nobody has
+  made, and inventing one here would have created a second reveal rule.
+- **A route not yet visited is not available offline.** Only the shell is
+  precached. Opening an unvisited surface with no connection fails as it always
+  did.
+- **Phases 2 and 3.** No Capacitor shell, no store work, no native anything. The
+  webview constraints this record imposes on routing, redirects and deep links
+  are untouched by the above: the manifest's `start_url` and `scope` are
+  root-relative, so nothing here binds either deployment to an origin.
 
 ## Consequences
 

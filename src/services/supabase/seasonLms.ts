@@ -1,4 +1,8 @@
 import { db } from './client'
+import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../observability/operationFailure'
 import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type { LmsRoundPage, SeasonLmsGateway } from '../../features/season/lmsRoundModel'
 
@@ -153,7 +157,17 @@ export function createSeasonLmsRpcGateway(options: {
         p_team_id: teamId,
         p_expected_version: version,
       })
-      if (error) throw error
+      if (error) {
+        // `C1`. A spent club is a competitive act, and a pick that did not
+        // reach the server is the kind of failure a player reports rather than
+        // one anybody sees. `lmsRefusal` still owns what the PLAYER is told;
+        // this only makes the failure visible to whoever is watching.
+        reportOperationFailure('lms.pick', {
+          outcome: serverCodeOf(error) === 'PT409' ? 'conflict' : 'failed',
+          serverCode: serverCodeOf(error),
+        })
+        throw error
+      }
     },
   }
 }

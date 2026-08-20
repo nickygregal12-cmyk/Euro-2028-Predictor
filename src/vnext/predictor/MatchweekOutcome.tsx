@@ -33,9 +33,20 @@ import styles from './predictor.module.css'
 
 export type MatchweekOutcomeProps = {
   model: PredictorModel
+  /**
+   * Offered ONLY where the integration layer supplied one, so the presentation
+   * lane keeps its rule: this component renders a canvas for nobody and reaches
+   * no service. Without the prop there is no control and nothing changes.
+   *
+   * It sits on the settled outcome and nowhere else, because a settled
+   * matchweek is the only state on this page where there is a result to boast
+   * about. A share control beside an open card would be an invitation to
+   * publish a prediction before its lock.
+   */
+  onShare?: (() => void) | undefined
 }
 
-export function MatchweekOutcome({ model }: MatchweekOutcomeProps) {
+export function MatchweekOutcome({ model, onShare }: MatchweekOutcomeProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { settledPoints, tally } = model
 
@@ -59,6 +70,11 @@ export function MatchweekOutcome({ model }: MatchweekOutcomeProps) {
         </p>
         {model.joker.playedHere ? (
           <p className={typography.caption}>Your Joker doubled this matchweek.</p>
+        ) : null}
+        {onShare ? (
+          <button type="button" className={styles.outcomeShare} onClick={onShare}>
+            Share this matchweek
+          </button>
         ) : null}
       </div>
 

@@ -209,6 +209,11 @@ describe('JavaScript under scripts/', () => {
     // workflow manifest an operator builds the provider environment from, so a
     // type error here would surface as a workflow somebody never created.
     'scripts/list-notification-workflows.mjs',
+    // Arrived clean under JSDoc annotation rather than as a deferred count: it
+    // draws the installed identity of both products, and an unexamined type
+    // error there produces an icon nobody looks at until it is on a home
+    // screen.
+    'scripts/og/generate-site-icons.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',
