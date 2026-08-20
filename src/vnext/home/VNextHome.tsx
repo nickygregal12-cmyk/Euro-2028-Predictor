@@ -5,6 +5,7 @@ import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
 import { SinceYouWereHere } from './SinceYouWereHere'
+import { MatchweekRecap } from './MatchweekRecap'
 import { CompetitionFocus } from './CompetitionFocus'
 import { DecisionHero } from './DecisionHero'
 import { FeaturedMatch } from './FeaturedMatch'
@@ -91,7 +92,28 @@ export function VNextHome({ model }: VNextHomeProps) {
   // emphasis puts no match on the stage, so nothing is withheld from the list.
   const staged =
     emphasis === 'live' ? featured : emphasis === 'decision' ? decision : null
-  const supporting = allMatches.filter((match) => match.id !== staged?.id)
+
+  /*
+   * AND NEITHER IS A RESULT THE RECAP ZONE ALREADY SHOWED.
+   *
+   * "Since you were last here" draws a handful of settled matches at the top of
+   * the page with the reader's own call beside each. Around the Grounds then
+   * draws every settled match again under "Already settled" — so on the one day
+   * the recap zone appears, the page showed the same three results twice, forty
+   * lines apart, with the second copy carrying points the first deliberately
+   * omits. That reads as two different things having happened.
+   *
+   * The rule is the one directly above, applied to a second zone: a match shown
+   * higher up is not repeated lower down. What Around the Grounds keeps is
+   * everything the recap zone did NOT have room for, which is exactly what the
+   * "and N more" line promised was still there.
+   */
+  const alreadyShown = new Set(
+    (model.sinceLastVisit?.results ?? []).map((match) => match.id),
+  )
+  const supporting = allMatches.filter(
+    (match) => match.id !== staged?.id && !alreadyShown.has(match.id),
+  )
 
   return (
     <VNextShell
@@ -163,6 +185,28 @@ export function VNextHome({ model }: VNextHomeProps) {
             <SocialContext model={model} />
           </motion.div>
         )}
+      </motion.div>
+
+      {/*
+        HOW YOU DID, UNDER EVERYTHING THAT IS HAPPENING.
+
+        A BAND RATHER THAN A GRID AREA, deliberately. `.body` places three named
+        areas across three widths and three emphases — nine declarations, each
+        tuned against a specific void the composition used to open — and a
+        fourth area would mean editing all nine to add something that is not
+        football and not an action. The recap is neither, so it sits below the
+        grid at page width in every emphasis, which is also the right reading
+        order: what needs you, what is happening, what happened, then how you
+        did. It renders nothing at all until a matchweek has settled.
+      */}
+      <motion.div
+        className={styles.recapBand}
+        data-vnext-zone="recap-band"
+        variants={rise}
+        initial="hidden"
+        animate="visible"
+      >
+        <MatchweekRecap recap={model.matchweekRecap} />
       </motion.div>
     </VNextShell>
   )

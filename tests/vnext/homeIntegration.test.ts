@@ -1081,3 +1081,118 @@ describe('what finished while the player was away', () => {
     expect(model.sinceLastVisit).toBeNull()
   })
 })
+
+/**
+ * THE MATCHWEEK RECAP — what the last settled matchweek was worth.
+ *
+ * A capability the Hub had and the Competition Deck dropped. It reaches Home
+ * from reads Home already holds, and the questions worth holding are the ones
+ * about WHICH matchweek it describes: a matchweek that has locked but not
+ * settled is not one, and a league whose most recent settled matchweek is a
+ * different one is describing another week entirely.
+ */
+describe('the matchweek recap', () => {
+  const movementFor = (ordinal: number) => ({
+    leagueId: 'lg-1',
+    matchweek: { id: `mw-${ordinal}`, ordinal, label: `Matchweek ${ordinal}` },
+    settled: true,
+    serverNow: NOW,
+    members: [
+      {
+        userId: 'u-1',
+        displayName: 'Aisha Kaur',
+        isSelf: true,
+        pointsBefore: 63,
+        pointsAfter: 84,
+        pointsThisMatchweek: 21,
+        rankBefore: 5,
+        rankAfter: 2,
+        movement: 3,
+        gapToLeaderBefore: 14,
+        gapToLeaderAfter: 8,
+      },
+    ],
+  })
+
+  it('describes the most recent matchweek whose points are banked', () => {
+    // The profile's history leads with Matchweek 4 (21 points) and also holds
+    // Matchweek 5 with null points, which has locked but not settled.
+    const recap = buildHomeModel(source()).matchweekRecap
+
+    expect(recap?.matchweekOrdinal).toBe(4)
+    expect(recap?.points).toBe(21)
+  })
+
+  it('states the season figures the profile read actually answered', () => {
+    const recap = buildHomeModel(source()).matchweekRecap
+
+    expect(recap?.seasonPoints).toBe(84)
+    expect(recap?.seasonRank).toBe(312)
+    expect(recap?.fieldSize).toBe(12490)
+    expect(recap?.exactScores).toBe(6)
+    expect(recap?.correctOutcomes).toBe(22)
+  })
+
+  it('answers null for a player who has not entered', () => {
+    expect(buildHomeModel(source({ profile: profile({ entered: false }) })).matchweekRecap).toBeNull()
+  })
+
+  it('answers null when nothing has settled yet', () => {
+    const nothingSettled = profile({
+      history: [
+        { matchweekId: 'mw-1', ordinal: 1, label: 'Matchweek 1', points: null, jokerPlayed: false, predictions: {} },
+      ],
+    })
+
+    // Locked is not settled. A blank score reported as a recap would be worse
+    // than no recap at all.
+    expect(buildHomeModel(source({ profile: nothingSettled })).matchweekRecap).toBeNull()
+  })
+
+  it('answers null when the profile read did not answer', () => {
+    expect(buildHomeModel(source({ profile: null })).matchweekRecap).toBeNull()
+  })
+
+  it('carries a league that moved over THIS matchweek', () => {
+    const recap = buildHomeModel(
+      source({ leagues: [league({ movement: movementFor(4) })] }),
+    ).matchweekRecap
+
+    expect(recap?.leagues).toHaveLength(1)
+    expect(recap?.leagues[0]?.leagueName).toBe('Work League')
+    // The server's sign, not a subtraction of two ranks here.
+    expect(recap?.leagues[0]?.movement).toBe(3)
+    expect(recap?.leagues[0]?.rankAfter).toBe(2)
+    expect(recap?.leagues[0]?.gapToLeader).toBe(8)
+  })
+
+  it('drops a league whose settled matchweek is a different one', () => {
+    const recap = buildHomeModel(
+      source({ leagues: [league({ movement: movementFor(3) })] }),
+    ).matchweekRecap
+
+    // Matchweek 3's movement beside a Matchweek 4 heading would be a claim
+    // about the wrong week, stated confidently.
+    expect(recap?.leagues).toEqual([])
+  })
+
+  it('drops a league whose movement answer is unsettled', () => {
+    const recap = buildHomeModel(
+      source({
+        leagues: [
+          league({
+            movement: {
+              leagueId: 'lg-1',
+              matchweek: null,
+              settled: false,
+              serverNow: NOW,
+              members: [],
+            },
+          }),
+        ],
+      }),
+    ).matchweekRecap
+
+    expect(recap?.leagues).toEqual([])
+  })
+})

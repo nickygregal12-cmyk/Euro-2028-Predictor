@@ -42,11 +42,13 @@ import type {
   PrivateLeague,
   PrivateLeagueStanding,
   RankMovement,
+  MatchweekRecap,
   RecentPerformance,
   Rival,
   SinceLastVisit,
 } from '../../models/home'
 import { selectSinceLastVisit } from '../../../features/hub/sinceLastVisitModel'
+import { presentMatchweekRecap } from '../../../features/hub/matchweekRecapModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
 
 /**
@@ -767,6 +769,65 @@ function leagueOf(source: HomeSourceLeague): PrivateLeague | null {
 }
 
 /**
+ * THE MATCHWEEK RECAP, from reads Home already holds.
+ *
+ * `presentMatchweekRecap` is the Hub's own rule — which matchweek counts as
+ * settled, which league movements describe THAT matchweek, and which figures
+ * the profile read is allowed to state — imported rather than rewritten. This
+ * function's whole job is to drop the two fields that belong to a router
+ * (`href`) and to a cross-competition list (`competitionKey`), neither of which
+ * a vNext presentation model may carry.
+ *
+ * IT COSTS NO READ. The profile and every league's movement are already in the
+ * source because Home's standing block and league ladder need them.
+ */
+function recapOf(source: HomeSource): MatchweekRecap | null {
+  if (source.profile === null) return null
+
+  const movements = source.leagues
+    .filter((league) => league.movement !== null)
+    .map((league) => ({
+      leagueId: league.id,
+      leagueName: league.name,
+      // Narrowed by the filter above; `movement` is non-null here.
+      movement: league.movement as NonNullable<HomeSourceLeague['movement']>,
+    }))
+
+  const recap = presentMatchweekRecap(
+    source.competition.tournamentId,
+    source.competition.name,
+    // A PLACEHOLDER THE MAPPER THROWS AWAY. The Hub's model carries a route
+    // because the Hub's card is a link; vNext has no router in this lane and
+    // the field is dropped below rather than filled with something plausible.
+    '',
+    source.profile,
+    movements,
+  )
+  if (recap === null) return null
+
+  return {
+    matchweekLabel: recap.matchweekLabel,
+    matchweekOrdinal: recap.matchweekOrdinal,
+    points: recap.points,
+    jokerPlayed: recap.jokerPlayed,
+    seasonPoints: recap.seasonPoints,
+    seasonRank: recap.seasonRank,
+    fieldSize: recap.fieldSize,
+    exactScores: recap.exactScores,
+    correctOutcomes: recap.correctOutcomes,
+    leagues: recap.leagues.map((league) => ({
+      leagueId: league.leagueId,
+      leagueName: league.leagueName,
+      rankBefore: league.rankBefore,
+      rankAfter: league.rankAfter,
+      movement: league.movement,
+      fieldSize: league.fieldSize,
+      gapToLeader: league.gapToLeaderAfter,
+    })),
+  }
+}
+
+/**
  * Who the user is actually racing, from the table they are already looking at.
  *
  * ADJACENCY IS THE SERVER'S ORDER, not a re-sort: the row above the user in the
@@ -924,6 +985,7 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     upcomingMatches,
     recentResults,
     sinceLastVisit,
+    matchweekRecap: recapOf(source),
     recentPerformance: performanceOf(source),
     privateLeagues: leagues.map((entry) => entry.model),
     // Rivals come from the league Home leads with. Every league's adjacent rows
