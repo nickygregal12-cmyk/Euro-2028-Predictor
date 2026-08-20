@@ -79,10 +79,21 @@ describe('the variant route matrix', () => {
     // An inline ternary in the route table would make the ownership
     // unreviewable AND invisible to the title and accessibility sweeps, which
     // read this file as source and understand `element={<X />}`.
+    // ALL FOUR DISPATCHERS ARE NOW REGISTERED THROUGH A FLAG BRANCH RATHER
+    // THAN A VARIANT ONE, and the distinction is the whole point of this test
+    // rather than an exception to it. `/` merged into the competition's Home;
+    // `/play`, `/matches` and `/leagues` are the matrix's `HIDE / ABSORB` rows
+    // and now resolve into the destination that took each job. Every one of
+    // them still RENDERS its dispatcher on the off branch and on the Euro
+    // build, which is what keeps the two products apart — the absorbed rows
+    // hand it to the resolver as `legacy={<X />}` and it renders unchanged
+    // wherever the absorption does not apply.
     for (const element of ['PlayDestination', 'MatchesDestination', 'LeaguesDestination']) {
-      expect(appSource, `App.tsx does not register ${element}`).toContain(
-        `element={<${element} />}`,
-      )
+      expect(appSource, `App.tsx does not render ${element}`).toContain(`<${element} />`)
+      expect(
+        appSource,
+        `${element} is no longer the fallback its own address rolls back to`,
+      ).toContain(`legacy={<${element} />}`)
     }
 
     // `HomeDestination` IS REGISTERED THROUGH A FLAG BRANCH, NOT A VARIANT ONE,

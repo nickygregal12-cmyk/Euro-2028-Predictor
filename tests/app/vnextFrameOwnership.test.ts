@@ -200,10 +200,39 @@ describe('who owns the frame at a given address', () => {
     expect(vNextOwnsFrame('/', HUB)).toBe(true)
   })
 
+  it('surrenders the frame at an absorbed address so an old bookmark does not flash the old product', () => {
+    // These RESOLVE into a vNext destination, some after a membership read, and
+    // the frame around that wait is what the player looks at. Painting the
+    // retired masthead and its five-tab bar and then replacing them is the
+    // flash the cutover exists to remove.
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_HOME', 'true')
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_MATCHES', 'true')
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_LEAGUES', 'true')
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_ACCOUNT', 'true')
+    for (const path of ['/play', '/matches', '/leagues', '/more', '/profile']) {
+      expect(vNextOwnsFrame(path, HUB), path).toBe(true)
+      // …and the tournament build, where the legacy element still renders,
+      // keeps the chrome it needs.
+      expect(vNextOwnsFrame(path, EURO), path).toBe(false)
+    }
+  })
+
+  it('keeps the frame at an absorbed address whose destination is rolled back', () => {
+    // The redirect is gated on the ABSORBING destination's flag, so rolling
+    // that destination back restores the legacy page AND its chrome together.
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_MATCHES', 'false')
+    expect(vNextOwnsFrame('/matches', HUB)).toBe(false)
+  })
+
   it('keeps the frame on the addresses the cutover did not touch', () => {
     vi.stubEnv('VITE_UI_FOOTBALL_HUB_HOME', 'true')
     vi.stubEnv('VITE_UI_FOOTBALL_HUB_MATCHES', 'true')
-    for (const path of ['/play', '/more', '/profile', '/matches', '/leagues']) {
+    for (const path of [
+      '/about',
+      '/fixtures',
+      '/admin/results',
+      '/competitions/premier-league/2026-27/tv',
+    ]) {
       expect(vNextOwnsFrame(path, HUB), path).toBe(false)
     }
   })

@@ -184,6 +184,53 @@ const VNextJoinDestination = FOOTBALL_HUB_INVITE_BUILT
       })),
     )
   : null
+/**
+ * THE ABSORBED ADDRESSES, IN ONE LAZY MODULE.
+ *
+ * `absorbedAddresses.tsx` resolves `/play`, `/matches`, `/leagues`, `/more`,
+ * `/more/scoring`, `/profile`, the competition-scoped `play` and the Match
+ * Predictor standings to whatever surface took their job. Each row below still
+ * gates on the ABSORBING destination's own flag, so rolling a destination back
+ * restores the legacy address with it; the module is imported once and folds
+ * out entirely when every cutover flag is off.
+ */
+const Absorbed = ANY_FOOTBALL_HUB_BUILT
+  ? {
+      play: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({ default: m.VNextPlayAbsorbed })),
+      ),
+      matches: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextMatchesAbsorbed,
+        })),
+      ),
+      leagues: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextLeaguesAbsorbed,
+        })),
+      ),
+      account: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextAccountAbsorbed,
+        })),
+      ),
+      scoring: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextScoringAbsorbed,
+        })),
+      ),
+      competitionPlay: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextCompetitionPlayAbsorbed,
+        })),
+      ),
+      standings: lazy(() =>
+        import('./app/vnext/absorbedAddresses').then((m) => ({
+          default: m.VNextStandingsAbsorbed,
+        })),
+      ),
+    }
+  : null
 const VNextPredictorDestination = FOOTBALL_HUB_PREDICTOR_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
@@ -716,10 +763,59 @@ export default function App() {
                           )
                         }
                       />
-                      <Route path={weeklyRoutes.play} element={<PlayDestination />} />
-                      <Route path={weeklyRoutes.matches} element={<MatchesDestination />} />
-                      <Route path={weeklyRoutes.leagues} element={<LeaguesDestination />} />
-                      <Route path={weeklyRoutes.more} element={<MorePage />} />
+                      {/* THE THREE ABSORBED GLOBAL ADDRESSES. The matrix gave
+                          each of them `HIDE / ABSORB` and left the technical
+                          half to this stage; `absorbedAddresses.tsx` carries
+                          the reasoning for each. They still RESOLVE — every
+                          bookmark keeps working — and they resolve into the
+                          product the player is already in rather than into a
+                          parallel one in the retired design. The dispatchers
+                          stay mounted on the off branch and on the Euro build,
+                          where these paths are the tournament's own. */}
+                      <Route
+                        path={weeklyRoutes.play}
+                        element={
+                          isNextUi('footballHubHome') && Absorbed ? (
+                            <Absorbed.play legacy={<PlayDestination />} />
+                          ) : (
+                            <PlayDestination />
+                          )
+                        }
+                      />
+                      <Route
+                        path={weeklyRoutes.matches}
+                        element={
+                          isNextUi('footballHubMatches') && Absorbed ? (
+                            <Absorbed.matches legacy={<MatchesDestination />} />
+                          ) : (
+                            <MatchesDestination />
+                          )
+                        }
+                      />
+                      <Route
+                        path={weeklyRoutes.leagues}
+                        element={
+                          isNextUi('footballHubLeagues') && Absorbed ? (
+                            <Absorbed.leagues legacy={<LeaguesDestination />} />
+                          ) : (
+                            <LeaguesDestination />
+                          )
+                        }
+                      />
+                      {/* `More` was three link rows — Account, Profile and How
+                          the games work — and every one of them is somewhere
+                          else now. A directory page is a symptom of a
+                          navigation that ran out of slots. */}
+                      <Route
+                        path={weeklyRoutes.more}
+                        element={
+                          isNextUi('footballHubAccount') && Absorbed ? (
+                            <Absorbed.account legacy={<MorePage />} />
+                          ) : (
+                            <MorePage />
+                          )
+                        }
+                      />
 
                       {/* THE DOMESTIC WEEKLY TREE, AND WHOSE IT IS. The
                           catalogue and every `/competitions/:c/:s/**` surface
@@ -755,9 +851,18 @@ export default function App() {
                             )
                           }
                         />
+                        {/* The same argument as `/play`, one level down: two
+                            "what needs doing" surfaces at two scopes is one too
+                            many, and Home is the one with an address. */}
                         <Route
                           path={weeklyRoutePatterns.play}
-                          element={<SeasonPlayRoute />}
+                          element={
+                            isNextUi('footballHubHome') && Absorbed ? (
+                              <Absorbed.competitionPlay legacy={<SeasonPlayRoute />} />
+                            ) : (
+                              <SeasonPlayRoute />
+                            )
+                          }
                         />
                         {/* STAGE 14, THE FIRST CUTOVER VERTICAL. The choice is
                             made HERE, at the routing layer, and not inside
@@ -816,9 +921,21 @@ export default function App() {
                             )
                           }
                         />
+                        {/* A game's standings and a private league's table
+                            answer one question at two scopes, and Stage 9 built
+                            both as SCOPES inside Leagues because their rank
+                            authorities differ and neither is a filter of the
+                            other. The season table is the default scope there,
+                            so this is an absorption rather than a loss. */}
                         <Route
                           path={weeklyRoutePatterns.matchPredictorStandings}
-                          element={<SeasonStandingsRoute />}
+                          element={
+                            isNextUi('footballHubLeagues') && Absorbed ? (
+                              <Absorbed.standings legacy={<SeasonStandingsRoute />} />
+                            ) : (
+                              <SeasonStandingsRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.lms}
@@ -899,7 +1016,20 @@ export default function App() {
                       <Route path="/fixtures" element={<Navigate to={weeklyRoutes.matches} replace />} />
                       <Route path="/league" element={<Navigate to={weeklyRoutes.leagues} replace />} />
                       <Route path="/more/points" element={<Navigate to="/profile" replace />} />
-                      <Route path="/more/scoring" element={<ScoringRulesPage />} />
+                      {/* Rules belong beside the game they govern: `VNextGames`
+                          renders `VNextGameRules` for the competition's own
+                          games, so this is a section of Games rather than a
+                          page reached from a directory. */}
+                      <Route
+                        path="/more/scoring"
+                        element={
+                          isNextUi('footballHubGames') && Absorbed ? (
+                            <Absorbed.scoring legacy={<ScoringRulesPage />} />
+                          ) : (
+                            <ScoringRulesPage />
+                          )
+                        }
+                      />
                       {/* The PLATFORM profile, outside the tournament boundary
                           below. It used to be the Euro tournament profile, which
                           meant every visible Profile control — the top bar, More,
@@ -907,7 +1037,20 @@ export default function App() {
                           that `EURO-004` refuses while Euro is hidden, and
                           bounced them back to Home. It reads the account and the
                           shell's membership and nothing about any tournament. */}
-                      <Route path="/profile" element={<PlatformProfilePage />} />
+                      {/* Platform identity and season history, which contracts
+                          157 and 161 are read for by the vNext Account surface.
+                          The matrix sends the three profile systems there
+                          rather than adding a fourth. */}
+                      <Route
+                        path="/profile"
+                        element={
+                          isNextUi('footballHubAccount') && Absorbed ? (
+                            <Absorbed.account legacy={<PlatformProfilePage />} />
+                          ) : (
+                            <PlatformProfilePage />
+                          )
+                        }
+                      />
                       {/* Outside the tournament boundary below, because the
                           account is the platform's rather than a competition's.
                           It stopped printing one competition's points and rank

@@ -80,6 +80,25 @@ const VNEXT_FRAMED: readonly FramedRoute[] = [
   { pattern: weeklyRoutePatterns.leagues, journey: 'footballHubLeagues' },
   { pattern: weeklyRoutePatterns.player, journey: 'footballHubPlayerProfile' },
   { pattern: '/account', journey: 'footballHubAccount' },
+
+  // THE ABSORBED ADDRESSES SURRENDER THE FRAME TOO, for the same reason `/`
+  // does and not for a different one. Each resolves into a vNext destination —
+  // some after a membership read — and the frame around that wait is what the
+  // player looks at. Left to `AppShell`, every arrival at an old bookmark
+  // painted the retired masthead and its five-tab bar and then replaced them.
+  //
+  // The three global ones are `variantRoutes.ts`'s shared paths and `/more`,
+  // `/profile` and `/more/scoring` are served on both builds, so all six are
+  // `domesticOnly`: on the Euro deployment `absorbedAddresses.tsx` renders the
+  // legacy element unchanged, and it needs this chrome around it.
+  { pattern: weeklyRoutes.play, journey: 'footballHubHome', domesticOnly: true },
+  { pattern: weeklyRoutes.matches, journey: 'footballHubMatches', domesticOnly: true },
+  { pattern: weeklyRoutes.leagues, journey: 'footballHubLeagues', domesticOnly: true },
+  { pattern: weeklyRoutes.more, journey: 'footballHubAccount', domesticOnly: true },
+  { pattern: '/more/scoring', journey: 'footballHubGames', domesticOnly: true },
+  { pattern: '/profile', journey: 'footballHubAccount', domesticOnly: true },
+  { pattern: weeklyRoutePatterns.play, journey: 'footballHubHome' },
+  { pattern: weeklyRoutePatterns.matchPredictorStandings, journey: 'footballHubLeagues' },
 ]
 
 /** The pairs, for the guard that proves this table matches the route tree. */
