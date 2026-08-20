@@ -1,13 +1,12 @@
 {
   "projectRef": "iouzoutneyjpugbbtdem",
-  "requiredMigrationCount": 208,
-  "latestMigrationVersion": "20260819130000",
-  "latestMigrationName": "cup_bracket_outcome_and_knockout_stage",
-  "verifiedAt": "2026-08-19T23:32:57.276619Z",
+  "requiredMigrationCount": 209,
+  "latestMigrationVersion": "20260819200000",
+  "latestMigrationName": "provider_fixture_lifecycle",
+  "verifiedAt": "2026-08-20T05:21:12.389Z",
   "evidence": {
-    "source": "Development fast-lane rollout run 32312618799 succeeded from exact main 0c489629d299c2e57bd0981d0b2b2b4f6b56c287. Independent read-only Supabase verification after the successful run named 208 ledger rows with newest 20260819130000 cup_bracket_outcome_and_knockout_stage. All Contract-205 protected counts remain unchanged: 24 auth users, 24 profiles, 34 entries, 64 season predictions, 756 match predictions, 8 season matchweek scores, 20 competition entrants, 0 bonus score events, 5 leagues, 39 league members, 1 Cup launch, 112 Cup fixtures and 578 season fixtures. Cron remains 14 jobs, ai.api_usage remains 0 and both publication gates remain false. The Contract-206 by-ref profile RPC and legacy profile RPC remain authenticated-only; the season Cup phase and bracket RPCs are authenticated-only; the installed phase definition uses the determinate split membership rule; the bracket emits the caller's own outcome and limits knockout reads to playoff/knockout stages.",
-    "workflowRunId": 32312618799,
-    "repositoryHead": "0c489629d299c2e57bd0981d0b2b2b4f6b56c287",
-    "verificationSource": "independent Supabase read-only query after successful fast-lane run"
+    "source": "Development fast-lane rollout",
+    "workflowRunId": 32335240998,
+    "repositoryHead": "06ab135a1745d32cc8ef05b157cb60a9609958e1"
   }
 }
