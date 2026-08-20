@@ -1,0 +1,40 @@
+name: Dispatch Development 211 to 213
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/dispatch-development-211-to-213.yml
+
+permissions:
+  actions: write
+  issues: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch guarded Development migration lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/development-migration-rollout.yml/dispatches" \
+            -F ref=main \
+            -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
+            -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
+            -F 'inputs[expected_source_contract]=211' \
+            -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
+
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/issues/970/comments" \
+            -f body="Development 211→213 guarded workflow dispatch accepted from main ${GITHUB_SHA}. Inputs: exact Development ref, source Contract 211, target 20260820150000_drop_unmeasured_sportmonks_tokens.sql, destructive acknowledgement supplied."
