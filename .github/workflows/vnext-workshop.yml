@@ -7,18 +7,28 @@ name: vNext workshop browser checks
 # workshop widths. Keep the tests themselves unchanged; this workflow only
 # distributes that existing corpus across runners and merges the evidence back
 # into one gate-owned report.
+#
+# ============================ WHY THERE IS NO `paths:` FILTER ==============
+#
+# There was one, and it is why the merged gate could not be REQUIRED. A
+# path-filtered workflow does not run at all on a pull request that touches
+# nothing it lists, so its check context never appears — and a required context
+# that sometimes does not exist blocks every such pull request for ever. The
+# repository has already met that failure once and the sharded architecture was
+# built to avoid recreating it.
+#
+# So the filter moved INSIDE. `changes` decides, in seconds, whether this pull
+# request touches anything the browser evidence depends on; the four shards run
+# only when it does; and `vNext merged browser gate` reports on EVERY pull
+# request either way — success with "nothing to measure" when the paths are
+# untouched, and the real propagated shard result when they are.
+#
+# That is Option A of the two the programme contemplated: an always-reporting
+# aggregate whose context is stable enough for a ruleset, and which cannot
+# report green for a change it did not measure.
 
 on:
   pull_request:
-    paths:
-      - 'src/vnext/**'
-      - '!src/vnext/*.md'
-      - '!src/vnext/**/*.md'
-      - '.storybook/**'
-      - 'e2e/vnext-*.spec.ts'
-      - 'playwright.vnext.config.ts'
-      - 'package-lock.json'
-      - '.github/workflows/vnext-workshop.yml'
   workflow_dispatch:
 
 # vNext is one of the repository's longest PR checks. Do not spend four runners
@@ -32,8 +42,64 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: vNext paths changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      vnext: ${{ steps.decide.outputs.vnext }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # The whole history is not needed; the base commit is. `git diff`
+          # against it is the answer with no third-party action and no API call,
+          # which keeps this job to seconds.
+          fetch-depth: 0
+
+      - name: Decide whether the browser evidence is owed
+        id: decide
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BASE_SHA:-}" ]; then
+            # A manual dispatch has no base to compare against. Measure.
+            echo 'vnext=true' >> "$GITHUB_OUTPUT"
+            echo 'No pull-request base: running the full suite.'
+            exit 0
+          fi
+
+          # THE ONE COPY OF THE PATH LIST. It is what the `paths:` filter used
+          # to hold, and it is here rather than there for the reason in the
+          # header. Documentation-only changes under `src/vnext/` are excluded
+          # exactly as they were: a Markdown edit changes no rendered geometry.
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+
+          MATCHED="$(printf '%s\n' "$CHANGED" | grep -E \
+            -e '^src/vnext/' \
+            -e '^\.storybook/' \
+            -e '^e2e/vnext-.*\.spec\.ts$' \
+            -e '^playwright\.vnext\.config\.ts$' \
+            -e '^package-lock\.json$' \
+            -e '^\.github/workflows/vnext-workshop\.yml$' \
+            | grep -vE '\.md$' || true)"
+
+          if [ -n "$MATCHED" ]; then
+            echo 'vnext=true' >> "$GITHUB_OUTPUT"
+            echo 'Browser evidence is owed. Paths touched:'
+            printf '%s\n' "$MATCHED"
+          else
+            echo 'vnext=false' >> "$GITHUB_OUTPUT"
+            echo 'No vNext path changed; the gate reports success without measuring.'
+          fi
+
   shard:
     name: vNext shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
+    needs: [changes]
+    if: ${{ needs.changes.outputs.vnext == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
     strategy:
@@ -81,25 +147,51 @@ jobs:
 
   layout:
     name: vNext merged browser gate
-    if: ${{ !cancelled() }}
-    needs: [shard]
+    # ALWAYS. This is the context a ruleset can require, so it has to exist on
+    # every pull request — including the ones where there was nothing to
+    # measure, and including the ones where a shard failed, because a gate that
+    # vanished on failure would be indistinguishable from one that passed.
+    if: ${{ always() }}
+    needs: [changes, shard]
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     steps:
+      # A DECIDER THAT DID NOT ANSWER IS NOT "NOTHING TO MEASURE". Its output
+      # would be empty, and an empty output is not `'true'` — so without this
+      # the gate would report success for a pull request nobody had classified.
+      - name: Refuse an unanswered decision
+        if: ${{ needs.changes.result != 'success' }}
+        run: |
+          echo "ERROR: the paths decision concluded '${{ needs.changes.result }}'."
+          echo 'Whether this change owes browser evidence is unknown, which is not a pass.'
+          exit 1
+
+      - name: Report success where no vNext path changed
+        if: ${{ needs.changes.result == 'success' && needs.changes.outputs.vnext != 'true' }}
+        run: |
+          echo 'No vNext path changed on this pull request.'
+          echo 'The browser corpus measures rendered geometry in `src/vnext/`,'
+          echo 'and nothing this change touches can move it. Reporting success'
+          echo 'so the gate stays a stable required context.'
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         with:
           persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - name: Install dependencies
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         run: npm ci
 
       - name: Download every shard blob report
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           path: all-blob-reports
@@ -107,6 +199,7 @@ jobs:
           merge-multiple: true
 
       - name: Discover the unsharded test count
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         env:
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/vnext-unsharded-list.json
         run: >-
@@ -116,6 +209,7 @@ jobs:
           --reporter=json
 
       - name: Merge shard reports
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         env:
           PLAYWRIGHT_HTML_OUTPUT_DIR: playwright-report-vnext
           PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/vnext-merged-report.json
@@ -125,6 +219,7 @@ jobs:
           ./all-blob-reports
 
       - name: Refuse a partial merged report
+        if: ${{ needs.changes.outputs.vnext == 'true' }}
         run: |
           node --input-type=module <<'NODE'
           import { readFileSync } from 'node:fs'
@@ -159,7 +254,7 @@ jobs:
           NODE
 
       - name: Upload the combined browser report
-        if: ${{ !cancelled() }}
+        if: ${{ needs.changes.outputs.vnext == 'true' && !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: vnext-workshop-browser
@@ -169,8 +264,15 @@ jobs:
             playwright-report-vnext/
             test-results/vnext-merged-report.json
 
-      - name: Propagate shard failures to the gate
-        if: ${{ needs.shard.result != 'success' }}
+      # PROPAGATED, NOT INFERRED. `needs.shard.result` is the real conclusion of
+      # the four runners at THIS head. `skipped` is only legitimate where the
+      # `changes` job said there was nothing to measure — anything else that is
+      # not `success` fails the gate, including a cancellation, so a stable
+      # required context can never report green for evidence that does not exist.
+      - name: Propagate the shard result to the gate
+        if: ${{ needs.changes.outputs.vnext == 'true' && needs.shard.result != 'success' }}
         run: |
-          echo 'ERROR: at least one vNext shard failed; the merged report above is evidence, not a pass.'
+          echo "ERROR: the vNext shards concluded '${{ needs.shard.result }}' at this head."
+          echo 'The merged report above, where one exists, is evidence rather than a pass.'
           exit 1
+
