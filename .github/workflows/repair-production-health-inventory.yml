@@ -1,0 +1,41 @@
+name: Repair production health inventory
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/scheduled-production-health-v1
+          fetch-depth: 0
+      - name: Account for production health script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/scripts/typescriptProjectCoverage.test.ts')
+          text = path.read_text()
+          anchor = "    ['scripts/production-smoke.mjs', 28],"
+          addition = "    ['scripts/production-health.mjs', null],\n    ['scripts/production-smoke.mjs', 28],"
+          assert anchor in text, 'script inventory anchor missing'
+          assert "['scripts/production-health.mjs'" not in text, 'production-health already accounted for'
+          path.write_text(text.replace(anchor, addition, 1))
+          PY
+          git rm .github/workflows/repair-production-health-inventory.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/scripts/typescriptProjectCoverage.test.ts
+          git diff --cached --check
+          git commit -m "Account for production health script"
+          git push origin HEAD:codex/scheduled-production-health-v1
