@@ -19,6 +19,10 @@
 // one broken session look nothing alike to a player.
 
 import { db } from './client'
+import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../observability/operationFailure'
 import type { Json } from './database.types'
 import {
   mapPredictionBatchResult,
@@ -60,6 +64,16 @@ export async function submitSeasonPredictionBatch(
       version: draft.version,
     })) satisfies Json,
   })
-  if (error) throw error
+  // `C1`. This is the offline reconciliation, so a failure here is a batch of
+  // work the device is still holding and the server has not taken. The DRAFTS
+  // are not reported — they are predictions — only how many there were.
+  if (error) {
+    reportOperationFailure('prediction.save', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+      seasonId: tournamentId,
+    })
+    throw error
+  }
   return mapPredictionBatchResult(data)
 }
