@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { createConcurrencyGate } from '../../../src/services/concurrency/boundedGate'
 
@@ -64,5 +66,18 @@ describe('bounded concurrency gate', () => {
     expect(() => createConcurrencyGate(1.5)).toThrow(
       'concurrency limit must be a positive integer',
     )
+  })
+
+  it('is the gate used by the season league prediction RPC with an explicit ceiling of four', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/services/supabase/seasonLeaguePredictions.ts'),
+      'utf8',
+    )
+    expect(source).toContain("import { createConcurrencyGate } from '../concurrency/boundedGate'")
+    expect(source).toContain('export const SEASON_LEAGUE_PREDICTION_READ_CONCURRENCY = 4')
+    expect(source).toContain(
+      'const runSeasonLeaguePredictionRead = createConcurrencyGate(\n  SEASON_LEAGUE_PREDICTION_READ_CONCURRENCY,\n)',
+    )
+    expect(source).toContain('return runSeasonLeaguePredictionRead(async () => {')
   })
 })
