@@ -5,7 +5,15 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: ['auth-recovery.spec.ts', 'auth-capacity.spec.ts', 'axe-unauthenticated.spec.ts'],
+  // `landing-preview.spec.ts` is here for the same reason the axe scan is: this
+  // is the only harness that sees the public landing page at all, because every
+  // other config auto-logs-in and gets the Hub.
+  testMatch: [
+    'auth-recovery.spec.ts',
+    'auth-capacity.spec.ts',
+    'axe-unauthenticated.spec.ts',
+    'landing-preview.spec.ts',
+  ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,

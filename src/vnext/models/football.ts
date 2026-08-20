@@ -14,6 +14,8 @@
  * has not kicked off has no clock).
  */
 
+import type { OfficialClubBadge } from '../../domain/clubIdentity/officialBadge'
+
 /** How a club's colours are used by presentation. All values are CSS colours. */
 export type TeamColours = {
   readonly primary: string
@@ -28,8 +30,21 @@ export type TeamColours = {
   readonly onPrimary: 'light' | 'dark'
 }
 
-/** Shirt treatments the mock identity can express without a crest asset. */
-export type TeamKitPattern = 'solid' | 'stripes' | 'hoops' | 'halves'
+/**
+ * The kit shapes a club identity may be drawn in.
+ *
+ * `sash` COMPLETES THE SET the domain already had. `ClubKitPattern` in
+ * `src/domain/clubIdentity/clubIdentityTypes.ts` has carried five since the
+ * identity work landed, and the owner's reference data uses all five — Crystal
+ * Palace is a sash. This lane declared four, so a sash club arrived here as
+ * `solid` and lost the one thing that told it apart from every other blue-and-
+ * red club.
+ *
+ * They are all centuries-old football conventions owned by nobody, which is
+ * exactly why ADR 0017 chose them: a generic kit pattern is legally clean where
+ * a crest is not.
+ */
+export type TeamKitPattern = 'solid' | 'stripes' | 'hoops' | 'halves' | 'sash'
 
 export type Team = {
   readonly id: string
@@ -42,10 +57,22 @@ export type Team = {
   readonly colours: TeamColours
   readonly kitPattern: TeamKitPattern
   /**
-   * Null in the workshop, and null in production until a crest source is
-   * agreed. Presentation must always be able to fall back to the abbreviation.
+   * AN OFFICIAL BADGE THE POLICY HAS ALREADY ALLOWED, OR NOTHING.
+   *
+   * It is a RESOLVED answer and never a candidate: whether badges are on at
+   * all, whether this provider is approved, whether this competition may show
+   * one and whether the URL is usable are four questions
+   * `src/domain/clubIdentity/officialBadge.ts` answers once, in the adapter.
+   * Presentation receives a badge or it does not, and never a provider name it
+   * has to judge — a component that decided would be the component that decided
+   * differently in the next surface.
+   *
+   * `null` IS A FIRST-CLASS MODE AND NOT A DEGRADED ONE. It is what ADR 0017
+   * decided the product ships as: the club's own colours, kit pattern and
+   * monogram. It is also what a broken image falls back to, which is why the
+   * kit identity is drawn underneath rather than instead.
    */
-  readonly crestUrl: string | null
+  readonly officialBadge: OfficialClubBadge | null
 }
 
 export type FormResult = 'win' | 'draw' | 'loss'
@@ -146,6 +173,23 @@ export type Match = {
   /** ISO 8601. Fixtures use fixed instants so the workshop is deterministic. */
   readonly kickoff: string
   readonly status: MatchStatus
+  /**
+   * WHAT THE PLATFORM SAYS ABOUT THIS FIXTURE'S SLOT (contract 209).
+   *
+   * A one-line sentence, decided by the mapper and never by a component, for
+   * the two cases where the date beside a match does not mean what it looks
+   * like: a postponement with no replacement, and a fixture that has been
+   * moved. Null on every ordinary fixture, which is almost all of them.
+   *
+   * It sits beside `status` rather than inside it because the same sentence is
+   * needed on a `postponed` card and on an `upcoming` one that was
+   * rescheduled, and a status that encoded both would have to grow a case for
+   * each.
+   *
+   * OPTIONAL so a hand-written fixture that predates it still type-checks — an
+   * absent note and an explicit null mean the same thing.
+   */
+  readonly scheduleNote?: string | null
   readonly clock: MatchClock | null
   readonly home: MatchSide
   readonly away: MatchSide

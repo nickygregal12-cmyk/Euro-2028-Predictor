@@ -165,6 +165,9 @@ type CentreInput = {
   headToHead?: MatchCentreModel['headToHead']
   unavailable?: readonly string[]
   links?: MatchCentreModel['links']
+  you?: MatchCentreModel['you']
+  leagues?: MatchCentreModel['leagues']
+  everyone?: MatchCentreModel['everyone']
 }
 
 function summarise(input: CentreInput): string {
@@ -218,6 +221,12 @@ function centre(input: CentreInput): MatchCentreModel {
     kickoffLabel: input.kickoffLabel ?? '15:00',
     accessibleSummary: summarise(input),
     prediction: input.prediction ?? null,
+    // THE DEFAULT IS "THE HOST LOADED NONE OF THEM", which is the shape a
+    // page-scoped harness, a story and a render test all legitimately have —
+    // and is why every existing world below is unchanged by their arrival.
+    you: input.you ?? null,
+    leagues: input.leagues ?? null,
+    everyone: input.everyone ?? null,
     table: input.table ?? null,
     headToHead: input.headToHead ?? null,
     ...deferred,
@@ -243,7 +252,7 @@ const rich = {
 const scheduledCentre: MatchCentreModel = centre({
   id: 'fixture-centre-scheduled',
   ...rich,
-  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z' },
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
   prediction: { kind: 'entered', score: { home: 2, away: 1 } },
   links: [
     { kind: 'match-predictor', label: 'Enter your prediction in the Match Predictor' },
@@ -438,6 +447,9 @@ const postponedCentre: MatchCentreModel = centre({
     kind: 'postponed',
     kickoff: '2027-08-21T14:00:00.000Z',
     note: 'Waterlogged pitch. A new date has not been set.',
+    // No replacement date, so the page still says "was due" against the slot
+    // this fixture missed. The rescheduled scenario below is the other half.
+    rescheduled: false,
   },
 })
 
@@ -503,6 +515,7 @@ const richContextCentre: MatchCentreModel = centre({
   state: {
     kind: 'scheduled',
     kickoff: '2027-08-21T14:00:00.000Z',
+    rescheduled: false,
   },
   prediction: { kind: 'entered', score: { home: 2, away: 1 } },
   links: [
@@ -528,7 +541,7 @@ const coreOnlyCentre: MatchCentreModel = centre({
   id: 'fixture-centre-core',
   home: bareSide(T.dunveggie),
   away: bareSide(T.arbrennan),
-  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z' },
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
   table: null,
   headToHead: null,
   unavailable: ['table', 'recent form', 'head-to-head'],
@@ -569,6 +582,168 @@ const staleProviderCentre: MatchCentreModel = centre({
    THE REGISTRY
    ========================================================================== */
 
+/* ==========================================================================
+   THE THREE SOCIAL SCOPES
+   ==========================================================================
+
+   Four worlds, chosen for the four things that are easiest to get wrong and
+   hardest to cause on purpose: everything answering at once, a hidden league
+   beside a revealed one, a cohort the server withheld, and three reads that
+   each failed differently.
+   ========================================================================== */
+
+/** Everything answered. The world the modules were designed against. */
+const socialRichCentre = centre({
+  id: 'mc-social-rich',
+  ...rich,
+  state: {
+    kind: 'finished',
+    kickoff: '2027-08-21T14:00:00.000Z',
+    result: { home: 2, away: 1 },
+    decision: null,
+    aggregate: null,
+  },
+  you: {
+    kind: 'ready',
+    prediction: '2 - 1',
+    result: '2 - 1',
+    provisional: null,
+    outcome: 'scored',
+    points: 5,
+    exact: true,
+    matchweekPoints: 34,
+    jokerNote:
+      'Your Joker is on this matchweek, so the matchweek total is doubled. It doubles the whole card, never one fixture.',
+    explanation: 'Exact score. 5 points from this fixture.',
+  },
+  leagues: [
+    {
+      kind: 'ready',
+      leagueId: 'lg-1',
+      leagueName: 'The Sunday League',
+      memberCount: 8,
+      predictedCount: 6,
+      rows: [
+        {
+          playerRef: 'p-1',
+          displayName: 'Ada Lovelace',
+          isSelf: true,
+          predictionLabel: '2 - 1',
+          outcome: 'exact',
+          matchweekPoints: 34,
+          jokerPlayed: true,
+        },
+        {
+          playerRef: 'p-2',
+          displayName: 'Bo Nilsson',
+          isSelf: false,
+          predictionLabel: '1 - 1',
+          outcome: 'wrong',
+          matchweekPoints: 21,
+          jokerPlayed: false,
+        },
+      ],
+    },
+  ],
+  everyone: {
+    kind: 'ready',
+    submittedEntries: 412,
+    popular: [
+      { label: '1 - 1', percentage: 18 },
+      { label: '2 - 1', percentage: 14 },
+      { label: '1 - 0', percentage: 11 },
+    ],
+    homeWinPercentage: 46,
+    drawPercentage: 27,
+    awayWinPercentage: 27,
+  },
+})
+
+/**
+ * A LOCKED LEAGUE BESIDE A HIDDEN ONE, which is the ordinary case in a player
+ * who is in two: one matchweek has locked and one has not, and the two must not
+ * read as the same thing.
+ */
+const socialHiddenLeagueCentre = centre({
+  id: 'mc-social-hidden',
+  ...rich,
+  // `rescheduled: false` — contract 209 made a scheduled fixture say whether it
+  // MOVED, and this one has not. It is a required fact rather than an optional
+  // one precisely so a world cannot forget to answer it.
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
+  you: {
+    kind: 'ready',
+    prediction: '1 - 0',
+    result: null,
+    provisional: null,
+    outcome: 'pending',
+    points: null,
+    exact: false,
+    matchweekPoints: null,
+    jokerNote: null,
+    explanation: 'This fixture has not been settled yet.',
+  },
+  leagues: [
+    {
+      kind: 'hidden',
+      leagueId: 'lg-1',
+      leagueName: 'The Sunday League',
+      locksAt: '2027-08-21T14:00:00.000Z',
+    },
+    { kind: 'empty', leagueId: 'lg-2', leagueName: 'Work five-a-side' },
+  ],
+  everyone: { kind: 'withheld', minimumEntries: 25 },
+})
+
+/**
+ * THREE FAILURES, EACH ITS OWN. The fixture above them is complete and
+ * unaffected, which is the property that matters: an enrichment that did not
+ * answer costs its own module and never the match.
+ */
+const socialUnavailableCentre = centre({
+  id: 'mc-social-unavailable',
+  ...rich,
+  state: {
+    kind: 'finished',
+    kickoff: '2027-08-21T14:00:00.000Z',
+    result: { home: 2, away: 1 },
+    decision: null,
+    aggregate: null,
+  },
+  you: { kind: 'unavailable' },
+  leagues: [
+    { kind: 'unavailable', leagueId: 'lg-1', leagueName: 'The Sunday League' },
+  ],
+  everyone: { kind: 'unavailable' },
+})
+
+/**
+ * NOT PLAYING. Fixtures are readable by anyone following the competition, and
+ * most readers have not joined every game behind them — so this is the common
+ * case rather than the edge one, and it must not read as a missed deadline.
+ */
+const socialNotPlayingCentre = centre({
+  id: 'mc-social-not-playing',
+  ...rich,
+  state: {
+    kind: 'finished',
+    kickoff: '2027-08-21T14:00:00.000Z',
+    result: { home: 2, away: 1 },
+    decision: null,
+    aggregate: null,
+  },
+  you: { kind: 'not-playing' },
+  leagues: [],
+  everyone: {
+    kind: 'ready',
+    submittedEntries: 412,
+    popular: [{ label: '1 - 1', percentage: 18 }],
+    homeWinPercentage: 46,
+    drawPercentage: 27,
+    awayWinPercentage: 27,
+  },
+})
+
 export const matchCentreScenarios = {
   scheduled: scheduledCentre,
   liveWithMinute: liveWithMinuteCentre,
@@ -583,6 +758,10 @@ export const matchCentreScenarios = {
   richContext: richContextCentre,
   coreOnly: coreOnlyCentre,
   staleProvider: staleProviderCentre,
+  socialRich: socialRichCentre,
+  socialHiddenLeague: socialHiddenLeagueCentre,
+  socialUnavailable: socialUnavailableCentre,
+  socialNotPlaying: socialNotPlayingCentre,
 } as const
 
 export type MatchCentreScenarioName = keyof typeof matchCentreScenarios
@@ -607,4 +786,12 @@ export const matchCentreScenarioPremises: Readonly<
   richContext: 'The ceiling of an honest Match Centre today: table, both form runs, this season’s meetings, the player’s prediction.',
   coreOnly: 'The floor. Two clubs, a kickoff, a stage. Every optional module ABSENT rather than empty.',
   staleProvider: 'A live feed that has not reported for eleven minutes. Said plainly, and no minute invented to fill the gap.',
+  socialRich:
+    'You, Your leagues and Everyone all answering at once. Three scopes, three sections, never merged.',
+  socialHiddenLeague:
+    'One league still hidden and one with nobody in it, beside a cohort the server withheld. Four different sentences, none of them silence.',
+  socialUnavailable:
+    'All three enrichments failed and the fixture above them is untouched. Each module names its own failure.',
+  socialNotPlaying:
+    'A reader who has not joined the Match Predictor. Not an error, not an empty prediction, and Everyone still answers.',
 }

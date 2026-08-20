@@ -187,6 +187,17 @@ export function VNextMatchCentre({ model, onIntent }: VNextMatchCentreProps) {
 
             {model.prediction ? <PredictionBlock badge={model.prediction} /> : null}
 
+            {/* YOU, YOUR LEAGUES, EVERYONE — in that order, and never merged.
+                `SeasonFixtureLeagues` records why in terms: the reader's own
+                prediction, then named private co-members, then the anonymous
+                platform-wide cohort. Named league predictions are not a
+                consensus and a consensus is not a league, and the ordering is
+                the one a reader came for — themselves, then the people they
+                actually play with, then everybody. */}
+            <YouModule you={model.you} rise={rise} />
+            <LeaguesModule leagues={model.leagues} rise={rise} />
+            <EveryoneModule everyone={model.everyone} rise={rise} />
+
             {model.links.length > 0 ? (
               <motion.nav className={styles.links} variants={rise} aria-label="Related">
                 {model.links.map((link) => (
@@ -352,9 +363,14 @@ function MatchWhen({ model }: { readonly model: MatchCentreModel }) {
    * still going to happen. "Was due Saturday 21 August, 15:00" says the same
    * fact and cannot be misread — and the fact is worth keeping, because the
    * original slot is how a reader recognises which fixture this is.
+   *
+   * CONTRACT 209 QUALIFIES IT: a postponed fixture that has been given a new
+   * date is showing that date, and "Was due Tue 18 August, 19:45" about an
+   * evening still to come is simply false. The mark beside it already says the
+   * match is off and when it is now due, so the line reverts to plain.
    */
   const off =
-    model.state.kind === 'postponed' ||
+    (model.state.kind === 'postponed' && !model.state.rescheduled) ||
     model.state.kind === 'abandoned' ||
     model.state.kind === 'void'
 
@@ -433,3 +449,197 @@ function ordinalSuffix(value: number): string {
   }
 }
 
+
+/* ==========================================================================
+   THE THREE SOCIAL SCOPES
+   ==========================================================================
+
+   EACH DRAWS ITS OWN ANSWER AND NOTHING ELSE'S. `null` is the host not having
+   loaded the module and draws nothing at all; every other case is an answer and
+   is said out loud, because on this page silence is indistinguishable from
+   "there is nothing".
+
+   NOT ONE OF THEM DECIDES ANYTHING. No points are computed, no reveal is
+   inferred from a clock, no cohort is measured. The model carries the
+   authorities' answers and these render them.
+   ========================================================================== */
+
+function YouModule({
+  you,
+  rise,
+}: {
+  readonly you: MatchCentreModel['you']
+  readonly rise: ReturnType<typeof useVNextMotion>
+}) {
+  if (you === null) return null
+
+  return (
+    <motion.section
+      className={styles.module}
+      variants={rise}
+      aria-labelledby="vnext-mc-you"
+      data-vnext-zone="you"
+    >
+      <h2 id="vnext-mc-you" className={text.label}>
+        You
+      </h2>
+      {you.kind === 'not-playing' ? (
+        // NOT AN ERROR AND NOT AN EMPTY PREDICTION. Telling somebody who never
+        // joined that they have no prediction reads as a missed deadline.
+        <p className={`${text.body} ${styles.moduleBody}`}>
+          You are not playing the Match Predictor in this competition, so this fixture has
+          no entry of yours behind it.
+        </p>
+      ) : you.kind === 'unavailable' ? (
+        <p className={`${text.body} ${styles.moduleBody}`}>
+          We could not read your entry for this matchweek just now. The fixture and its
+          result above are unaffected.
+        </p>
+      ) : (
+        <>
+          <p className={`${text.body} ${styles.moduleBody} ${text.numeric}`}>
+            {you.prediction === null
+              ? 'You left this fixture blank.'
+              : `Your prediction: ${you.prediction}`}
+          </p>
+          {/* THE PROVISIONAL SCORE IS LABELLED AS ONE, ALWAYS. It is a
+              provider's current reading and never a settled result, and the
+              product's whole live-data honesty rule is that the two are never
+              printed as the same thing. */}
+          {you.provisional ? (
+            <p className={`${text.micro} ${styles.moduleBody}`} data-vnext-zone="provisional">
+              Provisional score {you.provisional.score} — not yet the official result.
+            </p>
+          ) : null}
+          <p className={`${text.body} ${styles.moduleBody}`}>{you.explanation}</p>
+          {you.jokerNote ? (
+            <p className={`${text.micro} ${styles.moduleBody}`} data-vnext-zone="joker">
+              {you.jokerNote}
+            </p>
+          ) : null}
+        </>
+      )}
+    </motion.section>
+  )
+}
+
+function LeaguesModule({
+  leagues,
+  rise,
+}: {
+  readonly leagues: MatchCentreModel['leagues']
+  readonly rise: ReturnType<typeof useVNextMotion>
+}) {
+  if (leagues === null || leagues.length === 0) return null
+
+  return (
+    <motion.section
+      className={styles.module}
+      variants={rise}
+      aria-labelledby="vnext-mc-leagues"
+      data-vnext-zone="your-leagues"
+    >
+      <h2 id="vnext-mc-leagues" className={text.label}>
+        Your leagues
+      </h2>
+      {leagues.map((league) => (
+        <div key={league.leagueId} className={styles.leagueBlock} data-vnext-league={league.leagueId}>
+          <p className={`${text.body} ${styles.leagueName}`}>{league.leagueName ?? 'Your league'}</p>
+          {league.kind === 'unavailable' ? (
+            // A LEAGUE THAT DID NOT ANSWER NAMES ITSELF, so a failed read is
+            // never mistaken for a league nobody predicted in.
+            <p className={`${text.micro} ${styles.moduleBody}`}>
+              We could not read this league just now.
+            </p>
+          ) : league.kind === 'hidden' ? (
+            // THE SERVER'S OWN `revealed`, and no count. Contract 149 withholds
+            // how many members have played before the lock, and printing a
+            // number here would leak exactly what it withheld.
+            <p className={`${text.micro} ${styles.moduleBody}`}>
+              Predictions in this league are hidden until the matchweek locks.
+            </p>
+          ) : league.kind === 'empty' ? (
+            <p className={`${text.micro} ${styles.moduleBody}`}>
+              Nobody in this league predicted this fixture.
+            </p>
+          ) : (
+            <ul className={styles.leagueRows}>
+              {league.rows.map((row) => (
+                <li key={row.playerRef} className={styles.leagueRow}>
+                  <span className={styles.leagueMember}>
+                    {row.displayName}
+                    {row.isSelf ? <span className={text.micro}> (you)</span> : null}
+                  </span>
+                  <span className={`${styles.leagueScore} ${text.numeric}`}>
+                    {row.predictionLabel}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </motion.section>
+  )
+}
+
+function EveryoneModule({
+  everyone,
+  rise,
+}: {
+  readonly everyone: MatchCentreModel['everyone']
+  readonly rise: ReturnType<typeof useVNextMotion>
+}) {
+  if (everyone === null) return null
+
+  return (
+    <motion.section
+      className={styles.module}
+      variants={rise}
+      aria-labelledby="vnext-mc-everyone"
+      data-vnext-zone="everyone"
+    >
+      <h2 id="vnext-mc-everyone" className={text.label}>
+        Everyone
+      </h2>
+      {everyone.kind === 'unavailable' ? (
+        <p className={`${text.body} ${styles.moduleBody}`}>
+          We could not read what everybody predicted just now.
+        </p>
+      ) : everyone.kind === 'withheld' ? (
+        // THE SERVER'S MINIMUM COHORT. Said as a rule rather than as a count,
+        // because the count is the thing being protected.
+        <p className={`${text.body} ${styles.moduleBody}`}>
+          Not enough people have predicted this matchweek yet for an anonymous summary.
+        </p>
+      ) : everyone.kind === 'empty' ? (
+        <p className={`${text.body} ${styles.moduleBody}`}>
+          Nobody has predicted this fixture yet.
+        </p>
+      ) : (
+        <>
+          <p className={`${text.body} ${styles.moduleBody} ${text.numeric}`}>
+            {everyone.homeWinPercentage}% home · {everyone.drawPercentage}% draw ·{' '}
+            {everyone.awayWinPercentage}% away
+          </p>
+          {everyone.popular.length > 0 ? (
+            <ul className={styles.leagueRows}>
+              {everyone.popular.map((entry) => (
+                <li key={entry.label} className={styles.leagueRow}>
+                  <span className={`${styles.leagueScore} ${text.numeric}`}>{entry.label}</span>
+                  <span className={`${text.micro} ${text.numeric}`}>{entry.percentage}%</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {/* THE DENOMINATOR, STATED. A percentage with no cohort behind it is
+              a number a reader cannot weigh — the same rule the player
+              profile's head-to-head follows about its own window. */}
+          <p className={`${text.micro} ${styles.moduleBody} ${text.numeric}`}>
+            From {everyone.submittedEntries} predictions for this fixture.
+          </p>
+        </>
+      )}
+    </motion.section>
+  )
+}

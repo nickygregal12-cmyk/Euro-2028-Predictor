@@ -208,6 +208,9 @@ describe('row-level security', () => {
       // definer RPC.
       { schema: 'ai', name: 'provider_identity_repairs' },
       { schema: 'ai', name: 'prediction_invalidations' },
+      // Contract 209. Append-only evidence of every fixture status the
+      // platform moved on a provider's word.
+      { schema: 'predictor_internal', name: 'season_fixture_lifecycle_transitions' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

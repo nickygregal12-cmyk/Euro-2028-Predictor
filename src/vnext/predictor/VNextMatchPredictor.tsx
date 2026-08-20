@@ -273,7 +273,9 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
  * open — `resolveLockState` fails the whole scope closed on an unparseable kickoff
  * — so this group only ever appears on a card nobody can edit.
  */
-function groupByDay(fixtures: readonly PredictorModel['fixtures'][number][]) {
+function groupByDay(
+  fixtures: readonly PredictorModel['fixtures'][number][],
+) {
   const groups: { key: string; heading: string; fixtures: PredictorModel['fixtures'][number][] }[] =
     []
   const byKey = new Map<string, (typeof groups)[number]>()

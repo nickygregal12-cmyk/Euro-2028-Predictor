@@ -321,3 +321,65 @@
   --vnext-team-accent: var(--vnext-accent);
   --vnext-team-on-primary: var(--vnext-text);
 }
+
+/* ==========================================================================
+   PRESS — the lane's one tactile response, applied once.
+   ==========================================================================
+
+   WHY IT IS HERE AND NOT IN NINETEEN MODULES. `PrimaryActionCard` shipped this
+   exact treatment for one control: `scale(0.99)` on press, and under reduced
+   motion a colour change INSTEAD of the movement rather than the movement made
+   instant. It was right, and it was one button — so every other control in the
+   product had hover depth and focus and nothing at all under a finger, which is
+   the difference between an interface that feels made and one that feels
+   drawn.
+
+   `scale(0.99)` AND NOT MORE. A press is a confirmation that the finger landed,
+   not an event. At 0.99 a 44px control moves less than half a pixel at its edge
+   — felt rather than watched — and nothing around it reflows, because a
+   transform costs no layout.
+
+   IT NEVER DELAYS ANYTHING. The transition is on the way OUT of the press, so
+   the response is immediate and only the release is eased. A control that
+   animated before acting would be a control that felt slower for looking nicer.
+
+   ONLY WHAT IS ACTUALLY PRESSABLE. `:disabled` is excluded, because a control
+   that responds to a press it will not honour is the interface lying; and
+   `[aria-disabled='true']` with it, for the controls that stay focusable on
+   purpose.
+
+   REDUCED MOTION KEEPS THE FEEDBACK AND DROPS THE TRAVEL. Both paths are
+   covered — the operating-system preference, and the workshop's own
+   `[data-vnext-motion='reduced']` override, which exists so a reviewer can
+   compare the two without changing a system setting. Neither is "no feedback":
+   the surface still changes under the finger, it simply does not move. */
+
+[data-vnext] :is(button, [role='button'], summary):not(:disabled):not([aria-disabled='true']):active {
+  transform: scale(0.99);
+}
+
+[data-vnext] :is(button, [role='button'], summary) {
+  transition: transform var(--vnext-duration-instant) var(--vnext-ease-standard);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-vnext] :is(button, [role='button'], summary):not(:disabled):not([aria-disabled='true']):active {
+    transform: none;
+    /* A change of surface rather than of position. It is the same depth step
+       hover already uses, so the vocabulary does not grow to say this. */
+    background-color: var(--vnext-surface-interactive-hover);
+  }
+
+  [data-vnext] :is(button, [role='button'], summary) {
+    transition: background-color var(--vnext-duration-instant) var(--vnext-ease-standard);
+  }
+}
+
+[data-vnext-motion='reduced'] :is(button, [role='button'], summary):not(:disabled):not([aria-disabled='true']):active {
+  transform: none;
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+[data-vnext-motion='reduced'] :is(button, [role='button'], summary) {
+  transition: background-color var(--vnext-duration-instant) var(--vnext-ease-standard);
+}

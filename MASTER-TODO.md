@@ -1,6 +1,6 @@
 # Active delivery backlog
 
-**Status date:** 19 August 2026  
+**Status date:** 20 August 2026  
 **Purpose:** a short index of work that is genuinely still live. An unchecked item here means work remains.  
 **Historical snapshot before this reconciliation:** [`docs/history/context-reset-2026-08-19/MASTER-TODO.pre-reconciliation.txt`](docs/history/context-reset-2026-08-19/MASTER-TODO.pre-reconciliation.txt)
 
@@ -22,14 +22,16 @@ This file is **not** implementation truth and does not restate moving contract n
 - [ ] Complete the stage named by `config/vnext-programme.json`; do not infer progress from this file.
 - [ ] Before the Stage 13 supporting-surface sweep grows further, close or deliberately schedule the vNext quality foundations: `TEST-002`, `CI-002`, `UX-006`, `TEST-003`, `DOC-004`, `OPS-012`.
 - [ ] Stage 13 — migrate/support Account, onboarding, discovery, private-play entry, help and generic failure/empty/loading states using existing working capabilities rather than rebuilding them.
-- [ ] Stage 14 — Football Hub production cutover, only after its route, accessibility, performance, rollback and explicit Production gates pass.
+- [x] Stage 14 — Football Hub production cutover. **Done and ON.** Nine destination flags in `netlify.toml`'s `[build.environment]`, `productionCutoverAuthorized: true` in [`config/vnext-programme.json`](config/vnext-programme.json), every legacy route element still mounted so any one destination rolls back on its own with no data rollback, and every hosted environment level at Contract 208 — the boundary these surfaces read across — so the reads exist wherever they run. Contract 209 has landed in the repository since and is the provider fixture lifecycle: it adds no read any vNext surface makes, so it neither gates nor is gated by this cutover. [`docs/product/vnext-route-migration-matrix.md`](docs/product/vnext-route-migration-matrix.md) §13 owns the table.
+  - [ ] What the cutover did NOT close, named rather than implied: authenticated performance and perceived-performance measurement at the real routes against a real database; monitoring and alerting for the new surfaces; and `UX-007`, the suspected focus-obscured exposure behind the sticky masthead, which only becomes exercisable now the shell is the production frame.
 - [ ] Stage 15 — Euro 2028 vNext adoption and final convergence audit.
 
 **Do not duplicate the route matrix here.** [`docs/product/vnext-route-migration-matrix.md`](docs/product/vnext-route-migration-matrix.md) owns route fate. The active Championship/Stage 12 branch already carries its Stage 12 correction.
 
-**Stage 12's two carried backend debts are paid in the repository and owed in every hosted environment.** The two Championship migrations pin `get_season_cup_phase` to a determinate membership row and put `bonus_competition_entrants.outcome` on the bracket read, so elimination is stated by the settlement authority rather than inferred. `config/vnext-programme.json` moves both from `carriedDebt` to `resolvedDebt`, and both carry `hostedRolloutRequired: true` — a repository fix is not a Development proof, and a green CI run is not one either.
+**Stage 12's two carried backend debts are paid in the repository, proved in Development, and still owed in Production.** The two Championship migrations pin `get_season_cup_phase` to a determinate membership row and put `bonus_competition_entrants.outcome` on the bracket read, so elimination is stated by the settlement authority rather than inferred. `config/vnext-programme.json` moves both from `carriedDebt` to `resolvedDebt`.
 
-- [ ] Roll the two Championship migrations to Development through the guarded lane, verify hosted, regenerate the Supabase types if the read shape requires it, and prove the connected Championship consumer reads the new payload. Production promotion stays a separate, unauthorised milestone.
+- [x] Roll the two Championship migrations to Development through the guarded lane and verify hosted. Done: [`config/development-hosted-contract.json`](config/development-hosted-contract.json) records fast-lane run 32312618799 from main `0c48962`, and an independent read-only query after it named 208 ledger rows with newest `20260819130000`, the installed phase definition using the determinate split membership rule, and the bracket emitting the caller's own outcome. Every Contract-205 protected count is unchanged.
+- [ ] Promote 205→208 to Production. A SEPARATE AND UNAUTHORISED MILESTONE, coordinated by its own ops change. `hostedRolloutRequired` stays `true` in `config/vnext-programme.json` until it lands, because the flag covers every hosted environment and one of them is still owed.
 
 ## 2. Accepted product gaps still requiring delivery
 
@@ -51,7 +53,7 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 - [ ] **#33** — verify the effective Protect Main/ruleset controls and required contexts.
 - [ ] **#272** — independent qualified UK data-protection review; engineering cannot self-approve it.
 - [ ] **#854** — AI Lab first-weekend/operational completion; do not close on one bug fix.
-- [ ] **#863 / PROF-001** — same-season bounded player-profile visibility. The backend (contract 206, `get_season_player_profile_by_ref`) is **on `main` and applied to Development**, alongside contract 207 and contract 208. Closure still requires generated Supabase types and the vNext browser consumer — until that consumer exists, `buildLeaguesModel.destinationOf` still closes a `compare` row, which is correct against the database the browser actually talks to.
+- [x] **#863 / PROF-001** — same-season bounded player-profile visibility. **Closed.** The backend is contract 206's `get_season_player_profile_by_ref`, merged in #920; the Development rollout is recorded in [`config/development-hosted-contract.json`](config/development-hosted-contract.json) at Contract 208; the generated types carry the RPC (`database.types.meta.json` at 208); and the consumer exists. `buildLeaguesModel.destinationOf` now opens a `compare` row by the season ref, `useVNextPlayerProfileSource` reads through whichever address the doorway carried — the account id where the shared-league boundary revealed one, the ref where it did not — and the account id never travels across the same-season boundary, which is what the migration means by *"player_ref is the only navigation identity exposed by this path"*. The pin has no ref-addressed write, so a same-season profile reports its pin state as unanswered rather than as unpinned.
 - [ ] **`PROF-002`** — "people you follow". `set_pinned_rival` exists and the vNext player profile now offers the pin over it; the LIST does not, because `get_my_preferences` returns pinned rivals as bare ids with no name and no season ref. The smallest safe contract is proposed in `docs/product/vnext-player-profiles.md` §8.5. Do not fabricate the list in local state.
 - [ ] **#865** — optional native Supabase passkey Development pilot, subject to current provider capability and RP/domain gates.
 - [ ] **#866** — available-provider anomaly corroboration sentinel.
@@ -68,6 +70,10 @@ Re-check GitHub before acting; issue bodies may contain dated evidence, while co
 
 ## 5. Release-quality debt that remains real
 
+- [ ] **Apply contract 209 to Development, then confirm the provider lane is alive again.** Until it is applied, Development has imported nothing since 10 August: `ING-001` in the risk register. Confirm by the next `provider_response_consumption` row reading outcome `applied`, and by a postponed fixture appearing as postponed on Matches without anyone touching it. The 13 already-consumed responses do not replay — the recovery arrives with the next poll.
+- [ ] **`ING-002`** — measure SportMonks status tokens `14`–`21` against real payloads, or remove the guessed rows so they fail closed to `unknown`.
+- [ ] **`ING-005`** — decide whether the published prediction deadline is per fixture or per matchweek. Enforcement has been per fixture since contract 119; the card read still publishes the matchweek instant, so a rescheduled fixture reads as locked while the trigger would accept the write.
+- [ ] **`ING-006`** — a postponement can be up to 22 hours stale and the staleness spans the matchweek lock, so a player can be locked into a match already called off. No code change is owed: raise `cadence_minutes` to 360 and `live_lead_minutes` to 720 on the enabled poll target. It is a hosted `update`, so it needs explicit authority for the environment. Arithmetic and cost in the risk register.
 - [ ] Manual assistive-technology/accessibility checks and the vNext contrast/geometry gaps named in the risk register.
 - [ ] Full-volume/performance and rollback rehearsals at the release stage that owns them.
 - [ ] Remaining security/operations work such as CSP inline-style removal, residual rate-limit coverage, monitoring/alerting and recovery ownership where still open in the risk register.

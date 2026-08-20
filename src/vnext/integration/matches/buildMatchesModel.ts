@@ -1,3 +1,5 @@
+import { clubBadgePolicy } from '../../../app/clubBadgePolicy'
+import { resolveOfficialBadge } from '../../../domain/clubIdentity/officialBadge'
 import type { SeasonFixtureClub, SeasonListFixture } from '../../../services/supabase/seasonFixtureListModel'
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
 import {
@@ -19,6 +21,7 @@ import type {
 } from '../../models/matches'
 import { matchPhase } from '../../models/matches'
 import type { MatchesSource } from './matchesSource'
+import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
 
 /**
  * `MatchesSource` → `MatchesModel`. PURE: no network, no storage, NO CLOCK and
@@ -55,13 +58,27 @@ import type { MatchesSource } from './matchesSource'
  * `awaitingResult` where the feed says the football is over and the platform
  * has not settled a result.
  *
- * A PROVIDER MAY NOT POSTPONE, ABANDON OR CANCEL A FIXTURE. Contract 135's
- * vocabulary includes all three, and a feed reports them for ordinary reasons —
- * a delayed kickoff, a momentary outage, a mis-mapped fixture. Letting one
- * through would empty a fixture list on a provider's say-so, which is the
- * confirmation boundary the whole ingestion lane exists to hold. The platform's
- * own `postponed`, `abandoned` and `void` are the only ones that reach the
- * model.
+ * A PROVIDER MAY NOT POSTPONE, ABANDON OR CANCEL A FIXTURE **HERE**. Contract
+ * 135's vocabulary includes all three, and a feed reports them for ordinary
+ * reasons — a delayed kickoff, a momentary outage, a mis-mapped fixture.
+ * Letting one through would empty a fixture list on a provider's say-so, which
+ * is the confirmation boundary the whole ingestion lane exists to hold. The
+ * platform's own `postponed`, `abandoned` and `void` are the only ones that
+ * reach the model.
+ *
+ * THAT REFUSAL IS UNCHANGED BY CONTRACT 209, AND IS WHY IT WAS THE RIGHT ONE.
+ * Until that contract, `season_fixtures.status` could only become `postponed`
+ * by an administrator pressing approve, so the practical effect of this file's
+ * rule was that a real postponement never appeared at all. Contract 209 moved
+ * the decision to where it belongs — the ingestion boundary applies a
+ * provider's postponement, records it, and reverses it when the provider
+ * recants — so `fixture.status` now carries the answer this mapper always
+ * insisted on reading, and this mapper still reads nothing else.
+ *
+ * WHAT A MOVED FIXTURE LOOKS LIKE. `fixture.schedule.rescheduled` is contract
+ * 117's stored fact, and it travels onto the two states a moved fixture can be
+ * in. Nothing here compares a kickoff against anything to decide it — see
+ * `MatchState`.
  */
 export function buildMatchesModel(source: MatchesSource): MatchesModel {
   const scope: MatchesScope = source.combined === null ? 'competition' : 'combined'
@@ -118,13 +135,19 @@ export function buildMatchesModel(source: MatchesSource): MatchesModel {
  */
 export function matchStateOf(fixture: SeasonListFixture): MatchState {
   const kickoff = fixture.kickoffAt
+  const rescheduled = fixture.schedule.rescheduled
 
   switch (fixture.status) {
     case 'postponed':
       // NO PROVIDER SCORE IS CARRIED. A postponed fixture that a feed once
       // reported in play must not keep the numbers: that is how a postponed
       // match ends up drawn with a live scoreline.
-      return { kind: 'postponed', kickoff, note: null }
+      return {
+        kind: 'postponed',
+        kickoff,
+        note: postponedScheduleNote(kickoff, rescheduled),
+        rescheduled,
+      }
 
     case 'abandoned':
       return { kind: 'abandoned', kickoff, note: null }
@@ -143,7 +166,7 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
       // put a provisional score on a match the platform calls played. There is
       // no state to show, so the honest answer is the one that shows none.
       return fixture.result === null
-        ? { kind: 'scheduled', kickoff }
+        ? { kind: 'scheduled', kickoff, rescheduled }
         : {
             kind: 'finished',
             kickoff,
@@ -163,7 +186,8 @@ export function matchStateOf(fixture: SeasonListFixture): MatchState {
 
 function providerRefined(kickoff: string | null, fixture: SeasonListFixture): MatchState {
   const live = fixture.live
-  if (live === null) return { kind: 'scheduled', kickoff }
+  const rescheduled = fixture.schedule.rescheduled
+  if (live === null) return { kind: 'scheduled', kickoff, rescheduled }
 
   switch (live.kind) {
     case 'in_play':
@@ -178,7 +202,7 @@ function providerRefined(kickoff: string | null, fixture: SeasonListFixture): Ma
     default:
       // `scheduled`, `postponed`, `abandoned`, `cancelled`, `unknown`. None of
       // them may move the platform's own state — see the header.
-      return { kind: 'scheduled', kickoff }
+      return { kind: 'scheduled', kickoff, rescheduled }
   }
 }
 
@@ -223,8 +247,8 @@ function itemOf(
   const state = matchStateOf(fixture)
   const kickoffLabel = formatKickoffTime(fixture.kickoffAt)
   const stage = stageOf(fixture)
-  const home = teamOf(fixture.home)
-  const away = teamOf(fixture.away)
+  const home = teamOf(fixture.home, competition.id)
+  const away = teamOf(fixture.away, competition.id)
 
   // In combined scope the competition LEADS the line, because knowing which
   // competition a match is in is the condition that mode exists under. In
@@ -352,18 +376,24 @@ function stageOf(fixture: SeasonListFixture): MatchStageRef {
  * both roles rather than a highlight derived here, because a derived colour is
  * a colour no club plays in.
  */
+/**
+ * The domain's five kit shapes, carried across unflattened.
+ *
+ * A `sash` used to become `solid` here — honest, and a lost detail — because
+ * `TeamCrest` knew four patterns and the domain had five. The crest learned the
+ * fifth for Stage 14, so a sash club is drawn as one. Anything the domain adds
+ * beyond these still falls to `solid`, because drawing an unknown pattern as a
+ * known one would be presentation inventing a kit.
+ */
 const KIT_PATTERN: Readonly<Record<string, TeamKitPattern>> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
-  // The domain has a fifth pattern the presentation lane does not draw. It
-  // resolves to solid rather than being dropped, because a club with no crest
-  // still needs a mark.
-  sash: 'solid',
+  sash: 'sash',
 }
 
-function teamOf(club: SeasonFixtureClub): Team {
+function teamOf(club: SeasonFixtureClub, competitionId: string | null): Team {
   const tokens: ClubIdentityTokens = club.tokens
   const primary = tokens.primary
   const secondary = tokens.secondary ?? primary
@@ -387,9 +417,24 @@ function teamOf(club: SeasonFixtureClub): Team {
       onPrimary: tokens.onPrimary ?? 'light',
     },
     kitPattern: KIT_PATTERN[tokens.pattern ?? 'solid'] ?? 'solid',
-    // No crest source is agreed anywhere in the application. Presentation falls
-    // back to the abbreviation, which every vNext surface already does.
-    crestUrl: null,
+    /**
+     * THE POLICY'S ANSWER, NOT THIS FILE'S.
+     *
+     * `resolveOfficialBadge` is the one place badges-on, provider-approved,
+     * competition-allowed and URL-usable are decided, and it is given a
+     * candidate of `null` here because NOTHING IN THIS REPOSITORY DECODES A
+     * PROVIDER BADGE FIELD — by decision rather than omission. The 8 August
+     * 2026 provider capability audit found that all four configured providers
+     * serve an image and disclaim the rights to it, and ADR 0017 decided the
+     * product launches badge-free on that evidence.
+     *
+     * The seam is here so the day that changes, a provider adapter carries a
+     * `ClubBadgeCandidate` into this call and no page changes at all.
+     */
+    officialBadge: resolveOfficialBadge(null, {
+      policy: clubBadgePolicy(),
+      competitionId,
+    }),
   }
 }
 
@@ -428,15 +473,23 @@ export function summarise(
         : `${home} ${score.home}, ${away} ${score.away}, ${phase}, provisional score${where}`
     }
     case 'postponed':
-      return `${home} against ${away}, postponed${where}`
+      // The note is part of the sentence, not decoration: "postponed" alone
+      // leaves a listener asking the one question the card answers visually.
+      return state.note === null
+        ? `${home} against ${away}, postponed${where}`
+        : `${home} against ${away}, postponed, ${state.note.toLowerCase()}${where}`
     case 'abandoned':
       return `${home} against ${away}, abandoned${where}`
     case 'void':
       return `${home} against ${away}, void${where}`
-    default:
+    default: {
+      // A rescheduled fixture says so in the sentence too. A reader scanning a
+      // Saturday for a match that was moved into it has no other way to tell.
+      const moved = state.kind === 'scheduled' && state.rescheduled ? ', rescheduled' : ''
       return kickoffLabel
-        ? `${home} against ${away}, kick-off ${kickoffLabel}${where}`
-        : `${home} against ${away}, kick-off to be confirmed${where}`
+        ? `${home} against ${away}${moved}, kick-off ${kickoffLabel}${where}`
+        : `${home} against ${away}${moved}, kick-off to be confirmed${where}`
+    }
   }
 }
 

@@ -78,7 +78,7 @@ is to check those, not the counts.
 | Compare with one rival | `/h2h/:rivalId` (weekly) | a panel inside the profile | **B** | Contract 192's rivalry, not contract 129 per matchweek |
 | Mark somebody as a rival | Hub Rival Watch pin | the profile's pin control | **B** | **Built in Stage 14** over `set_pinned_rival`, which has been in production since contract 157 |
 | See the players I have pinned, by name | **nowhere** | **not built** | **F** | `PROF-002`. `get_my_preferences` returns pinned rivals as bare ids — no name, no season ref. The smallest safe read is proposed in [`vnext-player-profiles.md`](vnext-player-profiles.md) §8.5 |
-| Open a same-season entrant I share no private league with | **refused** | **the backend permits it; the browser does not ask yet** | **F** | `PROF-001` / ADR 0031 § 2 decided YES. Contract 206 (`get_season_player_profile_by_ref`) is on `main` and applied to Development; the vNext consumer is not built. See §8 |
+| Open a same-season entrant I share no private league with | **refused** | **opens, by season ref** | **A** | `PROF-001`, closed. ADR 0031 § 2 decided YES and contract 206's `get_season_player_profile_by_ref` answers the ref. See §8 |
 | A Euro-tournament private league | `/league/:id` | unchanged | **E** | Stage 15's Euro adoption, deliberately not done early |
 | A Euro-tournament profile | `/tournament/profile[/:id]` | unchanged | **E** | Three profile systems exist; vNext must not add a fourth, and must not rebuild the Euro ones out of order |
 
@@ -128,26 +128,37 @@ what a cutover would ship without.
 ### `PROF-001` — a same-season entrant with no shared private league
 
 ADR 0031 § 2 decided **YES**: same-season entrants may view each other's
-bounded, reveal-safe profiles. **Contract 206 —
-`get_season_player_profile_by_ref`, from PR #920 — is on `main`, and Development
-has applied it.** Two things still stand between that and the capability:
+bounded, reveal-safe profiles. **This is now closed**, and the three things that
+once stood between the decision and the capability are each done rather than
+each argued away:
 
-1. **no vNext consumer.** `buildLeaguesModel.destinationOf` still returns
-   `closed / not-shared` for a `compare` row, and the player profile still asks
-   the UUID-addressed contract 151 read. Widening the first without building the
-   second would put a door on a corridor;
-2. **generated Supabase types.** `PROF-001`'s own acceptance names them.
+1. **the read** — contract 206's `get_season_player_profile_by_ref`, merged in
+   PR #920;
+2. **the hosted rollout** — Development applied it; `NOW.md` states where every
+   environment is, and this page deliberately does not;
+3. **the vNext consumer** — `buildLeaguesModel.destinationOf` opens a `compare`
+   row on the season ref, and the player profile reads through whichever address
+   the doorway carried.
 
-The third item this list used to carry — *"hosted Development has not applied
-it"* — is done, and is the reason this page no longer states hosted numbers at
-all. See the sub-section below.
+**The account id does not travel across the same-season boundary**, which is the
+part worth keeping in a capability page rather than in a changelog. A `compare`
+row carries a ref and no id even if a payload offered one, because the migration
+is explicit that the ref is *"the only navigation identity exposed by this
+path"*. Permission and address are separate facts and this boundary states only
+the one it is entitled to.
 
-**It is not a cutover blocker and must not be treated as one.** The vNext
-Leagues table behaves correctly for both answers, and the legacy product refuses
-the same reader today — so cutover loses nothing here. What it means is that the
-journey *league table → player → rank over time → comparison* stops at the first
-step for a non-league-mate until the consumer is built on a database that has
-the read.
+**One consequence is still open and is NOT this row:** the pin has no
+ref-addressed write, so a same-season profile reports its pin state as
+*unanswered* rather than as unpinned. That is honest — the alternative is a
+control that lies about what it knows — and it belongs to `PROF-002`, below.
+
+**It was never a cutover blocker, and it is worth recording why the answer did
+not depend on closing it.** The vNext Leagues table behaved correctly for both
+answers throughout, and the legacy product refuses the same reader to this day —
+so cutover would have lost nothing here either way. Closing it *gained*
+something instead: the journey *league table → player → rank over time →
+comparison* now runs to the end for a non-league-mate, where the legacy product
+stops it at the first step.
 
 ### `PROF-002` — "people you follow"
 
@@ -190,7 +201,7 @@ true rather than what is intended.
 | Predicate | State | Evidence |
 | --- | --- | --- |
 | every Football Hub route has an intentional production behaviour | **Met** | The route matrix, all 39 rows, none unresolved |
-| every user-facing CAPABILITY has a stated destination | **Met, with two named `F` rows** | This page. `PROF-001` and `PROF-002` are the whole of what is not `A`/`B`/`C`/`D`/`E`, and neither loses a capability the legacy product has |
+| every user-facing CAPABILITY has a stated destination | **Met, with one named `F` row** | This page. `PROF-002` is the whole of what is not `A`/`B`/`C`/`D`/`E`, and it loses no capability the legacy product has. `PROF-001` was the second and is closed — see §8 |
 | no required user journey depends on the workshop or a dev harness | **Met** | Every `/dev/*` route is behind `import.meta.env.DEV` and absent from a production build. No row above resolves to one |
 | production build contains the intended vNext surfaces and only intentional legacy compatibility | **NOT YET — and this is the stage's remaining work** | vNext is still a parallel lane: no route is repointed, and the connected surfaces are reachable only from `/dev/*`. The cutover implementation itself is what closes this |
 | auth, refresh, deep-link, navigation and error paths are tested | **Partially** | The vNext lane's own paths are; the repointed production routing does not exist yet to be tested |

@@ -116,17 +116,26 @@
    ========================================================================== */
 
 /**
- * THE TWO SERVER-ISSUED ADDRESSES A PROFILE PAGE IS OPENED WITH.
+ * THE TWO SERVER-ISSUED ADDRESSES A PROFILE PAGE IS OPENED WITH, EITHER OF
+ * WHICH MAY BE ABSENT.
  *
  * `ref` is nullable because contract 191 is what issues it and a row below that
  * contract has none — in which case the rank history and the rivalry cannot be
  * asked at all, and their panels say so rather than pretending to have failed.
+ *
+ * `playerId` BECAME NULLABLE AT CONTRACT 206, and the reason is a boundary
+ * rather than a gap. The same-season profile is addressed by the ref and its own
+ * comment says the ref is *"the only navigation identity exposed by this path"*
+ * — so a caller who reached this page across that boundary genuinely has no
+ * account id, and never will. What it costs is the pin, which is addressed by
+ * the account id and only by it; the panel reports "not answered" rather than
+ * "not pinned".
  */
 type PlayerAddress = {
-  /** Contract 191's season-scoped entry id. Addresses history and rivalry. */
+  /** Contract 191's season-scoped entry id. Addresses history, rivalry and — since contract 206 — the profile. */
   readonly ref: string | null
-  /** The account id. Addresses the profile. */
-  readonly playerId: string
+  /** The account id, where the boundary the caller crossed revealed one. */
+  readonly playerId: string | null
 }
 
 /**

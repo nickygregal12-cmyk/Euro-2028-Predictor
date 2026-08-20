@@ -53,7 +53,20 @@ function you(displayName: string, ref: string): LeaguePlayer {
 
 /** Someone the server said the caller may open, and told it where. */
 function open(displayName: string, ref: string, playerId: string): LeaguePlayer {
-  return { ref, displayName, destination: { kind: 'open', playerId } }
+  return { ref, displayName, destination: { kind: 'open', playerRef: ref, playerId } }
+}
+
+/**
+ * SOMEONE OPENABLE BY REF ALONE — contract 206's same-season boundary.
+ *
+ * The row the `compare` reach produces: the caller may read a bounded profile
+ * and the server has revealed no account id to address it with. It is an
+ * ORDINARY openable row, which is the whole point of the world it appears in —
+ * a surface that drew it differently would be showing a reader a permission
+ * distinction they have no use for.
+ */
+function openByRef(displayName: string, ref: string): LeaguePlayer {
+  return { ref, displayName, destination: { kind: 'open', playerRef: ref, playerId: null } }
 }
 
 /**
@@ -516,6 +529,70 @@ const everyoneOpenable = seasonModel({
       }),
     ],
     totalCount: 4,
+  }),
+})
+
+/**
+ * PROF-001, CLOSED BY CONTRACT 206 — the same-season boundary, openable.
+ *
+ * ============================ THE WORLD THIS EXISTS TO PROVE =============
+ *
+ * Before contract 206 a `compare` row was drawn CLOSED, and that was correct
+ * against the database as deployed: the only profile read wanted an account id
+ * and this boundary reveals none. `get_season_player_profile_by_ref` answers the
+ * ref instead, so the row opens.
+ *
+ * WHAT MUST NOT BE VISIBLE IS THE DIFFERENCE. Two of these rows carry an account
+ * id and two do not, and a reader has no use for that distinction — it is a
+ * fact about which read will answer, not about who they may look at. Every
+ * openable row here draws identically, and `leagues.test.tsx` holds it.
+ */
+const sameSeasonOpenable = seasonModel({
+  leagues: [sundayClub],
+  global: globalTable({
+    rows: [
+      // The older boundary: a shared private league, so the server sent an id.
+      globalRow({
+        player: open('Jamie Ferguson-Whyte', 'ref-jamie', 'player-jamie'),
+        rank: 1,
+        position: 1,
+        points: 214,
+        matchweeksPlayed: 12,
+      }),
+      // The new one: same season, no shared league, no account id, still open.
+      globalRow({
+        player: openByRef('Rhona Buchanan', 'ref-rhona'),
+        rank: 2,
+        position: 2,
+        points: 209,
+        matchweeksPlayed: 12,
+      }),
+      globalRow({
+        player: openByRef('S\u00f8ren Kj\u00e6r', 'ref-soren'),
+        rank: 3,
+        position: 3,
+        points: 205,
+        matchweeksPlayed: 12,
+      }),
+      // AND ONE THAT IS STILL CLOSED, so the world is not "everything opens".
+      // A row below contract 191 carries no ref, and the ref is the address.
+      globalRow({
+        player: unaddressed('Callum Bruce', 'ref-callum'),
+        rank: 4,
+        position: 4,
+        points: 203,
+        matchweeksPlayed: 12,
+      }),
+      globalRow({
+        player: you('Nicky Gregal', 'ref-you'),
+        rank: 5,
+        position: 5,
+        points: 201,
+        matchweeksPlayed: 12,
+        isYou: true,
+      }),
+    ],
+    totalCount: 5,
   }),
 })
 
@@ -1080,6 +1157,7 @@ export const leaguesScenarios = {
   duplicateNames,
   nothingOpenable,
   everyoneOpenable,
+  sameSeasonOpenable,
   newSeason,
   emptySeason,
   seasonUnavailable,
@@ -1117,6 +1195,8 @@ export const leaguesScenarioPremises: Readonly<Record<LeaguesScenarioName, strin
     'A player in no private league shares nothing with anybody. No button, no disabled control, no lock anywhere in the table.',
   everyoneOpenable:
     'Every row openable, plus the one row whose reach said profile and carried no id. That row is plain text, with the one sentence that says why.',
+  sameSeasonOpenable:
+    'PROF-001, closed by contract 206. Two rows openable with an account id, two by the season ref alone, one closed for want of a ref. The four openable rows must be indistinguishable — which read answers is not a fact a reader has any use for.',
   newSeason:
     'The first day. Everyone on nothing from nothing, all tied on rank 1. A full table that must not read as an error.',
   emptySeason: 'Nobody has entered yet. An ordinary early state, not a failure.',

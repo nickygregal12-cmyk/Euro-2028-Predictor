@@ -121,8 +121,27 @@ function pathOf(tag: string): string | null {
   return ROUTE_AUTHORITIES[authority[1]]?.[authority[2]] ?? null
 }
 
-function elementOf(tag: string): string | null {
-  return tag.match(/\belement=\{<(\w+)/)?.[1] ?? null
+/**
+ * EVERY element a route can render, not the first one.
+ *
+ * A flag-gated route is `element={isNextUi('x') && A ? <A /> : <B />}`, so the
+ * old `element={<Word` match found nothing at all and the route vanished from
+ * this analysis entirely. That is the worst outcome available: a route behind a
+ * flag is exactly the kind a boundary rule needs to see, and dropping it made
+ * this suite quietly stop measuring the Football Hub cutover's nine
+ * destinations the moment they were gated.
+ *
+ * So both branches are collected and both are analysed. A route that reaches
+ * the tournament data through EITHER of its two elements fails, which is the
+ * only reading that is true of a switch.
+ */
+function elementsOf(tag: string): string[] {
+  const at = tag.indexOf('element={')
+  if (at < 0) return []
+  const attribute = tag.slice(at)
+  return [...new Set([...attribute.matchAll(/<(\w+)/g)].map((match) => match[1] ?? ''))].filter(
+    Boolean,
+  )
 }
 
 /**
@@ -143,14 +162,18 @@ function routesByBoundary(source: string): { element: string; path: string; insi
       continue
     }
 
-    const element = elementOf(tag)
+    const elements = elementsOf(tag)
     const path = pathOf(tag)
-    if (path && element) {
-      routes.push({ element, path, inside: boundaryDepth !== null })
+    if (path) {
+      for (const element of elements) {
+        routes.push({ element, path, inside: boundaryDepth !== null })
+      }
     }
 
     if (!selfClosing) {
-      if (element === 'TournamentJourney' && boundaryDepth === null) boundaryDepth = depth + 1
+      if (elements.includes('TournamentJourney') && boundaryDepth === null) {
+        boundaryDepth = depth + 1
+      }
       depth += 1
     }
   }

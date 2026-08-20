@@ -5,7 +5,7 @@ import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextNotice } from '../../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 import { buildGamesModel } from './buildGamesModel'
 import { useVNextGamesSource } from './useVNextGamesSource'
 
@@ -16,6 +16,20 @@ import { useVNextGamesSource } from './useVNextGamesSource'
  * purely; `VNextGames` draws. This file only chooses which of those to show,
  * which is why it holds no registration logic at all — that rule belongs to
  * `lmsRegistrationModel`, which the mapper calls and nothing here restates.
+ *
+ * ============================ THE JOIN IS THE SERVER'S, AND IT IS WIRED ==
+ *
+ * `join-game` used to leave this file and stop: the surface emitted it, the
+ * harness reported it, and nothing joined anything. It now goes to
+ * `join_competition_game` through the acquisition hook — which adds no rule to
+ * it. Every registration boundary is the server's, the Join control is only
+ * drawn from the SERVER's own registration outlook, and a success is proved by
+ * a re-read rather than by patching the row.
+ *
+ * `onIntent` still exists and still receives `open-game`. A host that wants to
+ * see the join intent rather than act on it gets it too — but the write no
+ * longer depends on a host remembering to perform it, which is how a control
+ * ends up looking real and doing nothing.
  *
  * ============================ FAILING TO READ IS NOT AN EMPTY SEASON ====
  *
@@ -41,8 +55,6 @@ export type VNextGamesScreenProps = {
    */
   readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
   readonly onIntent?: ((intent: GamesIntent) => void) | undefined
-  /** A join is in flight, named per game so one row's work does not disable the rest. */
-  readonly joiningGameId?: string | null
 }
 
 export function VNextGamesScreen(props: VNextGamesScreenProps) {
@@ -108,15 +120,41 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
         onRetry={state.retry}
       />
     ) : model === null ? (
-      <VNextNotice
-        destination="games" heading="Games" title="Loading this season’s games" body="One moment." />
+      // THE SHAPE OF THE HUB, NOT A SENTENCE ABOUT WAITING. "One moment."
+      // told a player nothing and settled into a catalogue of cards, so the
+      // page jumped the moment it arrived.
+      <VNextLoadingRows
+        destination="games"
+        heading="Games"
+        label="Loading this season’s games"
+        shape="cards"
+        rows={3}
+      />
     ) : (
       <VNextGames
         model={model}
         onRetry={state.status === 'ready' ? state.retry : undefined}
         refreshing={state.status === 'ready' ? state.refreshing : false}
-        onIntent={props.onIntent}
-        joiningGameId={props.joiningGameId ?? null}
+        onIntent={(intent: GamesIntent) => {
+          // THE HOST STILL SEES EVERY INTENT, including the join — a host that
+          // routes on `open-game` needs one seam, not two.
+          props.onIntent?.(intent)
+          if (intent.kind === 'join-game' && state.status === 'ready') {
+            state.join(intent.gameId)
+          }
+        }}
+        joiningGameId={
+          state.status === 'ready' && state.write.kind === 'joining'
+            ? state.write.gameId
+            : null
+        }
+        joinFailure={
+          // CARRIED WHOLE, so the write's own sentence travels with it rather
+          // than this file re-choosing copy the error authority already chose.
+          state.status === 'ready' && state.write.kind === 'failed'
+            ? { gameId: state.write.gameId, message: state.write.message }
+            : null
+        }
       />
     )
 

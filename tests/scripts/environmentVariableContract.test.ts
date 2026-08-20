@@ -147,42 +147,79 @@ describe('VITE_* environment variable contract', () => {
   })
 
   /**
-   * Hosted builds may switch a route flag on, but only where it was meant to.
+   * Hosted builds may switch a route flag on, and the authority for doing it is
+   * a record rather than a habit.
    *
-   * `netlify.toml` turns the public landing page on for deploy previews, so a
-   * reviewer clicking the preview link sees the page under review rather than
-   * the redirect it replaces. That convenience is one edit away from becoming
-   * an unreviewed production exposure — `[context.deploy-preview.environment]`
-   * and `[build.environment]` differ by one word — and the flag's whole value
-   * is that turning it on is a deliberate, separate act from merging.
+   * ============================ WHAT THIS USED TO SAY, AND WHY IT CHANGED ==
+   *
+   * It used to refuse any `VITE_UI_*` in `[build.environment]` outright, on the
+   * grounds that the shared environment is read by PRODUCTION and that "the
+   * flag's whole value is that turning it on is a deliberate, separate act from
+   * merging". That reasoning is exactly right and it is not withdrawn.
+   *
+   * What changed is that the deliberate act happened. The Football Hub cutover
+   * is authorised in `config/vnext-programme.json`, with the preconditions it
+   * was gated on recorded beside it. A rule that could only ever refuse would
+   * have had to be DELETED at the moment the programme reached its own goal,
+   * and a guard deleted on the one day it matters was never a guard.
+   *
+   * So it is re-pointed rather than removed: a route flag may appear in the
+   * shared build environment only while the cutover is authorised, and the
+   * authorisation has to be a value in the programme record — which is a file a
+   * reviewer reads, in a commit somebody signed off, rather than one word
+   * changed in a build config.
    */
   describe('hosted route-flag exposure', () => {
     const netlify = readRepositoryFile('netlify.toml')
+    const programme = JSON.parse(readRepositoryFile('config/vnext-programme.json')) as {
+      productionCutoverAuthorized?: boolean
+    }
+    const buildEnvironment = netlify.slice(
+      netlify.indexOf('[build.environment]'),
+      netlify.indexOf('[context.') === -1 ? undefined : netlify.indexOf('[context.'),
+    )
 
-    it('switches the landing page on for deploy previews', () => {
-      expect(netlify).toMatch(
-        /\[context\.deploy-preview\.environment\][\s\S]*?VITE_UI_PUBLIC_LANDING\s*=\s*"true"/,
-      )
-    })
-
-    it('never switches a route flag on in the shared build environment', () => {
-      // `[build.environment]` applies to production as well as previews, so a
-      // route flag set there is on for players — which is exactly the decision
-      // the flag exists to keep separate from merging a pull request.
-      const buildEnvironment = netlify.slice(
-        netlify.indexOf('[build.environment]'),
-        netlify.indexOf('[context.'),
-      )
+    it('sets a route flag in the shared environment only while the cutover is authorised', () => {
+      const flags = [...buildEnvironment.matchAll(/(VITE_UI_[A-Z_]+)\s*=\s*"([^"]*)"/g)]
+      if (flags.length === 0) return
 
       expect(
-        buildEnvironment,
-        'a VITE_UI_* route flag is set in [build.environment], which production also reads',
-      ).not.toMatch(/VITE_UI_/)
+        programme.productionCutoverAuthorized,
+        'netlify.toml switches route flags on for PRODUCTION, and ' +
+          'config/vnext-programme.json does not authorise the cutover. One of the two is ' +
+          'wrong, and the build config is not the authority.',
+      ).toBe(true)
     })
 
-    it('scopes every hosted route flag to the deploy-preview context', () => {
-      // Any other context — production, branch-deploy — setting a UI route flag
-      // is an exposure decision that must not arrive as a build-config edit.
+    it('switches every flag it sets on rather than half-on', () => {
+      // A `VITE_UI_*` in the shared environment set to anything but "true" is a
+      // line that reads as a switch and behaves as a comment: the flag reader
+      // fails closed, so `"false"`, `"1"` or an empty value are all the legacy
+      // journey. If a destination is meant to be off, the line is meant to be
+      // absent — which is what a reviewer can see.
+      for (const [, name, value] of buildEnvironment.matchAll(
+        /(VITE_UI_[A-Z_]+)\s*=\s*"([^"]*)"/g,
+      )) {
+        expect(value, `${name} is set in [build.environment] and is not "true"`).toBe('true')
+      }
+    })
+
+    it('names every shared flag in the environment contract, so none is invented here', () => {
+      // A flag set in the build config that `vite-env.d.ts` and `.env.example`
+      // do not declare is a variable nothing reads — an exposure decision that
+      // does nothing, which is worse than one that does something.
+      for (const [, name] of buildEnvironment.matchAll(/(VITE_UI_[A-Z_]+)\s*=/g)) {
+        expect([...declaredInTypes()], `${name} is set in netlify.toml and declared nowhere`).toContain(
+          name,
+        )
+      }
+    })
+
+    it('scopes any per-context route flag to the deploy-preview context', () => {
+      // The original rule, unchanged, for the contexts BELOW the shared one. A
+      // production or branch-deploy block turning a flag on is still an exposure
+      // decision arriving as a build-config edit, and the shared environment is
+      // now the one reviewable place for it.
       for (const match of netlify.matchAll(/\[context\.([a-z-]+)\.environment\]([\s\S]*?)(?=\n\[|$)/g)) {
         const [, context, body] = match
         if (body === undefined || !/VITE_UI_/.test(body)) continue

@@ -66,6 +66,41 @@ const ALLOWED: Record<string, string> = {
     'derives a competition-day key and validates a zone identifier; renders nothing',
   'src/features/shared/tournamentCompetitionContext.ts':
     'derives a competition-day key and validates a zone identifier; renders nothing',
+  /**
+   * THE vNEXT PRESENTATION LANE, AND WHY IT IS TWO IMPLEMENTATIONS OF ONE RULE.
+   *
+   * `/about` and the public landing page's product preview put vNext surfaces
+   * in the shipping graph, so this guard now sees the lane's own formatter. It
+   * is a real second implementation and pretending otherwise would be worse
+   * than admitting it.
+   *
+   * IT CANNOT DELEGATE TO `kickoff.ts` WITHOUT LOSING THE PROPERTY IT EXISTS
+   * FOR, and that was checked rather than assumed. Two differences, both
+   * load-bearing:
+   *
+   *   • `kickoff.ts` always formats in the VIEWER's locale (`toLocaleTimeString`
+   *     with `undefined`), which is right for the product and fatal for a
+   *     workshop: a story would be a different picture on two machines and a
+   *     screenshot could not be compared with yesterday's. vNext takes a
+   *     `VNextPresentationZone` so production passes the reader's zone and a
+   *     story passes the pinned one.
+   *   • `kickoff.ts` constructs a formatter per call. A vNext fixture list
+   *     formats once per row; the lane caches four `Intl.DateTimeFormat`
+   *     instances per zone.
+   *
+   * SO THE RULE IS SHARED AND THE CODE IS NOT, and the sharing is enforced
+   * rather than described: `tests/vnext/vnextViewerZone.test.tsx` asserts that
+   * the two produce the SAME string for the same instant in the same zone, in
+   * both directions of a zone change. If they ever drift, that fails — which is
+   * the thing this guard is actually protecting.
+   */
+  'src/vnext/foundations/format.ts':
+    'the vNext lane\u2019s formatter; obeys kickoff.ts\u2019s rules and is pinned to them by test',
+  // A deterministic WORLD, not a surface. It builds the fixture data a story and
+  // a screenshot render, in a pinned zone on purpose — the file says so at
+  // length beside the formatter. Nothing a player sees is formatted here.
+  'src/vnext/fixtures/matches/scenarios.ts':
+    'builds deterministic review worlds in a pinned zone; formats nothing a player sees',
 }
 
 function productionModules(): string[] {

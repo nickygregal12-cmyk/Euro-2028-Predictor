@@ -44,6 +44,13 @@ const SET_INLINE: Record<string, string> = {
   '--frame-width': 'src/vnext/workshop/WorkshopCanvas.tsx',
   '--frame-height': 'src/vnext/workshop/WorkshopCanvas.tsx',
   '--frame-scale': 'src/vnext/workshop/WorkshopCanvas.tsx',
+  // The public landing page's device frames: the same three facts as the
+  // workshop's, for the same reason. A width and a height per variant, set from
+  // `previewDevice.ts` by both the real stage and the box that reserves it while
+  // the preview is still being fetched — so they cannot live in a stylesheet
+  // without one of the two disagreeing with the other.
+  '--preview-w': 'src/features/landing/previewDevice.ts',
+  '--preview-h': 'src/features/landing/previewDevice.ts',
 }
 
 /**

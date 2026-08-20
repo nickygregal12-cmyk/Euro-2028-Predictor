@@ -20,6 +20,9 @@ export default defineConfig({
     'auth-recovery.spec.ts',
     'auth-capacity.spec.ts',
     'axe-unauthenticated.spec.ts',
+    // The public landing page, which this config never sees: it auto-logs-in
+    // and `/` becomes the Hub. `playwright.auth.config.ts` runs it.
+    'landing-preview.spec.ts',
     'visual-gallery.spec.ts',
     // Storybook, not the application: vNext has no application route yet.
     'vnext-home.spec.ts',

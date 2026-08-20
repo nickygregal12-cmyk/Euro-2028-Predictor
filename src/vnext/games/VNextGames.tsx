@@ -1,5 +1,10 @@
 import { motion } from 'framer-motion'
-import type { GameEntry, GamesPageModel, GamesPanel } from '../models/games'
+import type {
+  CatalogueGameKey,
+  GameEntry,
+  GamesPageModel,
+  GamesPanel,
+} from '../models/games'
 import { offersEntry, partitionByPlaying } from '../models/games'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
@@ -38,7 +43,21 @@ import styles from './games.module.css'
  */
 
 export type GamesIntent =
-  | { readonly kind: 'open-game'; readonly gameId: string }
+  | {
+      readonly kind: 'open-game'
+      /** `game_competition_id`. What a read or a write is addressed by. */
+      readonly gameId: string
+      /**
+       * The catalogue's own key, carried BECAUSE A HOST HAS TO ROUTE.
+       *
+       * The id is a membership row and says nothing about which page a game
+       * has; the key is what the router knows. Without it a host would have to
+       * map an opaque id back to a game, and the only way to do that is to keep
+       * a second copy of the catalogue — which is how a route ends up pointing
+       * at the wrong game after the catalogue changes.
+       */
+      readonly gameKey: CatalogueGameKey
+    }
   | { readonly kind: 'join-game'; readonly gameId: string }
 
 export type VNextGamesProps = {
@@ -48,6 +67,18 @@ export type VNextGamesProps = {
   readonly onIntent?: ((intent: GamesIntent) => void) | undefined
   /** A join is in flight. Named per game so one row's work does not disable the rest. */
   readonly joiningGameId?: string | null
+  /**
+   * A join that did not land, and the game it was for.
+   *
+   * NAMED, FOR THE SAME REASON `joiningGameId` IS. A write that fails silently
+   * is the worst of the three outcomes: the control returns to "Join" and the
+   * row is telling the truth about the server while telling a player nothing
+   * about their own press. One row failing must not blank the catalogue.
+   */
+  readonly joinFailure?:
+    | { readonly gameId: string; readonly message: string }
+    | null
+    | undefined
 }
 
 export function VNextGames({
@@ -56,6 +87,7 @@ export function VNextGames({
   refreshing = false,
   onIntent,
   joiningGameId = null,
+  joinFailure = null,
 }: VNextGamesProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
@@ -89,6 +121,7 @@ export function VNextGames({
             refreshing={refreshing}
             onIntent={onIntent}
             joiningGameId={joiningGameId}
+            joinFailure={joinFailure}
           />
 
           {/* THE RULES, BESIDE THE GAMES THEY GOVERN. The route matrix absorbs
@@ -110,12 +143,14 @@ function Games({
   refreshing,
   onIntent,
   joiningGameId,
+  joinFailure,
 }: {
   readonly panel: GamesPanel
   readonly onRetry?: (() => void) | undefined
   readonly refreshing: boolean
   readonly onIntent?: ((intent: GamesIntent) => void) | undefined
   readonly joiningGameId: string | null
+  readonly joinFailure: { readonly gameId: string; readonly message: string } | null
 }) {
   if (panel.kind === 'unavailable') {
     return (
@@ -152,6 +187,9 @@ function Games({
                 entry={entry}
                 onIntent={onIntent}
                 joining={joiningGameId === entry.id}
+                failure={
+                  joinFailure && joinFailure.gameId === entry.id ? joinFailure.message : null
+                }
               />
             ))}
           </ul>
@@ -170,6 +208,9 @@ function Games({
                 entry={entry}
                 onIntent={onIntent}
                 joining={joiningGameId === entry.id}
+                failure={
+                  joinFailure && joinFailure.gameId === entry.id ? joinFailure.message : null
+                }
               />
             ))}
           </ul>
@@ -238,10 +279,12 @@ function GameRow({
   entry,
   onIntent,
   joining,
+  failure,
 }: {
   readonly entry: GameEntry
   readonly onIntent?: ((intent: GamesIntent) => void) | undefined
   readonly joining: boolean
+  readonly failure: string | null
 }) {
   const canJoin = offersEntry(entry)
 
@@ -277,7 +320,7 @@ function GameRow({
         <button
           type="button"
           className={styles.rowAction}
-          onClick={() => onIntent?.({ kind: 'open-game', gameId: entry.id })}
+          onClick={() => onIntent?.({ kind: 'open-game', gameId: entry.id, gameKey: entry.gameKey })}
         >
           {entry.standing.kind === 'playing' ? 'Open' : 'Look inside'}
           <span className={text.srOnly}>
@@ -301,6 +344,22 @@ function GameRow({
           </button>
         ) : null}
       </div>
+
+      {failure === null ? null : (
+        // `role="status"` RATHER THAN `alert`. The player is not in the game,
+        // which is exactly where they were before pressing — nothing is lost
+        // and nothing is half-done, so the polite register is the honest one.
+        //
+        // THE CONTROL BESIDE IT IS THE RETRY. It has already returned to
+        // "Join"; a second button would be the same press twice.
+        <p
+          className={`${text.micro} ${styles.rowFailure}`}
+          role="status"
+          data-vnext-zone="join-failed"
+        >
+          {failure}
+        </p>
+      )}
     </li>
   )
 }

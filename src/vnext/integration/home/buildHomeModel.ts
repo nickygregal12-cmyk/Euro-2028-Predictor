@@ -1,4 +1,7 @@
+import { clubBadgePolicy } from '../../../app/clubBadgePolicy'
+import { resolveOfficialBadge } from '../../../domain/clubIdentity/officialBadge'
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
+import { postponedScheduleNote } from '../../../shared/fixtures/scheduleNote'
 import type {
   SeasonFixtureClub,
   SeasonListFixture,
@@ -97,15 +100,19 @@ import type { HomeSource, HomeSourceLeague } from './homeSource'
 /**
  * vNext expresses four shirt treatments; the domain expresses five.
  *
- * A `sash` becomes `solid`, which loses a detail and claims nothing. Teaching
- * `TeamCrest` a fifth pattern is a design change and this is not the stage for
- * one; drawing a sash as halves would be presentation inventing a kit.
+ * A `sash` is now drawn as one. It used to become `solid` — honest, and a lost
+ * detail — because `TeamCrest` knew four patterns and the domain had five; the
+ * crest learned the fifth for Stage 14, so the map carries it across rather
+ * than flattening it. Anything the domain adds beyond these still falls to
+ * `solid`, because drawing an unknown pattern as a known one would be
+ * presentation inventing a kit.
  */
 const KIT_PATTERN: Record<string, TeamKitPattern> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
+  sash: 'sash',
 }
 
 /**
@@ -123,7 +130,7 @@ const KIT_PATTERN: Record<string, TeamKitPattern> = {
  * inventing a colour that no club plays in, and `onPrimary` exists precisely
  * because guessing at contrast is how a legibility failure ships.
  */
-function teamOf(club: SeasonFixtureClub): Team {
+function teamOf(club: SeasonFixtureClub, competitionId: string | null): Team {
   const tokens: ClubIdentityTokens = club.tokens
   const primary = tokens.primary
   const secondary = tokens.secondary ?? primary
@@ -145,9 +152,24 @@ function teamOf(club: SeasonFixtureClub): Team {
       onPrimary: tokens.onPrimary ?? 'light',
     },
     kitPattern: KIT_PATTERN[tokens.pattern ?? 'solid'] ?? 'solid',
-    // No crest source is agreed anywhere in the application. The model has
-    // always said so and presentation always falls back to the abbreviation.
-    crestUrl: null,
+    /**
+     * THE POLICY'S ANSWER, NOT THIS FILE'S.
+     *
+     * `resolveOfficialBadge` is the one place badges-on, provider-approved,
+     * competition-allowed and URL-usable are decided, and it is given a
+     * candidate of `null` here because NOTHING IN THIS REPOSITORY DECODES A
+     * PROVIDER BADGE FIELD — by decision rather than omission. The 8 August
+     * 2026 provider capability audit found that all four configured providers
+     * serve an image and disclaim the rights to it, and ADR 0017 decided the
+     * product launches badge-free on that evidence.
+     *
+     * The seam is here so the day that changes, a provider adapter carries a
+     * `ClubBadgeCandidate` into this call and no page changes at all.
+     */
+    officialBadge: resolveOfficialBadge(null, {
+      policy: clubBadgePolicy(),
+      competitionId,
+    }),
   }
 }
 
@@ -169,9 +191,13 @@ const FORM_RESULT: Record<string, FormResult> = {
  * so it does not know where a club sits, and every surface that shows a position
  * already treats null as "do not print one".
  */
-function sideOf(club: SeasonFixtureClub, form: SeasonClubForm | undefined): MatchSide {
+function sideOf(
+  club: SeasonFixtureClub,
+  form: SeasonClubForm | undefined,
+  competitionId: string | null,
+): MatchSide {
   return {
-    team: teamOf(club),
+    team: teamOf(club, competitionId),
     form: (form?.form ?? [])
       .map((letter) => FORM_RESULT[letter])
       .filter((result): result is FormResult => result !== undefined),
@@ -215,11 +241,40 @@ function statusOf(fixture: SeasonListFixture): MatchStatus {
       return 'live'
     case 'final':
       return 'fullTime'
-    case 'postponed':
-      return 'postponed'
     default:
+      // CONTRACT 209 REMOVED A `live.kind === 'postponed'` CASE FROM HERE, and
+      // the removal is the point rather than a tidy-up. Home used to promote a
+      // provider's postponement on its own while `buildMatchesModel` refused
+      // to — so the same fixture could read "P–P" on Home and "15:00" in
+      // Matches, from one payload, with nothing saying which was right.
+      //
+      // The provider's word now reaches `season_fixtures.status` through the
+      // ingestion boundary, where it is recorded and reversible, so the first
+      // line of this function already answers it. Both surfaces read the
+      // platform, and there is one answer.
       return 'upcoming'
   }
+}
+
+/**
+ * THE SENTENCE FOR A SLOT THAT IS NOT WHAT IT LOOKS LIKE.
+ *
+ * The postponed half comes from `postponedScheduleNote`, which Matches uses
+ * too: one fixture must not be described in two ways on two surfaces.
+ *
+ * The going-ahead half is Home's own, and it is a different sentence rather
+ * than the same one shortened. `Match` has no marker for a moved fixture the
+ * way `MatchState` does, so on Home the note is the only place the fact can
+ * live; in Matches the state carries it and the mark draws a chip.
+ */
+function scheduleNoteOf(fixture: SeasonListFixture): string | null {
+  if (fixture.status === 'postponed') {
+    return postponedScheduleNote(fixture.kickoffAt, fixture.schedule.rescheduled)
+  }
+  // A moved fixture that is going ahead says so; the date beside it is real and
+  // needs no qualification, only an explanation of why it is not where the
+  // reader last saw it.
+  return fixture.schedule.rescheduled ? 'Rescheduled' : null
 }
 
 /**
@@ -348,13 +403,14 @@ function matchOf(
     // the type lie, and the caller filters these out.
     kickoff: fixture.kickoffAt ?? '',
     status: statusOf(fixture),
+    scheduleNote: scheduleNoteOf(fixture),
     // No minute anywhere. `season_fixture_live_state` carries a status, a score
     // and an observation instant — no clock — so Home shows LIVE without a
     // minute. `LiveIndicator` and the ticker both already read a null clock as
     // "say live, say no number", so this costs the design nothing.
     clock: null,
-    home: sideOf(fixture.home, formByName.get(fixture.home.name)),
-    away: sideOf(fixture.away, formByName.get(fixture.away.name)),
+    home: sideOf(fixture.home, formByName.get(fixture.home.name), source.competition.tournamentId),
+    away: sideOf(fixture.away, formByName.get(fixture.away.name), source.competition.tournamentId),
     score: scoreOf(fixture),
     venue: null,
     headToHead: null,

@@ -168,3 +168,22 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* Contract 209. A fixture that is not going ahead as printed. Marked rather
+   than merely coloured, and in the warning ink rather than the muted one the
+   matchweek tag uses: the reader has to be able to tell "Matchweek 5" from
+   "Postponed" without reading either. `--amb` is the app-wide caution ink, per
+   the fixed semantics in `tokens.css`; `--red` would say elimination, which a
+   postponed fixture is not. */
+.abnormal {
+  font-family: var(--font-body);
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--tracking-open);
+  text-transform: uppercase;
+  color: var(--amb);
+  font-weight: 500;
+}
+
+.abnormal::before {
+  content: '· ';
+}

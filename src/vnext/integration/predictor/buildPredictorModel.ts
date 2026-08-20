@@ -1,3 +1,5 @@
+import { clubBadgePolicy } from '../../../app/clubBadgePolicy'
+import { resolveOfficialBadge } from '../../../domain/clubIdentity/officialBadge'
 import type { ClubIdentityTokens } from '../../../domain/clubIdentity/clubIdentityTypes'
 import { explainFixtureScore } from '../../../domain/season/scoring'
 import { commandRefusal } from '../../../features/season/matchPredictorModel'
@@ -72,16 +74,20 @@ import type { PredictorSource } from './predictorSource'
  * ------------------------------------------------------------------ */
 
 /**
- * vNext expresses four shirt treatments; the domain expresses five. A `sash`
- * becomes `solid`, which loses a detail and claims nothing — the same decision
- * `buildHomeModel` made, for the same reason: drawing a sash as halves would be
- * presentation inventing a kit.
+ * The domain's five kit shapes, carried across unflattened.
+ *
+ * A `sash` used to become `solid` here — honest, and a lost detail — because
+ * `TeamCrest` knew four patterns and the domain had five. The crest learned the
+ * fifth for Stage 14, so a sash club is drawn as one. Anything the domain adds
+ * beyond these still falls to `solid`, because drawing an unknown pattern as a
+ * known one would be presentation inventing a kit.
  */
 const KIT_PATTERN: Record<string, TeamKitPattern> = {
   solid: 'solid',
   stripes: 'stripes',
   hoops: 'hoops',
   halves: 'halves',
+  sash: 'sash',
 }
 
 /**
@@ -97,7 +103,7 @@ const KIT_PATTERN: Record<string, TeamKitPattern> = {
  * `onPrimary` is carried through rather than guessed, because guessing it is
  * guessing at a contrast failure.
  */
-function teamOf(club: SeasonClubIdentity): Team {
+function teamOf(club: SeasonClubIdentity, competitionId: string | null): Team {
   const tokens: ClubIdentityTokens = club.tokens
   const primary = tokens.primary
   const secondary = tokens.secondary ?? primary
@@ -114,9 +120,24 @@ function teamOf(club: SeasonClubIdentity): Team {
       onPrimary: tokens.onPrimary ?? 'light',
     },
     kitPattern: KIT_PATTERN[tokens.pattern ?? 'solid'] ?? 'solid',
-    // No crest source is agreed anywhere in the application, and this stage calls
-    // no provider. `TeamCrest` falls back to the monogram.
-    crestUrl: null,
+    /**
+     * THE POLICY'S ANSWER, NOT THIS FILE'S.
+     *
+     * `resolveOfficialBadge` is the one place badges-on, provider-approved,
+     * competition-allowed and URL-usable are decided, and it is given a
+     * candidate of `null` here because NOTHING IN THIS REPOSITORY DECODES A
+     * PROVIDER BADGE FIELD — by decision rather than omission. The 8 August
+     * 2026 provider capability audit found that all four configured providers
+     * serve an image and disclaim the rights to it, and ADR 0017 decided the
+     * product launches badge-free on that evidence.
+     *
+     * The seam is here so the day that changes, a provider adapter carries a
+     * `ClubBadgeCandidate` into this call and no page changes at all.
+     */
+    officialBadge: resolveOfficialBadge(null, {
+      policy: clubBadgePolicy(),
+      competitionId,
+    }),
   }
 }
 
@@ -142,12 +163,13 @@ function sideOf(
   club: SeasonClubIdentity,
   form: SeasonClubForm | undefined,
   row: CompetitionTableRow | undefined,
+  competitionId: string | null,
 ): PredictorSide {
   const letters = form?.form ?? []
   const played = form?.played ?? 0
 
   return {
-    team: teamOf(club),
+    team: teamOf(club, competitionId),
     form: letters.flatMap((letter) => {
       const result = FORM_RESULT[letter]
       return result ? [result] : []
@@ -405,11 +427,19 @@ function fixtureOf(
       fixture.home,
       context.form.get(fixture.home.name),
       context.table.get(fixture.home.name),
+      // THIS READ DOES NOT CARRY A SEASON ID. `MatchPredictorPage` names the
+      // competition and its season label and nothing addressable, so this
+      // surface cannot say WHICH competition it is in. Under a badge policy
+      // with a competition allowlist that means no badge — which is the
+      // resolver's own rule and the safe direction: an unnamed competition
+      // must not inherit another one's licence.
+      null,
     ),
     away: sideOf(
       fixture.away,
       context.form.get(fixture.away.name),
       context.table.get(fixture.away.name),
+      null,
     ),
     prediction,
     result,

@@ -22,14 +22,14 @@ import styles from './VNextHomePreview.module.css'
  *      build a title from the key, so that row reads differently, and it is
  *      worth knowing whether real catalogues produce it.
  *
- * ============================ IT READS AND DOES NOT WRITE ===============
+ * ============================ IT WRITES. PRESSING JOIN REALLY JOINS =====
  *
- * The surface emits `join-game`, and THIS HARNESS DOES NOT ACT ON IT — it
- * reports the intent instead. `join_competition_game` is a real write that
- * enters a real competition, and a review harness pointed at a live season
- * should not be able to do that by a stray click. When a join is wired
- * anywhere, it gains the visible warning Stage 12's Championship harness
- * carries.
+ * The join is wired: `VNextGamesScreen` calls `join_competition_game` through
+ * its acquisition hook, so pressing Join in this harness ENTERS THE PLAYER
+ * INTO A REAL GAME in a real season. That is the point — a control nothing
+ * performs cannot be proved end to end — and it is why the header below says
+ * so where a reviewer will read it before pressing, on the same terms
+ * `/dev/vnext-lms` and `/dev/vnext-discovery` state their own writes.
  *
  * ============================ IT IS `/dev` AND NOT A ROUTE ==============
  *
@@ -63,16 +63,19 @@ function GamesHarness() {
         <h2 className={styles.heading}>vNext Games — real data</h2>
         <p className={styles.note}>
           Development harness. Reads <code>get_competition_games</code> for one
-          season and renders the Stage 13 hub unchanged. Not a product route,
-          and it writes nothing: pressing Join reports the intent rather than
-          entering the competition.
+          season and renders the Stage 13 hub unchanged. Not a product route —
+          but <strong>it writes</strong>: pressing Join calls{' '}
+          <code>join_competition_game</code> and really enters this account into
+          that game.
         </p>
         <p className={styles.note}>
           <strong>Worth checking against a real season:</strong> that{' '}
           <code>server_now</code> arrives — every registration state resolves
           against it — and whether any game arrives without a{' '}
           <code>display_name</code>, which this surface refuses to invent from
-          the game key.
+          the game key. And that a Join lands: the row should become “You are
+          playing” from the RE-READ, and a refused one should leave the row
+          alone and print the server's own sentence beneath it.
         </p>
         <form
           className={styles.form}
@@ -111,8 +114,9 @@ function GamesHarness() {
             )
             return
           }
-          // NOT WIRED, ON PURPOSE. See the header: joining is a real write.
-          setNote(`Join intent for game ${intent.gameId} — reported, not sent.`)
+          // THE SCREEN PERFORMS IT. This only records that it was asked for,
+          // so a reviewer can see the seam as well as the effect.
+          setNote(`Join sent for game ${intent.gameId}.`)
         }}
       />
     </div>

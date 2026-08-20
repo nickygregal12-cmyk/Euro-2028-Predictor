@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
+import { isNextUi } from './app/routeFlags'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
@@ -50,6 +51,141 @@ const CompetitionGamesPage = lazy(() =>
     default: m.CompetitionGamesPage,
   })),
 )
+/* LAZY, LIKE EVERY OTHER HEAVY ROUTE ELEMENT HERE, AND MEASURED RATHER THAN
+   ASSUMED. Imported statically these cost the ENTRY chunk 240.19 kB → 428.67 kB
+   raw (75.81 → 133.27 kB gzip) — a 78% increase paid by every visitor, for a
+   surface that cannot render while `footballHubMatches` is off, because
+   `isNextUi(...)` is a function call and no bundler can shake it out.
+
+   Lazy, the vNext surfaces get their own 187.32 kB chunk (57.71 kB gzip),
+   fetched only when the flag is on AND the route is visited. The entry still
+   moves 240.19 → 262.33 kB raw (75.81 → 82.56 kB gzip), and that residue is
+   NOT vNext code — the entry contains no vNext module. It is Rollup
+   rebalancing: a second consumer for shared modules split `lib`,
+   `seasonClubForm` and `shellRoutes` into their own chunks and hoisted common
+   code up. Worth stating rather than rounding to zero. */
+/* INLINE, AND IT HAS TO BE. Vite folds this to a literal so Rollup can drop
+   the vNext subtree and its CSS entirely when the flag is off — the bundle then
+   measures byte-identical to `main`. Re-exporting the comparison from
+   `routeFlags.ts` was tried and does not fold across the module boundary. See
+   the note there; the two readings must stay in step and a test pins them. */
+const FOOTBALL_HUB_MATCHES_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES === 'true'
+const FOOTBALL_HUB_HOME_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_HOME === 'true'
+const FOOTBALL_HUB_GAMES_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_GAMES === 'true'
+const FOOTBALL_HUB_LEAGUES_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_LEAGUES === 'true'
+const FOOTBALL_HUB_PLAYER_PROFILE_BUILT =
+  import.meta.env.VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE === 'true'
+const FOOTBALL_HUB_DISCOVERY_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_DISCOVERY === 'true'
+const FOOTBALL_HUB_ACCOUNT_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_ACCOUNT === 'true'
+const FOOTBALL_HUB_LMS_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_LMS === 'true'
+const FOOTBALL_HUB_CHAMPIONSHIP_BUILT =
+  import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP === 'true'
+const ANY_FOOTBALL_HUB_BUILT =
+  FOOTBALL_HUB_MATCHES_BUILT ||
+  FOOTBALL_HUB_HOME_BUILT ||
+  FOOTBALL_HUB_GAMES_BUILT ||
+  FOOTBALL_HUB_LEAGUES_BUILT ||
+  FOOTBALL_HUB_PLAYER_PROFILE_BUILT ||
+  FOOTBALL_HUB_DISCOVERY_BUILT ||
+  FOOTBALL_HUB_ACCOUNT_BUILT ||
+  FOOTBALL_HUB_LMS_BUILT ||
+  FOOTBALL_HUB_CHAMPIONSHIP_BUILT
+
+const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchesDestination,
+      })),
+    )
+  : null
+const VNextMatchCentreDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchCentreDestination,
+      })),
+    )
+  : null
+const VNextHomeDestination = FOOTBALL_HUB_HOME_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextHomeDestination,
+      })),
+    )
+  : null
+const VNextGamesDestination = FOOTBALL_HUB_GAMES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextGamesDestination,
+      })),
+    )
+  : null
+const VNextLeaguesDestination = FOOTBALL_HUB_LEAGUES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextLeaguesDestination,
+      })),
+    )
+  : null
+const VNextPlayerProfileDestination = FOOTBALL_HUB_PLAYER_PROFILE_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextPlayerProfileDestination,
+      })),
+    )
+  : null
+const VNextDiscoveryDestination = FOOTBALL_HUB_DISCOVERY_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextDiscoveryDestination,
+      })),
+    )
+  : null
+const VNextAccountDestination = FOOTBALL_HUB_ACCOUNT_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextAccountDestination,
+      })),
+    )
+  : null
+const VNextLmsDestination = FOOTBALL_HUB_LMS_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextLmsDestination,
+      })),
+    )
+  : null
+const VNextChampionshipDestination = FOOTBALL_HUB_CHAMPIONSHIP_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextChampionshipDestination,
+      })),
+    )
+  : null
+/**
+ * THE CROSS-COMPETITION READ, ABOVE THE ROUTES RATHER THAN INSIDE ONE.
+ *
+ * Lazy on the same terms as the destinations and behind the same folded
+ * literals, so a build with every flag off drops it with them. It is a provider
+ * rather than a page: mounted once above the competition routes so moving
+ * between Home, Matches, Games and Leagues does not remount the attention
+ * inbox, which is what `useVNextShellElsewhere` requires of a host in terms.
+ */
+const VNextSeamLayout = ANY_FOOTBALL_HUB_BUILT
+  ? lazy(() => import('./app/vnext/seam').then((m) => ({ default: m.VNextSeamLayout })))
+  : PassThroughLayout
+
+/**
+ * The layout a build with every cutover flag off gets instead.
+ *
+ * A ROUTE THAT RENDERS ITS CHILDREN AND NOTHING ELSE. React Router needs a
+ * `<Route>` here whatever the flags say, and a pass-through keeps the route
+ * tree — and therefore every path, redirect and `axeRouteCoverage` assertion —
+ * identical in both positions. It is a plain function so no chunk is fetched
+ * for it.
+ */
+function PassThroughLayout() {
+  return <Outlet />
+}
 const SeasonMatchPredictorRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
@@ -103,6 +239,11 @@ const SeasonPlayerProfileRoute = lazy(() =>
 )
 const LeagueDetailRoutePage = lazy(() => import('./features/leagues/LeagueDetailRoutePage').then((m) => ({ default: m.LeagueDetailRoutePage })))
 const JoinLandingPage = lazy(() => import('./features/leagues/JoinLandingPage').then((m) => ({ default: m.JoinLandingPage })))
+// PUBLIC, AND NOT BEHIND THE CUTOVER. ADR 0017's non-affiliation statement is
+// owed by the product as it stands, signed in and signed out, so `/about` is a
+// real route rather than a `/dev` harness. It repoints nothing: the address did
+// not exist before.
+const AboutPage = lazy(() => import('./features/about/AboutPage').then((m) => ({ default: m.AboutPage })))
 const MorePage = lazy(() => import('./features/more/MorePage').then((m) => ({ default: m.MorePage })))
 const AccountPage = lazy(() =>
   import('./features/account/AccountPage').then((m) => ({ default: m.AccountPage })),
@@ -446,12 +587,27 @@ export default function App() {
 
                 <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
                 <Route path="/join/:code" element={<JoinLandingPage />} />
+                <Route path="/about" element={<AboutPage />} />
 
                 <Route element={<RequireAuth />}>
                   <Route path="/welcome" element={<WelcomePage />} />
 
                   <Route element={<RequireWelcome />}>
-                    <Route element={<AppShell />}>
+                    {/* THE CROSS-COMPETITION READ, MOUNTED ONCE ABOVE EVERY
+                        SIGNED-IN ROUTE. `useVNextShellElsewhere` requires one
+                        host above page navigation, because the attention inbox
+                        costs a play-context read plus up to three game reads
+                        PER COMPETITION — and moving between Home, Matches,
+                        Games and Leagues is the one thing this product expects
+                        a player to do constantly. Inside `RequireWelcome` and
+                        outside `AppShell`, so it survives every destination
+                        change and never runs for a visitor with no session.
+
+                        Absent when every cutover flag is off, in which case it
+                        renders its children unchanged — it is the vNext shell's
+                        supply and nothing else consumes it. */}
+                    <Route element={<VNextSeamLayout />}>
+                      <Route element={<AppShell />}>
                       {/* THE FOUR SHARED DESTINATIONS, AND WHOSE THEY ARE.
                           Both deployments serve these four addresses and mean
                           different products by them, so each resolves through
@@ -483,27 +639,71 @@ export default function App() {
                         {/* The catalogue, as deliberate discovery. Not a tab. */}
                         <Route
                           path={weeklyRoutes.competitions}
-                          element={<ExploreCompetitionsPage />}
+                          element={
+                            isNextUi('footballHubDiscovery') && VNextDiscoveryDestination ? (
+                              <VNextDiscoveryDestination />
+                            ) : (
+                              <ExploreCompetitionsPage />
+                            )
+                          }
                         />
+                        {/* THE CONCEPT-DEFINING ROW. Under the Competition Deck
+                            this address and `/` are one visible destination:
+                            Home is the home of the competition you are in
+                            rather than of the platform. */}
                         <Route
                           path={weeklyRoutePatterns.competition}
-                          element={<CompetitionDashboardPage />}
+                          element={
+                            isNextUi('footballHubHome') && VNextHomeDestination ? (
+                              <VNextHomeDestination />
+                            ) : (
+                              <CompetitionDashboardPage />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.play}
                           element={<SeasonPlayRoute />}
                         />
+                        {/* STAGE 14, THE FIRST CUTOVER VERTICAL. The choice is
+                            made HERE, at the routing layer, and not inside
+                            either component — `routeFlags.ts` exists because a
+                            flag threaded through a tree cannot be rolled back
+                            with confidence, while a flag that selects which
+                            element renders can. `SeasonMatchesRoute` and
+                            `SeasonMatchCentreRoute` are untouched and still
+                            mounted on the off branch, so turning the flag off
+                            restores yesterday's journey with no data rollback.
+                            It ships off: see `config/vnext-programme.json`. */}
                         <Route
                           path={weeklyRoutePatterns.matches}
-                          element={<SeasonMatchesRoute />}
+                          element={
+                            isNextUi('footballHubMatches') && VNextMatchesDestination ? (
+                              <VNextMatchesDestination />
+                            ) : (
+                              <SeasonMatchesRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchCentre}
-                          element={<SeasonMatchCentreRoute />}
+                          element={
+                            isNextUi('footballHubMatches') && VNextMatchCentreDestination ? (
+                              <VNextMatchCentreDestination />
+                            ) : (
+                              <SeasonMatchCentreRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.games}
-                          element={<CompetitionGamesPage />}
+                          element={
+                            isNextUi('footballHubGames') && VNextGamesDestination ? (
+                              <VNextGamesDestination />
+                            ) : (
+                              <CompetitionGamesPage />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchPredictor}
@@ -515,11 +715,24 @@ export default function App() {
                         />
                         <Route
                           path={weeklyRoutePatterns.lms}
-                          element={<SeasonLmsRoute />}
+                          element={
+                            isNextUi('footballHubLms') && VNextLmsDestination ? (
+                              <VNextLmsDestination />
+                            ) : (
+                              <SeasonLmsRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.championshipWildcard}
-                          element={<SeasonChampionshipRouter />}
+                          element={
+                            isNextUi('footballHubChampionship') &&
+                            VNextChampionshipDestination ? (
+                              <VNextChampionshipDestination />
+                            ) : (
+                              <SeasonChampionshipRouter />
+                            )
+                          }
                         />
                         {/* INNOV-006 — the matchday television screen. It is
                             registered inside the one domestic boundary like
@@ -535,7 +748,13 @@ export default function App() {
                         />
                         <Route
                           path={weeklyRoutePatterns.leagues}
-                          element={<SeasonLeaguesRoute />}
+                          element={
+                            isNextUi('footballHubLeagues') && VNextLeaguesDestination ? (
+                              <VNextLeaguesDestination />
+                            ) : (
+                              <SeasonLeaguesRoute />
+                            )
+                          }
                         />
                         {/* One player's season (contract 151). Competition-scoped
                             because points, rank and prediction history are facts
@@ -544,7 +763,14 @@ export default function App() {
                             nothing here enumerates players. */}
                         <Route
                           path={weeklyRoutePatterns.player}
-                          element={<SeasonPlayerProfileRoute />}
+                          element={
+                            isNextUi('footballHubPlayerProfile') &&
+                            VNextPlayerProfileDestination ? (
+                              <VNextPlayerProfileDestination />
+                            ) : (
+                              <SeasonPlayerProfileRoute />
+                            )
+                          }
                         />
                         {/* Contract 185's private analytical surface belongs to
                             the Hub deployment, not to Euro 2028. Keeping the
@@ -580,7 +806,16 @@ export default function App() {
                           It stopped printing one competition's points and rank
                           under a player's name, and with that gone it reads
                           nothing from the tournament at all. */}
-                      <Route path="/account" element={<AccountPage />} />
+                      <Route
+                        path="/account"
+                        element={
+                          isNextUi('footballHubAccount') && VNextAccountDestination ? (
+                            <VNextAccountDestination />
+                          ) : (
+                            <AccountPage />
+                          )
+                        }
+                      />
 
                       {/* Everything below answers for the Euro tournament and only
                           for it, so the tournament data and predictions providers
@@ -624,6 +859,7 @@ export default function App() {
                           <Route path="/admin/euro" element={<EuroPublicationPage />} />
                         </Route>
                       </Route>
+                    </Route>
                     </Route>
                   </Route>
                 </Route>

@@ -102,7 +102,28 @@ type LeaguesContext = {
  */
 export type LeaguePlayerDestination =
   | { readonly kind: 'you' }
-  | { readonly kind: 'open'; readonly playerId: string }
+  | {
+      readonly kind: 'open'
+      /**
+       * THE ADDRESS, AND IT IS THE REF. Contract 206 made the season-scoped
+       * entry reference enough to open a bounded profile, and its own comment
+       * says why it is the only one that path exposes: *"player_ref is the only
+       * navigation identity exposed by this path."* A row a caller may open
+       * always has one.
+       */
+      readonly playerRef: string
+      /**
+       * The target's account id, WHERE THE SERVER ALSO CHOSE TO SEND ONE.
+       *
+       * `null` IS AN ORDINARY OPENABLE ROW AND NOT A HALF-CLOSED ONE. The older
+       * shared-private-league boundary reveals an account id and the same-season
+       * boundary deliberately does not, so this field says which of the two
+       * doors is open rather than whether one is. A surface that tested it to
+       * decide openability would be reading a permission out of an absence,
+       * which is the defect `leaguePlayerIsOpen` exists to prevent.
+       */
+      readonly playerId: string | null
+    }
   | { readonly kind: 'closed'; readonly reason: 'not-shared' | 'not-stated' }
 
 /**

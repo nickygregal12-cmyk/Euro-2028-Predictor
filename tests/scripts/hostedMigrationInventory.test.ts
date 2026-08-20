@@ -26,6 +26,7 @@ function fixture(options: {
   promotionAuthorised?: boolean
   currentHeading?: string
   currentSummary?: string
+  productionRow?: string
 }): string {
   const repository = options.repository ?? 198
   const development = options.development ?? 190
@@ -47,6 +48,7 @@ function fixture(options: {
   writeFileSync(
     join(root, 'config/production-hosted-contract.json'),
     JSON.stringify({
+      projectRef: 'vkfnsqdyhvtwyqkisxhk',
       requiredMigrationCount: production,
       promotionAuthorised: options.promotionAuthorised ?? false,
     }),
@@ -58,7 +60,8 @@ function fixture(options: {
       options.currentHeading ??
         `## Current state — repository ${repository}, Production ${production}, Development ${development} (18 August 2026)`,
       `| Development Supabase \`iouzoutneyjpugbbtdem\` | **${development}** |`,
-      `| Production Supabase | **${production}** |`,
+      options.productionRow ??
+        `| Production Supabase \`vkfnsqdyhvtwyqkisxhk\` | **${production}** |`,
       options.currentSummary ??
         (repository === development && development === production
           ? `**There are no pending hosted migrations: repository, Development and Production are level at Contract ${repository}.**`
@@ -118,6 +121,24 @@ describe('the hosted migration inventory gate', () => {
     const result = run(fixture({ promotionAuthorised: true }))
     expect(result.ok).toBe(false)
     expect(result.output).toContain('fail-closed')
+  })
+
+  it('refuses a production row that does not name the project the record names', () => {
+    // THE ROW HAS TO SAY WHICH PROJECT IT IS ABOUT, exactly as the Development
+    // row above it always has. An unnamed row reads as a claim about "the"
+    // production database on an account that holds six Supabase projects, two
+    // of them carrying "Euro 2028 Predictor" in the name; a row naming the
+    // wrong one reads as plausibly as a row naming the right one. Both fail
+    // here rather than being believed by a reader.
+    const unnamed = run(fixture({ productionRow: '| Production Supabase | **190** |' }))
+    expect(unnamed.ok).toBe(false)
+    expect(unnamed.output).toContain('missing the current production row')
+
+    const wrongProject = run(
+      fixture({ productionRow: '| Production Supabase `iouzoutneyjpugbbtdem` | **190** |' }),
+    )
+    expect(wrongProject.ok).toBe(false)
+    expect(wrongProject.output).toContain('missing the current production row')
   })
 
   it('refuses a current-state heading that contradicts the machine records', () => {

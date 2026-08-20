@@ -4172,6 +4172,10 @@ export type Database = {
         Args: { p_player_id: string; p_tournament_id: string }
         Returns: Json
       }
+      get_season_player_profile_by_ref: {
+        Args: { p_player_ref: string; p_tournament_id: string }
+        Returns: Json
+      }
       get_season_prediction_consensus: {
         Args: { p_matchweek: number; p_tournament_id: string }
         Returns: Json

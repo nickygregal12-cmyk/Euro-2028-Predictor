@@ -54,6 +54,20 @@ export type VNextDiscoveryProps = {
   readonly onIntent?: ((intent: DiscoveryIntent) => void) | undefined
   /** A follow write is in flight for this season, named so one row's work does not disable the rest. */
   readonly busyTournamentId?: string | null
+  /**
+   * A follow write that did not land, and the season it was for.
+   *
+   * NAMED, FOR THE SAME REASON `busyTournamentId` IS. A write that fails
+   * silently is the worst of the three outcomes: the control returns to
+   * "Follow" and the row is telling the truth about the server while telling a
+   * player nothing about their own press. One row failing must not blank the
+   * catalogue, so this is a sentence in a row rather than a page state — and
+   * never a modal, because there is nothing to decide.
+   */
+  readonly writeFailure?:
+    | { readonly tournamentId: string; readonly message: string }
+    | null
+    | undefined
 }
 
 export function VNextDiscovery({
@@ -62,6 +76,7 @@ export function VNextDiscovery({
   refreshing = false,
   onIntent,
   busyTournamentId = null,
+  writeFailure = null,
 }: VNextDiscoveryProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
 
@@ -87,6 +102,7 @@ export function VNextDiscovery({
             refreshing={refreshing}
             onIntent={onIntent}
             busyTournamentId={busyTournamentId}
+            writeFailure={writeFailure}
           />
         </motion.div>
       </div>
@@ -101,6 +117,7 @@ function Catalogue({
   refreshing,
   onIntent,
   busyTournamentId,
+  writeFailure,
 }: {
   readonly panel: CataloguePanel
   readonly knowledge: FollowKnowledge
@@ -108,6 +125,7 @@ function Catalogue({
   readonly refreshing: boolean
   readonly onIntent?: ((intent: DiscoveryIntent) => void) | undefined
   readonly busyTournamentId: string | null
+  readonly writeFailure: { readonly tournamentId: string; readonly message: string } | null
 }) {
   if (panel.kind === 'unavailable') {
     return (
@@ -149,6 +167,11 @@ function Catalogue({
             knowledge={knowledge}
             onIntent={onIntent}
             busy={busyTournamentId === season.tournamentId}
+            failure={
+              writeFailure && writeFailure.tournamentId === season.tournamentId
+                ? writeFailure.message
+                : null
+            }
           />
         ))}
       </ul>
@@ -161,11 +184,13 @@ function SeasonRow({
   knowledge,
   onIntent,
   busy,
+  failure,
 }: {
   readonly season: DiscoverableSeason
   readonly knowledge: FollowKnowledge
   readonly onIntent?: ((intent: DiscoveryIntent) => void) | undefined
   readonly busy: boolean
+  readonly failure: string | null
 }) {
   const canFollow = offersFollow(season, knowledge)
   const canUnfollow = offersUnfollow(season, knowledge)
@@ -228,6 +253,24 @@ function SeasonRow({
           </button>
         ) : null}
       </div>
+
+      {failure === null ? null : (
+        // `role="status"` RATHER THAN `alert`. The row is unchanged, nothing is
+        // lost and the player may simply press again — polite is the honest
+        // register, and an assertive interruption for a retryable write talks
+        // over whatever else the page just said.
+        //
+        // THE CONTROL BESIDE IT IS THE RETRY. It has already returned to
+        // "Follow" because the write did not land, so there is nothing to add
+        // and nothing to decide; a second button would be the same press twice.
+        <p
+          className={`${text.micro} ${styles.rowFailure}`}
+          role="status"
+          data-vnext-zone="follow-failed"
+        >
+          {failure}
+        </p>
+      )}
     </li>
   )
 }

@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import type { Match, MatchSide } from '../models/football'
 import { formatOrdinal, formatShare } from '../foundations/format'
 import typography from '../foundations/typography.module.css'
@@ -35,6 +36,15 @@ export type FeaturedMatchProps = {
  * rather than by whichever two clubs happen to be playing.
  */
 export function FeaturedMatch({ match }: FeaturedMatchProps) {
+// `useId` RATHER THAN THE MATCH ID, AND THE REASON IS NOT HYPOTHETICAL. An id
+// built from data is unique only while the data is, and the public landing
+// page's product preview mounts this surface more than once in a document.
+// `duplicate-id-aria` is a CRITICAL axe rule, and the effect is real: two
+// elements with one id make `aria-labelledby` point at whichever the browser
+// finds first, so one of the two headings labels both regions. React's `useId`
+// is unique per instance by construction, which is the property this needed all
+// along.
+  const headingId = useId()
   const isLive = match.status === 'live' || match.status === 'halfTime'
   const prediction = match.prediction
   const community = match.consensus?.community ?? null
@@ -44,7 +54,7 @@ export function FeaturedMatch({ match }: FeaturedMatchProps) {
     <article
       className={styles.feature}
       style={fixtureColourStyle(match.home.team, match.away.team)}
-      aria-labelledby={`${match.id}-feature-heading`}
+      aria-labelledby={headingId}
     >
       <div className={styles.featureField} aria-hidden="true" />
 
@@ -72,7 +82,7 @@ export function FeaturedMatch({ match }: FeaturedMatchProps) {
         {/* The scoreline below is `aria-hidden` — "2 – 1" read out of a grid is
             not a sentence — so the accessible name of the whole stage is
             written here instead. */}
-        <h2 id={`${match.id}-feature-heading`} className={typography.srOnly}>
+        <h2 id={headingId} className={typography.srOnly}>
           {match.score
             ? `${match.home.team.name} ${match.score.home}–${match.score.away} ${match.away.team.name}`
             : `${match.home.team.name} versus ${match.away.team.name}`}

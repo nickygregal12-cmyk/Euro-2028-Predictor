@@ -485,60 +485,46 @@
   min-width: 0;
 }
 
-.preview {
-  border: 1px solid var(--line);
+/* THE DESKTOP DEVICE IS ABSENT BELOW 1024px RATHER THAN SHRUNK.
+ *
+ * It renders the product at 1280px because that is the width
+ * `@container vnext-shell (min-width: 1120px)` needs before the shell's
+ * navigation rail becomes real; at a 768px viewport the same frame would scale
+ * to roughly 0.6 and show a desktop composition nobody can read, on a device
+ * that will never see it. The phone story further down the page is the one that
+ * visitor came for, and it is always present.
+ *
+ * `display: none` rather than visual hiding: the frame is a picture with a
+ * written description, so leaving it in the accessibility tree would announce a
+ * second description of a screen that is not on this page. */
+/* The device's box, before the device.
+ *
+ * The same width, the same aspect ratio and the same border as
+ * `ProductPreview.module.css` gives the real stage — from the same numbers, via
+ * `previewDevice.ts` — so the page is its final height on the first paint and
+ * the preview lands in a hole already cut for it. Empty on purpose: a skeleton
+ * that drew rows would be inventing football to fill a gap. */
+.previewSkeleton {
+  width: 100%;
+  aspect-ratio: var(--preview-w) / var(--preview-h);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sheet);
   background: var(--card);
-  overflow: hidden;
-  min-width: 0;
 }
 
-/* A fixed floor under the previewed screen. Without it the device changes
-   height as the script advances, and on a landing page that means the copy
-   beside it jumps four times a loop — which reads as a broken page rather
-   than as an animation. The floor is the tallest frame's height; a frame
-   shorter than it simply has room to spare. */
-.previewMain {
-  min-height: 340px;
+.previewSkeletonPhone {
+  width: min(390px, 100%);
+  margin-inline: auto;
+  border-radius: calc(var(--radius-sheet) * 1.6);
 }
 
-.phoneContent {
-  min-height: 300px;
+.previewStageDesktop {
+  display: none;
 }
 
-/* The frame transition. It is an ENTRY animation on a keyed subtree rather
-   than a cross-fade between two copies: two frames in the document at once
-   would double the invented numbers for anything reading the DOM, and the
-   device is exposed as a single picture precisely so that cannot happen. */
-.previewMain,
-.phoneContent,
-.previewContext {
-  animation: previewFrameIn var(--duration-enter) var(--ease-out) both;
-}
-
-@keyframes previewFrameIn {
-  from {
-    opacity: 0;
-    /* Small on purpose. A preview that slides a long way competes with the
-       hero's own call to action, which is the thing the page is for. */
-    transform: translateY(4px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* The hook already stops advancing the script under `prefers-reduced-motion`,
-   so this covers the manual steps a visitor takes by hand — which must not
-   animate either. Belt and braces on purpose: the two mechanisms fail
-   independently, and the one a reader can check is this one. */
-@media (prefers-reduced-motion: reduce) {
-  .previewMain,
-  .phoneContent,
-  .previewContext {
-    animation: none;
+@media (min-width: 1024px) {
+  .previewStageDesktop {
+    display: flex;
   }
 }
 
@@ -551,11 +537,23 @@
   min-width: 0;
 }
 
+/* The caption is two lines: what step this is, and what the product just did.
+   The second is the one that makes the motion mean something — a device that
+   moved without saying why is decoration. */
 .previewStepLabel {
+  display: grid;
+  gap: 2px;
   margin: 0;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--fs-1);
   color: var(--tx2);
+}
+
+.previewStepLabel strong {
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
 }
 
 .previewStepDots {
@@ -610,224 +608,6 @@
   .previewDotStep::before {
     transition: none;
   }
-}
-
-.previewChrome {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  height: 44px;
-  padding-inline: var(--sp-4);
-  border-bottom: 1px solid var(--line);
-}
-
-.previewDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--mut);
-}
-
-.previewChromeLabel {
-  margin-inline: auto;
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.previewApp {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.previewRail,
-.previewContext {
-  display: none;
-}
-
-.previewMain {
-  padding: var(--sp-4);
-  min-width: 0;
-}
-
-.previewKicker {
-  margin: 0;
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.previewTitle {
-  margin: var(--sp-1) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-4);
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: var(--tracking-tight);
-}
-
-.previewSub {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-2);
-  color: var(--tx2);
-}
-
-/* E.4: cards are for actionable state. The next action is the one thing on the
-   preview a player would act on, so it is the one thing drawn as a card. */
-.previewAction {
-  display: grid;
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--chip);
-}
-
-.previewActionMeta {
-  margin: 0;
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.previewActionTitle {
-  margin: var(--sp-1) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-3);
-  font-weight: 500;
-  line-height: 1.25;
-}
-
-.previewActionBody {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-2);
-  color: var(--tx2);
-}
-
-.previewLabel {
-  margin: var(--sp-5) 0 var(--sp-2);
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.previewRows {
-  border-top: 1px solid var(--line);
-}
-
-.previewRow {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-3);
-  height: var(--landing-row-h);
-  border-bottom: 1px solid var(--line);
-  font-size: var(--fs-2);
-}
-
-.previewRowCopy {
-  display: grid;
-  min-width: 0;
-}
-
-.previewRowCopy strong {
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.previewRowCopy small {
-  font-size: var(--fs-1);
-  color: var(--tx3);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.previewRowValue {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-1);
-  font-variant-numeric: var(--numeric);
-  font-weight: 500;
-}
-
-.moveUp {
-  color: var(--acc);
-}
-
-.moveDown {
-  color: var(--red);
-}
-
-.previewSave {
-  margin: var(--sp-4) 0 0;
-  font-size: var(--fs-1);
-  color: var(--tx3);
-}
-
-.railItem {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-input);
-  color: var(--tx3);
-  font-family: var(--font-display);
-  font-size: var(--fs-2);
-}
-
-.railItemActive {
-  background: var(--chip);
-  color: var(--acc);
-}
-
-.contextSlot {
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--card);
-}
-
-.contextLabel {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-1);
-  margin: 0;
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-/* A static dot. E.4 forbids ambient animation on this page, so "live" is shown
-   by colour and label rather than by a pulse that never stops. */
-.livePip {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--cyn);
-}
-
-.contextValue {
-  margin: var(--sp-1) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-4);
-  font-weight: 700;
-  font-variant-numeric: var(--numeric);
-  letter-spacing: var(--tracking-tight);
-}
-
-.contextDetail {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-1);
-  color: var(--tx3);
 }
 
 /* ── Domestic proof band ─────────────────────────────────────────────────── */
@@ -915,111 +695,6 @@
   align-items: center;
 }
 
-.phone {
-  justify-self: center;
-  width: min(340px, 100%);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sheet);
-  background: var(--card);
-  padding: var(--sp-2);
-}
-
-.phoneScreen {
-  display: grid;
-  border-radius: var(--radius-card);
-  background: var(--bg);
-  overflow: hidden;
-}
-
-.phoneTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  padding: var(--sp-4);
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-display);
-  font-size: var(--fs-3);
-}
-
-.avatar {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--chip);
-  color: var(--tx2);
-  font-family: var(--font-display);
-  font-size: var(--fs-1);
-}
-
-.phoneContent {
-  padding: var(--sp-4);
-}
-
-.phoneAction {
-  padding: var(--sp-4);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--chip);
-}
-
-.phoneActionTitle {
-  margin: var(--sp-2) 0 0;
-  font-family: var(--font-display);
-  font-size: var(--fs-3);
-  font-weight: 500;
-  line-height: 1.25;
-}
-
-.phoneActionBody {
-  margin: var(--sp-1) 0 0;
-  font-size: var(--fs-2);
-  color: var(--tx2);
-}
-
-.phoneActionFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
-}
-
-.phoneDeadline {
-  display: grid;
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.phoneDeadline strong {
-  font-family: var(--font-display);
-  font-size: var(--fs-2);
-  font-variant-numeric: var(--numeric);
-  letter-spacing: var(--tracking-normal);
-  text-transform: none;
-  color: var(--tx);
-}
-
-.phoneNav {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--sp-1);
-  padding: var(--sp-3) var(--sp-2);
-  border-top: 1px solid var(--line);
-  text-align: center;
-  font-size: var(--fs-1);
-  color: var(--tx3);
-}
-
-.phoneNavActive {
-  color: var(--acc);
-}
-
 .featureList {
   display: grid;
   gap: var(--sp-5);
@@ -1086,63 +761,6 @@
   margin: var(--sp-3) 0 0;
   font-size: var(--fs-2);
   color: var(--tx2);
-}
-
-.leaguePreview {
-  min-width: 0;
-}
-
-/* Three columns on a phone and four on desktop, where the form column appears.
-   Head and row share one template so the columns stay in register, and the
-   head's form cell is hidden by the same rule that hides the rows'. */
-.leagueHead,
-.leagueRow {
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: var(--sp-3);
-  padding-inline: var(--sp-2);
-  font-size: var(--fs-2);
-}
-
-.leagueHead {
-  padding-bottom: var(--sp-2);
-  border-bottom: 1px solid var(--line);
-  font-size: var(--fs-eyebrow);
-  letter-spacing: var(--tracking-open);
-  text-transform: uppercase;
-  color: var(--tx3);
-}
-
-.leagueRow {
-  height: var(--landing-row-h);
-  border-bottom: 1px solid var(--line);
-  font-variant-numeric: var(--numeric);
-}
-
-/* The viewer's own row is marked by a leading rule and a raised surface, not by
-   the accent fill a competition identity would use. Padding is on every row, so
-   the highlighted one does not shift its columns out of register. */
-.leagueRowViewer {
-  background: var(--chip);
-  box-shadow: inset var(--bar-w) 0 0 0 var(--acc);
-}
-
-.leaguePlayer {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--sp-2);
-  min-width: 0;
-  font-variant-numeric: normal;
-}
-
-.leaguePlayer span {
-  flex: none;
-}
-
-.leagueForm {
-  display: none;
-  color: var(--tx3);
 }
 
 /* ── Games ──────────────────────────────────────────────────────────────── */
@@ -1312,8 +930,16 @@
     padding-block: calc(var(--sp-1) * 20) var(--landing-section-y);
   }
 
-  .heroGrid {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  /* THE HERO STAYS ONE COLUMN, and that is a change from the two it used to
+     have. The second column used to hold a hand-drawn miniature of the product,
+     which reads fine at half width because nothing in it is the product's real
+     type size. The device that replaced it renders the product at its real
+     1280px viewport and scales the result, so half a 1200px shell puts the
+     product's body text under eight pixels. Full width lands it near nine
+     tenths of life size, which is the difference between a picture of a product
+     and a smudge. */
+  .heroCopy {
+    max-width: 760px;
   }
 
   /* Copy first and wider. The card answers one question and must not read as
@@ -1325,38 +951,6 @@
   .heroActions .cta {
     min-height: 52px;
     padding-inline: var(--sp-6);
-  }
-
-  .previewApp {
-    grid-template-columns: 64px minmax(0, 1fr) 188px;
-    min-height: 500px;
-  }
-
-  .previewRail {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--sp-2);
-    padding: var(--sp-4) var(--sp-3);
-    border-right: 1px solid var(--line);
-    background: var(--bg);
-  }
-
-  .previewRail .brandMark {
-    margin-bottom: var(--sp-3);
-  }
-
-  .previewMain {
-    padding: var(--sp-5);
-  }
-
-  .previewContext {
-    display: grid;
-    align-content: start;
-    gap: var(--sp-3);
-    padding: var(--sp-4);
-    border-left: 1px solid var(--line);
-    background: var(--bg);
   }
 
   .proofInner {
@@ -1394,15 +988,6 @@
     grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   }
 
-  .leagueHead,
-  .leagueRow {
-    grid-template-columns: 28px minmax(0, 1fr) 120px auto;
-  }
-
-  .leagueForm {
-    display: block;
-  }
-
   .ctaPanel {
     padding: calc(var(--sp-1) * 16) calc(var(--sp-1) * 8);
   }
@@ -1422,4 +1007,17 @@
   outline: 2px solid var(--acc);
   outline-offset: 2px;
   border-radius: var(--radius-input);
+}
+
+/* The non-affiliation line, under the footer's own links.
+ *
+ * A WHOLE ROW OF ITS OWN, so it never competes with Sign in and Create account
+ * for the same line at 320px — and so it is never the thing that wraps into
+ * them. Quiet, and permanently present: a disclaimer that disappears on a phone
+ * is a disclaimer that is not published. */
+.footerNote {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--tx2);
+  font-size: var(--fs-1);
 }

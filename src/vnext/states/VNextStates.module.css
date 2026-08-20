@@ -89,3 +89,76 @@
   font-weight: var(--vnext-weight-medium);
   cursor: pointer;
 }
+
+/* ---- the surface-specific shapes ---------------------------------------
+ * Each one settles into the real page rather than into a generic list. The
+ * values are the surfaces' own — same radii, same spacing steps, same 44px
+ * control height — because a loading page and a loaded page have to be
+ * recognisably the same page.
+ */
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+}
+
+/* Discovery: free-standing rows, each a competition and its two controls. */
+.catalogueItem,
+.cardItem {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+/* Games: the same row, taller, because a game row carries a standing sentence
+   above its action. */
+.cardItem {
+  padding-block: var(--vnext-space-4);
+}
+
+.itemMain {
+  display: flex;
+  flex: 1 1 12rem;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.barTitle {
+  height: 16px;
+  width: 60%;
+}
+
+.barMeta {
+  height: 12px;
+  width: 40%;
+}
+
+/* Account: two independent reads, drawn as two panels — because they resolve
+   separately and neither is the other's fallback. */
+.panels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface);
+}
+
+.barLine {
+  height: 44px;
+  width: 100%;
+  border-radius: var(--vnext-radius-sm);
+}

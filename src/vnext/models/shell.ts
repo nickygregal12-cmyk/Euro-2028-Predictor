@@ -391,6 +391,18 @@ export type ShellIntent =
     }
   | { readonly kind: 'discover' }
   | { readonly kind: 'account' }
+  /**
+   * The platform's own supporting page — About & Disclaimer.
+   *
+   * A SEPARATE INTENT AND NOT A FIFTH DESTINATION. The four destinations belong
+   * to the ACTIVE COMPETITION and this belongs to the platform, so it must not
+   * appear in the bar, must not light up, and must not compete for one of the
+   * four slots that only just clear a 44px target on a 375px bar. It is emitted
+   * from the shell's own footer line, which is the least prominent permanent
+   * place a legal position can be reached from and still be reachable
+   * everywhere — which is exactly what ADR 0017 asks for.
+   */
+  | { readonly kind: 'about' }
 
 /* ==========================================================================
    BOUNDS

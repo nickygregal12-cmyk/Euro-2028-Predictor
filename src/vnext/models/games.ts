@@ -48,7 +48,7 @@
  *
  * Not exported: nothing outside this file names it, and `GameEntry` carries it.
  */
-type CatalogueGameKey =
+export type CatalogueGameKey =
   | 'main_predictor'
   | 'last_man_standing'
   | 'predictor_cup'
