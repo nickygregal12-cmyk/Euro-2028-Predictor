@@ -5,6 +5,12 @@ export type ClientErrorSource =
   | 'window-error'
   | 'unhandled-rejection'
   | 'startup'
+  /**
+   * A Content-Security-Policy violation, reported so a REPORT-ONLY policy can
+   * be measured against real traffic before it is enforced. See
+   * `installCspViolationCapture`.
+   */
+  | 'csp-violation'
 
 export interface SafeClientError {
   readonly name: string
@@ -119,10 +125,62 @@ export function installGlobalErrorCapture(): () => void {
 
   window.addEventListener('error', handleError)
   window.addEventListener('unhandledrejection', handleRejection)
+  const removeCspCapture = installCspViolationCapture()
 
   return () => {
     window.removeEventListener('error', handleError)
     window.removeEventListener('unhandledrejection', handleRejection)
+    removeCspCapture()
+  }
+}
+
+/**
+ * `SEC-002` — what a report-only Content-Security-Policy actually found.
+ *
+ * WHY THIS EXISTS. `netlify.toml` now serves a REPORT-ONLY policy alongside the
+ * enforced one, tightened where the enforced one is relaxed. A report-only
+ * policy that nobody collects is a header with no reader, so the violations it
+ * raises are routed into the observability the application already has rather
+ * than to a second endpoint or a second stack.
+ *
+ * WHAT IS SENT, AND WHAT IS DELIBERATELY NOT. The directive, the blocked URI
+ * and the source location — all of them either policy text or same-origin asset
+ * URLs. `event.sample` is NOT sent and the policy does not ask for it:
+ * `report-sample` would attach the first characters of the offending content,
+ * and there is no rule that a page's inline content cannot contain something a
+ * player typed. The whole point of this control is to find out whether the
+ * application needs an exemption, which the directive alone answers.
+ *
+ * ONE REPORT PER DIRECTIVE PER PAGE. A violating rule usually violates on every
+ * element it touches; a list that repeats the same finding two hundred times is
+ * a bill rather than a signal.
+ */
+export function installCspViolationCapture(): () => void {
+  if (typeof document === 'undefined') return () => {}
+
+  const seen = new Set<string>()
+  const handleViolation = (event: SecurityPolicyViolationEvent) => {
+    // The enforced policy blocking something is a real failure and is reported
+    // by whatever broke. This capture exists for the report-only policy, which
+    // by definition breaks nothing and would otherwise be invisible.
+    if (event.disposition !== 'report') return
+
+    const key = `${event.effectiveDirective}|${event.blockedURI}`
+    if (seen.has(key)) return
+    seen.add(key)
+
+    reportClientError(
+      new Error(
+        `Report-only CSP violation: ${event.effectiveDirective} blocked ` +
+          `${event.blockedURI || 'inline'} (${event.sourceFile || 'unknown source'})`,
+      ),
+      'csp-violation',
+    )
+  }
+
+  document.addEventListener('securitypolicyviolation', handleViolation)
+  return () => {
+    document.removeEventListener('securitypolicyviolation', handleViolation)
   }
 }
 
