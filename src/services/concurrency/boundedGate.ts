@@ -15,15 +15,25 @@ export function createConcurrencyGate(limit: number) {
   const queue: Array<() => void> = []
 
   async function enter() {
-    if (active >= limit) {
-      await new Promise<void>((resolve) => queue.push(resolve))
+    if (active < limit) {
+      active += 1
+      return
     }
-    active += 1
+
+    // A released slot is transferred directly to the oldest waiter. `active`
+    // stays at the limit during that hand-off, so a new caller cannot slip in
+    // between resolve() and the queued promise resuming and temporarily exceed
+    // the ceiling.
+    await new Promise<void>((resolve) => queue.push(resolve))
   }
 
   function leave() {
+    const next = queue.shift()
+    if (next) {
+      next()
+      return
+    }
     active -= 1
-    queue.shift()?.()
   }
 
   return async function run<T>(work: () => Promise<T>): Promise<T> {
