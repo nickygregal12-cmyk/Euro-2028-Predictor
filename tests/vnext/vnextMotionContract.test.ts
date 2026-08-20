@@ -45,7 +45,7 @@ const presets = Object.entries(vnextMotion)
 
 describe('vNext reduced motion removes movement', () => {
   it('has a reduced pair for every primitive, with the same states', () => {
-    expect(presets.length).toBe(9)
+    expect(presets.length).toBe(10)
 
     for (const [name, preset] of presets) {
       expect(statesOf(preset.reduced).sort(), name).toEqual(

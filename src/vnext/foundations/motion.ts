@@ -157,6 +157,45 @@ export const pointsEmphasis: MotionPreset = {
   },
 }
 
+/**
+ * A PREDICTION LANDING — the quietest thing in this vocabulary, on purpose.
+ *
+ * ============================ WHY IT IS NOT `pointsEmphasis` ============
+ *
+ * That preset is a number CHANGING, and it scales. A save landing changes no
+ * number: the scoreline the player typed is already on the screen and was
+ * already theirs. What changed is that the server now agrees, and the honest
+ * shape for that is a small settle rather than a pop — the row arriving at
+ * rest, not the row announcing something.
+ *
+ * ============================ AND IT FOLLOWS THE SERVER =================
+ *
+ * It plays on the transition INTO `saved`, which the save coordinator reports
+ * when the write came back. Nothing here may play on a keystroke: a prediction
+ * that animates as though it landed and then fails has told the player
+ * something untrue, and the failure state is drawn in the same place.
+ *
+ * A card arriving with predictions already on it cannot trigger this, because
+ * `saveStateOf` answers `idle` for a fixture nothing has saved this session.
+ *
+ * FILE-LOCAL, unlike its neighbours, and only because nothing imports it
+ * directly: `vnextMotion.saveSettle` is the whole consumption path.
+ */
+const saveSettle: MotionPreset = {
+  full: {
+    rest: { opacity: 1, y: 0 },
+    landed: {
+      opacity: [0, 1],
+      y: [3, 0],
+      transition: { duration: vnextDuration.base, ease: vnextEase },
+    },
+  },
+  reduced: {
+    rest: { opacity: 1, y: 0 },
+    landed: { opacity: 1, y: 0, transition: instant },
+  },
+}
+
 /** Progressive disclosure. Height is animated; reduced simply appears. */
 export const disclose: MotionPreset = {
   full: {
@@ -197,6 +236,7 @@ export const vnextMotion = {
   livePulse,
   rankMove,
   pointsEmphasis,
+  saveSettle,
   disclose,
   railItem,
 } as const

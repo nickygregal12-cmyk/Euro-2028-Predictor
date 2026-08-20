@@ -109,9 +109,19 @@ for (const surface of SURFACES) {
         )
         expect(overflow, `${surface} scrolls sideways at this width`).toBeLessThanOrEqual(0)
 
+        // THE VIEWPORT, NOT THE FULL PAGE, and it took a look at the artifact
+        // to see why. Both navigations are sticky, so a full-page capture
+        // paints the bottom bar wherever the scroll happened to be — across the
+        // middle of every tall page, over content it does not cover in life.
+        // That is a picture no player ever sees, and on the create corridor it
+        // made a perfectly reachable form look like it was underneath the
+        // navigation.
+        //
+        // The viewport is what a player is actually looking at, with the sticky
+        // chrome in the place it really occupies. The composition — which is
+        // what these three widths exist to show — is above the fold by design.
         await page.screenshot({
           path: `${OUT}/${surface}-${frame.label}-${theme}.png`,
-          fullPage: true,
         })
       })
     }
