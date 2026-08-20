@@ -106,11 +106,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    // Storybook, not the application. The cutover gave vNext real routes, and
-    // this suite deliberately does NOT follow them there: it measures
-    // composition against deterministic worlds, which is a different question
-    // from whether the reads work. The connected proof lives at the `/dev`
-    // harnesses and in the authenticated browser suite.
+    // Storybook, not the application. The Football Hub cutover gave vNext a
+    // production route, but this suite is still the workshop: it measures
+    // rendered geometry against deterministic fixtures, which is what makes
+    // its assertions stable. Coverage of the real route belongs to the
+    // application e2e config, not here.
     //
     // ONE STORY HERE IS DOCUMENT-SCOPED RATHER THAN FRAMED — `vNext/Focus Not
     // Obscured` — because WCAG 2.2's 2.4.11 is about where a SCROLLER scrolls

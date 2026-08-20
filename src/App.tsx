@@ -8,6 +8,7 @@ import { isNextUi } from './app/routeFlags'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
+import { PwaNoticesHost } from './app/pwa/PwaNoticesHost'
 // Deliberately static, and measured rather than assumed. Making the boundary
 // lazy so a domestic player never downloads the providers looked like the
 // obvious win; it split a shared graph the entry chunk already needed and moved
@@ -1180,6 +1181,13 @@ export default function App() {
               </Route>
             </Routes>
           </Suspense>
+          {/* ADR 0016 Phase 1. Outside the route table because neither notice
+              belongs to a route: an available update and a home-screen
+              suggestion are facts about the installation, not about the page.
+              Inside the router only so it renders once per application rather
+              than once per frame. It mounts nothing until the browser is idle
+              and renders nothing on an ordinary visit. */}
+          <PwaNoticesHost />
         </BrowserRouter>
         </HapticsProvider>
       </ThemeProvider>

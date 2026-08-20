@@ -40,9 +40,29 @@ export function createSaveController(opts: {
   // (the server row changed elsewhere); everything else auto-retries. Defaults
   // to "never a conflict" so callers that don't care keep the old behaviour.
   isConflict?: (err: unknown) => boolean
+  /**
+   * A key that has STOPPED trying, and the error it stopped on.
+   *
+   * ONLY TERMINAL FAILURES, WHICH IS THE WHOLE VALUE OF PUTTING IT HERE.
+   * The machine retries with backoff, so a save that fails once on a train and
+   * succeeds on the next attempt is an ordinary mobile connection rather than
+   * anything anybody should be told about. Reporting from the rejection handler
+   * below would have produced one report per attempt; this fires when the key
+   * reaches `error` or `conflict`, which means the player is now looking at a
+   * prediction that did not save.
+   *
+   * Optional, and every existing caller without it behaves exactly as before.
+   */
+  onTerminalFailure?: (
+    key: string,
+    error: unknown,
+    outcome: 'error' | 'conflict',
+  ) => void
 }): SaveController {
   const isConflict = opts.isConflict ?? (() => false)
   const states = new Map<string, SaveState<unknown>>()
+  /** The last rejection per key, so a terminal state can name what caused it. */
+  const lastError = new Map<string, unknown>()
   const retryTimers = new Map<string, ReturnType<typeof setTimeout>>()
   const barrierWaiters = new Set<(result: SaveBarrierResult) => void>()
   let disposed = false
@@ -106,21 +126,30 @@ export function createSaveController(opts: {
     const prev = states.get(key) ?? initSaveState<unknown>()
     const { state, effects } = reduceSave(prev, event)
     states.set(key, state)
-    if (state.status !== prev.status) opts.onStatus(key, state.status)
+    if (state.status !== prev.status) {
+      opts.onStatus(key, state.status)
+      if (state.status === 'error' || state.status === 'conflict') {
+        opts.onTerminalFailure?.(key, lastError.get(key), state.status)
+      }
+      // A key that recovers must not carry its old error into a later,
+      // unrelated failure.
+      if (state.status === 'saved') lastError.delete(key)
+    }
     for (const effect of effects) {
       switch (effect.type) {
         case 'save':
           opts
             .performSave(key, effect.payload)
             .then(() => dispatch(key, { type: 'result', seq: effect.seq, ok: true }))
-            .catch((err) =>
+            .catch((err) => {
+              lastError.set(key, err)
               dispatch(key, {
                 type: 'result',
                 seq: effect.seq,
                 ok: false,
                 conflict: isConflict(err),
-              }),
-            )
+              })
+            })
           break
         case 'scheduleRetry':
           clearRetry(key)

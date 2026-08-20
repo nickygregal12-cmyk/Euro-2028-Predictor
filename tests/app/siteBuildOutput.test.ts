@@ -47,7 +47,23 @@ describe('index.html is a template, not a document', () => {
     expect(outside).not.toContain('euro28predictor.com')
   })
 
-  it('keeps the favicons and the application entry point outside the block', () => {
+  it('authors no icon of its own either, since the icons are per variant now', () => {
+    // They used to be three static tags here, which meant one committed icon
+    // set for two products: the Hub installed itself under the tournament's
+    // mark. `documentMetadata.ts` emits them inside the block now, and
+    // `installablePwa.test.ts` proves the two sets differ.
+    const template = indexHtml()
+    const managed = template.slice(
+      template.indexOf('<!-- SITE METADATA: generated -->'),
+      template.indexOf('<!-- /SITE METADATA -->'),
+    )
+    const outside = template.replace(managed, '')
+    expect(outside).not.toContain('rel="icon"')
+    expect(outside).not.toContain('apple-touch-icon')
+    expect(outside).not.toContain('rel="manifest"')
+  })
+
+  it('keeps the application entry point outside the block', () => {
     const built = builtDocument('hub')
     expect(built).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />')
     expect(built).toContain('<script type="module" src="/src/main.tsx"></script>')

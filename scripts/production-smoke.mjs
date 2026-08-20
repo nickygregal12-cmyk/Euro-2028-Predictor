@@ -302,7 +302,15 @@ function committedHeaders() {
     fileURLToPath(new URL('../netlify.toml', import.meta.url)),
     'utf8',
   )
-  const block = config.slice(config.indexOf('[headers.values]'))
+  // THE SITE-WIDE BLOCK SPECIFICALLY, not the first one in the file.
+  // `netlify.toml` now declares more than one `[[headers]]` rule — `/sw.js`
+  // gets its own cache directive — and slicing from the first
+  // `[headers.values]` would read that one's values first and let a future
+  // path-scoped block shadow a security header that is only declared for `/*`.
+  // The security headers this compares against are the site-wide ones.
+  const siteWide = config.indexOf('for = "/*"')
+  if (siteWide === -1) stop('netlify.toml declares no site-wide [[headers]] rule.')
+  const block = config.slice(config.indexOf('[headers.values]', siteWide))
   const values = new Map()
   for (const [, name, value] of block.matchAll(/^\s*([A-Za-z-]+)\s*=\s*"([^"]*)"/gm)) {
     values.set(name.toLowerCase(), value)

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '../../design-system'
 import { CopyIcon, ShareIcon, CheckIcon } from '../../design-system/icons'
+import { useSite } from '../../app/site/SiteProvider'
 import { copyText, inviteUrl, shareInvite } from './share'
 import s from './InvitePanel.module.css'
 
@@ -19,6 +20,9 @@ export type InvitePanelProps = {
  */
 export function InvitePanel({ leagueName, code, mode = 'full' }: InvitePanelProps) {
   const [copied, setCopied] = useState<'code' | 'link' | null>(null)
+  // ADR 0026's two deployments. The share sheet says which product the invitee
+  // is being invited to, and it must be the one they will actually land on.
+  const { productName } = useSite().brand
   const url = inviteUrl(code)
 
   async function copy(what: 'code' | 'link') {
@@ -30,7 +34,7 @@ export function InvitePanel({ leagueName, code, mode = 'full' }: InvitePanelProp
   }
 
   async function share() {
-    const result = await shareInvite(leagueName, code)
+    const result = await shareInvite(leagueName, code, productName)
     if (result === 'unsupported') void copy('link')
   }
 

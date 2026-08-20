@@ -112,15 +112,15 @@ implied.
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `/competitions/:c/:s` | `CompetitionDashboardPage` | The competition's own front door | `useHubCompetition`, `competitionWeekModel` | **This IS Home** | 8+ | **MERGE** | **RESOLVED, Stage 7.6.** The concept-defining row, and Concept A won it: this and `/` are the same surface with a different competition in context. A competition dashboard that is separate from Home is the old structure — two front doors, one per scope. **No redirect is added in this stage**; both addresses keep working and the merge is a visible-destination decision. |
 | `/competitions/:c/:s/play` | `SeasonPlayRoute` | Competition-scoped action list | `seasonPlayContextModel` | Absorbed into Home or the queue | 8+ | **ABSORB** | Same argument as `/play`, one level down. Two "what needs doing" surfaces at two scopes is one too many. |
-| `/competitions/:c/:s/matches` | `SeasonMatchesRoute` | The competition's football | `fixtureListModel`, `useSeasonFixtureWindow` | **Matches** — one of the four competition-scoped destinations | 8 | **REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatches.tsx`, on contracts 121 and 139. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-matches` harness until the cutover stage. |
+| `/competitions/:c/:s/matches` | `SeasonMatchesRoute` | The competition's football | `fixtureListModel`, `useSeasonFixtureWindow` | **Matches** — one of the four competition-scoped destinations | 8 | **REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatches.tsx`, on contracts 121 and 139. *Technical consequence at the time of the build: none.* The legacy route was untouched, and the vNext surface was reachable only from the dev-only `/dev/vnext-matches` harness. **Stage 14 cut this address over** — see §13. The vNext surface serves it in production now, and the legacy route stays mounted behind its `VITE_UI_FOOTBALL_HUB_*` flag so unsetting the flag restores it. |
 | `/competitions/:c/:s/matches/:fixtureId` | `SeasonMatchCentreRoute` | One fixture in full | Contract 148 `get_season_fixture`, `matchCentreModel` | **Match Centre**, reached from Matches | 8 | **RETAIN + REDESIGN** | **Built in Stage 8** as `src/vnext/matches/VNextMatchCentre.tsx`. The address shape is KEPT unchanged, because the addressability is the strength: contract 148 resolves the fixture from its id alone, so a deep refresh and a shared link both work with no date hint and no window. *Technical consequence: none.* |
 | `/competitions/:c/:s/games` | `CompetitionGamesPage` | The game catalogue and the player's memberships | `get_competition_games` | **`Games` — a first-class permanent destination** | 9+ | **REDESIGN** | **RESOLVED, Stage 7.6: it survives, and it is one of the four.** The only surface where Match Predictor, Last Man Standing and the Predictor Championship are PEERS, which is the thing that stopped LMS being "another little tab". Labelled `Games` and not `Play` — see [`vnext-shell-ia.md`](vnext-shell-ia.md) §3. Stage 7.6 builds no page here beyond a Storybook navigation stub. |
 | `/competitions/:c/:s/games/match-predictor` | `SeasonMatchPredictorRoute` | Predict the matchweek | Contract 113 card, `useSeasonMatchPredictor` | Match Predictor | 7 (done) | **REDESIGN** | Accepted and unchanged by Stage 7.5. Used here as a real arrival test for each concept. |
 | `…/games/match-predictor/standings` | `SeasonStandingsRoute` | How am I doing against the field | Contract 95 season leaderboard | The people dimension | 9+ | **ABSORB** | A game's standings and a private league's table answer the same question at two scopes. **The identity gap this row used to point at is closed**: contract 191 supplies `playerRef`, `reach` and `playerId`, Stage 9's table links a player where the server allows it, and Stage 10 built what is behind the link. |
-| `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | Contract 116 `get_season_lms_round`, contract 164 `get_season_lms_field`, `save_lms_selection`, `lmsRoundModel` | Last Man Standing | 11 | **REDESIGN** | **Built in Stage 11** as `src/vnext/lms/VNextLms.tsx`. §6 called this "the row this matrix exists for", and the build bore that out: it is the first vNext surface that WRITES, and the first where the page's own heading is a verdict rather than a total. Two reads with two outcomes — the round a player acts on, and the pool they act against — so a field read that fails cannot withhold the pick. **The lock is the SERVER'S**: contract 164's `revealed` is `locks_at <= now()` evaluated by the database, and the instants are only the fallback. See [`vnext-lms.md`](vnext-lms.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-lms` harness until the cutover stage. |
-| `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | Contract 193 `get_season_cup_bracket`, contract 133 `get_season_cup_player_view`, contract 167 group stage, `submit_cup_penalty_number`, `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | 12 | **REDESIGN** | **Stage number corrected from "11 (to be scheduled)", which §10 flagged as stale — this is Stage 12 in the programme this matrix serves.** In progress as `src/vnext/championship/VNextChampionship.tsx`. **Four addresses become two**, and from the data rather than from a preference: `SeasonChampionshipPages.tsx` branches on a `mode` after loading a SINGLE player view and says so about its own neighbour table — *"IT USES WHAT THE PAGE ALREADY LOADED … this costs no request"* — so three addresses over one read is a navigation habit, not a data boundary. That is the opposite of Stage 9's leagues, where two tables had two different rank authorities and had to stay apart. The index keeps its address because `get_my_season_cup_instances` is genuinely its own read. See [`vnext-championship.md`](vnext-championship.md). *Technical consequence: none.* The legacy routes are untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-championship` harness until the cutover stage. |
-| `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | Contract 191 `get_season_leaderboard`, contract 128 `get_season_league_standings`, contract 150 movement, `get_my_game_leagues` | **Leagues** — one of the four competition-scoped destinations | 9 | **REDESIGN** | **Built in Stage 9** as `src/vnext/leagues/VNextLeagues.tsx`. The merge landed the other way round from the way §2 first read it: this row absorbs `/leagues`, rather than the two merging into something unscoped — because the season table and a private league's table have **two different rank authorities** and neither is a filter of the other. The season table and each private league are SCOPES inside this one surface. See [`vnext-leagues.md`](vnext-leagues.md). *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-leagues` harness until the cutover stage. |
-| `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile`, contract 192 `get_season_rank_history`, contract 192 `get_season_rivalry` | Player profile, reached from Leagues | 10 | **RETAIN + REDESIGN** | **Built in Stage 10** as `src/vnext/player/VNextPlayerProfile.tsx`. The address shape is KEPT and competition-scoped for the reason it always was: points, rank and prediction history are facts about a player IN a season, and flattening to `/profile/:id` would assert a cross-competition identity ADR 0011 refuses at the data layer. **What changed is the shape of what is behind it.** The page is three reads with THREE DIFFERENT permission boundaries, so a player whose profile is refused can still have a plotted season and a head-to-head — see [`vnext-player-profiles.md`](vnext-player-profiles.md) §2. *Technical consequence: none.* The legacy route is untouched; the vNext surface is reachable only from the dev-only `/dev/vnext-player` harness until the cutover stage. |
+| `/competitions/:c/:s/games/lms` | `SeasonLmsRoute` | Survive the round | Contract 116 `get_season_lms_round`, contract 164 `get_season_lms_field`, `save_lms_selection`, `lmsRoundModel` | Last Man Standing | 11 | **REDESIGN** | **Built in Stage 11** as `src/vnext/lms/VNextLms.tsx`. §6 called this "the row this matrix exists for", and the build bore that out: it is the first vNext surface that WRITES, and the first where the page's own heading is a verdict rather than a total. Two reads with two outcomes — the round a player acts on, and the pool they act against — so a field read that fails cannot withhold the pick. **The lock is the SERVER'S**: contract 164's `revealed` is `locks_at <= now()` evaluated by the database, and the instants are only the fallback. See [`vnext-lms.md`](vnext-lms.md). *Technical consequence at the time of the build: none.* The legacy route was untouched, and the vNext surface was reachable only from the dev-only `/dev/vnext-lms` harness. **Stage 14 cut this address over** — see §13. The vNext surface serves it in production now, and the legacy route stays mounted behind its `VITE_UI_FOOTBALL_HUB_*` flag so unsetting the flag restores it. |
+| `/competitions/:c/:s/games/championship/*` | `SeasonChampionshipRouter` | A season-long fixture list against named opponents | Contract 193 `get_season_cup_bracket`, contract 133 `get_season_cup_player_view`, contract 167 group stage, `submit_cup_penalty_number`, `championshipStandingModel`, `cupPhaseModel` | Predictor Championship | 12 | **REDESIGN** | **Stage number corrected from "11 (to be scheduled)", which §10 flagged as stale — this is Stage 12 in the programme this matrix serves.** **Built in Stage 12** as `src/vnext/championship/VNextChampionship.tsx`. **Four addresses become two**, and from the data rather than from a preference: `SeasonChampionshipPages.tsx` branches on a `mode` after loading a SINGLE player view and says so about its own neighbour table — *"IT USES WHAT THE PAGE ALREADY LOADED … this costs no request"* — so three addresses over one read is a navigation habit, not a data boundary. That is the opposite of Stage 9's leagues, where two tables had two different rank authorities and had to stay apart. The index keeps its address because `get_my_season_cup_instances` is genuinely its own read. See [`vnext-championship.md`](vnext-championship.md). *Technical consequence at the time of the build: none.* The legacy route was untouched, and the vNext surface was reachable only from the dev-only `/dev/vnext-championship` harness. **Stage 14 cut this address over** — see §13. The vNext surface serves it in production now, and the legacy route stays mounted behind its `VITE_UI_FOOTBALL_HUB_*` flag so unsetting the flag restores it. |
+| `/competitions/:c/:s/leagues` | `SeasonLeaguesRoute` | Private play inside this competition | Contract 191 `get_season_leaderboard`, contract 128 `get_season_league_standings`, contract 150 movement, `get_my_game_leagues` | **Leagues** — one of the four competition-scoped destinations | 9 | **REDESIGN** | **Built in Stage 9** as `src/vnext/leagues/VNextLeagues.tsx`. The merge landed the other way round from the way §2 first read it: this row absorbs `/leagues`, rather than the two merging into something unscoped — because the season table and a private league's table have **two different rank authorities** and neither is a filter of the other. The season table and each private league are SCOPES inside this one surface. See [`vnext-leagues.md`](vnext-leagues.md). *Technical consequence at the time of the build: none.* The legacy route was untouched, and the vNext surface was reachable only from the dev-only `/dev/vnext-leagues` harness. **Stage 14 cut this address over** — see §13. The vNext surface serves it in production now, and the legacy route stays mounted behind its `VITE_UI_FOOTBALL_HUB_*` flag so unsetting the flag restores it. |
+| `/competitions/:c/:s/players/:playerId` | `SeasonPlayerProfileRoute` | One player's season | Contract 151 `get_season_player_profile`, contract 192 `get_season_rank_history`, contract 192 `get_season_rivalry` | Player profile, reached from Leagues | 10 | **RETAIN + REDESIGN** | **Built in Stage 10** as `src/vnext/player/VNextPlayerProfile.tsx`. The address shape is KEPT and competition-scoped for the reason it always was: points, rank and prediction history are facts about a player IN a season, and flattening to `/profile/:id` would assert a cross-competition identity ADR 0011 refuses at the data layer. **What changed is the shape of what is behind it.** The page is three reads with THREE DIFFERENT permission boundaries, so a player whose profile is refused can still have a plotted season and a head-to-head — see [`vnext-player-profiles.md`](vnext-player-profiles.md) §2. *Technical consequence at the time of the build: none.* The legacy route was untouched, and the vNext surface was reachable only from the dev-only `/dev/vnext-player` harness. **Stage 14 cut this address over** — see §13. The vNext surface serves it in production now, and the legacy route stays mounted behind its `VITE_UI_FOOTBALL_HUB_*` flag so unsetting the flag restores it. |
 | `/competitions/:c/:s/tv` | `SeasonTvModeRoute` | A matchday screen on a wall | `tvModeModel` (`INNOV-006`) | Unchanged, outside the shell | later | **RETAIN** | Already outside the signed-in frame by design. **Stage 8 audited it and decided its relationship rather than rebuilding it:** SHARED DATA CONTRACT eventually (it should consume `MatchState` rather than grow a second one), SEPARATE PRESENTATION MODE, and the redesign DEFERRED to a stage of its own. It must stay shell-less — a room display with a bottom navigation bar is the wrong product. See [`vnext-matches.md`](vnext-matches.md) §12. **Nothing about it changed in Stage 8.** |
 
 ## 3. Cross-cutting player and social routes
@@ -423,12 +423,17 @@ check that no user-facing route is missing from this matrix — is in
 
 ## 13. Resolved by Stage 14 — the cutover, ON
 
-Stage 14 is where this matrix stops being a plan. Every row above has a decided
-**fate**; until now not one of them had a decided **production behaviour**. The
-two are not the same thing, and the gap between them is the whole stage: thirteen
-vNext surfaces exist, every one reachable only from a `/dev/**` harness, while
-all 41 non-dev routes still serve the component they served before the programme
-began.
+Stage 14 is where this matrix stopped being a plan. Every row above had a decided
+**fate** and, until this stage, not one of them had a decided **production
+behaviour**. The two are not the same thing, and the gap between them was the
+whole stage: thirteen vNext surfaces existed, every one reachable only from a
+`/dev/**` harness, while all 41 non-dev routes served the component they had
+served since before the programme began.
+
+**That gap is now closed and the flags are ON.** This section is written in the
+order it happened — the Matches pair first, then the other nine — because the
+sequence is the evidence that the switch works in both positions, and a reader
+arriving after a rollback needs the OFF half to still be here.
 
 ### What landed first, and why this pair
 
@@ -452,20 +457,30 @@ address.
 ### The switch, and the fact that it is now ON
 
 `src/app/routeFlags.ts` gains `footballHubMatches`, reading
-`VITE_UI_FOOTBALL_HUB_MATCHES`. **It ships unset, and unset means legacy** —
+`VITE_UI_FOOTBALL_HUB_MATCHES`. **It shipped unset, and unset means legacy** —
 `enabled()` matches the exact string `'true'` and nothing else, so an empty
-value, a misspelling, `TRUE` and `1` all select the legacy route. A player's
-Matches route today is the same `SeasonMatchesRoute` it was yesterday.
+value, a misspelling, `TRUE` and `1` all select the legacy route. For the life of
+that first change, a player's Matches route was the same `SeasonMatchesRoute` it
+had always been.
 
-That is not caution for its own sake. `config/vnext-programme.json` carries
-`productionCutoverAuthorized: false`, and the Stage 14 contract separates
-**READY FOR CUTOVER**, which autonomous engineering may reach, from **CUT OVER
-AND VERIFIED**, which requires explicit authority for the exact action. Building
-the switch is the first; throwing it is the second, and it has not been thrown.
+That was not caution for its own sake. The Stage 14 contract separates **READY
+FOR CUTOVER**, which autonomous engineering may reach, from **CUT OVER AND
+VERIFIED**, which requires explicit authority for the exact action. Building the
+switch is the first; throwing it is the second, and the two were kept apart
+until the authority existed.
 
-`NOW.md` regenerates to record the flag as *"unset everywhere — the journey
-serves its legacy implementation"*, so the programme's own status surface states
-the production truth rather than the intent.
+**The authority was given and the switch has been thrown.**
+`config/vnext-programme.json` now carries `productionCutoverAuthorized: true`,
+and `netlify.toml` sets all ten flags in `[build.environment]`. The fail-closed
+reading has not changed and is now the rollback rather than the default:
+removing one line from `netlify.toml` restores that one journey on the next
+deploy, with no migration and no data rollback.
+
+`NOW.md` is generated from the machine records and states the live position of
+every flag. **Read it there** — this page deliberately does not keep its own
+copy of a value that moves, for the same reason
+[`vnext-cutover-capability-parity.md`](vnext-cutover-capability-parity.md)
+stopped keeping one.
 
 ### One flag per destination, not one for the hub
 
@@ -476,9 +491,10 @@ was not.
 
 ### The legacy pair stays mounted, and a test says so
 
-`SeasonMatchesRoute` and `SeasonMatchCentreRoute` are untouched, still routed on
-the off branch and still passing their own tests. Nothing was deleted to make
-room. The contract's *"deleting recoverable legacy code before rollback safety
+`SeasonMatchesRoute` and `SeasonMatchCentreRoute` are untouched, still mounted
+on the off branch of the flag and still passing their own tests. Nothing was
+deleted to make room, which is precisely what makes the flag a rollback rather
+than a gesture. The contract's *"deleting recoverable legacy code before rollback safety
 is proven"* is listed under what Stage 14 does **not** own, and retirement stays
 a later, separately gated act.
 

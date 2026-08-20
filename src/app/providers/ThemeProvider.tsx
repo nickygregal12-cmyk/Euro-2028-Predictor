@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { THEME_COLOUR } from '../site/siteIcons'
 
 // Theme is a persisted user setting (design-system §1). Dark is the default;
 // the choice is stored locally and applied as data-theme on <html>, which is
@@ -25,14 +26,14 @@ export type ThemeChoice = 'system' | Theme
 
 const STORAGE_KEY = 'euro28-theme'
 
-// Browser-chrome colour per theme. These hexes MUST match --bg in
-// src/styles/tokens.css and the static theme-color metas in index.html — keep
-// all three in sync (a token change here without the others silently desyncs
-// the mobile status bar from the app background).
-const THEME_COLOR: Record<Theme, string> = {
-  dark: '#0A1128',
-  light: '#F7F5F0',
-}
+// Browser-chrome colour per theme, from the one place that holds it. It used
+// to be written out here AND in documentMetadata.ts, both carrying a comment
+// asking the reader to keep them in step with --bg in src/styles/tokens.css —
+// and both had drifted from the neutral ramp --bg now resolves through.
+// src/app/site/siteIcons.ts holds the pair, the manifest reads the same two
+// values, and tests/app/themeColourParity.test.ts reads tokens.css and refuses
+// the next drift.
+const THEME_COLOR: Record<Theme, string> = THEME_COLOUR
 
 // An in-app theme choice must beat the OS prefers-color-scheme media query that
 // scopes the two static metas. Setting BOTH metas to the resolved colour means

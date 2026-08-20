@@ -91,7 +91,7 @@ describe('the Football Hub cutover switch', () => {
     expect(journeyImplementation('footballHubMatches')).toBe('next')
   })
 
-  it('mounts the legacy route when the flag is off — the shipped state', () => {
+  it('mounts the legacy route when the flag is off — the rollback state', () => {
     renderMatchesAt('/competitions/scottish-premiership/2026-27/matches', false)
     expect(screen.getByText('legacy-matches')).toBeTruthy()
     expect(screen.queryByText('vnext-matches')).toBeNull()

@@ -207,8 +207,32 @@
  * `1f0a29e` is the parent of the commit carrying this paragraph, and that is the
  * closest an in-repository citation can get to its own head: the only change
  * above the cited head is this comment. Nothing the cited runs built moves.
+ *
+ * **CONTRACT 210 RAISES THIS NUMBER AND NOTHING ELSE, AND THE REASON IS SHORT
+ * ENOUGH TO CHECK.** Contract 210 changes how early the provider feed is polled
+ * before a prediction deadline: it raises `live_lead_minutes` to 720 on
+ * `public.provider_poll_targets`, sets the column default to match, and asserts
+ * the resulting window covers the matchweek lock. It adds no relation, no
+ * policy, no grant and no function, and it touches no relation a seeded user
+ * reads — `provider_poll_targets` is dispatch configuration that no browser
+ * journey queries, and the seed creates no poll target at all. There is
+ * therefore no new gate on an authenticated read for a seeded user to fail, and
+ * the deterministic seed's shape is byte-for-byte what it was at 209.
+ *
+ * Raising the number on that reasoning is the intended use of this guard, not a
+ * way around it: the guard exists to force somebody to ask whether the schema
+ * moved under the seed, and here the answer is a checkable no rather than an
+ * assumption. If contract 210 ever grows a read, this paragraph is wrong and the
+ * number must come back down.
+ *
+ * **CONTRACT 211 IS THE SAME ANSWER FOR THE SAME REASON.** It adds two columns to
+ * `public.provider_poll_targets`, returns `live_lead_minutes` to 15, adds one
+ * `predictor_internal` predicate and redefines the dispatcher's cadence choice.
+ * Every one of those is dispatch configuration or an internal function; the seed
+ * creates no poll target, and no browser journey queries that table. No relation
+ * a seeded user reads is touched, so again there is no new gate to fail.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 209
+export const SEED_REVIEWED_AT_CONTRACT = 211
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

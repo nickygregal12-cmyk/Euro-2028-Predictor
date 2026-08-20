@@ -948,6 +948,32 @@
   color: var(--vnext-hit);
 }
 
+/* A quiet text control rather than a button-shaped call to action. Sharing a
+   result is something a player occasionally wants, not something the page is
+   asking them to do — and a filled button here would compete with the total it
+   sits under, which is the thing worth looking at.
+
+   Built from the same parts as `.textAction` beside it rather than inventing a
+   second quiet control; the focus ring is the shared rule further down. */
+.outcomeShare {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  border: 0;
+  background-color: transparent;
+  color: var(--vnext-accent);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-caption);
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.outcomeShare:hover {
+  color: var(--vnext-accent-strong);
+}
+
 .outcomeSplit {
   display: grid;
   gap: var(--vnext-space-2);
@@ -997,6 +1023,7 @@
 .disclosure:focus-visible,
 .joker:focus-visible,
 .jump:focus-visible,
+.outcomeShare:focus-visible,
 .confirm:focus-visible {
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;

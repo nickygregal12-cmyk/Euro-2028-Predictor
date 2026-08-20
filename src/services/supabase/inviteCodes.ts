@@ -1,4 +1,8 @@
 import { db } from './client'
+import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../observability/operationFailure'
 import { mapResolvedInvite, normaliseInviteCode, type ResolvedInvite } from './inviteCodesModel'
 
 /**
@@ -59,7 +63,15 @@ export async function joinPrivateCompetition(
   const { data, error } = await db.rpc('join_private_competition', {
     p_code: normaliseInviteCode(code),
   })
-  if (error) throw error
+  // `C1`. As with `join_league`, the code itself never leaves — it is the
+  // credential, not the context.
+  if (error) {
+    reportOperationFailure('league.join', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+    })
+    throw error
+  }
   const row =
     data && typeof data === 'object' && !Array.isArray(data)
       ? (data as Record<string, unknown>)

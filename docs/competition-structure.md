@@ -209,6 +209,10 @@ same paragraph existed in seven places at once.
 
 > **Contract 209:** does not alter competition structure. A postponed fixture keeps its matchweek, its identity and its prediction; it is the same fixture before and after, which is the owner's 5 August 2026 amendment applied to a postponement rather than only to a kickoff move. No fixture is created, deleted or moved between rounds.
 
+> **Contract 210:** does not alter competition structure. It changes only how early the provider feed is polled before a matchweek lock, on `provider_poll_targets`. No competition, group, round, fixture or scoring relation is touched, and no deadline rule moves — the deadline stays exactly where contract 83 and contract 119 put it.
+
+> **Contract 211:** does not alter competition structure either. It adds a second polling tier on `provider_poll_targets` so the same deadline coverage costs a third as much. No competition, group, round, fixture or scoring relation is touched, and what a deadline IS remains untouched.
+
 > **Contract 204:** does not alter competition structure. It redefines two private AI Lab admin reads at their existing signatures and adds one view in schema `ai`, touching no competition, scoring or player relation.
 
 > **Contract 203:** does not alter competition structure. It redefines the private Bet Builder's two admin reads at their existing signatures so a superseded BET cannot be offered as a leg, and touches no competition, scoring or player relation.

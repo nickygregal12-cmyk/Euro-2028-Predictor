@@ -39,17 +39,27 @@ export async function copyText(text: string): Promise<boolean> {
  * Open the native share sheet for a league invite where available. Returns
  * 'shared' on success, 'unsupported' when there's no share API (caller should
  * fall back to copy), or 'cancelled' if the user dismissed the sheet.
+ *
+ * THE PRODUCT NAME IS A PARAMETER, AND IT USED TO BE THE LITERAL STRING
+ * "Euro 2028 Predictor". This function is reached from `InvitePanel`, which is
+ * mounted by league creation, the private-play journey and the organiser panel
+ * — all weekly Predictor Hub surfaces. Every private league invited from the
+ * Hub told the person receiving it they were being invited to a tournament that
+ * is not published yet. It is passed in rather than read here because this file
+ * is browser glue with no React and no site context of its own; the caller has
+ * `useSite()` and the one authority behind it.
  */
 export async function shareInvite(
   leagueName: string,
   code: string,
+  productName: string,
 ): Promise<'shared' | 'unsupported' | 'cancelled'> {
   const url = inviteUrl(code)
   if (typeof navigator === 'undefined' || !navigator.share) return 'unsupported'
   try {
     await navigator.share({
       title: `Join my league: ${leagueName}`,
-      text: `Join "${leagueName}" on the Euro 2028 Predictor. Invite code ${code}.`,
+      text: `Join "${leagueName}" on ${productName}. Invite code ${code}.`,
       url,
     })
     return 'shared'

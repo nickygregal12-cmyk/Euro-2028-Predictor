@@ -31,7 +31,28 @@ begin
   execute 'alter role service_role bypassrls';
 end $$;
 
-create extension if not exists pgcrypto;
+-- SUPABASE PUTS pgcrypto IN AN `extensions` SCHEMA, and the migrations call it
+-- by that name: `extensions.digest` and `extensions.gen_random_bytes` appear
+-- directly in the Stage C1 foundation and in the invite-code machinery. A plain
+-- cluster has neither the schema nor a copy of the extension inside it, so
+-- every migration after that one failed to load — which is how the benchmark
+-- path in this directory quietly stopped working.
+-- INSTALLED ONLY INTO `extensions`, AND THE ORDER MATTERS. This file used to
+-- run a bare `create extension if not exists pgcrypto`, which lands it in
+-- `public`; a later `… with schema extensions` then reports "already exists,
+-- skipping" and does nothing, so `extensions.digest` is still absent and the
+-- migration that calls it still fails. Installing it once, in the right place,
+-- is the fix — and the near-miss is worth the paragraph, because the failure
+-- looks like a missing extension when it is a misplaced one.
+create schema if not exists extensions;
+create extension if not exists pgcrypto with schema extensions;
+
+-- The stub extensions need their schemas to exist before `create extension`
+-- names them. See `install-local-extension-stubs.sh` for what they do and,
+-- more importantly, what they deliberately do not.
+create schema if not exists cron;
+create schema if not exists net;
+
 create schema if not exists auth;
 
 -- Only the columns the migrations and harnesses touch. raw_user_meta_data is

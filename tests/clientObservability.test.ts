@@ -1,8 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   configureClientErrorReporter,
+  installCspViolationCapture,
   normaliseClientError,
   reportClientError,
+  type ClientErrorEvent,
 } from '../src/services/observability/clientObservability'
 import { routeCategory } from '../src/services/observability/releaseIdentity'
 
@@ -165,5 +167,93 @@ describe('route categories', () => {
     ['/unrecognised', 'unknown'],
   ])('classifies %s as %s', (pathname, category) => {
     expect(routeCategory(pathname)).toBe(category)
+  })
+})
+
+/**
+ * `SEC-002` — collecting what the report-only Content-Security-Policy finds.
+ *
+ * `netlify.toml` serves a tightened policy beside the enforced one so real
+ * traffic can answer whether `style-src 'unsafe-inline'` is still needed. These
+ * assert the three properties that make that measurement worth having: it hears
+ * the report-only violations, it ignores the enforced ones, and it does not
+ * carry page content into telemetry.
+ */
+describe('report-only CSP violation capture', () => {
+  function violation(
+    overrides: Partial<SecurityPolicyViolationEvent> = {},
+  ): SecurityPolicyViolationEvent {
+    // jsdom raises no real violations, so the event is constructed. Every field
+    // read by the capture is supplied.
+    const event = new Event(
+      'securitypolicyviolation',
+    ) as unknown as Record<string, unknown>
+    Object.assign(event, {
+      effectiveDirective: 'style-src-elem',
+      disposition: 'report',
+      blockedURI: 'inline',
+      sourceFile: 'https://example.test/assets/index.js',
+      sample: 'a { content: "something a player typed" }',
+      ...overrides,
+    })
+    return event as unknown as SecurityPolicyViolationEvent
+  }
+
+  function capture() {
+    const events: ClientErrorEvent[] = []
+    restoreReporter = configureClientErrorReporter((event) => {
+      events.push(event)
+    })
+    const remove = installCspViolationCapture()
+    return { events, remove }
+  }
+
+  it('reports a report-only violation, naming the directive', () => {
+    const { events, remove } = capture()
+    document.dispatchEvent(violation())
+    remove()
+
+    expect(events).toHaveLength(1)
+    expect(events[0]?.source).toBe('csp-violation')
+    expect(events[0]?.error.message).toContain('style-src-elem')
+    expect(events[0]?.error.message).toContain('inline')
+  })
+
+  it('ignores an ENFORCED violation, which whatever broke already reports', () => {
+    const { events, remove } = capture()
+    document.dispatchEvent(violation({ disposition: 'enforce' }))
+    remove()
+
+    expect(events).toHaveLength(0)
+  })
+
+  it('reports one violation per directive, not one per element', () => {
+    const { events, remove } = capture()
+    document.dispatchEvent(violation())
+    document.dispatchEvent(violation())
+    document.dispatchEvent(violation({ effectiveDirective: 'style-src-attr' }))
+    remove()
+
+    expect(events).toHaveLength(2)
+  })
+
+  it('never carries the offending content into telemetry', () => {
+    const { events, remove } = capture()
+    document.dispatchEvent(violation())
+    remove()
+
+    // `report-sample` is deliberately absent from the policy, and nothing here
+    // reads `sample` even when a browser supplies one: nothing guarantees a
+    // page's inline content is free of something a player typed.
+    const serialised = JSON.stringify(events)
+    expect(serialised).not.toContain('something a player typed')
+  })
+
+  it('stops listening once removed', () => {
+    const { events, remove } = capture()
+    remove()
+    document.dispatchEvent(violation())
+
+    expect(events).toHaveLength(0)
   })
 })

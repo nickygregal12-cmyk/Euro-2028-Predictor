@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SaveStatus } from '../../domain/saveCoordinator'
 import type { ScorelinePrediction } from '../../domain/season/scoring'
 import { createSaveController, type SaveController } from '../../app/providers/saveController'
+import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../../services/observability/operationFailure'
 import { isVersionConflict } from '../../services/supabase/writeConflict'
 import {
   createPredictionDraftStore,
@@ -295,6 +299,26 @@ export function useSeasonMatchPredictor(
         attemptBoundaryRefreshRef.current()
       },
       isConflict: isVersionConflict,
+      // `C1` — a save that has stopped trying is reported, so a matchweek in
+      // which nobody's predictions reached the server is visible somewhere
+      // other than on the players' screens. The key names WHICH kind of write
+      // it was and carries no content: fixture keys are opaque ids and
+      // `JOKER_KEY` is a constant.
+      onTerminalFailure: (key, error, outcome) => {
+        reportOperationFailure(
+          key === JOKER_KEY ? 'prediction.joker' : 'prediction.save',
+          {
+            outcome: outcome === 'conflict' ? 'conflict' : 'failed',
+            serverCode: serverCodeOf(error),
+            // The season id lives inside the gateway rather than in this
+            // hook's scope, so it is absent rather than reached for. The
+            // operation, the outcome, the server's code and the matchweek are
+            // enough to act on, and inventing a route to the id for a log line
+            // would be the wrong trade.
+            matchweek: matchweekRef.current,
+          },
+        )
+      },
     })
   }
 
