@@ -814,11 +814,11 @@ like exposure. It was probed in a real browser and the probe did not stand up:
 its only hit was the masthead's *own* children, whose `top` is naturally above
 the bar's bottom because they are inside it, and after that bug was fixed the
 probe stopped detecting the sticky bar at all between runs. A flaky probe is not
-evidence. It also cannot currently be exercised where it would matter —
-`playwright.vnext.config.ts` states outright that vNext has no application
-route, so the document-level scroll this criterion is about does not exist in
-this lane yet. **`UX-007` is opened** for it below, owned by Stage 14, where the
-shell becomes the production frame and the document becomes the scroller.
+evidence. At the time of that check it also could not be exercised where it
+would matter: vNext had no application route, so the document-level scroll this
+criterion is about did not exist in the lane. **`UX-007` is opened** for it
+below, owned by Stage 14, where the shell becomes the production frame and the
+document becomes the scroller.
 
 **`touch-action: manipulation` — declined, with the reason.** The skill lists it
 against a 300ms tap delay that modern engines removed for any document with
@@ -827,5 +827,5 @@ cargo, not a fix.
 
 | id | risk | status | closes when |
 | --- | --- | --- | --- |
-| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. Not currently reachable, because vNext has no application route. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
+| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. **Now reachable, and still unmeasured.** The Football Hub cutover made the shell the production frame, so the document-level scroll this criterion is about exists — the criterion can be exercised, and has not been. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
 

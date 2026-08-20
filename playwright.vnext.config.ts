@@ -102,8 +102,11 @@ export default defineConfig({
   ],
 
   webServer: {
-    // Storybook, not the application. vNext has no application route, and the
-    // whole point of the workshop is that it does not have one yet.
+    // Storybook, not the application. The Football Hub cutover gave vNext a
+    // production route, but this suite is still the workshop: it measures
+    // rendered geometry against deterministic fixtures, which is what makes
+    // its assertions stable. Coverage of the real route belongs to the
+    // application e2e config, not here.
     command: `npm run storybook -- --ci --quiet --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,

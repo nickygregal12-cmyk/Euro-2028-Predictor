@@ -486,9 +486,13 @@ TARGET IA decision and not one repoints a route.** See
 | `/league/:id` | **REDESIGN, deferred to Stage 15** | Euro-scoped. Its weekly counterpart is now built; the tournament one belongs with the rest of the Euro adoption. |
 | `/league` | **REDIRECT** | Unchanged. |
 
-**Technical consequence: none.** Every address keeps resolving exactly as it
-does today. The vNext surface is reachable only from the dev-only
-`/dev/vnext-leagues` harness until the cutover stage.
+**Technical consequence at the time of Stage 9: none.** Every address kept
+resolving as it did, and the vNext surface was reachable only from the dev-only
+`/dev/vnext-leagues` harness. **Stage 14 cut it over.**
+`/competitions/:c/:s/leagues` is served by the vNext surface in production now,
+behind `VITE_UI_FOOTBALL_HUB_LEAGUES`, with `SeasonLeaguesRoute` still mounted
+so unsetting the flag restores it. See
+[`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) §13.
 
 ---
 
@@ -502,3 +506,6 @@ navigation points at it and there is no flag that turns it on.
 
 The existing `GlobalLeaguesPage`, `SeasonLeaguesRoute` and
 `LeagueDetailRoutePage` are untouched.
+
+**This section records Stage 9's diff, and stays true of it.** The isolation it
+describes ended at Stage 14, which cut the Leagues destination over — see §14.
