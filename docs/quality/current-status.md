@@ -24,7 +24,7 @@
 
 The repository is at **contract 208**, through `20260819130000_cup_bracket_outcome_and_knockout_stage.sql`.
 Development Supabase is hosted at **208**, verified `2026-08-19T23:32:57.276619Z`.
-Production Supabase is hosted at **205**, verified `2026-08-19T12:55:00.000Z`; further promotion is **not authorised**.
+Production Supabase is hosted at **208**, verified `2026-08-20T00:45:00.000Z`; further promotion is **not authorised**.
 
 These three values are derived, not restated. The evidence for how each
 environment reached its contract — the rollout run, the exact head, the backup
