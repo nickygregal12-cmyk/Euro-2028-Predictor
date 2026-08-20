@@ -4,6 +4,7 @@ import { VNextShell } from '../app/VNextShell'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
+import { SinceYouWereHere } from './SinceYouWereHere'
 import { CompetitionFocus } from './CompetitionFocus'
 import { DecisionHero } from './DecisionHero'
 import { FeaturedMatch } from './FeaturedMatch'
@@ -105,6 +106,12 @@ export function VNextHome({ model }: VNextHomeProps) {
       competitionColours={model.competition.colours}
     >
       <FixtureTicker matches={allMatches} now={now} />
+
+      {/* WHAT HAPPENED, BEFORE WHAT NOW. A player returning on a Monday wants
+          the weekend before they want the deadline, and every other zone on
+          this page answers "what now". It renders nothing on a first visit and
+          nothing when nothing has finished since — which is most days. */}
+      <SinceYouWereHere since={model.sinceLastVisit} />
 
       {/* In decision emphasis the hero IS the outstanding action, so the
           banner would say the same thing twice in a row. Everywhere else it

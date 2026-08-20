@@ -134,4 +134,24 @@ export type HomeSource = {
    * Null where unread or refused.
    */
   readonly projection: SeasonMatchweekProjection | null
+
+  /**
+   * When this DEVICE last showed the player their Home, if it ever has.
+   *
+   * THE ONE FIELD HERE THAT IS NOT THE APPLICATION'S. Every other source field
+   * is a read the server answered; this is a local marker, and it is what
+   * "since you were last here" is measured from. The direction accepted that
+   * shape for a first release — a server cursor for cross-device continuity is
+   * a later contract — and the cost is stated where the marker is written: a
+   * player who reads the results on their phone still sees them on a laptop.
+   *
+   * IT DECIDES NOTHING. It selects which already-settled results to show first.
+   * A wrong or missing value makes Home show more or less recent football and
+   * can never make it show something untrue, which is why a local value is
+   * allowed to reach a mapper that otherwise refuses anything but a read.
+   *
+   * OPTIONAL, so a caller that has no marker — a story, a test, the workshop —
+   * simply omits it and gets no zone.
+   */
+  readonly lastVisitAt?: string | null
 }

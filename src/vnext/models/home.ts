@@ -202,6 +202,32 @@ export type ActivityItem = {
   readonly emphasis: 'positive' | 'negative' | 'neutral'
 }
 
+/**
+ * WHAT FINISHED WHILE THE PLAYER WAS AWAY.
+ *
+ * ============================ IT IS A SELECTION, NOT A CLAIM =============
+ *
+ * Every match here is already in `recentResults` and is settled because the
+ * server settled it. This zone says only WHICH of them are new to this reader,
+ * and it is the one thing on Home that depends on a device rather than on the
+ * application: the marker is local, so a player who read the results on their
+ * phone still sees them on their laptop. That cost is deliberate and small —
+ * nothing here can be wrong in a way that changes a point, a lock or a rank.
+ *
+ * ============================ NULL ON A FIRST VISIT ======================
+ *
+ * With no marker there is no "since", and a summary of the whole season dressed
+ * as "what changed" would be the worst possible first impression of the
+ * feature. `null` is also the answer when the marker exists and nothing has
+ * finished since it, which is the ordinary case on a Tuesday.
+ */
+export type SinceLastVisit = {
+  /** Settled matches that finished since the marker, most recent first. */
+  readonly results: readonly Match[]
+  /** How many more there were beyond the cap. */
+  readonly more: number
+}
+
 export type HomeModel = {
   /** The instant the model describes. Components take "now" as an input so the
    *  workshop renders identically on every run. */
@@ -213,6 +239,14 @@ export type HomeModel = {
   readonly upcomingMatches: readonly Match[]
   /** Settled matches worth showing back to the user today. */
   readonly recentResults: readonly Match[]
+  /**
+   * Which of those are new to this reader. Null on a first visit and whenever
+   * nothing has finished since the marker — see `SinceLastVisit`.
+   *
+   * OPTIONAL so a hand-written fixture that predates it still type-checks; an
+   * absent field and an explicit null mean the same thing.
+   */
+  readonly sinceLastVisit?: SinceLastVisit | null
   readonly recentPerformance: RecentPerformance
   readonly privateLeagues: readonly PrivateLeague[]
   readonly rivals: readonly Rival[]

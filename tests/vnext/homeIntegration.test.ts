@@ -1015,3 +1015,69 @@ describe('abnormal fixture state on Home', () => {
     expect(first(model.upcomingMatches).status).toBe('upcoming')
   })
 })
+
+/**
+ * "SINCE YOU WERE LAST HERE" — the mapper's half.
+ *
+ * The zone's rendering rules live in `sinceLastVisit.test.tsx`; these are the
+ * SELECTION rules, stated where the selection is made. The marker is the one
+ * input to this mapper that is not a read, so every way it can be absent or
+ * wrong has to produce a page rather than a defect.
+ */
+describe('what finished while the player was away', () => {
+  const settled = () =>
+    source({
+      fixtures: [
+        fixture({ id: 'early', kickoffAt: '2027-08-20T14:00:00.000Z', status: 'played', result: { home: 1, away: 0 } }),
+        fixture({ id: 'late', kickoffAt: '2027-08-21T14:00:00.000Z', status: 'played', result: { home: 2, away: 1 } }),
+      ],
+    })
+
+  it('answers null when this device has never been here', () => {
+    // A first visit has no marker, and a summary of the whole season dressed as
+    // "what changed" is the worst possible first impression of the feature.
+    expect(buildHomeModel({ ...settled(), lastVisitAt: null }).sinceLastVisit).toBeNull()
+    expect(buildHomeModel(settled()).sinceLastVisit).toBeNull()
+  })
+
+  it('answers null rather than everything when the marker is unreadable', () => {
+    expect(buildHomeModel({ ...settled(), lastVisitAt: 'yesterday' }).sinceLastVisit).toBeNull()
+  })
+
+  it('shows what finished after the marker, newest first', () => {
+    const model = buildHomeModel({ ...settled(), lastVisitAt: '2000-01-01T00:00:00.000Z' })
+
+    expect(model.sinceLastVisit?.results.map((match) => match.id)).toEqual(['late', 'early'])
+    expect(model.sinceLastVisit?.more).toBe(0)
+  })
+
+  it('shows only what finished after the marker', () => {
+    const model = buildHomeModel({ ...settled(), lastVisitAt: '2027-08-21T00:00:00.000Z' })
+
+    expect(model.sinceLastVisit?.results.map((match) => match.id)).toEqual(['late'])
+  })
+
+  it('answers null when nothing has finished since', () => {
+    // The ordinary Tuesday. A present-but-empty zone teaches a player to scroll
+    // past the one place worth reading on the day it matters.
+    expect(
+      buildHomeModel({ ...settled(), lastVisitAt: '2099-01-01T00:00:00.000Z' }).sinceLastVisit,
+    ).toBeNull()
+  })
+
+  it('never shows a match the server has not settled', () => {
+    const model = buildHomeModel({
+      ...source({
+        fixtures: [
+          fixture({ id: 'off', kickoffAt: '2027-08-20T14:00:00.000Z', status: 'postponed' }),
+          fixture({ id: 'open', kickoffAt: '2027-08-20T15:00:00.000Z', status: 'scheduled' }),
+        ],
+      }),
+      lastVisitAt: '2000-01-01T00:00:00.000Z',
+    })
+
+    // Recency decides ORDER. Settlement decides membership, and it is the
+    // server's word rather than a kickoff that has gone past.
+    expect(model.sinceLastVisit).toBeNull()
+  })
+})

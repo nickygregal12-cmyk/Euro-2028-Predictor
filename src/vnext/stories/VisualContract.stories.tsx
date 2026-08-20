@@ -115,6 +115,18 @@ function surface(node: (args: Args) => ReactNode): Story {
 
 export const Home: Story = surface(() => <VNextHome model={homeScenarios.decision} />)
 
+/**
+ * The same Home for a player who has been away since the weekend.
+ *
+ * A SECOND HOME BOARD, and the only one that draws "Since you were last here":
+ * the zone is absent on a first visit and absent when nothing has finished
+ * since, so `Home` above is correctly silent about it and shows a reviewer
+ * nothing.
+ */
+export const HomeReturning: Story = surface(() => (
+  <VNextHome model={homeScenarios.returning} />
+))
+
 export const MatchPredictor: Story = surface(() => (
   <VNextMatchPredictor model={predictorScenarios.open} actions={INERT_PREDICTOR} />
 ))

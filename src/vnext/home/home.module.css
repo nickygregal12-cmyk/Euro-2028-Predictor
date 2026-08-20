@@ -1265,3 +1265,111 @@
     gap: var(--vnext-space-4);
   }
 }
+
+/* ---- since you were last here ------------------------------------------- */
+
+/*
+ * THE RECAP, AND IT IS NARROWER THAN THE FOOTBALL BELOW IT.
+ *
+ * Deliberately quieter than `Around the grounds`: this zone is a catch-up
+ * rather than the page's subject, so its rows are one line taller than a chip
+ * and considerably shorter than a fixture row. It carries the same club spine,
+ * because a reader should recognise the two lists as the same kind of thing.
+ */
+.since {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+}
+
+.sinceHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+}
+
+.sinceHead > span {
+  color: var(--vnext-text-muted);
+}
+
+.sinceList {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Two across as soon as the column can hold two without starving a club name.
+ * It asks its own container, never the page — the recap sits in a column that
+ * is roughly half the workspace at 1920 and the whole of it at 375. */
+@container vnext-page (min-width: 720px) {
+  .sinceList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sinceRow {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--vnext-space-3);
+  padding: var(--vnext-space-2) var(--vnext-space-3) var(--vnext-space-2)
+    var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.sinceSpine {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: 4px;
+  background-color: var(--vnext-team-primary);
+}
+
+.sinceTeams {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sinceTeamRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--vnext-space-2);
+  color: var(--vnext-text);
+  /* A club name is never cut here either. Same rule, same reason. */
+  overflow-wrap: anywhere;
+}
+
+.sinceGoals {
+  font-weight: var(--vnext-weight-display);
+  min-width: 1.2em;
+  text-align: end;
+}
+
+.sinceCall {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: 0 0 auto;
+  color: var(--vnext-text-secondary);
+}
+
+.sinceCallScore {
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-medium);
+}
+
+.sinceMissed {
+  color: var(--vnext-text-muted);
+}

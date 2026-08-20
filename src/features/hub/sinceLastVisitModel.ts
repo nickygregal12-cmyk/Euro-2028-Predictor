@@ -43,24 +43,57 @@ export type SinceLastVisit = {
 
 const DEFAULT_LIMIT = 4
 
+/**
+ * The selection itself, over anything with a settled flag and an instant.
+ *
+ * ============================ WHY IT IS GENERIC ==========================
+ *
+ * The Hub reads combined fixture rows and vNext Home reads its own `Match`, and
+ * both need exactly this answer: what finished since the marker, newest first,
+ * capped, and NOTHING at all on a first visit. Written twice it would be two
+ * rules that agree until one of them is edited — most likely the cap, or the
+ * first-visit case, which is the one that matters and the one a second author
+ * is most likely to "fix".
+ *
+ * The type parameter is deliberately not a shared row type. Making both callers
+ * share a row shape would couple the Hub's fixture list to vNext's presentation
+ * model, which is a far larger coupling than a predicate and an accessor.
+ */
+export function selectSinceLastVisit<T>(
+  items: readonly T[],
+  read: { settled: (item: T) => boolean; at: (item: T) => string | null },
+  lastVisit: string | null,
+  limit: number = DEFAULT_LIMIT,
+): { results: readonly T[]; more: number; available: boolean } {
+  if (!lastVisit) return { results: [], more: 0, available: false }
+  const since = new Date(lastVisit).getTime()
+  if (Number.isNaN(since)) return { results: [], more: 0, available: false }
+
+  const finished = items
+    .filter((item) => read.settled(item))
+    .map((item) => {
+      const at = read.at(item)
+      return { item, at: at ? new Date(at).getTime() : NaN }
+    })
+    .filter((entry) => !Number.isNaN(entry.at) && entry.at >= since)
+    .sort((left, right) => right.at - left.at)
+
+  return {
+    results: finished.slice(0, limit).map((entry) => entry.item),
+    more: Math.max(0, finished.length - limit),
+    available: true,
+  }
+}
+
 export function presentSinceLastVisit(
   rows: readonly CombinedFixtureRow[],
   lastVisit: string | null,
   limit: number = DEFAULT_LIMIT,
 ): SinceLastVisit {
-  if (!lastVisit) return { results: [], more: 0, available: false }
-  const since = new Date(lastVisit).getTime()
-  if (Number.isNaN(since)) return { results: [], more: 0, available: false }
-
-  const finished = rows
-    .filter((row) => row.played)
-    .map((row) => ({ row, at: row.kickoffAt ? new Date(row.kickoffAt).getTime() : NaN }))
-    .filter((entry) => !Number.isNaN(entry.at) && entry.at >= since)
-    .sort((left, right) => right.at - left.at)
-
-  return {
-    results: finished.slice(0, limit).map((entry) => entry.row),
-    more: Math.max(0, finished.length - limit),
-    available: true,
-  }
+  return selectSinceLastVisit(
+    rows,
+    { settled: (row) => row.played, at: (row) => row.kickoffAt },
+    lastVisit,
+    limit,
+  )
 }

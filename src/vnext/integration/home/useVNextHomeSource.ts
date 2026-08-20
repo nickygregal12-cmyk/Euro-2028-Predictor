@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { readLastVisit, writeLastVisit } from '../../../features/hub/lastVisit'
 import { presentCard } from '../../../features/season/matchPredictorModel'
 import { presentCompetitionWeek, weekActionForGame } from '../../../features/hub/competitionWeekModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
@@ -191,6 +192,18 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
   const [nonce, setNonce] = useState(0)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
+  /*
+   * THE MARKER IS READ ONCE, ON MOUNT, AND THEN FROZEN FOR THIS VISIT.
+   *
+   * `useState(readLastVisit)` rather than a read inside the effect, and the
+   * difference is the whole feature: the marker is written again below as soon
+   * as Home has loaded, so an effect that re-read it would find its own write
+   * and "since you were last here" would empty itself while the player was
+   * looking at it. What they see is measured from the visit BEFORE this one,
+   * for as long as this page is open.
+   */
+  const [lastVisitAt] = useState(readLastVisit)
+
   const { userId, displayName, authLoading, competitionSlug, seasonSlug, gameCompetitionId } = input
 
   useEffect(() => {
@@ -370,10 +383,17 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
             clubForm: clubFormValue,
             consensus: consensusValue,
             projection: projectionValue,
+            lastVisitAt,
           },
           unavailable,
           leaguesNotShown: Math.max(0, allLeagues.length - shown.length),
         })
+
+        // ONLY AFTER HOME ACTUALLY LOADED. Stamping the marker on mount would
+        // mean a player whose connection dropped before the football arrived
+        // had "been here" — and would lose the recap they never saw. The
+        // failure path below deliberately does not write.
+        writeLastVisit(new Date())
       } catch {
         // The context read failed, or something threw before the enrichments
         // were reached. Either way Home has no competition to draw.

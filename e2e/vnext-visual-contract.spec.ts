@@ -46,6 +46,7 @@ import { expect, test } from '@playwright/test'
  */
 const SURFACES = [
   'home',
+  'home-returning',
   'match-predictor',
   'matches',
   'match-centre',

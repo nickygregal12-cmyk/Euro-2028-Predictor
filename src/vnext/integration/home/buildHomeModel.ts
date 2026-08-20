@@ -44,7 +44,9 @@ import type {
   RankMovement,
   RecentPerformance,
   Rival,
+  SinceLastVisit,
 } from '../../models/home'
+import { selectSinceLastVisit } from '../../../features/hub/sinceLastVisitModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
 
 /**
@@ -877,6 +879,30 @@ export function buildHomeModel(source: HomeSource): HomeModel {
 
   const liveMatches = matches.filter((match) => match.status === 'live')
   const recentResults = matches.filter((match) => match.status === 'fullTime')
+
+  /*
+   * SINCE YOU WERE LAST HERE.
+   *
+   * Selected from `recentResults` rather than from a read of its own, which is
+   * the whole reason this costs nothing: the football is already on the page
+   * and the only new information is which of it the reader has not seen.
+   * `selectSinceLastVisit` is the Hub's own rule, imported rather than
+   * reimplemented, so the cap and the first-visit case cannot drift apart
+   * between the two surfaces that show them.
+   *
+   * `status === 'fullTime'` is the server's settlement, never a clock
+   * comparison, so a postponed or abandoned match cannot appear here as a
+   * finished one. The kickoff decides ORDER and recency and nothing else.
+   */
+  const since = selectSinceLastVisit(
+    recentResults,
+    { settled: () => true, at: (match) => match.kickoff },
+    source.lastVisitAt ?? null,
+  )
+  const sinceLastVisit: SinceLastVisit | null =
+    since.available && since.results.length > 0
+      ? { results: since.results, more: since.more }
+      : null
   const upcomingMatches = matches.filter(
     (match) => match.status === 'upcoming' || match.status === 'postponed',
   )
@@ -897,6 +923,7 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     liveMatches,
     upcomingMatches,
     recentResults,
+    sinceLastVisit,
     recentPerformance: performanceOf(source),
     privateLeagues: leagues.map((entry) => entry.model),
     // Rivals come from the league Home leads with. Every league's adjacent rows

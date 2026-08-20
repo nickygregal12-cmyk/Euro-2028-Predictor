@@ -616,10 +616,32 @@ export const reducedHomeModel: HomeModel = {
 }
 
 /** Every Home scenario, for the stories and the consistency suite. */
+/**
+ * THE PLAYER WHO HAS BEEN AWAY.
+ *
+ * The competition world, plus the one thing a device knows that the
+ * application does not: which of the settled results this reader has not seen.
+ * It exists as a world of its own because "since you were last here" is
+ * ABSENT from every other scenario — a first visit has no marker, and a
+ * reviewer needs a board where the zone is actually drawn.
+ *
+ * `more` says the list is a sample rather than the whole weekend, which is the
+ * honesty rule the Hub's own recap follows: a cap nobody can see reads as "we
+ * covered everything".
+ */
+const returningHomeModel: HomeModel = {
+  ...competitionHomeModel,
+  sinceLastVisit: {
+    results: competitionResults.slice(0, 3),
+    more: 2,
+  },
+}
+
 export const homeScenarios = {
   live: workshopHomeModel,
   decision: decisionHomeModel,
   competition: competitionHomeModel,
+  returning: returningHomeModel,
   newSeason: newSeasonHomeModel,
   reduced: reducedHomeModel,
 } as const
