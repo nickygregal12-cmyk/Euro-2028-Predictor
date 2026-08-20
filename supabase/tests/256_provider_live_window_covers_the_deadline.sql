@@ -33,7 +33,7 @@
 
 begin;
 
-select plan(12);
+select plan(13);
 
 -- ---------------------------------------------------------------------------
 -- A tournament of its own, so the assertions cannot be moved by seeded data.
@@ -49,40 +49,65 @@ do $$
 declare
   v_tournament uuid;
   v_round uuid;
-  v_home uuid;
-  v_away uuid;
+  v_alpha uuid;
+  v_bravo uuid;
+  v_charlie uuid;
+  v_delta uuid;
   v_first timestamptz := '2026-09-05 11:30:00+00';
   v_later timestamptz := '2026-09-06 15:00:00+00';
 begin
-  insert into public.tournaments (name, slug, display_timezone)
-  values ('Contract 210 Cadence League', 'contract-210-cadence', 'Europe/London')
+  -- A season of its own, so no seeded fixture can hold the window open and
+  -- make an assertion below pass or fail for the wrong reason. Every column
+  -- this table constrains by value is INHERITED from a real league season
+  -- rather than guessed, so the row stays legal as those vocabularies grow.
+  insert into public.tournaments
+    (competition_id, name, year, season_key, kind, display_timezone, status)
+  select source.competition_id,
+         'Contract 210 Cadence Season',
+         source.year,
+         'contract-210-cadence',
+         source.kind,
+         source.display_timezone,
+         source.status
+    from public.tournaments source
+   where source.kind = 'league_season'
+   order by source.name
+   limit 1
   returning id into v_tournament;
 
-  insert into public.competition_rounds (tournament_id, name, sequence)
-  values (v_tournament, 'Matchweek 1', 1)
+  insert into public.competition_rounds
+    (tournament_id, round_key, ordinal, kind, label)
+  values (v_tournament, 'c210-mw1', 972, 'league_matchweek', 'Contract 210 Matchweek 1')
   returning id into v_round;
 
-  insert into public.teams (name, short_name)
-  values ('Contract 210 Home', 'C210H') returning id into v_home;
-  insert into public.teams (name, short_name)
-  values ('Contract 210 Away', 'C210A') returning id into v_away;
+  -- FOUR clubs, not two. `assert_season_fixture_shape` enforces that a club
+  -- plays at most once per matchweek, so the two fixtures below cannot be the
+  -- same pair reversed.
+  insert into public.teams (tournament_id, name)
+  values (v_tournament, 'Contract 210 Alpha') returning id into v_alpha;
+  insert into public.teams (tournament_id, name)
+  values (v_tournament, 'Contract 210 Bravo') returning id into v_bravo;
+  insert into public.teams (tournament_id, name)
+  values (v_tournament, 'Contract 210 Charlie') returning id into v_charlie;
+  insert into public.teams (tournament_id, name)
+  values (v_tournament, 'Contract 210 Delta') returning id into v_delta;
 
   -- Two fixtures in ONE matchweek, deliberately on different days. The later
   -- one is the fixture a player is predicting; the earlier one is what its
   -- deadline actually resolves to.
   insert into public.season_fixtures
     (tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
-  values (v_tournament, v_round, v_home, v_away, v_first, 'scheduled');
-  insert into contract_210_fixtures
-  select 'saturday', id, v_first from public.season_fixtures
-   where tournament_id = v_tournament and kickoff_at = v_first;
+  values (v_tournament, v_round, v_alpha, v_bravo, v_first, 'scheduled');
+  insert into contract_210_fixtures values ('saturday',
+    (select id from public.season_fixtures
+      where tournament_id = v_tournament and kickoff_at = v_first), v_first);
 
   insert into public.season_fixtures
     (tournament_id, competition_round_id, home_team_id, away_team_id, kickoff_at, status)
-  values (v_tournament, v_round, v_away, v_home, v_later, 'scheduled');
-  insert into contract_210_fixtures
-  select 'sunday', id, v_later from public.season_fixtures
-   where tournament_id = v_tournament and kickoff_at = v_later;
+  values (v_tournament, v_round, v_charlie, v_delta, v_later, 'scheduled');
+  insert into contract_210_fixtures values ('sunday',
+    (select id from public.season_fixtures
+      where tournament_id = v_tournament and kickoff_at = v_later), v_later);
 
   insert into public.provider_poll_targets
     (provider, path, tournament_id, enabled)
@@ -108,17 +133,21 @@ select is(
   'no enabled target opens its live window too late to cover a deadline'
 );
 
+-- Scoped to this suite's own target on purpose. Asserting a cadence across
+-- every seeded target would fail for reasons that are not contract 210's --
+-- what must be proven is that contract 210 moved ONE dial and left the other
+-- two at the values contract 145 chose.
 select is(
-  (select count(*)::integer from public.provider_poll_targets
-    where enabled and cadence_minutes <> 1440),
-  0,
+  (select cadence_minutes from public.provider_poll_targets
+    where path = '/contract-210/{{date:+0}}/{{date:+8}}'),
+  1440,
   'the idle cadence is untouched: contract 210 buys coverage, not frequency'
 );
 
 select is(
-  (select count(*)::integer from public.provider_poll_targets
-    where enabled and live_cadence_minutes <> 10),
-  0,
+  (select live_cadence_minutes from public.provider_poll_targets
+    where path = '/contract-210/{{date:+0}}/{{date:+8}}'),
+  10,
   'the live cadence is untouched; only how early the window opens changed'
 );
 
@@ -179,14 +208,34 @@ select ok(
   'WITH THE OLD 15-MINUTE LEAD the window was still shut an hour before the lock'
 );
 
+-- The same instant, the two leads side by side. This is the contrast the
+-- contract turns on, and stating it as one instant rather than two removes the
+-- last place a reader could suspect the assertions were chosen to agree.
+--
+-- It is also the honest way to make the point about `cadence_minutes`, which
+-- CANNOT be made through this predicate: `provider_target_is_live` takes a
+-- LEAD, not an idle cadence, so passing 360 here would only be asking about a
+-- six-hour lead. What a six-hourly idle poll would have to do is land in the
+-- window below -- and with a 15-minute lead that window is sixteen minutes
+-- wide, which no cadence measured in hours can be relied on to hit.
 select ok(
   not predictor_internal.provider_target_is_live(
     (select tournament_id from public.provider_poll_targets
       where path = '/contract-210/{{date:+0}}/{{date:+8}}'),
-    (select kickoff_at - interval '6 hours' from contract_210_fixtures where label = 'saturday'),
-    360, 120
+    (select kickoff_at - interval '16 minutes' from contract_210_fixtures where label = 'saturday'),
+    15, 120
   ),
-  'and raising the IDLE cadence to six hours would not have opened it either'
+  'sixteen minutes before the lock the OLD lead still had the window shut'
+);
+
+select ok(
+  predictor_internal.provider_target_is_live(
+    (select tournament_id from public.provider_poll_targets
+      where path = '/contract-210/{{date:+0}}/{{date:+8}}'),
+    (select kickoff_at - interval '16 minutes' from contract_210_fixtures where label = 'saturday'),
+    720, 120
+  ),
+  'and at that same instant the contract 210 lead has it open'
 );
 
 -- ---------------------------------------------------------------------------
