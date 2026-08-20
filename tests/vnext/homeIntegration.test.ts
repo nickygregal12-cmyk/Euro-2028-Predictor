@@ -1196,3 +1196,73 @@ describe('the matchweek recap', () => {
     expect(recap?.leagues).toEqual([])
   })
 })
+
+/**
+ * A WATCHED RIVAL LEADS, and is the only one the player chose.
+ *
+ * Every other relation in the strip is something the software worked out from
+ * where two people stand. A pin is a preference — it says which of those
+ * answers the reader actually cares about — so it comes first and it renames
+ * the person rather than listing them twice.
+ */
+describe('who the player is watching', () => {
+  const table = () =>
+    league({
+      standings: standings([
+        { userId: 'u-9', name: 'Jamie Fox', points: 92, rank: 1 },
+        { userId: 'u-1', name: 'Aisha Kaur', points: 84, rank: 2, isYou: true },
+        { userId: 'u-4', name: 'Sam Okafor', points: 80, rank: 3 },
+        { userId: 'u-7', name: 'Bea Nowak', points: 61, rank: 4 },
+      ]),
+    })
+
+  it('leads with a watched rival who is nowhere near the reader', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-7'] }),
+    )
+
+    expect(model.rivals[0]?.player.name).toBe('Bea Nowak')
+    expect(model.rivals[0]?.relation).toBe('watched')
+  })
+
+  it('still derives the neighbours behind the pin', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-7'] }),
+    )
+
+    expect(model.rivals.map((rival) => rival.relation)).toEqual([
+      'watched',
+      'closestAbove',
+      'closestBelow',
+    ])
+  })
+
+  it('names a watched neighbour once, as watched', () => {
+    // Jamie is both the leader and directly above. Pinning them must not put
+    // the same person in the strip two or three times with three reasons.
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-9'] }),
+    )
+    const jamie = model.rivals.filter((rival) => rival.player.name === 'Jamie Fox')
+
+    expect(jamie).toHaveLength(1)
+    expect(jamie[0]?.relation).toBe('watched')
+  })
+
+  it('never watches the reader', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-1'] }),
+    )
+
+    expect(model.rivals.some((rival) => rival.relation === 'watched')).toBe(false)
+  })
+
+  it('is the derived strip when nothing is pinned', () => {
+    const model = buildHomeModel(source({ leagues: [table()] }))
+
+    expect(model.rivals.map((rival) => rival.relation)).toEqual([
+      'closestAbove',
+      'closestBelow',
+    ])
+  })
+})

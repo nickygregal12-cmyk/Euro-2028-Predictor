@@ -217,6 +217,16 @@ function PreviewBody() {
                 setNote(`Leagues asked for "${intent.kind}" — the corridor is a route.`)
                 return
               }
+              if (intent.kind === 'watch-player') {
+                // The harness reports the write rather than performing one:
+                // `set_pinned_rival` is the authority and this preview holds
+                // no session it may write with.
+                setNote(
+                  `Leagues asked to ${intent.watched ? 'watch' : 'stop watching'}` +
+                    ` account id "${intent.playerId}".`,
+                )
+                return
+              }
               // THE DOORWAY, EXERCISED. The page emitted two identifiers and
               // nothing that could be a display name; the harness carries them
               // to Stage 10's surface rather than describing them.

@@ -96,4 +96,20 @@ export type LeaguesSource = {
    * not tell the reader they differ, because to a reader they do not.
    */
   readonly movement: SeasonLeagueMovement | null
+
+  /**
+   * The rivals this player has chosen to watch IN THIS COMPETITION (contract
+   * 157), in the server's order.
+   *
+   * A PREFERENCE READ RATHER THAN A STANDINGS READ, and it is scoped to the
+   * competition rather than to the league because that is how the server stores
+   * it: a player can share more than one league in a season, and a rival pinned
+   * from another league simply does not appear in this one's table. Nothing is
+   * deleted on that account.
+   *
+   * Empty is the ordinary state and is also what an unread preference produces
+   * — no watch marks rather than an error, because watching is not why anybody
+   * opened this page.
+   */
+  readonly watchedRivalIds: readonly string[]
 }

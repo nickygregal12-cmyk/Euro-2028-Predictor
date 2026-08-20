@@ -89,6 +89,20 @@ export type VNextLeaguesSourceInput = {
   readonly selectedLeagueId: string | null
   /** The game's own name, as the host states it. */
   readonly gameName: string
+  /**
+   * Who this player is watching in this competition (contract 157), from the
+   * shell's own preference read.
+   *
+   * IT COMES FROM THE HOST rather than being read here, because it is a
+   * COMPETITION-scoped preference the application already holds once for every
+   * surface. A second read here would be a second copy that disagrees with the
+   * first for exactly as long as one of them has not refreshed.
+   *
+   * Absent is the ordinary answer for a signed-out visitor and for a
+   * preference read that did not land: no watch marks, rather than an error,
+   * because watching is not why anybody opened this page.
+   */
+  readonly watchedRivalIds?: readonly string[] | undefined
 }
 
 type RequestIdentity = string
@@ -115,7 +129,16 @@ function requestIdentity(input: {
 type InternalState =
   | { status: 'idle' }
   | { status: 'failed'; identity: RequestIdentity }
-  | { status: 'loaded'; identity: RequestIdentity; payload: LeaguesSource }
+  /*
+   * `payload` HOLDS EVERYTHING THE READS ANSWERED AND NOTHING ELSE. The watch
+   * marks are merged in at the derivation below, because they change without
+   * any read changing — see the comment there.
+   */
+  | {
+      status: 'loaded'
+      identity: RequestIdentity
+      payload: Omit<LeaguesSource, 'watchedRivalIds'>
+    }
 
 const IDLE: InternalState = { status: 'idle' }
 
@@ -138,6 +161,7 @@ export function useVNextLeaguesSource(
     gameCompetitionId,
     selectedLeagueId,
     gameName,
+    watchedRivalIds,
   } = input
 
   useEffect(() => {
@@ -261,7 +285,19 @@ export function useVNextLeaguesSource(
     if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
     if (state.status === 'failed') return { status: 'failed', retry }
 
-    return { status: 'ready', source: state.payload, retry }
+    /*
+     * MERGED HERE RATHER THAN FETCHED ABOVE, and that is the whole reason it is
+     * an input. Watching somebody writes a preference and asks the shell to
+     * re-read it; if the marks lived in the payload, that re-read would have to
+     * re-run this effect and fetch the entire standings table again to change
+     * one control's state. The same pattern, for the same reason, as
+     * `displayName` in the Home source.
+     */
+    return {
+      status: 'ready',
+      source: { ...state.payload, watchedRivalIds: watchedRivalIds ?? [] },
+      retry,
+    }
   }, [
     state,
     authLoading,
@@ -270,6 +306,7 @@ export function useVNextLeaguesSource(
     seasonSlug,
     gameCompetitionId,
     selectedLeagueId,
+    watchedRivalIds,
     retry,
   ])
 }

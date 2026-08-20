@@ -834,11 +834,22 @@ function recapOf(source: HomeSource): MatchweekRecap | null {
  * league's own ranking is the rival above. The leader is included when they are
  * somebody else, because leading is the fact a league table is about.
  *
+ * A WATCHED RIVAL COMES FIRST, AND IS THE ONLY ONE THE PLAYER CHOSE. Contract
+ * 157's pins are a preference about whose points this reader wants on their own
+ * Home; every other relation here is something the software worked out. So a
+ * pin leads, and it replaces the derived relation for that person rather than
+ * listing them twice — a player who is both watched and the closest above is
+ * one row, and "watched" is the truer thing to call them.
+ *
  * `sharedLeagueName` is always a league the caller is a member of — this only
  * ever reads a table `get_season_league_standings` returned, which is bounded by
  * membership. There is no player directory here and this must never become one.
  */
-function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Rival[] {
+function rivalsOf(
+  league: HomeSourceLeague,
+  model: PrivateLeague,
+  watchedIds: ReadonlySet<string>,
+): readonly Rival[] {
   const rows = league.standings.rows
   const index = rows.findIndex((row) => row.isYou)
   if (index < 0) return []
@@ -847,6 +858,11 @@ function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Riva
   const you = rows[index]
   if (you === undefined) return []
   const picked: { row: SeasonLeagueStandingsRow; relation: Rival['relation'] }[] = []
+
+  for (const row of rows) {
+    if (row.isYou || !watchedIds.has(row.userId)) continue
+    picked.push({ row, relation: 'watched' })
+  }
 
   const above = rows[index - 1]
   const below = rows[index + 1]
@@ -857,6 +873,18 @@ function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Riva
   if (leader && !leader.isYou && leader !== above) {
     picked.push({ row: leader, relation: 'leagueLeader' })
   }
+
+  // ONE ROW PER PERSON, and the first mention wins — which is the pin, because
+  // pins are pushed first. Without this a watched neighbour appears twice with
+  // two different reasons.
+  const seen = new Set<string>()
+  const unique = picked.filter(({ row }) => {
+    if (seen.has(row.userId)) return false
+    seen.add(row.userId)
+    return true
+  })
+  picked.length = 0
+  picked.push(...unique)
 
   return picked.map(({ row, relation }) => {
     const difference = row.points - you.points
@@ -990,7 +1018,9 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     privateLeagues: leagues.map((entry) => entry.model),
     // Rivals come from the league Home leads with. Every league's adjacent rows
     // would be a longer list saying the same thing about a smaller race.
-    rivals: leadLeague ? rivalsOf(leadLeague.source, leadLeague.model) : [],
+    rivals: leadLeague
+      ? rivalsOf(leadLeague.source, leadLeague.model, new Set(source.watchedRivalIds ?? []))
+      : [],
     activity: [],
   }
 }

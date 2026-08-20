@@ -160,6 +160,15 @@ export type PrivateLeague = {
 }
 
 export type RivalRelation =
+  /**
+   * SOMEBODY THE PLAYER CHOSE TO WATCH (contract 157).
+   *
+   * The only relation that is not derived from the table. Every other one is a
+   * fact about where two people stand; this one is a preference, and it is why
+   * it leads: a rival the player picked out beats an adjacency the software
+   * worked out.
+   */
+  | 'watched'
   | 'leagueLeader'
   | 'closestAbove'
   | 'closestBelow'

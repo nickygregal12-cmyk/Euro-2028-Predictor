@@ -154,4 +154,17 @@ export type HomeSource = {
    * simply omits it and gets no zone.
    */
   readonly lastVisitAt?: string | null
+
+  /**
+   * The rivals this player has chosen to watch in this competition (contract
+   * 157), from the shell's own preference read.
+   *
+   * IT LEADS THE RIVAL LIST rather than adding a zone. Home already answers
+   * "who am I racing" from league adjacency; a pin says which of those answers
+   * the player actually cares about, which is a better ordering of the same
+   * question rather than a second question.
+   *
+   * Absent is the ordinary state, and is what an unread preference produces.
+   */
+  readonly watchedRivalIds?: readonly string[] | undefined
 }

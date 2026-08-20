@@ -62,6 +62,23 @@ export type LeaguesIntent =
    */
   | { readonly kind: 'create-private-play' }
   | { readonly kind: 'join-with-code' }
+  /**
+   * START OR STOP WATCHING SOMEBODY (contract 157).
+   *
+   * THE ACCOUNT ID RATHER THAN THE SEASON REF, and that is not an
+   * inconsistency with `openPlayer` above. Opening a profile is addressed by
+   * the season reference because that is the identity the same-season boundary
+   * reveals; `set_pinned_rival` is keyed on the account, and it is offered only
+   * on rows the older shared-private-league boundary already named with one.
+   * Two different questions, two different identities, each the one its
+   * authority accepts.
+   */
+  | {
+      readonly kind: 'watch-player'
+      readonly playerId: string
+      /** True to start watching, false to stop. */
+      readonly watched: boolean
+    }
 
 /**
  * vNEXT LEAGUES — WHO AM I COMPETING AGAINST, AND WHERE DO I STAND?
@@ -148,6 +165,10 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
     onIntent?.({ kind: 'openPlayer', playerRef, playerId })
   }
 
+  function watchPlayer(playerId: string, watched: boolean) {
+    onIntent?.({ kind: 'watch-player', playerId, watched })
+  }
+
   return (
     <VNextShell
       destination="leagues"
@@ -232,6 +253,7 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
             <PrivateStandingsTable
               table={model.private}
               onOpenPlayer={onIntent ? openPlayer : undefined}
+              onWatchPlayer={onIntent ? watchPlayer : undefined}
             />
           ) : (
             /* NOT AN ERROR SCREEN. The read did not answer and the strip above

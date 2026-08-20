@@ -211,6 +211,51 @@
   text-align: right;
 }
 
+/*
+ * WATCHING SOMEBODY, and the pressed state is a word rather than a colour.
+ *
+ * It is quiet on purpose: eight of these in a table must not compete with the
+ * points beside them, and the control is a preference rather than an action on
+ * the game. The pressed state is the only one that borrows the accent.
+ */
+.watchToggle {
+  /* IT SITS IN THE PLAYER CELL beside the Organiser tag, so it must not be as
+   * tall as a standalone control or every row would grow by a thumb. The tap
+   * target is met by the row's own padding: the cell is already 44px tall, and
+   * the control fills its line inside it. */
+  min-height: 28px;
+  white-space: nowrap;
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text-muted);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.watchToggle:hover {
+  color: var(--vnext-text);
+  border-color: var(--vnext-text-muted);
+}
+
+.watchToggle[aria-pressed='true'] {
+  background-color: var(--vnext-accent-veil);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text);
+}
+
+.watchToggle:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
 .row {
   border-bottom: 1px solid var(--vnext-hairline);
 }
@@ -311,6 +356,7 @@
 
 .playerTags {
   display: inline-flex;
+  align-items: center;
   gap: var(--vnext-space-2);
   flex-wrap: wrap;
   margin-inline-start: var(--vnext-space-2);

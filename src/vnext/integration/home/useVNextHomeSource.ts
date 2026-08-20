@@ -101,6 +101,16 @@ export type VNextHomeSourceInput = {
   /** From the existing auth authority. Null means signed out. */
   userId: string | null
   displayName: string | null
+  /**
+   * Who this player is watching in this competition (contract 157), from the
+   * shell's own preference read.
+   *
+   * MERGED AT THE DERIVATION, exactly as `displayName` is, and for the same
+   * reason: it addresses no read. Watching somebody writes a preference and
+   * asks the shell to re-read it; if this were an effect input, that re-read
+   * would refetch every one of Home's dozen reads to reorder one strip.
+   */
+  watchedRivalIds?: readonly string[] | undefined
   /** True while auth is still resolving; Home must not decide anything yet. */
   authLoading: boolean
   /**
@@ -204,7 +214,15 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
    */
   const [lastVisitAt] = useState(readLastVisit)
 
-  const { userId, displayName, authLoading, competitionSlug, seasonSlug, gameCompetitionId } = input
+  const {
+    userId,
+    displayName,
+    watchedRivalIds,
+    authLoading,
+    competitionSlug,
+    seasonSlug,
+    gameCompetitionId,
+  } = input
 
   useEffect(() => {
     // Nothing to acquire, and nothing may be kept: a signed-out surface must not
@@ -438,7 +456,11 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
       // the payload's identity was built from — checked immediately above — so
       // this is the account those answers are about, not merely the account
       // signed in now.
-      source: { ...state.payload, user: { id: userId, displayName } },
+      source: {
+        ...state.payload,
+        user: { id: userId, displayName },
+        watchedRivalIds: watchedRivalIds ?? [],
+      },
       unavailable: state.unavailable,
       leaguesNotShown: state.leaguesNotShown,
       retry,
@@ -448,6 +470,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     authLoading,
     userId,
     displayName,
+    watchedRivalIds,
     competitionSlug,
     seasonSlug,
     gameCompetitionId,

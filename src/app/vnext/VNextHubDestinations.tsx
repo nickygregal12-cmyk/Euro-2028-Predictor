@@ -6,6 +6,7 @@ import { useHapticsPreference } from '../providers/HapticsProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { useSite } from '../site/SiteProvider'
 import { useSeasonGameCompetitionId } from '../../features/hub/useSeasonGameCompetitionId'
+import { useWatchedRivals } from './useWatchedRivals'
 import { VNextHomeScreen } from '../../vnext/integration/home/VNextHomeScreen'
 import { VNextGamesScreen } from '../../vnext/integration/games/VNextGamesScreen'
 import { VNextLeaguesScreen } from '../../vnext/integration/leagues/VNextLeaguesScreen'
@@ -72,12 +73,16 @@ export function VNextHomeDestination() {
     seasonSlug,
     'main_predictor',
   )
+  // The pins the player set from a league table, so the rival strip leads with
+  // the person they chose rather than with an adjacency.
+  const { watchedRivalIds } = useWatchedRivals(competitionSlug, seasonSlug)
 
   return (
     <VNextAppRoot>
       <VNextHomeScreen
         userId={userId}
         displayName={displayName}
+        watchedRivalIds={watchedRivalIds}
         authLoading={loading}
         competitionSlug={competitionSlug}
         seasonSlug={seasonSlug}
@@ -167,6 +172,7 @@ export function VNextLeaguesDestination() {
     seasonSlug,
     'main_predictor',
   )
+  const { watchedRivalIds, watch } = useWatchedRivals(competitionSlug, seasonSlug)
 
   return (
     <VNextAppRoot>
@@ -178,6 +184,7 @@ export function VNextLeaguesDestination() {
         gameCompetitionId={gameCompetitionId}
         selectedLeagueId={search.get('league')}
         gameName="Match Predictor"
+        watchedRivalIds={watchedRivalIds}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
           if (intent.kind === 'scope') {
@@ -190,6 +197,15 @@ export function VNextLeaguesDestination() {
             setSearch(next, { replace: true })
             return
           }
+
+          // WATCHING IS A WRITE AND NOT A NAVIGATION, so it is handled before
+          // the route guard below: it needs no slugs of its own, because the
+          // preference is keyed on the competition the shell already resolved.
+          if (intent.kind === 'watch-player') {
+            void watch(intent.playerId, intent.watched)
+            return
+          }
+
           if (competitionSlug === undefined || seasonSlug === undefined) return
 
           // THE TWO WAYS OUT OF THE EMPTY STATE, which Stage 9 left as a

@@ -124,6 +124,7 @@ function privateRow(row: {
   isYou?: boolean
   isOwner?: boolean
   hasEntry?: boolean
+  watched?: boolean
   moved?: number
 }): LeaguesPrivateRow {
   return {
@@ -136,6 +137,11 @@ function privateRow(row: {
     isYou: row.isYou ?? false,
     isOwner: row.isOwner ?? false,
     hasEntry: row.hasEntry ?? true,
+    watched: row.watched ?? false,
+    // Eligibility is the server's boundary, expressed here the same way the
+    // mapper reads it: a row the reader can OPEN is a row they share a league
+    // with, and that is the boundary `set_pinned_rival` enforces.
+    canWatch: !(row.isYou ?? false) && row.player.destination.kind === 'open',
     movement:
       row.moved === undefined
         ? null
@@ -768,6 +774,9 @@ const leagueSettled = leagueModel({
         matchweeksPlayed: 12,
         isOwner: true,
         moved: -1,
+        // THE ONE WATCHED ROW IN THE WORKSHOP, so a reviewer sees both states
+        // of the control in the same table rather than in two boards.
+        watched: true,
       }),
       privateRow({
         player: open('Martin Okafor', 'ref-martin', 'player-martin'),
