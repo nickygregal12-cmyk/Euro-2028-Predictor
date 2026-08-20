@@ -9,9 +9,9 @@ Repository contract **208** is the head of the committed migration chain.
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | **208** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
-| Production Supabase `vkfnsqdyhvtwyqkisxhk` | **208** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
+| Production Supabase | **208** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
 
-**Repository, Development and Production are level at Contract 208. There are no pending repository migrations in either hosted environment.**
+**There are no pending hosted migrations: repository, Development and Production are level at Contract 208.**
 
 Contracts 206 through 208 reached Development first through guarded fast-lane run `32312618799`. Production then crossed the exact 205-to-208 boundary through guarded rollout run `32318082186` from exact `main` `f2c244b6a4a0fb27e81624df41a9e893d39bd565`, gated on encrypted backup `32312404053` and exact-head disposable-restore rehearsal `32317690357`; coordinator run `32317678763` also re-proved that `main` had not moved between rehearsal and rollout. The canonical rollout postflight passed, and an independent read-only Production query then named all 208 ledger rows and the final migration before the machine record was written.
 
