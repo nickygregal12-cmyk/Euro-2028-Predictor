@@ -858,3 +858,124 @@ test.describe('reduced motion', () => {
     expect(reading.attentionControls).toBe(1)
   })
 })
+
+/**
+ * `UX-007` — WCAG 2.2 AA 2.4.11, FOCUS NOT OBSCURED (MINIMUM).
+ *
+ * ============================ WHY IT IS AT THE END AND ON ITS OWN STORY ==
+ *
+ * Every case above opens a WORKSHOP story, which puts the surface in a device
+ * frame. A framed surface scrolls inside the frame, so the scroll container is
+ * the frame element and `scroll-padding` on the document does nothing to it —
+ * which is exactly why the risk register recorded the first probe written for
+ * this as unreliable and refused to carry it as evidence.
+ *
+ * `vNext/Focus Not Obscured` is one real page in one `VNextRoot` with no frame,
+ * `layout: 'fullscreen'`, so the iframe's own document is the scroller — the
+ * shape production has, because `VNextRoot` uses `overflow-x: clip` rather than
+ * `hidden` precisely so the document scrolls and the masthead sticks to the
+ * viewport.
+ *
+ * ============================ WHAT IT MEASURES ==========================
+ *
+ * It tabs. Not `focus()` — a scripted focus does not necessarily scroll, and
+ * the defect is entirely about where the browser scrolls to. After each stop it
+ * asks the same question the criterion asks: is any part of the focused control
+ * still visible, or has author-created content covered it? Both sticky bars are
+ * checked, because the phone has one at each end.
+ */
+test.describe('focus is never hidden under the sticky chrome', () => {
+  for (const frame of [
+    { width: 375, height: 720, where: 'a phone, where the bottom bar is real too' },
+    { width: 1440, height: 900, where: 'a desktop, where the rail replaces it' },
+  ]) {
+    test(`keeps every keyboard stop visible on ${frame.where}`, async ({ page }) => {
+      await page.setViewportSize({ width: frame.width, height: frame.height })
+      await page.goto('/iframe.html?id=vnext-focus-not-obscured--predictor&viewMode=story', {
+        waitUntil: 'load',
+      })
+      await page.waitForSelector('[data-vnext] [data-vnext-shell] main')
+      // The masthead enters with a rise; measuring mid-entrance reads a
+      // transformed box rather than a laid-out one.
+      await page.waitForTimeout(1200)
+
+      // THE CORRECTION IS ON THE SCROLLER, which is the document. Asserted
+      // first so a failure below can be read as "the padding is wrong" rather
+      // than "the padding is missing".
+      const padding = await page.evaluate(() =>
+        getComputedStyle(document.documentElement).scrollPaddingBlockStart,
+      )
+      expect(padding, 'the document scroller has no top scroll padding').not.toBe('auto')
+      expect(parseFloat(padding)).toBeGreaterThan(0)
+
+      const obscured: string[] = []
+
+      // Enough stops to walk out of the masthead, through the shell's controls
+      // and well down the fixture column, which is where the defect appears.
+      for (let step = 0; step < 60; step += 1) {
+        await page.keyboard.press('Tab')
+        const finding = await page.evaluate(() => {
+          const active = document.activeElement as HTMLElement | null
+          if (!active || active === document.body) return null
+
+          const box = active.getBoundingClientRect()
+          if (box.width === 0 && box.height === 0) return null
+
+          /**
+           * HIT-TESTED, NOT RECTANGLE ARITHMETIC.
+           *
+           * Comparing boxes was the first version of this probe and it reported
+           * the skip link and the rail's switcher as covered — both sit in the
+           * masthead's vertical BAND and neither is under it, one because it
+           * paints above and one because it is beside. Which is presumably how
+           * the first attempt at this measurement came to be recorded as
+           * unreliable.
+           *
+           * `elementFromPoint` asks the question the criterion actually asks:
+           * at this point on the screen, what would the player's finger hit?
+           * 2.4.11 (Minimum) is satisfied while ANY part of the control is
+           * hittable, so five points are sampled and one is enough.
+           */
+          const inset = 2
+          const points: [number, number][] = [
+            [box.left + inset, box.top + inset],
+            [box.right - inset, box.top + inset],
+            [box.left + inset, box.bottom - inset],
+            [box.right - inset, box.bottom - inset],
+            [box.left + box.width / 2, box.top + box.height / 2],
+          ]
+
+          const visible = points.some(([x, y]) => {
+            if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) return false
+            const top = document.elementFromPoint(x, y)
+            return top !== null && (top === active || active.contains(top) || top.contains(active))
+          })
+          if (visible) return null
+
+          const label =
+            active.getAttribute('aria-label') ??
+            active.textContent?.trim().slice(0, 40) ??
+            active.tagName
+
+          // WHICH PIECE OF CHROME, so a failure names the thing to fix rather
+          // than only the thing that broke.
+          const blocker = document.elementFromPoint(
+            box.left + box.width / 2,
+            box.top + box.height / 2,
+          )
+          const zone =
+            blocker?.closest('[data-vnext-zone="masthead"]') !== null
+              ? 'the masthead'
+              : blocker?.closest('[data-vnext-shell-zone="navbar"]') !== null
+                ? 'the bottom bar'
+                : 'author content'
+
+          return `${label} is hidden under ${zone}`
+        })
+        if (finding) obscured.push(`${step}: ${finding}`)
+      }
+
+      expect(obscured, `${frame.where}: focus was hidden under sticky chrome`).toEqual([])
+    })
+  }
+})

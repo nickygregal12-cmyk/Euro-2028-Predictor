@@ -75,6 +75,20 @@ import styles from './account.module.css'
  */
 export type AccountIntent =
   | { readonly kind: 'open-season'; readonly competitionSlug: string; readonly seasonKey: string }
+  /**
+   * OPEN A FINISHED SEASON'S WRAPPED (contract 156).
+   *
+   * Separate from `open-season` because it is a different place: opening a
+   * season lands on the competition as it is now, and this lands on the record
+   * of how it ended. Offered only on a season the player's own history says is
+   * COMPLETE, so the page is never reached expecting a record that cannot exist
+   * yet.
+   */
+  | {
+      readonly kind: 'open-wrapped'
+      readonly competitionSlug: string
+      readonly seasonKey: string
+    }
   | { readonly kind: 'sign-out' }
   /**
    * WHICH THEME THE PLAYER WANTS. Performed by the host because the choice is
@@ -83,6 +97,16 @@ export type AccountIntent =
    * my device", which is what a player who has never chosen already has.
    */
   | { readonly kind: 'set-theme'; readonly theme: 'system' | 'dark' | 'light' }
+  /**
+   * WHETHER THIS DEVICE BUZZES. Performed by the host for the same reason the
+   * theme is: the choice is persisted, and persistence is a write.
+   *
+   * `system` is a real third answer here too — it means "not chosen", which
+   * resolves to on. A device with no motor already answers `unsupported`
+   * without anybody asking, so this is not a capability switch: it is a player
+   * saying they would rather not be buzzed.
+   */
+  | { readonly kind: 'set-haptics'; readonly haptics: 'system' | 'on' | 'off' }
 
 /**
  * WHAT A WRITE ANSWERED, IN THE TWO SHAPES A SHEET CAN DRAW.
@@ -118,6 +142,8 @@ export type VNextAccountProps = {
   readonly model: AccountPageModel
   /** Which appearance the player has chosen. Defaults to following the device. */
   readonly theme?: 'system' | 'dark' | 'light'
+  /** The player's haptic choice, held by the host that persists it. */
+  readonly haptics?: 'system' | 'on' | 'off'
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
@@ -130,6 +156,7 @@ export function VNextAccount({
   onRetry,
   refreshing = false,
   theme = 'system',
+  haptics = 'system',
   onIntent,
   actions,
 }: VNextAccountProps) {
@@ -161,7 +188,7 @@ export function VNextAccount({
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
           <History panel={model.history} onRetry={onRetry} onIntent={onIntent} />
           <PrivacyAndSupport support={model.support} />
-          <Session theme={theme} onIntent={onIntent} />
+          <Session theme={theme} haptics={haptics} onIntent={onIntent} />
         </motion.div>
       </div>
     </VNextShell>
@@ -189,11 +216,28 @@ const THEMES = [
   { id: 'light', label: 'Light' },
 ] as const
 
+/**
+ * THE THREE ANSWERS ABOUT BEING BUZZED.
+ *
+ * WORDED AS WHAT IT DOES, NOT AS THE TECHNOLOGY. "Vibration" is what the device
+ * calls it; "a short buzz when something lands" is what a player experiences,
+ * and the copy says so without promising a device can do it. A phone with no
+ * motor simply never buzzes, and nothing here is the only way to understand any
+ * state — which is the rule that makes this safe to offer at all.
+ */
+const HAPTICS = [
+  { id: 'system', label: 'Match my device' },
+  { id: 'on', label: 'On' },
+  { id: 'off', label: 'Off' },
+] as const
+
 function Session({
   theme,
+  haptics,
   onIntent,
 }: {
   readonly theme: 'system' | 'dark' | 'light'
+  readonly haptics: 'system' | 'on' | 'off'
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
 }) {
   if (onIntent === undefined) return null
@@ -215,6 +259,32 @@ function Session({
               value={entry.id}
               checked={theme === entry.id}
               onChange={() => onIntent({ kind: 'set-theme', theme: entry.id })}
+              className={text.srOnly}
+            />
+            <span>{entry.label}</span>
+          </label>
+        ))}
+      </fieldset>
+
+      {/* A SEPARATE PREFERENCE FROM MOTION, DELIBERATELY. A vestibular
+          preference and a preference about being vibrated are held by different
+          people for different reasons, and nothing in this product's authority
+          says one implies the other. Reduced motion is the device's and is
+          honoured everywhere; this is its own answer. */}
+      <fieldset className={styles.themeChoice}>
+        <legend className={text.label}>Haptic feedback</legend>
+        {HAPTICS.map((entry) => (
+          <label
+            key={entry.id}
+            className={styles.themeOption}
+            data-selected={haptics === entry.id}
+          >
+            <input
+              type="radio"
+              name="vnext-haptics"
+              value={entry.id}
+              checked={haptics === entry.id}
+              onChange={() => onIntent({ kind: 'set-haptics', haptics: entry.id })}
               className={text.srOnly}
             />
             <span>{entry.label}</span>
@@ -954,20 +1024,42 @@ function SeasonRow({
       </div>
 
       {season.route === null ? null : (
-        <button
-          type="button"
-          className={styles.rowAction}
-          onClick={() =>
-            onIntent?.({
-              kind: 'open-season',
-              competitionSlug: season.route!.competitionSlug,
-              seasonKey: season.route!.seasonKey,
-            })
-          }
-        >
-          Open
-          <span className={text.srOnly}> {season.seasonName}</span>
-        </button>
+        <span className={styles.rowActions}>
+          {/* THE WRAPPED IS OFFERED ONLY ON A SEASON THAT IS OVER, and
+              `complete` is contract 161's own word for that — never `result !==
+              null`, because a finished season whose archive row has not been
+              written is still finished. The page answers for both. */}
+          {season.complete ? (
+            <button
+              type="button"
+              className={styles.rowAction}
+              onClick={() =>
+                onIntent?.({
+                  kind: 'open-wrapped',
+                  competitionSlug: season.route!.competitionSlug,
+                  seasonKey: season.route!.seasonKey,
+                })
+              }
+            >
+              Your season
+              <span className={text.srOnly}> in {season.seasonName}</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles.rowAction}
+            onClick={() =>
+              onIntent?.({
+                kind: 'open-season',
+                competitionSlug: season.route!.competitionSlug,
+                seasonKey: season.route!.seasonKey,
+              })
+            }
+          >
+            Open
+            <span className={text.srOnly}> {season.seasonName}</span>
+          </button>
+        </span>
       )}
     </li>
   )

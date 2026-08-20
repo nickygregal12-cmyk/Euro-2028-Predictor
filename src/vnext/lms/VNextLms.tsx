@@ -9,6 +9,7 @@ import type {
 } from '../models/lms'
 import { lmsChampion, lmsPickableCount, lmsRoundIsOpen } from '../models/lms'
 import { VNextTrophyIcon } from '../foundations/VNextIcon'
+import { useFeedbackOnLatch } from '../foundations/feedbackContext'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
@@ -78,6 +79,13 @@ export type LmsNotice =
   | { readonly kind: 'failed' }
 
 export function VNextLms({ model, onIntent, onRetry, busy = false, notice }: VNextLmsProps) {
+  // A DELIBERATE CHOICE THAT LANDED, which is exactly what `selection` is for.
+  // The edge is the write COMING BACK with nothing to say — a refusal, a
+  // conflict or a failure all carry a notice, and none of them is a selection.
+  // Spending a club for the season is the most consequential single press in
+  // this product and the lightest mark there is is the right one: the page
+  // already states the verdict in words.
+  useFeedbackOnLatch(!busy && notice === undefined && model.body.kind === 'round' && model.body.pick !== null, 'selection')
   const rise = useVNextMotion(vnextMotion.riseIn)
   const { context } = model
 
@@ -150,7 +158,25 @@ const STANDING_COPY: Record<LmsStanding, string> = {
   champion: 'You are the last one standing.',
 }
 
+/**
+ * THE ONE CELEBRATION IN THIS PRODUCT, and the only place `achievementArrive`
+ * is used.
+ *
+ * Winning a Last Man Standing is a season-long survival the server declares:
+ * `champion` is a standing, not something this component works out. So the
+ * trophy lands with a beat and the device gives one `important` pulse — both on
+ * the EDGE into the standing, so a player who reloads the page a day later gets
+ * the same trophy with no beat and no buzz. `useFeedbackOnLatch` arms on its
+ * first observation, which is exactly that rule.
+ *
+ * Everything else about the banner is unchanged: the sentence carries the
+ * meaning, the trophy is beside it, and neither is the only thing saying it.
+ */
 function StandingBanner({ standing }: { readonly standing: LmsStanding | null }) {
+  const champion = standing !== null && lmsChampion(standing)
+  const arrive = useVNextMotion(vnextMotion.achievementArrive)
+  useFeedbackOnLatch(champion, 'important')
+
   if (standing === null) return null
 
   return (
@@ -161,7 +187,16 @@ function StandingBanner({ standing }: { readonly standing: LmsStanding | null })
     >
       {/* A WORD, NOT A COLOUR. §31, and it is the whole page's headline. */}
       {STANDING_COPY[standing]}
-      {lmsChampion(standing) ? <VNextTrophyIcon className={styles.trophy} /> : null}
+      {champion ? (
+        <motion.span
+          className={styles.trophyWrap}
+          variants={arrive}
+          initial="rest"
+          animate="earned"
+        >
+          <VNextTrophyIcon className={styles.trophy} />
+        </motion.span>
+      ) : null}
     </p>
   )
 }

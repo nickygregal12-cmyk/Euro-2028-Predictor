@@ -188,6 +188,11 @@ describe('browser E2E project gating', () => {
       // and the lab adds no dev route at all: it runs on deterministic fixtures,
       // so Storybook is not merely its review surface but its only one.
       'vnext-ia.spec.ts',
+      // The canonical screenshot suite. Storybook for the same reason as the
+      // rest — and one story in it is deliberately document-scoped rather than
+      // framed, because a screenshot of a scaled device frame is a picture of a
+      // picture rather than of the product at that width.
+      'vnext-visual-contract.spec.ts',
     ])
     expect(vnextProjects).toEqual(['vnext-workshop-chromium'])
     expect(vnextConfig).toContain('npm run storybook')

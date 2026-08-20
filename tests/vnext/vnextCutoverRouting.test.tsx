@@ -131,28 +131,41 @@ describe('the Football Hub cutover switch', () => {
       // deliberate — see the note beside `VNextRootDestination` in App.tsx —
       // because a merged destination whose two addresses could disagree about
       // which implementation is serving would be worse than either.
-      routes: 2,
+      //
+      // FOUR NOW, AND THE OTHER TWO ARE THE ABSORPTIONS. `/play` and the
+      // competition-scoped `play` are the matrix's `HIDE / ABSORB` rows whose
+      // job went to Home — "what needs doing HERE is Home's" — so each resolves
+      // into it, gated on Home's own flag. Rolling Home back therefore restores
+      // both action lists with it, which is the property that makes the
+      // redirect safe to add at all.
+      routes: 4,
     },
     {
       journey: 'footballHubMatches',
       variable: 'VITE_UI_FOOTBALL_HUB_MATCHES',
       next: 'VNextMatchesDestination',
       legacy: 'SeasonMatchesRoute',
-      routes: 2,
+      // The competition's Matches, its Match Centre, and `/matches` — the
+      // global calendar, whose job is now the `combined` scope inside the first.
+      routes: 3,
     },
     {
       journey: 'footballHubGames',
       variable: 'VITE_UI_FOOTBALL_HUB_GAMES',
       next: 'VNextGamesDestination',
       legacy: 'CompetitionGamesPage',
-      routes: 1,
+      // Games, and `/more/scoring`: rules belong beside the game they govern.
+      routes: 2,
     },
     {
       journey: 'footballHubLeagues',
       variable: 'VITE_UI_FOOTBALL_HUB_LEAGUES',
       next: 'VNextLeaguesDestination',
       legacy: 'SeasonLeaguesRoute',
-      routes: 1,
+      // The competition's Leagues, `/leagues`, and the Match Predictor
+      // standings — the season table is a SCOPE inside Leagues rather than a
+      // page, so both absorbed addresses resolve there.
+      routes: 3,
     },
     {
       journey: 'footballHubPlayerProfile',
@@ -173,7 +186,9 @@ describe('the Football Hub cutover switch', () => {
       variable: 'VITE_UI_FOOTBALL_HUB_ACCOUNT',
       next: 'VNextAccountDestination',
       legacy: 'AccountPage',
-      routes: 1,
+      // `/account`, plus `/more` and `/profile`: the matrix sends the three
+      // profile systems to Account / You rather than adding a fourth.
+      routes: 3,
     },
     {
       journey: 'footballHubLms',
@@ -246,7 +261,10 @@ describe('the Football Hub cutover switch', () => {
     // ever and looks exactly like a correctly-off flag.
     const app = readFileSync(resolve(import.meta.dirname, '../../src/App.tsx'), 'utf8')
     const guarded = app.match(/isNextUi\('footballHubMatches'\)/g) ?? []
-    expect(guarded.length, 'both matches routes must consult the flag').toBe(2)
+    expect(
+      guarded.length,
+      'both matches routes and the absorbed global calendar must consult the flag',
+    ).toBe(3)
     for (const element of [
       'VNextMatchesDestination',
       'VNextMatchCentreDestination',

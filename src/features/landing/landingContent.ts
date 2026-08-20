@@ -84,52 +84,68 @@ export const DOMESTIC_COMPETITIONS: readonly { code: string; name: string }[] = 
 export type HowStep = { readonly number: string; readonly title: string; readonly body: string }
 
 /**
- * E.3's third surface: three concise steps — predict, compete, follow.
+ * E.3's third surface: three steps somebody can understand in one read.
  *
- * The step copy stays deliberately close to behaviour the repository actually
- * implements: blanks remain blank, an untouched matchweek is not banked, one
- * card feeds the overall table and every league, and provisional points are
- * labelled as provisional. A landing page that promises something the product
- * does not do is a defect that surfaces on a player's first matchweek.
+ * ============================ WHO THIS IS WRITTEN FOR ====================
+ *
+ * A visitor who has never seen this repository. The step copy used to be
+ * accurate in the way a specification is accurate — "blanks stay blank", "a
+ * matchweek you never touched is never banked", "one card feeds the overall
+ * table and every private league you join, with no duplicate cards and no
+ * hidden differences between them". Every clause of that is TRUE, and every
+ * clause of it exists because somebody had to settle a product rule. None of it
+ * makes a stranger want to predict some football.
+ *
+ * Those truths did not go anywhere: they are enforced by the application and by
+ * its tests, which is where a rule belongs. What changed is that they stopped
+ * being the sales pitch.
+ *
+ * The one claim that stays, because it is the one a visitor can be MISLED by
+ * rather than merely uninformed about: nothing joins you to anything. E.6
+ * requires that, `landingContent.test.ts` holds it, and it is said in the words
+ * a person would use.
  */
 export const HOW_STEPS: readonly HowStep[] = [
   {
     number: '01',
     title: 'Pick your scores',
-    body: 'Enter scorelines before each fixture locks. Work saves quietly as you go, blanks stay blank, and a matchweek you never touched is never banked for you.',
+    body: 'Put a scoreline on every match before it kicks off. A correct result scores, and calling the exact score scores more.',
   },
   {
     number: '02',
-    title: 'Compete your way',
-    // The independence claim lives HERE rather than on one game, and that is
-    // deliberate: stating "joined separately" against Last Man Standing alone
-    // made it read as a caveat on the two games the page had already framed as
-    // optional. As a step it applies to all three equally, which is what is
-    // actually true.
-    body: 'Every game is joined separately and scored on its own — one Match Predictor card feeds the overall table and every private league you join, with no duplicate cards and no hidden differences between them.',
+    title: 'Compete with your friends',
+    body: 'Start a private league, invite the group chat, and climb the overall table at the same time. Each game is its own competition, so you play the ones you fancy.',
   },
   {
     number: '03',
     title: 'Watch it unfold',
-    body: 'Follow clearly labelled provisional points and rank movement, then the settled result, without a live estimate ever being mistaken for the official one.',
+    body: 'Saturday afternoon turns into your points, your position, and the rival you are one result away from catching.',
   },
 ] as const
 
 export type ExperienceFeature = { readonly title: string; readonly body: string }
 
-/** E.3's fourth surface: what the signed-in product actually does for you. */
+/**
+ * E.3's fourth surface: what it FEELS like to have an account.
+ *
+ * Written as experiences rather than as properties of the implementation. The
+ * previous version described "ambient save status", "authoritative lock times"
+ * and "ordinary background updates staying visually quiet" — three sentences
+ * about how the software behaves, aimed at somebody who already cares that it
+ * does.
+ */
 export const EXPERIENCE_FEATURES: readonly ExperienceFeature[] = [
   {
-    title: 'One clear next action',
-    body: 'Deadlines, unfinished picks and live events decide what appears first — not a wall of widgets you have to read.',
+    title: 'The one thing that needs you',
+    body: 'Open it and the deadline you were about to miss is the first thing you see, not the twentieth.',
   },
   {
-    title: 'Live rank movement',
-    body: 'Standings movement and settled points are the moments worth watching. Ordinary background updates stay visually quiet.',
+    title: 'Your table, moving',
+    body: 'Watch your position climb — or slip — as the results land, with the gap to the player above you right beside it.',
   },
   {
-    title: 'Confidence in every state',
-    body: 'Ambient save status, authoritative lock times and clear recovery messages mean you always know whether your predictions count.',
+    title: 'Who you are chasing',
+    body: 'See exactly who you need to catch this week, and who is closing in on you.',
   },
 ] as const
 
@@ -170,19 +186,19 @@ export const GAMES: readonly GameSummary[] = [
   {
     mark: '3–1',
     name: 'Match Predictor',
-    body: 'Call every scoreline before the matchweek kicks off. Points for the right result, more for the exact score, and a table that runs all season.',
+    body: 'Call every scoreline before the matchweek kicks off. Right result scores, exact score scores more, and one table runs all season.',
     meta: 'Every matchweek',
   },
   {
     mark: '1',
     name: 'Last Man Standing',
-    body: 'Pick one club to win each round. You can never pick the same club twice, so the easy wins run out — and the last player standing takes it.',
+    body: 'Pick one club to win each round and survive to the next. You can never lean on the same club twice, so the easy ones run out.',
     meta: 'Every round',
   },
   {
     mark: 'Cup',
     name: 'Predictor Championship',
-    body: 'A head-to-head tie every matchweek, decided by the predictions you have already made. Group tables, then knockouts.',
+    body: 'Your weekly predictions become a head-to-head tie against one other player. Group tables, and then the knockouts.',
     meta: 'Every matchweek',
   },
 ] as const

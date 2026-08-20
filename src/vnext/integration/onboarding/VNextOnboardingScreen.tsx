@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HubCompetition } from '../../../features/hub/competitionCatalogue'
+import type { PlayerCompetitions } from '../../../features/hub/playerCompetitions'
 import {
   EMPTY_DRAFT,
   setFavourite,
@@ -48,9 +49,19 @@ import { readOnboarding } from './onboardingSource'
  * stepping back and forward does not re-read them.
  */
 
-type OnboardingFinish = {
+export type OnboardingFinish = {
   readonly draft: OnboardingDraft
   readonly catalogue: readonly HubCompetition[]
+  /**
+   * The membership read the same load produced.
+   *
+   * A committing host needs it: a game entry is addressed by a
+   * `game_competition_id` that lives on the served membership row, and the
+   * display catalogue has no id on it. Carried rather than re-read, so the
+   * commit costs no extra round trip. A harness that only reports the draft
+   * ignores it, which is why `catalogue` stays beside it.
+   */
+  readonly player: PlayerCompetitions
 }
 
 export type VNextOnboardingScreenProps = {
@@ -84,6 +95,7 @@ type LoadState =
   | {
       status: 'ready'
       catalogue: readonly HubCompetition[]
+      player: PlayerCompetitions
       entry: Readonly<Record<string, Readonly<Record<string, RegistrationOutlook>>>>
     }
 
@@ -143,7 +155,12 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           fetchPlayerPreferences: preferences.fetchPlayerPreferences,
         })
         if (!mounted.current) return
-        setLoad({ status: 'ready', catalogue: result.catalogue, entry: result.entry })
+        setLoad({
+          status: 'ready',
+          catalogue: result.catalogue,
+          player: result.player,
+          entry: result.entry,
+        })
         // Resume, rather than restart. Both halves come from the server.
         setDraft(result.draft)
         setStep(result.step)
@@ -154,6 +171,7 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
   }, [authLoading, userId, attempt])
 
   const catalogue = load.status === 'ready' ? load.catalogue : []
+  const player = load.status === 'ready' ? load.player : null
 
   const followedIds = useMemo(
     () =>
@@ -238,7 +256,11 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           return
         }
         case 'finish':
-          props.onFinish?.({ draft, catalogue })
+          // NOTHING TO COMMIT AGAINST IS NOT A COMMIT. The membership read is
+          // what a game entry is addressed by, so a finish raised before the
+          // load answered would be a commit with no idea what it was joining.
+          if (player === null) return
+          props.onFinish?.({ draft, catalogue, player })
           return
         case 'retry':
           // THE CLUB READS GO WITH IT. A retry that re-read the catalogue and
@@ -253,7 +275,7 @@ export function VNextOnboardingScreen(props: VNextOnboardingScreenProps) {
           props.onLeave?.()
       }
     },
-    [step, goTo, draft, catalogue, props],
+    [step, goTo, draft, catalogue, player, props],
   )
 
   // SIGNED OUT IS NOT A FAILED READ. Onboarding is the first thing a new

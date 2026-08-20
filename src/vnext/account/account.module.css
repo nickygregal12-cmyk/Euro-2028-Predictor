@@ -509,3 +509,11 @@
   outline: 2px solid var(--vnext-focus);
   outline-offset: 2px;
 }
+
+/* A row with more than one way out of it. Wraps rather than shrinking either
+ * control below its tap target on a phone. */
+.rowActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}

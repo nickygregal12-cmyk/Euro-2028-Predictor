@@ -307,6 +307,51 @@ function GlobalRow({
   )
 }
 
+/**
+ * WATCH ONE PLAYER, so Home leads with them.
+ *
+ * ============================ THE LABEL IS THE STATE =====================
+ *
+ * `aria-pressed` carries it and the visible word carries it too: "Watching"
+ * when on, "Watch" when off. An eye icon alone would be a memory test, and a
+ * toggle whose only state is a colour is unreadable in greyscale — the rule
+ * every state in this lane follows.
+ *
+ * ============================ AND IT NAMES WHO ===========================
+ *
+ * A table of eight rows produces eight identically-named controls, which read
+ * aloud as "Watch, button" eight times. The accessible name carries the
+ * player, the visible label does not, and the two are the same sentence.
+ *
+ * ============================ WATCHING IS PRIVATE ========================
+ *
+ * One-directional and invisible to the watched. Nothing here tells a player
+ * who is watching them, and nothing may: this is a preference about whose
+ * points the reader wants on their own Home, not a relationship between two
+ * accounts.
+ */
+function WatchToggle({
+  playerName,
+  watched,
+  onToggle,
+}: {
+  readonly playerName: string
+  readonly watched: boolean
+  readonly onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      className={styles.watchToggle}
+      aria-pressed={watched}
+      aria-label={watched ? `Stop watching ${playerName}` : `Watch ${playerName}`}
+      onClick={onToggle}
+    >
+      {watched ? 'Watching' : 'Watch'}
+    </button>
+  )
+}
+
 /* ==========================================================================
    A PRIVATE LEAGUE'S TABLE — its own rank, its own columns
    ========================================================================== */
@@ -316,6 +361,14 @@ export type PrivateStandingsTableProps = {
   readonly onOpenPlayer?:
     | ((playerRef: string, playerId: string | null) => void)
     | undefined
+  /**
+   * Start or stop watching somebody (contract 157).
+   *
+   * ABSENT MEANS NO CONTROL AT ALL, not a disabled one. A story, a screenshot
+   * and a signed-out preview all render this table with no host behind it, and
+   * a toggle that cannot write is a promise the surface cannot keep.
+   */
+  readonly onWatchPlayer?: ((playerId: string, watched: boolean) => void) | undefined
 }
 
 /**
@@ -335,9 +388,14 @@ export type PrivateStandingsTableProps = {
  * zero points beside players who have actually played, with nothing to say so,
  * would be a lie of omission.
  */
-export function PrivateStandingsTable({ table, onOpenPlayer }: PrivateStandingsTableProps) {
+export function PrivateStandingsTable({
+  table,
+  onOpenPlayer,
+  onWatchPlayer,
+}: PrivateStandingsTableProps) {
   const captionId = useId()
   const showMovement = table.movementSettled
+
   // See `GlobalStandingsTable` — the server's own mark, not a rank comparison.
   const youOnPage = table.rows.some((row) => row.isYou)
 
@@ -376,6 +434,7 @@ export function PrivateStandingsTable({ table, onOpenPlayer }: PrivateStandingsT
                   row={row}
                   showMovement={showMovement}
                   onOpenPlayer={onOpenPlayer}
+                  onWatchPlayer={onWatchPlayer}
                 />
               ))}
             </tbody>
@@ -410,6 +469,10 @@ export function PrivateStandingsTable({ table, onOpenPlayer }: PrivateStandingsT
                 </tr>
               </thead>
               <tbody>
+                {/* Your own row never carries the control — watching yourself
+                    is not a thing — so this table has no watch column. */}
+                {/* Your own row never carries the control — watching yourself
+                    is not a thing — so no handler is passed here. */}
                 <PrivateRow
                   row={table.you}
                   showMovement={showMovement}
@@ -433,13 +496,19 @@ function PrivateRow({
   row,
   showMovement,
   onOpenPlayer,
+  onWatchPlayer,
 }: {
   readonly row: LeaguesPrivateRow
   readonly showMovement: boolean
   readonly onOpenPlayer?:
     | ((playerRef: string, playerId: string | null) => void)
     | undefined
+  readonly onWatchPlayer?: ((playerId: string, watched: boolean) => void) | undefined
 }) {
+  const watchableId =
+    row.canWatch && row.player.destination.kind === 'open'
+      ? row.player.destination.playerId
+      : null
   return (
     <tr
       className={`${styles.row} ${row.isYou ? styles.rowYou : ''} ${row.hasEntry ? '' : styles.rowNoEntry}`}
@@ -454,6 +523,22 @@ function PrivateRow({
         <span className={styles.playerTags}>
           {row.isOwner ? <span className={styles.tag}>Organiser</span> : null}
           {row.hasEntry ? null : <span className={styles.tagQuiet}>Not entered</span>}
+          {/*
+            IN THE PLAYER CELL, NOT IN A COLUMN OF ITS OWN.
+            A fifth column pushed the control past the right edge of a table
+            that already scrolls sideways on a phone — so the one way to use
+            the feature was invisible at the width most people are at. Beside
+            the player it belongs to, it is reachable at every width and reads
+            as what it is: something about that person, not a fifth fact about
+            their standing.
+          */}
+          {watchableId === null || onWatchPlayer === undefined ? null : (
+            <WatchToggle
+              playerName={row.player.displayName}
+              watched={row.watched}
+              onToggle={() => onWatchPlayer(watchableId, !row.watched)}
+            />
+          )}
         </span>
       </td>
       {showMovement ? (

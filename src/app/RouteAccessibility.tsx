@@ -68,6 +68,8 @@ const DEV_ROUTE_TITLES: { path: string; title: string }[] = import.meta.env.DEV
 const ROUTE_TITLES = [...STATIC_ROUTE_TITLES, ...DEV_ROUTE_TITLES]
 
 const COMPETITION_TITLE_PATTERNS: readonly (readonly [pattern: string, suffix: string])[] = [
+  [weeklyRoutePatterns.createPrivatePlay, 'Create private play'],
+  [weeklyRoutePatterns.seasonWrapped, 'Your season'],
   [weeklyRoutePatterns.matchPredictorStandings, 'Match Predictor standings'],
   [weeklyRoutePatterns.matchPredictor, 'Match Predictor'],
   [weeklyRoutePatterns.championshipWildcard, 'Predictor Championship'],

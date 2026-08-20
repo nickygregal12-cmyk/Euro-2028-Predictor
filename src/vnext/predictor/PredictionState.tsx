@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { Check, Lock, RotateCcw } from 'lucide-react'
 import type {
   PredictorPredictionState,
@@ -54,6 +56,7 @@ const MARK: Record<PredictorPredictionState, Mark> = {
 }
 
 export function PredictionState({ state, save, onRetry }: PredictionStateProps) {
+  const settle = useVNextMotion(vnextMotion.saveSettle)
   const saving = save === 'saving'
   const failed = save === 'error'
   const conflicted = save === 'conflict'
@@ -79,7 +82,15 @@ export function PredictionState({ state, save, onRetry }: PredictionStateProps) 
       aria-live="polite"
     >
       <StateMark mark={mark} />
-      <span>{word}</span>
+      {/* THE ROW SETTLING, ONCE, WHEN THE SERVER AGREED.
+          `key` is the word rather than the save state, so the settle plays on
+          every change of what the row SAYS and not on a re-render that changed
+          nothing. It plays for a refusal too — "Not saved" arriving with no
+          motion at all, in the same place a success just moved, is the one
+          state change worth noticing that would be the quietest. */}
+      <motion.span key={word} variants={settle} initial="rest" animate="landed">
+        {word}
+      </motion.span>
       {failed && onRetry ? (
         <button type="button" className={styles.retry} onClick={onRetry}>
           <RotateCcw className={styles.retryGlyph} aria-hidden="true" />

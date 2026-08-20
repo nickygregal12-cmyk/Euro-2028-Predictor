@@ -198,3 +198,37 @@
   color: var(--vnext-miss);
   overflow-wrap: anywhere;
 }
+
+/* ---- private play ------------------------------------------------------- */
+
+/* THE CORRIDOR INTO A GROUP OF YOUR OWN, below the three games rather than on
+ * one of them. Drawn as a quiet band rather than as a fourth game row: it is
+ * not a game, and giving it a row would put four things where the product has
+ * three. */
+.privatePlay {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.privateLead {
+  max-width: 56ch;
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.privateAction {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-5);
+  border: 1px solid var(--vnext-accent);
+  border-radius: var(--vnext-radius-md);
+  background-color: transparent;
+  color: var(--vnext-accent);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
+}

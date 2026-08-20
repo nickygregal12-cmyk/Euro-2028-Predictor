@@ -216,6 +216,30 @@ export type LeaguesPrivateRow = {
    * mark them rather than rank them silently.
    */
   readonly hasEntry: boolean
+  /**
+   * WHETHER THE READER HAS CHOSEN TO WATCH THIS PLAYER (contract 157).
+   *
+   * A PREFERENCE, NEVER A RELATIONSHIP. Watching is one-directional, private to
+   * the watcher and invisible to the watched: nothing here tells a player who
+   * is watching them, and nothing may. It changes no standing, no reveal
+   * boundary and no permission — it decides which rival Home leads with.
+   */
+  readonly watched: boolean
+  /**
+   * WHETHER THIS ROW MAY BE WATCHED AT ALL, and it is the server's boundary
+   * rather than a rule invented here.
+   *
+   * `set_pinned_rival` refuses anybody the caller shares no private league
+   * with, which is contract 151's disclosure boundary. The same boundary is
+   * what decides whether the row carries an account id: a row whose
+   * `destination` is openable WITH an id is one the server has already agreed
+   * to name, and therefore one it will accept a pin for. Anything else — a
+   * closed row, or an openable row the newer same-season boundary named without
+   * an id — is not offered a control that would be refused.
+   *
+   * Your own row is never watchable. Watching yourself is not a thing.
+   */
+  readonly canWatch: boolean
   /** Null unless the last matchweek settled. See `LeagueMovement`. */
   readonly movement: LeagueMovement | null
 }

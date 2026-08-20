@@ -44,6 +44,14 @@ const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
     'parameterised competition route — concrete domestic season coverage remains harness work',
   ],
   [
+    '/competitions/:competitionSlug/:seasonSlug/games/create',
+    'parameterised competition route — the create corridor is axe-scanned in Storybook, where its three steps can each be reached without creating anything on a real season',
+  ],
+  [
+    '/competitions/:competitionSlug/:seasonSlug/wrapped',
+    'parameterised competition route — Season Wrapped is axe-scanned in Storybook, where all five of its worlds (including the two that are not a season) can be reached without waiting for a real season to end',
+  ],
+  [
     '/competitions/:competitionSlug/:seasonSlug/matches',
     'parameterised competition route — concrete domestic season coverage remains harness work',
   ],

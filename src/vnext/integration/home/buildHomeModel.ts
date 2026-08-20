@@ -42,9 +42,13 @@ import type {
   PrivateLeague,
   PrivateLeagueStanding,
   RankMovement,
+  MatchweekRecap,
   RecentPerformance,
   Rival,
+  SinceLastVisit,
 } from '../../models/home'
+import { selectSinceLastVisit } from '../../../features/hub/sinceLastVisitModel'
+import { presentMatchweekRecap } from '../../../features/hub/matchweekRecapModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
 
 /**
@@ -765,17 +769,87 @@ function leagueOf(source: HomeSourceLeague): PrivateLeague | null {
 }
 
 /**
+ * THE MATCHWEEK RECAP, from reads Home already holds.
+ *
+ * `presentMatchweekRecap` is the Hub's own rule — which matchweek counts as
+ * settled, which league movements describe THAT matchweek, and which figures
+ * the profile read is allowed to state — imported rather than rewritten. This
+ * function's whole job is to drop the two fields that belong to a router
+ * (`href`) and to a cross-competition list (`competitionKey`), neither of which
+ * a vNext presentation model may carry.
+ *
+ * IT COSTS NO READ. The profile and every league's movement are already in the
+ * source because Home's standing block and league ladder need them.
+ */
+function recapOf(source: HomeSource): MatchweekRecap | null {
+  if (source.profile === null) return null
+
+  const movements = source.leagues
+    .filter((league) => league.movement !== null)
+    .map((league) => ({
+      leagueId: league.id,
+      leagueName: league.name,
+      // Narrowed by the filter above; `movement` is non-null here.
+      movement: league.movement as NonNullable<HomeSourceLeague['movement']>,
+    }))
+
+  const recap = presentMatchweekRecap(
+    source.competition.tournamentId,
+    source.competition.name,
+    // A PLACEHOLDER THE MAPPER THROWS AWAY. The Hub's model carries a route
+    // because the Hub's card is a link; vNext has no router in this lane and
+    // the field is dropped below rather than filled with something plausible.
+    '',
+    source.profile,
+    movements,
+  )
+  if (recap === null) return null
+
+  return {
+    matchweekLabel: recap.matchweekLabel,
+    matchweekOrdinal: recap.matchweekOrdinal,
+    points: recap.points,
+    jokerPlayed: recap.jokerPlayed,
+    seasonPoints: recap.seasonPoints,
+    seasonRank: recap.seasonRank,
+    fieldSize: recap.fieldSize,
+    exactScores: recap.exactScores,
+    correctOutcomes: recap.correctOutcomes,
+    leagues: recap.leagues.map((league) => ({
+      leagueId: league.leagueId,
+      leagueName: league.leagueName,
+      rankBefore: league.rankBefore,
+      rankAfter: league.rankAfter,
+      movement: league.movement,
+      fieldSize: league.fieldSize,
+      gapToLeader: league.gapToLeaderAfter,
+    })),
+  }
+}
+
+/**
  * Who the user is actually racing, from the table they are already looking at.
  *
  * ADJACENCY IS THE SERVER'S ORDER, not a re-sort: the row above the user in the
  * league's own ranking is the rival above. The leader is included when they are
  * somebody else, because leading is the fact a league table is about.
  *
+ * A WATCHED RIVAL COMES FIRST, AND IS THE ONLY ONE THE PLAYER CHOSE. Contract
+ * 157's pins are a preference about whose points this reader wants on their own
+ * Home; every other relation here is something the software worked out. So a
+ * pin leads, and it replaces the derived relation for that person rather than
+ * listing them twice — a player who is both watched and the closest above is
+ * one row, and "watched" is the truer thing to call them.
+ *
  * `sharedLeagueName` is always a league the caller is a member of — this only
  * ever reads a table `get_season_league_standings` returned, which is bounded by
  * membership. There is no player directory here and this must never become one.
  */
-function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Rival[] {
+function rivalsOf(
+  league: HomeSourceLeague,
+  model: PrivateLeague,
+  watchedIds: ReadonlySet<string>,
+): readonly Rival[] {
   const rows = league.standings.rows
   const index = rows.findIndex((row) => row.isYou)
   if (index < 0) return []
@@ -784,6 +858,11 @@ function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Riva
   const you = rows[index]
   if (you === undefined) return []
   const picked: { row: SeasonLeagueStandingsRow; relation: Rival['relation'] }[] = []
+
+  for (const row of rows) {
+    if (row.isYou || !watchedIds.has(row.userId)) continue
+    picked.push({ row, relation: 'watched' })
+  }
 
   const above = rows[index - 1]
   const below = rows[index + 1]
@@ -794,6 +873,18 @@ function rivalsOf(league: HomeSourceLeague, model: PrivateLeague): readonly Riva
   if (leader && !leader.isYou && leader !== above) {
     picked.push({ row: leader, relation: 'leagueLeader' })
   }
+
+  // ONE ROW PER PERSON, and the first mention wins — which is the pin, because
+  // pins are pushed first. Without this a watched neighbour appears twice with
+  // two different reasons.
+  const seen = new Set<string>()
+  const unique = picked.filter(({ row }) => {
+    if (seen.has(row.userId)) return false
+    seen.add(row.userId)
+    return true
+  })
+  picked.length = 0
+  picked.push(...unique)
 
   return picked.map(({ row, relation }) => {
     const difference = row.points - you.points
@@ -877,6 +968,30 @@ export function buildHomeModel(source: HomeSource): HomeModel {
 
   const liveMatches = matches.filter((match) => match.status === 'live')
   const recentResults = matches.filter((match) => match.status === 'fullTime')
+
+  /*
+   * SINCE YOU WERE LAST HERE.
+   *
+   * Selected from `recentResults` rather than from a read of its own, which is
+   * the whole reason this costs nothing: the football is already on the page
+   * and the only new information is which of it the reader has not seen.
+   * `selectSinceLastVisit` is the Hub's own rule, imported rather than
+   * reimplemented, so the cap and the first-visit case cannot drift apart
+   * between the two surfaces that show them.
+   *
+   * `status === 'fullTime'` is the server's settlement, never a clock
+   * comparison, so a postponed or abandoned match cannot appear here as a
+   * finished one. The kickoff decides ORDER and recency and nothing else.
+   */
+  const since = selectSinceLastVisit(
+    recentResults,
+    { settled: () => true, at: (match) => match.kickoff },
+    source.lastVisitAt ?? null,
+  )
+  const sinceLastVisit: SinceLastVisit | null =
+    since.available && since.results.length > 0
+      ? { results: since.results, more: since.more }
+      : null
   const upcomingMatches = matches.filter(
     (match) => match.status === 'upcoming' || match.status === 'postponed',
   )
@@ -897,11 +1012,15 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     liveMatches,
     upcomingMatches,
     recentResults,
+    sinceLastVisit,
+    matchweekRecap: recapOf(source),
     recentPerformance: performanceOf(source),
     privateLeagues: leagues.map((entry) => entry.model),
     // Rivals come from the league Home leads with. Every league's adjacent rows
     // would be a longer list saying the same thing about a smaller race.
-    rivals: leadLeague ? rivalsOf(leadLeague.source, leadLeague.model) : [],
+    rivals: leadLeague
+      ? rivalsOf(leadLeague.source, leadLeague.model, new Set(source.watchedRivalIds ?? []))
+      : [],
     activity: [],
   }
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { readLastVisit, writeLastVisit } from '../../../features/hub/lastVisit'
 import { presentCard } from '../../../features/season/matchPredictorModel'
 import { presentCompetitionWeek, weekActionForGame } from '../../../features/hub/competitionWeekModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
@@ -100,6 +101,16 @@ export type VNextHomeSourceInput = {
   /** From the existing auth authority. Null means signed out. */
   userId: string | null
   displayName: string | null
+  /**
+   * Who this player is watching in this competition (contract 157), from the
+   * shell's own preference read.
+   *
+   * MERGED AT THE DERIVATION, exactly as `displayName` is, and for the same
+   * reason: it addresses no read. Watching somebody writes a preference and
+   * asks the shell to re-read it; if this were an effect input, that re-read
+   * would refetch every one of Home's dozen reads to reorder one strip.
+   */
+  watchedRivalIds?: readonly string[] | undefined
   /** True while auth is still resolving; Home must not decide anything yet. */
   authLoading: boolean
   /**
@@ -191,7 +202,27 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
   const [nonce, setNonce] = useState(0)
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
-  const { userId, displayName, authLoading, competitionSlug, seasonSlug, gameCompetitionId } = input
+  /*
+   * THE MARKER IS READ ONCE, ON MOUNT, AND THEN FROZEN FOR THIS VISIT.
+   *
+   * `useState(readLastVisit)` rather than a read inside the effect, and the
+   * difference is the whole feature: the marker is written again below as soon
+   * as Home has loaded, so an effect that re-read it would find its own write
+   * and "since you were last here" would empty itself while the player was
+   * looking at it. What they see is measured from the visit BEFORE this one,
+   * for as long as this page is open.
+   */
+  const [lastVisitAt] = useState(readLastVisit)
+
+  const {
+    userId,
+    displayName,
+    watchedRivalIds,
+    authLoading,
+    competitionSlug,
+    seasonSlug,
+    gameCompetitionId,
+  } = input
 
   useEffect(() => {
     // Nothing to acquire, and nothing may be kept: a signed-out surface must not
@@ -370,10 +401,17 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
             clubForm: clubFormValue,
             consensus: consensusValue,
             projection: projectionValue,
+            lastVisitAt,
           },
           unavailable,
           leaguesNotShown: Math.max(0, allLeagues.length - shown.length),
         })
+
+        // ONLY AFTER HOME ACTUALLY LOADED. Stamping the marker on mount would
+        // mean a player whose connection dropped before the football arrived
+        // had "been here" — and would lose the recap they never saw. The
+        // failure path below deliberately does not write.
+        writeLastVisit(new Date())
       } catch {
         // The context read failed, or something threw before the enrichments
         // were reached. Either way Home has no competition to draw.
@@ -418,7 +456,11 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
       // the payload's identity was built from — checked immediately above — so
       // this is the account those answers are about, not merely the account
       // signed in now.
-      source: { ...state.payload, user: { id: userId, displayName } },
+      source: {
+        ...state.payload,
+        user: { id: userId, displayName },
+        watchedRivalIds: watchedRivalIds ?? [],
+      },
       unavailable: state.unavailable,
       leaguesNotShown: state.leaguesNotShown,
       retry,
@@ -428,6 +470,7 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     authLoading,
     userId,
     displayName,
+    watchedRivalIds,
     competitionSlug,
     seasonSlug,
     gameCompetitionId,

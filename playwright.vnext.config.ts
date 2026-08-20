@@ -75,6 +75,10 @@ export default defineConfig({
     // costs a player their setup rather than a scroll position.
     'vnext-supporting.spec.ts',
     'vnext-ia.spec.ts',
+    // THE CANONICAL SCREENSHOT SUITE. It compares nothing — see its header —
+    // and exists so a passing build leaves behind something a person can look
+    // at, at the three widths where the composition changes shape.
+    'vnext-visual-contract.spec.ts',
   ],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
@@ -107,6 +111,11 @@ export default defineConfig({
     // rendered geometry against deterministic fixtures, which is what makes
     // its assertions stable. Coverage of the real route belongs to the
     // application e2e config, not here.
+    //
+    // ONE STORY HERE IS DOCUMENT-SCOPED RATHER THAN FRAMED — `vNext/Focus Not
+    // Obscured` — because WCAG 2.2's 2.4.11 is about where a SCROLLER scrolls
+    // to, and a framed surface scrolls inside its frame. See the case at the
+    // end of `e2e/vnext-shell.spec.ts`.
     command: `npm run storybook -- --ci --quiet --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,

@@ -529,6 +529,7 @@ describe('every world is one page', () => {
 
     const tables = screen.getAllByRole('table')
     expect(tables.length).toBe(2)
+
     for (const table of tables) {
       expect(
         within(table).getAllByRole('columnheader').map((cell) => cell.textContent),

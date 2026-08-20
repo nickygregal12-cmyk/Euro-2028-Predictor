@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { VNextInvite, type InviteIntent } from '../../invite/VNextInvite'
+import { useVNextFeedback } from '../../foundations/feedbackContext'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
@@ -49,6 +50,7 @@ export type VNextInviteScreenProps = {
 export function VNextInviteScreen(props: VNextInviteScreenProps) {
   const elsewhere = useShellElsewhere(props.shellElsewhere)
   const { state, joining, resolve, accept } = useInviteCode()
+  const feedback = useVNextFeedback()
   const [generatedAt] = useState(() => new Date().toISOString())
   const { userId, authLoading, code } = props
 
@@ -105,7 +107,13 @@ export function VNextInviteScreen(props: VNextInviteScreenProps) {
           switch (intent.kind) {
             case 'accept':
               void accept(code).then((result) => {
-                if (result) props.onJoined?.(result)
+                if (!result) return
+                // AFTER THE SERVER SAID YES, never on the press. Joining a
+                // private group is a completion — the page is about to be
+                // replaced by the thing they joined, so the mark lands with the
+                // answer rather than with the intent.
+                feedback('success')
+                props.onJoined?.(result)
               })
               return
             case 'retry':

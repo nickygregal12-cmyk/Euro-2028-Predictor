@@ -152,6 +152,26 @@ export function competitionMatchPredictorRoute(
   return `${base}?matchweek=${matchweek}`
 }
 
+/**
+ * The create-private-play corridor for this competition.
+ *
+ * Reached from Games and from the Leagues empty state, which is why it has an
+ * address rather than being a sheet on one of them.
+ */
+export function competitionCreatePrivatePlayRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.createPrivatePlay, ref)
+}
+
+/**
+ * This season's Wrapped — the finished record of it (contract 156).
+ *
+ * Reached from Account's finished-season list, and linkable in its own right so
+ * a player can bookmark the season they won.
+ */
+export function competitionSeasonWrappedRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.seasonWrapped, ref)
+}
+
 export function competitionGameStandingsRoute(ref: CompetitionRouteRef): string {
   return renderCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, ref)
 }

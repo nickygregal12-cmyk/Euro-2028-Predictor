@@ -35,14 +35,15 @@
  *
  * Finishing onboarding writes follows, then game entries, then completion, and
  * reports which parts failed without abandoning the parts that worked.
- * `OnboardingJourney` already does that, has done it in production since
- * contract 157, and is the only place in the repository that does.
+ * `features/onboarding/commitOnboarding.ts` already does that, has done it in
+ * production since contract 157 — as the body of `OnboardingJourney` until
+ * `/welcome` gained a second presentation and it moved out to a module both
+ * hosts call — and is the only place in the repository that does.
  *
  * So `VNextOnboarding` does not do it a second time. `finish` is an INTENT
- * carrying the draft, and the host performs it — which at Stage 14 is the page
- * that already owns the commit. Writing a parallel commit for a lane that ships
- * nothing yet would be two commit orders for one contract and three chances to
- * disagree about which of follows, entries and completion is allowed to fail.
+ * carrying the draft, and the host performs it. Writing a parallel commit would
+ * be two commit orders for one contract and three chances to disagree about
+ * which of follows, entries and completion is allowed to fail.
  *
  * ============================ EVERY STEP AFTER THE FIRST IS SKIPPABLE ===
  *

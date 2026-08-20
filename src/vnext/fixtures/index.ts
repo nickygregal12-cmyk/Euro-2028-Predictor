@@ -210,3 +210,12 @@ export {
   onboardingScenarios,
 } from './onboarding/scenarios'
 export type { OnboardingScenarioName } from './onboarding/scenarios'
+
+/* ---- Season Wrapped (contract 156) -------------------------------------- */
+
+export {
+  wrappedScenarioNames,
+  wrappedScenarioPremises,
+  wrappedScenarios,
+} from './wrapped/scenarios'
+export type { WrappedScenarioName } from './wrapped/scenarios'

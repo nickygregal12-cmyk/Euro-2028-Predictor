@@ -1,10 +1,10 @@
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
-import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
 import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyRoutes'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
+import { VNextAppRoot } from './VNextAppRoot'
 
 /**
  * THE vNEXT MATCHES SURFACES, AT THEIR REAL ADDRESSES.
@@ -51,7 +51,7 @@ export function VNextMatchesDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextMatchesScreen
         userId={userId}
         authLoading={loading}
@@ -66,7 +66,7 @@ export function VNextMatchesDestination() {
           )
         }}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 
@@ -86,7 +86,7 @@ export function VNextMatchCentreDestination() {
   const onShellIntent = useShellIntentNavigation()
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextMatchCentreScreen
         userId={userId}
         authLoading={loading}
@@ -100,7 +100,7 @@ export function VNextMatchCentreDestination() {
           navigate(competitionSectionRoute({ competitionSlug, seasonSlug }, 'matches'))
         }}
       />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }
 

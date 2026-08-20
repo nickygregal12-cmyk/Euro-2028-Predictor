@@ -239,12 +239,35 @@ function globalTableOf(source: LeaguesSource): LeaguesGlobalTable | null {
   }
 }
 
+/**
+ * WHETHER A ROW MAY BE WATCHED, decided from what the server already told us.
+ *
+ * `set_pinned_rival` refuses anybody the caller shares no private league with.
+ * That is the same boundary that decides whether the row carries an account id
+ * at all — so a row the server named WITH an id is one it will accept a pin
+ * for, and every other row is one the control would be refused on.
+ *
+ * Reading eligibility out of the destination rather than inventing a second
+ * rule is the whole point: a control offered where the write will fail is a
+ * worse defect than an absent one, and re-deciding the boundary here would be
+ * a second opinion about a disclosure rule.
+ */
+function watchable(player: LeaguePlayer, isYou: boolean): string | null {
+  if (isYou) return null
+  if (player.destination.kind !== 'open') return null
+  return player.destination.playerId
+}
+
 function privateRow(
   row: SeasonLeagueStandingsRow,
   movement: ReadonlyMap<string, LeagueMovement>,
+  watched: ReadonlySet<string>,
 ): LeaguesPrivateRow {
+  const player = leaguePlayer(row, row.isYou)
+  const watchableId = watchable(player, row.isYou)
+
   return {
-    player: leaguePlayer(row, row.isYou),
+    player,
     // RECOMPUTED WITHIN THE LEAGUE by the server — a different number from the
     // same player's season rank, and never reconciled with it here.
     rank: row.rank,
@@ -255,6 +278,8 @@ function privateRow(
     isYou: row.isYou,
     isOwner: row.isOwner,
     hasEntry: row.hasEntry,
+    watched: watchableId !== null && watched.has(watchableId),
+    canWatch: watchableId !== null,
     movement: movement.get(row.userId) ?? null,
   }
 }
@@ -266,6 +291,8 @@ function privateTableOf(
   const page = source.league
   if (page === null || source.selectedLeagueId === null) return null
 
+  const watched = new Set(source.watchedRivalIds)
+
   const chosen = (source.leagues ?? []).find(
     (league) => league.id === source.selectedLeagueId,
   )
@@ -276,7 +303,7 @@ function privateTableOf(
     // answers the table. A missing name is a list that did not answer, and the
     // honest label for a league we cannot name is not a made-up one.
     name: chosen?.name ?? 'This league',
-    rows: page.rows.map((row) => privateRow(row, movement)),
+    rows: page.rows.map((row) => privateRow(row, movement, watched)),
     totalCount: page.totalCount,
     you:
       page.you === null
@@ -291,6 +318,9 @@ function privateTableOf(
             isYou: true,
             isOwner: page.you.isOwner,
             hasEntry: page.you.hasEntry,
+            // Watching yourself is not a thing.
+            watched: false,
+            canWatch: false,
             movement: movement.get(page.you.userId) ?? null,
           },
     hasMore: page.hasMore,

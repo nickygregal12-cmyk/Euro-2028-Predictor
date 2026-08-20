@@ -67,7 +67,13 @@ function GamesHarness({ scenario }: { readonly scenario: GamesScenarioName }) {
         <VNextGames
           model={gamesScenarios[scenario]}
           onRetry={() => {}}
-          onIntent={(intent) => setLastIntent(`${intent.kind}:${intent.gameId}`)}
+          onIntent={(intent) =>
+            setLastIntent(
+              intent.kind === 'create-private-play'
+                ? intent.kind
+                : `${intent.kind}:${intent.gameId}`,
+            )
+          }
         />
       </div>
     </VNextShellProvider>

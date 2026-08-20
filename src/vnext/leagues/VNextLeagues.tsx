@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import type { LeagueChoice, LeaguesModel, LeaguesScope } from '../models/leagues'
 import { leaguesKnownEmpty, leaguesSwitchable } from '../models/leagues'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
+import { ScopeMarker } from '../components/navigation/ScopeMarker'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatNumber } from '../foundations/format'
 import { GlobalStandingsTable, PrivateStandingsTable } from './LeagueTables'
@@ -47,6 +48,37 @@ export type LeaguesIntent =
       readonly playerId: string | null
     }
   | { readonly kind: 'scope'; readonly scope: LeaguesScope }
+  /**
+   * THE TWO WAYS OUT OF "YOU ARE NOT IN A PRIVATE LEAGUE YET".
+   *
+   * Stage 9 deliberately drew no control here, and said why: *"a button here
+   * would be a door onto a corridor that has not been built."* It is built —
+   * `/competitions/:c/:s/games/create` — so the sentence stops being a dead end
+   * and becomes what it should always have been, which is an offer.
+   *
+   * A player with an invite is the commoner case of the two and is offered
+   * first by the host; joining is `/join/:code`, which the invite corridor
+   * already owns end to end.
+   */
+  | { readonly kind: 'create-private-play' }
+  | { readonly kind: 'join-with-code' }
+  /**
+   * START OR STOP WATCHING SOMEBODY (contract 157).
+   *
+   * THE ACCOUNT ID RATHER THAN THE SEASON REF, and that is not an
+   * inconsistency with `openPlayer` above. Opening a profile is addressed by
+   * the season reference because that is the identity the same-season boundary
+   * reveals; `set_pinned_rival` is keyed on the account, and it is offered only
+   * on rows the older shared-private-league boundary already named with one.
+   * Two different questions, two different identities, each the one its
+   * authority accepts.
+   */
+  | {
+      readonly kind: 'watch-player'
+      readonly playerId: string
+      /** True to start watching, false to stop. */
+      readonly watched: boolean
+    }
 
 /**
  * vNEXT LEAGUES — WHO AM I COMPETING AGAINST, AND WHERE DO I STAND?
@@ -120,6 +152,7 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
    * model arrives, and the highlight moves because the TABLE moved.
    */
   const highlighted = scopeKey(model.scope)
+  const scopeGroup = useId()
 
   const switchable = leaguesSwitchable(model)
   const contextLine = useMemo(() => contextSentence(model), [model])
@@ -130,6 +163,10 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
 
   function openPlayer(playerRef: string, playerId: string | null) {
     onIntent?.({ kind: 'openPlayer', playerRef, playerId })
+  }
+
+  function watchPlayer(playerId: string, watched: boolean) {
+    onIntent?.({ kind: 'watch-player', playerId, watched })
   }
 
   return (
@@ -156,12 +193,14 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
               aria-pressed={highlighted === 'global'}
               onClick={() => choose({ kind: 'global' })}
             >
-              Season
+              {highlighted === 'global' ? <ScopeMarker group={scopeGroup} /> : null}
+              <span className={styles.scopeName}>Season</span>
             </button>
             {model.leagues.map((league) => (
               <LeagueOption
                 key={league.id}
                 league={league}
+                group={scopeGroup}
                 pressed={highlighted === `private:${league.id}`}
                 onChoose={() => choose({ kind: 'private', leagueId: league.id })}
               />
@@ -214,6 +253,7 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
             <PrivateStandingsTable
               table={model.private}
               onOpenPlayer={onIntent ? openPlayer : undefined}
+              onWatchPlayer={onIntent ? watchPlayer : undefined}
             />
           ) : (
             /* NOT AN ERROR SCREEN. The read did not answer and the strip above
@@ -226,21 +266,45 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
         </motion.div>
 
         {leaguesKnownEmpty(model) ? (
-          /* THE ONE SENTENCE ABOUT PRIVATE LEAGUES, and it is not a call to
-           * action. Stage 9 does not own joining or creating a league, so a
-           * button here would be a door onto a corridor that has not been
-           * built. Saying what a private league IS, is honest and costs nothing.
+          /* THE SENTENCE, AND NOW THE TWO WAYS OUT OF IT. Stage 9 wrote this as
+           * a statement rather than a call to action because "a button here
+           * would be a door onto a corridor that has not been built". The
+           * corridor exists, so the sentence keeps its job — saying what a
+           * private league IS — and stops being the end of the road.
            *
            * IT IS GATED ON THE LIST HAVING ANSWERED, not on the chooser being
            * absent. Those two coincide until the league list FAILS, at which
            * point the second one would tell a player they are in no league on
            * the strength of a read that never came back — the one thing this
-           * lane forbids everywhere else. */
-          <p className={`${text.micro} ${styles.aside}`}>
-            You are not in a private league in {model.context.gameName} yet. A private
-            league ranks a group of players against each other inside this
-            competition.
-          </p>
+           * lane forbids everywhere else.
+           *
+           * AND ON THE HOST BEING ABLE TO ROUTE. A host with no `onIntent` gets
+           * the sentence alone, which is what it always was. */
+          <div className={styles.emptyOffer} data-vnext-zone="no-private-league">
+            <p className={`${text.micro} ${styles.aside}`}>
+              You are not in a private league in {model.context.gameName} yet. A private
+              league ranks a group of players against each other inside this
+              competition.
+            </p>
+            {onIntent === undefined ? null : (
+              <div className={styles.emptyActions}>
+                <button
+                  type="button"
+                  className={styles.emptyAction}
+                  onClick={() => onIntent({ kind: 'join-with-code' })}
+                >
+                  Join with an invite
+                </button>
+                <button
+                  type="button"
+                  className={styles.emptyAction}
+                  onClick={() => onIntent({ kind: 'create-private-play' })}
+                >
+                  Create one
+                </button>
+              </div>
+            )}
+          </div>
         ) : null}
       </div>
     </VNextShell>
@@ -249,10 +313,12 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
 
 function LeagueOption({
   league,
+  group,
   pressed,
   onChoose,
 }: {
   readonly league: LeagueChoice
+  readonly group: string
   readonly pressed: boolean
   readonly onChoose: () => void
 }) {
@@ -263,6 +329,7 @@ function LeagueOption({
       aria-pressed={pressed}
       onClick={onChoose}
     >
+      {pressed ? <ScopeMarker group={group} /> : null}
       <span className={styles.scopeName}>{league.name}</span>
       <span className={`${text.micro} ${styles.scopeCount}`}>
         {formatNumber(league.memberCount)}

@@ -129,6 +129,7 @@ function league(overrides: Partial<GameLeague> = {}): GameLeague {
 
 function source(overrides: Partial<LeaguesSource> = {}): LeaguesSource {
   return {
+    watchedRivalIds: [],
     generatedAt: NOW,
     context: {
       tournamentId: 'tournament-1',
@@ -759,5 +760,60 @@ describe('the mapper is pure', () => {
       'displayName',
       'ref',
     ])
+  })
+})
+
+/**
+ * WHO MAY BE WATCHED, and it is the server's boundary rather than a rule
+ * invented in presentation.
+ *
+ * `set_pinned_rival` refuses anybody the caller shares no private league with.
+ * That is the same boundary that decides whether a standings row carries an
+ * account id at all — so eligibility is read out of the destination the mapper
+ * already built, and a control is never offered where the write would fail.
+ */
+describe('the watch marks', () => {
+  const table = () => [
+    leagueRow({ userId: 'user-1', displayName: 'You', rank: 1, position: 1, isYou: true }),
+    leagueRow({ userId: 'user-jamie', displayName: 'Jamie Ferguson-Whyte', rank: 2, position: 2 }),
+    leagueRow({ userId: 'user-martin', displayName: 'Martin Okafor', rank: 3, position: 3 }),
+  ]
+
+  it('marks the rows the player has chosen', () => {
+    const rows = privateRows(leagueModel(table(), { watchedRivalIds: ['user-jamie'] }))
+
+    expect(rows.length).toBe(3)
+    const jamie = rows.find((row) => row.player.displayName === 'Jamie Ferguson-Whyte')
+    expect(jamie?.watched).toBe(true)
+    for (const row of rows) {
+      if (row === jamie) continue
+      expect(row.watched, row.player.displayName).toBe(false)
+    }
+  })
+
+  it('never marks your own row, and never offers to', () => {
+    // Even if the preference somehow named the caller.
+    const rows = privateRows(leagueModel(table(), { watchedRivalIds: ['user-1'] }))
+    const you = rows.find((row) => row.isYou)
+
+    expect(you?.watched).toBe(false)
+    expect(you?.canWatch).toBe(false)
+  })
+
+  it('offers the control only where the server named an account', () => {
+    const rows = privateRows(leagueModel(table()))
+
+    for (const row of rows) {
+      const openWithId =
+        row.player.destination.kind === 'open' && row.player.destination.playerId !== null
+      expect(row.canWatch, row.player.displayName).toBe(!row.isYou && openWithId)
+    }
+  })
+
+  it('marks nothing when the preference read did not answer', () => {
+    // No marks rather than an error: watching is not why anybody opened this.
+    const rows = privateRows(leagueModel(table(), { watchedRivalIds: [] }))
+
+    expect(rows.some((row) => row.watched)).toBe(false)
   })
 })

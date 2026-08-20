@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from 'react-router'
 import { VNextRootDestination } from '../../src/app/vnext/VNextRootDestination'
+import { SiteProvider } from '../../src/app/site/SiteProvider'
+import { siteConfiguration } from '../../src/app/site/siteConfiguration'
 import type { PlayerCompetitionsState } from '../../src/app/providers/PlayerCompetitionsProvider'
 
 /**
@@ -52,8 +54,9 @@ function state(partial: Partial<PlayerCompetitionsState>): PlayerCompetitionsSta
   } as PlayerCompetitionsState
 }
 
-function renderRoot() {
+function renderRoot(variant: 'hub' | 'euro' = 'hub') {
   return render(
+    <SiteProvider configuration={siteConfiguration(variant)}>
     <MemoryRouter initialEntries={['/']}>
       <Routes>
         <Route path="/" element={<VNextRootDestination />} />
@@ -63,7 +66,8 @@ function renderRoot() {
         />
         <Route path="/competitions" element={<p>Discovery</p>} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
+    </SiteProvider>,
   )
 }
 
@@ -144,5 +148,28 @@ describe('the two cases that are not a competition', () => {
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
     expect(screen.queryByText('Discovery')).toBeNull()
     expect(screen.queryByText('Home of :competition')).toBeNull()
+  })
+})
+
+describe('the front door is still a shared address', () => {
+  it('hands the tournament build back to the variant dispatcher rather than the domestic tree', () => {
+    // `/` IS THE FIRST ROW of `variantRoutes.ts` — `hub-home` on the Hub,
+    // `euro-home` on the Euro build — and the cutover flags reach BOTH sites
+    // from one `netlify.toml` `[build.environment]`. A resolver that consulted
+    // only `footballHubHome` therefore sent a signed-in tournament visitor into
+    // `/competitions/:c/:s`, which `DomesticCompetitions` refuses on that build
+    // by redirecting to `site.routes.signedInHome` — which is `/`. That is not
+    // a wrong page. It is a redirect loop on the first screen they see.
+    membership.state = state({
+      status: 'ready',
+      player: playerWith({ competitionSlug: 'premier-league', seasonSlug: '2026-27' }),
+    })
+
+    renderRoot('euro')
+
+    // The dispatcher renders lazily, so what this asserts is the ABSENCE of the
+    // domestic redirect: neither the competition home nor Discovery is reached.
+    expect(screen.queryByText('Home of :competition')).toBeNull()
+    expect(screen.queryByText('Discovery')).toBeNull()
   })
 })

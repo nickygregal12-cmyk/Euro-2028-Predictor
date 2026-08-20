@@ -1,0 +1,13 @@
+/*
+ * The travelling pill itself carries no colour decision: each control passes
+ * its own through `--vnext-scope-marker-fill`, because the sunken segmented
+ * control on Matches and the raised chooser on Leagues sit on different
+ * surfaces and a single hard-coded fill would be wrong on one of them.
+ */
+.marker {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-scope-marker-fill, var(--vnext-surface-raised));
+  box-shadow: var(--vnext-scope-marker-shadow, none);
+}
