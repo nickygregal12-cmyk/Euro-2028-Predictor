@@ -78,7 +78,7 @@ is to check those, not the counts.
 | Compare with one rival | `/h2h/:rivalId` (weekly) | a panel inside the profile | **B** | Contract 192's rivalry, not contract 129 per matchweek |
 | Mark somebody as a rival | Hub Rival Watch pin | the profile's pin control | **B** | **Built in Stage 14** over `set_pinned_rival`, which has been in production since contract 157 |
 | See the players I have pinned, by name | **nowhere** | **not built** | **F** | `PROF-002`. `get_my_preferences` returns pinned rivals as bare ids — no name, no season ref. The smallest safe read is proposed in [`vnext-player-profiles.md`](vnext-player-profiles.md) §8.5 |
-| Open a same-season entrant I share no private league with | **refused** | **the backend permits it; the browser does not ask yet** | **F** | `PROF-001` / ADR 0031 § 2 decided YES. Contract 206 (`get_season_player_profile_by_ref`) is on this branch; the vNext consumer is not built and hosted Development has not applied it. See §8 |
+| Open a same-season entrant I share no private league with | **refused** | **the backend permits it; the browser does not ask yet** | **F** | `PROF-001` / ADR 0031 § 2 decided YES. Contract 206 (`get_season_player_profile_by_ref`) is on `main` and applied to Development; the vNext consumer is not built. See §8 |
 | A Euro-tournament private league | `/league/:id` | unchanged | **E** | Stage 15's Euro adoption, deliberately not done early |
 | A Euro-tournament profile | `/tournament/profile[/:id]` | unchanged | **E** | Three profile systems exist; vNext must not add a fourth, and must not rebuild the Euro ones out of order |
 
@@ -129,16 +129,18 @@ what a cutover would ship without.
 
 ADR 0031 § 2 decided **YES**: same-season entrants may view each other's
 bounded, reveal-safe profiles. **Contract 206 —
-`get_season_player_profile_by_ref`, from PR #920 — is on this branch.** Three
-things still stand between that and the capability:
+`get_season_player_profile_by_ref`, from PR #920 — is on `main`, and Development
+has applied it.** Two things still stand between that and the capability:
 
 1. **no vNext consumer.** `buildLeaguesModel.destinationOf` still returns
    `closed / not-shared` for a `compare` row, and the player profile still asks
    the UUID-addressed contract 151 read. Widening the first without building the
    second would put a door on a corridor;
-2. **hosted Development has not applied it.** Repository, Development and
-   Production reach a contract on their own schedules;
-3. **generated Supabase types.** `PROF-001`'s own acceptance names them.
+2. **generated Supabase types.** `PROF-001`'s own acceptance names them.
+
+The third item this list used to carry — *"hosted Development has not applied
+it"* — is done, and is the reason this page no longer states hosted numbers at
+all. See the sub-section below.
 
 **It is not a cutover blocker and must not be treated as one.** The vNext
 Leagues table behaves correctly for both answers, and the legacy product refuses
@@ -213,19 +215,34 @@ are now under `resolvedDebt`:
 205 and each is a separately authorised rollout. A cutover cannot claim the
 Championship is truth-complete until the environment it runs against has them.
 
-### A hosted sequencing constraint, recorded because it outranks readiness
+### The hosted rollout outranks readiness, and this page does not track it
 
-Contracts 207 and 208 are committed and applied nowhere. **Contract 206 must
-reach Development and Production first**, and the reason is a deployment one
-rather than a dependency between the migrations: advancing the repository
-contract moves the Netlify deployment declaration with it, so landing 207/208
-before 206 is reconciled forces another hosted cycle before production builds
-can resume.
+**THIS PAGE STATES NO HOSTED CONTRACT NUMBER, deliberately, and the reason is
+that it did twice and was wrong both times within a day.** It said contracts
+207 and 208 were "applied nowhere" and that 206 had to reach Development first;
+Development went to 208 in one fast-lane run and the Production plan became a
+single 205→208 promotion, and both sentences became false without anybody
+touching this file.
 
-That is the owner's sequencing decision, and it is why the pull request carrying
-this batch is deliberately held. **Nothing in this page is a reason to bring it
-forward.** Everything below is about product readiness; the order in which
-contracts reach an environment is a separate authority and wins.
+`NOW.md` is generated from the machine records and is the only place the
+repository, Development and Production contracts are stated. **Read it there.**
+That is the repository's own one-fact-one-home rule, and a capability matrix is
+exactly the kind of page that acquires a stale copy of a moving number because
+the copy looked like useful context at the time.
+
+What belongs here is the CONSEQUENCE, which does not move:
+
+- **an environment reaches a contract on its own schedule**, so a capability
+  backed by a migration is only real where that migration has been applied. A
+  row above may be `A` in the repository and unavailable to a player;
+- **Production promotion is separately authorised, always.** Nothing in this
+  page is an argument for applying anything to any environment;
+- **advancing the repository contract moves the Netlify deployment declaration
+  with it**, which is why hosted rollouts are batched and ordered by whoever
+  owns them rather than by whoever merged last.
+
+Everything below is about product readiness. The order in which contracts reach
+an environment is a separate authority and it wins.
 
 ### The honest verdict
 
