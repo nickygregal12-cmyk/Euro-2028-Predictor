@@ -80,6 +80,7 @@ const FOOTBALL_HUB_ACCOUNT_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_ACCOUNT 
 const FOOTBALL_HUB_LMS_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_LMS === 'true'
 const FOOTBALL_HUB_CHAMPIONSHIP_BUILT =
   import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP === 'true'
+const FOOTBALL_HUB_PREDICTOR_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_PREDICTOR === 'true'
 const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_MATCHES_BUILT ||
   FOOTBALL_HUB_HOME_BUILT ||
@@ -89,7 +90,8 @@ const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_DISCOVERY_BUILT ||
   FOOTBALL_HUB_ACCOUNT_BUILT ||
   FOOTBALL_HUB_LMS_BUILT ||
-  FOOTBALL_HUB_CHAMPIONSHIP_BUILT
+  FOOTBALL_HUB_CHAMPIONSHIP_BUILT ||
+  FOOTBALL_HUB_PREDICTOR_BUILT
 
 const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
   ? lazy(() =>
@@ -155,6 +157,13 @@ const VNextAccountDestination = FOOTBALL_HUB_ACCOUNT_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
         default: m.VNextAccountDestination,
+      })),
+    )
+  : null
+const VNextPredictorDestination = FOOTBALL_HUB_PREDICTOR_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextPredictorDestination,
       })),
     )
   : null
@@ -645,7 +654,7 @@ export default function App() {
                         path={weeklyRoutes.hub}
                         element={
                           isNextUi('footballHubHome') && VNextRootDestination ? (
-                            <VNextRootDestination fallback={<HomeDestination />} />
+                            <VNextRootDestination />
                           ) : (
                             <HomeDestination />
                           )
@@ -734,9 +743,22 @@ export default function App() {
                             )
                           }
                         />
+                        {/* THE FLAGSHIP GAME, WHICH STAGE 14 LEFT BEHIND.
+                            `VNextPredictorDestination` shipped in that stage
+                            and was mounted nowhere, so joining the Match
+                            Predictor dropped a player out of the Competition
+                            Deck and into the legacy season page. The legacy
+                            route stays mounted on the off branch like every
+                            other destination here. */}
                         <Route
                           path={weeklyRoutePatterns.matchPredictor}
-                          element={<SeasonMatchPredictorRoute />}
+                          element={
+                            isNextUi('footballHubPredictor') && VNextPredictorDestination ? (
+                              <VNextPredictorDestination />
+                            ) : (
+                              <SeasonMatchPredictorRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchPredictorStandings}

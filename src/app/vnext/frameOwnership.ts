@@ -46,11 +46,19 @@ import { weeklyRoutePatterns, weeklyRoutes } from '../weeklyRoutes'
  * around it would not be the rollback the stage contract asks for.
  */
 const VNEXT_FRAMED: readonly { readonly pattern: string; readonly journey: MigratedJourney }[] = [
+  // THE ROOT SURRENDERS THE FRAME TOO, and it is the reason this row exists at
+  // all. `/` only redirects — but it redirects AFTER a membership read, and
+  // while that read is in flight the frame around it is what a player is
+  // looking at. Left to `AppShell`, every arrival painted the retired masthead
+  // and five-tab bar and then replaced them, which is the flash the cutover
+  // exists to remove rather than to introduce.
+  { pattern: weeklyRoutes.hub, journey: 'footballHubHome' },
   { pattern: weeklyRoutes.competitions, journey: 'footballHubDiscovery' },
   { pattern: weeklyRoutePatterns.competition, journey: 'footballHubHome' },
   { pattern: weeklyRoutePatterns.matches, journey: 'footballHubMatches' },
   { pattern: weeklyRoutePatterns.matchCentre, journey: 'footballHubMatches' },
   { pattern: weeklyRoutePatterns.games, journey: 'footballHubGames' },
+  { pattern: weeklyRoutePatterns.matchPredictor, journey: 'footballHubPredictor' },
   { pattern: weeklyRoutePatterns.lms, journey: 'footballHubLms' },
   { pattern: weeklyRoutePatterns.championshipWildcard, journey: 'footballHubChampionship' },
   { pattern: weeklyRoutePatterns.leagues, journey: 'footballHubLeagues' },

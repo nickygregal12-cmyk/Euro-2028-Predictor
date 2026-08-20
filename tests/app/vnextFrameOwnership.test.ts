@@ -38,18 +38,6 @@ const PATH_VALUES: Readonly<Record<string, string>> = {
   ),
 }
 
-/**
- * `/` IS THE ONE FLAG-GATED ADDRESS THAT MUST NOT BE IN THE TABLE.
- *
- * It resolves rather than renders: `VNextRootDestination` answers with a
- * `<Navigate>` to the competition's own address, so no shell ever mounts there
- * and there is no frame to surrender. Listing it would make `AppShell` drop its
- * chrome for a route that renders nothing, and — on the legacy fallback path
- * after a failed membership read — would strip the frame from the legacy hub
- * that fallback exists to show.
- */
-const RESOLVES_RATHER_THAN_RENDERS = new Set<string>([weeklyRoutes.hub])
-
 /** Journeys owned elsewhere: not Football Hub destinations, not this table's. */
 const NOT_A_HUB_DESTINATION = new Set(['publicLanding', 'seasonMatchPredictor'])
 
@@ -102,7 +90,6 @@ describe('the frame-ownership table matches the route tree', () => {
 
     const missing: string[] = []
     for (const [path, journeys] of registeredPairs()) {
-      if (RESOLVES_RATHER_THAN_RENDERS.has(path)) continue
       for (const journey of journeys) {
         if (!listed.has(`${path} → ${journey}`)) missing.push(`${path} → ${journey}`)
       }
@@ -160,8 +147,16 @@ describe('who owns the frame at a given address', () => {
     expect(vNextOwnsFrame('/competitions/premier-league/2026-27')).toBe(false)
   })
 
-  it('keeps the frame at the root, which resolves rather than renders', () => {
+  it('surrenders the frame at the root while it is resolving', () => {
+    // `/` only redirects, but it redirects AFTER a membership read, and the
+    // frame around that wait is what the player looks at. Keeping the legacy
+    // one here is precisely the flash this closes.
     vi.stubEnv('VITE_UI_FOOTBALL_HUB_HOME', 'true')
+    expect(vNextOwnsFrame('/')).toBe(true)
+  })
+
+  it('keeps the frame at the root when Home is rolled back', () => {
+    vi.stubEnv('VITE_UI_FOOTBALL_HUB_HOME', 'false')
     expect(vNextOwnsFrame('/')).toBe(false)
   })
 

@@ -381,7 +381,11 @@ test.describe('working through the card', () => {
     await open(page, 'open-1440')
 
     const before = await page.locator('[data-vnext-zone="brief"]').boundingBox()
-    await page.locator('[data-vnext] > div').first().evaluate((element) => {
+    // BY NAME RATHER THAN BY SHAPE. This was `[data-vnext] > div`, which named
+    // no element and simply happened to select the frame's scrollport; when the
+    // canvas made that element a `<section>` the locator matched nothing and
+    // the test spent thirty seconds failing to say so.
+    await page.locator('[data-vnext-frame-scroller]').first().evaluate((element) => {
       element.scrollTop = 900
     })
     await page.waitForTimeout(200)

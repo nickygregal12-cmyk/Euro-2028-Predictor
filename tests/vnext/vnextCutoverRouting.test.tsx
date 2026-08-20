@@ -189,6 +189,18 @@ describe('the Football Hub cutover switch', () => {
       legacy: 'SeasonChampionshipRouter',
       routes: 1,
     },
+    {
+      // THE ROW THIS TABLE SHOULD HAVE HAD IN #945. The adapter shipped in that
+      // stage and no route mounted it, so the destination existed, passed its
+      // own tests, and served nobody — and the PR description counted it among
+      // the nine that had moved. A table of destinations that only lists the
+      // ones somebody remembered to wire is not a guard.
+      journey: 'footballHubPredictor',
+      variable: 'VITE_UI_FOOTBALL_HUB_PREDICTOR',
+      next: 'VNextPredictorDestination',
+      legacy: 'SeasonMatchPredictorRoute',
+      routes: 1,
+    },
   ]
 
   it.each(DESTINATIONS)('$journey fails closed on anything but "true"', async ({ journey, variable }) => {

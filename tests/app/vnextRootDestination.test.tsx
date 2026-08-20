@@ -56,7 +56,7 @@ function renderRoot() {
   return render(
     <MemoryRouter initialEntries={['/']}>
       <Routes>
-        <Route path="/" element={<VNextRootDestination fallback={<p>Legacy hub</p>} />} />
+        <Route path="/" element={<VNextRootDestination />} />
         <Route
           path="/competitions/:competitionSlug/:seasonSlug"
           element={<p>Home of :competition</p>}
@@ -99,7 +99,7 @@ describe('the front door resolves to a competition', () => {
 
     const router = createMemoryRouter(
       [
-        { path: '/', element: <VNextRootDestination fallback={<p>Legacy hub</p>} /> },
+        { path: '/', element: <VNextRootDestination /> },
         {
           path: '/competitions/:competitionSlug/:seasonSlug',
           element: <p>Home of :competition</p>,
@@ -122,16 +122,17 @@ describe('the two cases that are not a competition', () => {
     expect(screen.getByText('Discovery')).toBeInTheDocument()
   })
 
-  it('shows the legacy hub when the membership read FAILED', () => {
-    // "You are in none" and "we could not find out" send a player to different
-    // places, and the provider keeps them apart precisely so this can. A
-    // failure that fell through to discovery would tell a player with four
-    // competitions that they have none.
+  it('sends a failed membership read to discovery rather than to the legacy hub', () => {
+    // NOT A ROLLBACK. The rollback is the build-time flag; a transient read
+    // failure must not move a player between two information architectures.
+    // Rendering the legacy hub here also forced `/` to keep the legacy frame,
+    // which made every ORDINARY arrival flash the retired masthead while the
+    // read was in flight — the rare path taxing the common one.
     membership.state = state({ status: 'failed', player: null })
 
     renderRoot()
-    expect(screen.getByText('Legacy hub')).toBeInTheDocument()
-    expect(screen.queryByText('Discovery')).toBeNull()
+    expect(screen.getByText('Discovery')).toBeInTheDocument()
+    expect(screen.queryByText('Legacy hub')).toBeNull()
   })
 
   it('waits rather than guessing while the read is in flight', () => {
@@ -143,6 +144,5 @@ describe('the two cases that are not a competition', () => {
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument()
     expect(screen.queryByText('Discovery')).toBeNull()
     expect(screen.queryByText('Home of :competition')).toBeNull()
-    expect(screen.queryByText('Legacy hub')).toBeNull()
   })
 })

@@ -40,6 +40,7 @@ before claiming it — two branches claiming one number is a known failure here.
 | `VITE_UI_FOOTBALL_HUB_LMS` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_MATCHES` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_PREDICTOR` | set in the base build environment |
 | `VITE_UI_PUBLIC_LANDING` | set in the base build environment |
 | `VITE_UI_SEASON_MATCH_PREDICTOR` | set in the base build environment |
 

@@ -137,6 +137,14 @@ export function WorkshopCanvas({
                     failure for another. */}
                 <section
                   className={styles.scroller}
+                  // NAMED, BECAUSE A BROWSER SUITE HAS TO SCROLL IT. The one
+                  // spec that does reached it as `[data-vnext] > div`, which is
+                  // a guess about the element rather than a reference to it —
+                  // and changing the tag above to a `<section>` broke it with a
+                  // 30-second locator timeout rather than a useful message. A
+                  // frame's scrollport is a thing a test may legitimately need;
+                  // giving it a name says so.
+                  data-vnext-frame-scroller=""
                   style={
                     {
                       '--vnext-frame-block': `${viewport.height}px`,

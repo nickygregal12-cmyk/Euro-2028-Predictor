@@ -1,5 +1,4 @@
 import { Navigate } from 'react-router'
-import type { ReactNode } from 'react'
 import { usePlayerCompetitions } from '../providers/PlayerCompetitionsProvider'
 import { RouteFallback } from '../RouteFallback'
 import { competitionRoute, weeklyRoutes } from '../weeklyRoutes'
@@ -56,21 +55,40 @@ import { competitionRoute, weeklyRoutes } from '../weeklyRoutes'
  * disagree after a switch, a refresh or a share. `/` stays a working address
  * and becomes an entry point rather than a second home.
  *
- * ============================ AND WHY IT FAILS CLOSED =====================
+ * ============================ AND WHY A FAILED READ IS NOT A ROLLBACK =====
  *
- * A membership read that FAILED is not a player with no competitions —
- * `PlayerCompetitionsProvider` keeps those two apart on purpose, because "you
- * are in none" and "we could not find out" send a player to different places.
- * On a failure this renders the legacy hub it was given, which is
- * `src/app/routeFlags.ts`'s own rule applied to a read rather than to a flag:
- * the failure mode of the front door should be "the player sees what they saw
- * yesterday".
+ * The first version of this route rendered the LEGACY hub when the membership
+ * read failed, reasoning that the front door should fail closed. That was wrong
+ * twice.
+ *
+ * It was wrong about the mechanism: the ROLLBACK is the flag, and it is a
+ * build-time one. A transient read failure is not a decision to serve
+ * yesterday's product, and treating it as one means a player can be moved
+ * between two information architectures by a flaky network.
+ *
+ * And it was wrong about what a player saw. `/` sits inside `AppShell`, so
+ * keeping a legacy element reachable here meant this address could not
+ * surrender the legacy frame — which made every ordinary arrival paint the
+ * retired masthead and its five-tab bar for the length of the membership read
+ * and then replace it. The rare path cost the common one a visible flash of the
+ * product the cutover exists to retire.
+ *
+ * Both failure states therefore go to Discovery, which is a real surface for
+ * "no competition resolved here" and asserts NOTHING about membership — the
+ * shell's own copy is "No competition selected", which the switcher's docblock
+ * already establishes is a statement about the page rather than the player. The
+ * provider still keeps "in none" and "could not find out" apart, and that
+ * distinction still matters to surfaces that report it; it does not change what
+ * this route can usefully do, and pretending otherwise would put a second
+ * opinion about a failed read into the router.
  */
-export function VNextRootDestination({ fallback }: { readonly fallback: ReactNode }) {
+export function VNextRootDestination() {
   const { status, player } = usePlayerCompetitions()
 
   if (status === 'loading') return <RouteFallback />
-  if (status === 'failed' || player === null) return <>{fallback}</>
+  if (status === 'failed' || player === null) {
+    return <Navigate to={weeklyRoutes.competitions} replace />
+  }
 
   const first = player.mine[0]
 
