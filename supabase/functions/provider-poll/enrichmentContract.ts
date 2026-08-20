@@ -12,7 +12,6 @@ export const ENRICHMENT_PROVIDER_NAMES = [
   'sportdb-dev',
 ] as const
 
-type PolledProviderName = (typeof POLLED_PROVIDER_NAMES)[number]
 type EnrichmentProviderName = (typeof ENRICHMENT_PROVIDER_NAMES)[number]
 
 export type ProviderCapability =
