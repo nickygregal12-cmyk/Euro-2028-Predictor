@@ -290,6 +290,17 @@
   to = "/index.html"
   status = 404
 
+# THE WORKER SCRIPT IS NEVER SERVED FROM A CACHE. `serviceWorkerClient.ts`
+# registers with `updateViaCache: 'none'`, which already asks the browser to
+# revalidate the script itself; this says the same thing from the other side, so
+# a future registration that forgets the option cannot strand every installed
+# player on a worker from a previous deployment. Netlify applies matching header
+# rules cumulatively, so the security headers below still apply to it.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/*"
   [headers.values]

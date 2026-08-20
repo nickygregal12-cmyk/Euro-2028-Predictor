@@ -30,6 +30,7 @@
     "scripts/select-browser-journeys.mjs",
     "scripts/validate-deployment-contract.mjs",
     "scripts/validate-netlify-environment.mjs",
-    "scripts/list-notification-workflows.mjs"
+    "scripts/list-notification-workflows.mjs",
+    "scripts/og/generate-site-icons.mjs"
   ]
 }

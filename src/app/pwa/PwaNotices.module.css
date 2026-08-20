@@ -1,0 +1,110 @@
+/* The install and update notices.
+ *
+ * FIXED, BOTTOM, AND CLEAR OF THE MOBILE BAR. The vNext frame's bottom bar is
+ * sticky and in flow, so it reserves its own height inside the shell — but a
+ * fixed element is outside that flow and would sit on top of it. The clearance
+ * below is what keeps the notice above the tabs; it drops away at the width
+ * where the shell swaps the bar for the desktop rail.
+ *
+ * The container query the shell uses cannot be read from here, so the width is
+ * a media query at the same number. A notice that clears too much on an unusual
+ * viewport floats slightly high; one that clears too little covers navigation.
+ *
+ * `--z-toast` is the layer, from the stacking scale rather than a literal. It
+ * is the scale's own home for a floating transient notification, which is what
+ * these are — and being offline is the one message that must stay readable
+ * whatever else is on screen.
+ */
+
+.host {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  justify-content: center;
+  padding: var(--sp-3);
+  padding-bottom: calc(
+    var(--sp-3) + 4.5rem + env(safe-area-inset-bottom, 0px)
+  );
+  pointer-events: none;
+}
+
+@media (min-width: 1120px) {
+  .host {
+    padding-bottom: calc(var(--sp-4) + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  width: 100%;
+  max-width: 26rem;
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--card);
+  pointer-events: auto;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--fs-2);
+  font-weight: 500;
+  color: var(--tx);
+}
+
+.body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  line-height: 1.45;
+  color: var(--tx2);
+}
+
+.steps {
+  margin: 0;
+  padding-left: var(--sp-4);
+  font-family: var(--font-body);
+  font-size: var(--fs-1);
+  line-height: 1.55;
+  color: var(--tx2);
+}
+
+.actions {
+  display: flex;
+  gap: var(--sp-2);
+  justify-content: flex-end;
+}
+
+/* The share glyph iOS uses, drawn inline so the instruction can point at the
+   same shape the player is looking for rather than describing it in words. */
+.glyph {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.15em;
+  color: var(--acc);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .notice {
+    animation: rise var(--dur-2, 180ms) var(--ease-out, ease-out);
+  }
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(0.5rem);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -79,11 +79,30 @@ describe('ADR implementation-status freshness', () => {
     expect(index).toContain(
       '| [0024](0024-development-environment-operating-model.md) | Development environment operating model | Implemented for the current pre-cohort mode',
     )
-    // 0007, 0008, 0009, 0015, 0016 — and 0026, added 6 August 2026. This guard
-    // exists to catch a DELIVERED backend still described as unimplemented, so
-    // it moves only when a genuinely unbuilt decision is recorded. ADR 0026
-    // decides two frontend sites, one shared account across them, a server-owned
-    // Euro publication state and an 18+ first cohort; none of it is built.
-    expect(index.match(/Accepted direction — unimplemented/g)?.length ?? 0).toBe(6)
+    // 0007, 0008, 0009, 0015 — and 0026, added 6 August 2026. This guard exists
+    // to catch a DELIVERED backend still described as unimplemented, so it
+    // moves only when a genuinely unbuilt decision is recorded, or when a
+    // recorded one is delivered. ADR 0026 decides two frontend sites, one
+    // shared account across them, a server-owned Euro publication state and an
+    // 18+ first cohort; none of it is built.
+    //
+    // 0016 LEFT THIS SET ON 20 AUGUST 2026, which is the guard working rather
+    // than being relaxed: its Phase 1 manifest, per-site icons, service worker,
+    // offline shell and install and update flows are built. Its Phase 1 WEB
+    // PUSH is not, and neither are Phases 2 and 3, so the record says
+    // "Phase 1 partially implemented" and names the gap rather than claiming
+    // the phase.
+    expect(index.match(/Accepted direction — unimplemented/g)?.length ?? 0).toBe(5)
+    expect(index).toContain(
+      '| [0016](0016-client-and-distribution.md) | Client and distribution strategy | Accepted direction — Phase 1 partially implemented',
+    )
+    expect(adr('0016-client-and-distribution.md')).toContain(
+      '- **Status:** Accepted direction — Phase 1 partially implemented',
+    )
+    // The claim that would be worth catching is the overclaim, so the record is
+    // required to keep saying what did NOT land.
+    expect(adr('0016-client-and-distribution.md')).toContain(
+      "**Phase 1's installable web application exists; Phase 1's web push does not.**",
+    )
   })
 })
