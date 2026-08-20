@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **211** | latest `20260820090000_provider_deadline_watch_tier.sql` |
 | Development hosted | **211** | at `20260820090000_provider_deadline_watch_tier.sql`, verified `2026-08-20T09:54:01.756Z`, fast-lane run `32353837721` |
-| Production | **209** | promotion **not authorised** |
+| Production | **211** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or

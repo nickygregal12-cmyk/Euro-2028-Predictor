@@ -24,7 +24,7 @@
 
 The repository is at **contract 211**, through `20260820090000_provider_deadline_watch_tier.sql`.
 Development Supabase is hosted at **211**, verified `2026-08-20T09:54:01.756Z`.
-Production Supabase is hosted at **209**, verified `2026-08-20T06:54:55.701Z`; further promotion is **not authorised**.
+Production Supabase is hosted at **211**, verified `2026-08-20T10:32:54.145Z`; further promotion is **not authorised**.
 
 These three values are derived, not restated. The evidence for how each
 environment reached its contract — the rollout run, the exact head, the backup
