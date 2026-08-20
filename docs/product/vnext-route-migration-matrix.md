@@ -420,3 +420,230 @@ check that no user-facing route is missing from this matrix — is in
    Nothing in Stage 13 was needed for it; the row is discharged by Stage 9's
    league table and Stage 10's player surface, and this is recorded so the row
    is not mistaken for outstanding work.
+
+## 13. Being resolved by Stage 14 — the cutover, in its OFF position
+
+Stage 14 is where this matrix stops being a plan. Every row above has a decided
+**fate**; until now not one of them had a decided **production behaviour**. The
+two are not the same thing, and the gap between them is the whole stage: thirteen
+vNext surfaces exist, every one reachable only from a `/dev/**` harness, while
+all 41 non-dev routes still serve the component they served before the programme
+began.
+
+### What landed first, and why this pair
+
+`/competitions/:c/:s/matches` and `/competitions/:c/:s/matches/:fixtureId` are
+the first routes to get an intentional production behaviour. They were chosen
+because they exercise **both directions** of the adapter a cutover needs, and
+the smallest pair that does:
+
+- **inward** — a route supplies the competition and season from `useParams`,
+  where the harness supplied them from a form, and has to behave when they are
+  absent;
+- **outward** — an `openMatch` intent must become a URL. The harness swapped a
+  piece of local state, which is exactly what makes it a harness: a destination
+  a player cannot link to, share or press *back* out of is not a destination.
+
+Contract 148 makes the outward half honest. The fixture id alone resolves the
+match, so the address carries no `?on=` window, and a deep link survives a
+refresh and a share. That property was asserted in Stage 8 and is now an
+address.
+
+### The switch, and the fact that it is off
+
+`src/app/routeFlags.ts` gains `footballHubMatches`, reading
+`VITE_UI_FOOTBALL_HUB_MATCHES`. **It ships unset, and unset means legacy** —
+`enabled()` matches the exact string `'true'` and nothing else, so an empty
+value, a misspelling, `TRUE` and `1` all select the legacy route. A player's
+Matches route today is the same `SeasonMatchesRoute` it was yesterday.
+
+That is not caution for its own sake. `config/vnext-programme.json` carries
+`productionCutoverAuthorized: false`, and the Stage 14 contract separates
+**READY FOR CUTOVER**, which autonomous engineering may reach, from **CUT OVER
+AND VERIFIED**, which requires explicit authority for the exact action. Building
+the switch is the first; throwing it is the second, and it has not been thrown.
+
+`NOW.md` regenerates to record the flag as *"unset everywhere — the journey
+serves its legacy implementation"*, so the programme's own status surface states
+the production truth rather than the intent.
+
+### One flag per destination, not one for the hub
+
+The stage contract asks for a *staged deployment/rollback plan*. A single
+hub-wide switch is neither: it cannot be advanced one surface at a time, and
+rolling it back withdraws the surfaces that were fine along with the one that
+was not.
+
+### The legacy pair stays mounted, and a test says so
+
+`SeasonMatchesRoute` and `SeasonMatchCentreRoute` are untouched, still routed on
+the off branch and still passing their own tests. Nothing was deleted to make
+room. The contract's *"deleting recoverable legacy code before rollback safety
+is proven"* is listed under what Stage 14 does **not** own, and retirement stays
+a later, separately gated act.
+
+`tests/vnext/vnextCutoverRouting.test.tsx` asserts the off branch **first**,
+because that is the state this ships in — a test that proves only the on branch
+proves the feature and not the release gate. It also reads `App.tsx` directly to
+confirm both routes actually consult the flag and that both legacy elements are
+still routed, because a route that forgot to ask renders legacy for ever and is
+indistinguishable from a correctly-off flag.
+
+### The production boundary, narrowed rather than flipped
+
+`tests/vnext/vnextProductionBoundary.test.ts` asserted that **no** vNext module
+is reachable from `src/main.tsx`. Wiring a vNext surface to a real route breaks
+that by construction, and this programme's rule is explicit: *never flip a guard
+merely to keep the loop moving.* So it was not flipped.
+
+Read what the guard says it protects against: *"one import added from a
+production surface because a component looked reusable … while looking like an
+ordinary refactor."* **That is an accident.** A cutover is its opposite —
+deliberate, contracted, flag-gated, and argued for here. The guard was written
+for a lane that had no sanctioned door, and Stage 14 is the stage that builds
+one. A guard that must be DELETED the first time the programme reaches its own
+stated goal was never protecting anything.
+
+It is narrowed, exactly as this suite was narrowed once before: Stage 6 turned a
+blanket ban into a directional rule when `integration/` legitimately needed the
+application. `src/app/vnext/` is now stopped at, precisely as `src/dev/` already
+was, and **the original assertion is then made verbatim against the whole rest
+of the tree** — any accidental import from anywhere else still fails it.
+
+Three new cases prove the door is a door and not a hole:
+
+1. **vNext is reachable through the seam and nowhere else.** Production is
+   walked *without* stopping at the seam, then everything the seam legitimately
+   pulls in is subtracted; anything left is a second route in, and fails.
+2. **The seam is entered lazily.** A static import would put vNext in the entry
+   chunk — measured below — so `lazy()` is load-bearing rather than tidy.
+3. **Every seam route is gated by a rollback flag.** An adapter mounted
+   unconditionally is a cutover, not a switch.
+
+All three are mutation-proved: an accidental `VNextRoot` import from
+`src/app/Providers.tsx` fails (1), converting the lazy wrapper to a static
+import fails (2), and dropping the flag from a route fails (3).
+
+### The kickoff formatter, which the cutover exposed
+
+Wiring the routes also tripped `tests/app/kickoffFormattingAuthority.test.ts`,
+and this one was not a boundary question — it was a **defect that had been true
+and invisible for six stages**.
+
+`src/vnext/foundations/format.ts` built its own `Intl.DateTimeFormat` pinned to
+`en-GB` / `Europe/London`. That is right for a workshop: a story must render
+17:30 on a laptop and 17:30 in CI or a screenshot comparison is worthless. The
+file said so itself, and said what it cost — *"the pinned zone is a workshop
+decision, not a product one; real integration will use the user's zone."*
+
+Stage 14 is real integration. Shipped as it stood, **Matches — a surface that is
+almost entirely kickoff times — would have told a player in Dublin, New York or
+Sydney what time the match starts in London.** The guard caught it the instant a
+vNext module entered the shipping graph, which is the only moment it could have.
+
+The owner's 10 August 2026 direction, which that guard enforces, asks for two
+things: kickoffs in the viewer's own device zone, **and one shared helper**
+across Matches, the Match Predictor, LMS, the Championship and the Match Centre.
+vNext's formatter was a sixth local copy of exactly the kind that once left five
+implementations disagreeing about whose zone a kickoff belongs to. So it is not
+an `ALLOWED` entry, and it was not given one.
+
+**vNext now delegates.** `formatTime`, `formatDayKey`, `formatDayHeading` and
+the weekday inside `formatKickoffLabel` call `src/shared/time/kickoff.ts`. The
+options already matched where the authority had an equivalent — `hourCycle: 'h23'`
+is vNext's `hour12: false`, and the day key was `en-CA` in both — so the visible
+output is unchanged and all 2015 vNext tests pass untouched. The two forms the
+authority lacked, an abbreviated weekday and a short-weekday day heading, were
+added **to the authority** rather than kept locally.
+
+Which zone is still vNext's choice, and it defaults to the workshop pin:
+`configureVNextTimeZone` is called only from `src/app/vnext/`, so stories and
+jsdom tests stay deterministic and production gets `viewerTimeZone()`.
+
+### Bundle cost, measured — and then removed entirely
+
+The predicate asks that bundle regression be *acceptable*. It turns out the
+repository already enforces that: `scripts/check-bundle-budget.mjs` runs in CI
+as **Compressed bundle budgets**, and the first two drafts of this change failed
+it. Three ratchets, all breached:
+
+| budget | `main` | static import | lazy import | limit |
+| --- | ---: | ---: | ---: | ---: |
+| largest JS chunk | 73.2 KB gz | 133.3 | 79.8 | 77 |
+| all JS | 354.0 KB gz | — | 411.2 | 366 |
+| all CSS | 42.5 KB gz | — | 49.1 | 44 |
+
+**Lazy loading was not enough, and the CSS row is why.** `vite.config.ts` sets
+`cssCodeSplit: false` deliberately — collapsing 39 per-route stylesheets into
+one *saved* 15 KB, because per-file gzip overhead cost more than the content —
+so there is exactly one stylesheet and **every visitor downloads it**. A lazy
+chunk defers the JavaScript and not the styles. With the flag off and nobody
+able to see a vNext surface, every visitor would still have paid 6.6 KB gz for
+its design language.
+
+The budget file also already explained the entry-chunk residue this section
+previously recorded as unexplained: *"splitting a route out of this bundle
+hoists the modules it shares with the rest into the entry chunk, so the chunk
+grows while total JavaScript barely moves."*
+
+**The fix is to make the off branch cost nothing at all, which it now does.**
+`VITE_*` values are build-time literals in Vite, so `src/App.tsx` gates the
+lazy import on `import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES === 'true'`
+inline. The branch folds, Rollup drops the whole subtree — JavaScript and CSS
+— and with the flag off the bundle measures **73.2 / 354.0 / 42.5: byte-identical
+to `main`**.
+
+That upgrades the rollback promise from a claim about behaviour to one about
+bytes. A build with this flag off is the build that shipped yesterday.
+
+**It has to be inline.** Re-exporting the same comparison as a `const` from
+`routeFlags.ts` was tried and does **not** fold across the module boundary — the
+import survives and every byte comes back. The duplication is a bundler
+constraint, not a preference, and
+`tests/vnext/vnextCutoverRouting.test.tsx` pins the two readings to the same
+variable and the same string so they cannot drift.
+
+**With the flag ON the budgets fail, and that is left standing on purpose.**
+Turning the flag on is the production mutation this stage gates behind explicit
+authority. The ratchet failing at that moment is the correct behaviour: it
+forces the real cost of shipping two design languages to be confronted *when
+someone decides to ship it*, with a measurement in hand, rather than smuggled in
+now while no player can see the benefit.
+
+### What this does not yet do
+
+The predicate is not met and nothing here claims it is. Still outstanding for
+READY FOR CUTOVER: the other eleven destinations; auth, refresh and error-path
+coverage at the real routes; performance and accessibility regression;
+monitoring and rollback readiness; and `UX-007`, the suspected focus-obscured
+exposure behind the sticky masthead, which only becomes exercisable once the
+shell is the production frame.
+
+**The `/play` attention layer is NOT on that list, and an earlier draft of this
+section wrongly put it there.** It is built in PR #930, on
+`claude/vnext-precutover-gaps-fdxai5`, by another session:
+`buildShellAttention.ts`, `useVNextShellElsewhere.ts`,
+`VNextShellElsewhereHost.tsx` and a `buildShellModel` that accepts several
+contexts. Recording it as outstanding here would have invited a second
+implementation of a surface that already exists — the precise duplication this
+matrix is supposed to prevent.
+
+### The one seam between this change and PR #930
+
+They do not overlap in code — #930's `src/App.tsx` edit is confined to the
+`/dev/**` harness routes and this one is in the competition-scoped table — but
+they meet at a real seam, and whichever lands second owns closing it.
+
+#930 adds an **optional** `shellElsewhere` prop to `VNextMatchesScreen` and
+`VNextMatchCentreScreen`, and says of the acquisition that *"the expensive
+acquisition is meant to be mounted once above page navigation, which is the
+host's job and is not claimed here."*
+
+`src/app/vnext/VNextMatchesDestination.tsx` is the first real host. Because the
+prop is optional, nothing breaks in either merge order: this adapter compiles
+and runs against #930's screens untouched. What it does not yet do is SUPPLY the
+attention, so until the seam is closed the production Matches route would show a
+player nothing about the competitions they are not looking at. That is a
+follow-up with a named owner, not a defect in either branch.
+
+*Fate counts are unchanged.* Stage 14 moves no row — it implements them.

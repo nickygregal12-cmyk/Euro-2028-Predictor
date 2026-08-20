@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router'
 import { ThemeProvider } from './app/providers/ThemeProvider'
 import { SiteProvider } from './app/site/SiteProvider'
 import { AuthLayout, RedirectIfAuthed, RequireAuth, RequireWelcome } from './app/Providers'
+import { isNextUi } from './app/routeFlags'
 import { AppShell } from './app/AppShell'
 import { RouteAccessibility } from './app/RouteAccessibility'
 import { RouteFallback } from './app/RouteFallback'
@@ -50,6 +51,39 @@ const CompetitionGamesPage = lazy(() =>
     default: m.CompetitionGamesPage,
   })),
 )
+/* LAZY, LIKE EVERY OTHER HEAVY ROUTE ELEMENT HERE, AND MEASURED RATHER THAN
+   ASSUMED. Imported statically these cost the ENTRY chunk 240.19 kB → 428.67 kB
+   raw (75.81 → 133.27 kB gzip) — a 78% increase paid by every visitor, for a
+   surface that cannot render while `footballHubMatches` is off, because
+   `isNextUi(...)` is a function call and no bundler can shake it out.
+
+   Lazy, the vNext surfaces get their own 187.32 kB chunk (57.71 kB gzip),
+   fetched only when the flag is on AND the route is visited. The entry still
+   moves 240.19 → 262.33 kB raw (75.81 → 82.56 kB gzip), and that residue is
+   NOT vNext code — the entry contains no vNext module. It is Rollup
+   rebalancing: a second consumer for shared modules split `lib`,
+   `seasonClubForm` and `shellRoutes` into their own chunks and hoisted common
+   code up. Worth stating rather than rounding to zero. */
+/* INLINE, AND IT HAS TO BE. Vite folds this to a literal so Rollup can drop
+   the vNext subtree and its CSS entirely when the flag is off — the bundle then
+   measures byte-identical to `main`. Re-exporting the comparison from
+   `routeFlags.ts` was tried and does not fold across the module boundary. See
+   the note there; the two readings must stay in step and a test pins them. */
+const FOOTBALL_HUB_MATCHES_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES === 'true'
+const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchesDestination,
+      })),
+    )
+  : null
+const VNextMatchCentreDestination = FOOTBALL_HUB_MATCHES_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextMatchesDestination').then((m) => ({
+        default: m.VNextMatchCentreDestination,
+      })),
+    )
+  : null
 const SeasonMatchPredictorRoute = lazy(() =>
   import('./features/season/SeasonGameRouteBundle').then((m) => ({
     default: m.SeasonMatchPredictorRoute,
@@ -493,13 +527,35 @@ export default function App() {
                           path={weeklyRoutePatterns.play}
                           element={<SeasonPlayRoute />}
                         />
+                        {/* STAGE 14, THE FIRST CUTOVER VERTICAL. The choice is
+                            made HERE, at the routing layer, and not inside
+                            either component — `routeFlags.ts` exists because a
+                            flag threaded through a tree cannot be rolled back
+                            with confidence, while a flag that selects which
+                            element renders can. `SeasonMatchesRoute` and
+                            `SeasonMatchCentreRoute` are untouched and still
+                            mounted on the off branch, so turning the flag off
+                            restores yesterday's journey with no data rollback.
+                            It ships off: see `config/vnext-programme.json`. */}
                         <Route
                           path={weeklyRoutePatterns.matches}
-                          element={<SeasonMatchesRoute />}
+                          element={
+                            isNextUi('footballHubMatches') && VNextMatchesDestination ? (
+                              <VNextMatchesDestination />
+                            ) : (
+                              <SeasonMatchesRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchCentre}
-                          element={<SeasonMatchCentreRoute />}
+                          element={
+                            isNextUi('footballHubMatches') && VNextMatchCentreDestination ? (
+                              <VNextMatchCentreDestination />
+                            ) : (
+                              <SeasonMatchCentreRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.games}
