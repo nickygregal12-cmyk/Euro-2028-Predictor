@@ -31,9 +31,17 @@ before claiming it — two branches claiming one number is a known failure here.
 
 | Flag | State |
 | --- | --- |
-| `VITE_UI_FOOTBALL_HUB_MATCHES` | **unset everywhere** — the journey serves its legacy implementation |
-| `VITE_UI_PUBLIC_LANDING` | set in `deploy-preview` |
-| `VITE_UI_SEASON_MATCH_PREDICTOR` | set in `deploy-preview` |
+| `VITE_UI_FOOTBALL_HUB_ACCOUNT` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_DISCOVERY` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_GAMES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_HOME` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_LEAGUES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_LMS` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_MATCHES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` | set in the base build environment |
+| `VITE_UI_PUBLIC_LANDING` | set in the base build environment |
+| `VITE_UI_SEASON_MATCH_PREDICTOR` | set in the base build environment |
 
 An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 

@@ -322,10 +322,53 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // to shrink a lazy chunk is the wrong trade; deferring the feature bundle with
 // an async `features` import is the right one, and it is a change to the vNext
 // lane rather than to this page.
+// RAISED 20 AUGUST 2026 — 80 → 92, 436 → 492, 55 → 60 — BECAUSE THE FOOTBALL
+// HUB CUTOVER TURNED ON. `config/vnext-programme.json` carries
+// `productionCutoverAuthorized: true` and `netlify.toml` sets all nine
+// destination flags in `[build.environment]`, so every context now BUILDS the
+// vNext surfaces rather than folding them out. This is the first measurement of
+// the product as it will actually be served.
+//
+// MEASURED WITH THE FLAGS ON, chunk by chunk, rather than estimated:
+//
+//   • index (entry)             79.9 → 89.6 KB gz
+//   • VNextShell (new, lazy)     0.0 → 46.1  the shell, foundations and Framer
+//                                            Motion, shared by every destination
+//   • VNextHubDestinations       0.0 → 29.1  the eight cutover adapters
+//   • VNextLeagues (new, lazy)   0.0 → 13.0
+//   • ProductPreview (lazy)     10.8 → 10.8  the landing page's, unchanged
+//   • all JS                   430.4 → 479.7
+//   • all CSS                   53.2 → 58.1
+//
+// THE ENTRY CHUNK CONTAINS NO vNEXT CODE, and that was verified rather than
+// assumed: no Framer Motion, no `data-vnext`, no vNext token, no marketing
+// fixture, no `configureVNextTimeZone`. Every destination is behind
+// `React.lazy` gated on a folded `import.meta.env` literal. The 9.7 KB is
+// Rollup rebalancing — more consumers for the shared modules hoists common code
+// up — which is the same effect the Matches cutover recorded and measured at
+// 6.75 KB. If a future raise is accompanied by Framer Motion appearing in that
+// probe, that is a static import that must be made lazy rather than budgeted.
+//
+// WHAT A SIGNED-IN VISITOR DOWNLOADS BEFORE ANYTHING RENDERS is 151.0 KB gz:
+// the entry chunk, the jsx runtime and the one stylesheet. The 88 KB of vNext
+// surfaces arrives per destination, on demand.
+//
+// THE CSS IS THE ONE THAT IS EAGER AND CANNOT BE MADE LAZY. `cssCodeSplit:
+// false` collapses every stylesheet into one file that every visitor fetches,
+// for the per-file gzip reason recorded at length in `vite.config.ts`, so the
+// vNext lane's 4.9 KB is on the critical path whatever the routing does. It is
+// the price of the design language and it is worth stating rather than hiding
+// inside the total.
+//
+// 92 sits about two kilobytes over the measured 89.6, 492 about twelve over
+// 479.7 and 60 about two over 58.1 — the same headroom-to-measurement shape the
+// previous raises chose. THE ROLLBACK MEASUREMENT STILL HOLDS: with every flag
+// off the same build measures 79.9 / 430.4 / 53.2, so turning a destination
+// back off recovers its bytes as well as its behaviour.
 const BUDGETS = {
-  entryChunkKb: 80,
-  totalJsKb: 436,
-  totalCssKb: 55,
+  entryChunkKb: 92,
+  totalJsKb: 492,
+  totalCssKb: 60,
 }
 
 /**

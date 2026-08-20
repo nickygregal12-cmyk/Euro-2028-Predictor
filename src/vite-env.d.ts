@@ -43,6 +43,22 @@ interface ImportMetaEnv {
 
   /** Stage 14 Football Hub cutover: vNext Matches and Match Centre. */
   readonly VITE_UI_FOOTBALL_HUB_MATCHES?: string
+  /** Stage 14: vNext Home at `/` and `/competitions/:c/:s`. */
+  readonly VITE_UI_FOOTBALL_HUB_HOME?: string
+  /** Stage 14: the vNext Games catalogue. */
+  readonly VITE_UI_FOOTBALL_HUB_GAMES?: string
+  /** Stage 14: vNext Leagues, season table and private tables. */
+  readonly VITE_UI_FOOTBALL_HUB_LEAGUES?: string
+  /** Stage 14: the vNext player profile, addressed by the season reference. */
+  readonly VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE?: string
+  /** Stage 14: vNext Discovery at `/competitions`. */
+  readonly VITE_UI_FOOTBALL_HUB_DISCOVERY?: string
+  /** Stage 14: the vNext Account surface at `/account`. */
+  readonly VITE_UI_FOOTBALL_HUB_ACCOUNT?: string
+  /** Stage 14: vNext Last Man Standing. */
+  readonly VITE_UI_FOOTBALL_HUB_LMS?: string
+  /** Stage 14: the vNext Predictor Championship. */
+  readonly VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

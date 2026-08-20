@@ -1,5 +1,10 @@
 import { motion } from 'framer-motion'
-import type { GameEntry, GamesPageModel, GamesPanel } from '../models/games'
+import type {
+  CatalogueGameKey,
+  GameEntry,
+  GamesPageModel,
+  GamesPanel,
+} from '../models/games'
 import { offersEntry, partitionByPlaying } from '../models/games'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
@@ -38,7 +43,21 @@ import styles from './games.module.css'
  */
 
 export type GamesIntent =
-  | { readonly kind: 'open-game'; readonly gameId: string }
+  | {
+      readonly kind: 'open-game'
+      /** `game_competition_id`. What a read or a write is addressed by. */
+      readonly gameId: string
+      /**
+       * The catalogue's own key, carried BECAUSE A HOST HAS TO ROUTE.
+       *
+       * The id is a membership row and says nothing about which page a game
+       * has; the key is what the router knows. Without it a host would have to
+       * map an opaque id back to a game, and the only way to do that is to keep
+       * a second copy of the catalogue — which is how a route ends up pointing
+       * at the wrong game after the catalogue changes.
+       */
+      readonly gameKey: CatalogueGameKey
+    }
   | { readonly kind: 'join-game'; readonly gameId: string }
 
 export type VNextGamesProps = {
@@ -301,7 +320,7 @@ function GameRow({
         <button
           type="button"
           className={styles.rowAction}
-          onClick={() => onIntent?.({ kind: 'open-game', gameId: entry.id })}
+          onClick={() => onIntent?.({ kind: 'open-game', gameId: entry.id, gameKey: entry.gameKey })}
         >
           {entry.standing.kind === 'playing' ? 'Open' : 'Look inside'}
           <span className={text.srOnly}>

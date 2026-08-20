@@ -300,9 +300,22 @@ describe('the vNext workshop', () => {
     // exports must therefore appear opposite a legacy element under a flag.
     const exported = seamFiles
       .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(/export function (VNext\w+)/g)])
-      .map((match) => match[1])
+      .map((match) => match[1] ?? '')
+      .filter(Boolean)
     expect(exported.length).toBeGreaterThan(0)
+
+    // THE SEAM'S PROVIDER IS NOT A DESTINATION, and holding it to a
+    // destination's rule would be holding the wrong thing. `VNextSeamLayout`
+    // renders no surface and replaces no legacy page: it is a layout route that
+    // mounts the cross-competition read once above the others, and it has no
+    // legacy counterpart to fall back to. It is absent entirely when every
+    // cutover flag is off — `src/App.tsx` swaps in a pass-through — which is
+    // the rollback property this rule is really asking for, proved by the
+    // bundle case above rather than by an `isNextUi` beside it.
+    const PROVIDERS = new Set(['VNextSeamLayout', 'VNextSeamHost'])
+
     for (const element of exported) {
+      if (PROVIDERS.has(element)) continue
       const mounted = appTsx.includes(`<${element} />`)
       if (!mounted) continue
       const guarded = new RegExp(`isNextUi\\('[a-zA-Z]+'\\)[\\s\\S]{0,200}<${element} />`)

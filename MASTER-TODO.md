@@ -1,6 +1,6 @@
 # Active delivery backlog
 
-**Status date:** 19 August 2026  
+**Status date:** 20 August 2026  
 **Purpose:** a short index of work that is genuinely still live. An unchecked item here means work remains.  
 **Historical snapshot before this reconciliation:** [`docs/history/context-reset-2026-08-19/MASTER-TODO.pre-reconciliation.txt`](docs/history/context-reset-2026-08-19/MASTER-TODO.pre-reconciliation.txt)
 
@@ -22,7 +22,8 @@ This file is **not** implementation truth and does not restate moving contract n
 - [ ] Complete the stage named by `config/vnext-programme.json`; do not infer progress from this file.
 - [ ] Before the Stage 13 supporting-surface sweep grows further, close or deliberately schedule the vNext quality foundations: `TEST-002`, `CI-002`, `UX-006`, `TEST-003`, `DOC-004`, `OPS-012`.
 - [ ] Stage 13 — migrate/support Account, onboarding, discovery, private-play entry, help and generic failure/empty/loading states using existing working capabilities rather than rebuilding them.
-- [ ] Stage 14 — Football Hub production cutover, only after its route, accessibility, performance, rollback and explicit Production gates pass.
+- [x] Stage 14 — Football Hub production cutover. **Done and ON.** Nine destination flags in `netlify.toml`'s `[build.environment]`, `productionCutoverAuthorized: true` in [`config/vnext-programme.json`](config/vnext-programme.json), every legacy route element still mounted so any one destination rolls back on its own with no data rollback, and every hosted environment level at Contract 208 so the reads exist wherever they run. [`docs/product/vnext-route-migration-matrix.md`](docs/product/vnext-route-migration-matrix.md) §13 owns the table.
+  - [ ] What the cutover did NOT close, named rather than implied: authenticated performance and perceived-performance measurement at the real routes against a real database; monitoring and alerting for the new surfaces; and `UX-007`, the suspected focus-obscured exposure behind the sticky masthead, which only becomes exercisable now the shell is the production frame.
 - [ ] Stage 15 — Euro 2028 vNext adoption and final convergence audit.
 
 **Do not duplicate the route matrix here.** [`docs/product/vnext-route-migration-matrix.md`](docs/product/vnext-route-migration-matrix.md) owns route fate. The active Championship/Stage 12 branch already carries its Stage 12 correction.

@@ -421,7 +421,7 @@ check that no user-facing route is missing from this matrix — is in
    league table and Stage 10's player surface, and this is recorded so the row
    is not mistaken for outstanding work.
 
-## 13. Being resolved by Stage 14 — the cutover, in its OFF position
+## 13. Resolved by Stage 14 — the cutover, ON
 
 Stage 14 is where this matrix stops being a plan. Every row above has a decided
 **fate**; until now not one of them had a decided **production behaviour**. The
@@ -449,7 +449,7 @@ match, so the address carries no `?on=` window, and a deep link survives a
 refresh and a share. That property was asserted in Stage 8 and is now an
 address.
 
-### The switch, and the fact that it is off
+### The switch, and the fact that it is now ON
 
 `src/app/routeFlags.ts` gains `footballHubMatches`, reading
 `VITE_UI_FOOTBALL_HUB_MATCHES`. **It ships unset, and unset means legacy** —
@@ -610,14 +610,68 @@ forces the real cost of shipping two design languages to be confronted *when
 someone decides to ship it*, with a measurement in hand, rather than smuggled in
 now while no player can see the benefit.
 
+### The rest of the cutover, and the switch in its ON position
+
+**Nine destinations, nine flags, and every legacy element still mounted.** The
+Matches pair proved the shape; the rest follow it exactly. `src/app/vnext/` now
+carries `VNextMatchesDestination.tsx`, `VNextHubDestinations.tsx` and the shared
+`seam.tsx`, and `src/App.tsx` selects between each vNext element and the legacy
+one it replaces:
+
+| Address | Legacy element | vNext element | Flag |
+| --- | --- | --- | --- |
+| `/competitions/:c/:s` | `CompetitionDashboardPage` | `VNextHomeDestination` | `VITE_UI_FOOTBALL_HUB_HOME` |
+| `…/matches` and `…/matches/:fixtureId` | `SeasonMatchesRoute`, `SeasonMatchCentreRoute` | `VNextMatchesDestination`, `VNextMatchCentreDestination` | `VITE_UI_FOOTBALL_HUB_MATCHES` |
+| `…/games` | `CompetitionGamesPage` | `VNextGamesDestination` | `VITE_UI_FOOTBALL_HUB_GAMES` |
+| `…/leagues` | `SeasonLeaguesRoute` | `VNextLeaguesDestination` | `VITE_UI_FOOTBALL_HUB_LEAGUES` |
+| `…/players/:playerId` | `SeasonPlayerProfileRoute` | `VNextPlayerProfileDestination` | `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` |
+| `…/games/lms` | `SeasonLmsRoute` | `VNextLmsDestination` | `VITE_UI_FOOTBALL_HUB_LMS` |
+| `…/games/championship/*` | `SeasonChampionshipRouter` | `VNextChampionshipDestination` | `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` |
+| `/competitions` | `ExploreCompetitionsPage` | `VNextDiscoveryDestination` | `VITE_UI_FOOTBALL_HUB_DISCOVERY` |
+| `/account` | `AccountPage` | `VNextAccountDestination` | `VITE_UI_FOOTBALL_HUB_ACCOUNT` |
+
+**The Match Predictor is the tenth and it already had a flag.**
+`VITE_UI_SEASON_MATCH_PREDICTOR` predates Stage 14 and moves to
+`[build.environment]` with the rest.
+
+**`/` IS UNTOUCHED, AND THAT IS THE MATRIX'S OWN DECISION.** §1 says the address
+may keep resolving to whatever the player's active competition is and that
+*"deciding how is the cutover stage's work"*. The decision taken is to leave it:
+`HomeDestination` still dispatches by site variant to the Hub page, which is the
+surface a player with NO competition needs, and a player who has one reaches
+vNext Home the moment they open it. Making `/` redirect would change what a
+signed-in player sees at the root and is a product decision this stage has no
+authority for.
+
+### The attention layer is supplied, closing the seam this section named
+
+The Matches change recorded a follow-up: the adapter *"does not yet SUPPLY the
+attention, so until the seam is closed the production Matches route would show a
+player nothing about the competitions they are not looking at."*
+
+`VNextSeamLayout` is that closure. It is a LAYOUT ROUTE inside `RequireWelcome`
+and outside `AppShell`, so `VNextShellElsewhereHost` mounts once above every
+signed-in route and survives every destination change — which is what
+`useVNextShellElsewhere` requires of a host in terms, because the inbox costs a
+play-context read plus up to three game reads per competition.
+
+### The shell navigates now
+
+`useShellIntentNavigation` answered only Matches and deliberately dropped the
+other three, because routing them would have dropped a player into a legacy page
+mid-journey. All four are vNext, so all four are answered — and `context`, `game`
+and `league` intents resolve their competition through the player's own list
+rather than through a template string, so an intent naming a competition the
+player is not in navigates nowhere instead of to a 404.
+
 ### What this does not yet do
 
-The predicate is not met and nothing here claims it is. Still outstanding for
-READY FOR CUTOVER: the other eleven destinations; auth, refresh and error-path
-coverage at the real routes; performance and accessibility regression;
-monitoring and rollback readiness; and `UX-007`, the suspected focus-obscured
-exposure behind the sticky masthead, which only becomes exercisable once the
-shell is the production frame.
+Still outstanding, and named rather than implied: authenticated performance and
+perceived-performance measurement at the real routes against a real database;
+monitoring and alerting for the new surfaces; and `UX-007`, the suspected
+focus-obscured exposure behind the sticky masthead, which becomes exercisable
+now that the shell is the production frame and should be the first thing the
+next session looks at.
 
 **The `/play` attention layer is NOT on that list, and an earlier draft of this
 section wrongly put it there.** It is built in PR #930, on

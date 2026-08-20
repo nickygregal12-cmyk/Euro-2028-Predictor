@@ -23,9 +23,36 @@
 [build.environment]
   NODE_VERSION = "22.22.2"
 
-[context.deploy-preview.environment]
+  # ---- Stage 14, the Football Hub cutover ---------------------------------
+  #
+  # EVERY CONTEXT, INCLUDING PRODUCTION. These were deploy-preview-only while
+  # the cutover was a rehearsal; `config/vnext-programme.json` now carries
+  # `productionCutoverAuthorized: true`, and all three hosted environments are
+  # level at Contract 208, so the reads these surfaces make exist everywhere
+  # they run.
+  #
+  # ONE PER DESTINATION, NOT ONE FOR THE HUB. Setting any single value here to
+  # anything but "true" restores that one legacy journey on the next deploy —
+  # the legacy route components are all still mounted — with no migration, no
+  # backfill and no data rollback. That is the release gate this programme
+  # works to, and it is why nine lines is the right shape rather than one.
+  #
+  # THEY APPLY TO BOTH DEPLOYMENTS AND THAT IS SAFE. `netlify.toml` is shared,
+  # but every flag below gates a DOMESTIC competition route, and the Euro
+  # deployment's own journeys sit behind `TournamentJourney` and are untouched.
+  # The variant itself stays a per-site variable for the reason recorded at the
+  # top of this file.
   VITE_UI_PUBLIC_LANDING = "true"
   VITE_UI_SEASON_MATCH_PREDICTOR = "true"
+  VITE_UI_FOOTBALL_HUB_HOME = "true"
+  VITE_UI_FOOTBALL_HUB_MATCHES = "true"
+  VITE_UI_FOOTBALL_HUB_GAMES = "true"
+  VITE_UI_FOOTBALL_HUB_LEAGUES = "true"
+  VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE = "true"
+  VITE_UI_FOOTBALL_HUB_DISCOVERY = "true"
+  VITE_UI_FOOTBALL_HUB_ACCOUNT = "true"
+  VITE_UI_FOOTBALL_HUB_LMS = "true"
+  VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP = "true"
 
 # Known application routes answer 200. Anything else reaches the final 404
 # rewrite and renders the SPA NotFoundPage without becoming a soft 200.

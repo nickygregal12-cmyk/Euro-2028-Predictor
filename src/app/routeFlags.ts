@@ -40,6 +40,21 @@ export type MigratedJourney =
    * safety being proven, not on the flag existing.
    */
   | 'footballHubMatches'
+  /**
+   * THE REST OF THE CUTOVER, one flag per destination for the same reason
+   * Matches got one: the stage contract asks for a "staged deployment/rollback
+   * plan", and an all-or-nothing switch is neither. Each selects between a
+   * legacy route component that is STILL MOUNTED and still passing its own
+   * tests, and the vNext screen an earlier stage built.
+   */
+  | 'footballHubHome'
+  | 'footballHubGames'
+  | 'footballHubLeagues'
+  | 'footballHubPlayerProfile'
+  | 'footballHubDiscovery'
+  | 'footballHubAccount'
+  | 'footballHubLms'
+  | 'footballHubChampionship'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -65,12 +80,32 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
     // it is the behaviour every signed-out visitor got until this flag shipped.
     case 'publicLanding':
       return enabled(import.meta.env.VITE_UI_PUBLIC_LANDING) ? 'next' : 'legacy'
-    // Stage 14. `productionCutoverAuthorized` is `false` in
-    // `config/vnext-programme.json`, so this ships UNSET and therefore
-    // `'legacy'`: the switch exists and is proved in both positions, and the
-    // production mutation is a separate, explicitly authorised act.
+    // Stage 14, the Football Hub cutover. Every one of these ships TRUE in
+    // `.env.example` now that `productionCutoverAuthorized` is `true` in
+    // `config/vnext-programme.json` and all three hosted environments are level
+    // at Contract 208 — the reads these surfaces make exist everywhere they
+    // will run. Each remains a switch rather than a deletion: the legacy route
+    // components are still mounted on the off branch, so setting any one of
+    // these to anything but `'true'` restores yesterday's journey for that one
+    // destination with no data rollback.
     case 'footballHubMatches':
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_MATCHES) ? 'next' : 'legacy'
+    case 'footballHubHome':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_HOME) ? 'next' : 'legacy'
+    case 'footballHubGames':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_GAMES) ? 'next' : 'legacy'
+    case 'footballHubLeagues':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_LEAGUES) ? 'next' : 'legacy'
+    case 'footballHubPlayerProfile':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE) ? 'next' : 'legacy'
+    case 'footballHubDiscovery':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_DISCOVERY) ? 'next' : 'legacy'
+    case 'footballHubAccount':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_ACCOUNT) ? 'next' : 'legacy'
+    case 'footballHubLms':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_LMS) ? 'next' : 'legacy'
+    case 'footballHubChampionship':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP) ? 'next' : 'legacy'
   }
 }
 
