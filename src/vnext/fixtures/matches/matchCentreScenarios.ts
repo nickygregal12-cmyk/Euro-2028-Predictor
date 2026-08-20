@@ -252,7 +252,7 @@ const rich = {
 const scheduledCentre: MatchCentreModel = centre({
   id: 'fixture-centre-scheduled',
   ...rich,
-  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z' },
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
   prediction: { kind: 'entered', score: { home: 2, away: 1 } },
   links: [
     { kind: 'match-predictor', label: 'Enter your prediction in the Match Predictor' },
@@ -447,6 +447,9 @@ const postponedCentre: MatchCentreModel = centre({
     kind: 'postponed',
     kickoff: '2027-08-21T14:00:00.000Z',
     note: 'Waterlogged pitch. A new date has not been set.',
+    // No replacement date, so the page still says "was due" against the slot
+    // this fixture missed. The rescheduled scenario below is the other half.
+    rescheduled: false,
   },
 })
 
@@ -512,6 +515,7 @@ const richContextCentre: MatchCentreModel = centre({
   state: {
     kind: 'scheduled',
     kickoff: '2027-08-21T14:00:00.000Z',
+    rescheduled: false,
   },
   prediction: { kind: 'entered', score: { home: 2, away: 1 } },
   links: [
@@ -537,7 +541,7 @@ const coreOnlyCentre: MatchCentreModel = centre({
   id: 'fixture-centre-core',
   home: bareSide(T.dunveggie),
   away: bareSide(T.arbrennan),
-  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z' },
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
   table: null,
   headToHead: null,
   unavailable: ['table', 'recent form', 'head-to-head'],
@@ -663,7 +667,10 @@ const socialRichCentre = centre({
 const socialHiddenLeagueCentre = centre({
   id: 'mc-social-hidden',
   ...rich,
-  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z' },
+  // `rescheduled: false` — contract 209 made a scheduled fixture say whether it
+  // MOVED, and this one has not. It is a required fact rather than an optional
+  // one precisely so a world cannot forget to answer it.
+  state: { kind: 'scheduled', kickoff: '2027-08-21T14:00:00.000Z', rescheduled: false },
   you: {
     kind: 'ready',
     prediction: '1 - 0',

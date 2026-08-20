@@ -284,9 +284,11 @@ blockquotes could never show without being read end to end.
 
 > **Contract 208 programme effect:** closes Stage 12's carried elimination delta — the read now returns the canonical entrant outcome — and removes the read defect the vNext decoder was working around. No programme reordering.
 
-> **Contract 207 programme effect:** closes Stage 12's carried membership-lookup defect, which reached the production Football Hub and not only the vNext lane. No programme reordering.
+> **Contract 209 programme effect:** closes Stage 12's carried membership-lookup defect, which reached the production Football Hub and not only the vNext lane. No programme reordering.
 
 > **Contract 205 programme effect:** the canonical Championship bracket read stops throwing for split competitions, which is a precondition for Stage 12 consuming it. No programme reordering.
+
+> **Contract 209 programme effect:** the provider ingestion lane resumes — season resolution had failed on every response since contract 146 — and a postponement now reaches the fixture and the surfaces. No programme reordering.
 
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 

@@ -23,6 +23,8 @@ function fixtureOf(overrides: Partial<FixtureListRow> = {}): FixtureListRow {
     kickoffAt: '2026-08-15T14:00:00Z',
     roundLabel: null,
     round: { ordinal: 5, name: 'Matchweek 5' },
+    abnormal: null,
+    scheduleNote: null,
     score: null,
     provisional: null,
     provisionalAt: null,

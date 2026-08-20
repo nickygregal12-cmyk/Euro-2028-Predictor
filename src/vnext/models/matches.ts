@@ -250,11 +250,28 @@ type MatchAggregate = {
  * `kickoff` IS NULLABLE ON EVERY STATE, because a fixture the league has not
  * timed yet is an ordinary fixture and not a broken one. It is the instant, not
  * a label; labels are the mapper's.
+ *
+ * ============================ WHY `rescheduled` IS A FIELD ================
+ *
+ * Contract 209. It appears on `scheduled` and on `postponed` because those are
+ * the two states a moved fixture can be in, and because the three readings it
+ * produces are the three sentences a reader needs:
+ *
+ *   postponed,  rescheduled false   this is off, and there is no new date
+ *   postponed,  rescheduled true    this is off, and it is now due at `kickoff`
+ *   scheduled,  rescheduled true    this is on, at a date it was moved to
+ *
+ * It is a SERVER fact — a kickoff revision was recorded — and not a comparison
+ * of `kickoff` against anything. Without it a surface has one instant and no
+ * way to know whether it is a plan or a memory, which is how a postponed
+ * fixture ends up printing a countdown.
  */
 export type MatchState =
   | {
       readonly kind: 'scheduled'
       readonly kickoff: string | null
+      /** True once the platform has recorded a kickoff revision for it. */
+      readonly rescheduled: boolean
     }
   | {
       readonly kind: 'live'
@@ -280,6 +297,12 @@ export type MatchState =
       readonly kickoff: string | null
       /** Whatever the competition said about the move. Null where it said nothing. */
       readonly note: string | null
+      /**
+       * True when `kickoff` is a REPLACEMENT date rather than the slot this
+       * fixture missed. It is what stops a surface printing "Was due" against
+       * an instant that is still to come.
+       */
+      readonly rescheduled: boolean
     }
   | {
       readonly kind: 'abandoned'

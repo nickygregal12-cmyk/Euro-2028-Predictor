@@ -114,6 +114,7 @@ const server = vi.hoisted(() => {
           kickoffAt: '2027-08-21T14:00:00.000Z',
           status: 'scheduled',
           round: { id: `${tournamentId}-r-5`, ordinal: 5, label: 'Matchweek 5' },
+          schedule: { kickoffConfirmed: true, rescheduled: false, originalKickoffAt: null },
           home: { name: 'Porthaven City', tokens: { monogram: 'POR', primary: '#123456' } },
           away: { name: 'Balmorral Athletic', tokens: { monogram: 'BAL', primary: '#654321' } },
           result: null,
