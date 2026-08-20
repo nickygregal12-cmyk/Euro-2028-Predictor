@@ -47,7 +47,7 @@ export type SitePublicMetadata = {
    * URL; `documentMetadata.ts` is where that is carried out.
    */
   readonly canonicalOrigin: string | null
-  /** Path of the Open Graph image, resolved against `canonicalOrigin`. */
+  /** Path of this variant's generated Open Graph image. */
   readonly openGraphImagePath: string
   /** Public paths worth listing in this site's sitemap, root first. */
   readonly sitemapPaths: readonly string[]
@@ -91,7 +91,10 @@ export function sitePublicMetadata(
     productName: identity.productName,
     brand: identity.brand,
     canonicalOrigin: normaliseOrigin(origins.publicOrigin),
-    openGraphImagePath: '/og-image.jpg',
+    // Vite emits this name from the current variant's own site-asset directory.
+    // It deliberately cannot live in public/: files there are copied to both
+    // products byte-for-byte, which is how the Hub used to unfurl Euro artwork.
+    openGraphImagePath: '/og-image.png',
     sitemapPaths: ['/'],
   }
 }
