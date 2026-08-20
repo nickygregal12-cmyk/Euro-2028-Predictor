@@ -2,13 +2,39 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 209, Production 209, Development 209 (20 August 2026)
+## Current state — repository 210, Production 209, Development 209 (20 August 2026)
 
-Repository contract **209** is the head of the committed migration chain, and both hosted environments are level with it. **There are no pending hosted migrations: repository, Development and Production are level at Contract 209.**
+Repository contract **210** is the head of the committed migration chain. Both hosted environments are level with each other at **209**, one behind.
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
 | Development Supabase `iouzoutneyjpugbbtdem` | **209** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **209** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
+
+> **Contract 210 repository candidate — the live poll window covers the deadline
+> (20 August 2026):** `20260820070000_provider_live_window_covers_the_deadline.sql`
+> closes the half contract 209 left open. Applying a postponement is useless if the chain does
+> not **look** in time to find one. It claims **no** Development or Production rollout yet.
+>
+> **The gap it closes, stated exactly.** An ordinary fixture locks at `season_matchweek_lock_at`,
+> which resolves to the **earliest kickoff of the round** minus a buffer, and every caller in the
+> schema passes a buffer of **0** — so the deadline *is* the matchweek's first kickoff. The live
+> poll window opened only `live_lead_minutes` before a kickoff, seeded at **15**. A postponement
+> announced after the last daily idle poll and more than fifteen minutes before that first
+> kickoff therefore went unseen **until after predictions had locked**: up to a day of blindness
+> ending fifteen minutes before the one instant it mattered. That is `ING-006`.
+>
+> **What it changes:** `live_lead_minutes` to **720**, the maximum
+> `provider_poll_targets_live_window_bounded` allows, on every enabled target and as the column
+> default. From twelve hours before a matchweek's first kickoff the feed is read every ten
+> minutes, so the deadline falls **inside** a polling window rather than behind a day of silence.
+>
+> **What it deliberately does not change: `cadence_minutes`.** The obvious fix — 1440 → 360 —
+> is refused, and the earlier `ING-006` note proposing it was wrong. It would spend four times
+> the provider credit every day of the year, including weeks with no fixture near, to shrink a
+> gap that only exists in the hours before a lock, and would *still* leave up to six hours of
+> silence immediately before that lock. Coverage where it counts beats frequency everywhere.
+> pgTAP suite **256** asserts both halves, including that a six-hour idle cadence would not have
+> opened the window either.
 
 > **Contract 209 — the provider fixture lifecycle — reached both environments on 20 August 2026.**
 > `20260819200000_provider_fixture_lifecycle.sql` merged as
