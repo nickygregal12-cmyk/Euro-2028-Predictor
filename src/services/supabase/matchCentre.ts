@@ -4,6 +4,7 @@
 // (post-lock). These wrappers only shape the jsonb payloads; a pre-lock call
 // returns counts only, never picks.
 
+import { reportReadFailure } from '../observability/readFailure'
 import { db } from './client'
 import type { KnockoutStage } from '../../domain/tournament/scoringConfig'
 
@@ -43,7 +44,10 @@ export async function fetchLeagueMatchPicks(leagueId: string, matchId: string): 
     p_league_id: leagueId,
     p_match_id: matchId,
   })
-  if (error) throw error
+  if (error) {
+    reportReadFailure('match-centre.league-picks', error)
+    throw error
+  }
   const d = data as {
     kind: 'group' | 'knockout'
     locked: boolean
@@ -108,7 +112,10 @@ export async function fetchMatchDistribution(matchId: string): Promise<MatchDist
   const { data, error } = await db.rpc('get_match_prediction_distribution', {
     p_match_id: matchId,
   })
-  if (error) throw error
+  if (error) {
+    reportReadFailure('match-centre.distribution', error)
+    throw error
+  }
   const d = data as {
     kind: 'group' | 'knockout'
     locked: boolean

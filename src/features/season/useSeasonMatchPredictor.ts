@@ -357,7 +357,14 @@ export function useSeasonMatchPredictor(
     (key: string, command: MatchPredictorCommand, optimistic: () => void) => {
       const current = pageRef.current
       if (current === null) return
-      const refused = commandRefusal(presentCard(current, hasConflict), command, current.joker)
+      // Contract 212: the fixtures go in, so a score command is judged against
+      // the fixture's own published lock rather than the matchweek's.
+      const refused = commandRefusal(
+        presentCard(current, hasConflict),
+        command,
+        current.joker,
+        current.fixtures,
+      )
       if (refused !== null) {
         setRefusal(refused)
         return
