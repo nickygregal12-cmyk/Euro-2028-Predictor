@@ -18,7 +18,7 @@
     "test:watch": "vitest",
     "preview": "vite preview",
     "test:fixtures": "node scripts/check-fixtures.mjs",
-    "test:e2e": "playwright test",
+    "test:e2e": "node --env-file=.env.e2e node_modules/@playwright/test/cli.js test",
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:e2e:euro": "playwright test --config=playwright.euro.config.ts",
     "test:e2e:vnext": "playwright test --config=playwright.vnext.config.ts",
