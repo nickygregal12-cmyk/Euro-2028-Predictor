@@ -25,6 +25,7 @@ const ActionCentre = lazy(() =>
   import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
 )
 import { globalNavTab, isCompetitionModePath, isTvModePath } from './shellRoutes'
+import { vNextOwnsFrame } from './vnext/frameOwnership'
 
 function navLabel(
   items: readonly { key: NavKey; label: string }[],
@@ -120,7 +121,17 @@ function SignedInFrame() {
   // mode carries no account or admin control by design. The exception lives
   // HERE rather than as a second route boundary, because a second boundary is
   // one a future route can be added to the wrong side of in silence.
-  if (isTvModePath(location.pathname)) {
+  // STAGE 14. A CUT-OVER DESTINATION BRINGS ITS OWN FRAME, and the same
+  // argument applies for the same reason: every vNext surface renders
+  // `VNextShell`, so leaving this one wrapped around it stacks two navigations
+  // — and the outer one draws `Play` and `More`, the two tabs the route matrix
+  // retires. `vNextOwnsFrame` is per destination and per flag, so turning one
+  // destination off restores its page AND this chrome around it together.
+  //
+  // The membership provider above stays mounted either way: `AppShell` supplies
+  // it outside this component, and the vNext seam reads it to turn a shell
+  // intent into a URL.
+  if (isTvModePath(location.pathname) || vNextOwnsFrame(location.pathname)) {
     return (
       <Suspense fallback={<RouteFallback />}>
         <Outlet />

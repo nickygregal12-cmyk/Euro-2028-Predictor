@@ -80,6 +80,7 @@ const FOOTBALL_HUB_ACCOUNT_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_ACCOUNT 
 const FOOTBALL_HUB_LMS_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_LMS === 'true'
 const FOOTBALL_HUB_CHAMPIONSHIP_BUILT =
   import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP === 'true'
+const FOOTBALL_HUB_PREDICTOR_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_PREDICTOR === 'true'
 const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_MATCHES_BUILT ||
   FOOTBALL_HUB_HOME_BUILT ||
@@ -89,7 +90,8 @@ const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_DISCOVERY_BUILT ||
   FOOTBALL_HUB_ACCOUNT_BUILT ||
   FOOTBALL_HUB_LMS_BUILT ||
-  FOOTBALL_HUB_CHAMPIONSHIP_BUILT
+  FOOTBALL_HUB_CHAMPIONSHIP_BUILT ||
+  FOOTBALL_HUB_PREDICTOR_BUILT
 
 const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
   ? lazy(() =>
@@ -109,6 +111,17 @@ const VNextHomeDestination = FOOTBALL_HUB_HOME_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
         default: m.VNextHomeDestination,
+      })),
+    )
+  : null
+// THE ROOT RESOLVER RIDES THE SAME FLAG AS HOME, because it resolves to Home
+// and nothing else. A separate flag would let `/` and `/competitions/:c/:s`
+// disagree about which implementation the player is on, which is the one
+// disagreement a merged destination must not be able to have.
+const VNextRootDestination = FOOTBALL_HUB_HOME_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextRootDestination').then((m) => ({
+        default: m.VNextRootDestination,
       })),
     )
   : null
@@ -144,6 +157,13 @@ const VNextAccountDestination = FOOTBALL_HUB_ACCOUNT_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
         default: m.VNextAccountDestination,
+      })),
+    )
+  : null
+const VNextPredictorDestination = FOOTBALL_HUB_PREDICTOR_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextHubDestinations').then((m) => ({
+        default: m.VNextPredictorDestination,
       })),
     )
   : null
@@ -621,7 +641,25 @@ export default function App() {
                           they are the tournament's own, which until PR #702's
                           successor landed were literally the Hub's pages with
                           Euro labels on the navigation above them. */}
-                      <Route path={weeklyRoutes.hub} element={<HomeDestination />} />
+                      {/* THE FRONT DOOR, AND THE ROW THE MATRIX DEFERRED HERE.
+                          `/` and `/competitions/:c/:s` are ONE visible
+                          destination under the Competition Deck, and until this
+                          route the merge was asserted in a comment and
+                          implemented nowhere: a player signed in and met the
+                          retired IA. `VNextRootDestination` carries the rule and
+                          the reasoning; it is handed the legacy hub so a failed
+                          membership read falls back to it rather than guessing
+                          at a competition. */}
+                      <Route
+                        path={weeklyRoutes.hub}
+                        element={
+                          isNextUi('footballHubHome') && VNextRootDestination ? (
+                            <VNextRootDestination />
+                          ) : (
+                            <HomeDestination />
+                          )
+                        }
+                      />
                       <Route path={weeklyRoutes.play} element={<PlayDestination />} />
                       <Route path={weeklyRoutes.matches} element={<MatchesDestination />} />
                       <Route path={weeklyRoutes.leagues} element={<LeaguesDestination />} />
@@ -705,9 +743,22 @@ export default function App() {
                             )
                           }
                         />
+                        {/* THE FLAGSHIP GAME, WHICH STAGE 14 LEFT BEHIND.
+                            `VNextPredictorDestination` shipped in that stage
+                            and was mounted nowhere, so joining the Match
+                            Predictor dropped a player out of the Competition
+                            Deck and into the legacy season page. The legacy
+                            route stays mounted on the off branch like every
+                            other destination here. */}
                         <Route
                           path={weeklyRoutePatterns.matchPredictor}
-                          element={<SeasonMatchPredictorRoute />}
+                          element={
+                            isNextUi('footballHubPredictor') && VNextPredictorDestination ? (
+                              <VNextPredictorDestination />
+                            ) : (
+                              <SeasonMatchPredictorRoute />
+                            )
+                          }
                         />
                         <Route
                           path={weeklyRoutePatterns.matchPredictorStandings}

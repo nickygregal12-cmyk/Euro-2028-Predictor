@@ -1,0 +1,36 @@
+/*
+ * Candidate B's body, and nothing else in this lab has a stylesheet.
+ *
+ * A and both edges are production surfaces rendering themselves; giving them
+ * story CSS would make the comparison unfair in the one direction that matters,
+ * because the candidate drawn FOR the lab would be the only one that had been
+ * tuned for it.
+ */
+
+.chooser {
+  display: grid;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice {
+  display: flex;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  width: 100%;
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background: var(--vnext-surface);
+  color: var(--vnext-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.choiceText {
+  display: grid;
+  gap: var(--vnext-space-1);
+}

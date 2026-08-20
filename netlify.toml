@@ -53,6 +53,7 @@
   VITE_UI_FOOTBALL_HUB_ACCOUNT = "true"
   VITE_UI_FOOTBALL_HUB_LMS = "true"
   VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP = "true"
+  VITE_UI_FOOTBALL_HUB_PREDICTOR = "true"
 
 # Known application routes answer 200. Anything else reaches the final 404
 # rewrite and renders the SPA NotFoundPage without becoming a soft 200.

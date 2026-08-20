@@ -365,10 +365,37 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // previous raises chose. THE ROLLBACK MEASUREMENT STILL HOLDS: with every flag
 // off the same build measures 79.9 / 430.4 / 53.2, so turning a destination
 // back off recovers its bytes as well as its behaviour.
+// RAISED AGAIN 20 AUGUST 2026 — 492 → 506 AND 60 → 64, ENTRY UNCHANGED AT 92 —
+// BECAUSE THE MATCH PREDICTOR IS NOW SHIPPED AT ALL.
+//
+// Stage 14 built `VNextPredictorDestination` and mounted it on no route, so the
+// flagship game's vNext surface existed in the repository and in NO build: its
+// only reachable address was the `import.meta.env.DEV` harness. Routing it is
+// the fix for a player being dropped into the legacy season page from inside
+// the Competition Deck, and the bytes are that surface arriving rather than any
+// existing surface growing.
+//
+// Isolated by measuring the same commit three ways:
+//
+//   every flag off ............... 80.1 / 431.2 / 53.2
+//   every flag on, predictor off .. 89.9 / 481.2 / 58.2
+//   every flag on ................. 89.9 / 491.9 / 61.1
+//
+// so the destination costs +10.7 KB gz of JavaScript and +2.9 KB gz of CSS, and
+// THE ENTRY CHUNK DOES NOT MOVE — the route is lazy, so only a player who opens
+// the Match Predictor fetches the JavaScript. The CSS half is unavoidable and
+// already recorded: `cssCodeSplit: false` collapses every stylesheet into one
+// file every visitor downloads, which is why 2.9 KB of it is worth naming.
+//
+// 506 sits about fourteen kilobytes over the measured 491.9 and 64 about three
+// over 61.1 — the same headroom-to-measurement shape every previous raise chose.
+// THE ROLLBACK MEASUREMENT STILL HOLDS, and now covers this destination too:
+// with every flag off the build measures 80.1 / 431.2 / 53.2, so turning the
+// Match Predictor back off recovers its bytes as well as its behaviour.
 const BUDGETS = {
   entryChunkKb: 92,
-  totalJsKb: 492,
-  totalCssKb: 60,
+  totalJsKb: 506,
+  totalCssKb: 64,
 }
 
 /**

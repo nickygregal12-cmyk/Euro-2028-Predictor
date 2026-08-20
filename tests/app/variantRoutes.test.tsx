@@ -79,16 +79,31 @@ describe('the variant route matrix', () => {
     // An inline ternary in the route table would make the ownership
     // unreviewable AND invisible to the title and accessibility sweeps, which
     // read this file as source and understand `element={<X />}`.
-    for (const element of [
-      'HomeDestination',
-      'PlayDestination',
-      'MatchesDestination',
-      'LeaguesDestination',
-    ]) {
+    for (const element of ['PlayDestination', 'MatchesDestination', 'LeaguesDestination']) {
       expect(appSource, `App.tsx does not register ${element}`).toContain(
         `element={<${element} />}`,
       )
     }
+
+    // `HomeDestination` IS REGISTERED THROUGH A FLAG BRANCH, NOT A VARIANT ONE,
+    // and the distinction is the whole point of this test rather than an
+    // exception to it. Stage 14 merged `/` into the competition's own Home, so
+    // the root now selects between the vNext resolver and this dispatcher —
+    // which is `src/app/routeFlags.ts`'s rollback switch doing its job, and
+    // leaves the dispatcher mounted on the off branch exactly as before.
+    //
+    // The `element={<X />}` shape was required so source sweeps could see the
+    // registration. Only `tests/app/declaredRoutes.ts` reads the element at all,
+    // and only to recognise `<Navigate>`, so the rendering below is equally
+    // visible; `/` correctly stays out of the redirect-only set because it
+    // renders a component that decides.
+    expect(appSource, 'App.tsx does not render HomeDestination').toContain(
+      '<HomeDestination />',
+    )
+    expect(
+      appSource,
+      'the root no longer falls back to the legacy hub when the flag is off',
+    ).toMatch(/isNextUi\('footballHubHome'\)[\s\S]{0,200}<HomeDestination \/>/)
     expect(appSource, 'App.tsx branches on the variant inline').not.toMatch(
       /element=\{\s*site\.variant/,
     )

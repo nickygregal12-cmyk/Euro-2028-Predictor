@@ -59,6 +59,7 @@ interface ImportMetaEnv {
   readonly VITE_UI_FOOTBALL_HUB_LMS?: string
   /** Stage 14: the vNext Predictor Championship. */
   readonly VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP?: string
+  readonly VITE_UI_FOOTBALL_HUB_PREDICTOR?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

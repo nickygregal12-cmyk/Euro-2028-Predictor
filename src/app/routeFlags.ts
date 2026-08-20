@@ -55,6 +55,17 @@ export type MigratedJourney =
   | 'footballHubAccount'
   | 'footballHubLms'
   | 'footballHubChampionship'
+  /**
+   * THE MATCH PREDICTOR, WHICH STAGE 14 BUILT AN ADAPTER FOR AND NEVER ROUTED.
+   *
+   * `VNextPredictorDestination` shipped in that stage, was exported, and was
+   * mounted by no route — so the flagship game kept serving the legacy season
+   * page inside the legacy frame while every destination around it had moved.
+   * Distinct from `seasonMatchPredictor`, which is not an implementation switch
+   * at all: that flag decides whether the season Match Predictor FEATURE is
+   * served, and answers `NotFoundPage` when it is off.
+   */
+  | 'footballHubPredictor'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -106,6 +117,8 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_LMS) ? 'next' : 'legacy'
     case 'footballHubChampionship':
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP) ? 'next' : 'legacy'
+    case 'footballHubPredictor':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_PREDICTOR) ? 'next' : 'legacy'
   }
 }
 
