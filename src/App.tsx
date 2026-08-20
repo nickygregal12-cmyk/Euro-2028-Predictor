@@ -112,6 +112,17 @@ const VNextHomeDestination = FOOTBALL_HUB_HOME_BUILT
       })),
     )
   : null
+// THE ROOT RESOLVER RIDES THE SAME FLAG AS HOME, because it resolves to Home
+// and nothing else. A separate flag would let `/` and `/competitions/:c/:s`
+// disagree about which implementation the player is on, which is the one
+// disagreement a merged destination must not be able to have.
+const VNextRootDestination = FOOTBALL_HUB_HOME_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextRootDestination').then((m) => ({
+        default: m.VNextRootDestination,
+      })),
+    )
+  : null
 const VNextGamesDestination = FOOTBALL_HUB_GAMES_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
@@ -621,7 +632,25 @@ export default function App() {
                           they are the tournament's own, which until PR #702's
                           successor landed were literally the Hub's pages with
                           Euro labels on the navigation above them. */}
-                      <Route path={weeklyRoutes.hub} element={<HomeDestination />} />
+                      {/* THE FRONT DOOR, AND THE ROW THE MATRIX DEFERRED HERE.
+                          `/` and `/competitions/:c/:s` are ONE visible
+                          destination under the Competition Deck, and until this
+                          route the merge was asserted in a comment and
+                          implemented nowhere: a player signed in and met the
+                          retired IA. `VNextRootDestination` carries the rule and
+                          the reasoning; it is handed the legacy hub so a failed
+                          membership read falls back to it rather than guessing
+                          at a competition. */}
+                      <Route
+                        path={weeklyRoutes.hub}
+                        element={
+                          isNextUi('footballHubHome') && VNextRootDestination ? (
+                            <VNextRootDestination fallback={<HomeDestination />} />
+                          ) : (
+                            <HomeDestination />
+                          )
+                        }
+                      />
                       <Route path={weeklyRoutes.play} element={<PlayDestination />} />
                       <Route path={weeklyRoutes.matches} element={<MatchesDestination />} />
                       <Route path={weeklyRoutes.leagues} element={<LeaguesDestination />} />

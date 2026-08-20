@@ -123,7 +123,15 @@ describe('the Football Hub cutover switch', () => {
       variable: 'VITE_UI_FOOTBALL_HUB_HOME',
       next: 'VNextHomeDestination',
       legacy: 'CompetitionDashboardPage',
-      routes: 1,
+      // TWO, AND THE SECOND ONE IS THE MERGE. Home is the only destination the
+      // route matrix marks REDESIGN + MERGE: `/` and `/competitions/:c/:s` are
+      // "ONE visible destination in the target IA", so the root consults the
+      // same flag to decide whether to resolve into the competition's Home or
+      // to leave the player on the legacy hub. One flag rather than two is
+      // deliberate — see the note beside `VNextRootDestination` in App.tsx —
+      // because a merged destination whose two addresses could disagree about
+      // which implementation is serving would be worse than either.
+      routes: 2,
     },
     {
       journey: 'footballHubMatches',
