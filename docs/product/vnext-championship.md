@@ -623,4 +623,9 @@ the diff — `src/App.tsx`, for the `import.meta.env.DEV`-gated harness route, i
 the shape Stages 6 through 11 already use, tree-shaken out of a production
 build.
 
-Cutover is Stage 14 and requires explicit authority.
+**This section records Stage 12's diff, and stays true of it.** Cutover was
+Stage 14, it was authorised, and it has happened: the Championship addresses are
+served by the vNext surface in production behind
+`VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP`, with the legacy routes still mounted for
+rollback. See
+[`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) §13.

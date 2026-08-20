@@ -531,15 +531,21 @@ convention `SeasonHeadToHead.tsx` already uses.
 
 ## 12. ROUTES
 
-**No production route changed.** The vNext profile is reachable only from the
-dev-only `/dev/vnext-player` harness, which `/dev/vnext-leagues` navigates to
-when a player row is pressed — carrying the two identifiers the doorway emitted.
+**No production route changed in Stage 10.** The vNext profile was then
+reachable only from the dev-only `/dev/vnext-player` harness, which
+`/dev/vnext-leagues` navigates to when a player row is pressed — carrying the two identifiers the doorway emitted.
 That path is how the predicate's "a safely addressable permitted player can be
 opened from at least one real competition context" is demonstrated against real
 data rather than asserted by a fixture.
 
+**Stage 14 cut it over.** `/competitions/:c/:s/players/:playerId` is served by
+the vNext surface in production now, behind
+`VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE`, with `SeasonPlayerProfileRoute` still
+mounted so unsetting the flag restores it.
+
 Two matrix rows are settled by this stage; see
-[`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) §9.
+[`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) §9, and §13
+for the cutover.
 
 ---
 

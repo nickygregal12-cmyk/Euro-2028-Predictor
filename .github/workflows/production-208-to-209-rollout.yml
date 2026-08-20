@@ -1,0 +1,296 @@
+name: Production 208 to 209 rollout
+
+# One-shot guarded Production promotion for Contract 209, the provider fixture
+# lifecycle. Manual trigger only. Requires a fresh encrypted backup and a
+# successful exact-head 208-to-209 rehearsal. THIS WORKFLOW IS THE PRODUCTION
+# MUTATION; every other workflow in this pair is read-only.
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type APPLY-PRODUCTION-208-TO-209 to proceed
+        required: true
+      backup_run_id:
+        description: Run id of the successful fresh Production backup
+        required: true
+      rehearsal_run_id:
+        description: Run id of the successful 208-to-209 rehearsal
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-208-TO-209
+  SOURCE_CONTRACT: '208'
+  SOURCE_VERSION: '20260819130000'
+  SOURCE_NAME: cup_bracket_outcome_and_knockout_stage
+  TARGET_CONTRACT: '209'
+  TARGET_VERSION: '20260819200000'
+  TARGET_NAME: provider_fixture_lifecycle
+  WORK_DIR: /tmp/production-208-to-209-rollout
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || { echo 'ERROR: confirmation phrase mismatch.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: that is Development.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || { echo 'ERROR: project ref is not Production.'; exit 1; }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rollout runs only from main.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact main.'; exit 1; }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is dirty.'; exit 1; }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove fresh backup then exact-head rehearsal succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          REHEARSAL_RUN_ID: ${{ inputs.rehearsal_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_run() {
+            local id="$1" path="$2" label="$3" json
+            json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}")"
+            [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo "ERROR: ${label} ${id} did not succeed."; exit 1; }
+            [ "$(jq -r '.path' <<<"${json}")" = "${path}" ] || { echo "ERROR: ${label} ${id} has wrong workflow path."; exit 1; }
+            printf '%s' "${json}"
+          }
+          backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-208-to-209-rehearsal.yml' Rehearsal)"
+          rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
+          [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
+          backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
+          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rollout head.'; exit 1; }
+          backup_at="$(jq -r '.created_at' <<<"${backup}")"
+          rehearsal_at="$(jq -r '.created_at' <<<"${rehearsal}")"
+          [ "${backup_at}" \< "${rehearsal_at}" ] || { echo 'ERROR: backup does not precede rehearsal.'; exit 1; }
+          artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}/artifacts")"
+          [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || {
+            echo 'ERROR: encrypted backup artifact missing.'
+            exit 1
+          }
+
+      - name: Refuse to make Production the first hosted environment to see Contract 209
+        shell: bash
+        run: |
+          set -euo pipefail
+          dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
+          dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: Development record names the wrong project.'; exit 1; }
+          [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || { echo "ERROR: Development record is ${dev_contract}, below ${TARGET_CONTRACT}."; exit 1; }
+
+      - name: Prove the repository boundary is exactly Contract 209
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository has ${committed} migrations."; exit 1; }
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: deployment contract is ${declared}."; exit 1; }
+          [ "${newest}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+          : > "${WORK_DIR}/boundary.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"; version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              basename "${file}" >> "${WORK_DIR}/boundary.txt"
+              node scripts/check-migration-additive.mjs "${file}"
+            fi
+          done
+          count="$(wc -l < "${WORK_DIR}/boundary.txt" | tr -d ' ')"
+          expected="$(( TARGET_CONTRACT - SOURCE_CONTRACT ))"
+          [ "${count}" = "${expected}" ] || { echo "ERROR: boundary holds ${count} migrations, expected ${expected}."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
+          printf '%s\n' \
+            '20260819200000_provider_fixture_lifecycle.sql' \
+            > "${WORK_DIR}/expected-boundary.txt"
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || { echo 'ERROR: boundary is not exactly Contract 209.'; exit 1; }
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.2
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Capture exact pre-apply Production state
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: SUPABASE_PROD_DB_URL missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
+          esac
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/before.json" <<'SQL'
+          select jsonb_build_object(
+            'migration_count',(select count(*) from supabase_migrations.schema_migrations),
+            'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'auth_users',(select count(*) from auth.users),
+            'profiles',(select count(*) from public.profiles),
+            'entries',(select count(*) from public.entries),
+            'season_predictions',(select count(*) from public.season_predictions),
+            'match_predictions',(select count(*) from public.match_predictions),
+            'league_members',(select count(*) from public.league_members),
+            'season_fixtures',(select count(*) from public.season_fixtures),
+            'ai_bets',(select count(*) from ai.bets),
+            'cron_jobs',(select count(*) from cron.job),
+            'public_enabled',(select public_enabled from ai.publication_gate limit 1),
+            'betting_public_enabled',(select betting_public_enabled from ai.publication_gate limit 1),
+            'fixture_status_histogram',(
+              select coalesce(jsonb_object_agg(status, tally), '{}'::jsonb)
+              from (select status, count(*) as tally from public.season_fixtures group by status) s));
+          SQL
+          cat "${WORK_DIR}/before.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const x = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const want = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [k, v] of Object.entries(want)) {
+            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
+          }
+          NODE
+
+      - name: Dry run and apply exactly Contract 209 to Production
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
+          sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contract 209.'; exit 1; }
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}"
+
+      - name: Verify Production is at Contract 209 and unchanged outside the intended objects
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/after.json" <<'SQL'
+          select jsonb_build_object(
+            'migration_count',(select count(*) from supabase_migrations.schema_migrations),
+            'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'auth_users',(select count(*) from auth.users),
+            'profiles',(select count(*) from public.profiles),
+            'entries',(select count(*) from public.entries),
+            'season_predictions',(select count(*) from public.season_predictions),
+            'match_predictions',(select count(*) from public.match_predictions),
+            'league_members',(select count(*) from public.league_members),
+            'season_fixtures',(select count(*) from public.season_fixtures),
+            'ai_bets',(select count(*) from ai.bets),
+            'cron_jobs',(select count(*) from cron.job),
+            'public_enabled',(select public_enabled from ai.publication_gate limit 1),
+            'betting_public_enabled',(select betting_public_enabled from ai.publication_gate limit 1),
+            'fixture_status_histogram',(
+              select coalesce(jsonb_object_agg(status, tally), '{}'::jsonb)
+              from (select status, count(*) as tally from public.season_fixtures group by status) s),
+            'transitions_table_exists',to_regclass('predictor_internal.season_fixture_lifecycle_transitions') is not null,
+            'transitions_rls_enabled',coalesce((select relrowsecurity from pg_class where oid = to_regclass('predictor_internal.season_fixture_lifecycle_transitions')), false),
+            'transitions_rows',(select count(*) from predictor_internal.season_fixture_lifecycle_transitions),
+            'postponed_token_kind',(select kind from predictor_internal.provider_status_kinds where provider = 'sportmonks' and provider_status = '10'),
+            'applier_exists',to_regprocedure('predictor_internal.apply_provider_fixture_lifecycle(text,uuid,jsonb,uuid,timestamptz)') is not null,
+            'path_pattern_exists',to_regprocedure('predictor_internal.provider_poll_path_pattern(text)') is not null,
+            'fixtures_carry_schedule',pg_get_functiondef('public.get_season_fixtures(uuid,timestamptz,timestamptz)'::regprocedure) ~ '''schedule''',
+            'fixture_carries_schedule',pg_get_functiondef('public.get_season_fixture(uuid)'::regprocedure) ~ '''schedule''',
+            'calendar_carries_schedule',pg_get_functiondef('public.get_my_football_calendar(timestamptz,timestamptz)'::regprocedure) ~ '''schedule''',
+            'lock_handles_postponed',pg_get_functiondef('predictor_internal.season_prediction_lock_at(uuid,integer)'::regprocedure) ~ '''postponed''',
+            'fixtures_authenticated',has_function_privilege('authenticated','public.get_season_fixtures(uuid,timestamptz,timestamptz)','EXECUTE'),
+            'fixtures_anon',has_function_privilege('anon','public.get_season_fixtures(uuid,timestamptz,timestamptz)','EXECUTE'),
+            'calendar_authenticated',has_function_privilege('authenticated','public.get_my_football_calendar(timestamptz,timestamptz)','EXECUTE'),
+            'calendar_anon',has_function_privilege('anon','public.get_my_football_calendar(timestamptz,timestamptz)','EXECUTE'));
+          SQL
+          cat "${WORK_DIR}/after.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" AFTER_FILE="${WORK_DIR}/after.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const b = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const a = JSON.parse(fs.readFileSync(process.env.AFTER_FILE, 'utf8'))
+          const problems = []
+          const eq = (k, v) => String(a[k]) === String(v) || problems.push(`${k}=${a[k]}, expected ${v}`)
+          eq('migration_count', Number(process.env.TARGET_CONTRACT))
+          eq('latest_version', process.env.TARGET_VERSION)
+          eq('latest_name', process.env.TARGET_NAME)
+
+          for (const k of [
+            'auth_users', 'profiles', 'entries', 'season_predictions', 'match_predictions',
+            'league_members', 'season_fixtures', 'ai_bets', 'cron_jobs',
+            'public_enabled', 'betting_public_enabled',
+          ]) eq(k, b[k])
+
+          // Compared whole rather than by total: a postponement invented during
+          // the apply would keep season_fixtures unchanged while moving a
+          // fixture between statuses, and that must fail here.
+          const beforeStatuses = JSON.stringify(b.fixture_status_histogram ?? {})
+          const afterStatuses = JSON.stringify(a.fixture_status_histogram ?? {})
+          if (beforeStatuses !== afterStatuses) {
+            problems.push(`fixture status histogram moved: ${beforeStatuses} -> ${afterStatuses}`)
+          }
+
+          eq('transitions_rows', 0)
+          eq('postponed_token_kind', 'postponed')
+          for (const k of [
+            'transitions_table_exists', 'transitions_rls_enabled', 'applier_exists', 'path_pattern_exists',
+            'fixtures_carry_schedule', 'fixture_carries_schedule', 'calendar_carries_schedule',
+            'lock_handles_postponed', 'fixtures_authenticated', 'calendar_authenticated',
+          ]) eq(k, true)
+          for (const k of ['fixtures_anon', 'calendar_anon']) eq(k, false)
+
+          if (problems.length) throw new Error(`PRODUCTION POSTFLIGHT FAILED:\n - ${problems.join('\n - ')}`)
+          NODE
+
+      - name: Upload rollout evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-208-to-209-rollout-evidence
+          path: |
+            /tmp/production-208-to-209-rollout/before.json
+            /tmp/production-208-to-209-rollout/after.json
+            /tmp/production-208-to-209-rollout/boundary.txt
+            /tmp/production-208-to-209-rollout/dry-run.txt
+          retention-days: 7
+          if-no-files-found: error
