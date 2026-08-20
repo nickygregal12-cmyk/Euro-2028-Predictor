@@ -429,4 +429,18 @@ export type PredictorActions = {
    * that these are two different questions.
    */
   refreshAfterDeadline: () => void
+  /**
+   * The player asked to share this settled matchweek.
+   *
+   * OPTIONAL, AND ABSENT IS THE DEFAULT. The presentation lane may render no
+   * control at all where the application did not supply one — a workshop story
+   * has no canvas, no share sheet and nothing to share to, and a button that
+   * did nothing there would be a lie about the surface rather than a fixture of
+   * it.
+   *
+   * IT TAKES NO ARGUMENT ON PURPOSE. What goes on the card is decided by the
+   * application from the same model this surface drew, so a surface cannot
+   * choose to put something else on it.
+   */
+  shareMatchweek?: (() => void) | undefined
 }
