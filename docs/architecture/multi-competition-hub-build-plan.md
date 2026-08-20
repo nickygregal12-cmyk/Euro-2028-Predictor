@@ -379,6 +379,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 209 stage effect:** every hub surface that draws a fixture gains a real abnormal state to draw. No hub build-stage scope changes; the state arrives on the existing fixture reads.
 
+> **Contract 210 stage effect:** none on any hub surface. It changes how early the provider feed is polled before a prediction deadline, so the abnormal state contract 209 added arrives in time to be drawn. No read, no shape and no build-stage scope changes.
+
 > **Contract 204 stage effect:** the AI Lab dashboards scope their exclusion count to the league asked about. No hub build-stage scope changes.
 
 > **Contract 203 stage effect:** the Bet Builder reads one authority instead of nine paged logs. No hub build-stage scope changes.
