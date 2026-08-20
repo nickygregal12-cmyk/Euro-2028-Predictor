@@ -45,7 +45,7 @@ const presets = Object.entries(vnextMotion)
 
 describe('vNext reduced motion removes movement', () => {
   it('has a reduced pair for every primitive, with the same states', () => {
-    expect(presets.length).toBe(10)
+    expect(presets.length).toBe(11)
 
     for (const [name, preset] of presets) {
       expect(statesOf(preset.reduced).sort(), name).toEqual(
@@ -267,5 +267,28 @@ describe('MatchCard press feedback', () => {
     expect(source.slice(articleAt, buttonAt)).toContain(
       "{...(action ? { whileHover: 'hover' } : {})}",
     )
+  })
+})
+
+/**
+ * THE WORKSHOP MUST SHOW THE WHOLE VOCABULARY.
+ *
+ * The motion gallery is where a reviewer sees what this product's movement IS,
+ * and it had already drifted: `saveSettle` was added to the foundation and the
+ * gallery went on showing nine primitives as though it were all of them. A
+ * gallery that is silently a subset is worse than no gallery, because it
+ * licenses "there is no preset for that" from somebody who looked.
+ */
+describe('the motion gallery', () => {
+  const gallery = readFileSync(
+    resolve(__dirname, '../../src/vnext/stories/Foundation.stories.tsx'),
+    'utf8',
+  )
+
+  it.each(Object.keys(vnextMotion))('shows %s', (name) => {
+    expect(gallery).toContain(`vnextMotion.${name}`)
+    // Named in words as well as consumed, so the sample has a caption rather
+    // than being an unlabelled rectangle that moves.
+    expect(gallery).toContain(name)
   })
 })

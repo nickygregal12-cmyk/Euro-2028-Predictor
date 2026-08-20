@@ -1,9 +1,10 @@
-import { useMemo } from 'react'
+import { useId, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import type { LeagueChoice, LeaguesModel, LeaguesScope } from '../models/leagues'
 import { leaguesKnownEmpty, leaguesSwitchable } from '../models/leagues'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
+import { ScopeMarker } from '../components/navigation/ScopeMarker'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatNumber } from '../foundations/format'
 import { GlobalStandingsTable, PrivateStandingsTable } from './LeagueTables'
@@ -134,6 +135,7 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
    * model arrives, and the highlight moves because the TABLE moved.
    */
   const highlighted = scopeKey(model.scope)
+  const scopeGroup = useId()
 
   const switchable = leaguesSwitchable(model)
   const contextLine = useMemo(() => contextSentence(model), [model])
@@ -170,12 +172,14 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
               aria-pressed={highlighted === 'global'}
               onClick={() => choose({ kind: 'global' })}
             >
-              Season
+              {highlighted === 'global' ? <ScopeMarker group={scopeGroup} /> : null}
+              <span className={styles.scopeName}>Season</span>
             </button>
             {model.leagues.map((league) => (
               <LeagueOption
                 key={league.id}
                 league={league}
+                group={scopeGroup}
                 pressed={highlighted === `private:${league.id}`}
                 onChoose={() => choose({ kind: 'private', leagueId: league.id })}
               />
@@ -287,10 +291,12 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
 
 function LeagueOption({
   league,
+  group,
   pressed,
   onChoose,
 }: {
   readonly league: LeagueChoice
+  readonly group: string
   readonly pressed: boolean
   readonly onChoose: () => void
 }) {
@@ -301,6 +307,7 @@ function LeagueOption({
       aria-pressed={pressed}
       onClick={onChoose}
     >
+      {pressed ? <ScopeMarker group={group} /> : null}
       <span className={styles.scopeName}>{league.name}</span>
       <span className={`${text.micro} ${styles.scopeCount}`}>
         {formatNumber(league.memberCount)}

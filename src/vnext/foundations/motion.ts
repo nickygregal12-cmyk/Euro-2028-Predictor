@@ -142,6 +142,36 @@ export const rankMove: MotionPreset = {
   },
 }
 
+/**
+ * ============================ AND WHY THERE IS NO DIGIT ODOMETER =========
+ *
+ * `@number-flow/react` was evaluated for this preset's job — a points total
+ * rolling from 118 to 125 rather than pulsing — against the four conditions
+ * the brief set, on 20 August 2026 at version 0.6.2. It fits the stack (React
+ * 19 peer, no build change) and the bundle cost is affordable: wired into
+ * `StatTile` and built, all JS moved 432.5 -> 438.1 KB gz, well inside the
+ * 506 KB budget. It fails the other two.
+ *
+ * IT WOULD BE A SECOND NUMERIC FORMATTING AUTHORITY, which is the condition
+ * that was named as disqualifying. The component takes a NUMBER and formats it
+ * with its own `Intl.NumberFormat`, defaulting to the browser's locale —
+ * while `format.ts` deliberately pins `en-GB` so a story, a jsdom test and a
+ * CI screenshot are the same picture everywhere. Rendered beside each other on
+ * a de-DE browser the two would disagree about the same figure: "1.428" in the
+ * tile, "1,428" in the sentence under it. The pin could be threaded through,
+ * but only by making every numeric call site pass a raw number plus format
+ * options — 39 of them — so the fix IS the second authority, spelled out.
+ *
+ * AND IT CHANGES WHAT THE NUMBER IS. The measured output puts the figure in a
+ * shadow root as `role="img"` with the value as its `aria-label`, and injects
+ * a `<style>` element into the light DOM beside it. A rank that used to be
+ * text becomes a picture of a rank; every assertion in this repository that
+ * reads a stat region's `textContent` starts reading CSS.
+ *
+ * So: evaluated, measured, not adopted. `pointsEmphasis` stays, and the reason
+ * is recorded here rather than in a document because this is where the next
+ * person asking "should the numbers roll?" will be standing.
+ */
 /** A points figure changing. Emphasis, not celebration. */
 export const pointsEmphasis: MotionPreset = {
   full: {
@@ -196,6 +226,51 @@ const saveSettle: MotionPreset = {
   },
 }
 
+/**
+ * AN ACHIEVEMENT ARRIVING. The whole celebration vocabulary, and it is one
+ * preset on purpose.
+ *
+ * ============================ WHY THERE IS ONLY ONE =====================
+ *
+ * A celebration vocabulary grows by being available: add a burst and a shimmer
+ * and a sweep, and within a release something that is merely nice — a saved
+ * prediction, a joined league — has borrowed the shape reserved for winning,
+ * and then winning has nothing left. So this repository has exactly one, it is
+ * for a mark the server says the player EARNED, and the second half of any
+ * celebration is already in the vocabulary: the sentence beside the mark rises
+ * in like every other sentence.
+ *
+ * ============================ WHAT IT IS NOT ============================
+ *
+ * Not confetti, not a full-screen overlay, not a sound, and not a repeat. It is
+ * the mark landing slightly large and settling — about a third of a second,
+ * once. A player who has just won a season-long game gets a beat of weight;
+ * a player who reloads the page five minutes later gets the same picture
+ * without the beat, because the achievement is a fact and the motion is only
+ * how it arrived.
+ *
+ * ============================ AND REDUCED MOTION KEEPS THE MARK =========
+ *
+ * The reduced pair removes the scale and the travel and keeps the mark fully
+ * opaque. That is the rule the whole foundation follows: under the preference a
+ * primitive stops moving and never stops SAYING. A trophy that faded away for a
+ * reduced-motion player would have taken the achievement with it.
+ */
+const achievementArrive: MotionPreset = {
+  full: {
+    rest: { opacity: 1, scale: 1 },
+    earned: {
+      opacity: [0, 1],
+      scale: [0.7, 1.12, 1],
+      transition: { duration: vnextDuration.slow, ease: vnextEase },
+    },
+  },
+  reduced: {
+    rest: { opacity: 1, scale: 1 },
+    earned: { opacity: 1, scale: 1, transition: instant },
+  },
+}
+
 /** Progressive disclosure. Height is animated; reduced simply appears. */
 export const disclose: MotionPreset = {
   full: {
@@ -237,6 +312,7 @@ export const vnextMotion = {
   rankMove,
   pointsEmphasis,
   saveSettle,
+  achievementArrive,
   disclose,
   railItem,
 } as const
@@ -268,6 +344,35 @@ export const navIndicatorTravel: MotionTransitionPreset = {
 export const vnextTransition = {
   navIndicator: navIndicatorTravel,
 } as const
+
+/**
+ * ============================ SHARED-ELEMENT CONTINUITY, EVALUATED =======
+ *
+ * The programme asked whether a shared element should carry the eye across six
+ * journeys: fixture row -> Match Centre, player row -> Player Profile, game
+ * card -> game screen, league row -> league detail, competition switch, and
+ * filter/scope change. The answer splits cleanly on one line, and the line is
+ * not aesthetic.
+ *
+ * FIVE OF THE SIX CROSS A ROUTE, AND A ROUTE UNMOUNTS. Framer's `layoutId`
+ * measures one element against another that is mounted AT THE SAME MOMENT.
+ * Every vNext destination is a separate `lazy()` chunk behind react-router, so
+ * at the instant the Match Centre mounts, the fixture list is already gone —
+ * there is nothing to travel from. Making it work means holding the outgoing
+ * route mounted through an exit animation and keeping both chunks resident:
+ * `AnimatePresence` around the route tree, an exit state for every destination,
+ * and the code-splitting boundary softened. That is the shell's architecture,
+ * and rebuilding the accepted shell to add a flourish is exactly what this
+ * programme's scope boundaries forbid. Recorded, with the reason, so the next
+ * session meets the constraint rather than discovering it.
+ *
+ * THE SIXTH DOES NOT CROSS ANYTHING, so it is done. A scope or filter change
+ * happens inside one mounted surface, which is where a shared element is cheap
+ * and truthful — see `components/navigation/ScopeMarker`, on Matches and on
+ * Leagues, reusing this very transition rather than inventing a second one.
+ * A selection that MOVES says "this, of these"; a background that reappears
+ * somewhere else says "something changed, find it".
+ */
 
 /**
  * Workshop override for the reduced-motion preference.

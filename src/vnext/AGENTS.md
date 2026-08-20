@@ -241,6 +241,23 @@ parts, because the split is the point:
 - Fixtures are deterministic. Nothing under `fixtures/` or `foundations/format.ts` may read the clock; components take `now` as an input.
 - Mocked values are presentation inputs, never game rules. Provisional points are labelled provisional, and optional fields stay optional honestly.
 - Every motion primitive ships its reduced-motion pair in the same change. Resolve motion through `useVNextMotion`, never by reading variants directly.
+- **Confirmation follows the server, never the keystroke.** A surface may not
+  animate or vibrate a success until the write came back: the settle and the
+  haptic on a saved prediction are driven by the save coordinator's transition
+  into `saved`, and a refusal runs neither. A confirmation that arrives early
+  has told the player something untrue in the one place they were watching.
+- **There is one celebration and it is for something the server says was
+  won.** `achievementArrive` is the whole vocabulary — the Last Man Standing
+  trophy, once, on the edge into `champion`. Do not add a second celebration
+  primitive to mark something that is merely pleasant; a vocabulary that
+  celebrates a saved prediction has nothing left for winning a season. Any
+  achievement moment is edge-triggered through `useFeedbackOnLatch`, so a
+  player who reloads the page is not congratulated again.
+- **Shared-element continuity is for one mounted surface, not across routes.**
+  Every destination is a separate lazy chunk, so a cross-route `layoutId` has
+  nothing to travel from; making it work means rebuilding the shell's routing.
+  Inside a surface it is cheap and correct — see `ScopeMarker`, which reuses
+  `vnextTransition.navIndicator` rather than adding a second travel.
 - A dense zone sizes itself against its OWN container, never against the shell. The same column is 690px wide at one composition and 440px at another, so a shell-width rule is right in one place and starving club names in the other.
 - Home is ONE surface with three emphases, not three pages. The stable frame — masthead, score bar, navigation, type, spacing, surfaces, team colour, motion — does not change between them; only the dominant zone and the order beneath it do.
 - The application shell may not learn anything about a page. Nothing under `app/` may import from `home/` or `fixtures/`, and a prop named after Home's content — a hero, a ticker, a rank — is the shell becoming Home under a general name. `tests/vnext/shell.test.tsx` holds the import direction.

@@ -61,6 +61,7 @@
 }
 
 .scopeOption {
+  position: relative;
   flex: 1 1 auto;
   min-height: var(--vnext-tap-target);
   padding-inline: var(--vnext-space-3);
@@ -72,15 +73,24 @@
   font-size: var(--vnext-size-small);
   font-weight: var(--vnext-weight-medium);
   cursor: pointer;
-  transition:
-    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
-    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
+/*
+ * THE FILL MOVED TO THE MARKER, and only the fill. The pressed option still
+ * says so here in the way a stylesheet should — the text colour — while the
+ * background it used to paint instantly is now the travelling pill in
+ * `ScopeMarker`, which is the same background arriving from where it was.
+ */
 .scopeOption[aria-pressed='true'] {
-  background-color: var(--vnext-surface-raised);
+  --vnext-scope-marker-fill: var(--vnext-surface-raised);
+  --vnext-scope-marker-shadow: var(--vnext-shadow-sm);
+
   color: var(--vnext-text);
-  box-shadow: var(--vnext-shadow-sm);
+}
+
+.scopeLabel {
+  position: relative;
 }
 
 .filters {

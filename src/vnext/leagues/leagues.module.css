@@ -65,6 +65,7 @@
 }
 
 .scopeOption {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--vnext-space-2);
@@ -79,13 +80,17 @@
   font-size: var(--vnext-size-small);
   font-weight: var(--vnext-weight-medium);
   cursor: pointer;
-  transition:
-    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
-    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
+/*
+ * THE FILL MOVED TO THE MARKER. See `ScopeMarker` — the chosen table's
+ * background now travels from the one before it rather than appearing, and the
+ * fill this rule used to paint is handed to the pill through the variable.
+ */
 .scopeOption[aria-pressed='true'] {
-  background-color: var(--vnext-surface-interactive);
+  --vnext-scope-marker-fill: var(--vnext-surface-interactive);
+
   color: var(--vnext-text);
 }
 
@@ -94,10 +99,12 @@
 }
 
 .scopeName {
+  position: relative;
   overflow-wrap: anywhere;
 }
 
 .scopeCount {
+  position: relative;
   color: var(--vnext-text-muted);
 }
 

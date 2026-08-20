@@ -56,6 +56,13 @@
   background-color: var(--vnext-accent-veil);
 }
 
+/* The mark's own element, so the celebration scales the trophy and not the
+   sentence beside it. `inline-block` because a transform does nothing to an
+   inline box. */
+.trophyWrap {
+  display: inline-block;
+}
+
 .trophy {
   /* AN SVG SIZED IN `em`, NOT A GLYPH. It was an emoji, which the design system
      forbids and which rendered as a different typeface on every platform. The
