@@ -17,6 +17,7 @@ import { VNextPredictorScreen } from '../../vnext/integration/predictor/VNextPre
 import { VNextLmsScreen } from '../../vnext/integration/lms/VNextLmsScreen'
 import { VNextChampionshipScreen } from '../../vnext/integration/championship/VNextChampionshipScreen'
 import {
+  competitionCreatePrivatePlayRoute,
   competitionGameRoute,
   competitionPlayerRoute,
   competitionRoute,
@@ -118,8 +119,12 @@ export function VNextGamesDestination() {
         seasonSlug={seasonSlug}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
-          if (intent.kind !== 'open-game') return
           if (competitionSlug === undefined || seasonSlug === undefined) return
+          if (intent.kind === 'create-private-play') {
+            navigate(competitionCreatePrivatePlayRoute({ competitionSlug, seasonSlug }))
+            return
+          }
+          if (intent.kind !== 'open-game') return
           const route = GAME_ADDRESSES[intent.gameKey]
           if (route === undefined) return
           navigate(competitionGameRoute({ competitionSlug, seasonSlug }, route))
@@ -186,6 +191,20 @@ export function VNextLeaguesDestination() {
             return
           }
           if (competitionSlug === undefined || seasonSlug === undefined) return
+
+          // THE TWO WAYS OUT OF THE EMPTY STATE, which Stage 9 left as a
+          // sentence because the corridor did not exist. Creating is an
+          // address; joining is `/join/:code`, and the code is the invite's,
+          // so the corridor asks for it rather than this destination guessing.
+          if (intent.kind === 'create-private-play') {
+            navigate(competitionCreatePrivatePlayRoute({ competitionSlug, seasonSlug }))
+            return
+          }
+          if (intent.kind === 'join-with-code') {
+            navigate(competitionCreatePrivatePlayRoute({ competitionSlug, seasonSlug }))
+            return
+          }
+
           // THE REF IS THE ADDRESS. Contract 206 made the season reference the
           // identity a profile is opened by, and it is the only one the
           // same-season boundary reveals.

@@ -75,6 +75,10 @@ const VNEXT_FRAMED: readonly FramedRoute[] = [
   { pattern: weeklyRoutePatterns.matchCentre, journey: 'footballHubMatches' },
   { pattern: weeklyRoutePatterns.games, journey: 'footballHubGames' },
   { pattern: weeklyRoutePatterns.matchPredictor, journey: 'footballHubPredictor' },
+  {
+    pattern: weeklyRoutePatterns.createPrivatePlay,
+    journey: 'footballHubCreatePrivatePlay',
+  },
   { pattern: weeklyRoutePatterns.lms, journey: 'footballHubLms' },
   { pattern: weeklyRoutePatterns.championshipWildcard, journey: 'footballHubChampionship' },
   { pattern: weeklyRoutePatterns.leagues, journey: 'footballHubLeagues' },

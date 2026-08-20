@@ -85,6 +85,7 @@ const FOOTBALL_HUB_PREDICTOR_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_PREDIC
 const FOOTBALL_HUB_ONBOARDING_BUILT =
   import.meta.env.VITE_UI_FOOTBALL_HUB_ONBOARDING === 'true'
 const FOOTBALL_HUB_INVITE_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE === 'true'
+const FOOTBALL_HUB_CREATE_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_CREATE === 'true'
 const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_MATCHES_BUILT ||
   FOOTBALL_HUB_HOME_BUILT ||
@@ -97,7 +98,8 @@ const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_CHAMPIONSHIP_BUILT ||
   FOOTBALL_HUB_PREDICTOR_BUILT ||
   FOOTBALL_HUB_ONBOARDING_BUILT ||
-  FOOTBALL_HUB_INVITE_BUILT
+  FOOTBALL_HUB_INVITE_BUILT ||
+  FOOTBALL_HUB_CREATE_BUILT
 
 const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
   ? lazy(() =>
@@ -231,6 +233,16 @@ const Absorbed = ANY_FOOTBALL_HUB_BUILT
         })),
       ),
     }
+  : null
+// CREATE PRIVATE PLAY. The only cutover element with no legacy twin: the
+// address did not exist before it, so the off branch renders Not Found rather
+// than an older page, and the legacy journey stays where it has always been.
+const VNextCreateDestination = FOOTBALL_HUB_CREATE_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextCreateDestination').then((m) => ({
+        default: m.VNextCreateDestination,
+      })),
+    )
   : null
 const VNextPredictorDestination = FOOTBALL_HUB_PREDICTOR_BUILT
   ? lazy(() =>
@@ -917,6 +929,22 @@ export default function App() {
                             Deck and into the legacy season page. The legacy
                             route stays mounted on the off branch like every
                             other destination here. */}
+                        {/* THE CORRIDOR THE LEAGUES SURFACE SAID IT WAS NOT
+                            BUILDING. Reached from Games and from the Leagues
+                            empty state, which is why it is an address rather
+                            than a sheet on either of them. It creates through
+                            `presentCreateJourney` and the same three server
+                            functions the legacy journey calls. */}
+                        <Route
+                          path={weeklyRoutePatterns.createPrivatePlay}
+                          element={
+                            isNextUi('footballHubCreatePrivatePlay') && VNextCreateDestination ? (
+                              <VNextCreateDestination />
+                            ) : (
+                              <NotFoundPage />
+                            )
+                          }
+                        />
                         <Route
                           path={weeklyRoutePatterns.matchPredictor}
                           element={

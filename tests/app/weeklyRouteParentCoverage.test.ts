@@ -21,6 +21,7 @@ const SHIPPED_WEEKLY_ROUTES = [
   '/competitions/:competitionSlug/:seasonSlug/games',
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
+  '/competitions/:competitionSlug/:seasonSlug/games/create',
   '/competitions/:competitionSlug/:seasonSlug/games/lms',
   '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   '/competitions/:competitionSlug/:seasonSlug/leagues',

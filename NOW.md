@@ -33,6 +33,7 @@ before claiming it — two branches claiming one number is a known failure here.
 | --- | --- |
 | `VITE_UI_FOOTBALL_HUB_ACCOUNT` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_CREATE` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_DISCOVERY` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_GAMES` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_HOME` | set in the base build environment |

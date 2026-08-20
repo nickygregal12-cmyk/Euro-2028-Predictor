@@ -452,3 +452,34 @@
     max-width: 960px;
   }
 }
+
+/* ---- the empty state, which is now an offer ----------------------------- */
+
+/* TWO WAYS OUT, AND NEITHER OF THEM IS IN A TABLE. The controls sit under the
+ * sentence rather than inside the ranking above it: a table is a list of
+ * people and a button in one is a row that does something different from every
+ * other row. */
+.emptyOffer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+}
+
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}
+
+.emptyAction {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
+}

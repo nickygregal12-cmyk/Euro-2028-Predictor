@@ -94,6 +94,16 @@ export type MigratedJourney =
    * about what an invitation does.
    */
   | 'footballHubInvite'
+  /**
+   * CREATE PRIVATE PLAY, WHICH vNEXT NEVER HAD AT ALL.
+   *
+   * Unlike every other flag here this one selects between a vNext surface and
+   * NOTHING: there is no legacy element at this address because the address did
+   * not exist. Turning it off withdraws the corridor and leaves the legacy
+   * journey at `/leagues`, which is where it has always been and which the
+   * absorbed-address resolver still falls back to when Leagues is rolled back.
+   */
+  | 'footballHubCreatePrivatePlay'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -151,6 +161,8 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_ONBOARDING) ? 'next' : 'legacy'
     case 'footballHubInvite':
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE) ? 'next' : 'legacy'
+    case 'footballHubCreatePrivatePlay':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_CREATE) ? 'next' : 'legacy'
   }
 }
 

@@ -39,6 +39,18 @@ export const weeklyRoutePatterns = {
   matchPredictor: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   matchPredictorStandings:
     '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
+  /**
+   * CREATE PRIVATE PLAY, inside Games because that is what it creates.
+   *
+   * It is an ADDRESS rather than a sheet because the two surfaces that lead to
+   * it — Games and the Leagues empty state — are different pages, and a
+   * corridor reached from two places is one a player can also be sent a link
+   * to. It spans competitions: the competition in the address is where the
+   * player pressed, and the corridor still offers every season a Championship
+   * or a Last Man Standing could be built on, because that is what the server
+   * permits.
+   */
+  createPrivatePlay: '/competitions/:competitionSlug/:seasonSlug/games/create',
   lms: '/competitions/:competitionSlug/:seasonSlug/games/lms',
   championship: '/competitions/:competitionSlug/:seasonSlug/games/championship',
   championshipWildcard: '/competitions/:competitionSlug/:seasonSlug/games/championship/*',

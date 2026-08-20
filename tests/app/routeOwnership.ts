@@ -175,6 +175,12 @@ export const ROUTE_OWNERSHIP: readonly RouteOwnership[] = [
     why: 'REDESIGN. The flagship game, whose adapter Stage 14 built and never routed.',
   },
   {
+    path: '/competitions/:competitionSlug/:seasonSlug/games/create',
+    owner: 'vnext',
+    journey: 'footballHubCreatePrivatePlay',
+    why: 'The create-private-play corridor. New address: the off branch is Not Found, because there is no legacy page here.',
+  },
+  {
     path: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
     owner: 'absorbed',
     journey: 'footballHubLeagues',

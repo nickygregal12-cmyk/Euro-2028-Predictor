@@ -47,6 +47,20 @@ export type LeaguesIntent =
       readonly playerId: string | null
     }
   | { readonly kind: 'scope'; readonly scope: LeaguesScope }
+  /**
+   * THE TWO WAYS OUT OF "YOU ARE NOT IN A PRIVATE LEAGUE YET".
+   *
+   * Stage 9 deliberately drew no control here, and said why: *"a button here
+   * would be a door onto a corridor that has not been built."* It is built —
+   * `/competitions/:c/:s/games/create` — so the sentence stops being a dead end
+   * and becomes what it should always have been, which is an offer.
+   *
+   * A player with an invite is the commoner case of the two and is offered
+   * first by the host; joining is `/join/:code`, which the invite corridor
+   * already owns end to end.
+   */
+  | { readonly kind: 'create-private-play' }
+  | { readonly kind: 'join-with-code' }
 
 /**
  * vNEXT LEAGUES — WHO AM I COMPETING AGAINST, AND WHERE DO I STAND?
@@ -226,21 +240,45 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
         </motion.div>
 
         {leaguesKnownEmpty(model) ? (
-          /* THE ONE SENTENCE ABOUT PRIVATE LEAGUES, and it is not a call to
-           * action. Stage 9 does not own joining or creating a league, so a
-           * button here would be a door onto a corridor that has not been
-           * built. Saying what a private league IS, is honest and costs nothing.
+          /* THE SENTENCE, AND NOW THE TWO WAYS OUT OF IT. Stage 9 wrote this as
+           * a statement rather than a call to action because "a button here
+           * would be a door onto a corridor that has not been built". The
+           * corridor exists, so the sentence keeps its job — saying what a
+           * private league IS — and stops being the end of the road.
            *
            * IT IS GATED ON THE LIST HAVING ANSWERED, not on the chooser being
            * absent. Those two coincide until the league list FAILS, at which
            * point the second one would tell a player they are in no league on
            * the strength of a read that never came back — the one thing this
-           * lane forbids everywhere else. */
-          <p className={`${text.micro} ${styles.aside}`}>
-            You are not in a private league in {model.context.gameName} yet. A private
-            league ranks a group of players against each other inside this
-            competition.
-          </p>
+           * lane forbids everywhere else.
+           *
+           * AND ON THE HOST BEING ABLE TO ROUTE. A host with no `onIntent` gets
+           * the sentence alone, which is what it always was. */
+          <div className={styles.emptyOffer} data-vnext-zone="no-private-league">
+            <p className={`${text.micro} ${styles.aside}`}>
+              You are not in a private league in {model.context.gameName} yet. A private
+              league ranks a group of players against each other inside this
+              competition.
+            </p>
+            {onIntent === undefined ? null : (
+              <div className={styles.emptyActions}>
+                <button
+                  type="button"
+                  className={styles.emptyAction}
+                  onClick={() => onIntent({ kind: 'join-with-code' })}
+                >
+                  Join with an invite
+                </button>
+                <button
+                  type="button"
+                  className={styles.emptyAction}
+                  onClick={() => onIntent({ kind: 'create-private-play' })}
+                >
+                  Create one
+                </button>
+              </div>
+            )}
+          </div>
         ) : null}
       </div>
     </VNextShell>

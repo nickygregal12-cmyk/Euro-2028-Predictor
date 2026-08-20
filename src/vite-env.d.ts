@@ -65,6 +65,8 @@ interface ImportMetaEnv {
   readonly VITE_UI_FOOTBALL_HUB_ONBOARDING?: string
   /** The vNext invite PRESENTATION at `/join/:code`. The join is shared. */
   readonly VITE_UI_FOOTBALL_HUB_INVITE?: string
+  /** The vNext create-private-play corridor. No legacy element at that address. */
+  readonly VITE_UI_FOOTBALL_HUB_CREATE?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

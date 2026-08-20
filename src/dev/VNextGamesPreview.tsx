@@ -114,6 +114,10 @@ function GamesHarness() {
             )
             return
           }
+          if (intent.kind === 'create-private-play') {
+            setNote('Create private play asked for — the corridor is a route.')
+            return
+          }
           // THE SCREEN PERFORMS IT. This only records that it was asked for,
           // so a reviewer can see the seam as well as the effect.
           setNote(`Join sent for game ${intent.gameId}.`)

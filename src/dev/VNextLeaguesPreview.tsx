@@ -210,6 +210,13 @@ function PreviewBody() {
                 )
                 return
               }
+              if (
+                intent.kind === 'create-private-play' ||
+                intent.kind === 'join-with-code'
+              ) {
+                setNote(`Leagues asked for "${intent.kind}" — the corridor is a route.`)
+                return
+              }
               // THE DOORWAY, EXERCISED. The page emitted two identifiers and
               // nothing that could be a display name; the harness carries them
               // to Stage 10's surface rather than describing them.
