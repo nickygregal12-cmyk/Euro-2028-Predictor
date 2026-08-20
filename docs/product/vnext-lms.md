@@ -664,8 +664,8 @@ this document exists to avoid:
 | --- | --- |
 | `/dev/vnext-lms` | connected harness. **Pressing a club really spends it** |
 | Storybook `vNext/Last Man Standing` | 25 worlds, the review surface |
-| — | **The vNext lane has no application route of its own**, and an earlier version of this table invented one. It is reached from the harness and from Storybook until the cutover stage. |
-| `/competitions/:competition/:season/games/lms` | **production, untouched** |
+| — | **Until Stage 14 the vNext lane had no application route of its own**, and an earlier version of this table invented one before it had one. It was reached from the harness and from Storybook. |
+| `/competitions/:competition/:season/games/lms` | **production. Served by the vNext surface since Stage 14, behind `VITE_UI_FOOTBALL_HUB_LMS`; `SeasonLmsPage` stays mounted for rollback** |
 
 ---
 
@@ -679,4 +679,6 @@ Two production files are in the diff and both are named in §11: a type-only
 re-export that emits nothing, and a `import.meta.env.DEV`-gated route for the
 harness, tree-shaken out of a production build. Neither reaches a user.
 
-Cutover is Stage 14 and requires explicit authority.
+**This section records Stage 11's diff, and stays true of it.** Cutover was
+Stage 14, it was authorised, and it has happened — see
+[`vnext-route-migration-matrix.md`](vnext-route-migration-matrix.md) §13.

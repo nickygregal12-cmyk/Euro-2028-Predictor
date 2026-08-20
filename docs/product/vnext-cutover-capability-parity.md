@@ -78,7 +78,7 @@ is to check those, not the counts.
 | Compare with one rival | `/h2h/:rivalId` (weekly) | a panel inside the profile | **B** | Contract 192's rivalry, not contract 129 per matchweek |
 | Mark somebody as a rival | Hub Rival Watch pin | the profile's pin control | **B** | **Built in Stage 14** over `set_pinned_rival`, which has been in production since contract 157 |
 | See the players I have pinned, by name | **nowhere** | **not built** | **F** | `PROF-002`. `get_my_preferences` returns pinned rivals as bare ids — no name, no season ref. The smallest safe read is proposed in [`vnext-player-profiles.md`](vnext-player-profiles.md) §8.5 |
-| Open a same-season entrant I share no private league with | **refused** | **the backend permits it; the browser does not ask yet** | **F** | `PROF-001` / ADR 0031 § 2 decided YES. Contract 206 (`get_season_player_profile_by_ref`) is on this branch; the vNext consumer is not built and hosted Development has not applied it. See §8 |
+| Open a same-season entrant I share no private league with | **refused** | **opens, by season ref** | **A** | `PROF-001`, closed. ADR 0031 § 2 decided YES and contract 206's `get_season_player_profile_by_ref` answers the ref. See §8 |
 | A Euro-tournament private league | `/league/:id` | unchanged | **E** | Stage 15's Euro adoption, deliberately not done early |
 | A Euro-tournament profile | `/tournament/profile[/:id]` | unchanged | **E** | Three profile systems exist; vNext must not add a fourth, and must not rebuild the Euro ones out of order |
 
@@ -128,24 +128,37 @@ what a cutover would ship without.
 ### `PROF-001` — a same-season entrant with no shared private league
 
 ADR 0031 § 2 decided **YES**: same-season entrants may view each other's
-bounded, reveal-safe profiles. **Contract 206 —
-`get_season_player_profile_by_ref`, from PR #920 — is on this branch.** Three
-things still stand between that and the capability:
+bounded, reveal-safe profiles. **This is now closed**, and the three things that
+once stood between the decision and the capability are each done rather than
+each argued away:
 
-1. **no vNext consumer.** `buildLeaguesModel.destinationOf` still returns
-   `closed / not-shared` for a `compare` row, and the player profile still asks
-   the UUID-addressed contract 151 read. Widening the first without building the
-   second would put a door on a corridor;
-2. **hosted Development has not applied it.** Repository, Development and
-   Production reach a contract on their own schedules;
-3. **generated Supabase types.** `PROF-001`'s own acceptance names them.
+1. **the read** — contract 206's `get_season_player_profile_by_ref`, merged in
+   PR #920;
+2. **the hosted rollout** — Development applied it; `NOW.md` states where every
+   environment is, and this page deliberately does not;
+3. **the vNext consumer** — `buildLeaguesModel.destinationOf` opens a `compare`
+   row on the season ref, and the player profile reads through whichever address
+   the doorway carried.
 
-**It is not a cutover blocker and must not be treated as one.** The vNext
-Leagues table behaves correctly for both answers, and the legacy product refuses
-the same reader today — so cutover loses nothing here. What it means is that the
-journey *league table → player → rank over time → comparison* stops at the first
-step for a non-league-mate until the consumer is built on a database that has
-the read.
+**The account id does not travel across the same-season boundary**, which is the
+part worth keeping in a capability page rather than in a changelog. A `compare`
+row carries a ref and no id even if a payload offered one, because the migration
+is explicit that the ref is *"the only navigation identity exposed by this
+path"*. Permission and address are separate facts and this boundary states only
+the one it is entitled to.
+
+**One consequence is still open and is NOT this row:** the pin has no
+ref-addressed write, so a same-season profile reports its pin state as
+*unanswered* rather than as unpinned. That is honest — the alternative is a
+control that lies about what it knows — and it belongs to `PROF-002`, below.
+
+**It was never a cutover blocker, and it is worth recording why the answer did
+not depend on closing it.** The vNext Leagues table behaved correctly for both
+answers throughout, and the legacy product refuses the same reader to this day —
+so cutover would have lost nothing here either way. Closing it *gained*
+something instead: the journey *league table → player → rank over time →
+comparison* now runs to the end for a non-league-mate, where the legacy product
+stops it at the first step.
 
 ### `PROF-002` — "people you follow"
 
@@ -188,10 +201,10 @@ true rather than what is intended.
 | Predicate | State | Evidence |
 | --- | --- | --- |
 | every Football Hub route has an intentional production behaviour | **Met** | The route matrix, all 39 rows, none unresolved |
-| every user-facing CAPABILITY has a stated destination | **Met, with two named `F` rows** | This page. `PROF-001` and `PROF-002` are the whole of what is not `A`/`B`/`C`/`D`/`E`, and neither loses a capability the legacy product has |
+| every user-facing CAPABILITY has a stated destination | **Met, with one named `F` row** | This page. `PROF-002` is the whole of what is not `A`/`B`/`C`/`D`/`E`, and it loses no capability the legacy product has. `PROF-001` was the second and is closed — see §8 |
 | no required user journey depends on the workshop or a dev harness | **Met** | Every `/dev/*` route is behind `import.meta.env.DEV` and absent from a production build. No row above resolves to one |
-| production build contains the intended vNext surfaces and only intentional legacy compatibility | **NOT YET — and this is the stage's remaining work** | vNext is still a parallel lane: no route is repointed, and the connected surfaces are reachable only from `/dev/*`. The cutover implementation itself is what closes this |
-| auth, refresh, deep-link, navigation and error paths are tested | **Partially** | The vNext lane's own paths are; the repointed production routing does not exist yet to be tested |
+| production build contains the intended vNext surfaces and only intentional legacy compatibility | **Met — closed by the cutover** | The nine Football Hub journeys are repointed in `src/App.tsx`, each behind its own `VITE_UI_FOOTBALL_HUB_*` flag, all nine set in `netlify.toml`. The legacy routes stay mounted as the rollback, which is the intentional legacy compatibility this row allows for; `tests/vnext/vnextCutoverRouting.test.tsx` asserts both halves of every pair |
+| auth, refresh, deep-link, navigation and error paths are tested | **Partially, for a different reason than before** | The repointed routing now exists and is tested: the flag selects the right element for all nine journeys, it fails closed on anything but `'true'`, and the Match Centre address stays self-contained so a deep link survives. The destinations sit inside the existing `RequireAuth` tree, so auth and refresh are unchanged rather than newly proven. What is still untested end-to-end is the error path through the repointed routes |
 | accessibility/performance/bundle regression acceptable | **Met for what exists** | Axe gates per surface, the CSS-module guard, the bundle budget and Lighthouse gates all green |
 | monitoring and rollback ready | **Not this batch's scope** | Named by the stage contract and untouched here |
 | current required CI/review green | **Met at this head** | See the branch's own checks |
@@ -213,19 +226,34 @@ are now under `resolvedDebt`:
 205 and each is a separately authorised rollout. A cutover cannot claim the
 Championship is truth-complete until the environment it runs against has them.
 
-### A hosted sequencing constraint, recorded because it outranks readiness
+### The hosted rollout outranks readiness, and this page does not track it
 
-Contracts 207 and 208 are committed and applied nowhere. **Contract 206 must
-reach Development and Production first**, and the reason is a deployment one
-rather than a dependency between the migrations: advancing the repository
-contract moves the Netlify deployment declaration with it, so landing 207/208
-before 206 is reconciled forces another hosted cycle before production builds
-can resume.
+**THIS PAGE STATES NO HOSTED CONTRACT NUMBER, deliberately, and the reason is
+that it did twice and was wrong both times within a day.** It said contracts
+207 and 208 were "applied nowhere" and that 206 had to reach Development first;
+Development went to 208 in one fast-lane run and the Production plan became a
+single 205→208 promotion, and both sentences became false without anybody
+touching this file.
 
-That is the owner's sequencing decision, and it is why the pull request carrying
-this batch is deliberately held. **Nothing in this page is a reason to bring it
-forward.** Everything below is about product readiness; the order in which
-contracts reach an environment is a separate authority and wins.
+`NOW.md` is generated from the machine records and is the only place the
+repository, Development and Production contracts are stated. **Read it there.**
+That is the repository's own one-fact-one-home rule, and a capability matrix is
+exactly the kind of page that acquires a stale copy of a moving number because
+the copy looked like useful context at the time.
+
+What belongs here is the CONSEQUENCE, which does not move:
+
+- **an environment reaches a contract on its own schedule**, so a capability
+  backed by a migration is only real where that migration has been applied. A
+  row above may be `A` in the repository and unavailable to a player;
+- **Production promotion is separately authorised, always.** Nothing in this
+  page is an argument for applying anything to any environment;
+- **advancing the repository contract moves the Netlify deployment declaration
+  with it**, which is why hosted rollouts are batched and ordered by whoever
+  owns them rather than by whoever merged last.
+
+Everything below is about product readiness. The order in which contracts reach
+an environment is a separate authority and it wins.
 
 ### The honest verdict
 
