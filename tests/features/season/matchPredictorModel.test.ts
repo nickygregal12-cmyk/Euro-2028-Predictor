@@ -6,6 +6,7 @@ import {
   type MatchPredictorFixture,
   type MatchPredictorPage,
   commandRefusal,
+  fixtureEditable,
   presentCard,
 } from '../../../src/features/season/matchPredictorModel'
 import { explainLock } from '../../../src/features/season/lockExplanation'
@@ -219,5 +220,99 @@ describe('lock explanation', () => {
       expect(explanation.label.length, reason).toBeGreaterThan(0)
       expect(explanation.detail.length, reason).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('the per-fixture lock the card publishes (contract 212, ING-005)', () => {
+  const moved = (locked: boolean): MatchPredictorFixture => ({
+    ...fixture('moved'),
+    lockAt: locked ? '2027-08-14T14:00:00.000Z' : '2027-09-30T19:45:00.000Z',
+    locked,
+  })
+
+  it('lets a player edit a fixture whose own lock has not passed, on a locked matchweek', () => {
+    // THE FAULT ING-005 NAMED, as an assertion. The matchweek instant has gone
+    // and the card is locked; this fixture moved and the trigger would still
+    // accept the write. Before contract 212 the surface refused it.
+    const presentation = presentCard(page({ lock: LOCKED, fixtures: [moved(false)] }), false)
+    expect(presentation.state).toBe('locked')
+    expect(fixtureEditable(presentation, moved(false))).toBe(true)
+    expect(
+      commandRefusal(
+        presentation,
+        { kind: 'setPrediction', fixtureId: 'moved', prediction: { home: 1, away: 0 } },
+        { playedHere: false, remainingThisHalf: 5, playable: true },
+        [moved(false)],
+      ),
+    ).toBeNull()
+  })
+
+  it('still refuses a fixture the database says is locked, on an open matchweek', () => {
+    // The other direction, which the same publication makes possible: a voided
+    // fixture answers `-infinity` and is locked while its matchweek is open.
+    const presentation = presentCard(page({ lock: OPEN, fixtures: [moved(true)] }), false)
+    expect(presentation.editable).toBe(true)
+    expect(fixtureEditable(presentation, moved(true))).toBe(false)
+    expect(
+      commandRefusal(
+        presentation,
+        { kind: 'setPrediction', fixtureId: 'moved', prediction: { home: 1, away: 0 } },
+        { playedHere: false, remainingThisHalf: 5, playable: true },
+        [moved(true)],
+      ),
+      // Said of the fixture, because the fixture is what is locked.
+    ).toBe('This fixture is locked.')
+  })
+
+  it('keeps the Joker and the card confirmation matchweek-level', () => {
+    // Contract 212 moves the SCORE question and nothing else. A Joker doubles a
+    // whole matchweek and confirming a card is an act on the card, so both keep
+    // asking the matchweek lock even when one fixture is still open.
+    const presentation = presentCard(page({ lock: LOCKED, fixtures: [moved(false)] }), false)
+    const joker = { playedHere: false, remainingThisHalf: 5, playable: true }
+    expect(commandRefusal(presentation, { kind: 'setJoker', played: true }, joker, [moved(false)])).toBe(
+      'This matchweek is locked.',
+    )
+    expect(commandRefusal(presentation, { kind: 'confirmCard' }, joker, [moved(false)])).toBe(
+      'This matchweek is locked.',
+    )
+  })
+
+  it('falls back to the matchweek lock for a fixture that published nothing', () => {
+    // The rollout gap: a database still at contract 211 publishes no per-fixture
+    // lock, and the surface must behave exactly as it did before rather than
+    // treating an absent field as permission.
+    const silent = fixture('silent')
+    const locked = presentCard(page({ lock: LOCKED, fixtures: [silent] }), false)
+    const open = presentCard(page({ lock: OPEN, fixtures: [silent] }), false)
+    expect(fixtureEditable(locked, silent)).toBe(false)
+    expect(fixtureEditable(open, silent)).toBe(true)
+    expect(
+      commandRefusal(
+        locked,
+        { kind: 'setPrediction', fixtureId: 'silent', prediction: { home: 1, away: 0 } },
+        { playedHere: false, remainingThisHalf: 5, playable: true },
+        [silent],
+      ),
+    ).toBe('This matchweek is locked.')
+  })
+
+  it('refuses a stale or unresolvable card whatever a fixture published', () => {
+    // A conflict and an unresolvable lock outrank the fixture's own answer,
+    // because the page is knowingly showing data it cannot trust.
+    const conflicted = presentCard(page({ lock: OPEN, fixtures: [moved(false)] }), true)
+    const unresolvable = presentCard(page({ lock: UNRESOLVABLE, fixtures: [moved(false)] }), false)
+    expect(fixtureEditable(conflicted, moved(false))).toBe(false)
+    expect(fixtureEditable(unresolvable, moved(false))).toBe(false)
+  })
+
+  it('never reopens a settled fixture, however its lock reads', () => {
+    const settled: MatchPredictorFixture = {
+      ...moved(false),
+      result: { home: 2, away: 1 },
+      points: 3,
+    }
+    const presentation = presentCard(page({ lock: OPEN, fixtures: [settled] }), false)
+    expect(fixtureEditable(presentation, settled)).toBe(false)
   })
 })

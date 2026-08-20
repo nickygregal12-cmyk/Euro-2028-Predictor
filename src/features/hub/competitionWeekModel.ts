@@ -15,12 +15,21 @@ import { formatDeadline } from '../../shared/time/kickoff'
  * this in future tense and was deleted for saying so.
  *
  * IT DERIVES NOTHING IT COULD BE TOLD. Every fact below comes out of a game's
- * own authoritative read: the lock instant is the one `get_season_matchweek_card`
- * resolved, the round's deadline is the one `get_season_lms_round` returned, and
+ * own authoritative read: the lock instant is the MATCHWEEK one the Main
+ * Predictor's page read resolved, the round's deadline is the one
+ * `get_season_lms_round` returned, and
  * whether a pick is in is the pick the server holds. This model counts and
  * orders; it does not compute a lock, a rank or a score. A second copy of a
  * deadline is a second thing that can be wrong, and the wrong one is always the
  * one nearer the player.
+ *
+ * THE MATCHWEEK INSTANT IS THE RIGHT ONE HERE, and contract 212 is why that
+ * needs saying. That contract publishes a PER-FIXTURE lock on the card, because
+ * a rescheduled or postponed fixture is enforced against its own kickoff rather
+ * than its matchweek's. This panel is about the CARD — "your Main Predictor
+ * matchweek locks at X" — which is still a matchweek-level fact, so it keeps
+ * reading the matchweek instant. Reaching for a per-fixture one here would put a
+ * deadline for a single moved fixture on a summary about a whole week.
  *
  * PURE. No clock read, no storage, no network: `now` is an input, as everything
  * time-dependent in this repository is.

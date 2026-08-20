@@ -51,6 +51,26 @@ export type MatchPredictorFixture = {
   result: ScorelinePrediction | null
   /** Points this fixture was awarded, present only alongside a settled result. */
   points: number | null
+  /**
+   * Contract 212. THE INSTANT THIS FIXTURE LOCKS, as the database publishes it,
+   * and whether that instant has already passed.
+   *
+   * Both, rather than one, because two of the authority's answers have no
+   * printable instant: a void or abandoned fixture is locked forever, and a
+   * postponement with no announced replacement date is open indefinitely.
+   * `lockAt` is null in both, and `locked` carries the truth. A surface that
+   * needs to PRINT a deadline uses `lockAt`; one that needs to decide whether to
+   * accept an edit uses `locked`.
+   *
+   * OPTIONAL, AND THE OPTIONALITY IS THE ROLLOUT. A gateway reading a database
+   * that has not yet crossed contract 212 publishes neither, and everything
+   * downstream falls back to the matchweek-wide lock — which is exactly what it
+   * did before this field existed. The fallback is the old behaviour rather than
+   * an open surface, so the gap between merge and rollout cannot invite an edit
+   * the database would refuse.
+   */
+  lockAt?: string | null | undefined
+  locked?: boolean | undefined
 }
 
 export type MatchweekJoker = {
@@ -171,6 +191,38 @@ export function presentCard(page: MatchPredictorPage, hasConflict: boolean): Car
   return { ...base, state: 'active_complete', atLock, editable: true }
 }
 
+/**
+ * Whether ONE fixture accepts edits, which is not the same question as whether
+ * the card does.
+ *
+ * `ING-005`: contract 119 made ENFORCEMENT per fixture and left PUBLICATION per
+ * matchweek, so a rescheduled or postponed fixture read as locked on this
+ * surface while the trigger would have accepted the write. The surface was
+ * stricter than the rule — safe, and still wrong, because a game that refuses a
+ * legal move is broken even when it is safe. Contract 212 publishes the
+ * per-fixture instant and this is where the page reads it.
+ *
+ * The card-level questions do NOT move: the Joker is a matchweek-level choice
+ * and confirming a card is a matchweek-level act, so both keep asking
+ * `presentation.editable`. Only a score input asks this.
+ *
+ * ORDER MATTERS AND IS THE SAFETY PROPERTY, in the same way `presentCard`'s
+ * does. A conflict and an unresolvable lock outrank everything, because the page
+ * is knowingly showing data it cannot trust; a settled result outranks the lock,
+ * because a scored fixture is finished whatever any deadline says; and a fixture
+ * that published nothing falls back to its card rather than to "open".
+ */
+export function fixtureEditable(
+  presentation: CardPresentation,
+  fixture: MatchPredictorFixture,
+): boolean {
+  if (presentation.state === 'conflict_requires_refresh') return false
+  if (presentation.state === 'unavailable') return false
+  if (fixture.result !== null) return false
+  if (fixture.locked === undefined) return presentation.editable
+  return !fixture.locked
+}
+
 /** Commands the page may issue. Nothing else mutates season state. */
 export type MatchPredictorCommand =
   | { kind: 'setPrediction'; fixtureId: string; prediction: ScorelinePrediction | null }
@@ -188,7 +240,29 @@ export function commandRefusal(
   presentation: CardPresentation,
   command: MatchPredictorCommand,
   joker: MatchweekJoker,
+  /**
+   * Contract 212. Supplied so a score command can be judged against the
+   * fixture's OWN lock. Defaulted to empty rather than made required: a caller
+   * that does not pass it gets the matchweek-wide judgement it always got,
+   * which is the stricter of the two and therefore the safe default.
+   */
+  fixtures: readonly MatchPredictorFixture[] = [],
 ): string | null {
+  if (command.kind === 'setPrediction') {
+    const fixture = fixtures.find((entry) => entry.fixtureId === command.fixtureId)
+    if (fixture !== undefined && fixture.locked !== undefined) {
+      if (presentation.state === 'conflict_requires_refresh') {
+        return 'This matchweek changed somewhere else. Reload it before editing.'
+      }
+      if (presentation.state === 'unavailable') {
+        return 'This matchweek is unavailable, so it cannot be edited.'
+      }
+      // Said of the FIXTURE, because that is what is locked. Telling a player
+      // the matchweek is locked while its other fixtures accept edits would be
+      // the same class of untruth this contract exists to remove.
+      return fixtureEditable(presentation, fixture) ? null : 'This fixture is locked.'
+    }
+  }
   if (!presentation.editable) {
     if (presentation.state === 'conflict_requires_refresh') {
       return 'This matchweek changed somewhere else. Reload it before editing.'
