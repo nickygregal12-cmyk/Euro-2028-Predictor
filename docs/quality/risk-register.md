@@ -820,6 +820,9 @@ route, so the document-level scroll this criterion is about does not exist in
 this lane yet. **`UX-007` is opened** for it below, owned by Stage 14, where the
 shell becomes the production frame and the document becomes the scroller.
 
+*(Dated 19 August 2026 and left as written. The row below records what
+happened next.)*
+
 **`touch-action: manipulation` — declined, with the reason.** The skill lists it
 against a 300ms tap delay that modern engines removed for any document with
 `width=device-width`, which this application sets. Adding it lane-wide would be
@@ -827,5 +830,5 @@ cargo, not a fix.
 
 | id | risk | status | closes when |
 | --- | --- | --- | --- |
-| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Open, recorded 19 August 2026.** Suspected from the CSS — sticky `top: 0` masthead, no `scroll-padding-block-start` in the lane — and deliberately NOT asserted: the browser probe written for it was unreliable and is not carried as evidence. Not currently reachable, because vNext has no application route. | Stage 14 exercises the criterion against the real document scroller and either measures it clear or adds the scroll padding, with a browser assertion that holds across runs. |
+| `UX-007` | vNext's sticky masthead may obscure the keyboard-focused control once the shell becomes the production frame (WCAG 2.2 AA, 2.4.11) | **Closed, 20 August 2026, and the suspicion was correct.** Measured against a document scroller — `vNext/Focus Not Obscured` renders one real page in one `VNextRoot` with no device frame, which is the shape production has — and the keyboard walk found focused controls entirely under the masthead at 375 and at 1440. `useStickyScrollPadding` corrects it by MEASURING both sticky bars and writing `scroll-padding-block-start`/`-block-end` on the document element, because the masthead's height varies with the context bar, the attention band and a wrapped title. The assertion in `e2e/vnext-shell.spec.ts` hit-tests with `elementFromPoint` rather than comparing rectangles — comparing rectangles is what made the first probe unreliable, since it reported the skip link and the rail's switcher as covered when one paints above the masthead and the other sits beside it. Mutation-proved: with the padding forced to zero both widths fail. | Closed. |
 

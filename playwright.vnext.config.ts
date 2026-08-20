@@ -102,8 +102,16 @@ export default defineConfig({
   ],
 
   webServer: {
-    // Storybook, not the application. vNext has no application route, and the
-    // whole point of the workshop is that it does not have one yet.
+    // Storybook, not the application. The cutover gave vNext real routes, and
+    // this suite deliberately does NOT follow them there: it measures
+    // composition against deterministic worlds, which is a different question
+    // from whether the reads work. The connected proof lives at the `/dev`
+    // harnesses and in the authenticated browser suite.
+    //
+    // ONE STORY HERE IS DOCUMENT-SCOPED RATHER THAN FRAMED — `vNext/Focus Not
+    // Obscured` — because WCAG 2.2's 2.4.11 is about where a SCROLLER scrolls
+    // to, and a framed surface scrolls inside its frame. See the case at the
+    // end of `e2e/vnext-shell.spec.ts`.
     command: `npm run storybook -- --ci --quiet --port ${port}`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
