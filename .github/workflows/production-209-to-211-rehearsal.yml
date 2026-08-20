@@ -1,9 +1,13 @@
-name: Production 209 to 210 rollout
+name: Production 209 to 211 rehearsal
 
-# One-shot guarded Production promotion for Contract 210, the provider fixture
-# lifecycle. Manual trigger only. Requires a fresh encrypted backup and a
-# successful exact-head 209-to-210 rehearsal. THIS WORKFLOW IS THE PRODUCTION
-# MUTATION; every other workflow in this pair is read-only.
+# Read-only Production rehearsal for Contract 211, the provider fixture lifecycle.
+# Manual trigger only. Requires a successful encrypted Production backup,
+# Development recorded at 209 or later, and repository main exactly at 209.
+#
+# This workflow NEVER writes to Production. It dumps Production, restores that
+# dump into a disposable local Supabase, applies 209 there, and proves the
+# contract's behaviour against real Production data before anything is allowed
+# near the live database.
 on:
   workflow_dispatch:
     inputs:
@@ -11,13 +15,10 @@ on:
         description: Exact Production project ref confirmation
         required: true
       confirmation:
-        description: Type APPLY-PRODUCTION-209-TO-210 to proceed
+        description: Type REHEARSE-PRODUCTION-209-TO-211 to proceed
         required: true
       backup_run_id:
         description: Run id of the successful fresh Production backup
-        required: true
-      rehearsal_run_id:
-        description: Run id of the successful 209-to-210 rehearsal
         required: true
 
 permissions:
@@ -25,25 +26,26 @@ permissions:
   actions: read
 
 concurrency:
-  group: production-migration-rollout
+  group: production-209-to-211-rehearsal
   cancel-in-progress: false
 
 env:
   EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
   FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
-  CONFIRMATION_PHRASE: APPLY-PRODUCTION-209-TO-210
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-209-TO-211
   SOURCE_CONTRACT: '209'
   SOURCE_VERSION: '20260819200000'
   SOURCE_NAME: provider_fixture_lifecycle
-  TARGET_CONTRACT: '210'
-  TARGET_VERSION: '20260820070000'
-  TARGET_NAME: provider_live_window_covers_the_deadline
-  WORK_DIR: /tmp/production-209-to-210-rollout
+  TARGET_CONTRACT: '211'
+  TARGET_VERSION: '20260820090000'
+  TARGET_NAME: provider_deadline_watch_tier
+  WORK_DIR: /tmp/production-209-to-211-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
 
 jobs:
-  rollout:
+  rehearsal:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Harden runner
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -65,52 +67,43 @@ jobs:
           [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || { echo 'ERROR: confirmation phrase mismatch.'; exit 1; }
           [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: that is Development.'; exit 1; }
           [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || { echo 'ERROR: project ref is not Production.'; exit 1; }
-          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rollout runs only from main.'; exit 1; }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rehearsal runs only from main.'; exit 1; }
           git fetch --no-tags origin main
           [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact main.'; exit 1; }
           [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is dirty.'; exit 1; }
           mkdir -p "${WORK_DIR}"
 
-      - name: Prove fresh backup then exact-head rehearsal succeeded
+      - name: Prove a fresh encrypted backup succeeded first
         env:
           GH_TOKEN: ${{ github.token }}
           BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
-          REHEARSAL_RUN_ID: ${{ inputs.rehearsal_run_id }}
         shell: bash
         run: |
           set -euo pipefail
-          check_run() {
-            local id="$1" path="$2" label="$3" json
-            json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}")"
-            [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo "ERROR: ${label} ${id} did not succeed."; exit 1; }
-            [ "$(jq -r '.path' <<<"${json}")" = "${path}" ] || { echo "ERROR: ${label} ${id} has wrong workflow path."; exit 1; }
-            printf '%s' "${json}"
-          }
-          backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
-          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-209-to-210-rehearsal.yml' Rehearsal)"
-          rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
-          [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
-          backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
-          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rollout head.'; exit 1; }
-          backup_at="$(jq -r '.created_at' <<<"${backup}")"
-          rehearsal_at="$(jq -r '.created_at' <<<"${rehearsal}")"
-          [ "${backup_at}" \< "${rehearsal_at}" ] || { echo 'ERROR: backup does not precede rehearsal.'; exit 1; }
+          json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}")"
+          [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo 'ERROR: backup did not succeed.'; exit 1; }
+          [ "$(jq -r '.path' <<<"${json}")" = '.github/workflows/production-backup.yml' ] || { echo 'ERROR: not the Production backup workflow.'; exit 1; }
+          backup_sha="$(jq -r '.head_sha' <<<"${json}")"
+          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rehearsal head.'; exit 1; }
           artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}/artifacts")"
           [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || {
             echo 'ERROR: encrypted backup artifact missing.'
             exit 1
           }
 
-      - name: Refuse to make Production the first hosted environment to see Contract 210
+      - name: Refuse to make Production the first hosted environment to see Contract 211
         shell: bash
         run: |
           set -euo pipefail
           dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
           dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
           [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: Development record names the wrong project.'; exit 1; }
-          [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || { echo "ERROR: Development record is ${dev_contract}, below ${TARGET_CONTRACT}."; exit 1; }
+          [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development is recorded at contract ${dev_contract}, below ${TARGET_CONTRACT}."
+            exit 1
+          }
 
-      - name: Prove the repository boundary is exactly Contract 210
+      - name: Prove the repository boundary is exactly Contract 211
         shell: bash
         run: |
           set -euo pipefail
@@ -133,8 +126,9 @@ jobs:
           [ "${count}" = "${expected}" ] || { echo "ERROR: boundary holds ${count} migrations, expected ${expected}."; cat "${WORK_DIR}/boundary.txt"; exit 1; }
           printf '%s\n' \
             '20260820070000_provider_live_window_covers_the_deadline.sql' \
+            '20260820090000_provider_deadline_watch_tier.sql' \
             > "${WORK_DIR}/expected-boundary.txt"
-          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || { echo 'ERROR: boundary is not exactly Contract 210.'; exit 1; }
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || { echo 'ERROR: boundary is not exactly Contract 211.'; exit 1; }
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -145,7 +139,16 @@ jobs:
           version: 2.109.1
           github-token: ${{ github.token }}
 
-      - name: Capture exact pre-apply Production state
+      - name: Install PostgreSQL 17 client tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Confirm Production is exactly 209 before dumping it
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -157,11 +160,58 @@ jobs:
             *"${EXPECTED_PROJECT_REF}"*) ;;
             *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
           esac
-          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/before.json" <<'SQL'
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/live.json" <<'SQL'
           select jsonb_build_object(
             'migration_count',(select count(*) from supabase_migrations.schema_migrations),
             'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
-            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1));
+          SQL
+          LIVE_FILE="${WORK_DIR}/live.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const x = JSON.parse(fs.readFileSync(process.env.LIVE_FILE, 'utf8'))
+          const want = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [k, v] of Object.entries(want)) {
+            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
+          }
+          NODE
+
+      - name: Dump Production and restore disposable copy
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase init --force --workdir "${WORK_DIR}" >/dev/null 2>&1 || true
+          supabase start --workdir "${WORK_DIR}"
+          BUNDLE="${WORK_DIR}/bundle"
+          ROLLOUT="${GITHUB_WORKSPACE}/scripts/database-rollout"
+          mkdir -p "${BUNDLE}"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/data.sql" --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump --dbname "${SUPABASE_PROD_DB_URL}" --schema supabase_migrations --no-owner --no-privileges --file "${BUNDLE}/migration-history.sql"
+          for f in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${BUNDLE}/${f}" ] || { echo "ERROR: missing ${f}"; exit 1; }
+          done
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/roles.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${ROLLOUT}/prepare-disposable-restore-target.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/schema.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file "${BUNDLE}/data.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${ROLLOUT}/managed-schema-customizations.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/migration-history.sql"
+          restored="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from supabase_migrations.schema_migrations')"
+          [ "${restored}" = "${SOURCE_CONTRACT}" ] || { echo "ERROR: restored contract ${restored}."; exit 1; }
+
+      - name: Measure the disposable copy before applying
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/before.json" <<'SQL'
+          select jsonb_build_object(
             'auth_users',(select count(*) from auth.users),
             'profiles',(select count(*) from public.profiles),
             'entries',(select count(*) from public.entries),
@@ -183,39 +233,51 @@ jobs:
                 from public.provider_poll_targets target));
           SQL
           cat "${WORK_DIR}/before.json"
-          BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
-          import fs from 'node:fs'
-          const x = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
-          const want = {
-            migration_count: Number(process.env.SOURCE_CONTRACT),
-            latest_version: process.env.SOURCE_VERSION,
-            latest_name: process.env.SOURCE_NAME,
-          }
-          for (const [k, v] of Object.entries(want)) {
-            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
-          }
-          NODE
 
-      - name: Dry run and apply exactly Contract 210 to Production
-        env:
-          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+      - name: Apply exactly Contract 211 to the disposable copy
         shell: bash
         run: |
           set -euo pipefail
-          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          supabase db push --db-url "${LOCAL_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
           cat "${WORK_DIR}/dry-run.txt"
           grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' | sort > "${WORK_DIR}/pending.txt"
           sort "${WORK_DIR}/boundary.txt" > "${WORK_DIR}/expected.txt"
-          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: Production dry run is not exactly Contract 210.'; exit 1; }
-          supabase db push --db-url "${SUPABASE_PROD_DB_URL}"
+          diff -u "${WORK_DIR}/expected.txt" "${WORK_DIR}/pending.txt" || { echo 'ERROR: dry run is not exactly Contract 211.'; exit 1; }
+          supabase db push --db-url "${LOCAL_DB_URL}"
 
-      - name: Verify Production is at Contract 210 and unchanged outside the intended objects
-        env:
-          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+      - name: Run the Contract 211 behavioural pgTAP suites
         shell: bash
         run: |
           set -euo pipefail
-          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/after.json" <<'SQL'
+          mkdir -p "${WORK_DIR}/supabase/tests"
+          suites=(
+            supabase/tests/257_provider_deadline_watch_tier.sql
+            supabase/tests/256_provider_live_window_covers_the_deadline.sql
+            supabase/tests/255_provider_fixture_lifecycle.sql
+          )
+          for REL in "${suites[@]}"; do
+            cp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}"
+            cmp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}" || { echo "ERROR: ${REL} copy differs."; exit 1; }
+            safe="${REL//\//-}"
+            PGTAP_LOG="${WORK_DIR}/${safe}.log"
+            set +e
+            ( cd "${WORK_DIR}" && supabase test db "${REL}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+            status=$?
+            set -e
+            cat "${PGTAP_LOG}"
+            if [ "${status}" -ne 0 ]; then
+              excerpt="$(tail -n 80 "${PGTAP_LOG}" | tr '\n' ' ' | sed 's/%/%25/g')"
+              echo "::error title=Contract 211 rehearsal pgTAP failed::suite=${REL}; exit=${status}; ${excerpt}"
+              exit "${status}"
+            fi
+            grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${REL} did not report PASS."; exit 1; }
+          done
+
+      - name: Verify Contract 211 and unchanged Production-derived state on the copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/after.json" <<'SQL'
           select jsonb_build_object(
             'migration_count',(select count(*) from supabase_migrations.schema_migrations),
             'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
@@ -234,16 +296,17 @@ jobs:
             'fixture_status_histogram',(
               select coalesce(jsonb_object_agg(status, tally), '{}'::jsonb)
               from (select status, count(*) as tally from public.season_fixtures group by status) s),
-            'targets_below_720',(select count(*) from public.provider_poll_targets where enabled and live_lead_minutes < 720),
+            'targets_below_720',(select count(*) from public.provider_poll_targets where enabled and deadline_lead_minutes < 720),
+            'targets_on_expensive_live_lead',(select count(*) from public.provider_poll_targets where enabled and live_lead_minutes <> 15),
             'lead_default',(select column_default from information_schema.columns
                              where table_schema = 'public' and table_name = 'provider_poll_targets'
-                               and column_name = 'live_lead_minutes'),
+                               and column_name = 'deadline_lead_minutes'),
             'dial_fingerprint',(
               select coalesce(jsonb_object_agg(target.id::text,
                        jsonb_build_array(target.cadence_minutes, target.live_cadence_minutes, target.live_tail_minutes)),
                      '{}'::jsonb)
                 from public.provider_poll_targets target),
-            'window_open_at_every_first_kickoff',not exists (
+            'watch_open_at_every_first_kickoff',not exists (
               select 1
                 from public.provider_poll_targets target
                 join lateral (
@@ -253,9 +316,9 @@ jobs:
                      and fixture.home_score is null
                 ) upcoming on upcoming.first_kickoff is not null
                where target.enabled
-                 and not predictor_internal.provider_target_is_live(
+                 and not predictor_internal.provider_target_awaits_deadline(
                        target.tournament_id, upcoming.first_kickoff,
-                       target.live_lead_minutes, target.live_tail_minutes)),
+                       target.deadline_lead_minutes)),
             'lifecycle_survives',to_regclass('predictor_internal.season_fixture_lifecycle_transitions') is not null
                                  and to_regprocedure('predictor_internal.apply_provider_fixture_lifecycle(text,uuid,jsonb,uuid,timestamptz)') is not null
                                  and (select kind from predictor_internal.provider_status_kinds
@@ -272,22 +335,25 @@ jobs:
           eq('latest_version', process.env.TARGET_VERSION)
           eq('latest_name', process.env.TARGET_NAME)
 
+          // Nothing a player owns may move, and the applier must not have
+          // reclassified a single fixture during the apply itself. The
+          // histogram is compared whole rather than by total, so a postponement
+          // invented at migration time cannot hide inside an unchanged count.
           for (const k of [
             'auth_users', 'profiles', 'entries', 'season_predictions', 'match_predictions',
             'league_members', 'season_fixtures', 'ai_bets', 'cron_jobs',
             'public_enabled', 'betting_public_enabled',
           ]) eq(k, b[k])
-
-          // Compared whole rather than by total: a postponement invented during
-          // the apply would keep season_fixtures unchanged while moving a
-          // fixture between statuses, and that must fail here.
           const beforeStatuses = JSON.stringify(b.fixture_status_histogram ?? {})
           const afterStatuses = JSON.stringify(a.fixture_status_histogram ?? {})
           if (beforeStatuses !== afterStatuses) {
             problems.push(`fixture status histogram moved: ${beforeStatuses} -> ${afterStatuses}`)
           }
 
-          // Contract 210's own claim: every enabled target now opens its live
+          // Contract 211 installs its machinery and leaves it inert. A
+          // transition written by the migration would mean the applier ran
+          // during the apply, which it must never do.
+          // Contract 211's own claim: every enabled target now opens its live
           // window early enough to cover a prediction deadline, and a target
           // created afterwards inherits that rather than the value that caused
           // ING-006.
@@ -295,9 +361,10 @@ jobs:
           if (!String(a.lead_default ?? '').startsWith('720')) {
             problems.push(`lead_default=${a.lead_default}, expected it to start 720`)
           }
-          eq('window_open_at_every_first_kickoff', true)
+          eq('watch_open_at_every_first_kickoff', true)
+          eq('targets_on_expensive_live_lead', 0)
 
-          // The other two dials must NOT have moved. Contract 210 buys coverage,
+          // The other two dials must NOT have moved. Contract 211 buys coverage,
           // not frequency, and a rollout that quietly raised cadence_minutes
           // would spend provider credit nobody authorised. Compared per target
           // rather than in aggregate so a compensating pair cannot hide.
@@ -310,18 +377,27 @@ jobs:
           // Contract 209 must still be intact underneath.
           eq('lifecycle_survives', true)
 
-          if (problems.length) throw new Error(`PRODUCTION POSTFLIGHT FAILED:\n - ${problems.join('\n - ')}`)
+          if (problems.length) throw new Error(`REHEARSAL VERIFICATION FAILED:\n - ${problems.join('\n - ')}`)
           NODE
 
-      - name: Upload rollout evidence
+      - name: Stop disposable Supabase
+        if: always()
+        shell: bash
+        run: supabase stop --workdir "${WORK_DIR}" --no-backup || true
+
+      - name: Upload rehearsal evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: production-209-to-210-rollout-evidence
+          name: production-209-to-211-rehearsal-evidence
           path: |
-            /tmp/production-209-to-210-rollout/before.json
-            /tmp/production-209-to-210-rollout/after.json
-            /tmp/production-209-to-210-rollout/boundary.txt
-            /tmp/production-209-to-210-rollout/dry-run.txt
+            /tmp/production-209-to-211-rehearsal/live.json
+            /tmp/production-209-to-211-rehearsal/before.json
+            /tmp/production-209-to-211-rehearsal/after.json
+            /tmp/production-209-to-211-rehearsal/boundary.txt
+            /tmp/production-209-to-211-rehearsal/dry-run.txt
+            /tmp/production-209-to-211-rehearsal/supabase-tests-257_provider_deadline_watch_tier.sql.log
+            /tmp/production-209-to-211-rehearsal/supabase-tests-256_provider_live_window_covers_the_deadline.sql.log
+            /tmp/production-209-to-211-rehearsal/supabase-tests-255_provider_fixture_lifecycle.sql.log
           retention-days: 7
-          if-no-files-found: error
+          if-no-files-found: warn

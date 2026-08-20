@@ -292,6 +292,8 @@ blockquotes could never show without being read end to end.
 
 > **Contract 210 programme effect:** the ingestion lane starts looking early enough for contract 209 to matter. The live poll window now opens before the matchweek lock rather than fifteen minutes before kickoff, so a postponement announced in the day before a deadline is seen while a player can still act on it. No programme reordering.
 
+> **Contract 211 programme effect:** the same coverage at a third of the provider cost, by splitting the schedule question onto its own hourly tier. Measured on a real matchweek, 252 polls become 77. No programme reordering.
+
 > **Contract 204 programme effect:** an operational read stops answering a league question with a lab-wide number. No programme reordering.
 
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.

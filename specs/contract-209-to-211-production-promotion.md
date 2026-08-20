@@ -1,10 +1,13 @@
-# Contract 210 Production promotion
+# Contract 209 to 211 Production promotion
 
 ## Exact boundary
 
-Production is currently Contract 209. The intended single promotion is exactly one additive migration:
+Production is currently Contract 209. The intended single promotion is exactly two additive migrations, in order:
 
 1. `20260820070000_provider_live_window_covers_the_deadline.sql`
+2. `20260820090000_provider_deadline_watch_tier.sql`
+
+**They promote together on purpose.** Contract 210 sets `live_lead_minutes` to 720 and contract 211 sets it back to 15; promoting 210 alone would install a value we are about to undo, and spend provider credit doing it.
 
 Development takes it first and must be independently recorded at 209 or later before the Production gates will run. Production remains read-only throughout the encrypted backup and disposable-restore rehearsal. The Production rollout may write only after both gates succeed.
 
