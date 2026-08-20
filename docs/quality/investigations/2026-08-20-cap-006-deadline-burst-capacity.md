@@ -70,6 +70,36 @@ Three product controls stopped the seed before they were noticed in any document
 2. **A private league holds at most 100.** `league_member_limit` is capped at 100 by its own constraint, and `enforce_league_member_limit` refused member 101. 250 players therefore means at least three leagues — which is what the seed now builds.
 3. **`game_membership_events` is append-only.** `block_game_membership_event_mutation` refuses a delete outright, so even a namespaced teardown has to disable triggers explicitly to remove its own rows.
 
+## Scale patterns, audited rather than measured
+
+`F4` names the shapes that hurt well before a longer-term target. Swept across
+the vNext integration layer and the season services:
+
+**Client-side recomputation of server-owned order: none.** Two sorts exist in
+the season models and neither recomputes a rank — `championshipStandingModel`
+re-orders by the server's own `groupRank`, and `periodStandingsModel` orders
+periods by month. The standings and the leaderboard are the server's answer
+everywhere they are shown.
+
+**One per-item read is bounded, one is not.** `useVNextHomeSource` reads a table
+and a movement per league, concurrently, over a list it first slices to
+`LEAGUE_LIMIT` — and its own comment names the N+1 it is avoiding.
+`useVNextMatchCentreSource` reads league predictions per league with no slice
+at all. It is concurrent rather than serial, so it is not a waterfall, but it
+is one round trip per league on every Match Centre open. **Today it is bounded
+only by `operating_limits.total_league_limit`, which is 20** — an accidental
+bound rather than a designed one, and one that `CAP-007` proposes to raise to
+1,000. Worth a slice before that happens, not before then.
+
+**Repeated catalogue fetches:** `get_competition_games` and
+`get_published_weekly_seasons` are each reached through one service module
+rather than called ad hoc from components, which is the shape that makes a
+cache possible later rather than necessary now.
+
+Nothing here was changed. These are recorded because `F4` asks for the obvious
+bottlenecks to be identified before they matter, and the honest finding is that
+the two that exist are small and one of them is already commented.
+
 ## What remains for CAP-006
 
 The load evidence is now on record and it does not argue against 250. What is still owed is unchanged and is not a repository change:
