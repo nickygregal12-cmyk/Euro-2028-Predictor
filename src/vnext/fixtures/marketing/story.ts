@@ -37,17 +37,24 @@
  * a public page that read the real product would be reading it for a visitor
  * with no account.
  *
- * ============================ INVENTED FOOTBALL, ON PURPOSE ==============
+ * ============================ REAL CLUBS, ILLUSTRATIVE FOOTBALL ==========
  *
- * The competition is the workshop's Caledonian Premiership and the clubs are
- * its invented ones. That is the safe half of a choice the old page got wrong:
- * it printed "Arsenal 2 – 1 Chelsea" with an invented scoreline, which a
- * visitor could read as a real result and which puts real club identity beside
- * a claim no club made. ADR 0017's position — independent, unaffiliated, no
- * borrowed identity — is easier to hold when the preview borrows none. The page
- * around the device still names the real competitions the product covers,
- * because that is a true statement about the product rather than a picture of
- * one.
+ * The competition is the Scottish Premiership and the clubs are its own,
+ * because the one question an acquisition page has to answer is "is this for MY
+ * football?" — and a device showing the invented Caledonian Premiership
+ * answered no, on a page whose own copy names the real competitions the product
+ * covers. A visitor met an advertisement for one thing and a demonstration of
+ * another.
+ *
+ * The old caution behind that invention was right about a different failure:
+ * the page before it printed "Arsenal 2 – 1 Chelsea" with a made-up scoreline,
+ * which a visitor could read as a real result. The answer is not to invent the
+ * clubs — it is to stop inventing the FOOTBALL. `realFootball.ts` draws that
+ * line and enforces it: real identity resolved through the application's own
+ * club authority, and no score, no clock, no form, no league position and no
+ * head-to-head anywhere in the sequence. What the device shows a visitor doing
+ * is predicting, which is the product, and a prediction is self-evidently a
+ * guess.
  *
  * ============================ AND THE VIEWER IS NOT A REAL PERSON ========
  *
@@ -70,6 +77,7 @@ import type {
   VNextShellModel,
 } from '../../models/shell'
 import { SHELL_DESTINATIONS } from '../../models/shell'
+import { illustrativeHome, illustrativeMatches, realFootballNames } from './realFootball'
 import { homeScenarios } from '../home/scenarios'
 import { matchesScenarios } from '../matches/scenarios'
 import { leaguesScenarios } from '../leagues/scenarios'
@@ -91,10 +99,10 @@ const MARKETING_PLAYER = { name: 'Rowan Adeyemi', initials: 'RA' } as const
  * which of the two is the product's real answer.
  */
 const MARKETING_COMPETITION = {
-  id: 'caledonian-premiership',
-  name: 'Caledonian Premiership',
+  id: 'scottish-premiership',
+  name: 'Scottish Premiership',
   shortName: 'Premiership',
-  monogram: 'CP',
+  monogram: 'SP',
   seasonLabel: '2027/28',
   colours: { primary: '#123B72', accent: '#37E0A0' },
 } as const satisfies ShellContext['competition']
@@ -148,7 +156,15 @@ const lmsGame = (
 ): ShellGame => ({
   key: 'last-man-standing',
   name: 'Last Man Standing',
-  summary: { kind: 'last-man-standing', life, selection, deadlineLabel },
+  summary: {
+    kind: 'last-man-standing',
+    life,
+    // The club a player has spent is a CHOICE they made, not a result — so it
+    // is illustrative game data and belongs on the page, under the name of a
+    // club that exists like every other name in this preview.
+    selection: selection === null ? null : realFootballNames(selection),
+    deadlineLabel,
+  },
 })
 
 /* ==========================================================================
@@ -169,10 +185,17 @@ function marketingRow(row: LeaguesPrivateRow): LeaguesPrivateRow {
 }
 
 function marketingLeagues(model: LeaguesModel): LeaguesModel {
-  const table = model.private
-  if (table === null) return model
-  return {
+  const named: LeaguesModel = {
     ...model,
+    context: {
+      ...model.context,
+      competitionName: realFootballNames(model.context.competitionName),
+    },
+  }
+  const table = named.private
+  if (table === null) return named
+  return {
+    ...named,
     private: {
       ...table,
       rows: table.rows.map(marketingRow),
@@ -181,12 +204,79 @@ function marketingLeagues(model: LeaguesModel): LeaguesModel {
   }
 }
 
-function marketingHome(model: HomeModel): HomeModel {
+/** Games, with the competition it is inside named as the chrome names it. */
+function marketingGames(model: GamesPageModel): GamesPageModel {
   return {
     ...model,
-    user: { ...model.user, name: MARKETING_PLAYER.name, initials: MARKETING_PLAYER.initials },
+    context: {
+      ...model.context,
+      competitionName: realFootballNames(model.context.competitionName),
+    },
   }
 }
+
+function marketingHome(model: HomeModel): HomeModel {
+  const illustrative = illustrativeHome(model)
+  return {
+    ...illustrative,
+    user: {
+      ...illustrative.user,
+      name: MARKETING_PLAYER.name,
+      initials: MARKETING_PLAYER.initials,
+    },
+  }
+}
+
+/**
+ * SATURDAY'S HOME: the same week, with nothing left to do.
+ *
+ * Built from Thursday's world rather than from a scenario of its own, because
+ * it IS Thursday's world a day later — the same matchweek, the same fixtures,
+ * the same private league. Only two things change, and they are the two things
+ * that change in the product: the card is complete, and the primary action
+ * stops asking for something.
+ *
+ * `review` rather than `watchLive`, deliberately. The player has finished; the
+ * football has not started. `watchLive` is the state whose whole content is a
+ * score, which is the one thing this preview may not print.
+ */
+const lockedHome: HomeModel = (() => {
+  const base = marketingHome(homeScenarios.decision)
+  // EVERY FIXTURE HAS A CALL ON IT, because that is what "locked" means. The
+  // banner cannot say five of five are in while a card below it still offers
+  // to take one — a preview that contradicts itself on the same screen is
+  // worse than a preview that shows less.
+  const played = base.upcomingMatches.map((match, index) => ({
+    ...match,
+    lockAt: null,
+    prediction: {
+      score: match.prediction?.score ?? { home: index === 0 ? 2 : 1, away: 1 },
+      status: 'locked' as const,
+      isJoker: match.prediction?.isJoker ?? false,
+      outcome: null,
+      points: null,
+      pointsAreProvisional: false,
+    },
+  }))
+
+  return {
+    ...base,
+    upcomingMatches: played,
+    primaryAction: {
+      ...base.primaryAction,
+      type: 'review',
+      title: 'Your matchweek is in',
+      // FIVE, MATCHING THE SHELL'S OWN COUNT rather than the number of
+      // fixtures Home has room to draw. The card is the matchweek; Home shows
+      // the football nearest the reader, which is a subset of it in every
+      // phase of this story.
+      description: 'All five predictions are locked. Nothing to do but watch.',
+      deadline: null,
+      progress: { completed: 5, total: 5 },
+      urgency: 'calm',
+    },
+  }
+})()
 
 /* ==========================================================================
    THE PHASES
@@ -242,16 +332,34 @@ export const MARKETING_PHASES: readonly MarketingPhase[] = [
       predictorGame(5, 5, 'Locks Saturday 17:30'),
       lmsGame('alive', 'Glenmore Athletic', 'Pick by Saturday'),
     ]),
-    surface: { kind: 'matches', model: matchesScenarios.singleCompetition },
+    surface: {
+      kind: 'matches',
+      model: illustrativeMatches(matchesScenarios.singleCompetition),
+    },
   },
   {
-    id: 'live',
+    /*
+     * SATURDAY, AND IT USED TO BE THE LIVE SCORES.
+     *
+     * The phase showed `homeScenarios.live` — matches in play, their minute,
+     * and a provisional total moving. Every one of those is a claim about
+     * football happening right now, and against clubs that exist it is a
+     * fabricated live score on a public page. There is no version of that frame
+     * this preview may draw.
+     *
+     * What survives is the BEAT, which was always the point: the deadline has
+     * gone, the card is complete, and there is nothing left to do but watch.
+     * That is a real Saturday feeling and it needs no invented result to show
+     * it — the shell says `Locked`, the predictions are in, and the caption in
+     * `landingPreviewScript.ts` says what happens next.
+     */
+    id: 'locked',
     destination: 'home',
-    shell: marketingShell('3 live now', [
+    shell: marketingShell('Matchweek 4 · locked', [
       predictorGame(5, 5, 'Locked'),
       lmsGame('alive', 'Glenmore Athletic', null),
     ]),
-    surface: { kind: 'home', model: marketingHome(homeScenarios.live) },
+    surface: { kind: 'home', model: lockedHome },
   },
   {
     id: 'table',
@@ -269,7 +377,7 @@ export const MARKETING_PHASES: readonly MarketingPhase[] = [
       predictorGame(0, 5, 'Opens Wednesday'),
       lmsGame('alive', 'Glenmore Athletic', null),
     ]),
-    surface: { kind: 'games', model: gamesScenarios.allOpen },
+    surface: { kind: 'games', model: marketingGames(gamesScenarios.allOpen) },
   },
 ]
 

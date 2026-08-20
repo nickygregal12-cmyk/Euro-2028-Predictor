@@ -27,6 +27,13 @@
  * product to break one. The league phase is a SETTLED matchweek, which is when
  * the real product reveals.
  *
+ * AND NO FRAME STATES A FOOTBALL RESULT. The clubs are real now, so a scoreline,
+ * a minute, a form run or a league position in one of these pictures would be a
+ * claim about football that did not happen, attached to a club that exists.
+ * `src/vnext/fixtures/marketing/realFootball.ts` removes all of it from every
+ * model, and it is why the third step is a locked matchweek rather than the live
+ * scores it used to be — the beat survives, the invented result does not.
+ *
  * Nothing here is an authority. No number below is a standing, nothing computes
  * one, and the surfaces that render them are exposed to assistive technology as
  * one described picture rather than as a table of results.
@@ -53,7 +60,7 @@ export type PreviewStep = {
  * Five steps, in the order the week happens.
  *
  * The first four are the weekly loop — an action arrives, the fixtures are
- * there, the football happens, the table moves — and the fifth is the one thing
+ * there, the deadline passes, the table moves — and the fifth is the one thing
  * a week cannot show: that the season holds more than one game.
  *
  * THE CAPTIONS ARE WRITTEN FOR A VISITOR, not for a reviewer. They describe
@@ -79,23 +86,25 @@ export const PREVIEW_STEPS: readonly PreviewStep[] = [
     headline: 'Friday. Every fixture in your competition, in one list.',
     description:
       'Preview of the signed-in product on Matches: the competition’s fixtures grouped ' +
-      'by day, each with its kick-off time and state, and no other competition in sight.',
+      'by day, each with its kick-off time, and no other competition in sight.',
   },
   {
-    id: 'live',
-    step: 'Matchday arrives',
-    headline: 'Saturday. Your points move while the football does.',
+    id: 'locked',
+    step: 'Deadline day',
+    headline: 'Saturday. Everything is in — now you just watch.',
     description:
-      'Preview of the signed-in product on Home during a live matchweek: matches in play ' +
-      'with their minute, and a running points total that is not yet the final one.',
+      'Preview of the signed-in product on Home once the matchweek has locked: all five ' +
+      'predictions entered, nothing left to do, and the competition’s own navigation ' +
+      'down the side.',
   },
   {
     id: 'table',
     step: 'The table moves',
     headline: 'Monday. See where the weekend left you and your rivals.',
     description:
-      'Preview of the signed-in product on Leagues: a settled private league table of five ' +
-      'players ranked by points, with rank movement, and the reader’s own row marked.',
+      'Preview of the signed-in product on Leagues: an invented private league table of ' +
+      'five made-up players ranked by points, with rank movement, and the reader’s own ' +
+      'row marked.',
   },
   {
     id: 'games',
