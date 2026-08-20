@@ -86,6 +86,7 @@ const FOOTBALL_HUB_ONBOARDING_BUILT =
   import.meta.env.VITE_UI_FOOTBALL_HUB_ONBOARDING === 'true'
 const FOOTBALL_HUB_INVITE_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE === 'true'
 const FOOTBALL_HUB_CREATE_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_CREATE === 'true'
+const FOOTBALL_HUB_WRAPPED_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_WRAPPED === 'true'
 const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_MATCHES_BUILT ||
   FOOTBALL_HUB_HOME_BUILT ||
@@ -99,7 +100,8 @@ const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_PREDICTOR_BUILT ||
   FOOTBALL_HUB_ONBOARDING_BUILT ||
   FOOTBALL_HUB_INVITE_BUILT ||
-  FOOTBALL_HUB_CREATE_BUILT
+  FOOTBALL_HUB_CREATE_BUILT ||
+  FOOTBALL_HUB_WRAPPED_BUILT
 
 const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
   ? lazy(() =>
@@ -241,6 +243,17 @@ const VNextCreateDestination = FOOTBALL_HUB_CREATE_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextCreateDestination').then((m) => ({
         default: m.VNextCreateDestination,
+      })),
+    )
+  : null
+// SEASON WRAPPED. The second cutover element with no legacy twin: contract 156
+// has stored the archive since `MIG-UI-08` and nothing has ever rendered it, so
+// the off branch renders Not Found rather than an older page and a player's
+// finished seasons stay in Account exactly as they are.
+const VNextWrappedDestination = FOOTBALL_HUB_WRAPPED_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextWrappedDestination').then((m) => ({
+        default: m.VNextWrappedDestination,
       })),
     )
   : null
@@ -940,6 +953,23 @@ export default function App() {
                           element={
                             isNextUi('footballHubCreatePrivatePlay') && VNextCreateDestination ? (
                               <VNextCreateDestination />
+                            ) : (
+                              <NotFoundPage />
+                            )
+                          }
+                        />
+                        {/* SEASON WRAPPED — the archive contract 156 has been
+                            writing since `MIG-UI-08`, finally read. It is at
+                            the competition's own level rather than under a game
+                            because the archive stores a SEASON, and it answers
+                            for a running season too: "this season is still
+                            going" is a fair answer to a fair question, and a
+                            404 there would read as a broken link. */}
+                        <Route
+                          path={weeklyRoutePatterns.seasonWrapped}
+                          element={
+                            isNextUi('footballHubSeasonWrapped') && VNextWrappedDestination ? (
+                              <VNextWrappedDestination />
                             ) : (
                               <NotFoundPage />
                             )

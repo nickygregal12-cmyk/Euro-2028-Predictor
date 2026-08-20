@@ -25,6 +25,7 @@ const SHIPPED_WEEKLY_ROUTES = [
   '/competitions/:competitionSlug/:seasonSlug/games/lms',
   '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   '/competitions/:competitionSlug/:seasonSlug/leagues',
+  '/competitions/:competitionSlug/:seasonSlug/wrapped',
   '/competitions/:competitionSlug/:seasonSlug/tv',
   '/competitions/:competitionSlug/:seasonSlug/players/:playerId',
   '/league/:id',

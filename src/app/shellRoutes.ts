@@ -56,6 +56,20 @@ export const weeklyRoutePatterns = {
   championshipWildcard: '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   leagues: '/competitions/:competitionSlug/:seasonSlug/leagues',
   /**
+   * SEASON WRAPPED — this competition season, once it has ended (contract 156).
+   *
+   * AT THE COMPETITION'S OWN LEVEL rather than under a game, because contract
+   * 156 archives a SEASON: `get_season_wrapped` is addressed by the tournament
+   * and holds one row per player per season. A game-scoped address would
+   * promise a per-game Wrapped that the archive does not store.
+   *
+   * IT IS ALWAYS REACHABLE, not only once a season ends. A player who follows a
+   * link to a running season's Wrapped is asking a fair question and gets a
+   * fair answer — "this season is still going" — rather than a 404 that reads
+   * as a broken link. The page decides; the route does not.
+   */
+  seasonWrapped: '/competitions/:competitionSlug/:seasonSlug/wrapped',
+  /**
    * INNOV-006 — the matchday screen for a television. Registered OUTSIDE the
    * signed-in shell, deliberately: a frame built for a phone in a pocket is the
    * wrong frame for a screen on a wall, and the mode carries no navigation of

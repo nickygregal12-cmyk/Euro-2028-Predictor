@@ -22,6 +22,7 @@ import {
   competitionGameRoute,
   competitionPlayerRoute,
   competitionRoute,
+  competitionSeasonWrappedRoute,
 } from '../weeklyRoutes'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
@@ -343,6 +344,16 @@ export function VNextAccountDestination() {
               // `seasonKey` IS the season's route segment. Contract 161 names
               // it a key because it is one; the router calls the same value a
               // slug.
+              seasonSlug: intent.seasonKey,
+            }),
+          )
+          return
+        case 'open-wrapped':
+          // THE RECORD OF HOW A SEASON ENDED, which is a different place from
+          // the season as it is now.
+          navigate(
+            competitionSeasonWrappedRoute({
+              competitionSlug: intent.competitionSlug,
               seasonSlug: intent.seasonKey,
             }),
           )

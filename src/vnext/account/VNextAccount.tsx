@@ -75,6 +75,20 @@ import styles from './account.module.css'
  */
 export type AccountIntent =
   | { readonly kind: 'open-season'; readonly competitionSlug: string; readonly seasonKey: string }
+  /**
+   * OPEN A FINISHED SEASON'S WRAPPED (contract 156).
+   *
+   * Separate from `open-season` because it is a different place: opening a
+   * season lands on the competition as it is now, and this lands on the record
+   * of how it ended. Offered only on a season the player's own history says is
+   * COMPLETE, so the page is never reached expecting a record that cannot exist
+   * yet.
+   */
+  | {
+      readonly kind: 'open-wrapped'
+      readonly competitionSlug: string
+      readonly seasonKey: string
+    }
   | { readonly kind: 'sign-out' }
   /**
    * WHICH THEME THE PLAYER WANTS. Performed by the host because the choice is
@@ -1010,20 +1024,42 @@ function SeasonRow({
       </div>
 
       {season.route === null ? null : (
-        <button
-          type="button"
-          className={styles.rowAction}
-          onClick={() =>
-            onIntent?.({
-              kind: 'open-season',
-              competitionSlug: season.route!.competitionSlug,
-              seasonKey: season.route!.seasonKey,
-            })
-          }
-        >
-          Open
-          <span className={text.srOnly}> {season.seasonName}</span>
-        </button>
+        <span className={styles.rowActions}>
+          {/* THE WRAPPED IS OFFERED ONLY ON A SEASON THAT IS OVER, and
+              `complete` is contract 161's own word for that — never `result !==
+              null`, because a finished season whose archive row has not been
+              written is still finished. The page answers for both. */}
+          {season.complete ? (
+            <button
+              type="button"
+              className={styles.rowAction}
+              onClick={() =>
+                onIntent?.({
+                  kind: 'open-wrapped',
+                  competitionSlug: season.route!.competitionSlug,
+                  seasonKey: season.route!.seasonKey,
+                })
+              }
+            >
+              Your season
+              <span className={text.srOnly}> in {season.seasonName}</span>
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles.rowAction}
+            onClick={() =>
+              onIntent?.({
+                kind: 'open-season',
+                competitionSlug: season.route!.competitionSlug,
+                seasonKey: season.route!.seasonKey,
+              })
+            }
+          >
+            Open
+            <span className={text.srOnly}> {season.seasonName}</span>
+          </button>
+        </span>
       )}
     </li>
   )

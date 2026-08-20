@@ -181,6 +181,12 @@ export const ROUTE_OWNERSHIP: readonly RouteOwnership[] = [
     why: 'The create-private-play corridor. New address: the off branch is Not Found, because there is no legacy page here.',
   },
   {
+    path: '/competitions/:competitionSlug/:seasonSlug/wrapped',
+    owner: 'vnext',
+    journey: 'footballHubSeasonWrapped',
+    why: "Contract 156's Season Wrapped. New address: nothing has ever rendered the archive, so the off branch is Not Found.",
+  },
+  {
     path: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
     owner: 'absorbed',
     journey: 'footballHubLeagues',

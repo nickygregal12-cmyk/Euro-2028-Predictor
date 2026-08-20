@@ -1,0 +1,185 @@
+/* vNEXT SEASON WRAPPED — a finished season, and the only surface in the product
+ * whose numbers cannot move.
+ *
+ * IT IS QUIETER THAN A MATCHDAY, ON PURPOSE. Home and the Match Predictor are
+ * built for a Saturday: live marks, countdowns, an accent that means "act". This
+ * page has nothing to act on, so it borrows the same surfaces, radii and type
+ * and spends the accent once — on the total — rather than everywhere.
+ *
+ * EVERY QUERY IS A CONTAINER QUERY, against `vnext-page`, which is the shell's
+ * content region. The page is a single column at every width and widens rather
+ * than reflowing: there is no second thing to put beside a season.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) var(--vnext-space-7);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+  /* A season reads as one thing rather than as a dashboard, so it is bounded
+   * and centred rather than stretched across a 1920 workspace. */
+  width: 100%;
+  max-width: 720px;
+}
+
+/* ---- the hero ----------------------------------------------------------- */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-2);
+  padding: var(--vnext-space-5);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background:
+    linear-gradient(
+      160deg,
+      var(--vnext-accent-veil) 0%,
+      var(--vnext-surface-raised) 55%,
+      var(--vnext-surface) 100%
+    );
+}
+
+/* The trophy is `inline-block` because a transform does nothing to an inline
+ * box, and `achievementArrive` scales it. */
+.heroMark {
+  display: inline-block;
+  font-size: var(--vnext-size-display);
+  color: var(--vnext-accent);
+}
+
+.heroMark svg {
+  width: 1.4em;
+  height: 1.4em;
+}
+
+.heroTitle {
+  color: var(--vnext-text);
+  overflow-wrap: anywhere;
+}
+
+.heroBody {
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the totals --------------------------------------------------------- */
+
+/*
+ * AUTO-FIT, BECAUSE THE TILE COUNT IS NOT FIXED. A Wrapped with no rank in it
+ * has three tiles and a fixed four-column grid would leave a hole where the
+ * archive simply did not say.
+ */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--vnext-space-3);
+}
+
+/* ---- the best matchweek ------------------------------------------------- */
+
+.best {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.bestLabel {
+  color: var(--vnext-text-muted);
+}
+
+.bestLine {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  color: var(--vnext-text-secondary);
+}
+
+.bestPoints {
+  color: var(--vnext-accent);
+}
+
+/* ---- the footnotes ------------------------------------------------------ */
+
+.footnotes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-5);
+  margin: 0;
+}
+
+.footnote {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.footnote dt {
+  color: var(--vnext-text-muted);
+}
+
+.footnote dd {
+  margin: 0;
+  color: var(--vnext-text);
+}
+
+.sealed {
+  color: var(--vnext-text-muted);
+}
+
+/* ---- the two states that are not a season ------------------------------- */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--vnext-space-3);
+  max-width: 46ch;
+  padding: var(--vnext-space-5);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface);
+}
+
+.noticeTitle {
+  color: var(--vnext-text);
+}
+
+.noticeBody {
+  color: var(--vnext-text-secondary);
+}
+
+.retry {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background-color: var(--vnext-surface-interactive-hover);
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}

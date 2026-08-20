@@ -104,6 +104,18 @@ export type MigratedJourney =
    * absorbed-address resolver still falls back to when Leagues is rolled back.
    */
   | 'footballHubCreatePrivatePlay'
+  /**
+   * SEASON WRAPPED, WHICH NO UI EVER HAD.
+   *
+   * Contract 156 has stored the archive since `MIG-UI-08` and nothing rendered
+   * it: the legacy profile shows a season's points and rank from contract 161
+   * and no more. So this flag, like the create corridor's, selects between a
+   * vNext surface and NOTHING rather than between two implementations — turning
+   * it off withdraws the address and leaves the season history in Account
+   * exactly as it is, which is where a player has always found their finished
+   * seasons.
+   */
+  | 'footballHubSeasonWrapped'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -163,6 +175,8 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE) ? 'next' : 'legacy'
     case 'footballHubCreatePrivatePlay':
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_CREATE) ? 'next' : 'legacy'
+    case 'footballHubSeasonWrapped':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_WRAPPED) ? 'next' : 'legacy'
   }
 }
 

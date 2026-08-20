@@ -83,6 +83,7 @@ const VNEXT_FRAMED: readonly FramedRoute[] = [
   { pattern: weeklyRoutePatterns.championshipWildcard, journey: 'footballHubChampionship' },
   { pattern: weeklyRoutePatterns.leagues, journey: 'footballHubLeagues' },
   { pattern: weeklyRoutePatterns.player, journey: 'footballHubPlayerProfile' },
+  { pattern: weeklyRoutePatterns.seasonWrapped, journey: 'footballHubSeasonWrapped' },
   { pattern: '/account', journey: 'footballHubAccount' },
 
   // THE ABSORBED ADDRESSES SURRENDER THE FRAME TOO, for the same reason `/`

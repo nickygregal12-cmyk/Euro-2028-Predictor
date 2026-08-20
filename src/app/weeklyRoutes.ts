@@ -162,6 +162,16 @@ export function competitionCreatePrivatePlayRoute(ref: CompetitionRouteRef): str
   return renderCompetitionPattern(weeklyRoutePatterns.createPrivatePlay, ref)
 }
 
+/**
+ * This season's Wrapped — the finished record of it (contract 156).
+ *
+ * Reached from Account's finished-season list, and linkable in its own right so
+ * a player can bookmark the season they won.
+ */
+export function competitionSeasonWrappedRoute(ref: CompetitionRouteRef): string {
+  return renderCompetitionPattern(weeklyRoutePatterns.seasonWrapped, ref)
+}
+
 export function competitionGameStandingsRoute(ref: CompetitionRouteRef): string {
   return renderCompetitionPattern(weeklyRoutePatterns.matchPredictorStandings, ref)
 }

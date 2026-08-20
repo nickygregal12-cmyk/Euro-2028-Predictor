@@ -57,6 +57,7 @@
   VITE_UI_FOOTBALL_HUB_ONBOARDING = "true"
   VITE_UI_FOOTBALL_HUB_INVITE = "true"
   VITE_UI_FOOTBALL_HUB_CREATE = "true"
+  VITE_UI_FOOTBALL_HUB_WRAPPED = "true"
 
 # Known application routes answer 200. Anything else reaches the final 404
 # rewrite and renders the SPA NotFoundPage without becoming a soft 200.
@@ -196,6 +197,11 @@
 
 [[redirects]]
   from = "/competitions/:competitionSlug/:seasonSlug/games/create"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/competitions/:competitionSlug/:seasonSlug/wrapped"
   to = "/index.html"
   status = 200
 
