@@ -2,12 +2,12 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 211, Production 209, Development 209 (20 August 2026)
+## Current state — repository 211, Production 209, Development 211 (20 August 2026)
 
-Repository contract **211** is the head of the committed migration chain. Both hosted environments are level with each other at **209**, two behind.
+Repository contract **211** is the head of the committed migration chain. Development is level with it; Production is **two behind** at 209 and takes 210 and 211 as one boundary.
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | **209** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
+| Development Supabase `iouzoutneyjpugbbtdem` | **211** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **209** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
 
 > **Contract 210 repository candidate — the live poll window covers the deadline
