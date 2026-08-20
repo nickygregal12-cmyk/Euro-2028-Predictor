@@ -1,6 +1,5 @@
 import type { LmsFixtureChoice, LmsPickAction, LmsTeamOption } from '../models/lms'
 import { formatTime } from '../foundations/format'
-import { useVNextPresentationZone } from '../foundations/presentationZone'
 import text from '../foundations/typography.module.css'
 import styles from './lms.module.css'
 
@@ -48,7 +47,6 @@ export type LmsPickListProps = {
 }
 
 export function LmsPickList({ choices, onPick, busy = false }: LmsPickListProps) {
-  const zone = useVNextPresentationZone()
 
   if (choices.length === 0) {
     return (
@@ -66,7 +64,7 @@ export function LmsPickList({ choices, onPick, busy = false }: LmsPickListProps)
             {/* THE INSTANT, FORMATTED — never a countdown, and never compared
                 to a clock to decide anything. The round's own state says
                 whether a pick is possible. */}
-            {choice.kickoffAt === null ? 'Kick-off to be confirmed' : formatTime(choice.kickoffAt, zone)}
+            {choice.kickoffAt === null ? 'Kick-off to be confirmed' : formatTime(choice.kickoffAt)}
           </p>
           <div className={styles.pair}>
             <Option option={choice.home} onPick={onPick} busy={busy} />

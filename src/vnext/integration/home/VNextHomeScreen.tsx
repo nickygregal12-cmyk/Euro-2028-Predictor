@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { VNextHome } from '../../home/VNextHome'
-import { VNextConnectedShell } from '../shell/VNextConnectedShell'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { HomeModel } from '../../models/home'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
@@ -105,9 +105,9 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
   return shell === null ? (
     <VNextHomeBody state={state} model={model} />
   ) : (
-    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
       <VNextHomeBody state={state} model={model} />
-    </VNextConnectedShell>
+    </VNextShellProvider>
   )
 }
 

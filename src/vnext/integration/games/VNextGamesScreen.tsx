@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { VNextGames, type GamesIntent } from '../../games/VNextGames'
-import { VNextConnectedShell } from '../shell/VNextConnectedShell'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -161,8 +161,8 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
   return shell === null ? (
     body
   ) : (
-    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextConnectedShell>
+    </VNextShellProvider>
   )
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { VNextMatches } from '../../matches/VNextMatches'
 import type { MatchesIntent, MatchesView } from '../../matches/VNextMatches'
-import { VNextConnectedShell } from '../shell/VNextConnectedShell'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -124,8 +124,8 @@ export function VNextMatchesScreen(props: VNextMatchesScreenProps) {
   return shell === null ? (
     body
   ) : (
-    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextConnectedShell>
+    </VNextShellProvider>
   )
 }

@@ -4,10 +4,6 @@ import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { formatCountdown, formatDayHeading, formatDayKey } from '../foundations/format'
-import {
-  useVNextPresentationZone,
-  type VNextPresentationZone,
-} from '../foundations/presentationZone'
 import surfaces from '../foundations/surfaces.module.css'
 import typography from '../foundations/typography.module.css'
 import type { PredictorActions, PredictorLock, PredictorModel } from '../models/predictor'
@@ -67,7 +63,6 @@ export type VNextMatchPredictorProps = {
 }
 
 export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps) {
-  const zone = useVNextPresentationZone()
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
@@ -209,7 +204,7 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
               initial="hidden"
               animate="visible"
             >
-              {groupByDay(model.fixtures, zone).map((day) => (
+              {groupByDay(model.fixtures).map((day) => (
                 <section key={day.key} className={styles.day} aria-label={day.heading}>
                   {/* THE FOOTBALL INFORMATION ARCHITECTURE A FIXTURE LIST HAS
                       ALWAYS HAD, and the thing that stops ten rows reading as ten
@@ -280,20 +275,19 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
  */
 function groupByDay(
   fixtures: readonly PredictorModel['fixtures'][number][],
-  zone: VNextPresentationZone,
 ) {
   const groups: { key: string; heading: string; fixtures: PredictorModel['fixtures'][number][] }[] =
     []
   const byKey = new Map<string, (typeof groups)[number]>()
 
   for (const fixture of fixtures) {
-    const key = fixture.kickoff === null ? 'unscheduled' : formatDayKey(fixture.kickoff, zone)
+    const key = fixture.kickoff === null ? 'unscheduled' : formatDayKey(fixture.kickoff)
     let group = byKey.get(key)
     if (!group) {
       group = {
         key,
         heading:
-          fixture.kickoff === null ? 'Date to be confirmed' : formatDayHeading(fixture.kickoff, zone),
+          fixture.kickoff === null ? 'Date to be confirmed' : formatDayHeading(fixture.kickoff),
         fixtures: [],
       }
       byKey.set(key, group)

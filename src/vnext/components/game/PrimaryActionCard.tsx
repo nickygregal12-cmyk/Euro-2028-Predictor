@@ -3,7 +3,6 @@ import { useId } from 'react'
 import { motion } from 'framer-motion'
 import type { PrimaryAction } from '../../models/home'
 import { formatCountdown, formatTime } from '../../foundations/format'
-import { useVNextPresentationZone } from '../../foundations/presentationZone'
 import { useVNextMotion, vnextMotion } from '../../foundations/motion'
 import surfaces from '../../foundations/surfaces.module.css'
 import typography from '../../foundations/typography.module.css'
@@ -35,7 +34,6 @@ export function PrimaryActionCard({
   now,
   onAct,
 }: PrimaryActionCardProps) {
-  const zone = useVNextPresentationZone()
   const headingId = useId()
   const progressId = useId()
   const rise = useVNextMotion(vnextMotion.riseIn)
@@ -83,7 +81,7 @@ export function PrimaryActionCard({
             <VNextClockIcon /> {countdown} left
             {action.deadline ? (
               <span className={typography.srOnly}>
-                , deadline {formatTime(action.deadline, zone)}
+                , deadline {formatTime(action.deadline)}
               </span>
             ) : null}
           </span>

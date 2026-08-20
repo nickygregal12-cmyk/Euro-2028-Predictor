@@ -1,94 +1,93 @@
+import {
+  formatKickoffTime,
+  formatMatchDayShortWeekday,
+  formatWeekdayShort,
+  matchDayKey,
+} from '../../shared/time/kickoff'
+
 /**
  * Presentation formatting for vNext.
  *
- * DETERMINISM. Nothing here reads the clock. Every function that needs "now"
- * takes it as an argument.
+ * DETERMINISM BY DEFAULT. Nothing here reads the clock. Every function that
+ * needs "now" takes it as an argument, and every formatter resolves its locale
+ * and time zone from ONE place, which by default is the workshop pin. Left to
+ * the environment, a story would render 15:30 on a laptop and 10:30 in CI, and
+ * a screenshot comparison would be worthless.
  *
- * AND NOTHING HERE READS A ZONE EITHER. Every function that prints a time takes
- * one — a `VNextPresentationZone`, defaulting to the workshop's pin so a story
- * renders the same board on a laptop and in CI. Production callers pass the
- * reader's own zone, which they get from `useVNextPresentationZone()` inside
- * `VNextViewerZoneProvider`. `foundations/presentationZone.tsx` holds why the
- * default is the pinned one and what stops that default reaching production.
+ * ============================ AND THEN STAGE 14 ARRIVED ==================
  *
- * The product-wide rule is `src/shared/time/kickoff.ts` — the viewer's own
- * device zone — and this module is how a vNext presentation component obeys it
- * without importing a second formatter vocabulary into every card.
+ * The pin used to be unconditional, and this file's own docblock flagged the
+ * consequence: *"the pinned zone is a workshop decision, not a product one —
+ * real integration will use the user's zone."* Stage 14 is real integration,
+ * and the debt came due the moment a vNext surface joined the shipping graph:
+ * `tests/app/kickoffFormattingAuthority.test.ts` failed, because the product
+ * suddenly had two authorities for formatting an instant and the newer one
+ * told a player in Dublin, New York or Sydney what time the match kicks off
+ * IN LONDON. On Matches, which is almost entirely kickoff times.
+ *
+ * ============================ WHY A SETTING AND NOT A PARAMETER ==========
+ *
+ * The obvious fix — thread a zone through every formatter — is 42 call sites
+ * across 13 files, every one of them an ALREADY ACCEPTED surface. Stage 14
+ * does not own redesigning those, and a parameter added to `formatTime` in
+ * thirteen files is a large diff that makes each of them slightly worse to
+ * read for a fact none of them decides.
+ *
+ * So the zone is resolved ONCE, at the application seam, and the formatters
+ * read it. `configureVNextFormatting` is the only mutation and the only place
+ * that knows a viewer exists.
+ *
+ * THE DEFAULT IS THE WORKSHOP PIN, WHICH IS THE PROPERTY THAT MATTERS. A
+ * story, a jsdom test and a Storybook screenshot never call the configurator,
+ * so they get `en-GB`/`Europe/London` exactly as before and stay deterministic.
+ * Only the production adapter calls it. That is why this is module state rather
+ * than a React context: a context would have to be threaded through the same 13
+ * files to be read, which is the diff it was meant to avoid.
  */
 
-import {
-  WORKSHOP_PRESENTATION_ZONE,
-  type VNextPresentationZone,
-} from './presentationZone'
-
+const WORKSHOP_TIME_ZONE = 'Europe/London'
 const WORKSHOP_LOCALE = 'en-GB'
 
-const numberFormatter = new Intl.NumberFormat(WORKSHOP_LOCALE)
+/**
+ * The zone every formatter below resolves in. Defaults to the workshop pin so
+ * stories and jsdom tests stay deterministic; the production seam replaces it
+ * with the viewer's.
+ */
+let activeZone: string = WORKSHOP_TIME_ZONE
 
 /**
- * `Intl.DateTimeFormat` construction is the expensive half of formatting and a
- * fixture list formats once per row, so the four shapes are cached per zone.
- * The key is the zone pair; the map is bounded by how many zones one render
- * tree uses, which is one.
+ * Point vNext's formatters at a viewer. Called once, from the production seam
+ * (`src/app/vnext/`). Passing nothing restores the workshop pin, which is what
+ * a test that touched the setting must do afterwards.
  */
-type ZoneFormatters = {
-  readonly time: Intl.DateTimeFormat
-  readonly weekday: Intl.DateTimeFormat
-  readonly dayKey: Intl.DateTimeFormat
-  readonly dayHeading: Intl.DateTimeFormat
+export function configureVNextTimeZone(timeZone?: string): void {
+  activeZone = timeZone ?? WORKSHOP_TIME_ZONE
+  numberCache = null
 }
 
-const formatterCache = new Map<string, ZoneFormatters>()
+/** Numbers are not instants, so they keep the workshop locale. */
+let numberCache: Intl.NumberFormat | null = null
+const numberFormatter = () => (numberCache ??= new Intl.NumberFormat(WORKSHOP_LOCALE))
 
-function formatters(zone: VNextPresentationZone): ZoneFormatters {
-  const key = `${zone.locale ?? ''}|${zone.timeZone}`
-  const cached = formatterCache.get(key)
-  if (cached) return cached
-  const built: ZoneFormatters = {
-    // TWENTY-FOUR HOUR, EVERYWHERE, which is `kickoff.ts`'s rule and its
-    // reasoning: a fixture list is a column of times a reader compares, and
-    // "05:45 PM" among them is noise per row. The zone is the reader's; the
-    // clock face is the product's.
-    time: new Intl.DateTimeFormat(zone.locale, {
-      hour: '2-digit',
-      minute: '2-digit',
-      hourCycle: 'h23',
-      timeZone: zone.timeZone,
-    }),
-    weekday: new Intl.DateTimeFormat(zone.locale, {
-      weekday: 'short',
-      timeZone: zone.timeZone,
-    }),
-    // `en-CA` yields `YYYY-MM-DD` reliably. It is a KEY and never shown, so it
-    // does not follow the reader's locale — only their zone, which it must.
-    dayKey: new Intl.DateTimeFormat('en-CA', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: zone.timeZone,
-    }),
-    dayHeading: new Intl.DateTimeFormat(zone.locale, {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'long',
-      timeZone: zone.timeZone,
-    }),
-  }
-  formatterCache.set(key, built)
-  return built
+/**
+ * `required` turns the authority's `string | null` into the `string` these
+ * formatters have always returned. The authority returns `null` for an
+ * unparseable instant so a caller can drop the line; these call sites are fed
+ * by mappers that have already rejected a bad instant, and an empty string is
+ * the honest fallback rather than "Invalid Date".
+ */
+function required(value: string | null): string {
+  return value ?? ''
 }
 
 /** "17:30" */
-export function formatTime(
-  iso: string,
-  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
-): string {
-  return formatters(zone).time.format(new Date(iso))
+export function formatTime(iso: string): string {
+  return required(formatKickoffTime(iso, activeZone))
 }
 
 /** "1,428" — ranks and totals that get large enough to need grouping. */
 export function formatNumber(value: number): string {
-  return numberFormatter.format(value)
+  return numberFormatter().format(value)
 }
 
 /** "+6", "0", "−3". Uses a real minus sign, which lines up in tabular figures. */
@@ -99,17 +98,13 @@ export function formatSignedPoints(value: number): string {
 }
 
 /** "Today 17:30", "Tomorrow 12:00", "Sat 15:00". */
-export function formatKickoffLabel(
-  kickoff: string,
-  now: string,
-  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
-): string {
-  const dayOffset = calendarDayOffset(kickoff, now, zone)
-  const time = formatTime(kickoff, zone)
+export function formatKickoffLabel(kickoff: string, now: string): string {
+  const dayOffset = calendarDayOffset(kickoff, now)
+  const time = formatTime(kickoff)
   if (dayOffset === 0) return `Today ${time}`
   if (dayOffset === 1) return `Tomorrow ${time}`
   if (dayOffset === -1) return `Yesterday ${time}`
-  return `${formatters(zone).weekday.format(new Date(kickoff))} ${time}`
+  return `${required(formatWeekdayShort(kickoff, activeZone))} ${time}`
 }
 
 /**
@@ -142,36 +137,24 @@ export function formatCountdown(target: string, now: string): string | null {
  * a fixture list has always had, and it is what stops a card of ten reading as
  * ten identical rows. It decides no lock, no state and no permission.
  *
- * It resolves in the SAME zone as `formatTime` and `formatKickoffLabel` — the one
- * the caller was rendered inside — so a day heading and the kickoff times under
- * it can never disagree about which day a 22:45 kickoff belongs to. That is the
- * property `src/shared/time/kickoff.ts` names in terms: the day and the time
- * move together, always.
+ * It uses the SAME pinned zone as `formatTime` and `formatKickoffLabel`, so a day
+ * heading and the kickoff times under it can never disagree about which day a
+ * 22:45 kickoff belongs to. The zone is a workshop decision and the product-wide
+ * time-zone policy is still open, which is recorded in the workshop note.
  */
-export function formatDayKey(
-  iso: string,
-  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
-): string {
-  return formatters(zone).dayKey.format(new Date(iso))
+export function formatDayKey(iso: string): string {
+  return required(matchDayKey(iso, activeZone))
 }
 
 /** "Sat 21 August" — the heading a day's fixtures sit under. */
-export function formatDayHeading(
-  iso: string,
-  zone: VNextPresentationZone = WORKSHOP_PRESENTATION_ZONE,
-): string {
-  return formatters(zone).dayHeading.format(new Date(iso))
+export function formatDayHeading(iso: string): string {
+  return required(formatMatchDayShortWeekday(iso, activeZone))
 }
 
-/** How many calendar days apart two instants are, in the reader's zone. */
-function calendarDayOffset(
-  target: string,
-  now: string,
-  zone: VNextPresentationZone,
-): number {
-  const { dayKey } = formatters(zone)
-  const targetDay = Date.parse(`${dayKey.format(new Date(target))}T00:00:00Z`)
-  const nowDay = Date.parse(`${dayKey.format(new Date(now))}T00:00:00Z`)
+/** How many calendar days apart two instants are, in the workshop's zone. */
+function calendarDayOffset(target: string, now: string): number {
+  const targetDay = Date.parse(`${required(matchDayKey(target, activeZone))}T00:00:00Z`)
+  const nowDay = Date.parse(`${required(matchDayKey(now, activeZone))}T00:00:00Z`)
   return Math.round((targetDay - nowDay) / 86_400_000)
 }
 

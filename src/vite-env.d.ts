@@ -39,6 +39,10 @@ interface ImportMetaEnv {
   // competition once the two switches above allow it; a list is narrower,
   // because a licence obtained for one competition is a licence for that one.
   readonly VITE_UI_OFFICIAL_BADGE_COMPETITIONS?: string
+
+
+  /** Stage 14 Football Hub cutover: vNext Matches and Match Centre. */
+  readonly VITE_UI_FOOTBALL_HUB_MATCHES?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

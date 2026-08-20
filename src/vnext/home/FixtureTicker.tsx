@@ -1,9 +1,5 @@
 import type { Match } from '../models/football'
 import { formatKickoffLabel } from '../foundations/format'
-import {
-  useVNextPresentationZone,
-  type VNextPresentationZone,
-} from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import styles from './home.module.css'
 
@@ -34,7 +30,6 @@ export type FixtureTickerProps = {
  * chooses; the accessible sentence always uses the full name regardless.
  */
 export function FixtureTicker({ matches, now }: FixtureTickerProps) {
-  const zone = useVNextPresentationZone()
 
   if (matches.length === 0) return null
 
@@ -56,7 +51,7 @@ export function FixtureTicker({ matches, now }: FixtureTickerProps) {
                 }`}
               >
                 <span className={`${styles.tickerState} ${typography.numeric}`}>
-                  {stateLabel(match, now, zone)}
+                  {stateLabel(match, now)}
                 </span>
 
                 <span className={styles.tickerTeams}>
@@ -81,7 +76,7 @@ export function FixtureTicker({ matches, now }: FixtureTickerProps) {
                   ))}
                 </span>
 
-                <span className={typography.srOnly}>{describe(match, now, zone)}</span>
+                <span className={typography.srOnly}>{describe(match, now)}</span>
 
                 <span
                   className={`${styles.tickerCall} ${
@@ -103,7 +98,7 @@ export function FixtureTicker({ matches, now }: FixtureTickerProps) {
 }
 
 /** The state chip. Every status the model declares has a label here. */
-function stateLabel(match: Match, now: string, zone: VNextPresentationZone): string {
+function stateLabel(match: Match, now: string): string {
   switch (match.status) {
     case 'live':
       return match.clock?.label ?? 'Live'
@@ -116,19 +111,19 @@ function stateLabel(match: Match, now: string, zone: VNextPresentationZone): str
     default:
       // Tomorrow's fixture must not read as another kick-off today, so the day
       // comes from the model instant rather than from the clock.
-      return formatKickoffLabel(match.kickoff, now, zone).replace('Today ', '')
+      return formatKickoffLabel(match.kickoff, now).replace('Today ', '')
   }
 }
 
 /** One sentence per item, because a grid of codes is not readable aloud. */
-function describe(match: Match, now: string, zone: VNextPresentationZone): string {
+function describe(match: Match, now: string): string {
   const teams = `${match.home.team.name} versus ${match.away.team.name}`
   const state =
     match.status === 'postponed'
       ? 'postponed'
       : match.score
-        ? `${match.score.home}–${match.score.away}, ${stateLabel(match, now, zone)}`
-        : `kicks off ${formatKickoffLabel(match.kickoff, now, zone)}`
+        ? `${match.score.home}–${match.score.away}, ${stateLabel(match, now)}`
+        : `kicks off ${formatKickoffLabel(match.kickoff, now)}`
   const call = match.prediction
     ? `your call ${match.prediction.score.home}–${match.prediction.score.away}`
     : 'not predicted'

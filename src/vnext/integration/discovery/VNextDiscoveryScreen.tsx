@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { VNextDiscovery, type DiscoveryIntent } from '../../discovery/VNextDiscovery'
-import { VNextConnectedShell } from '../shell/VNextConnectedShell'
+import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
@@ -124,8 +124,8 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
     )
 
   return (
-    <VNextConnectedShell model={shell} onIntent={props.onShellIntent}>
+    <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
       {body}
-    </VNextConnectedShell>
+    </VNextShellProvider>
   )
 }

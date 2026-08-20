@@ -1,4 +1,4 @@
-import { readdirSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { fromRoot, reachableFrom } from '../app/importGraph'
@@ -37,9 +37,38 @@ function filesUnder(directory: string): string[] {
 }
 
 const vnextFiles = filesUnder(resolve(repositoryRoot, 'src/vnext'))
+
+/**
+ * THE ONE SANCTIONED SEAM, AND WHY IT IS NOT A HOLE IN THIS RULE.
+ *
+ * Stage 14 is the cutover: the stage whose entire job is to give vNext surfaces
+ * a production behaviour. So from Stage 14 onward "vNext is unreachable from
+ * production" cannot be literally true, and a guard that has to be DELETED the
+ * first time the programme reaches its own goal was never protecting anything.
+ *
+ * It is narrowed instead, exactly as this suite was already narrowed once —
+ * Stage 6 turned a blanket ban into a directional rule when `integration/`
+ * legitimately needed the application. Same move, same reason.
+ *
+ * READ THE FAILURE MODE THIS SUITE NAMES, because the narrowing is built to
+ * keep catching it: *"one import added from a production surface because a
+ * component looked reusable … while looking like an ordinary refactor."* That
+ * is an ACCIDENT, made anywhere, by anyone, in a diff that reads as tidying.
+ * A cutover is its opposite — deliberate, contracted, flag-gated, and argued
+ * for in `docs/product/vnext-route-migration-matrix.md` §13.
+ *
+ * So `src/app/vnext/` is stopped at, exactly as `src/dev/` is, and the original
+ * assertion below is then made VERBATIM against the rest of the tree. Every
+ * accidental import from anywhere else still fails it. What the seam buys is
+ * one door; the cases after it prove that door is the only one, that it is
+ * lazy, and that it is flag-gated.
+ */
+const CUTOVER_SEAM = '/src/app/vnext/'
 const productionGraph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
-  stopAt: ['/src/dev/'],
+  stopAt: ['/src/dev/', CUTOVER_SEAM],
 })
+const seamFiles = filesUnder(resolve(repositoryRoot, 'src/app/vnext'))
+const appTsx = readFileSync(resolve(repositoryRoot, 'src/App.tsx'), 'utf8')
 
 /**
  * THE ONE PLACE vNEXT IS ALLOWED TO KNOW THE APPLICATION EXISTS.
@@ -150,26 +179,6 @@ describe('the vNext workshop', () => {
     '/src/vnext/stories/',
   ]
 
-  /**
-   * Every vNext PAGE, whatever it is admitted to. The cutover case below walks
-   * this list rather than `FORBIDDEN_IN_PRODUCTION`, because the question it
-   * asks is different: not "may this ship at all" but "is the signed-in product
-   * being served from it yet".
-   */
-  const EVERY_VNEXT_PAGE = [
-    '/src/vnext/home/',
-    '/src/vnext/matches/',
-    '/src/vnext/predictor/',
-    '/src/vnext/leagues/',
-    '/src/vnext/player/',
-    '/src/vnext/lms/',
-    '/src/vnext/championship/',
-    '/src/vnext/games/',
-    '/src/vnext/discovery/',
-    '/src/vnext/invite/',
-    '/src/vnext/onboarding/',
-    '/src/vnext/account/',
-  ]
 
   it('reaches production only through the one routed vNext surface', () => {
     const reachable = vnextFiles.filter((file) => productionGraph.has(file))
@@ -200,33 +209,6 @@ describe('the vNext workshop', () => {
     ).toEqual([])
   })
 
-  it('keeps every vNext PAGE out of the APPLICATION, which is what holds the cutover', () => {
-    // THE CASE THAT MATTERS MOST NOW. The landing page legitimately mounts four
-    // vNext pages inside an inert device frame, so "is a page in the bundle" no
-    // longer answers the question anybody cares about. This one does: stop the
-    // walk at the landing page's own directory and what remains is the graph the
-    // SIGNED-IN product is served from. A vNext page reachable there is the
-    // Football Hub cutover having happened, and it is Stage 14 work under
-    // explicit authority rather than something a route addition performs by
-    // accident.
-    //
-    // The stage that repoints Home, Matches, Games and Leagues is the stage that
-    // changes this case, and it will be doing so on purpose.
-    const applicationGraph = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
-      stopAt: ['/src/dev/', '/src/features/landing/'],
-    })
-    const leaked = vnextFiles.filter(
-      (file) =>
-        applicationGraph.has(file) && EVERY_VNEXT_PAGE.some((tree) => file.includes(tree)),
-    )
-
-    expect(
-      leaked.map(fromRoot),
-      'a vNext PAGE is reachable from an application route — the Football Hub ' +
-        'cutover is Stage 14 work under explicit authority',
-    ).toEqual([])
-  })
-
   it('proves the landing preview really does mount the four, so the allowance is not dead', () => {
     // The mirror of the About case below. If the preview were deleted or quietly
     // reduced to a picture again, the four allowances above would become
@@ -249,6 +231,83 @@ describe('the vNext workshop', () => {
     // permission nothing uses — and the next route addition would inherit it.
     const about = resolve(repositoryRoot, 'src/vnext/about/VNextAbout.tsx')
     expect(productionGraph.has(about), 'src/vnext/about is not routed').toBe(true)
+  })
+
+  it('reaches vNext through the cutover seam and nowhere else', () => {
+    // The seam is a door, not a hole, and this is what makes the difference
+    // checkable. Walk production WITHOUT stopping at `src/app/vnext/`, then
+    // subtract everything the seam legitimately pulls in: whatever is left is
+    // a second route into vNext, which is the accident this suite exists for.
+    const withSeam = reachableFrom(resolve(repositoryRoot, 'src/main.tsx'), {
+      stopAt: ['/src/dev/'],
+    })
+    const throughSeam = new Set<string>()
+    for (const file of seamFiles) {
+      for (const reached of reachableFrom(file)) throughSeam.add(reached)
+    }
+    // THE PUBLIC LANDING PAGE IS THE SECOND DOOR, and it is a door rather than
+    // a hole for the same reason the seam is: it is deliberate, it is argued
+    // for, and it is bounded. Its product preview mounts four vNext surfaces
+    // inside an inert device frame so a marketing page cannot advertise an
+    // information architecture the product has stopped having. Subtracted here
+    // by the same construction as the seam, so everything it does NOT pull in
+    // still fails this case.
+    //
+    // `/about` IS THE THIRD, and the oldest. It is a routed page rather than a
+    // cutover adapter, because ADR 0017's non-affiliation statement is owed by
+    // the product as it stands rather than by the stage that changes its shape.
+    const otherEntries = [
+      'src/features/landing/ProductPreview.tsx',
+      'src/features/about/AboutPage.tsx',
+    ]
+    const throughOtherDoors = new Set<string>()
+    for (const entry of otherEntries) {
+      for (const reached of reachableFrom(resolve(repositoryRoot, entry))) {
+        throughOtherDoors.add(reached)
+      }
+    }
+    const otherDoors = vnextFiles.filter(
+      (file) => withSeam.has(file) && !throughSeam.has(file) && !throughOtherDoors.has(file),
+    )
+    expect(
+      otherDoors.map(fromRoot),
+      'these vNext modules reach production by some path other than the ' +
+        'flag-gated cutover adapters in src/app/vnext/ — that is the ' +
+        '"looked reusable" import this suite exists to catch',
+    ).toEqual([])
+  })
+
+  it('enters the seam lazily, so vNext cannot join the entry chunk', () => {
+    // MEASURED, NOT ASSUMED. Imported statically the Stage 14 adapters moved
+    // the entry chunk 240.19 kB → 428.67 kB raw (75.81 → 133.27 kB gzip): a
+    // 78% increase paid by every visitor, for a surface that cannot render
+    // while the flag is off. `isNextUi(...)` is a function call, so no bundler
+    // can shake it out. Lazy is therefore load-bearing rather than tidy, and a
+    // future static import would silently undo it.
+    expect(seamFiles.length).toBeGreaterThan(0)
+    const statically = new RegExp(`^import\\s[^;]*from '\\.${CUTOVER_SEAM.replace('/src', '')}`, 'm')
+    expect(
+      statically.test(appTsx),
+      'src/App.tsx must reach src/app/vnext/ only through lazy(() => import(...))',
+    ).toBe(false)
+    expect(appTsx).toMatch(/lazy\(\(\) =>\s*import\('\.\/app\/vnext\//)
+  })
+
+  it('gates every seam route behind a rollback flag', () => {
+    // A cutover adapter that is mounted unconditionally is a cutover, not a
+    // switch — and the release gate this programme works to is that a flag
+    // restores the prior journey with no data rollback. Every element the seam
+    // exports must therefore appear opposite a legacy element under a flag.
+    const exported = seamFiles
+      .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(/export function (VNext\w+)/g)])
+      .map((match) => match[1])
+    expect(exported.length).toBeGreaterThan(0)
+    for (const element of exported) {
+      const mounted = appTsx.includes(`<${element} />`)
+      if (!mounted) continue
+      const guarded = new RegExp(`isNextUi\\('[a-zA-Z]+'\\)[\\s\\S]{0,200}<${element} />`)
+      expect(guarded.test(appTsx), `${element} is routed without a rollback flag`).toBe(true)
+    }
   })
 
   it('keeps a presentation lane that never reaches the application', () => {

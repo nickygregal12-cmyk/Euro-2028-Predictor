@@ -1,14 +1,10 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import {
-  VNextPresentationZoneProvider,
-  WORKSHOP_PRESENTATION_ZONE,
-  type VNextPresentationZone,
-} from '../../src/vnext/foundations/presentationZone'
-import {
+  configureVNextTimeZone,
   formatDayHeading,
   formatDayKey,
   formatKickoffLabel,
@@ -60,26 +56,41 @@ import { at } from '../support/indexed'
  *     formatter, because presentation is never a rule.
  */
 
-const BERLIN: VNextPresentationZone = { locale: 'en-GB', timeZone: 'Europe/Berlin' }
-const AUCKLAND: VNextPresentationZone = { locale: 'en-GB', timeZone: 'Pacific/Auckland' }
+const LONDON = 'Europe/London'
+const BERLIN = 'Europe/Berlin'
+const AUCKLAND = 'Pacific/Auckland'
 
 /** 21:45 UTC on 22 August 2026 — 22:45 in London, and already the 23rd in Auckland. */
 const LATE_KICKOFF = '2026-08-22T21:45:00.000Z'
 /** 09:00 UTC the same day — 10:00 in London, and 21:00 the evening before in Auckland. */
 const NOW = '2026-08-22T09:00:00.000Z'
 
-function renderIn(zone: VNextPresentationZone, node: React.ReactElement) {
-  return render(
-    <VNextRoot>
-      <VNextPresentationZoneProvider zone={zone}>{node}</VNextPresentationZoneProvider>
-    </VNextRoot>,
-  )
+/**
+ * Render with the module's zone pointed somewhere, then put it back.
+ *
+ * `configureVNextTimeZone` is module state rather than a React context, which is
+ * a deliberate trade recorded in `format.ts`: threading a zone through 42 call
+ * sites in 13 accepted surfaces is a large diff for a fact none of them decides.
+ * The cost is that a test which sets it must restore it, or every later suite
+ * in the same worker inherits somebody else's clock.
+ */
+function renderIn(timeZone: string, node: React.ReactElement) {
+  configureVNextTimeZone(timeZone)
+  return render(<VNextRoot>{node}</VNextRoot>)
 }
+
+afterEach(() => {
+  // Back to the workshop pin. The default is what keeps Storybook, the visual
+  // matrix and several thousand render assertions deterministic.
+  configureVNextTimeZone()
+})
 
 describe('a vNext time is printed in the zone it was rendered inside', () => {
   it('gives two readers two different clock faces for one instant', () => {
-    const london = formatTime(LATE_KICKOFF, WORKSHOP_PRESENTATION_ZONE)
-    const berlin = formatTime(LATE_KICKOFF, BERLIN)
+    configureVNextTimeZone(LONDON)
+    const london = formatTime(LATE_KICKOFF)
+    configureVNextTimeZone(BERLIN)
+    const berlin = formatTime(LATE_KICKOFF)
 
     expect(london).toBe('22:45')
     expect(berlin).toBe('23:45')
@@ -87,24 +98,24 @@ describe('a vNext time is printed in the zone it was rendered inside', () => {
   })
 
   it('defaults to the workshop pin, so a story and a render test do not move', () => {
-    // The default is what keeps Storybook, the visual matrix and 7,000 render
-    // assertions deterministic. It is deliberate, and the boundary case below is
-    // what stops it reaching a reader.
-    expect(formatTime(LATE_KICKOFF)).toBe(formatTime(LATE_KICKOFF, WORKSHOP_PRESENTATION_ZONE))
+    // The default is what keeps Storybook, the visual matrix and several
+    // thousand render assertions deterministic. It is deliberate, and the
+    // boundary case below is what stops it reaching a reader.
+    configureVNextTimeZone()
+    expect(formatTime(LATE_KICKOFF)).toBe('22:45')
     expect(formatDayKey(LATE_KICKOFF)).toBe('2026-08-22')
   })
 
-  it('cannot disagree with the Matches authority about one instant', () => {
-    // Home formats through `format.ts`; Matches formats through `kickoff.ts`.
-    // For one instant in one zone the two MUST agree, or the product prints two
-    // different times for one kickoff depending on which page you are on.
-    for (const zone of [WORKSHOP_PRESENTATION_ZONE, BERLIN, AUCKLAND]) {
-      expect(formatTime(LATE_KICKOFF, zone)).toBe(
-        formatKickoffTime(LATE_KICKOFF, zone.timeZone),
-      )
-      expect(formatDayKey(LATE_KICKOFF, zone)).toBe(
-        matchDayKey(LATE_KICKOFF, zone.timeZone),
-      )
+  it('cannot disagree with the product-wide authority about one instant', () => {
+    // THE DRIFT THIS FILE EXISTS FOR. `format.ts` now DELEGATES to `kickoff.ts`
+    // rather than reimplementing it, so the two cannot disagree by construction
+    // — and this case is what would notice if a future edit reintroduced a
+    // second implementation. Home and Matches printing different times for one
+    // kickoff is the defect, and it is one line of code away at all times.
+    for (const zone of [LONDON, BERLIN, AUCKLAND]) {
+      configureVNextTimeZone(zone)
+      expect(formatTime(LATE_KICKOFF)).toBe(formatKickoffTime(LATE_KICKOFF, zone))
+      expect(formatDayKey(LATE_KICKOFF)).toBe(matchDayKey(LATE_KICKOFF, zone))
     }
   })
 
@@ -112,22 +123,27 @@ describe('a vNext time is printed in the zone it was rendered inside', () => {
     // 21:45 UTC is the 22nd in London and the 23rd in Auckland. A product that
     // grouped by one zone and printed in another would show a reader in
     // Auckland "Sat 22 August" with "09:45" under it, which is neither true.
-    expect(formatDayKey(LATE_KICKOFF, WORKSHOP_PRESENTATION_ZONE)).toBe('2026-08-22')
-    expect(formatDayKey(LATE_KICKOFF, AUCKLAND)).toBe('2026-08-23')
+    configureVNextTimeZone(LONDON)
+    expect(formatDayKey(LATE_KICKOFF)).toBe('2026-08-22')
+    expect(formatDayHeading(LATE_KICKOFF)).toContain('22')
 
-    expect(formatDayHeading(LATE_KICKOFF, WORKSHOP_PRESENTATION_ZONE)).toContain('22')
-    expect(formatDayHeading(LATE_KICKOFF, AUCKLAND)).toContain('23')
+    configureVNextTimeZone(AUCKLAND)
+    expect(formatDayKey(LATE_KICKOFF)).toBe('2026-08-23')
+    expect(formatDayHeading(LATE_KICKOFF)).toContain('23')
 
     // And the same instant, through the product-wide authority, agrees.
-    expect(formatMatchDay(LATE_KICKOFF, 'Pacific/Auckland')).toContain('23')
+    expect(formatMatchDay(LATE_KICKOFF, AUCKLAND)).toContain('23')
   })
 
   it('moves "Today" and "Tomorrow" with the zone as well as the clock', () => {
     // The relative word is a calendar-day comparison, so it has to resolve in
     // the reader's zone too. In Auckland the kickoff has already crossed into
     // tomorrow while London still calls it today.
-    expect(formatKickoffLabel(LATE_KICKOFF, NOW, WORKSHOP_PRESENTATION_ZONE)).toBe('Today 22:45')
-    expect(formatKickoffLabel(LATE_KICKOFF, NOW, AUCKLAND)).toBe('Tomorrow 09:45')
+    configureVNextTimeZone(LONDON)
+    expect(formatKickoffLabel(LATE_KICKOFF, NOW)).toBe('Today 22:45')
+
+    configureVNextTimeZone(AUCKLAND)
+    expect(formatKickoffLabel(LATE_KICKOFF, NOW)).toBe('Tomorrow 09:45')
   })
 })
 
@@ -138,10 +154,11 @@ describe('a rendered vNext surface takes its zone from the tree', () => {
     const kickoff = at(matches, 0).kickoff
 
     const london = renderIn(
-      WORKSHOP_PRESENTATION_ZONE,
+      LONDON,
       <FixtureTicker matches={matches} now={workshopHomeModel.generatedAt} />,
     )
     const londonText = london.container.textContent ?? ''
+    const londonKickoff = formatTime(kickoff)
     london.unmount()
 
     const auckland = renderIn(
@@ -149,9 +166,10 @@ describe('a rendered vNext surface takes its zone from the tree', () => {
       <FixtureTicker matches={matches} now={workshopHomeModel.generatedAt} />,
     )
     const aucklandText = auckland.container.textContent ?? ''
+    const aucklandKickoff = formatTime(kickoff)
 
-    expect(londonText).toContain(formatTime(kickoff, WORKSHOP_PRESENTATION_ZONE))
-    expect(aucklandText).toContain(formatTime(kickoff, AUCKLAND))
+    expect(londonText).toContain(londonKickoff)
+    expect(aucklandText).toContain(aucklandKickoff)
     expect(londonText).not.toBe(aucklandText)
   })
 
@@ -177,7 +195,7 @@ describe('a rendered vNext surface takes its zone from the tree', () => {
     expect(screen.getByText('23:45')).toBeTruthy()
     view.unmount()
 
-    renderIn(WORKSHOP_PRESENTATION_ZONE, <LmsPickList choices={choices} onPick={() => {}} />)
+    renderIn(LONDON, <LmsPickList choices={choices} onPick={() => {}} />)
     expect(screen.getByText('22:45')).toBeTruthy()
   })
 })
@@ -201,32 +219,35 @@ describe('the workshop pin cannot reach a reader', () => {
     expect(screens.length).toBeGreaterThanOrEqual(10)
   })
 
-  it('wraps every connected screen in the viewer zone', () => {
-    // A screen that reached for `VNextShellProvider` directly would render with
-    // the workshop's pinned Europe/London for a real reader — and would look
-    // completely correct in every test, because the test machine is pinned too.
-    const offenders = screens.filter((file) => {
-      const source = readFileSync(file, 'utf8')
-      // A screen that builds a shell model is a page inside the application and
-      // must carry the reader's zone. `VNextOnboardingScreen` builds none — it
-      // is the flow BEFORE there is a competition to be inside, it renders no
-      // instant, and giving it a shell it has no model for would be inventing
-      // navigation rather than fixing a zone.
-      if (!source.includes('buildShellModel')) return false
-      return source.includes('VNextShellProvider') || !source.includes('VNextConnectedShell')
-    })
-
+  it('points the formatters at the viewer from the cutover seam, and only there', () => {
+    // THE BOUNDARY THE DEFAULT NEEDS. `format.ts` pins Europe/London until
+    // something says otherwise, which is right for a story and wrong for a
+    // reader in Sydney — so the application seam has to say otherwise, and
+    // exactly one place may.
+    //
+    // It is `src/app/vnext/`, because that is where the application already
+    // knows a viewer exists and it is the one door the boundary suite admits.
+    // A presentation module calling it would make its own stories
+    // non-deterministic, which is the property the default protects.
+    const seam = screenFilesAll(resolve(process.cwd(), 'src/app/vnext'))
+    const configuring = seam.filter((file) =>
+      readFileSync(file, 'utf8').includes('configureVNextTimeZone('),
+    )
     expect(
-      offenders.map((file) => file.replace(`${process.cwd()}/`, '')),
-      'a connected vNext screen is not inside VNextConnectedShell — it will ' +
-        'print Europe/London to every reader in the world',
-    ).toEqual([])
+      configuring.length,
+      'nothing in the cutover seam points the formatters at the viewer, so every ' +
+        'reader in the world is shown Europe/London',
+    ).toBeGreaterThan(0)
+
+    // AND IT IS CALLED WITH THE PRODUCT-WIDE ANSWER rather than a literal. A
+    // seam that hard-coded a zone would be a third opinion about which one a
+    // reader is in.
+    for (const file of configuring) {
+      expect(readFileSync(file, 'utf8')).toContain('viewerTimeZone')
+    }
   })
 
-  it('keeps the viewer zone out of the presentation lane', () => {
-    // `VNextViewerZoneProvider` reads the platform. A presentation component
-    // that mounted it would make its own stories non-deterministic, which is
-    // the property the default exists to protect.
+  it('keeps the configurator out of the presentation lane entirely', () => {
     const presentation = readdirSync(resolve(process.cwd(), 'src/vnext'), {
       withFileTypes: true,
     })
@@ -234,14 +255,16 @@ describe('the workshop pin cannot reach a reader', () => {
       .flatMap((entry) => screenFilesAll(resolve(process.cwd(), 'src/vnext', entry.name)))
 
     const offenders = presentation.filter((file) => {
-      if (file.endsWith('foundations/presentationZone.tsx')) return false
-      const source = readFileSync(file, 'utf8')
-      // Rendering it or importing it, not merely naming it in a docblock — the
-      // modules that explain the boundary are allowed to say what it is called.
-      return source.includes('<VNextViewerZoneProvider') || /import[^\n]*VNextViewerZoneProvider/.test(source)
+      if (file.endsWith('foundations/format.ts')) return false
+      return readFileSync(file, 'utf8').includes('configureVNextTimeZone(')
     })
 
-    expect(offenders.map((file) => file.replace(`${process.cwd()}/`, ''))).toEqual([])
+    expect(
+      offenders.map((file) => file.replace(`${process.cwd()}/`, '')),
+      'a vNext presentation module set the formatting zone — that is the ' +
+        'application seam\u2019s job, and a component doing it would make its own ' +
+        'stories non-deterministic',
+    ).toEqual([])
   })
 })
 

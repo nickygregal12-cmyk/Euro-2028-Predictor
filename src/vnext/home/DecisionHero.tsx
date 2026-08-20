@@ -6,7 +6,6 @@ import {
   formatOrdinal,
   formatScoreline,
 } from '../foundations/format'
-import { useVNextPresentationZone } from '../foundations/presentationZone'
 import typography from '../foundations/typography.module.css'
 import { FormRun } from '../components/football/FormRun'
 import { TeamCrest } from '../components/football/TeamCrest'
@@ -51,7 +50,6 @@ export function DecisionHero({ match, now }: DecisionHeroProps) {
 // is unique per instance by construction, which is the property this needed all
 // along.
   const headingId = useId()
-  const zone = useVNextPresentationZone()
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
   const community = match.consensus?.community ?? null
   const prediction = match.prediction
@@ -70,13 +68,13 @@ export function DecisionHero({ match, now }: DecisionHeroProps) {
             {prediction ? 'Your next match' : 'Your next decision'}
           </p>
           <p className={`${styles.decisionWhen} ${typography.numeric}`}>
-            {formatKickoffLabel(match.kickoff, now, zone)}
+            {formatKickoffLabel(match.kickoff, now)}
           </p>
         </header>
 
         <h2 id={headingId} className={typography.srOnly}>
           {match.home.team.name} versus {match.away.team.name},{' '}
-          {formatKickoffLabel(match.kickoff, now, zone)}
+          {formatKickoffLabel(match.kickoff, now)}
           {countdown ? `, predictions close in ${countdown}` : ''}
         </h2>
 

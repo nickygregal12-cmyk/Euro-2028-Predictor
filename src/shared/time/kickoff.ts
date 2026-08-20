@@ -141,6 +141,45 @@ export function matchDayKey(iso: string | null | undefined, zone?: Zone): string
 }
 
 /**
+ * A weekday on its own, abbreviated: "Sat".
+ *
+ * Added for the vNext surfaces, which print a bare weekday beside a time in
+ * rows too narrow for "Saturday". It lives HERE and not there because the
+ * 10 August direction asks for one formatting helper across Matches, the Match
+ * Predictor, LMS, the Championship and the Match Centre, and a sixth local
+ * `Intl.DateTimeFormat` in a presentation lane is exactly the drift this module
+ * was created to end — five local copies once disagreed about whose zone a
+ * kickoff belongs to.
+ */
+export function formatWeekdayShort(iso: string | null | undefined, zone?: Zone): string | null {
+  const at = instant(iso)
+  if (!at) return null
+  return at.toLocaleDateString(undefined, { timeZone: zoneOf(zone), weekday: 'short' })
+}
+
+/**
+ * A day heading with an abbreviated weekday: "Sat 22 August".
+ *
+ * `formatMatchDay` spells the weekday out, which is right for a wide heading
+ * over a list. vNext's day headings sit in a narrower column and abbreviate;
+ * both forms are legitimate and neither is a second AUTHORITY, because the zone
+ * and the day boundary are still decided in one place.
+ */
+export function formatMatchDayShortWeekday(
+  iso: string | null | undefined,
+  zone?: Zone,
+): string | null {
+  const at = instant(iso)
+  if (!at) return null
+  return at.toLocaleDateString(undefined, {
+    timeZone: zoneOf(zone),
+    weekday: 'short',
+    day: 'numeric',
+    month: 'long',
+  })
+}
+
+/**
  * A day without its weekday: "22 Aug". For range labels — "22 Aug – 5 Sep" —
  * where two weekday names would crowd out the two dates that carry the meaning.
  */
