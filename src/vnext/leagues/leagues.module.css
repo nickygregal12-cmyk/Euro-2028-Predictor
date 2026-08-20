@@ -219,11 +219,12 @@
  * the game. The pressed state is the only one that borrows the accent.
  */
 .watchToggle {
-  /* IT SITS IN THE PLAYER CELL beside the Organiser tag, so it must not be as
-   * tall as a standalone control or every row would grow by a thumb. The tap
-   * target is met by the row's own padding: the cell is already 44px tall, and
-   * the control fills its line inside it. */
-  min-height: 28px;
+  /* The visible pill stays deliberately quiet, but the BUTTON ITSELF owns the
+   * full interaction target. Row/cell padding cannot enlarge a button's hit
+   * box, and the browser acceptance gate measures the actual control. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
   white-space: nowrap;
   padding-inline: var(--vnext-space-3);
   border: 1px solid var(--vnext-hairline);
@@ -517,22 +518,4 @@
   flex-direction: column;
   gap: var(--vnext-space-3);
   align-items: flex-start;
-}
-
-.emptyActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--vnext-space-2);
-}
-
-.emptyAction {
-  min-height: var(--vnext-tap-target);
-  padding-inline: var(--vnext-space-4);
-  border: 1px solid var(--vnext-hairline);
-  border-radius: var(--vnext-radius-md);
-  background-color: transparent;
-  color: var(--vnext-text);
-  font-family: var(--vnext-font-display);
-  font-size: var(--vnext-size-body);
-  cursor: pointer;
 }
