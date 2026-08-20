@@ -239,10 +239,18 @@ select is(
   '2-1',
   'and still says what the player said');
 
+-- COUNTED BY THE CLUBS, NOT BY THE ROUND. A round-wide count answers "how many
+-- fixtures exist" and only accidentally answers "was a duplicate made" -- it
+-- breaks the moment any other fixture is added to the matchweek, which is
+-- exactly what the Championship section below does. The question here is
+-- whether THIS match has one row, so that is what is asked.
 select is(
-  (select count(*)::integer from public.season_fixtures
-    where competition_round_id = current_setting('test.pfl_round')::uuid),
-  2,
+  (select count(*)::integer from public.season_fixtures fixture
+     join public.teams h on h.id = fixture.home_team_id
+     join public.teams a on a.id = fixture.away_team_id
+    where fixture.tournament_id = current_setting('test.pfl_season')::uuid
+      and h.name = 'Lifecycle Rovers' and a.name = 'Lifecycle United'),
+  1,
   'no second fixture was created for the postponed match');
 
 -- ---------------------------------------------------------------------------
@@ -432,9 +440,12 @@ select is(
   'a postponed fixture accepts its replacement date, which contract 117 refused');
 
 select is(
-  (select count(*)::integer from public.season_fixtures
-    where competition_round_id = current_setting('test.pfl_round')::uuid),
-  2,
+  (select count(*)::integer from public.season_fixtures fixture
+     join public.teams h on h.id = fixture.home_team_id
+     join public.teams a on a.id = fixture.away_team_id
+    where fixture.tournament_id = current_setting('test.pfl_season')::uuid
+      and h.name = 'Lifecycle Rovers' and a.name = 'Lifecycle United'),
+  1,
   'and it is the SAME fixture -- rescheduling creates no second row');
 
 select is(
