@@ -2,6 +2,7 @@
 // bounds and current-user context through the paginated `get_leaderboard` RPC.
 // This module never selects profiles, entries or score events directly.
 
+import { reportReadFailure } from '../observability/readFailure'
 import { db } from './client'
 import {
   mapLeaderboardPage,
@@ -25,6 +26,9 @@ export async function fetchLeaderboardPage(
     p_limit: options.limit ?? 50,
     ...(options.after == null ? {} : { p_after: options.after }),
   })
-  if (error) throw error
+  if (error) {
+    reportReadFailure('leaderboard.page', error)
+    throw error
+  }
   return mapLeaderboardPage(data)
 }

@@ -5,6 +5,7 @@
 // not co-members. This module never selects entries, profiles or matchweek
 // scores directly, and must not grow a fallback that does.
 
+import { reportReadFailure } from '../observability/readFailure'
 import { db } from './client'
 import {
   mapSeasonLeaderboardPage,
@@ -33,6 +34,9 @@ export async function fetchSeasonLeaderboardPage(
     p_limit: options.limit ?? 50,
     ...(options.after == null ? {} : { p_after: options.after }),
   })
-  if (error) throw error
+  if (error) {
+    reportReadFailure('season-leaderboard.page', error)
+    throw error
+  }
   return mapSeasonLeaderboardPage(data)
 }
