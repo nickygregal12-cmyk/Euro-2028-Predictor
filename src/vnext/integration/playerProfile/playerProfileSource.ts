@@ -53,7 +53,14 @@ type PlayerProfileSourceContext = {
  * ADDRESSED — a different state from refused, and the panels say so.
  */
 export type PlayerProfileTarget = {
-  readonly playerId: string
+  /**
+   * The target's account id, WHERE THE DOORWAY WAS GIVEN ONE.
+   *
+   * `null` at contract 206's same-season boundary, which addresses the profile
+   * by the season ref and reveals no account id at all. It is a real, ordinary
+   * target and not a half-formed one — `ref` is the address either way.
+   */
+  readonly playerId: string | null
   readonly ref: string | null
   readonly isYou: boolean
 }

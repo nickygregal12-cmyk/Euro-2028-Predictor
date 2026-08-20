@@ -33,8 +33,18 @@ import styles from './leagues.module.css'
 export type LeaguesIntent =
   | {
       readonly kind: 'openPlayer'
-      readonly playerId: string
-      readonly playerRef: string | null
+      /**
+       * THE ADDRESS. Contract 206 made the season ref the identity a profile is
+       * opened by, and the one boundary that reveals no account id still reveals
+       * this. Every openable row carries one.
+       */
+      readonly playerRef: string
+      /**
+       * The account id where the server also sent one — the older
+       * shared-private-league boundary. `null` is an ordinary openable player
+       * and never a half-open one; a host that needs an address uses the ref.
+       */
+      readonly playerId: string | null
     }
   | { readonly kind: 'scope'; readonly scope: LeaguesScope }
 
@@ -118,8 +128,8 @@ export function VNextLeagues({ model, onIntent, onRetry }: VNextLeaguesProps) {
     onIntent?.({ kind: 'scope', scope })
   }
 
-  function openPlayer(playerId: string, playerRef: string | null) {
-    onIntent?.({ kind: 'openPlayer', playerId, playerRef })
+  function openPlayer(playerRef: string, playerId: string | null) {
+    onIntent?.({ kind: 'openPlayer', playerRef, playerId })
   }
 
   return (

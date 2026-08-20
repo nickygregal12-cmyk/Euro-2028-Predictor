@@ -47,7 +47,7 @@ import styles from './leagues.module.css'
 export type LeaguePlayerCellProps = {
   readonly player: LeaguePlayer
   readonly onOpen?:
-    | ((playerId: string, playerRef: string | null) => void)
+    | ((playerRef: string, playerId: string | null) => void)
     | undefined
 }
 
@@ -64,14 +64,18 @@ export function LeaguePlayerCell({ player, onOpen }: LeaguePlayerCellProps) {
   }
 
   if (leaguePlayerIsOpen(player) && destination.kind === 'open' && onOpen) {
+    // BOTH COME FROM THE DESTINATION, and the ref is the one that is always
+    // there. `player.ref` is the same value where both exist, but it is nullable
+    // for rows below contract 191 — and reading the address off the row rather
+    // than off the door is how a closed row's identity ends up in a link.
     const playerId = destination.playerId
-    const playerRef = player.ref
+    const playerRef = destination.playerRef
     return (
       <span className={styles.playerCell}>
         <button
           type="button"
           className={`${text.body} ${styles.playerName} ${styles.playerOpen}`}
-          onClick={() => onOpen(playerId, playerRef)}
+          onClick={() => onOpen(playerRef, playerId)}
         >
           {player.displayName}
         </button>

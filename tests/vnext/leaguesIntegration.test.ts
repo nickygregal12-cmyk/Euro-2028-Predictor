@@ -277,20 +277,34 @@ describe('the mapper never computes a rank', () => {
    ========================================================================== */
 
 describe('a destination is the server`s permission, never an inference', () => {
+  /*
+   * THE TABLE CHANGED AT CONTRACT 206, AND THE RULE IT ENCODES DID NOT.
+   *
+   * `compare` used to map to `closed`, and that was right: the only profile read
+   * wanted an account id and the same-season boundary sends none, so a browser
+   * that opened the row would have opened a door it had no handle for. PROF-001
+   * was registered exactly there. `get_season_player_profile_by_ref` is the
+   * handle, so the row opens.
+   *
+   * WHAT IS UNCHANGED IS THAT THE SERVER DECIDES. The reach is still the whole
+   * permission; nothing here concludes one from an identifier being present or
+   * absent, and the cases below still include the two that a `playerId !== null`
+   * test would get wrong.
+   */
   const cases: readonly {
     reach: SeasonPlayerReach
     playerId: string | null
     expected: string
   }[] = [
     { reach: 'profile', playerId: 'player-1', expected: 'open' },
-    // "You may look" with nowhere to look. The server said one and not the
-    // other, and a browser that concluded a permission from the presence of an
-    // id would open a door it has no handle for.
-    { reach: 'profile', playerId: null, expected: 'closed' },
-    // AN ID WITHOUT THE REACH IS STILL CLOSED — the mirror case, and the one a
-    // `playerId !== null` test would get wrong.
-    { reach: 'compare', playerId: 'player-1', expected: 'closed' },
-    { reach: 'compare', playerId: null, expected: 'closed' },
+    // A SHARED LEAGUE WITH NO ID IS STILL OPEN — through the ref. Before
+    // contract 206 this was `closed`, because the id was the only address.
+    { reach: 'profile', playerId: null, expected: 'open' },
+    // PROF-001. Same season, no shared league, no account id, still open.
+    { reach: 'compare', playerId: 'player-1', expected: 'open' },
+    { reach: 'compare', playerId: null, expected: 'open' },
+    // AND A STRANGER IS STILL A STRANGER, whatever they carry.
+    { reach: 'name-only', playerId: 'player-1', expected: 'closed' },
     { reach: 'name-only', playerId: null, expected: 'closed' },
     { reach: 'self', playerId: null, expected: 'you' },
   ]
@@ -302,12 +316,16 @@ describe('a destination is the server`s permission, never an inference', () => {
     })
   }
 
-  it('gives an unaddressed profile a different reason from a stranger', () => {
+  it('gives a permission with no address a different reason from a stranger', () => {
+    // Both are closed and they are closed for different reasons. A row below
+    // contract 191 carries no ref, so there is nowhere to send the caller even
+    // though the server said they may look; `name-only` is the server saying
+    // they may not. Only one of those two is about permission.
     const unaddressed = first(
-      globalRows(seasonModel([globalRow({ reach: 'profile', playerId: null })])),
+      globalRows(seasonModel([globalRow({ reach: 'profile', playerId: null, playerRef: null })])),
     ).player.destination
     const stranger = first(
-      globalRows(seasonModel([globalRow({ reach: 'compare', playerId: null })])),
+      globalRows(seasonModel([globalRow({ reach: 'name-only', playerId: null })])),
     ).player.destination
 
     expect(unaddressed).toEqual({ kind: 'closed', reason: 'not-stated' })
@@ -317,8 +335,8 @@ describe('a destination is the server`s permission, never an inference', () => {
   it('never puts an id on a row the caller may not open', () => {
     // The structural half of the rule: there is nothing to build a link from.
     const model = seasonModel([
-      globalRow({ reach: 'compare', playerId: 'player-leaked', playerRef: 'ref-a' }),
-      globalRow({ reach: 'profile', playerId: null, playerRef: 'ref-b', position: 2, rank: 2 }),
+      globalRow({ reach: 'name-only', playerId: 'player-leaked', playerRef: 'ref-a' }),
+      globalRow({ reach: 'profile', playerId: null, playerRef: null, position: 2, rank: 2 }),
       globalRow({ reach: 'name-only', playerId: null, playerRef: null, position: 3, rank: 3 }),
     ])
 
@@ -326,6 +344,21 @@ describe('a destination is the server`s permission, never an inference', () => {
       expect(leaguePlayerIsOpen(row.player)).toBe(false)
       expect(JSON.stringify(row.player.destination)).not.toContain('player-leaked')
     }
+  })
+
+  it('never carries the account id across the same-season boundary', () => {
+    // Contract 206's own comment: the ref is "the only navigation identity
+    // exposed by this path". A `compare` payload should not carry an account id
+    // at all, and if one ever arrived it must not reach the model — the profile
+    // read this row opens is the ref-addressed one, and an id here would give a
+    // host a second, wider address the server did not grant.
+    const model = seasonModel([
+      globalRow({ reach: 'compare', playerId: 'player-leaked', playerRef: 'ref-a' }),
+    ])
+    const destination = first(globalRows(model)).player.destination
+
+    expect(destination).toEqual({ kind: 'open', playerRef: 'ref-a', playerId: null })
+    expect(JSON.stringify(destination)).not.toContain('player-leaked')
   })
 
   it('treats the caller as `you` whichever way the server said so', () => {
@@ -365,8 +398,10 @@ describe('a display name is a label and never an identity', () => {
     const [a, b] = [at(globalRows(model), 0), at(globalRows(model), 1)]
     expect(a.player.displayName).toBe(b.player.displayName)
     expect(a.player.ref).not.toBe(b.player.ref)
+    // BOTH OPEN SINCE CONTRACT 206, through different reads and the same ref.
+    // What keeps them apart is the reference, which is the point of this case.
     expect(leaguePlayerIsOpen(a.player)).toBe(true)
-    expect(leaguePlayerIsOpen(b.player)).toBe(false)
+    expect(leaguePlayerIsOpen(b.player)).toBe(true)
     // The row keys differ, so React cannot reuse one person's row for another.
     expect(leagueRowKey(a.player, a.position)).not.toBe(leagueRowKey(b.player, b.position))
   })
@@ -547,8 +582,12 @@ describe('the two tables are kept apart', () => {
       leagueRow({ userId: 'user-you', isYou: true, rank: 2, position: 2 }),
     ])
 
+    // THE ACCOUNT ID IS BOTH IDENTITIES ON THIS READ. It predates contract
+    // 191's season ref and sends the account id, which is what contract 151 —
+    // the profile a co-member opens — is addressed by.
     expect(at(privateRows(model), 0).player.destination).toEqual({
       kind: 'open',
+      playerRef: 'user-jamie',
       playerId: 'user-jamie',
     })
     expect(at(privateRows(model), 1).player.destination).toEqual({ kind: 'you' })

@@ -85,22 +85,28 @@ function PreviewBody() {
   const [applied, setApplied] = useState<{
     competitionSlug: string
     seasonSlug: string
-    playerId: string
+    playerId: string | undefined
     playerRef: string | null
   } | null>(() => {
     const competition = trimmedOrNull(search.get('competition'))
     const season = trimmedOrNull(search.get('season'))
     const id = trimmedOrNull(search.get('playerId'))
+    const ref = trimmedOrNull(search.get('playerRef'))
     // ARRIVING FROM THE LEAGUES HARNESS RENDERS IMMEDIATELY. Making a reviewer
     // press "Render" again after pressing a player would hide the one thing
     // this harness exists to show: that the doorway carries enough to open the
     // page without anybody retyping an identifier.
-    if (competition === null || season === null || id === null) return null
+    //
+    // EITHER IDENTIFIER IS ENOUGH SINCE CONTRACT 206. The same-season boundary
+    // sends a ref and no account id, so requiring an id here would have made the
+    // one state PROF-001 exists to reach unreachable from the doorway that
+    // reaches it.
+    if (competition === null || season === null || (id === null && ref === null)) return null
     return {
       competitionSlug: competition,
       seasonSlug: season,
-      playerId: id,
-      playerRef: trimmedOrNull(search.get('playerRef')),
+      playerId: id ?? undefined,
+      playerRef: ref,
     }
   })
 
@@ -116,17 +122,21 @@ function PreviewBody() {
           Development harness. Reads the live database through contract 151 and
           contract 192&apos;s two reads, and renders the Stage 10 surface
           unchanged. Reachable from the Leagues harness by pressing a player.
-          Not a product route.
+          Not a product route. Either identifier opens it: an account id reads
+          contract 151&apos;s shared-private-league profile, a season reference
+          alone reads contract 206&apos;s same-season profile — which is
+          PROF-001, and the state that had no way to be reached before.
         </p>
         <form
           className={styles.form}
           onSubmit={(event) => {
             event.preventDefault()
-            if (!competitionSlug.trim() || !seasonSlug.trim() || !playerId.trim()) return
+            if (!competitionSlug.trim() || !seasonSlug.trim()) return
+            if (!playerId.trim() && !playerRef.trim()) return
             setApplied({
               competitionSlug: competitionSlug.trim(),
               seasonSlug: seasonSlug.trim(),
-              playerId: playerId.trim(),
+              playerId: trimmedOrNull(playerId) ?? undefined,
               playerRef: trimmedOrNull(playerRef),
             })
           }}

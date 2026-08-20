@@ -74,7 +74,9 @@
       "summary": "No season Championship read returned bonus_competition_entrants.outcome, so the surface could name a champion and never an eliminated player, and stated nothing rather than deriving elimination.",
       "resolvedBy": "supabase/migrations/20260819130000_cup_bracket_outcome_and_knockout_stage.sql",
       "resolvedEvidence": "get_season_cup_bracket returns your_outcome, the caller's own only; supabase/tests/254_cup_bracket_outcome_and_knockout_stage.sql; tests/database-parity/cupBracketOutcomeAndStageParity.test.ts; the mapper's three former fallbacks removed and the eliminatedInGroups world added.",
-      "hostedRolloutRequired": true
+      "hostedRolloutRequired": true,
+      "developmentVerifiedAt": "2026-08-19T23:32:57.276619Z",
+      "hostedRolloutNote": "Development is verified at Contract 208 and Production is not. config/development-hosted-contract.json records the fast-lane run 32312618799 from main 0c48962, and an independent read-only Supabase query after it named 208 ledger rows with newest 20260819130000, the installed phase definition using the determinate split membership rule, and the bracket emitting the caller's own outcome. The flag stays TRUE because it covers every hosted environment and Production is still owed \u2014 that promotion is coordinated by its own ops change and is not this programme's to perform."
     },
     {
       "owedBy": "12",
@@ -83,7 +85,9 @@
       "summary": "get_season_cup_phase (contract 120) selected the caller's membership with no phase_kind filter, no order by and no limit, so a split entrant holding two rows was silently answered about their PRE-SPLIT group. Called in production at src/services/supabase/seasonCup.ts.",
       "resolvedBy": "supabase/migrations/20260819120000_cup_phase_determinate_membership.sql",
       "resolvedEvidence": "the lookup names the caller's current phase, so the primary key identifies one row; supabase/tests/253_cup_phase_determinate_membership.sql proves a both-memberships entrant resolves to the split group under both a sequential and an index plan; tests/database-parity/cupPhaseDeterminateMembershipParity.test.ts.",
-      "hostedRolloutRequired": true
+      "hostedRolloutRequired": true,
+      "developmentVerifiedAt": "2026-08-19T23:32:57.276619Z",
+      "hostedRolloutNote": "Development is verified at Contract 208 and Production is not. config/development-hosted-contract.json records the fast-lane run 32312618799 from main 0c48962, and an independent read-only Supabase query after it named 208 ledger rows with newest 20260819130000, the installed phase definition using the determinate split membership rule, and the bracket emitting the caller's own outcome. The flag stays TRUE because it covers every hosted environment and Production is still owed \u2014 that promotion is coordinated by its own ops change and is not this programme's to perform."
     }
   ]
 }

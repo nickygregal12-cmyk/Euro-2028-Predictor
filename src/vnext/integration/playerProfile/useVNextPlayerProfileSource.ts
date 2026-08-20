@@ -103,7 +103,8 @@ function requestIdentity(input: {
   userId: string
   competitionSlug: string
   seasonSlug: string
-  playerId: string
+  /** `null` at contract 206's same-season boundary, which reveals no account id. */
+  playerId: string | null
   playerRef: string | null
   gameName: string
 }): RequestIdentity {
@@ -164,7 +165,10 @@ export function useVNextPlayerProfileSource(
   } = input
 
   useEffect(() => {
-    if (authLoading || !userId || !competitionSlug || !seasonSlug || !playerId) {
+    // A REF ALONE IS AN ADDRESS NOW. Contract 206 gave the profile a
+    // ref-addressed door, so a doorway that carried no account id is no longer
+    // "no player" — it is the same-season boundary, which the server answers.
+    if (authLoading || !userId || !competitionSlug || !seasonSlug || (!playerId && !playerRef)) {
       setState((current) => (current.status === 'idle' ? current : IDLE))
       return
     }
@@ -173,7 +177,7 @@ export function useVNextPlayerProfileSource(
       userId,
       competitionSlug,
       seasonSlug,
-      playerId,
+      playerId: playerId ?? null,
       playerRef,
       gameName,
     })
@@ -233,14 +237,21 @@ export function useVNextPlayerProfileSource(
         // `set_pinned_rival` raises in terms — would be a request whose answer
         // is discarded.
         const [profile, rankHistory, rivalry, pinned] = await Promise.all([
-          readProfile(context.tournamentId, playerId),
+          readProfile(context.tournamentId, playerId ?? null, playerRef),
           readRankHistory(context.tournamentId, playerRef),
           readRivalry(context.tournamentId, playerRef, isYou),
-          isYou ? Promise.resolve(null) : readPinned(context.tournamentId, playerId),
+          // PINNING IS ADDRESSED BY THE ACCOUNT ID AND ONLY BY IT. Contract
+          // 206's boundary sends none, so a same-season profile simply has no
+          // pin state — `null`, which the model already means "not answered"
+          // rather than "not pinned". Asking with a ref would be inventing an
+          // address the write does not have.
+          isYou || playerId === undefined
+            ? Promise.resolve(null)
+            : readPinned(context.tournamentId, playerId),
         ])
         if (!active) return
 
-        const target: PlayerProfileTarget = { playerId, ref: playerRef, isYou }
+        const target: PlayerProfileTarget = { playerId: playerId ?? null, ref: playerRef, isYou }
         loadedIdentity.current = identity
         setRefreshing(false)
 
@@ -297,13 +308,20 @@ export function useVNextPlayerProfileSource(
     if (authLoading) return { status: 'loading' }
     if (!userId) return { status: 'signedOut' }
     if (!competitionSlug || !seasonSlug) return { status: 'noCompetition' }
-    if (!playerId) return { status: 'noPlayer' }
+    // NEITHER IDENTIFIER IS "NO PLAYER"; one of them is a player. Contract 206
+    // made the season ref an address in its own right, so requiring the account
+    // id here would have kept the one state PROF-001 exists to reach
+    // unreachable — the same-season boundary sends a ref and nothing else.
+    if (!playerId && !playerRef) return { status: 'noPlayer' }
 
     const identity = requestIdentity({
       userId,
       competitionSlug,
       seasonSlug,
-      playerId,
+      // NORMALISED THE SAME WAY THE EFFECT DOES. Two spellings of "no account
+      // id" would hash to two identities, and the memo would read every payload
+      // the effect stored as somebody else's.
+      playerId: playerId ?? null,
       playerRef,
       gameName,
     })
@@ -329,16 +347,45 @@ export function useVNextPlayerProfileSource(
 }
 
 /**
- * CONTRACT 151, CLASSIFIED BY THE PREDICATE THAT LIVES BESIDE THE READ.
+ * THE PROFILE, THROUGH WHICHEVER DOOR THE CALLER WAS GIVEN.
  *
- * `seasonProfileRefused` is exported from the service module rather than
- * written here, so the vNext page and the production season route tell a
- * privacy boundary from a fault by the same rule.
+ * ============================ TWO ADDRESSES, ONE PAYLOAD =================
+ *
+ * Contract 151 is addressed by the target's ACCOUNT ID and answers a caller who
+ * shares a private league. Contract 206 is addressed by the SEASON REF and
+ * answers a caller who is merely in the same season. The two boundaries reveal
+ * two different identities, and the account id is the one the newer boundary
+ * deliberately withholds — so which read runs is decided by what the doorway
+ * was handed, and never by a guess about permission.
+ *
+ * THE ACCOUNT ID WINS WHERE BOTH EXIST, because it is the older and wider
+ * boundary: a caller holding one shares a private league, and contract 151's
+ * payload is the fuller of the two. Falling back to the ref would quietly
+ * narrow a profile that was already allowed to be complete.
+ *
+ * A REFUSAL IS STILL NOT A FAILURE. `seasonProfileRefused` is exported from the
+ * service module rather than written here, so the vNext page and the production
+ * season route tell a privacy boundary from a fault by the same rule — and both
+ * RPCs raise `42501` for the same reason, so one predicate answers both.
  */
-async function readProfile(tournamentId: string, playerId: string): Promise<ProfileRead> {
+async function readProfile(
+  tournamentId: string,
+  playerId: string | null,
+  playerRef: string | null,
+): Promise<ProfileRead> {
   const services = await import('../../../services/supabase/seasonPlayerProfile')
   try {
-    return { kind: 'ok', profile: await services.fetchSeasonPlayerProfile(tournamentId, playerId) }
+    const profile =
+      playerId !== null
+        ? await services.fetchSeasonPlayerProfile(tournamentId, playerId)
+        : playerRef !== null
+          ? await services.fetchSeasonPlayerProfileByRef(tournamentId, playerRef)
+          : null
+    // UNREACHABLE THROUGH THE EFFECT ABOVE, which refuses to run without one of
+    // the two. Stated rather than asserted, so a future caller that lost the
+    // guard gets an honest "could not read" instead of a thrown page.
+    if (profile === null) return { kind: 'failed' }
+    return { kind: 'ok', profile }
   } catch (error) {
     return services.seasonProfileRefused(error) ? { kind: 'refused' } : { kind: 'failed' }
   }

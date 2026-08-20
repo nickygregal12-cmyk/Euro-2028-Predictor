@@ -103,14 +103,17 @@ function PreviewBody() {
    * instead of asking a read with nothing to ask about.
    */
   const openProfile = useCallback(
-    (playerId: string, playerRef: string | null) => {
+    (playerRef: string, playerId: string | null) => {
       if (applied === null) return
       const query = new URLSearchParams({
         competition: applied.competitionSlug,
         season: applied.seasonSlug,
-        playerId,
+        playerRef,
       })
-      if (playerRef !== null) query.set('playerRef', playerRef)
+      // ABSENT RATHER THAN EMPTY. Contract 206's same-season boundary sends no
+      // account id at all, and a `playerId=` with nothing after it would reach
+      // the far end as a string the profile would try to address a read with.
+      if (playerId !== null) query.set('playerId', playerId)
       navigate(`/dev/vnext-player?${query.toString()}`)
     },
     [applied, navigate],
@@ -211,9 +214,10 @@ function PreviewBody() {
               // nothing that could be a display name; the harness carries them
               // to Stage 10's surface rather than describing them.
               setNote(
-                `Leagues asked to open player id "${intent.playerId}" (ref "${intent.playerRef ?? 'none'}").`,
+                `Leagues asked to open player ref "${intent.playerRef}"` +
+                  ` (account id "${intent.playerId ?? 'withheld'}").`,
               )
-              openProfile(intent.playerId, intent.playerRef)
+              openProfile(intent.playerRef, intent.playerId)
             }}
           />
         ) : (
