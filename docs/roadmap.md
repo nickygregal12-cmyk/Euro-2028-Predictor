@@ -390,7 +390,18 @@ same paragraph existed in seven places at once.
 > and a fixture once postponed could never take its replacement date. A postponement now
 > applies on the provider's word, reverses on the provider's word, and takes a new date —
 > and a postponed fixture's prediction is neither frozen by a kickoff that never happened
-> nor left open into one that is about to.> Contract 208 pays off the second of Stage 12's carried backend debts. It puts
+> nor left open into one that is about to.
+
+> Contract 210 finishes that finding rather than extending it. Applying a postponement is
+> worth nothing if the feed is not read before the deadline it affects, and it was not: an
+> ordinary fixture locks at its matchweek's FIRST kickoff, while the live poll window opened
+> only fifteen minutes before a kickoff and everything earlier was left to one look a day.
+> The window now opens twelve hours out, so a postponement announced the day before a
+> deadline is seen while a player can still act on it. The idle cadence is deliberately left
+> alone: polling everything more often all year is a worse instrument than covering the hours
+> that decide something.
+
+> Contract 208 pays off the second of Stage 12's carried backend debts. It puts
 > the canonical entrant outcome on the Championship bracket read, so elimination
 > is stated by the settlement authority instead of being absent, and it narrows
 > four `stage <> 'group'` predicates so a split fixture is no longer offered as a
