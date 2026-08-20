@@ -290,6 +290,17 @@
   to = "/index.html"
   status = 404
 
+# THE WORKER SCRIPT IS NEVER SERVED FROM A CACHE. `serviceWorkerClient.ts`
+# registers with `updateViaCache: 'none'`, which already asks the browser to
+# revalidate the script itself; this says the same thing from the other side, so
+# a future registration that forgets the option cannot strand every installed
+# player on a worker from a previous deployment. Netlify applies matching header
+# rules cumulatively, so the security headers below still apply to it.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
 [[headers]]
   for = "/*"
   [headers.values]
@@ -302,6 +313,25 @@
     # hand on two sides. Only the k-anonymous five-character hash prefix is ever
     # sent to it; see the module header for why that discloses nothing.
     Content-Security-Policy = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'; upgrade-insecure-requests"
+
+    # `SEC-002`, MEASURED RATHER THAN ASSERTED. The line above still carries
+    # `style-src 'unsafe-inline'`, and the register's own mitigation says this
+    # is worth doing gradually, "since a CSP tightening that breaks rendering is
+    # discovered in production". So the tightened policy is served BESIDE the
+    # enforced one, in report-only mode, where it breaks nothing and reports
+    # everything. `installCspViolationCapture` routes what it finds into the
+    # observability the application already has.
+    #
+    # It differs from the enforced policy in exactly one directive — `style-src`
+    # drops `'unsafe-inline'` — so a violation here means one thing and needs no
+    # interpretation. Promote it by copying that directive up once real traffic
+    # has produced no `style-src` violation over a period that includes signup,
+    # login and password recovery with Turnstile enabled.
+    #
+    # No `report-sample`: it would attach the first characters of the offending
+    # content, and nothing guarantees a page's inline content is free of
+    # something a player typed. The directive alone answers the question.
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self'; style-src-attr 'none'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://challenges.cloudflare.com; worker-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; frame-ancestors 'none'"
     X-Frame-Options = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"

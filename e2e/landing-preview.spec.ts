@@ -134,6 +134,26 @@ test.describe('the landing page shows the product it is selling', () => {
     // The preview is behind `React.lazy`, and the whole reason that is allowed
     // is that `previewDevice.ts` gives the placeholder the device's exact box.
     // Measured rather than asserted: the stage's height before and after.
+    //
+    // THE CHUNK IS HELD RATHER THAN RACED. "Before" is a state that lasts one
+    // network round trip, and the original version of this test simply hoped to
+    // observe it: it asked the browser for the section, then asked whether the
+    // device had arrived yet. On a machine slow enough for those two questions
+    // to cost more than the round trip, the device is already there — nothing
+    // was measured and the failure says nothing about layout. Holding the
+    // module until the placeholder has been measured makes both moments real,
+    // and it strengthens the assertion rather than softening it: the
+    // placeholder's box is now compared against the device's on every run
+    // instead of on the runs that happened to be quick enough.
+    let releaseChunk = (): void => {}
+    const held = new Promise<void>((resolve) => {
+      releaseChunk = resolve
+    })
+    await page.route(/ProductPreview/, async (route) => {
+      await held
+      await route.continue()
+    })
+
     await page.setViewportSize({ width: 1440, height: 900 })
     await page.goto('/', { waitUntil: 'commit' })
 
@@ -144,6 +164,7 @@ test.describe('the landing page shows the product it is selling', () => {
     await expect(page.locator(DEVICE)).toHaveCount(0)
     const before = await section.boundingBox()
 
+    releaseChunk()
     await page.locator(DEVICE).first().waitFor()
     await page.waitForLoadState('networkidle')
     const after = await section.boundingBox()

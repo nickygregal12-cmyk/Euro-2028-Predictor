@@ -8,6 +8,10 @@
 
 import { db } from './client'
 import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../observability/operationFailure'
+import {
   mapLeagueMemberPage,
   mapTransferCandidates,
   type LeagueMemberPage,
@@ -69,7 +73,18 @@ export async function createLeague(tournamentId: string, name: string): Promise<
     p_tournament_id: tournamentId,
     p_name: name,
   })
-  if (error) throw error
+  // `C1`. A league that would not create is a player who cannot start playing
+  // with their friends, and it fails by being caught and shown — invisible to
+  // everything else. The NAME is deliberately not reported: it is player-
+  // authored free text and can contain anything, including somebody's name.
+  if (error) {
+    reportOperationFailure('league.create', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+      seasonId: tournamentId,
+    })
+    throw error
+  }
   const row = (data ?? [])[0]
   if (!row) throw new Error('League creation returned no row')
   return { id: row.id, name: row.name, inviteCode: row.invite_code }
@@ -118,7 +133,15 @@ export async function rotateLeagueInviteCode(leagueId: string): Promise<string> 
 /** Join a league by invite code (idempotent). Returns the joined league. */
 export async function joinLeague(code: string): Promise<{ id: string; name: string }> {
   const { data, error } = await db.rpc('join_league', { p_code: code })
-  if (error) throw error
+  // `C1`. The invite CODE is never reported: it is a bearer credential, and
+  // anyone holding one can join the league it belongs to.
+  if (error) {
+    reportOperationFailure('league.join', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+    })
+    throw error
+  }
   const row = (data ?? [])[0]
   if (!row) throw new Error('Join returned no league')
   return { id: row.id, name: row.name }

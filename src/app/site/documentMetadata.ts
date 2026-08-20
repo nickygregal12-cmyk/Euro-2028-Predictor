@@ -1,7 +1,9 @@
+import { SITE_ICON_SIZES, THEME_COLOUR } from './siteIcons.js'
 import {
   absoluteUrl,
   type SitePublicMetadata,
 } from './sitePublicMetadata.js'
+import { WEB_APP_MANIFEST_PATH } from './webAppManifest.js'
 
 /**
  * The public metadata each deployment publishes: the document head, the
@@ -25,10 +27,6 @@ import {
  * take `SitePublicMetadata` rather than the runtime `SiteConfiguration`, which
  * is what keeps this copy out of the entry chunk every visitor downloads.
  */
-
-/** Hexes must match `--bg` in `src/styles/tokens.css`. */
-const THEME_COLOUR_DARK = '#0A1128'
-const THEME_COLOUR_LIGHT = '#F7F5F0'
 
 /**
  * Escape a value for an HTML attribute.
@@ -61,19 +59,54 @@ export function documentHeadTags(metadata: SitePublicMetadata): string[] {
   const canonical = absoluteUrl(metadata, '/')
   const image = absoluteUrl(metadata, metadata.openGraphImagePath)
 
+  const appleTouchIcon = SITE_ICON_SIZES.find(
+    (icon) => icon.file === 'apple-touch-icon.png',
+  )
+
   const lines: string[] = [
     tag(`<title>${escapeAttribute(metadata.productName)}</title>`),
     tag(`<meta name="description" content="${description}" />`),
+
+    // THE ICONS ARE GENERATED HERE FOR THE SAME REASON THE TITLE IS. They used
+    // to be three static tags in `index.html`, which meant one committed icon
+    // set shipped to both deployments — the Hub installed itself under the Euro
+    // monogram. `assets/site-icons/<variant>/` holds one set per site and
+    // `vite.config.ts` emits only this build's.
+    tag('<link rel="icon" href="/favicon.ico" sizes="any" />'),
+    tag('<link rel="icon" type="image/svg+xml" href="/favicon.svg" />'),
   ]
+
+  if (appleTouchIcon) {
+    lines.push(
+      tag(
+        `<link rel="apple-touch-icon" sizes="${appleTouchIcon.size}x${appleTouchIcon.size}" href="/${appleTouchIcon.file}" />`,
+      ),
+    )
+  }
+
+  // ADR 0016 Phase 1. `crossorigin` is deliberately absent: the manifest is
+  // same-origin and adding the attribute makes the request credentialled, which
+  // some hosts answer differently and which no part of this needs.
+  lines.push(
+    tag(`<link rel="manifest" href="${WEB_APP_MANIFEST_PATH}" />`),
+    // iOS reads none of the manifest. These two are what a home-screen launch
+    // on an iPhone honours instead: a standalone window rather than a Safari
+    // chrome, and a status bar that lets the app's own background show through
+    // under the safe-area inset the layout already reserves.
+    tag('<meta name="mobile-web-app-capable" content="yes" />'),
+    tag('<meta name="apple-mobile-web-app-capable" content="yes" />'),
+    tag(`<meta name="apple-mobile-web-app-title" content="${escapeAttribute(metadata.brand.shortName)}" />`),
+    tag('<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />'),
+  )
 
   if (canonical) lines.push(tag(`<link rel="canonical" href="${escapeAttribute(canonical)}" />`))
 
   lines.push(
     tag(
-      `<meta name="theme-color" content="${THEME_COLOUR_DARK}" media="(prefers-color-scheme: dark)" />`,
+      `<meta name="theme-color" content="${THEME_COLOUR.dark}" media="(prefers-color-scheme: dark)" />`,
     ),
     tag(
-      `<meta name="theme-color" content="${THEME_COLOUR_LIGHT}" media="(prefers-color-scheme: light)" />`,
+      `<meta name="theme-color" content="${THEME_COLOUR.light}" media="(prefers-color-scheme: light)" />`,
     ),
     tag('<meta property="og:type" content="website" />'),
     tag(`<meta property="og:site_name" content="${name}" />`),

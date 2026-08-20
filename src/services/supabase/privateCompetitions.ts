@@ -1,5 +1,9 @@
 import { db } from './client'
 import {
+  reportOperationFailure,
+  serverCodeOf,
+} from '../observability/operationFailure'
+import {
   mapCreatedPrivateCompetition,
   mapCupLaunchResult,
   type CreatedPrivateCompetition,
@@ -75,7 +79,15 @@ export async function createPrivateSeasonCup(
     p_tournament_id: tournamentId,
     p_name: name,
   })
-  if (error) throw error
+  // `C1`. The name is player-authored free text and is not reported.
+  if (error) {
+    reportOperationFailure('championship.action', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+      seasonId: tournamentId,
+    })
+    throw error
+  }
   return mapCreatedPrivateCompetition(data)
 }
 
@@ -92,6 +104,16 @@ export async function launchPrivateSeasonCup(
   const { data, error } = await db.rpc('launch_private_season_cup', {
     p_competition_id: competitionId,
   })
-  if (error) throw error
+  // `C1`, and this is the one of these that is IRREVERSIBLE: the draw is fixed
+  // at the field size found and registration closes. A launch that failed
+  // halfway is the failure most worth seeing.
+  if (error) {
+    reportOperationFailure('championship.action', {
+      outcome: 'failed',
+      serverCode: serverCodeOf(error),
+      competitionId,
+    })
+    throw error
+  }
   return mapCupLaunchResult(data)
 }

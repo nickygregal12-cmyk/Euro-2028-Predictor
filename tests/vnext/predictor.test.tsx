@@ -879,3 +879,53 @@ describe('working through the card', () => {
     expect(container.querySelectorAll('[data-next]')).toHaveLength(0)
   })
 })
+
+/**
+ * `B4` — the share control on a settled matchweek.
+ *
+ * It is the only competitive surface in this lane that offers to publish
+ * anything, so the properties worth pinning are where it appears and, more
+ * importantly, where it does not.
+ */
+describe('sharing a settled matchweek', () => {
+  it('offers nothing at all where the application supplied no handler', () => {
+    // A workshop story has no canvas and no share sheet. A button that did
+    // nothing there would be a lie about the surface rather than a fixture of
+    // it, so the absence of the action is the absence of the control.
+    renderPredictor(settledPredictorModel, spyActions())
+    expect(
+      screen.queryByRole('button', { name: /share this matchweek/i }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('offers it once the application supplies one, and asks nothing of the surface', async () => {
+    const calls: string[] = []
+    renderPredictor(settledPredictorModel, {
+      ...spyActions(),
+      shareMatchweek: () => calls.push('shareMatchweek'),
+    })
+
+    await userEvent.click(screen.getByRole('button', { name: /share this matchweek/i }))
+    // No argument: what goes on the card is the application's decision from the
+    // same model this surface drew, so a surface cannot choose to put something
+    // else on it.
+    expect(calls).toEqual(['shareMatchweek'])
+  })
+
+  it('never offers it on a card that has not settled', () => {
+    // The card model refuses an unsettled matchweek by type; this is the other
+    // half — the control is not on screen to be pressed in the first place.
+    for (const model of [openPredictorModel, closingPredictorModel, lockedPredictorModel]) {
+      const view = renderPredictor(model, {
+        ...spyActions(),
+        shareMatchweek: () => {
+          throw new Error('an unsettled matchweek must not be shareable')
+        },
+      })
+      expect(
+        screen.queryByRole('button', { name: /share this matchweek/i }),
+      ).not.toBeInTheDocument()
+      view.unmount()
+    }
+  })
+})

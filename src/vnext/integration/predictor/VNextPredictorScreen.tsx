@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { MatchPredictorGateway } from '../../../features/season/matchPredictorModel'
 import { useSeasonMatchPredictor } from '../../../features/season/useSeasonMatchPredictor'
-import type { PredictorActions } from '../../models/predictor'
+import type { PredictorActions, PredictorModel } from '../../models/predictor'
 import type { ShellIntent } from '../../models/shell'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import { buildShellModel } from '../shell/buildShellModel'
@@ -313,5 +313,57 @@ function PredictorCard({
   // which would be the one place this file could lie.
   if (model === null) return <VNextPredictorLoading />
 
-  return <VNextMatchPredictor model={model} actions={actions} />
+  return (
+    <VNextMatchPredictor
+      model={model}
+      actions={{ ...actions, shareMatchweek: shareHandler(model) }}
+    />
+  )
+}
+
+/**
+ * The share control for a SETTLED matchweek, or nothing.
+ *
+ * WHY IT LIVES HERE AND NOT IN THE SURFACE. `src/vnext/` outside `integration/`
+ * may not reach a service, and drawing a card means a canvas and a share sheet.
+ * So the presentation lane gets a callback or gets nothing, and this is the
+ * layer allowed to build one.
+ *
+ * WHY IT RETURNS `undefined` BEFORE SETTLEMENT. There is nothing to share about
+ * a matchweek still being scored, and a card built from a provisional total
+ * would be exactly the "unfinalised result represented as final" the card model
+ * refuses. The surface then renders no control at all rather than a disabled
+ * one — a control a player cannot use is a question the page should not have
+ * asked.
+ *
+ * The URL is this page's own address. It is never an invite link: a card is a
+ * boast, and an invite is a credential.
+ */
+function shareHandler(model: PredictorModel): (() => void) | undefined {
+  const settledPoints = model.settledPoints
+  const tally = model.tally
+  if (settledPoints === null || tally === null) return undefined
+
+  return () => {
+    void import('../../../features/share/shareDomesticCard').then((module) =>
+      module.shareDomesticCard(
+        {
+          kind: 'matchweek',
+          settled: true,
+          competitionName: model.competition.name,
+          matchweekLabel: model.matchweek.label,
+          points: settledPoints,
+          exactScores: tally.exact,
+          correctOutcomes: tally.result,
+          jokerPlayed: model.joker.playedHere,
+          // The season position is not on this model, and it is not reached for
+          // here: an extra read raised by pressing Share would make a share
+          // control a data dependency. The card omits the line rather than
+          // guessing at it.
+          rank: null,
+        },
+        window.location.href,
+      ),
+    )
+  }
 }

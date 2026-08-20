@@ -245,7 +245,7 @@ export function VNextMatchPredictor({ model, actions }: VNextMatchPredictorProps
             </motion.div>
           )}
 
-          <MatchweekOutcome model={model} />
+          <MatchweekOutcome model={model} onShare={actions.shareMatchweek} />
         </div>
       </div>
     </VNextShell>
