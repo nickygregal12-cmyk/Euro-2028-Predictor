@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
 import { useSite } from '../../app/site/SiteProvider'
-import { useAuth } from '../auth/AuthProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { InvitePreviewCard } from './InvitePreviewCard'
-import { joinedInviteHref } from './joinDestination'
-import { useInviteCode, type InviteJoinResult } from './useInviteCode'
-import { clearPendingJoin, setPendingJoin } from './pendingJoin'
+import { useInviteCode } from './useInviteCode'
+import { useInviteLanding } from './useInviteLanding'
 import j from './join.module.css'
 
 /**
@@ -23,7 +21,10 @@ import j from './join.module.css'
  * case itself: stash the code, send the visitor to sign-up, and the auth gate
  * returns them here once they are in. Onboarding then hands the code back at
  * the end rather than swallowing it — a first-time visitor who arrived from an
- * invite still gets where they were going.
+ * invite still gets where they were going. **That hand-off, and where a joined
+ * container opens, now live in `useInviteLanding` rather than here**, because
+ * this page is one of two presentations of this address and losing the stashed
+ * code to a divergent second copy is the failure the requirement names.
  *
  * WHERE IT LANDS IS A RULE ABOUT THE BUILD, and it is not this file's. A joined
  * league used to open at `/league/:id` unconditionally; that address is the
@@ -42,49 +43,22 @@ import j from './join.module.css'
  */
 export function JoinLandingPage() {
   const { code } = useParams<{ code: string }>()
-  const { userId, loading } = useAuth()
   const navigate = useNavigate()
   const site = useSite()
   const { state, joining, resolve, accept } = useInviteCode()
-  const [storedPendingCode, setStoredPendingCode] = useState<string | null>(null)
+  const landing = useInviteLanding(code)
 
-  const authed = Boolean(userId)
-
-  // Storage is an external side effect. Persist the invite only after React has
-  // committed the signed-out landing state, then allow the signup redirect.
-  // Tracking the exact code prevents a route-param change from redirecting
-  // before the new value has replaced the old pending invite.
-  useEffect(() => {
-    if (loading || authed || !code) return
-    setPendingJoin(code)
-    setStoredPendingCode(code)
-  }, [authed, code, loading])
+  const ready = landing.kind === 'ready'
 
   useEffect(() => {
-    if (!authed || !code) return
-    // We have arrived signed in — the pending redirect is consumed.
-    clearPendingJoin()
+    if (!ready || !code) return
     void resolve(code)
-  }, [authed, code, resolve])
+  }, [ready, code, resolve])
 
-  if (loading) return <AuthSplash />
+  if (landing.kind === 'checking') return <AuthSplash />
+  if (landing.kind === 'sign-up') return <Navigate to="/auth/signup" replace />
 
-  // Signed out: wait until the code has been committed to storage before
-  // routing through sign-up, so the auth gate can resume the exact deep link.
-  if (!authed) {
-    if (code && storedPendingCode !== code) return <AuthSplash />
-    return <Navigate to="/auth/signup" replace />
-  }
-
-  function landOn(joined: InviteJoinResult) {
-    // Where a joined container opens is a rule about this BUILD, not about this
-    // component, so it lives in `joinDestination.ts` and is asserted there. A
-    // private competition has no page of its own on either build, and a league
-    // has one only where the tournament is served — see that file for the
-    // measurement. Sending a player to the private play list is honest; sending
-    // them to a page whose server read refuses their league is not.
-    navigate(joinedInviteHref(joined, site.servesEuroTournament), { replace: true })
-  }
+  const landOn = landing.landOn
 
   return (
     <div className={j.page}>

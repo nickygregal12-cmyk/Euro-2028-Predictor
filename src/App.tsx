@@ -81,6 +81,9 @@ const FOOTBALL_HUB_LMS_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_LMS === 'tru
 const FOOTBALL_HUB_CHAMPIONSHIP_BUILT =
   import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP === 'true'
 const FOOTBALL_HUB_PREDICTOR_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_PREDICTOR === 'true'
+const FOOTBALL_HUB_ONBOARDING_BUILT =
+  import.meta.env.VITE_UI_FOOTBALL_HUB_ONBOARDING === 'true'
+const FOOTBALL_HUB_INVITE_BUILT = import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE === 'true'
 const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_MATCHES_BUILT ||
   FOOTBALL_HUB_HOME_BUILT ||
@@ -91,7 +94,9 @@ const ANY_FOOTBALL_HUB_BUILT =
   FOOTBALL_HUB_ACCOUNT_BUILT ||
   FOOTBALL_HUB_LMS_BUILT ||
   FOOTBALL_HUB_CHAMPIONSHIP_BUILT ||
-  FOOTBALL_HUB_PREDICTOR_BUILT
+  FOOTBALL_HUB_PREDICTOR_BUILT ||
+  FOOTBALL_HUB_ONBOARDING_BUILT ||
+  FOOTBALL_HUB_INVITE_BUILT
 
 const VNextMatchesDestination = FOOTBALL_HUB_MATCHES_BUILT
   ? lazy(() =>
@@ -157,6 +162,25 @@ const VNextAccountDestination = FOOTBALL_HUB_ACCOUNT_BUILT
   ? lazy(() =>
       import('./app/vnext/VNextHubDestinations').then((m) => ({
         default: m.VNextAccountDestination,
+      })),
+    )
+  : null
+// FIRST SIGN-IN. Outside the competition tree and outside `AppShell`, like the
+// legacy `/welcome` it replaces — so it brings its own `VNextRoot` and its own
+// shell, and no frame-ownership row is owed for it.
+const VNextWelcomeDestination = FOOTBALL_HUB_ONBOARDING_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextWelcomeDestination').then((m) => ({
+        default: m.VNextWelcomeDestination,
+      })),
+    )
+  : null
+// THE INVITE DEEP LINK. Outside the auth gate and outside `AppShell`, like the
+// legacy landing it replaces — it brings its own `VNextRoot` and its own shell.
+const VNextJoinDestination = FOOTBALL_HUB_INVITE_BUILT
+  ? lazy(() =>
+      import('./app/vnext/VNextJoinDestination').then((m) => ({
+        default: m.VNextJoinDestination,
       })),
     )
   : null
@@ -606,11 +630,43 @@ export default function App() {
                 </Route>
 
                 <Route path="/auth/update-password" element={<UpdatePasswordPage />} />
-                <Route path="/join/:code" element={<JoinLandingPage />} />
+                {/* THE INVITE DEEP LINK, AND THE FIRST THING MOST NEW PLAYERS
+                    SEE. The switch is the PRESENTATION only: `useInviteCode`
+                    resolves and accepts on both sides of it, and
+                    `useInviteLanding` owns the signed-out hand-off, the pending
+                    invite and where a joined container opens. Registered
+                    outside the auth gate either way, because handling the
+                    signed-out case is the whole job. */}
+                <Route
+                  path="/join/:code"
+                  element={
+                    isNextUi('footballHubInvite') && VNextJoinDestination ? (
+                      <VNextJoinDestination />
+                    ) : (
+                      <JoinLandingPage />
+                    )
+                  }
+                />
                 <Route path="/about" element={<AboutPage />} />
 
                 <Route element={<RequireAuth />}>
-                  <Route path="/welcome" element={<WelcomePage />} />
+                  {/* FIRST SIGN-IN, AND THE JOURNEY STAGE 13 BUILT AND
+                      STAGE 14 DID NOT ROUTE. The switch is the PRESENTATION
+                      only: `commitOnboarding.ts` writes the follows, the game
+                      entries and the completion stamp on both sides of it, and
+                      `useWelcomeHost` owns the arrival gate and the pending
+                      invite for both. The Euro deployment's first-run screen is
+                      unchanged either way — both elements ask the variant. */}
+                  <Route
+                    path="/welcome"
+                    element={
+                      isNextUi('footballHubOnboarding') && VNextWelcomeDestination ? (
+                        <VNextWelcomeDestination />
+                      ) : (
+                        <WelcomePage />
+                      )
+                    }
+                  />
 
                   <Route element={<RequireWelcome />}>
                     {/* THE CROSS-COMPETITION READ, MOUNTED ONCE ABOVE EVERY

@@ -9,7 +9,6 @@ import {
   presentPlayerCompetitions,
   type PlayerCompetitions,
 } from '../hub/playerCompetitions'
-import type { CompetitionGameKey } from '../../services/supabase/competitionGamesModel'
 import type { PlayerPreferences } from '../../services/supabase/playerPreferencesModel'
 import type { SeasonClub } from '../../services/supabase/seasonClubs'
 import { userFacingError } from '../../shared/errors/userFacingError'
@@ -17,6 +16,7 @@ import { OnboardingCompetitionStep } from './OnboardingCompetitionStep'
 import { OnboardingFavouriteStep } from './OnboardingFavouriteStep'
 import { OnboardingGamesStep, type OnboardingCompetitionOffer } from './OnboardingGamesStep'
 import { OnboardingReviewStep } from './OnboardingReviewStep'
+import { commitOnboarding } from './commitOnboarding'
 import {
   applyGamesToAll,
   favouriteFor,
@@ -190,60 +190,16 @@ export function OnboardingJourney({ displayName, onFinished }: OnboardingJourney
     setFinishError(null)
     setPartialFailures([])
 
-    const byName = new Map(catalogue.map((entry) => [entry.seasonRowName, entry]))
-    const failures: string[] = []
-
     try {
-      const [{ setCompetitionFollow, setOnboardingProgress }, { registerBonusCompetition }] =
-        await Promise.all([
-          import('../../services/supabase/playerPreferences'),
-          import('../../services/supabase/bonusGames'),
-        ])
+      // THE COMMIT IS `commitOnboarding.ts`, AND IT IS THE ONLY COPY OF IT.
+      // It moved out of this component when `/welcome` gained a second
+      // presentation: follows, then game entries, then completion, with a
+      // refusal reported rather than fatal. The order and the failure handling
+      // are unchanged — see that file's header for why they live there now.
+      const outcome = await commitOnboarding({ draft, player: load.player })
 
-      // 1. Follows, including the favourite club the player named for each.
-      //    A follow that fails is reported and does not stop the rest.
-      for (const key of draft.followed) {
-        const competition = byName.get(key)
-        if (!competition) continue
-        try {
-          await setCompetitionFollow(
-            competition.tournamentId,
-            true,
-            favouriteFor(draft, key),
-          )
-        } catch {
-          failures.push(`Following ${competition.name}`)
-        }
-      }
-
-      // 2. Game entries. A separate server authority, and separately fallible:
-      //    a registration window can close between choosing and finishing.
-      for (const key of draft.followed) {
-        const competition = byName.get(key)
-        if (!competition) continue
-        for (const gameKey of gamesFor(draft, key)) {
-          const served = competition.games.find((game) => game.gameKey === gameKey)
-          if (!served || served.joined) continue
-          const gameCompetitionId = servedCompetitionId(load.player, key, gameKey)
-          if (!gameCompetitionId) {
-            failures.push(`${served.name} in ${competition.name}`)
-            continue
-          }
-          try {
-            await registerBonusCompetition(gameCompetitionId)
-          } catch {
-            failures.push(`${served.name} in ${competition.name}`)
-          }
-        }
-      }
-
-      // 3. Onboarding is over either way. The server stamps completion once and
-      //    never rewrites it, so a player who runs setup again later keeps the
-      //    date they first finished.
-      await setOnboardingProgress('review', true)
-
-      if (failures.length > 0) {
-        setPartialFailures(failures)
+      if (outcome.kind === 'partial') {
+        setPartialFailures(outcome.refused)
         setFinishing(false)
         return
       }
@@ -255,7 +211,7 @@ export function OnboardingJourney({ displayName, onFinished }: OnboardingJourney
       )
       setFinishing(false)
     }
-  }, [catalogue, draft, load, onFinished])
+  }, [draft, load, onFinished])
 
   if (load.status === 'loading') {
     return (
@@ -402,26 +358,6 @@ function stepIsAnswered(step: OnboardingStep, draft: OnboardingDraft): boolean {
     default:
       return true
   }
-}
-
-/**
- * The `game_competition_id` a join is addressed by, for one competition and one
- * game.
- *
- * IT COMES FROM THE MEMBERSHIP READ AND IS NEVER CONSTRUCTED. The catalogue's
- * `HubGame` carries the game's key and presentation; the id belongs to the
- * served row, and a join sent to anything else would be a join to a competition
- * nobody chose. A missing id is reported as a failed game rather than guessed.
- */
-function servedCompetitionId(
-  player: PlayerCompetitions,
-  seasonRowName: string,
-  gameKey: CompetitionGameKey,
-): string | null {
-  const relevance = player.mine.find(
-    (entry) => entry.competition.seasonRowName === seasonRowName,
-  )
-  return relevance?.games.find((game) => game.gameKey === gameKey)?.id ?? null
 }
 
 type FavouriteClubsStepProps = {

@@ -2,7 +2,10 @@ import {
   catalogueFromPublishedSeasons,
   type HubCompetition,
 } from '../../../features/hub/competitionCatalogue'
-import { presentPlayerCompetitions } from '../../../features/hub/playerCompetitions'
+import {
+  presentPlayerCompetitions,
+  type PlayerCompetitions,
+} from '../../../features/hub/playerCompetitions'
 import { draftFromPreferences, resumeStep } from '../../../features/onboarding/onboardingResume'
 import type { OnboardingDraft } from '../../../features/onboarding/onboardingDraft'
 import type { OnboardingStep } from '../../../features/onboarding/onboardingResume'
@@ -49,12 +52,25 @@ import { registrationOutlookOf } from '../games/registrationOutlook'
  * ============================ AND IT WRITES NOTHING =====================
  *
  * No progress stamp, no follows, no game entries. See `models/onboarding.ts`:
- * the commit order lives in `OnboardingJourney` and this lane does not keep a
- * second copy of it. This module reads.
+ * the commit order lives in `features/onboarding/commitOnboarding.ts` and this
+ * lane does not keep a second copy of it. This module reads.
  */
 
 export type OnboardingReadResult = {
   readonly catalogue: readonly HubCompetition[]
+  /**
+   * THE MEMBERSHIP READ ITSELF, NOT ONLY THE CATALOGUE IT REDUCES TO.
+   *
+   * A game entry is addressed by its `game_competition_id`, and that id belongs
+   * to the served membership row — the display catalogue's `HubGame` carries a
+   * key and a presentation and no id at all. So a host that has to COMMIT the
+   * draft cannot do it from `catalogue`, and re-reading membership at the
+   * commit would be a second read of something this one already answered.
+   *
+   * It is carried rather than committed here: this module still writes nothing.
+   * See the header.
+   */
+  readonly player: PlayerCompetitions
   readonly draft: OnboardingDraft
   readonly step: OnboardingStep
   /** Per season row name, per game key. See the header. */
@@ -86,6 +102,7 @@ export async function readOnboarding(reads: OnboardingReads): Promise<Onboarding
 
   return {
     catalogue: player.catalogue,
+    player,
     draft: draftFromPreferences(preferences, player.catalogue),
     step: resumeStep(preferences),
     entry: entryOutlook(seasons),

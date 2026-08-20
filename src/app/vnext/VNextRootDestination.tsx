@@ -1,6 +1,8 @@
 import { Navigate } from 'react-router'
+import { HomeDestination } from '../destinations/VariantDestinations'
 import { usePlayerCompetitions } from '../providers/PlayerCompetitionsProvider'
 import { RouteFallback } from '../RouteFallback'
+import { useSite } from '../site/SiteProvider'
 import { competitionRoute, weeklyRoutes } from '../weeklyRoutes'
 
 /**
@@ -81,9 +83,30 @@ import { competitionRoute, weeklyRoutes } from '../weeklyRoutes'
  * distinction still matters to surfaces that report it; it does not change what
  * this route can usefully do, and pretending otherwise would put a second
  * opinion about a failed read into the router.
+ *
+ * ============================ `/` IS A SHARED ADDRESS, AND THAT COMES FIRST ==
+ *
+ * `src/app/site/variantRoutes.ts` owns four paths BOTH deployments answer and
+ * mean a different product by, and `/` is the first row in that table: `hub-home`
+ * on the Hub, `euro-home` on the Euro build. The cutover flags live in one
+ * `netlify.toml` `[build.environment]` and therefore reach both sites, so a root
+ * resolver that consulted only `footballHubHome` would resolve the TOURNAMENT's
+ * front door into the domestic competition tree — which `DomesticCompetitions`
+ * refuses on that build by redirecting to `site.routes.signedInHome`, which is
+ * `/`. That is not a wrong page; it is a redirect loop on the first screen a
+ * signed-in tournament visitor sees.
+ *
+ * So the variant is asked before the membership read, and a build that does not
+ * serve the domestic tree gets the dispatcher this route replaced —
+ * `HomeDestination`, which resolves `/` through the same table it always did.
+ * Euro 2028 is untouched by the cutover, which is the promise, and this is what
+ * keeping it costs: one predicate, at the top, from the site rather than a flag.
  */
 export function VNextRootDestination() {
+  const site = useSite()
   const { status, player } = usePlayerCompetitions()
+
+  if (!site.servesDomesticCompetitions) return <HomeDestination />
 
   if (status === 'loading') return <RouteFallback />
   if (status === 'failed' || player === null) {

@@ -66,6 +66,34 @@ export type MigratedJourney =
    * served, and answers `NotFoundPage` when it is off.
    */
   | 'footballHubPredictor'
+  /**
+   * FIRST SIGN-IN, WHICH STAGE 13 BUILT AND STAGE 14 DID NOT ROUTE.
+   *
+   * The vNext onboarding screen, its integration adapter, its stories and its
+   * `/dev` harness all shipped, and `/welcome` went on serving the legacy
+   * presentation — so a brand-new account met the retired design for the two
+   * minutes before it landed in the Competition Deck.
+   *
+   * The flag selects the PRESENTATION only. `commitOnboarding.ts` writes the
+   * follows, the game entries and the completion stamp on both sides of it, so
+   * turning this off restores yesterday's screen and changes nothing about what
+   * finishing setup means.
+   */
+  | 'footballHubOnboarding'
+  /**
+   * THE INVITE DEEP LINK, ON THE SAME TERMS AS ONBOARDING.
+   *
+   * `src/vnext/invite/` and its adapter shipped in Stage 13 and `/join/:code`
+   * went on serving the legacy card — so the most common first contact a new
+   * player has with this product was the surface still wearing the old design.
+   *
+   * The flag selects the PRESENTATION only. `useInviteCode` resolves and
+   * accepts on both sides of it, and `useInviteLanding` owns the signed-out
+   * hand-off, the pending-invite consumption and where a joined container
+   * opens — so turning this off changes what the page looks like and nothing
+   * about what an invitation does.
+   */
+  | 'footballHubInvite'
 
 /** Which implementation is serving a journey. Also the telemetry dimension. */
 export type JourneyImplementation = 'legacy' | 'next'
@@ -119,6 +147,10 @@ export function journeyImplementation(journey: MigratedJourney): JourneyImplemen
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP) ? 'next' : 'legacy'
     case 'footballHubPredictor':
       return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_PREDICTOR) ? 'next' : 'legacy'
+    case 'footballHubOnboarding':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_ONBOARDING) ? 'next' : 'legacy'
+    case 'footballHubInvite':
+      return enabled(import.meta.env.VITE_UI_FOOTBALL_HUB_INVITE) ? 'next' : 'legacy'
   }
 }
 
