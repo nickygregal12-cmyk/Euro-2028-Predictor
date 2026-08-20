@@ -130,22 +130,41 @@ export function buildLeaguesModel(source: LeaguesSource): LeaguesModel {
 function destinationOf(
   reach: SeasonPlayerReach,
   playerId: string | null,
+  playerRef: string | null,
   isYou: boolean,
 ): LeaguePlayerDestination {
   if (isYou || reach === 'self') return { kind: 'you' }
-  if (reach === 'profile') {
-    return playerId === null
-      ? { kind: 'closed', reason: 'not-stated' }
-      : { kind: 'open', playerId }
-  }
-  return { kind: 'closed', reason: 'not-shared' }
+
+  // THE SERVER'S PERMISSION, AND ONLY IT. `profile` is contract 151's shared
+  // private league; `compare` is contract 206's same season. Anything else —
+  // `name-only` — is a stranger, and no identifier this row happens to carry
+  // changes that.
+  if (reach !== 'profile' && reach !== 'compare') return { kind: 'closed', reason: 'not-shared' }
+
+  // PERMISSION WITHOUT AN ADDRESS. Contract 206 made the season ref the address,
+  // so a row from below contract 191 has nowhere to send the caller: the server
+  // has said they may look without saying where. `not-stated` rather than
+  // `not-shared`, because those are different facts and only one is a permission.
+  if (playerRef === null) return { kind: 'closed', reason: 'not-stated' }
+
+  // PROF-001, CLOSED BY CONTRACT 206. `compare` used to fall through to
+  // `not-shared`, which was correct against the database as deployed — the only
+  // profile read wanted an account id and this boundary sends none.
+  // `get_season_player_profile_by_ref` answers the ref instead, so the row opens.
+  //
+  // AND THE ACCOUNT ID DOES NOT TRAVEL WITH IT. The migration is explicit that
+  // the ref is *"the only navigation identity exposed by this path"*, so a
+  // `compare` row carries no id here even if a payload somehow offered one —
+  // which is the same structural rule as before, applied to what may be BUILT
+  // rather than to what may be opened.
+  return { kind: 'open', playerRef, playerId: reach === 'profile' ? playerId : null }
 }
 
 function globalPlayer(row: SeasonLeaderboardRow | SeasonLeaderboardYou, isYou: boolean): LeaguePlayer {
   return {
     ref: row.playerRef,
     displayName: row.displayName,
-    destination: destinationOf(row.reach, row.playerId, isYou),
+    destination: destinationOf(row.reach, row.playerId, row.playerRef, isYou),
   }
 }
 
@@ -168,7 +187,12 @@ function leaguePlayer(row: SeasonLeagueStandingsRow | SeasonLeagueStandingsYou, 
   return {
     ref: row.userId,
     displayName: row.displayName,
-    destination: isYou ? { kind: 'you' } : { kind: 'open', playerId: row.userId },
+    destination: isYou
+      ? { kind: 'you' }
+      // THE ACCOUNT ID IS BOTH IDENTITIES HERE, and the note above says why:
+      // this read predates contract 191's season ref and sends the account id,
+      // which is what the profile read this boundary uses is addressed by.
+      : { kind: 'open', playerRef: row.userId, playerId: row.userId },
   }
 }
 

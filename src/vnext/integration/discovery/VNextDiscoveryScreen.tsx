@@ -5,7 +5,7 @@ import type { ShellIntent } from '../../models/shell'
 import { buildShellModel } from '../shell/buildShellModel'
 import type { ShellSourceElsewhere } from '../shell/shellSource'
 import { useShellElsewhere } from '../shell/VNextShellElsewhereHost'
-import { VNextNotice } from '../../states/VNextStates'
+import { VNextLoadingRows, VNextNotice } from '../../states/VNextStates'
 import { buildDiscoveryModel } from './buildDiscoveryModel'
 import { useVNextDiscoverySource } from './useVNextDiscoverySource'
 
@@ -18,8 +18,14 @@ import { useVNextDiscoverySource } from './useVNextDiscoverySource'
  *
  * The follow write lives in the hook and the decision about whether a control
  * may be drawn at all lives in the model. This file only chooses which state to
- * show, and passes the write's failure through as a notice rather than
- * re-wording it.
+ * show, and passes the write's failure through to the row it belongs to rather
+ * than re-wording it.
+ *
+ * THE FAILURE USED TO BE DROPPED HERE. The hook has always had a `failed`
+ * state; this file read the write only for `saving`, so a Follow that the
+ * server refused went Follow → Following… → Follow and said nothing. The state
+ * now names its season and the row prints it, so one row's failure is one
+ * row's sentence and never the catalogue's.
  */
 
 export type VNextDiscoveryScreenProps = {
@@ -72,11 +78,13 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
         body="Following a competition keeps it on your Home. It does not enter you into any of its games."
       />
     ) : model === null ? (
-      <VNextNotice
+      // The catalogue's own shape: a column of competitions, each with its
+      // controls, so nothing moves when the real list lands.
+      <VNextLoadingRows
         destination="none"
         heading="Competitions"
-        title="Loading competitions"
-        body="One moment."
+        label="Loading competitions"
+        shape="catalogue"
       />
     ) : (
       <VNextDiscovery
@@ -86,6 +94,14 @@ export function VNextDiscoveryScreen(props: VNextDiscoveryScreenProps) {
         busyTournamentId={
           state.status === 'ready' && state.write.kind === 'saving'
             ? state.write.tournamentId
+            : null
+        }
+        writeFailure={
+          // CARRIED WHOLE, so the write's own sentence travels with it rather
+          // than this file re-choosing copy the error authority already chose —
+          // the same rule the Championship's refused-write notice follows.
+          state.status === 'ready' && state.write.kind === 'failed'
+            ? { tournamentId: state.write.tournamentId, message: state.write.message }
             : null
         }
         onIntent={(intent: DiscoveryIntent) => {

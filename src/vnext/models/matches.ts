@@ -669,6 +669,136 @@ export type MatchCentreLink = {
   readonly label: string
 }
 
+/* --------------------------------------------------------------------------
+   THE THREE SOCIAL SCOPES, KEPT APART
+   --------------------------------------------------------------------------
+
+   The production Match Centre composes three deliberately separate things and
+   `SeasonFixtureLeagues` records why in terms: **You** is the player's own
+   prediction and points; **Your leagues** is named, private and league-scoped;
+   **Everyone** is anonymous, platform-wide and has a minimum cohort. Named
+   league predictions are not a consensus and a consensus is not a league.
+
+   vNext's Match Centre shipped with a stronger presentation and none of the
+   three, which would have made the cutover a feature regression rather than a
+   redesign — the one thing Stage 14's contract says it does not own. They are
+   modelled here as three independent unions for the reason the whole page is
+   built that way: EACH ONE FAILS ALONE. A league read that did not answer costs
+   the league panel and nothing else, and none of them can empty the fixture.
+
+   NOTHING HERE IS DERIVED FROM ANOTHER. The reveal boundary is the server's
+   `revealed`, the consensus cohort is the server's `suppressed`, and the
+   player's points are the settlement authority's. A surface that inferred any
+   of them from the others would be re-deciding a rule from a payload.
+   -------------------------------------------------------------------------- */
+
+/**
+ * What this fixture was worth to the reader.
+ *
+ * `unavailable` AND `not-playing` ARE DIFFERENT SENTENCES. A read that failed
+ * and a player who never joined the Match Predictor send a reader to different
+ * places, and telling somebody who is not playing that their entry could not be
+ * read teaches them the product is broken.
+ */
+type MatchCentreYouOutcome = 'scored' | 'unbanked' | 'blank' | 'pending'
+
+export type MatchCentreYou =
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'not-playing' }
+  | {
+      readonly kind: 'ready'
+      /** "2 - 1", the reader's own prediction. Null where they left it blank. */
+      readonly prediction: string | null
+      /** The settled result. NEVER a provider's score. */
+      readonly result: string | null
+      /** A provider's current score and when it was seen. Never a result. */
+      readonly provisional: { readonly score: string; readonly at: string | null } | null
+      readonly outcome: MatchCentreYouOutcome
+      /** This fixture's points, where the settlement authority awarded some. */
+      readonly points: number | null
+      readonly exact: boolean
+      /** The MATCHWEEK's own settled total, from the server. Null until settled. */
+      readonly matchweekPoints: number | null
+      /** Said only where it changes what a number means. */
+      readonly jokerNote: string | null
+      /** One sentence explaining the outcome, in the reader's terms. */
+      readonly explanation: string
+    }
+
+/** One co-member's prediction for this fixture, after the server revealed it. */
+type MatchCentreLeagueRow = {
+  readonly playerRef: string
+  readonly displayName: string
+  readonly isSelf: boolean
+  /** "2 - 1". Null for a member who did not predict this fixture. */
+  readonly predictionLabel: string | null
+  /**
+   * The existing authority's own vocabulary, carried unchanged.
+   * `features/season/leagueFixtureModel` says `exact | correct | wrong`, and
+   * renaming it here would mean two words for one fact in one product.
+   */
+  readonly outcome: 'exact' | 'correct' | 'wrong' | null
+  /** The whole MATCHWEEK's points, not this fixture's. Null until settled. */
+  readonly matchweekPoints: number | null
+  readonly jokerPlayed: boolean
+}
+
+/**
+ * One private league's answer for this fixture.
+ *
+ * FOUR STATES AND NONE OF THEM IS SILENCE. A league that could not be read says
+ * so; a league whose matchweek has not locked says that instead; a league where
+ * nobody predicted this fixture says that; and only then are there rows.
+ *
+ * `hidden` IS THE SERVER'S `revealed: false` AND NOTHING ELSE. It carries no
+ * count, because the read deliberately withholds how many members have played
+ * before the lock and filling that in from elsewhere would leak it.
+ */
+export type MatchCentreLeaguePanel =
+  | { readonly kind: 'unavailable'; readonly leagueId: string; readonly leagueName: string | null }
+  | {
+      readonly kind: 'hidden'
+      readonly leagueId: string
+      readonly leagueName: string | null
+      readonly locksAt: string | null
+    }
+  | { readonly kind: 'empty'; readonly leagueId: string; readonly leagueName: string | null }
+  | {
+      readonly kind: 'ready'
+      readonly leagueId: string
+      readonly leagueName: string | null
+      readonly memberCount: number
+      readonly predictedCount: number
+      readonly rows: readonly MatchCentreLeagueRow[]
+    }
+
+/** One popular scoreline in the anonymous cohort. */
+type MatchCentreConsensusScore = {
+  readonly label: string
+  /** 0–100, as the read states it. Never recomputed here. */
+  readonly percentage: number
+}
+
+/**
+ * What everybody predicted, anonymously.
+ *
+ * `withheld` IS THE READ'S OWN `suppressed`, which is how the platform keeps a
+ * small cohort from being a disclosure. It is not an empty consensus and it is
+ * not a failure, and the surface must not compute the cohort itself.
+ */
+export type MatchCentreEveryone =
+  | { readonly kind: 'unavailable' }
+  | { readonly kind: 'withheld'; readonly minimumEntries: number }
+  | { readonly kind: 'empty' }
+  | {
+      readonly kind: 'ready'
+      readonly submittedEntries: number
+      readonly popular: readonly MatchCentreConsensusScore[]
+      readonly homeWinPercentage: number
+      readonly drawPercentage: number
+      readonly awayWinPercentage: number
+    }
+
 export type MatchCentreModel = {
   readonly generatedAt: string
   /** THE CANONICAL FIXTURE ID this page resolved from. */
@@ -683,6 +813,16 @@ export type MatchCentreModel = {
   readonly kickoffLabel: string | null
   readonly accessibleSummary: string
   readonly prediction: MatchPredictionBadge | null
+  /**
+   * THE THREE SOCIAL SCOPES. `null` on any of them means the HOST did not load
+   * that module at all — a page-scoped harness, a story, a render test — which
+   * is different from a module that was loaded and had nothing to say. The
+   * surface draws nothing for `null` and draws the module's own answer for
+   * everything else.
+   */
+  readonly you: MatchCentreYou | null
+  readonly leagues: readonly MatchCentreLeaguePanel[] | null
+  readonly everyone: MatchCentreEveryone | null
 
   /* --- TIER 2: existing trusted context, each independently absent --- */
   readonly table: MatchCentreTable | null

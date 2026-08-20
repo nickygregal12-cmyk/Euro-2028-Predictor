@@ -61,7 +61,7 @@ const server = vi.hoisted(() => {
   /** Pending profile reads, one per account id, so one can be held open. */
   const profiles = new Map<string, Deferred<SeasonPlayerProfile>>()
 
-  const calls = { profile: 0, rankHistory: 0, rivalry: 0 }
+  const calls = { profile: 0, profileByRef: 0, rankHistory: 0, rivalry: 0 }
 
   const state = {
     contextFails: false,
@@ -181,6 +181,19 @@ vi.mock('../../src/services/supabase/seasonPlayerProfile', () => ({
     if (server.state.profileMode === 'failed') throw new Error('read failed')
     return server.profile(playerId)
   },
+  // CONTRACT 206's DOOR, mocked at the same boundary as contract 151's. It is a
+  // separate function because it is a separate RPC with a separate address, and
+  // a test that could not tell the two apart could not prove which one ran.
+  fetchSeasonPlayerProfileByRef: async (_tournamentId: string, playerRef: string) => {
+    server.calls.profileByRef += 1
+    if (server.state.profileMode === 'refused') {
+      throw Object.assign(new Error('you may not view that player'), {
+        code: 'insufficient_privilege',
+      })
+    }
+    if (server.state.profileMode === 'failed') throw new Error('read failed')
+    return server.profile(`ref:${playerRef}`)
+  },
 }))
 
 vi.mock('../../src/services/supabase/seasonRankHistory', () => ({
@@ -246,6 +259,7 @@ function mount(input: VNextPlayerProfileSourceInput) {
 function reset() {
   server.profiles.clear()
   server.calls.profile = 0
+  server.calls.profileByRef = 0
   server.calls.rankHistory = 0
   server.calls.rivalry = 0
   server.state.contextFails = false
@@ -413,7 +427,7 @@ describe('the page is bounded at three reads', () => {
   it('makes exactly one call per contract', async () => {
     reset()
     await ready(mount(BASE))
-    expect(server.calls).toEqual({ profile: 1, rankHistory: 1, rivalry: 1 })
+    expect(server.calls).toEqual({ profile: 1, profileByRef: 0, rankHistory: 1, rivalry: 1 })
   })
 
   it('does not read again on a re-render with the same address', async () => {
@@ -422,7 +436,7 @@ describe('the page is bounded at three reads', () => {
     await ready(probe)
     probe.rerender({ ...BASE })
     await waitFor(() => expect(last(probe.seen).status).toBe('ready'))
-    expect(server.calls).toEqual({ profile: 1, rankHistory: 1, rivalry: 1 })
+    expect(server.calls).toEqual({ profile: 1, profileByRef: 0, rankHistory: 1, rivalry: 1 })
   })
 
   it('reads again when the player changes, because it is a different question', async () => {
@@ -526,10 +540,15 @@ describe('the states above the reads', () => {
   })
 
   it('reports a missing player rather than reading about nobody', () => {
+    // NEITHER IDENTIFIER. Since contract 206 an account id alone and a season
+    // reference alone are both addresses, so "no player" is the case where the
+    // doorway carried neither — which is exactly the case where every read
+    // would have nothing to ask about.
     reset()
-    const probe = mount({ ...BASE, playerId: undefined })
+    const probe = mount({ ...BASE, playerId: undefined, playerRef: null })
     expect(last(probe.seen).status).toBe('noPlayer')
     expect(server.calls.profile).toBe(0)
+    expect(server.calls.profileByRef).toBe(0)
   })
 
   it('waits while auth is resolving rather than deciding it is signed out', () => {
@@ -615,5 +634,84 @@ describe('the states above the reads', () => {
     current.retry()
 
     await waitFor(() => expect(server.calls.profile).toBe(2))
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * 6. PROF-001 — the profile has two doors, and the doorway picks one
+ * ------------------------------------------------------------------ */
+
+describe('the profile is read through whichever address the doorway carried', () => {
+  it('uses contract 151 where the caller was given an account id', async () => {
+    reset()
+
+    const source = await ready(mount(BASE))
+
+    expect(source.profile.kind).toBe('ok')
+    expect(server.calls.profile).toBe(1)
+    expect(server.calls.profileByRef).toBe(0)
+  })
+
+  it('uses contract 206 where the caller was given only a season reference', async () => {
+    // PROF-001. The same-season boundary reveals no account id at all, so before
+    // contract 206 this page could not be opened — the hook read the missing id
+    // as "no player" and rendered nothing. It is a real state and the server
+    // answers it.
+    reset()
+
+    const source = await ready(mount({ ...BASE, playerId: undefined }))
+
+    expect(source.profile.kind).toBe('ok')
+    expect(server.calls.profileByRef).toBe(1)
+    expect(server.calls.profile).toBe(0)
+    // The two contract-192 reads are addressed by the ref and are unaffected.
+    expect(source.rankHistory.kind).toBe('ok')
+    expect(source.rivalry.kind).toBe('ok')
+  })
+
+  it('prefers the account id where the doorway carried both', async () => {
+    // The wider boundary wins. A caller holding an account id shares a private
+    // league, and contract 151's payload is the fuller of the two; falling back
+    // to the ref would quietly narrow a profile already allowed to be complete.
+    reset()
+
+    await ready(mount(BASE))
+
+    expect(server.calls.profile).toBe(1)
+    expect(server.calls.profileByRef).toBe(0)
+  })
+
+  it('classifies a ref-addressed refusal as a refusal, not a fault', async () => {
+    // Both RPCs raise 42501 for the same reason, so one predicate answers both.
+    // Getting this backwards would put a retry button in front of a permission
+    // that will never change.
+    reset()
+    server.state.profileMode = 'refused'
+
+    const source = await ready(mount({ ...BASE, playerId: undefined }))
+
+    expect(source.profile.kind).toBe('refused')
+    expect(server.calls.profileByRef).toBe(1)
+  })
+
+  it('asks nothing at all where the doorway carried neither', async () => {
+    reset()
+
+    const probe = mount({ ...BASE, playerId: undefined, playerRef: null })
+    await waitFor(() => expect(last(probe.seen).status).toBe('noPlayer'))
+
+    expect(server.calls.profile).toBe(0)
+    expect(server.calls.profileByRef).toBe(0)
+  })
+
+  it('never asks for a pin it has no address for', async () => {
+    // `set_pinned_rival` is addressed by the account id and only by it, so a
+    // same-season profile has no pin state — `null`, which the model means as
+    // "not answered" rather than as "not pinned".
+    reset()
+
+    const source = await ready(mount({ ...BASE, playerId: undefined }))
+
+    expect(source.pinned).toBeNull()
   })
 })

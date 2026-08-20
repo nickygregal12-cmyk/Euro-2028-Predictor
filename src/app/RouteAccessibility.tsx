@@ -18,6 +18,7 @@ const STATIC_ROUTE_TITLES: { path: string; title: string }[] = [
   { path: '/auth/update-password', title: 'Set new password' },
   { path: '/welcome', title: 'Welcome' },
   { path: '/join/:code', title: 'Join league' },
+  { path: '/about', title: 'About & Disclaimer' },
   { path: weeklyRoutes.play, title: 'Play' },
   { path: weeklyRoutes.matches, title: 'Matches' },
   { path: '/fixtures', title: 'Matches' },

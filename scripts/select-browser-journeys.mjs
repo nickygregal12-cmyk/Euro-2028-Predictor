@@ -101,6 +101,16 @@ export const JOURNEY_MAP = [
   { prefix: 'src/features/profile/', specs: ['profile-h2h-surfaces.spec.ts'] },
   { prefix: 'src/features/h2h/', specs: ['profile-h2h-surfaces.spec.ts'] },
   { prefix: 'src/features/account/', specs: ['weekly-navigation.spec.ts'] },
+  {
+    // The public landing page and the product preview it mounts. The preview
+    // renders four real vNext surfaces inside device frames, so a change to
+    // either the page or the marketing world has to run the browser contract
+    // that measures the two compositions, the inert frame and the off-origin
+    // request count — none of which jsdom can answer.
+    prefix: 'src/features/landing/',
+    specs: ['landing-preview.spec.ts'],
+  },
+  { prefix: 'src/vnext/fixtures/marketing/', specs: ['landing-preview.spec.ts'] },
 ]
 
 export const BASELINE_SPECS = [

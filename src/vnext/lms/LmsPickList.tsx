@@ -47,6 +47,7 @@ export type LmsPickListProps = {
 }
 
 export function LmsPickList({ choices, onPick, busy = false }: LmsPickListProps) {
+
   if (choices.length === 0) {
     return (
       <p className={`${text.body} ${styles.empty}`}>

@@ -3,10 +3,13 @@ import type { ClubHeadToHead, SeasonClubForm } from '../../../services/supabase/
 import type { CompetitionTable } from '../../../services/supabase/competitionTableModel'
 import type { FormResult } from '../../models/football'
 import type {
+  MatchCentreEveryone,
+  MatchCentreLeaguePanel,
   MatchCentreLink,
   MatchCentreModel,
   MatchCentreSide,
   MatchCentreTable,
+  MatchCentreYou,
   MatchCompetitionRef,
 } from '../../models/matches'
 import { buildMatchesModel, matchStateOf, summarise } from './buildMatchesModel'
@@ -110,6 +113,11 @@ export function buildMatchCentreModel(source: MatchCentreSource): MatchCentreMod
     // See `matchesSource.ts`: no bounded read answers this fixture's prediction
     // status without the whole matchweek card, which this page does not read.
     prediction: null,
+
+    /* --- THE THREE SOCIAL SCOPES, CARRIED WHOLE --- */
+    you: youOf(source.you),
+    leagues: leaguesOf(source.leagues),
+    everyone: everyoneOf(source.everyone),
 
     /* --- TIER 2 --- */
     table,
@@ -359,5 +367,134 @@ function listSourceOf(source: MatchCentreSource): MatchesSource {
     competitionRead: source.competition,
     playerCompetitionCount: null,
     combined: null,
+  }
+}
+
+/* ==========================================================================
+   THE THREE SOCIAL SCOPES
+   ==========================================================================
+
+   ALL THREE ARE TRANSLATIONS AND NOT DECISIONS. `presentMatchCentre` has
+   already decided what this fixture was worth, `presentLeagueFixture` has
+   already decided what each co-member predicted and whether the server revealed
+   it, and the consensus read has already decided its own cohort. Everything
+   below renames those answers into the presentation model's vocabulary and
+   changes not one of them.
+
+   The temptation on each is the same and is refused each time: re-deriving
+   "was it exact", "may these be shown", "is the cohort big enough". Every one
+   of those is a RULE, every one already has an authority, and a second answer
+   is how two parts of one product start disagreeing about a player's points.
+   ========================================================================== */
+
+function youOf(source: MatchCentreSource['you']): MatchCentreYou | null {
+  if (source === null) return null
+  if (source.kind === 'failed') return { kind: 'unavailable' }
+  if (source.kind === 'not-playing') return { kind: 'not-playing' }
+
+  const { view } = source
+  return {
+    kind: 'ready',
+    prediction: view.prediction,
+    result: view.result,
+    provisional: view.provisional,
+    outcome: view.outcome.kind,
+    // THE POINTS ARE THE SETTLEMENT AUTHORITY'S OR THEY ARE ABSENT. Only the
+    // `scored` case carries a figure; `pending` deliberately says nothing about
+    // what a fixture might be worth, and printing a zero for it would be this
+    // lane answering a question the server has not.
+    points: view.outcome.kind === 'scored' ? view.outcome.points : null,
+    exact: view.outcome.kind === 'scored' && view.outcome.exact,
+    matchweekPoints: view.matchweekPoints,
+    jokerNote: view.jokerNote,
+    explanation: view.explanation,
+  }
+}
+
+function leaguesOf(source: MatchCentreSource['leagues']): readonly MatchCentreLeaguePanel[] | null {
+  if (source === null) return null
+
+  return source.map((entry) => {
+    // A LEAGUE THAT DID NOT ANSWER NAMES ITSELF. Dropping it would make a
+    // failed read indistinguishable from a league the reader is not in.
+    if (entry.view === null) {
+      return { kind: 'unavailable', leagueId: entry.leagueId, leagueName: entry.leagueName }
+    }
+
+    const view = entry.view
+    // THE REVEAL BOUNDARY IS THE SERVER'S `revealed` AND NOTHING ELSE. No
+    // instant is compared here, and the hidden panel carries no count —
+    // contract 149 withholds how many members have played before the lock, and
+    // filling that in from anywhere would leak it.
+    if (!view.revealed) {
+      return {
+        kind: 'hidden',
+        leagueId: entry.leagueId,
+        leagueName: view.leagueName ?? entry.leagueName,
+        locksAt: view.matchweek.locksAt,
+      }
+    }
+
+    const rows = view.rows.filter((row) => row.predictionLabel !== null)
+    if (rows.length === 0) {
+      return { kind: 'empty', leagueId: entry.leagueId, leagueName: view.leagueName ?? entry.leagueName }
+    }
+
+    return {
+      kind: 'ready',
+      leagueId: entry.leagueId,
+      leagueName: view.leagueName ?? entry.leagueName,
+      memberCount: view.memberCount,
+      predictedCount: view.predictedCount,
+      rows: rows.map((row) => ({
+        // THE SEASON-SCOPED REFERENCE, NEVER A DISPLAY NAME. Two members can
+        // share one, and a surface that keyed on the name would open the wrong
+        // person's profile — the rule Stage 9 records for every player row.
+        playerRef: row.userId,
+        displayName: row.displayName,
+        isSelf: row.isSelf,
+        predictionLabel: row.predictionLabel,
+        outcome: row.outcome,
+        matchweekPoints: row.matchweekPoints,
+        jokerPlayed: row.jokerPlayed,
+      })),
+    }
+  })
+}
+
+function everyoneOf(source: MatchCentreSource['everyone']): MatchCentreEveryone | null {
+  if (source === null) return null
+  if (source.kind === 'failed') return { kind: 'unavailable' }
+
+  // THE COHORT IS THE SERVER'S DECISION. `suppressed` is how the platform stops
+  // a small group being a disclosure, and this lane must not compute it — a
+  // surface that compared `submittedEntries` to `minimumEntries` itself would
+  // be a second answer to a privacy rule.
+  if (source.suppressed) return { kind: 'withheld', minimumEntries: source.minimumEntries }
+  if (source.fixture === null) return { kind: 'empty' }
+
+  const fixture = source.fixture
+  // NOBODY PREDICTED IT IS NOT A SUPPRESSED COHORT. The read answered, the
+  // cohort was large enough, and this particular fixture drew no picks.
+  if (fixture.predicted === 0) return { kind: 'empty' }
+
+  return {
+    kind: 'ready',
+    // THE FIXTURE'S OWN DENOMINATOR, not the matchweek's. `predicted` is how
+    // many people picked THIS fixture, which is what every percentage beside it
+    // is a share of — printing the matchweek's submissions here would put a
+    // share over the wrong total.
+    submittedEntries: fixture.predicted,
+    popular: fixture.topScores.map((entry) => ({
+      label: `${entry.home} - ${entry.away}`,
+      // ROUNDED HERE, FROM THE READ'S OWN COUNTS. The three-way shares arrive
+      // pre-rounded from the server; the scoreline picks do not, and the read
+      // states both the pick count and the denominator, so this is arithmetic
+      // over two stated numbers rather than a second opinion about either.
+      percentage: Math.round((entry.picks / fixture.predicted) * 100),
+    })),
+    homeWinPercentage: fixture.shares.homeWin,
+    drawPercentage: fixture.shares.draw,
+    awayWinPercentage: fixture.shares.awayWin,
   }
 }

@@ -160,8 +160,8 @@ export type GameSummary = {
  * two add-ons, and then the Hub shows them three games and disagrees with the
  * page that sold it.
  *
- * So each entry now says the same KIND of thing — what you do, how often, and
- * what you are chasing — and none of them is described relative to another. The
+ * So each entry now says the same KIND of thing â what you do, how often, and
+ * what you are chasing â and none of them is described relative to another. The
  * one genuine relationship that remains is the Championship's, which really is
  * decided by Match Predictor points; that is a fact about the format and is
  * stated as one rather than as a hierarchy.
@@ -187,50 +187,52 @@ export const GAMES: readonly GameSummary[] = [
   },
 ] as const
 
-export type PreviewLeagueRow = {
-  readonly position: number
-  readonly initials: string
-  readonly name: string
-  readonly form: string
-  readonly points: number
-  readonly movement: string
-  readonly isViewer?: boolean
-}
-
 /**
- * Illustrative preview data for the private-league table.
+ * WHERE THE HAND-BUILT PREVIEW DATA WENT.
  *
- * INVENTED, AND IT MUST STAY OBVIOUS THAT IT IS. This is a picture of the
- * product on a marketing page, not a read model — no request produces it, no
- * player owns these rows, and the surfaces that render it are labelled as
- * previews and exposed to assistive technology as a single described image
- * rather than as a table of results. The moment a real standing can reach this
- * page it must come from the standings authority instead, because a second
+ * Three constants stood here — `PreviewLeagueRow`, `PREVIEW_LEAGUE_ROWS` and
+ * `PREVIEW_CONTEXT_SLOTS` — and together they were a small, second
+ * implementation of the product: a league table with its own row shape, and the
+ * three contextual slots Appendix E.7 allowed the desktop Hub preview.
+ *
+ * They are gone because the page no longer DRAWS the product. It mounts it. The
+ * league table a visitor sees is `VNextLeagues` rendering a real `LeaguesModel`,
+ * and the shell around it is the real shell — so there is no second row shape to
+ * keep in step and no slot count for this file to declare. E.7's three-slot rule
+ * described a hand-built device that no longer exists; the surface it was
+ * bounding is now the product's own, and the product's own contracts bound it.
+ *
+ * The invented-data rule those constants carried has NOT gone anywhere. It moved
+ * to `src/vnext/fixtures/marketing/story.ts`, which states it at length: no
+ * request produces these rows, no player owns them, nothing computes them, and
+ * every device is exposed to assistive technology as one described picture
+ * rather than as a table of results. The moment a real standing could reach this
+ * page it would have to come from the standings authority, because a second
  * source of ranked football numbers is precisely what ADR 0011 forbids.
  */
-export const PREVIEW_LEAGUE_ROWS: readonly PreviewLeagueRow[] = [
-  { position: 1, initials: 'CM', name: 'Callum M.', form: '14 · 16 · 18', points: 176, movement: '▲1' },
-  { position: 2, initials: 'JM', name: 'Jamie M.', form: '12 · 15 · 16', points: 169, movement: '—' },
-  { position: 3, initials: 'LA', name: 'Lauren A.', form: '13 · 12 · 19', points: 163, movement: '▼1' },
-  { position: 4, initials: 'NG', name: 'You', form: '8 · 17 · 16', points: 158, movement: '▲3', isViewer: true },
-  { position: 5, initials: 'RS', name: 'Ryan S.', form: '10 · 11 · 12', points: 149, movement: '—' },
-] as const
 
 /**
- * The three contextual slots E.7 allows the desktop Hub preview, and only
- * three: time-critical, live and social. The checklist is explicit about the
- * count, so the shape is declared here where a fourth would have to be added
- * deliberately.
+ * THE LEGAL ROW IN THE FOOTER, AND THE ROUTES IT IS ONLY AS REAL AS.
+ *
+ * ADR 0017 asks for an unambiguous non-affiliation statement reachable from the
+ * footer, and `/about` is where the full position lives. Privacy and Terms
+ * belong beside it and are declared here with `null` routes, because THEY DO NOT
+ * EXIST YET — no route, no redirect, no document.
+ *
+ * A `null` DRAWS NOTHING RATHER THAN A DEAD LINK. A legal link that answers Not
+ * Found reads as a document that exists and was withheld, which is worse than an
+ * absent one; it is the same rule the About page's own link list follows, stated
+ * once in each place because neither may import the other. Declaring them here
+ * rather than omitting them is what keeps the deferral visible: publishing
+ * either is a one-line change to this array, not a change to the footer.
  */
-export const PREVIEW_CONTEXT_SLOTS: readonly {
-  readonly kind: 'time-critical' | 'live' | 'social'
+export const LEGAL_LINKS: readonly {
   readonly label: string
-  readonly value: string
-  readonly detail: string
+  readonly to: string | null
 }[] = [
-  { kind: 'time-critical', label: 'Deadline', value: '1d 04h', detail: 'Premier League Matchweek 1' },
-  { kind: 'live', label: 'Live', value: '+8 pts', detail: 'Provisional · up three places' },
-  { kind: 'social', label: 'League movement', value: '4th', detail: 'Six points off the lead' },
+  { label: 'About & Disclaimer', to: '/about' },
+  { label: 'Privacy', to: null },
+  { label: 'Terms', to: null },
 ] as const
 
 /**

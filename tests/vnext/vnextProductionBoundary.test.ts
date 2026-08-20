@@ -100,15 +100,137 @@ describe('the vNext workshop', () => {
     expect(productionGraph.size).toBeGreaterThan(100)
   })
 
-  it('is unreachable from the production entry', () => {
+  /**
+   * THE TWO PRODUCTION SURFACES, AND WHY THE RULE IS BOUNDED RATHER THAN GONE.
+   *
+   * `/about` is a real route. ADR 0017 asks for *"an unambiguous non-affiliation
+   * statement in the footer and terms"* and the product has published neither —
+   * an obligation the product owes as it stands, signed in and signed out,
+   * rather than one that waits for a cutover.
+   *
+   * THE PUBLIC LANDING PAGE IS THE SECOND, AND IT IS A DIFFERENT KIND OF CASE.
+   * It does not ROUTE to a vNext page; it MOUNTS four of them inside an inert
+   * device frame, as the picture of the product an anonymous visitor is shown
+   * before they have an account to look at. It had to: the page it replaced drew
+   * its own miniature of a "Hub / Predict / More" navigation the product had
+   * stopped having, which is the failure mode a hand-drawn preview always
+   * eventually reaches. Mounting the real surfaces is what makes the marketing
+   * page unable to go stale, and it is why these four directories are admitted
+   * here rather than a fifth copy of them being written.
+   *
+   * ============================ THE HALF THAT STILL HOLDS THE CUTOVER ======
+   *
+   * The interesting bound is no longer "no vNext page is in the bundle" — the
+   * landing page put four of them there on purpose. It is the case below:
+   * NO vNEXT PAGE IS REACHABLE FROM THE APPLICATION'S OWN ROUTES. Walking from
+   * `src/main.tsx` while refusing to enter the landing page's own directory
+   * leaves the graph the signed-in product is served from, and a vNext page
+   * appearing THERE is the cutover happening by accident, which is what this
+   * suite exists to refuse.
+   *
+   * A wildcard would have made this vacuous. Both lists are by directory and
+   * every page directory is named in one of them.
+   */
+  const PRODUCTION_ADMITTED = [
+    '/src/vnext/about/',
+    '/src/vnext/app/',
+    '/src/vnext/components/',
+    '/src/vnext/foundations/',
+    '/src/vnext/models/',
+    '/src/vnext/states/',
+    '/src/vnext/fixtures/about/',
+    '/src/vnext/integration/about/',
+    '/src/vnext/integration/shell/',
+    // The public landing page's product preview, and the deterministic world it
+    // renders. `fixtures/marketing/` reaches the other fixture families, which
+    // is why the whole fixtures tree is admitted rather than one directory of
+    // it: a marketing world assembled from anything OTHER than the review lane's
+    // own curated worlds would be the second copy this change exists to delete.
+    '/src/vnext/fixtures/',
+    '/src/vnext/home/',
+    '/src/vnext/matches/',
+    '/src/vnext/leagues/',
+    '/src/vnext/games/',
+    // Games composes the scoring explainer, so it comes with it. That is the
+    // right answer rather than a concession: "what do I get for the right
+    // score?" is the question an acquisition page most owes an answer to, and
+    // the answer a visitor reads is the one the product gives — it reads the
+    // domain's own `SEASON_PREDICTOR_POINTS` rather than restating it.
+    '/src/vnext/rules/',
+  ]
+
+  /**
+   * The page directories that may not reach production AT ALL, landing page
+   * included. Four of the twelve moved to `PRODUCTION_ADMITTED` above; these
+   * eight did not, and nothing on a public page has any business showing a
+   * player's profile, an invite, an onboarding flow or an account.
+   */
+  const FORBIDDEN_IN_PRODUCTION = [
+    '/src/vnext/predictor/',
+    '/src/vnext/player/',
+    '/src/vnext/lms/',
+    '/src/vnext/championship/',
+    '/src/vnext/discovery/',
+    '/src/vnext/invite/',
+    '/src/vnext/onboarding/',
+    '/src/vnext/account/',
+    '/src/vnext/ia/',
+    '/src/vnext/workshop/',
+    '/src/vnext/stories/',
+  ]
+
+
+  it('reaches production only through the one routed vNext surface', () => {
     const reachable = vnextFiles.filter((file) => productionGraph.has(file))
+    const unexpected = reachable.filter(
+      (file) => !PRODUCTION_ADMITTED.some((tree) => file.includes(tree)),
+    )
 
     expect(
-      reachable.map(fromRoot),
-      'these vNext modules are reachable from src/main.tsx — a production ' +
-        'surface has imported one, which ships an unapproved design language ' +
-        'and its tokens in the production bundle',
+      unexpected.map(fromRoot),
+      'these vNext modules are reachable from src/main.tsx and are not part of ' +
+        'the routed About surface — a production surface has imported one, ' +
+        'which ships an unapproved design language and its tokens in the ' +
+        'production bundle',
     ).toEqual([])
+  })
+
+  it('keeps the pages nothing public may show out of the production graph', () => {
+    const leaked = vnextFiles.filter(
+      (file) =>
+        productionGraph.has(file) &&
+        FORBIDDEN_IN_PRODUCTION.some((tree) => file.includes(tree)),
+    )
+
+    expect(
+      leaked.map(fromRoot),
+      'a vNext surface that is neither routed nor part of the landing preview ' +
+        'is reachable from src/main.tsx',
+    ).toEqual([])
+  })
+
+  it('proves the landing preview really does mount the four, so the allowance is not dead', () => {
+    // The mirror of the About case below. If the preview were deleted or quietly
+    // reduced to a picture again, the four allowances above would become
+    // permissions nothing uses — and the next import would inherit them.
+    for (const page of [
+      'src/vnext/home/VNextHome.tsx',
+      'src/vnext/matches/VNextMatches.tsx',
+      'src/vnext/leagues/VNextLeagues.tsx',
+      'src/vnext/games/VNextGames.tsx',
+    ]) {
+      expect(
+        productionGraph.has(resolve(repositoryRoot, page)),
+        `${page} is not in the landing preview`,
+      ).toBe(true)
+    }
+  })
+
+  it('proves the About surface really is routed, so the allowance is not dead', () => {
+    // If `/about` were removed, the allowance above would silently become a
+    // permission nothing uses — and the next route addition would inherit it.
+    const about = resolve(repositoryRoot, 'src/vnext/about/VNextAbout.tsx')
+    expect(productionGraph.has(about), 'src/vnext/about is not routed').toBe(true)
   })
 
   it('reaches vNext through the cutover seam and nowhere else', () => {
@@ -123,8 +245,29 @@ describe('the vNext workshop', () => {
     for (const file of seamFiles) {
       for (const reached of reachableFrom(file)) throughSeam.add(reached)
     }
+    // THE PUBLIC LANDING PAGE IS THE SECOND DOOR, and it is a door rather than
+    // a hole for the same reason the seam is: it is deliberate, it is argued
+    // for, and it is bounded. Its product preview mounts four vNext surfaces
+    // inside an inert device frame so a marketing page cannot advertise an
+    // information architecture the product has stopped having. Subtracted here
+    // by the same construction as the seam, so everything it does NOT pull in
+    // still fails this case.
+    //
+    // `/about` IS THE THIRD, and the oldest. It is a routed page rather than a
+    // cutover adapter, because ADR 0017's non-affiliation statement is owed by
+    // the product as it stands rather than by the stage that changes its shape.
+    const otherEntries = [
+      'src/features/landing/ProductPreview.tsx',
+      'src/features/about/AboutPage.tsx',
+    ]
+    const throughOtherDoors = new Set<string>()
+    for (const entry of otherEntries) {
+      for (const reached of reachableFrom(resolve(repositoryRoot, entry))) {
+        throughOtherDoors.add(reached)
+      }
+    }
     const otherDoors = vnextFiles.filter(
-      (file) => withSeam.has(file) && !throughSeam.has(file),
+      (file) => withSeam.has(file) && !throughSeam.has(file) && !throughOtherDoors.has(file),
     )
     expect(
       otherDoors.map(fromRoot),
@@ -157,9 +300,22 @@ describe('the vNext workshop', () => {
     // exports must therefore appear opposite a legacy element under a flag.
     const exported = seamFiles
       .flatMap((file) => [...readFileSync(file, 'utf8').matchAll(/export function (VNext\w+)/g)])
-      .map((match) => match[1])
+      .map((match) => match[1] ?? '')
+      .filter(Boolean)
     expect(exported.length).toBeGreaterThan(0)
+
+    // THE SEAM'S PROVIDER IS NOT A DESTINATION, and holding it to a
+    // destination's rule would be holding the wrong thing. `VNextSeamLayout`
+    // renders no surface and replaces no legacy page: it is a layout route that
+    // mounts the cross-competition read once above the others, and it has no
+    // legacy counterpart to fall back to. It is absent entirely when every
+    // cutover flag is off — `src/App.tsx` swaps in a pass-through — which is
+    // the rollback property this rule is really asking for, proved by the
+    // bundle case above rather than by an `isNextUi` beside it.
+    const PROVIDERS = new Set(['VNextSeamLayout', 'VNextSeamHost'])
+
     for (const element of exported) {
+      if (PROVIDERS.has(element)) continue
       const mounted = appTsx.includes(`<${element} />`)
       if (!mounted) continue
       const guarded = new RegExp(`isNextUi\\('[a-zA-Z]+'\\)[\\s\\S]{0,200}<${element} />`)

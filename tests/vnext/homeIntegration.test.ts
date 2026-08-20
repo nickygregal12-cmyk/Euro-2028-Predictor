@@ -222,7 +222,7 @@ describe('a normal populated matchweek', () => {
     expect(match.venue).toBeNull()
     expect(match.headToHead).toBeNull()
     expect(match.broadcast).toBeNull()
-    expect(match.home.team.crestUrl).toBeNull()
+    expect(match.home.team.officialBadge).toBeNull()
     expect(match.home.leaguePosition).toBeNull()
     // Nothing nominates a match of the day, so nothing claims to be one.
     expect(match.isFeatured).toBe(false)

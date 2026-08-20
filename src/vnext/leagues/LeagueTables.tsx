@@ -177,7 +177,7 @@ export type GlobalStandingsTableProps = {
   readonly table: LeaguesGlobalTable
   readonly caption: string
   readonly onOpenPlayer?:
-    | ((playerId: string, playerRef: string | null) => void)
+    | ((playerRef: string, playerId: string | null) => void)
     | undefined
 }
 
@@ -285,7 +285,7 @@ function GlobalRow({
 }: {
   readonly row: LeaguesGlobalRow
   readonly onOpenPlayer?:
-    | ((playerId: string, playerRef: string | null) => void)
+    | ((playerRef: string, playerId: string | null) => void)
     | undefined
 }) {
   return (
@@ -314,7 +314,7 @@ function GlobalRow({
 export type PrivateStandingsTableProps = {
   readonly table: LeaguesPrivateTable
   readonly onOpenPlayer?:
-    | ((playerId: string, playerRef: string | null) => void)
+    | ((playerRef: string, playerId: string | null) => void)
     | undefined
 }
 
@@ -437,7 +437,7 @@ function PrivateRow({
   readonly row: LeaguesPrivateRow
   readonly showMovement: boolean
   readonly onOpenPlayer?:
-    | ((playerId: string, playerRef: string | null) => void)
+    | ((playerRef: string, playerId: string | null) => void)
     | undefined
 }) {
   return (

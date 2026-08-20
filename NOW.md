@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **209** | latest `20260819200000_provider_fixture_lifecycle.sql` |
 | Development hosted | **208** | at `20260819130000_cup_bracket_outcome_and_knockout_stage.sql`, verified `2026-08-19T23:32:57.276619Z`, fast-lane run `32312618799` |
-| Production | **205** | promotion **not authorised** |
+| Production | **208** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or
@@ -31,9 +31,17 @@ before claiming it — two branches claiming one number is a known failure here.
 
 | Flag | State |
 | --- | --- |
-| `VITE_UI_FOOTBALL_HUB_MATCHES` | **unset everywhere** — the journey serves its legacy implementation |
-| `VITE_UI_PUBLIC_LANDING` | set in `deploy-preview` |
-| `VITE_UI_SEASON_MATCH_PREDICTOR` | set in `deploy-preview` |
+| `VITE_UI_FOOTBALL_HUB_ACCOUNT` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_DISCOVERY` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_GAMES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_HOME` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_LEAGUES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_LMS` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_MATCHES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` | set in the base build environment |
+| `VITE_UI_PUBLIC_LANDING` | set in the base build environment |
+| `VITE_UI_SEASON_MATCH_PREDICTOR` | set in the base build environment |
 
 An unset flag fails closed to the legacy journey, per `src/app/routeFlags.ts`.
 

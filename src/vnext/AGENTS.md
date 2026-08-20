@@ -199,7 +199,7 @@ parts, because the split is the point:
   screen — a gap, a points difference, an accuracy split over one denominator.
 - **Unavailable is `null`, and `null` is never zero.** `pointsToday`,
   `provisionalPoints`, season `rankMovement`, `venue`, `headToHead`, `broadcast`,
-  `clock`, `leaguePosition`, `crestUrl`, prediction `outcome` and friends
+  `clock`, `leaguePosition`, `officialBadge`, prediction `outcome` and friends
   consensus are all absent from current reads. `fixtures/home/scenarios.ts`'s
   `reduced` scenario is the deterministic visual authority for that state; the
   four approved scenarios were not edited to make room for it.

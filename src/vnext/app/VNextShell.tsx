@@ -22,6 +22,7 @@ import {
   shellSwitchable,
   contextNeedsAttention,
 } from '../models/shell'
+import { NON_AFFILIATION_SHORT } from '../models/about'
 import { VNextPageHeadingContext } from './VNextPageHeader'
 import { CompetitionMark } from './CompetitionMark'
 import { CompetitionSheetBody, CompetitionSwitcher } from './CompetitionSwitcher'
@@ -522,6 +523,33 @@ export function VNextShell({
           >
             {children}
           </main>
+
+          {/* ---------------- the platform footer ----------------
+              ADR 0017 asks for "an unambiguous non-affiliation statement in the
+              footer and terms", and this product had neither. One line, at the
+              foot of every vNext page, and the full position one press away.
+
+              IT IS THE SHELL'S AND NOT A PAGE'S, because a legal position that
+              nine pages carry and the tenth forgets is not published. It sits
+              INSIDE the page column rather than under the whole frame, so it
+              scrolls away with the content instead of competing with the mobile
+              bottom bar for the bottom of a 667px phone.
+
+              NOT A DESTINATION. It is a link, drawn in the quietest permanent
+              place, and it lights nothing up: About belongs to the platform and
+              the four destinations belong to the competition. */}
+          <footer className={styles.platformFooter} data-vnext-shell-zone="footer">
+            <p className={styles.platformFooterLine}>
+              {NON_AFFILIATION_SHORT}
+            </p>
+            <button
+              type="button"
+              className={styles.platformFooterLink}
+              onClick={() => emit?.({ kind: 'about' })}
+            >
+              About &amp; Disclaimer
+            </button>
+          </footer>
         </div>
       </div>
 

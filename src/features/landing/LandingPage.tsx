@@ -1,16 +1,12 @@
+import { NON_AFFILIATION_SHORT } from '../../vnext/models/about'
+import { Component, Suspense, lazy } from 'react'
+import type { ReactNode } from 'react'
 import type { ReactElement } from 'react'
 import { Link } from 'react-router'
 import { useTheme } from '../../app/providers/ThemeProvider'
 import { useSite } from '../../app/site/SiteProvider'
 import { siteBrandCopy } from '../../app/site/sitePublicMetadata'
-import {
-  CheckIcon,
-  ChevronDownIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-  MoonIcon,
-  SunIcon,
-} from '../../design-system/icons'
+import { CheckIcon, ChevronRightIcon, MoonIcon, SunIcon } from '../../design-system/icons'
 import {
   DOMESTIC_COMPETITIONS,
   EXPERIENCE_FEATURES,
@@ -18,16 +14,91 @@ import {
   HOW_STEPS,
   LANDING_NAV,
   LANDING_SECTION_ORDER,
-  PREVIEW_LEAGUE_ROWS,
+  LEGAL_LINKS,
   type LandingSectionId,
 } from './landingContent'
-import {
-  PREVIEW_FRAMES,
-  previewFrameAt,
-  type PreviewRowData,
-} from './landingPreviewScript'
+import { PREVIEW_STEPS, previewStepAt } from './landingPreviewScript'
+import { previewBoxStyle } from './previewDevice'
+import type { ProductPreviewVariant } from './previewDevice'
 import { useScriptedPreview } from './useScriptedPreview'
 import s from './LandingPage.module.css'
+
+/**
+ * THE PREVIEW ARRIVES AFTER THE PAGE, AND THAT IS DELIBERATE.
+ *
+ * `ProductPreview` drags four real vNext surfaces, the application shell and
+ * Framer Motion behind it — measured at roughly seventy-seven kilobytes
+ * compressed. That is a reasonable price for a marketing page to pay for a
+ * product it cannot otherwise show, and an unreasonable one to pay BEFORE the
+ * headline renders: the first thing an anonymous visitor needs is the
+ * proposition and the sign-up action, and neither of them is in that chunk.
+ *
+ * SO IT COSTS NO LAYOUT SHIFT. `PreviewFrameSkeleton` reserves the exact box
+ * from `previewDevice.ts` — the same width, the same aspect ratio, the same
+ * numbers the device itself uses — so the page is its final height from the
+ * first paint and the device lands inside a hole already cut for it.
+ *
+ * IT DOES CHANGE ONE CLAIM THIS PAGE USED TO MAKE, and the change is worth
+ * stating rather than discovering: the preview is no longer complete on the
+ * first paint. It is complete one chunk later. What has not changed is that
+ * nothing about it waits on an account, a service, a clock or a write.
+ */
+const ProductPreview = lazy(() =>
+  import('./ProductPreview').then((module) => ({ default: module.ProductPreview })),
+)
+
+/**
+ * THE PREVIEW MAY FAIL WITHOUT TAKING THE PAGE WITH IT.
+ *
+ * A lazily-imported chunk can fail to arrive — a dropped connection mid-visit, a
+ * stale hashed filename after a deploy while the tab was open — and a rejected
+ * `React.lazy` throws to the nearest boundary. Above this one that is
+ * `ApplicationErrorBoundary`, which would replace the entire landing page.
+ *
+ * That trade is the wrong way round. The page's job is the proposition and the
+ * sign-up action, and the preview is the supporting argument. Losing the
+ * argument costs a visitor a picture; losing the page costs them the product.
+ * So the failure is contained here, and what remains is the box the device was
+ * going to sit in — no error text, because a marketing page apologising for a
+ * missing screenshot is worse than a quiet space where one was.
+ */
+class PreviewBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  public state = { failed: false }
+
+  public static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  public render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
+/**
+ * The device's box, before the device.
+ *
+ * SHAPE-PRESERVING AND EMPTY. It reserves the frame and says nothing about what
+ * is coming: a skeleton that drew rows, a table or a scoreline would be
+ * inventing football to fill a gap, which is exactly what a preview of a real
+ * product must not do. The border and the surface are the frame's own, so what
+ * arrives is the picture inside a box that was already there.
+ */
+function PreviewFrameSkeleton({ variant }: { variant: ProductPreviewVariant }): ReactElement {
+  return (
+    <div
+      className={
+        variant === 'phone'
+          ? `${s.previewSkeleton} ${s.previewSkeletonPhone}`
+          : s.previewSkeleton
+      }
+      style={previewBoxStyle(variant)}
+      aria-hidden="true"
+    />
+  )
+}
 
 /**
  * The public landing page — the anonymous root (modernisation plan Appendix E).
@@ -165,6 +236,8 @@ function LandingSection({ id }: { id: LandingSectionId }): ReactElement {
 }
 
 function HeroSection(): ReactElement {
+  const { theme } = useTheme()
+
   return (
     <section className={s.hero} id="hero" aria-labelledby="hero-heading">
       <div className={s.shell}>
@@ -208,7 +281,14 @@ function HeroSection(): ReactElement {
             </ul>
           </div>
 
-          <HubPreview />
+          {/* THE DEVICE SITS UNDER THE COPY RATHER THAN BESIDE IT, and the
+              reason is legibility rather than taste. The frame renders the
+              product at its real 1280px viewport and scales the result down; in
+              a half-width hero column that scale is roughly 0.55 and the
+              product's body text lands under eight pixels, which is a picture
+              of a product nobody can read. Given the full content width it
+              lands near 0.9, which is a product. */}
+          <DesktopStory theme={theme} />
         </div>
       </div>
     </section>
@@ -216,110 +296,37 @@ function HeroSection(): ReactElement {
 }
 
 /**
- * The desktop Hub preview, as a scripted sequence.
+ * THE DESKTOP STORY — the real product, at the width the rail needs.
  *
- * `role="img"` with a written description is the whole accessibility contract
- * here: ARIA makes an image's descendants presentational, so the invented
- * competitions, ranks and points below are described once, honestly, as a
- * picture of the product rather than announced as the visitor's own standings.
- * The description travels WITH the frame, so what is announced is what is on
- * screen rather than whichever frame happened to be first.
+ * It renders at 1280px, which is the width `VNextShell` requires before its
+ * navigation rail becomes real, and the page scales the result to whatever room
+ * the column has. Below 1024px the whole band is absent rather than shrunk: a
+ * desktop composition squeezed onto a phone is a picture of neither product,
+ * and the phone story further down is the one that visitor actually wants.
  *
  * THE STEP CONTROLS ARE OUTSIDE THE DEVICE, and that is a rule rather than a
- * layout preference. Everything inside the chrome is a picture of the product;
+ * layout preference. Everything inside the frame is the product and is inert;
  * a real control in there would be indistinguishable from the product's own,
  * and a visitor who pressed "Continue" expecting to predict something would
- * have been told a lie by the page that was selling them the product. The
+ * have been told a lie by the page that was selling them the product. These
  * controls step the PREVIEW and say so in their accessible names.
- *
- * IT DEGRADES TO A COMPLETE STILL. Frame one renders with no effect having
- * run, so no-JavaScript, a crawler, print and a frozen screenshot all get a
- * truthful picture rather than an empty device.
  */
-function HubPreview(): ReactElement {
+function DesktopStory({ theme }: { theme: 'dark' | 'light' }): ReactElement {
   const { index, containerRef, goTo, playing } = useScriptedPreview()
-  const frame = previewFrameAt(index)
+  const step = previewStepAt(index)
 
   return (
-    <div className={s.previewStage} ref={containerRef}>
-      <div className={s.preview} role="img" aria-label={frame.description}>
-        <div className={s.previewChrome}>
-          <span className={s.previewDot} />
-          <span className={s.previewDot} />
-          <span className={s.previewDot} />
-          <span className={s.previewChromeLabel}>Signed-in Hub preview</span>
-        </div>
-        <div className={s.previewApp}>
-          <div className={s.previewRail}>
-            <span className={s.brandMark}>FP</span>
-            {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, position) => (
-              <span
-                key={item}
-                className={position === 0 ? `${s.railItem} ${s.railItemActive}` : s.railItem}
-              >
-                {item.slice(0, 1)}
-              </span>
-            ))}
-          </div>
-
-          {/* Keyed on the frame so a changed frame is a new subtree: the
-              cross-fade below is a CSS entry animation, and without the key
-              React would reuse the nodes and nothing would animate. The key is
-              also what stops a long name from one frame being read for a beat
-              against another frame's numbers. */}
-          <div className={s.previewMain} key={frame.id}>
-            <p className={s.previewKicker}>{frame.day}</p>
-            <p className={s.previewTitle}>{frame.greeting}</p>
-            <p className={s.previewSub}>{frame.summary}</p>
-
-            <div className={s.previewAction}>
-              <div>
-                <p className={s.previewActionMeta}>{frame.action.meta}</p>
-                <p className={s.previewActionTitle}>{frame.action.title}</p>
-                <p className={s.previewActionBody}>{frame.action.body}</p>
-              </div>
-              {/* A span, never a link or a button. See the note above. */}
-              <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>{frame.action.cta}</span>
-            </div>
-
-            <p className={s.previewLabel}>Your competitions</p>
-            <div className={s.previewRows}>
-              {frame.competitions.map((row) => (
-                <PreviewRow key={row.code} {...row} />
-              ))}
-            </div>
-
-            <p className={s.previewLabel}>Your leagues</p>
-            <div className={s.previewRows}>
-              {frame.leagues.map((row) => (
-                <PreviewRow key={row.code} {...row} />
-              ))}
-            </div>
-
-            {frame.status ? <p className={s.previewSave}>{frame.status}</p> : null}
-          </div>
-
-          {/* E.7 allows the desktop preview exactly three contextual slots —
-              time-critical, live and social — so the rail renders the declared
-              three and a fourth would have to be added to the authority first.
-              `PREVIEW_CONTEXT_SLOTS` remains that declaration; each frame
-              supplies its own values against the same three kinds, which is
-              what `landingContent.test.ts` holds the frames to. */}
-          <div className={s.previewContext} key={`${frame.id}-context`}>
-            {frame.context.map((slot) => (
-              <div key={slot.kind} className={s.contextSlot}>
-                <p className={s.contextLabel}>
-                  {slot.kind === 'live' ? <span className={s.livePip} /> : null}
-                  {slot.label}
-                </p>
-                <p className={s.contextValue}>{slot.value}</p>
-                <p className={s.contextDetail}>{slot.detail}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
+    <div className={`${s.previewStage} ${s.previewStageDesktop}`} ref={containerRef}>
+      <PreviewBoundary fallback={<PreviewFrameSkeleton variant="desktop" />}>
+        <Suspense fallback={<PreviewFrameSkeleton variant="desktop" />}>
+          <ProductPreview
+            variant="desktop"
+            theme={theme}
+            phaseIndex={index}
+            description={step.description}
+          />
+        </Suspense>
+      </PreviewBoundary>
       <PreviewSteps index={index} goTo={goTo} playing={playing} />
     </div>
   )
@@ -328,14 +335,15 @@ function HubPreview(): ReactElement {
 /**
  * The preview's own step controls.
  *
- * OUTSIDE THE DEVICE AND LABELLED AS THE PREVIEW'S. Each control names the
- * step it shows, so a screen-reader user gets "Show the football happens"
- * rather than a row of identical dots — and nothing here could be mistaken for
- * a control over a real account, because there is no account.
+ * OUTSIDE THE DEVICE AND LABELLED AS THE PREVIEW'S. Each control names the step
+ * it shows, so a screen-reader user gets "Show the football happens" rather than
+ * a row of identical dots — and nothing here could be mistaken for a control
+ * over a real account, because there is no account.
  *
- * THE STEP NAMES ARE VISIBLE TEXT, not tooltips. They double as the caption
- * for the frame on screen, which is what makes the sequence legible to
- * somebody who arrives mid-loop.
+ * THE STEP NAMES ARE VISIBLE TEXT, not tooltips. They double as the caption for
+ * the frame on screen, which is what makes the sequence legible to somebody who
+ * arrives mid-loop. The sentence beneath names what CHANGED, because a device
+ * that moved without saying why is decoration.
  */
 function PreviewSteps({
   index,
@@ -346,23 +354,28 @@ function PreviewSteps({
   goTo: (index: number) => void
   playing: boolean
 }): ReactElement {
+  const step = previewStepAt(index)
+
   return (
     <div className={s.previewSteps}>
-      {/* Announced on change so the sequence is followable without sight of
-          it, and only while it is advancing on its own: a visitor who is
-          stepping by hand already knows where they are, and announcing their
-          own presses back at them is noise. */}
+      {/* Announced on change so the sequence is followable without sight of it,
+          and only while it is advancing on its own: a visitor who is stepping by
+          hand already knows where they are, and announcing their own presses
+          back at them is noise. */}
       <p className={s.previewStepLabel} aria-live={playing ? 'polite' : 'off'}>
-        {previewFrameAt(index).step}
+        <strong>{step.step}</strong>
+        <span>{step.headline}</span>
       </p>
       <div className={s.previewStepDots} role="group" aria-label="Preview steps">
-        {PREVIEW_FRAMES.map((frame, position) => (
+        {PREVIEW_STEPS.map((entry, position) => (
           <button
-            key={frame.id}
+            key={entry.id}
             type="button"
-            className={position === index ? `${s.previewDotStep} ${s.previewDotStepOn}` : s.previewDotStep}
+            className={
+              position === index ? `${s.previewDotStep} ${s.previewDotStepOn}` : s.previewDotStep
+            }
             aria-current={position === index}
-            aria-label={`Show preview step ${position + 1} of ${PREVIEW_FRAMES.length}: ${frame.step}`}
+            aria-label={`Show preview step ${position + 1} of ${PREVIEW_STEPS.length}: ${entry.step}`}
             onClick={() => goTo(position)}
           />
         ))}
@@ -371,22 +384,6 @@ function PreviewSteps({
   )
 }
 
-function PreviewRow({ code, name, detail, value, movement }: PreviewRowData): ReactElement {
-  return (
-    <div className={s.previewRow}>
-      <span className={s.identity}>{code}</span>
-      <span className={s.previewRowCopy}>
-        <strong>{name}</strong>
-        <small>{detail}</small>
-      </span>
-      <span className={s.previewRowValue}>
-        {value}
-        {movement === 'up' ? <ChevronUpIcon size={14} className={s.moveUp} /> : null}
-        {movement === 'down' ? <ChevronDownIcon size={14} className={s.moveDown} /> : null}
-      </span>
-    </div>
-  )
-}
 
 function ProofSection(): ReactElement {
   return (
@@ -436,10 +433,12 @@ function HowSection(): ReactElement {
 }
 
 function ExperienceSection(): ReactElement {
+  const { theme } = useTheme()
+
   return (
     <section className={s.section} id="experience" aria-labelledby="experience-heading">
       <div className={`${s.shell} ${s.experienceGrid}`}>
-        <PhonePreview />
+        <PhoneStory theme={theme} />
         <div>
           <p className={s.eyebrow}>Premium without being complicated</p>
           <div className={s.sectionHead}>
@@ -469,75 +468,58 @@ function ExperienceSection(): ReactElement {
 }
 
 /**
- * The phone preview — the same script, on the composition a phone actually
- * gets.
+ * THE PHONE STORY — the same five phases, on the composition a phone gets.
  *
- * IT RUNS THE SAME FRAMES AS THE DESKTOP DEVICE ON PURPOSE. Two scripts would
- * be two things to keep truthful, and the second one to drift would be the one
- * showing a product state the first had stopped claiming. What differs is the
- * COMPOSITION — a bottom bar rather than a rail, no contextual column — which
- * is exactly the difference the real product has, and is the point the section
- * beside it is making.
+ * IT RUNS THE SAME PHASES AS THE DESKTOP DEVICE ON PURPOSE. Two scripts would be
+ * two things to keep truthful, and the second one to drift would be the one
+ * showing a product state the first had stopped claiming.
+ *
+ * WHAT DIFFERS IS THE COMPOSITION, AND THE PRODUCT DECIDES IT RATHER THAN THIS
+ * FILE. `VNextShell.module.css` is written against `@container vnext-shell`, so
+ * a 390px frame gets the real bottom bar and the real single-column layout while
+ * the 1280px frame above gets the real rail — on the same page, at the same
+ * viewport. The claim this section makes about the product adapting is therefore
+ * demonstrated rather than illustrated.
  *
  * ITS OWN VISIBILITY, ITS OWN TIMER. It is most of a page below the hero, so
- * sharing the desktop device's observer would run it while it is off screen
- * and stop it while it is being read.
+ * sharing the desktop device's observer would run it while it is off screen and
+ * stop it while it is being read.
  */
-function PhonePreview(): ReactElement {
+function PhoneStory({ theme }: { theme: 'dark' | 'light' }): ReactElement {
   const { index, containerRef, goTo, playing } = useScriptedPreview()
-  const frame = previewFrameAt(index)
+  const step = previewStepAt(index)
 
   return (
     <div className={s.previewStage} ref={containerRef}>
-      <div className={s.phone} role="img" aria-label={frame.description}>
-        <div className={s.phoneScreen}>
-          <div className={s.phoneTop}>
-            <strong>{frame.greeting}</strong>
-            <span className={s.avatar}>NG</span>
-          </div>
-          <div className={s.phoneContent} key={frame.id}>
-            <div className={s.phoneAction}>
-              <p className={s.eyebrow}>{frame.action.meta}</p>
-              <p className={s.phoneActionTitle}>{frame.action.title}</p>
-              <p className={s.phoneActionBody}>{frame.action.body}</p>
-              <div className={s.phoneActionFooter}>
-                <span className={s.phoneDeadline}>
-                  Deadline
-                  <strong>{frame.action.deadline}</strong>
-                </span>
-                <span className={`${s.cta} ${s.ctaPrimary} ${s.ctaSmall}`}>{frame.action.cta}</span>
-              </div>
-            </div>
-
-            <p className={s.previewLabel}>Your competitions</p>
-            <div className={s.previewRows}>
-              {frame.competitions.map((row) => (
-                <PreviewRow key={row.code} {...row} />
-              ))}
-            </div>
-            <p className={s.previewLabel}>Your leagues</p>
-            <div className={s.previewRows}>
-              {frame.leagues.map((row) => (
-                <PreviewRow key={row.code} {...row} />
-              ))}
-            </div>
-          </div>
-          <div className={s.phoneNav}>
-            {['Hub', 'Predict', 'Leagues', 'Games', 'More'].map((item, position) => (
-              <span key={item} className={position === 0 ? s.phoneNavActive : undefined}>
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-
+      <PreviewBoundary fallback={<PreviewFrameSkeleton variant="phone" />}>
+        <Suspense fallback={<PreviewFrameSkeleton variant="phone" />}>
+          <ProductPreview
+            variant="phone"
+            theme={theme}
+            phaseIndex={index}
+            description={step.description}
+          />
+        </Suspense>
+      </PreviewBoundary>
       <PreviewSteps index={index} goTo={goTo} playing={playing} />
     </div>
   )
 }
 
 function LeaguesSection(): ReactElement {
+  const { theme } = useTheme()
+  // THE TABLE PHASE, HELD STILL. This section is making one claim — that a
+  // private league is a real table with your name in it — and the surface that
+  // answers it is the product's own Leagues screen. It does not animate: a
+  // second sequence running beside the one in the hero would be two things
+  // moving for one point, and there is nothing here that changes over a week.
+  //
+  // FOUND BY ID IN THE CAPTION LIST rather than in the phase list, because the
+  // caption list is eager and the phase list is not. `landingContent.test.ts`
+  // holds the two to the same ids in the same order, which is what makes this a
+  // lookup rather than a guess.
+  const tableIndex = PREVIEW_STEPS.findIndex((entry) => entry.id === 'table')
+
   return (
     <section className={s.section} id="leagues" aria-labelledby="leagues-heading">
       <div className={s.shell}>
@@ -564,30 +546,19 @@ function LeaguesSection(): ReactElement {
             </Link>
           </div>
 
-          <div className={s.leaguePreview} role="img" aria-label="Preview of a private league table: five players ranked by points, with recent form and rank movement, and the signed-in player highlighted in fourth.">
-            <div className={s.leagueHead}>
-              <span>#</span>
-              <span>Player</span>
-              {/* Same class as the rows' form cell, so the head disappears with
-                  the column it names rather than sliding out of register. */}
-              <span className={s.leagueForm}>Last 3</span>
-              <span>Pts</span>
-            </div>
-            {PREVIEW_LEAGUE_ROWS.map((row) => (
-              <div
-                key={row.position}
-                className={row.isViewer ? `${s.leagueRow} ${s.leagueRowViewer}` : s.leagueRow}
-              >
-                <span className={s.numeric}>{row.position}</span>
-                <span className={s.leaguePlayer}>
-                  <span className={s.avatar}>{row.initials}</span>
-                  {row.name}
-                </span>
-                <span className={`${s.numeric} ${s.leagueForm}`}>{row.form}</span>
-                <span className={s.numeric}>{row.points}</span>
-              </div>
-            ))}
-          </div>
+          {tableIndex < 0 ? null : (
+            <PreviewBoundary fallback={<PreviewFrameSkeleton variant="phone" />}>
+              <Suspense fallback={<PreviewFrameSkeleton variant="phone" />}>
+                <ProductPreview
+                  variant="phone"
+                  motion="still"
+                  theme={theme}
+                  phaseIndex={tableIndex}
+                  description={previewStepAt(tableIndex).description}
+                />
+              </Suspense>
+            </PreviewBoundary>
+          )}
         </div>
       </div>
     </section>
@@ -664,9 +635,30 @@ function LandingFooter(): ReactElement {
         </span>
         <nav className={s.footerLinks} aria-label="Footer">
           <a href="#how">How it works</a>
+          {/* ADR 0017 asks for the non-affiliation statement to be reachable
+              from the footer, and the legal row is where the policies join it as
+              they are published.
+
+              A DECLARED ROUTE OF `null` DRAWS NOTHING. Privacy and Terms do not
+              exist yet — no route, no redirect, no document — and a footer link
+              to one would answer Not Found, which reads as a document that
+              exists and was withheld. That is worse than an absent link, and it
+              is the same rule the About page's own link list follows. The shape
+              is ready; publishing either is a one-line change here. */}
+          {LEGAL_LINKS.map(({ label, to }) =>
+            to === null ? null : (
+              <Link key={label} to={to}>
+                {label}
+              </Link>
+            ),
+          )}
           <Link to="/auth/login">Sign in</Link>
           <Link to="/auth/signup">Create account</Link>
         </nav>
+        {/* THE POSITION ITSELF, IN ONE LINE. A visitor who never opens the page
+            still reads the claim that matters, and it is the SAME sentence the
+            page and the signed-in shell carry — one fact, one wording. */}
+        <p className={s.footerNote}>{NON_AFFILIATION_SHORT}</p>
       </div>
     </footer>
   )

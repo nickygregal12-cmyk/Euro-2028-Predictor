@@ -124,11 +124,23 @@ describe('the page offers one way in, and never a rejoin', () => {
     expect(within(row).queryByRole('button', { name: /join/i })).toBeNull()
   })
 
-  it('emits the game id it was asked about', () => {
+  it('emits the game id it was asked about, and the key a host has to route by', () => {
+    // TWO IDENTIFIERS, AND THEY ANSWER DIFFERENT QUESTIONS. `gameId` is the
+    // `game_competition_id` every read and write is addressed by; `gameKey` is
+    // what the router knows. A host given only the id would have to map an
+    // opaque membership row back to a game, and the only way to do that is to
+    // keep a second copy of the catalogue.
+    //
+    // The JOIN carries no key, and that is not an omission: joining is
+    // addressed by the membership row alone and never navigates.
     const onIntent = vi.fn()
     const { container } = renderGames(gamesScenarios.allOpen, { onIntent })
     fireEvent.click(within(rowOf(container, 'g-cup')).getByRole('button', { name: /look inside/i }))
-    expect(onIntent).toHaveBeenCalledWith({ kind: 'open-game', gameId: 'g-cup' })
+    expect(onIntent).toHaveBeenCalledWith({
+      kind: 'open-game',
+      gameId: 'g-cup',
+      gameKey: 'predictor_cup',
+    })
     fireEvent.click(within(rowOf(container, 'g-cup')).getByRole('button', { name: /^join/i }))
     expect(onIntent).toHaveBeenCalledWith({ kind: 'join-game', gameId: 'g-cup' })
   })

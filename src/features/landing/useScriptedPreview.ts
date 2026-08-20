@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { PREVIEW_FRAME_MS, PREVIEW_FRAMES } from './landingPreviewScript'
+import { PREVIEW_FRAME_MS, PREVIEW_STEPS } from './landingPreviewScript'
 
 /**
  * Drives the landing page's scripted product preview.
  *
  * THE STATIC STATE IS THE REAL ONE, AND THE MOTION IS ADDED TO IT. The first
- * frame renders on the server-shaped first paint with no effect having run, so
- * a visitor with JavaScript disabled, a crawler, a print stylesheet and a
- * screenshot with animations frozen all get a complete, truthful picture of
- * the product rather than an empty device waiting for a timer. Everything this
- * hook does is an enhancement of that.
+ * phase renders on the first paint with no effect having run, so a print
+ * stylesheet, a screenshot with animations frozen and a visitor who never
+ * scrolls all get a complete, truthful picture of the product rather than an
+ * empty device waiting for a timer. Everything this hook does is an enhancement
+ * of that.
+ *
+ * THE CLAIM THIS COMMENT USED TO MAKE ABOUT NO-JAVASCRIPT WAS NOT TRUE, and
+ * saying so is cheaper than leaving it to be discovered. The application is a
+ * client-rendered single-page app with no prerender step, so a visitor with
+ * JavaScript disabled gets an empty document — not a still preview. The
+ * property that IS real is the one above: no effect has to run before the
+ * device is complete.
  *
  * IT STOPS WHEN NOBODY IS LOOKING. An interval that keeps firing while the
  * preview is three screens up is a timer burning a phone battery to animate
@@ -20,7 +27,7 @@ import { PREVIEW_FRAME_MS, PREVIEW_FRAMES } from './landingPreviewScript'
  * and `IntersectionObserver` alone does not notice.
  *
  * REDUCED MOTION IS A FULL STOP, NOT A SLOWER LOOP. `prefers-reduced-motion`
- * is a request not to animate, and a four-second cross-fade is animation
+ * is a request not to animate, and a five-second cross-fade is animation
  * whatever its duration. The sequence then holds on whichever frame the
  * visitor chose, and the step controls remain — which is the point: the
  * content is still all reachable, by hand rather than on a timer. The query is
@@ -116,14 +123,14 @@ export function useScriptedPreview(): ScriptedPreview {
 
     const timer = window.setInterval(() => {
       if (documentHidden()) return
-      setIndex((current) => (current + 1) % PREVIEW_FRAMES.length)
+      setIndex((current) => (current + 1) % PREVIEW_STEPS.length)
     }, PREVIEW_FRAME_MS)
     return () => window.clearInterval(timer)
   }, [playing])
 
   const goTo = useCallback((next: number) => {
     setManual(true)
-    setIndex(((next % PREVIEW_FRAMES.length) + PREVIEW_FRAMES.length) % PREVIEW_FRAMES.length)
+    setIndex(((next % PREVIEW_STEPS.length) + PREVIEW_STEPS.length) % PREVIEW_STEPS.length)
   }, [])
 
   return { index, containerRef, goTo, playing }

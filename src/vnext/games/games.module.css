@@ -182,3 +182,19 @@
     margin-top: auto;
   }
 }
+
+/* THE ROW'S OWN ANSWER TO A JOIN THAT DID NOT LAND.
+
+   UNDER THE ROW, REPLACING NOTHING IN IT. The standing line above is still
+   true — the server refused, so the player is exactly where they were.
+   `flex-basis: 100%` takes a whole line of the wrapping row, so the sentence
+   never squeezes a 44px control at 320px.
+
+   COLOUR IS NOT THE MESSAGE. `--vnext-miss` is the lane's existing "this did
+   not land" tone, and it arrives beside a sentence rather than instead of one. */
+.rowFailure {
+  flex-basis: 100%;
+  margin: var(--vnext-space-1) 0 0;
+  color: var(--vnext-miss);
+  overflow-wrap: anywhere;
+}

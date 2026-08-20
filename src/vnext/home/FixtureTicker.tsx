@@ -30,6 +30,7 @@ export type FixtureTickerProps = {
  * chooses; the accessible sentence always uses the full name regardless.
  */
 export function FixtureTicker({ matches, now }: FixtureTickerProps) {
+
   if (matches.length === 0) return null
 
   return (

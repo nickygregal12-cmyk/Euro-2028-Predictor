@@ -41,6 +41,10 @@ const ROUTES = [
   // Renders without a recovery token: the "link expired or already used" state.
   '/auth/update-password',
   '/join/NOSUCH',
+  // ADR 0017's non-affiliation statement, and a page a visitor deciding whether
+  // to sign up is exactly the reader for. Public, so it is scanned here rather
+  // than in the authenticated pass.
+  '/about',
 ]
 
 const FAIL_IMPACTS = new Set(['critical', 'serious'])

@@ -1,13 +1,10 @@
-import { useCallback, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
-import { configureVNextTimeZone } from '../../vnext/foundations/format'
 import { VNextRoot } from '../../vnext/foundations/VNextRoot'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
-import type { ShellIntent } from '../../vnext/models/shell'
-import { viewerTimeZone } from '../../shared/time/kickoff'
 import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyRoutes'
+import { useShellIntentNavigation, useViewerFormatting } from './seam'
 
 /**
  * THE vNEXT MATCHES SURFACES, AT THEIR REAL ADDRESSES.
@@ -107,68 +104,18 @@ export function VNextMatchCentreDestination() {
   )
 }
 
-/**
- * POINT vNEXT'S FORMATTERS AT THE PLAYER, WHICH IS A CUTOVER OBLIGATION.
+/*
+ * `useViewerFormatting` AND `useShellIntentNavigation` MOVED TO `seam.tsx`.
  *
- * `src/vnext/foundations/format.ts` pins `en-GB`/`Europe/London` so that
- * stories and jsdom tests are deterministic, and said in its own docblock that
- * "real integration will use the user's zone". This is real integration. Left
- * pinned, Matches — a surface that is almost entirely kickoff times — would
- * tell a player in Dublin, New York or Sydney what time the match starts in
- * London.
+ * They were written here when Matches was the only cutover adapter and there
+ * was nothing to share them with. There are nine now, and nine copies of "which
+ * zone does a reader see" and "where does this navigation go" is nine places
+ * for one answer to drift — in the shell's own navigation, which is the last
+ * part of a product that can afford to be untrustworthy.
  *
- * `tests/app/kickoffFormattingAuthority.test.ts` is what surfaced it, and only
- * once the route wiring put a vNext module in the shipping graph. It had been
- * true and invisible for six stages.
- *
- * Set in an effect rather than during render, because it is a side effect on
- * module state and a render must stay pure — and set on every mount, because a
- * viewer who changes their system zone gets it applied the next time they open
- * a vNext surface rather than on a full reload.
+ * `useShellIntentNavigation` also GREW while it moved. This version ignored a
+ * destination intent for Home, Games and Leagues, because answering it would
+ * have dropped a player into a legacy page mid-journey. The cutover is what
+ * removes that constraint: all four destinations are vNext now, so all four
+ * are answered.
  */
-function useViewerFormatting() {
-  useEffect(() => {
-    configureVNextTimeZone(viewerTimeZone())
-  }, [])
-}
-
-/**
- * THE SHELL'S INTENTS, AS NAVIGATION.
- *
- * The harness reported most of these into a paragraph because it had nowhere
- * to send them. A route does, for the two that are already migrated or already
- * legacy-addressable — and DELIBERATELY NOT for the rest.
- *
- * A destination intent for Games or Leagues is IGNORED rather than routed to
- * the legacy page. Dropping a player from a vNext surface into a legacy one
- * mid-journey is the "escape hatch" the programme has been closing stage by
- * stage; doing it silently here would reopen it at the moment of cutover, and
- * would make the shell's own navigation the least trustworthy part of the new
- * hub. Those destinations get their behaviour when their own flag does.
- */
-function useShellIntentNavigation() {
-  const navigate = useNavigate()
-  const { competitionSlug, seasonSlug } = useParams()
-  return useCallback(
-    (intent: ShellIntent) => {
-      switch (intent.kind) {
-        case 'discover':
-          navigate('/competitions')
-          return
-        case 'account':
-          navigate('/account')
-          return
-        case 'destination':
-          // Matches is the only migrated destination, so it is the only one
-          // this adapter may answer. Everything else waits for its flag.
-          if (intent.destination !== 'matches') return
-          if (competitionSlug === undefined || seasonSlug === undefined) return
-          navigate(competitionSectionRoute({ competitionSlug, seasonSlug }, 'matches'))
-          return
-        default:
-          return
-      }
-    },
-    [navigate, competitionSlug, seasonSlug],
-  )
-}

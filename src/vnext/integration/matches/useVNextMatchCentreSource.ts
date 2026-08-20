@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { MatchCentreSource } from './matchCentreSource'
+import type {
+  SeasonFixtureCompetition,
+  SeasonListFixture,
+} from '../../../services/supabase/seasonFixtureListModel'
 
 /**
  * ACQUIRE ONE FIXTURE AND ITS CONTEXT, ADDRESSED BY THE FIXTURE ID ALONE.
@@ -63,6 +67,15 @@ export type VNextMatchCentreSourceInput = {
   readonly seasonSlug?: string | undefined
   /** Whether the host can act on a Match Predictor link at all. */
   readonly predictorReachable?: boolean | undefined
+  /**
+   * The Match Predictor's `game_competition_id` in this season, which is what
+   * private leagues hang off. Null where the reader has not joined the game.
+   *
+   * THE THREE SOCIAL MODULES ARE OFF WITHOUT IT, and that is correct rather
+   * than degraded: a reader who is not in the Match Predictor has no card, no
+   * leagues inside it and nothing to compare. The page is still the fixture.
+   */
+  readonly gameCompetitionId?: string | null | undefined
 }
 
 type RequestIdentity = string
@@ -120,6 +133,7 @@ export function useVNextMatchCentreSource(
   const retry = useCallback(() => setNonce((value) => value + 1), [])
 
   const { userId, authLoading, fixtureId, competitionSlug, seasonSlug } = input
+  const gameCompetitionId = input.gameCompetitionId ?? null
   const predictorReachable = input.predictorReachable ?? false
 
   useEffect(() => {
@@ -201,6 +215,35 @@ export function useVNextMatchCentreSource(
                 .catch(() => null)
         if (!active) return
 
+        /* ------------------------------------------------------------------
+           WAVE FOUR — THE THREE SOCIAL SCOPES.
+           ------------------------------------------------------------------
+
+           LAST, AND ALL SETTLED INDEPENDENTLY. The fixture, its table and its
+           head-to-head are what the page is ABOUT; these are what it means for
+           the reader. Ordering them after means a slow league read cannot hold
+           up the match itself, and settling them independently means a failed
+           one costs its own module and nothing else.
+
+           NOTHING RUNS AT ALL WITHOUT A GAME COMPETITION. A reader who has not
+           joined the Match Predictor has no card, no leagues inside it and
+           nothing to compare — so the reads are not issued rather than issued
+           and refused.
+
+           THE LEAGUE FAN-OUT IS BOUNDED BY THE READER'S OWN LEAGUES, which is
+           the same bound the production Match Centre uses. It is a page about
+           one fixture, so this is per-page and never per-row: `MatchListItem`
+           has no field for any of it, which is what stops a list starting.
+        */
+        const social = await loadSocialScopes({
+          gameCompetitionId: gameCompetitionId ?? null,
+          tournamentId,
+          fixture,
+          competition: answer.value.competition,
+          seasonLabel,
+        })
+        if (!active) return
+
         setState({
           status: 'loaded',
           identity,
@@ -218,6 +261,9 @@ export function useVNextMatchCentreSource(
             // Offered only where the host can act on it, and only for a player
             // whose competition context actually resolved.
             predictorReachable: predictorReachable && tournamentId !== null,
+            you: social.you,
+            leagues: social.leagues,
+            everyone: social.everyone,
           },
         })
       } catch {
@@ -235,6 +281,7 @@ export function useVNextMatchCentreSource(
     competitionSlug,
     seasonSlug,
     predictorReachable,
+    gameCompetitionId,
     nonce,
   ])
 
@@ -265,4 +312,121 @@ export function useVNextMatchCentreSource(
     predictorReachable,
     retry,
   ])
+}
+
+/* ==========================================================================
+   THE THREE SOCIAL SCOPES, ACQUIRED
+   ==========================================================================
+
+   ONE FUNCTION, THREE INDEPENDENT ANSWERS, AND NO SHARED FAILURE. Every read
+   here is caught on its own, and none of them can reject the whole page: the
+   fixture has already resolved by the time this runs, and it is what the page
+   is about.
+
+   EVERY PRESENTATION DECISION IS THE EXISTING AUTHORITY'S. `presentMatchCentre`
+   and `presentLeagueFixture` are imported rather than reimplemented, so vNext
+   and the surface it replaces cannot disagree about what a fixture was worth,
+   what a co-member predicted or whether the server revealed it.
+   ========================================================================== */
+
+type SocialScopes = {
+  readonly you: MatchCentreSource['you']
+  readonly leagues: MatchCentreSource['leagues']
+  readonly everyone: MatchCentreSource['everyone']
+}
+
+const NO_SOCIAL: SocialScopes = { you: null, leagues: null, everyone: null }
+
+/** The server's refusal for a caller who has not joined the game. */
+function isNotAnEntrant(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code
+  return code === '42501' || code === 'insufficient_privilege'
+}
+
+async function loadSocialScopes(options: {
+  readonly gameCompetitionId: string | null
+  readonly tournamentId: string | null
+  readonly fixture: SeasonListFixture
+  readonly competition: SeasonFixtureCompetition
+  readonly seasonLabel: string | null
+}): Promise<SocialScopes> {
+  const { gameCompetitionId, tournamentId, fixture } = options
+  // NOT ISSUED RATHER THAN ISSUED AND REFUSED. Without a game competition there
+  // is no card, no league inside it and nothing to compare.
+  if (gameCompetitionId === null || tournamentId === null) return NO_SOCIAL
+
+  const [{ presentMatchCentre }, { presentLeagueFixture }, { presentFixture }] = await Promise.all([
+    import('../../../features/season/matchCentreModel'),
+    import('../../../features/season/leagueFixtureModel'),
+    import('../../../features/season/fixtureListModel'),
+  ])
+
+  const matchweek = fixture.round.ordinal
+  const row = presentFixture(fixture, options.competition.timeZone).row
+
+  const [card, leagues, consensus] = await Promise.allSettled([
+    import('../../../services/supabase/seasonMatchPredictor').then((module) =>
+      module
+        .createSeasonMatchPredictorRpcGateway({
+          tournamentId,
+          competitionName: options.competition.name,
+          seasonLabel: options.seasonLabel ?? '',
+          timeZone: options.competition.timeZone ?? 'UTC',
+          // THE GATEWAY'S CLOCK IS FOR ITS OWN OPTIMISTIC BOOKKEEPING AND
+          // DECIDES NOTHING HERE: this page reads the card and writes nothing,
+          // and every lock, reveal and settlement on it is the server's.
+          now: () => new Date(),
+        })
+        .load(matchweek),
+    ),
+    import('../../../services/supabase/gameLeagues').then((module) =>
+      module.fetchMyGameLeagues(gameCompetitionId),
+    ),
+    import('../../../services/supabase/seasonConsensus').then((module) =>
+      module.fetchSeasonConsensus(tournamentId, matchweek),
+    ),
+  ])
+
+  const you: MatchCentreSource['you'] =
+    card.status === 'fulfilled'
+      ? { kind: 'ok', view: presentMatchCentre(row, card.value) }
+      : isNotAnEntrant(card.reason)
+        ? { kind: 'not-playing' }
+        : { kind: 'failed' }
+
+  // THE ROUND ID THE LEAGUE READ IS ADDRESSED BY. Contract 149 takes a league
+  // and a competition round, and the fixture already carries its own round.
+  const roundId = fixture.round.id
+
+  const leaguePanels: MatchCentreSource['leagues'] =
+    leagues.status !== 'fulfilled'
+      ? // THE LIST ITSELF FAILED, so there is nothing to name. `null` is "the
+        // module did not load", which the surface draws as nothing rather than
+        // as "you are in no leagues" — a sentence that would be a claim.
+        null
+      : await Promise.all(
+          leagues.value.map(async (league) => {
+            const view = await import('../../../services/supabase/seasonLeaguePredictions')
+              .then((module) =>
+                module.fetchSeasonLeagueMatchweekPredictions(league.id, roundId),
+              )
+              .then((page) => presentLeagueFixture(page, fixture.id))
+              .catch(() => null)
+            return { leagueId: league.id, leagueName: league.name, view }
+          }),
+        )
+
+  const everyone: MatchCentreSource['everyone'] =
+    consensus.status !== 'fulfilled'
+      ? { kind: 'failed' }
+      : {
+          kind: 'ok',
+          suppressed: consensus.value.suppressed,
+          minimumEntries: consensus.value.minimumEntries,
+          submittedEntries: consensus.value.submittedEntries,
+          fixture:
+            consensus.value.fixtures.find((entry) => entry.id === fixture.id) ?? null,
+        }
+
+  return { you, leagues: leaguePanels, everyone }
 }

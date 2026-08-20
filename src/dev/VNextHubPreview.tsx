@@ -39,12 +39,11 @@ import styles from './VNextHomePreview.module.css'
  * a navigation, and this one answers it with `useState`, which is exactly the
  * seam `VNextShellProvider` documents.
  *
- * ============================ IT READS AND DOES NOT WRITE ================
+ * ============================ THE GAMES DESTINATION WRITES ===============
  *
- * Games emits `join-game` and this harness reports it rather than sending it,
- * on the same terms `VNextGamesPreview` states: `join_competition_game` enters
- * a real competition and a review harness pointed at a live season must not be
- * able to do that by a stray click.
+ * Pressing Join under this harness calls `join_competition_game` and really
+ * enters this account into that game, because `VNextGamesScreen` owns the
+ * write. The header below says so where a reviewer reads it before pressing.
  */
 export function VNextHubPreview() {
   return (
@@ -209,8 +208,9 @@ function HubHarness() {
                 navigate(`/competitions/${competitionSlug ?? ''}/${seasonSlug ?? ''}/games`)
                 return
               }
-              // NOT WIRED HERE, ON PURPOSE. Joining is a real write.
-              setNote(`Join intent for game ${intent.gameId} — reported, not sent.`)
+              // THE SCREEN PERFORMS IT. This only records that it was asked
+              // for, so a reviewer can see the seam as well as the effect.
+              setNote(`Join sent for game ${intent.gameId}.`)
             }}
           />
         ) : (

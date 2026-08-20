@@ -409,6 +409,7 @@ function Body({
  * markup was perfectly well-formed and merely untrue.
  */
 function Deadline({ round, now }: { readonly round: LmsRound; readonly now: string }) {
+
   // A DAY, NOT JUST A CLOCK. `formatTime` gives "11:00" and nothing else, and
   // an LMS deadline is routinely days away — so "Picks close 11:00" read on a
   // Tuesday for a Saturday lock is the worst ambiguity this product can

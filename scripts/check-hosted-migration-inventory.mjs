@@ -59,7 +59,13 @@ if (!inventory.includes(developmentRow)) {
   fail(`Migration inventory is missing the current development row: ${developmentRow}`)
 }
 
-const productionRow = `| Production Supabase | **${production.requiredMigrationCount}** |`
+// NAMED, LIKE THE DEVELOPMENT ROW ABOVE IT. The two rows are the same kind of
+// claim and only one of them said WHICH project it was about, which is exactly
+// the ambiguity a hosted record exists to remove — there are six Supabase
+// projects on this account and two of them have "Euro 2028 Predictor" in the
+// name. The ref comes from the record rather than from the page, so a row that
+// named the wrong project would fail here rather than read plausibly.
+const productionRow = `| Production Supabase \`${production.projectRef}\` | **${production.requiredMigrationCount}** |`
 if (!inventory.includes(productionRow)) {
   fail(`Migration inventory is missing the current production row: ${productionRow}`)
 }

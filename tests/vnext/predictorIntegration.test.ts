@@ -518,7 +518,7 @@ describe('enrichment', () => {
     // A club with only one colour gets its primary in both roles rather than a
     // computed brighter shade, and no crest source is agreed anywhere.
     expect(home.colours.accent).toBe('#0B4DA2')
-    expect(home.crestUrl).toBeNull()
+    expect(home.officialBadge).toBeNull()
   })
 })
 

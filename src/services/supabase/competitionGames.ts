@@ -53,6 +53,29 @@ export async function fetchSeasonGames(tournamentId: string): Promise<SeasonGame
 }
 
 /**
+ * Voluntary entry into ONE game, addressed by its `game_competition_id`.
+ *
+ * IT HOLDS NO RULE AND MUST NOT GROW ONE. `join_competition_game` refuses a
+ * private container outright and then delegates to
+ * `predictor_internal.enter_competition_game`, which is where registration
+ * windows, rejoin, disqualification, membership and rate limiting all live. A
+ * client-side pre-check would be a second answer to a question the server
+ * already answers, and it would be the copy that goes stale — which is why the
+ * surface offers Join from the SERVER's `registration` outlook and this
+ * function adds nothing to it.
+ *
+ * The RPC returns a payload; there is nothing in it a caller needs that a
+ * re-read of the catalogue does not state more reliably, so it is discarded and
+ * the caller re-reads. An error is thrown so it can be shown.
+ */
+export async function joinCompetitionGame(gameCompetitionId: string): Promise<void> {
+  const { error } = await db.rpc('join_competition_game', {
+    p_game_competition_id: gameCompetitionId,
+  })
+  if (error) throw error
+}
+
+/**
  * Fetch the caller's real game membership for the named seasons.
  *
  * Returns one entry per season the database actually holds; names it does not
