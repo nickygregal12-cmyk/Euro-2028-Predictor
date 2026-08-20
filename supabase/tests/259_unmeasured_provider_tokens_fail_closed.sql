@@ -32,7 +32,7 @@
 
 begin;
 
-select plan(16);
+select plan(18);
 
 -- ---------------------------------------------------------------------------
 -- 1. The resolution. Pure, and it needs no seeded data at all.

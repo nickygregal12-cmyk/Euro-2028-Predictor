@@ -172,8 +172,14 @@ $$;
 -- returns any particular number.
 -- ---------------------------------------------------------------------------
 
+-- Both sides are cast to `integer` on purpose. `game_definitions.buffer_minutes`
+-- is a SMALLINT while `season_prediction_buffer_minutes` returns an INTEGER, and
+-- pgTAP's `is()` is polymorphic — `is(integer, smallint, unknown)` resolves to no
+-- function at all and aborts the whole file before its plan runs. A comparison
+-- written with bare `=` would have passed silently, which is why this cost a CI
+-- cycle to find.
 select is(
-  (select buffer_minutes from contract_212_season),
+  (select buffer_minutes from contract_212_season)::integer,
   (select definition.buffer_minutes
      from public.bonus_competitions availability
      join public.game_definitions definition on definition.game_key = availability.game_key
@@ -181,13 +187,13 @@ select is(
       and availability.game_key = 'main_predictor'
       and availability.id = predictor_internal.live_competition_id(
         (select tournament_id from contract_212_season), 'main_predictor'
-      )),
+      ))::integer,
   'the card resolves the same lock buffer the enforcement trigger reads'
 );
 
 select isnt(
-  (select buffer_minutes from contract_212_season),
-  null,
+  (select buffer_minutes from contract_212_season)::integer,
+  null::integer,
   'and it resolves one at all for a season with a live Main Predictor'
 );
 
@@ -309,7 +315,7 @@ update public.season_fixtures
 
 select is(
   pg_temp.published_lock('moved'),
-  null,
+  null::timestamptz,
   'a postponement with no known date publishes no instant rather than an infinity'
 );
 
