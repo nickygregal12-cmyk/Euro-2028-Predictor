@@ -1,4 +1,4 @@
-import { Component, type ReactNode } from 'react'
+import { Component, type ErrorInfo, type ReactNode } from 'react'
 
 import {
   clearFailureCount,
@@ -7,6 +7,7 @@ import {
   recordFailure,
 } from './fatalRecovery'
 import { currentSiteConfiguration } from './site/currentSite'
+import { reportFatalRenderError } from '../services/observability/fatalRenderError'
 
 interface ApplicationErrorBoundaryProps {
   readonly children: ReactNode
@@ -53,19 +54,22 @@ export class ApplicationErrorBoundary extends Component<
     return { failed: true }
   }
 
-  public componentDidCatch(): void {
+  public componentDidCatch(error: unknown, info: ErrorInfo): void {
+    // Generate the support reference once, before storage. A browser that blocks
+    // sessionStorage still deserves a reference, and — critically — the exact
+    // reference painted in the fallback is the one attached to observability.
+    const reference = correlationReference(new Date(), Math.random())
+    reportFatalRenderError(error, reference, info.componentStack)
+
     // Storage can throw or be absent — a private-mode browser, a blocked
     // origin, a disabled cookie policy. A recovery path that itself throws
     // leaves the user with nothing at all, so every access here is guarded and
     // the fallback is the previous behaviour: reload only.
     try {
       const { offerRecovery } = recordFailure(window.sessionStorage)
-      this.setState({
-        offerRecovery,
-        reference: correlationReference(new Date(), Math.random()),
-      })
+      this.setState({ offerRecovery, reference })
     } catch {
-      this.setState({ offerRecovery: false, reference: null })
+      this.setState({ offerRecovery: false, reference })
     }
   }
 
