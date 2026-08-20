@@ -119,18 +119,27 @@ $$;
 -- The committed setting, and the default a new target inherits.
 -- ---------------------------------------------------------------------------
 
+-- CONTRACT 211 MOVED THE MECHANISM, AND THESE TWO ASSERTIONS MOVED WITH IT.
+-- They used to read `live_lead_minutes` and require 720, which is how contract
+-- 210 bought this coverage. Contract 211 returned that column to 15 and put the
+-- long reach on `deadline_lead_minutes` instead, because covering a deadline at
+-- ten-minute resolution cost 252 polls a matchweek against a budget of about
+-- 58. So the RULE is unchanged and still asserted here -- every enabled target
+-- reaches back far enough to cover its deadline -- while the column that
+-- delivers it is contract 211's. Rewriting these to keep asserting 720 on the
+-- live lead would have made this suite fail for being right.
 select is(
-  (select live_lead_minutes from public.provider_poll_targets
+  (select deadline_lead_minutes from public.provider_poll_targets
     where path = '/contract-210/{{date:+0}}/{{date:+8}}'),
   720,
-  'a target created after contract 210 inherits the deadline-covering lead'
+  'a newly created target still inherits a deadline-covering reach'
 );
 
 select is(
   (select count(*)::integer from public.provider_poll_targets
-    where enabled and live_lead_minutes < 720),
+    where enabled and deadline_lead_minutes < 720),
   0,
-  'no enabled target opens its live window too late to cover a deadline'
+  'no enabled target reaches back too little to cover a deadline'
 );
 
 -- Scoped to this suite's own target on purpose. Asserting a cadence across
@@ -225,7 +234,7 @@ select ok(
     (select kickoff_at - interval '16 minutes' from contract_210_fixtures where label = 'saturday'),
     15, 120
   ),
-  'sixteen minutes before the lock the OLD lead still had the window shut'
+  'sixteen minutes before the lock a 15-minute reach still has nothing open'
 );
 
 select ok(
@@ -235,7 +244,7 @@ select ok(
     (select kickoff_at - interval '16 minutes' from contract_210_fixtures where label = 'saturday'),
     720, 120
   ),
-  'and at that same instant the contract 210 lead has it open'
+  'and at that same instant a 720-minute reach has it open'
 );
 
 -- ---------------------------------------------------------------------------

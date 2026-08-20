@@ -224,8 +224,15 @@
  * moved under the seed, and here the answer is a checkable no rather than an
  * assumption. If contract 210 ever grows a read, this paragraph is wrong and the
  * number must come back down.
+ *
+ * **CONTRACT 211 IS THE SAME ANSWER FOR THE SAME REASON.** It adds two columns to
+ * `public.provider_poll_targets`, returns `live_lead_minutes` to 15, adds one
+ * `predictor_internal` predicate and redefines the dispatcher's cadence choice.
+ * Every one of those is dispatch configuration or an internal function; the seed
+ * creates no poll target, and no browser journey queries that table. No relation
+ * a seeded user reads is touched, so again there is no new gate to fail.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 210
+export const SEED_REVIEWED_AT_CONTRACT = 211
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -2,12 +2,12 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 210, Production 209, Development 209 (20 August 2026)
+## Current state — repository 211, Production 209, Development 211 (20 August 2026)
 
-Repository contract **210** is the head of the committed migration chain. Both hosted environments are level with each other at **209**, one behind.
+Repository contract **211** is the head of the committed migration chain. Development is level with it; Production is **two behind** at 209 and takes 210 and 211 as one boundary.
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | **209** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
+| Development Supabase `iouzoutneyjpugbbtdem` | **211** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **209** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
 
 > **Contract 210 repository candidate — the live poll window covers the deadline
@@ -33,8 +33,32 @@ Repository contract **210** is the head of the committed migration chain. Both h
 > the provider credit every day of the year, including weeks with no fixture near, to shrink a
 > gap that only exists in the hours before a lock, and would *still* leave up to six hours of
 > silence immediately before that lock. Coverage where it counts beats frequency everywhere.
-> pgTAP suite **256** asserts both halves, including that a six-hour idle cadence would not have
-> opened the window either.
+> pgTAP suite **256** asserts the relationship rather than the number, deriving the lock instant from
+> `season_prediction_lock_at` and contrasting both leads at the same moment.
+
+> **Contract 211 repository candidate — a deadline watch cheap enough to leave on
+> (20 August 2026):** `20260820090000_provider_deadline_watch_tier.sql` keeps contract 210's rule
+> and abandons its instrument. It claims **no** Development or Production rollout yet.
+>
+> **What 210 cost, measured rather than estimated.** Covering the deadline by widening
+> `live_lead_minutes` to 720 while `live_cadence_minutes` stayed at 10 means twelve hours of
+> ten-minute polling before every kickoff — and because `provider_target_is_live` is
+> **tournament-level**, any unresolved fixture inside its window holds it open for the whole
+> target. A Premier League matchweek spans about 72 hours, so those windows chain into one block.
+> On the real 11–13 September fixture shape: **42 hours open, 252 polls**, against contract 146's
+> published budget of about **58 requests on a matchday**.
+>
+> **What 211 does:** it splits the question in two. `deadline_cadence_minutes` (**60**) applies
+> inside a deadline watch that opens `deadline_lead_minutes` (**720**) before an unresolved kickoff
+> and closes **at** that kickoff — "is this match still happening", which needs long reach and coarse
+> resolution. `live_lead_minutes` returns to **15**, the value contract 145 chose for the question it
+> answers. `cadence_minutes` stays at 1440.
+>
+> **The watch costs 36 polls and stands open 36 hours**, so the matchweek falls from **252 polls to
+> 77** while covering *more* of it. A postponement announced in the twelve hours before a deadline is
+> seen within the hour, with hours of margin before the lock. Suite **257** asserts the cost, not just
+> the correctness, because a fix that has to be watched for cost is one that eventually gets
+> turned off.
 
 > **Contract 209 — the provider fixture lifecycle — reached both environments on 20 August 2026.**
 > `20260819200000_provider_fixture_lifecycle.sql` merged as
