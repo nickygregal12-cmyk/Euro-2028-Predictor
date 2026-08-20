@@ -12,8 +12,8 @@ export const ENRICHMENT_PROVIDER_NAMES = [
   'sportdb-dev',
 ] as const
 
-export type PolledProviderName = (typeof POLLED_PROVIDER_NAMES)[number]
-export type EnrichmentProviderName = (typeof ENRICHMENT_PROVIDER_NAMES)[number]
+type PolledProviderName = (typeof POLLED_PROVIDER_NAMES)[number]
+type EnrichmentProviderName = (typeof ENRICHMENT_PROVIDER_NAMES)[number]
 
 export type ProviderCapability =
   | 'fixture-evidence'
@@ -29,9 +29,9 @@ export type ProviderCapability =
   | 'match-statistics'
   | 'injuries-suspensions'
 
-export type ProviderRuntimeState = 'configured' | 'candidate-unverified'
+type ProviderRuntimeState = 'configured' | 'candidate-unverified'
 
-export type ProviderCapabilityRecord = {
+type ProviderCapabilityRecord = {
   readonly runtimeState: ProviderRuntimeState
   readonly implemented: readonly ProviderCapability[]
   readonly plannedUnverified: readonly ProviderCapability[]
@@ -101,16 +101,16 @@ export const PROVIDER_CAPABILITIES = {
   },
 } as const satisfies Record<EnrichmentProviderName, ProviderCapabilityRecord>
 
-export type ProviderSourceStamp = {
+type ProviderSourceStamp = {
   readonly provider: EnrichmentProviderName
   readonly providerEntityId: string | null
   readonly fetchedAt: string
   readonly authority: typeof PROVIDER_ENRICHMENT_AUTHORITY
 }
 
-export type FreshnessState = 'fresh' | 'stale' | 'unknown'
+type FreshnessState = 'fresh' | 'stale' | 'unknown'
 
-export type ProviderFreshness = {
+type ProviderFreshness = {
   readonly state: FreshnessState
   readonly ageMs: number | null
 }
