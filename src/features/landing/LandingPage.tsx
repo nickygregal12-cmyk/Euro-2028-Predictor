@@ -248,29 +248,26 @@ function HeroSection(): ReactElement {
               Make every match mean more.
             </h1>
             <p className={s.heroLead}>
-              Predict the scores, climb live standings and compete with your friends across the
-              Scottish Premiership and Premier League — from one focused football hub.
+              Predict the football, take on your friends and climb the table — across the
+              Scottish Premiership and the Premier League. Free to join.
             </p>
             <div className={s.heroActions}>
               <Link className={`${s.cta} ${s.ctaPrimary}`} to="/auth/signup">
                 Create your free account
                 <ChevronRightIcon size={18} />
               </Link>
-              <a className={`${s.cta} ${s.ctaSecondary}`} href="#experience">
-                See the experience
-              </a>
-              {/* The third path the acquisition direction asks for, beside
-                  signing up and signing in: learning how each game works. It is
-                  an in-page anchor rather than a route, because the explainer a
-                  signed-in player reads at `/more/scoring` is behind the auth
-                  gate — sending a visitor to a page that bounces them to login
-                  would be a call to action that does not act. */}
-              <a className={`${s.cta} ${s.ctaQuiet}`} href="#games">
-                How the games work
+              {/* ONE OBVIOUS PRIMARY, AND ONE WAY TO LEARN MORE. The hero used
+                  to offer three calls to action of near-equal weight — sign up,
+                  see the experience, and how the games work — which is three
+                  decisions at the moment a visitor should have one. The games
+                  are still one press away from the header nav and from the
+                  final band, where somebody who scrolled has earned the choice. */}
+              <a className={`${s.cta} ${s.ctaSecondary}`} href="#how">
+                See how it works
               </a>
             </div>
             <ul className={s.trustRow}>
-              {['Free to join', 'Nothing predicted for you', 'Private leagues'].map((item) => (
+              {['Free to join', 'Play with your friends', 'Nothing joined for you'].map((item) => (
                 <li key={item}>
                   <span className={s.trustCheck} aria-hidden="true">
                     <CheckIcon size={13} />
@@ -389,7 +386,7 @@ function ProofSection(): ReactElement {
   return (
     <section className={s.proof} id="proof" aria-label="The competitions behind the weekly product">
       <div className={`${s.shell} ${s.proofInner}`}>
-        <p>Built around the leagues you follow every week</p>
+        <p>The football you already watch every week</p>
         <div className={s.proofPair}>
           {DOMESTIC_COMPETITIONS.map(({ code, name }) => (
             <span key={code} className={s.proofItem}>
@@ -398,7 +395,12 @@ function ProofSection(): ReactElement {
             </span>
           ))}
         </div>
-        <p>Tournaments stay separate, so the weekly hub stays clear.</p>
+        {/* WHAT USED TO BE HERE. "Tournaments stay separate, so the weekly hub
+            stays clear" — a true sentence about why two products were kept
+            apart architecturally, on a page whose reader has never heard of
+            either. It is gone rather than reworded; the band's job is to name
+            the football, and it does. */}
+        <p>Pick the competitions you want to play. Nothing is joined for you.</p>
       </div>
     </section>
   )
@@ -412,8 +414,7 @@ function HowSection(): ReactElement {
           <p className={s.eyebrow}>Simple from the first matchweek</p>
           <h2 id="how-heading">Three steps. One season of bragging rights.</h2>
           <p className={s.sectionLead}>
-            The habit makes sense immediately. The competitive depth appears later, when it starts
-            to be useful.
+            You can be predicting your first matchweek two minutes after signing up.
           </p>
         </div>
         <ol className={s.stepList}>
@@ -440,12 +441,12 @@ function ExperienceSection(): ReactElement {
       <div className={`${s.shell} ${s.experienceGrid}`}>
         <PhoneStory theme={theme} />
         <div>
-          <p className={s.eyebrow}>Premium without being complicated</p>
+          <p className={s.eyebrow}>Built for a football week</p>
           <div className={s.sectionHead}>
             <h2 id="experience-heading">Your whole football week, prioritised for you.</h2>
             <p className={s.sectionLead}>
-              Signed in, the hub identifies the one action that matters now, then gives quiet
-              access to your rank, competitions, leagues and live matches.
+              It knows what you have not done yet, who you are chasing and what is about to
+              kick off — and it puts that first.
             </p>
           </div>
           <ul className={s.featureList}>
@@ -537,8 +538,8 @@ function LeaguesSection(): ReactElement {
             <div>
               <h3>Your friends. Your table. Every week.</h3>
               <p>
-                The same predictions count in the overall standings and in every Match Predictor
-                league you join. No duplicate cards, and no hidden differences between them.
+                One set of predictions counts everywhere you play — your private league and the
+                overall standings — so a good Saturday moves both at once.
               </p>
             </div>
             <Link className={`${s.cta} ${s.ctaPrimary}`} to="/auth/signup">
@@ -573,8 +574,8 @@ function GamesSection(): ReactElement {
           <p className={s.eyebrow}>Three games, one season</p>
           <h2 id="games-heading">Three ways to win the same season.</h2>
           <p className={s.sectionLead}>
-            Each one is its own game with its own table, and each is joined on its own. Play one,
-            play all three, or add another halfway through.
+            Each has its own table and its own way of winning. Play one, play all three, or pick
+            up another halfway through the season.
           </p>
         </div>
         <ul className={s.gameList}>
@@ -602,8 +603,8 @@ function FinalSection(): ReactElement {
           <p className={s.eyebrow}>Ready for the new season</p>
           <h2 id="final-heading">Make your first prediction before everyone else does.</h2>
           <p>
-            Create one account, then choose the competitions and games you want. Nothing is joined
-            for you.
+            One free account, then pick your competitions and your games. It takes a couple of
+            minutes.
           </p>
           <div className={s.heroActions}>
             <Link className={`${s.cta} ${s.ctaPrimary}`} to="/auth/signup">

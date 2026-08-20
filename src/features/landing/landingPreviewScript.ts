@@ -55,12 +55,19 @@ export type PreviewStep = {
  * The first four are the weekly loop — an action arrives, the fixtures are
  * there, the football happens, the table moves — and the fifth is the one thing
  * a week cannot show: that the season holds more than one game.
+ *
+ * THE CAPTIONS ARE WRITTEN FOR A VISITOR, not for a reviewer. They describe
+ * what a person would DO or SEE at that point in the week — "Make your picks",
+ * "Matchday" — rather than naming the implementation state the frame is in. The
+ * accessible descriptions below are the exception and stay literal, because
+ * their job is to tell somebody who cannot see the device that it is a picture
+ * of a product rather than their own account.
  */
 export const PREVIEW_STEPS: readonly PreviewStep[] = [
   {
     id: 'deadline',
-    step: 'An action is waiting',
-    headline: 'Thursday. One thing needs you, and the app says which.',
+    step: 'Make your picks',
+    headline: 'Thursday. Two predictions still to make before Saturday.',
     description:
       'Preview of the signed-in product on Home, with one outstanding action: two ' +
       'predictions still to make before Saturday, the matchweek beneath it, and the ' +
@@ -76,24 +83,24 @@ export const PREVIEW_STEPS: readonly PreviewStep[] = [
   },
   {
     id: 'live',
-    step: 'The football happens',
-    headline: 'Saturday. Provisional points move while the matches do.',
+    step: 'Matchday arrives',
+    headline: 'Saturday. Your points move while the football does.',
     description:
       'Preview of the signed-in product on Home during a live matchweek: matches in play ' +
-      'with their minute, and points clearly labelled as provisional rather than final.',
+      'with their minute, and a running points total that is not yet the final one.',
   },
   {
     id: 'table',
     step: 'The table moves',
-    headline: 'Monday. Your league settles, and you see where you finished.',
+    headline: 'Monday. See where the weekend left you and your rivals.',
     description:
       'Preview of the signed-in product on Leagues: a settled private league table of five ' +
       'players ranked by points, with rank movement, and the reader’s own row marked.',
   },
   {
     id: 'games',
-    step: 'More than one way to win',
-    headline: 'And the season holds three games, each joined on its own.',
+    step: 'Play your way',
+    headline: 'Three games in one season. Play the ones you fancy.',
     description:
       'Preview of the signed-in product on Games: the Match Predictor, Last Man Standing ' +
       'and the Predictor Championship offered side by side, each joined separately.',
