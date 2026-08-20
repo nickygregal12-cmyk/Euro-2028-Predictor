@@ -519,3 +519,32 @@
   gap: var(--vnext-space-3);
   align-items: flex-start;
 }
+
+/*
+ * RESTORED, AND THE DELETION IS WORTH RECORDING. `30ffc7a` removed these two
+ * classes alongside its (correct) touch-target fix above, while
+ * `VNextLeagues.tsx` still names them at three call sites — so
+ * `styles.emptyAction` resolved to `undefined` and the two ways out of the
+ * empty state became unstyled native buttons.
+ *
+ * The irony is the point: a native button is about 21px tall, so a change that
+ * fixed one 44px failure quietly opened another on the surface directly below
+ * it. That is exactly why `min-height` here is the token rather than a number.
+ */
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}
+
+.emptyAction {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
+}
