@@ -40,7 +40,7 @@ jobs:
             -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
             -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
             -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
+            -f 'inputs[expected_source_contract]=211' \
             -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
@@ -74,7 +74,7 @@ jobs:
             -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
             -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
             -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
+            -f 'inputs[expected_source_contract]=211' \
             -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
@@ -111,7 +111,7 @@ jobs:
             -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
             -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
             -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
+            -f 'inputs[expected_source_contract]=211' \
             -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
