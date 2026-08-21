@@ -1,0 +1,56 @@
+name: Update Development 213 migration index once
+
+on:
+  push:
+    branches:
+      - temp-ignore
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: temp-ignore
+          fetch-depth: 0
+      - name: Correct the live hosted migration index and retire this helper
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('docs/ops/ops-pending-migrations.md')
+          s = p.read_text()
+          replacements = {
+            '## Current state — repository 213, Production 211, Development 211 (20 August 2026)':
+              '## Current state — repository 213, Production 211, Development 213 (21 August 2026)',
+            '**Repository contracts 212 and 213 are pending on both hosted environments.** Development and Production are level with each other at **211** — which is the resting state a promotion leaves behind, not a permission — and both take contract 212 and contract 213 as the next boundary, Development first and Production second, the order the workflows refuse to invert.':
+              '**Development has completed the 211→213 boundary and is independently verified at 213.** Production remains at **211**. Contracts 212 and 213 are therefore pending on Production only; the next sequence is the reviewed Production backup → disposable-copy rehearsal → guarded rollout → independent postflight. Contract 214 remains held back until Production is also 213.',
+            'It claims **no** Development or Production rollout yet.':
+              'Development is independently verified with this contract installed; Production has **not** been promoted yet.',
+            '| Development Supabase `iouzoutneyjpugbbtdem` | **211** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |':
+              '| Development Supabase `iouzoutneyjpugbbtdem` | **213** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |',
+          }
+          for old, new in replacements.items():
+              count = s.count(old)
+              if old == 'It claims **no** Development or Production rollout yet.':
+                  if count != 2:
+                      raise SystemExit(f'expected 2 candidate-claim occurrences, found {count}')
+                  s = s.replace(old, new)
+              else:
+                  if count != 1:
+                      raise SystemExit(f'expected 1 occurrence, found {count}: {old[:80]}')
+                  s = s.replace(old, new)
+          p.write_text(s)
+          PY
+          rm .github/workflows/one-shot-update-development-213-migration-index.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/ops/ops-pending-migrations.md .github/workflows/one-shot-update-development-213-migration-index.yml
+          git diff --cached --check
+          git commit -m 'docs: close Development 211 to 213 migration index'
+          git push origin HEAD:temp-ignore
