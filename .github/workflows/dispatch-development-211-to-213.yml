@@ -32,16 +32,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Use raw string fields for workflow-dispatch inputs. `gh api -F`
+          # type-coerces numeric-looking values such as Contract 211 to JSON
+          # numbers, which GitHub rejects because workflow inputs are strings.
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/development-migration-rollout.yml/dispatches" \
-            -F ref=main \
-            -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
-            -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
-            -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
-            -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
+            -f ref=main \
+            -f 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -f 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
+            -f 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
+            -f 'inputs[expected_source_contract]=211' \
+            -f 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
@@ -66,16 +69,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Keep every workflow-dispatch input a JSON string. See the comment
+          # in the issue-comment path above for the `gh api -F` failure mode.
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/development-migration-rollout.yml/dispatches" \
-            -F ref=main \
-            -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
-            -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
-            -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
-            -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
+            -f ref=main \
+            -f 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -f 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
+            -f 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
+            -f 'inputs[expected_source_contract]=211' \
+            -f 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
@@ -103,16 +108,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Keep every workflow-dispatch input a JSON string. See the comment
+          # in the issue-comment path above for the `gh api -F` failure mode.
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "repos/${GITHUB_REPOSITORY}/actions/workflows/development-migration-rollout.yml/dispatches" \
-            -F ref=main \
-            -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
-            -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
-            -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
-            -F 'inputs[expected_source_contract]=211' \
-            -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
+            -f ref=main \
+            -f 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -f 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
+            -f 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
+            -f 'inputs[expected_source_contract]=211' \
+            -f 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
 
           gh api --method POST \
             -H 'Accept: application/vnd.github+json' \
