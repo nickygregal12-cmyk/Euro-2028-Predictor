@@ -2,9 +2,9 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 213, Production 211, Development 211 (20 August 2026)
+## Current state — repository 213, Production 211, Development 213 (21 August 2026)
 
-**Repository contracts 212 and 213 are pending on both hosted environments.** Development and Production are level with each other at **211** — which is the resting state a promotion leaves behind, not a permission — and both take contract 212 and contract 213 as the next boundary, Development first and Production second, the order the workflows refuse to invert.
+**Development has completed the 211→213 boundary and is independently verified at 213.** Production remains at **211**. Contracts 212 and 213 are therefore pending on Production only; the next sequence is the reviewed Production backup → disposable-copy rehearsal → guarded rollout → independent postflight. PR #969 remains held back until Production is also 213; its migration number is not part of the current repository contract yet.
 
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
@@ -16,7 +16,7 @@
 > **Contract 212 repository candidate — the matchweek card publishes the lock it
 > is enforced against (20 August 2026):**
 > `20260820130000_matchweek_card_publishes_the_fixture_lock.sql` closes `ING-005`.
-> It claims **no** Development or Production rollout yet.
+> Development is independently verified with this contract installed; Production has **not** been promoted yet.
 >
 > **What was wrong.** Contract 119 made ENFORCEMENT per fixture;
 > `get_season_matchweek_card` still published only kickoffs, so every client
@@ -44,8 +44,7 @@
 
 > **Contract 213 repository candidate — the unmeasured SportMonks tokens fail
 > closed (20 August 2026):** `20260820150000_drop_unmeasured_sportmonks_tokens.sql`
-> closes the second half of `ING-002`. It claims **no** Development or Production
-> rollout yet.
+> closes the second half of `ING-002`. Development is independently verified with this contract installed; Production has **not** been promoted yet.
 >
 > **What it removes and why removal rather than a remap.** Contract 135 seeded
 > SportMonks `14`–`21` from the provider's published documentation. Contract 209
@@ -76,7 +75,7 @@
 
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | **211** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
+| Development Supabase `iouzoutneyjpugbbtdem` | **213** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **211** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
 
 > **Contract 210 — the live poll window covers the deadline — reached both
@@ -235,8 +234,8 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 | Netlify `euro28predictor` non-production contexts | **178 hosted declaration** |
 | Netlify `euro28predictor` production | **178 hosted declaration** |
 
-- Neither environment has a pending repository migration. The next contract will open a new boundary from **211** on both.
-- Production is level with Development rather than behind it, which is the resting state between promotions, not a standing permission. The next Production boundary needs its own authority, fresh encrypted backup and exact-head rehearsal, exactly as the 209-to-211 boundary did.
+- Development has no pending repository migration at Contract **213**. Production remains at **211** and has Contracts **212–213** pending through the reviewed Production promotion lane.
+- Production is intentionally behind Development during this promotion window. It must reach **213** through its own authority, fresh encrypted backup and exact-head disposable-copy rehearsal before the next migration PR is allowed to proceed.
 - **A level migration chain is not the same as a fresh feed, but the shape of the staleness has changed and the old sentence here was wrong after contract 211.** Both environments still poll SportMonks on a **1440-minute idle cadence**, so a fixture with no deadline near it can be up to roughly a day stale. What is no longer true is that the staleness spans a prediction lock: the deadline watch opens **720 minutes** before an unresolved kickoff and polls every **60**, closing at the kickoff, so the hours before a lock are covered hourly rather than not at all. `ING-006` is closed on both environments by this boundary; the residual idle staleness away from a deadline is deliberate, is what keeps the matchweek at 77 polls rather than 252, and lives in `provider_poll_targets` rather than in the migration chain.
 - Repository, Development and Production remain separate closure states. Never infer hosted state from the repository count.
 - The historic Netlify project `euro28-predictor-dev` is out of scope for the current Development/Production migration lane.
