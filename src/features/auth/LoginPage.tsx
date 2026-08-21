@@ -1,15 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { signInWithPassword } from '../../services/supabase/auth'
+import { signInWithGoogle, signInWithPassword } from '../../services/supabase/auth'
 import { AuthScreen } from './AuthScreen'
 import { LoginForm } from './LoginForm'
 import { friendlyAuthError } from './authErrors'
+import { googleAuthEnabled } from './googleAuthConfig'
 
-/**
- * Log-in screen. Wires the presentational LoginForm to the auth service; on
- * success the AuthProvider's onAuthChange fires and the RedirectIfAuthed gate
- * sends the user to Home, so there's no manual navigate on success.
- */
 export function LoginPage() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -20,8 +16,17 @@ export function LoginPage() {
     setError(null)
     try {
       await signInWithPassword(email, password, captchaToken)
-      // Success: the auth listener flips the session and the route gate
-      // redirects to Home. Keep the button spinning until that unmount.
+    } catch (err) {
+      setError(friendlyAuthError(err, 'login'))
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGoogle() {
+    setSubmitting(true)
+    setError(null)
+    try {
+      await signInWithGoogle()
     } catch (err) {
       setError(friendlyAuthError(err, 'login'))
       setSubmitting(false)
@@ -34,6 +39,7 @@ export function LoginPage() {
         onSubmit={handleSubmit}
         submitting={submitting}
         error={error}
+        onGoogle={googleAuthEnabled ? () => void handleGoogle() : undefined}
         onSwitch={() => navigate('/auth/signup')}
         onForgotPassword={() => navigate('/auth/reset')}
       />
