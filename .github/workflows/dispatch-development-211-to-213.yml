@@ -8,10 +8,7 @@ on:
     types:
       - submitted
 
-permissions:
-  actions: write
-  issues: write
-  contents: read
+permissions: {}
 
 jobs:
   dispatch-from-issue-comment:
@@ -21,6 +18,9 @@ jobs:
       github.event.issue.pull_request != null &&
       github.event.comment.user.login == github.repository_owner &&
       github.event.comment.body == 'RUN-GUARDED-DEVELOPMENT-211-TO-213'
+    permissions:
+      actions: write
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch guarded Development migration lane
@@ -52,6 +52,9 @@ jobs:
       github.event.pull_request.number == 970 &&
       github.event.review.user.login == github.repository_owner &&
       github.event.review.body == 'RUN-GUARDED-DEVELOPMENT-211-TO-213'
+    permissions:
+      actions: write
+      issues: write
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch guarded Development migration lane
