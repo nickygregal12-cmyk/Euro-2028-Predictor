@@ -1,6 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
-import { updateMyDisplayName } from '../../services/supabase/profile'
 import { userFacingError } from '../../shared/errors/userFacingError'
 import { useAuth } from './AuthProvider'
 import { checkDisplayName, DISPLAY_NAME_MAX } from './displayNamePolicy'
@@ -34,6 +33,11 @@ export function PublicFootballNameGate({ children }: { children: ReactNode }) {
     setSubmitting(true)
     setError(null)
     try {
+      // Keep the hosted Supabase client out of this gate's module-load path.
+      // Route/unit tests can import the vNext welcome tree without needing live
+      // Supabase environment variables, while an actual rename still reaches
+      // the existing server-moderated profile service at the moment of use.
+      const { updateMyDisplayName } = await import('../../services/supabase/profile')
       await updateMyDisplayName(userId, name.trim())
       refreshProfile()
     } catch (cause) {
