@@ -242,6 +242,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],
     ['scripts/ops/run-stage-c1-hosted-preflight.mjs', 3],
     ['scripts/ops/stage-c1-evidence-lib.mjs', 41],
+    ['scripts/production-health.mjs', null],
     ['scripts/production-smoke.mjs', 28],
   ] as const
 
