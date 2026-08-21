@@ -1,12 +1,9 @@
-# Operational retrigger marker: 2026-08-21
 name: Dispatch Development 211 to 213
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - .github/workflows/dispatch-development-211-to-213.yml
+  issue_comment:
+    types:
+      - created
 
 permissions:
   actions: write
@@ -15,6 +12,11 @@ permissions:
 
 jobs:
   dispatch:
+    if: >-
+      github.event.issue.number == 970 &&
+      github.event.issue.pull_request != null &&
+      github.event.comment.user.login == github.repository_owner &&
+      github.event.comment.body == 'RUN-GUARDED-DEVELOPMENT-211-TO-213'
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch guarded Development migration lane
@@ -38,4 +40,4 @@ jobs:
             -H 'Accept: application/vnd.github+json' \
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "repos/${GITHUB_REPOSITORY}/issues/970/comments" \
-            -f body="Development 211→213 guarded workflow dispatch accepted from main ${GITHUB_SHA}. Inputs: exact Development ref, source Contract 211, target 20260820150000_drop_unmeasured_sportmonks_tokens.sql, destructive acknowledgement supplied."
+            -f body="Development 211→213 guarded workflow dispatch accepted from owner-triggered main ${GITHUB_SHA}. Inputs: exact Development ref, source Contract 211, target 20260820150000_drop_unmeasured_sportmonks_tokens.sql, destructive acknowledgement supplied."
