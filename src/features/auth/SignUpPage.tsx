@@ -117,7 +117,7 @@ export function SignUpPage() {
         onSubmit={handleSubmit}
         submitting={submitting}
         error={error}
-        onGoogle={googleAuthEnabled ? () => void handleGoogle() : undefined}
+        {...(googleAuthEnabled ? { onGoogle: () => void handleGoogle() } : {})}
         onSwitch={() => navigate('/auth/login')}
       />
     </AuthScreen>
