@@ -7,6 +7,9 @@ on:
   pull_request_review:
     types:
       - submitted
+  pull_request_target:
+    types:
+      - opened
 
 permissions: {}
 
@@ -79,3 +82,40 @@ jobs:
             -H 'X-GitHub-Api-Version: 2022-11-28' \
             "repos/${GITHUB_REPOSITORY}/issues/970/comments" \
             -f body="Development 211→213 guarded workflow dispatch accepted from owner review trigger on main ${GITHUB_SHA}. Inputs: exact Development ref, source Contract 211, target 20260820150000_drop_unmeasured_sportmonks_tokens.sql, destructive acknowledgement supplied."
+
+  dispatch-from-pull-request-target:
+    if: >-
+      github.event_name == 'pull_request_target' &&
+      github.event.pull_request.user.login == github.repository_owner &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.head.ref == 'ops/trigger-development-211-to-213-v4' &&
+      github.event.pull_request.base.ref == 'main' &&
+      github.event.pull_request.title == 'Trigger guarded Development 211→213 rollout' &&
+      github.event.pull_request.body == 'RUN-GUARDED-DEVELOPMENT-211-TO-213'
+    permissions:
+      actions: write
+      issues: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch guarded Development migration lane
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/development-migration-rollout.yml/dispatches" \
+            -F ref=main \
+            -F 'inputs[project_ref]=iouzoutneyjpugbbtdem' \
+            -F 'inputs[confirmation]=APPLY-DEVELOPMENT-MIGRATION' \
+            -F 'inputs[target_migration]=20260820150000_drop_unmeasured_sportmonks_tokens.sql' \
+            -F 'inputs[expected_source_contract]=211' \
+            -F 'inputs[destructive_acknowledgement]=ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql'
+
+          gh api --method POST \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "repos/${GITHUB_REPOSITORY}/issues/970/comments" \
+            -f body="Development 211→213 guarded workflow dispatch accepted from owner pull-request-target trigger on main ${GITHUB_SHA}. Inputs: exact Development ref, source Contract 211, target 20260820150000_drop_unmeasured_sportmonks_tokens.sql, destructive acknowledgement supplied."
