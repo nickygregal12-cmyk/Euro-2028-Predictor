@@ -1,0 +1,47 @@
+name: Temporary AI Lab TypeScript cleanup
+
+on:
+  push:
+    branches:
+      - codex/ai-lab-vnext-rebuild
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/ai-lab-vnext-rebuild
+      - name: Apply strict TypeScript cleanups
+        shell: python
+        run: |
+          from pathlib import Path
+
+          page = Path('src/features/admin/AiLabPage.tsx')
+          text = page.read_text()
+          old = "  marketComparison,\n  outcomeLabel,\n  scorelineHealth,"
+          new = "  marketComparison,\n  scorelineHealth,"
+          if old not in text:
+              raise SystemExit('AiLabPage import shape changed unexpectedly')
+          page.write_text(text.replace(old, new, 1))
+
+          builder = Path('src/features/admin/BetBuilderPanel.tsx')
+          text = builder.read_text()
+          old = "  const goal = GOALS.find((choice) => choice.key === objective) ?? GOALS[0]"
+          new = "  const goal = GOALS.find((choice) => choice.key === objective) ?? GOALS[0]!"
+          if old not in text:
+              raise SystemExit('BetBuilderPanel goal fallback shape changed unexpectedly')
+          builder.write_text(text.replace(old, new, 1))
+
+      - name: Remove helper and push
+        run: |
+          git rm .github/workflows/temporary-ai-lab-ts-cleanup.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/features/admin/AiLabPage.tsx src/features/admin/BetBuilderPanel.tsx
+          git diff --cached --check
+          git commit -m "fix: satisfy strict AI Lab TypeScript checks"
+          git push origin HEAD:codex/ai-lab-vnext-rebuild
