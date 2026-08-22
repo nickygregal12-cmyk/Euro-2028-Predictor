@@ -37,10 +37,14 @@ None. Repository-only; no development or production mutation.
 
 <!-- Required for broad/cross-layer changes; "Not needed" for a bounded edit.
 Name the method used: Graphify / Serena / repository search. A generated graph
-narrows inspection but is not implementation or hosted-state evidence. -->
+narrows inspection but is not implementation or hosted-state evidence. When a
+persistent Graphify snapshot was used, record its input fingerprint as well as
+its source SHA so a source-SHA mismatch caused only by unrelated commits is not
+mistaken for stale code navigation. -->
 
 - Method: Not needed.
 - Graph source SHA: Not applicable.
+- Graph input fingerprint: Not applicable.
 - Key paths or symbols: Not applicable.
 - Why not used: Bounded change; remove this line when navigation evidence exists.
 
