@@ -122,7 +122,7 @@ describe('specialist Agent Skills', () => {
     const packet = route(
       '--no-graph',
       '--path',
-      'src/vnext/app/VNextAppShell.tsx',
+      'src/vnext/app/CompetitionSwitcher.tsx',
       'The competition switcher animation feels sluggish',
     )
     expect(packet.routes).toContain('motion-craft')
