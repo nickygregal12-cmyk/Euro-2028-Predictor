@@ -19,7 +19,7 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 | Task | Read next |
 | --- | --- |
 | vNext UI / frontend | [`docs/product/ui.md`](docs/product/ui.md), then the one surface authority returned by `agent:route`; [`src/vnext/AGENTS.md`](src/vnext/AGENTS.md) is the compact universal vNext router |
-| vNext multi-stage programme | [`.agents/skills/vnext-programme-runner/SKILL.md`](.agents/skills/vnext-programme-runner/SKILL.md), [`docs/product/vnext-programme-controller.md`](docs/product/vnext-programme-controller.md), [`config/vnext-programme.json`](config/vnext-programme.json) |
+| vNext multi-stage programme / resume Stages 8–15 | [`.agents/skills/vnext-programme-runner/SKILL.md`](.agents/skills/vnext-programme-runner/SKILL.md), [`docs/product/vnext-programme-controller.md`](docs/product/vnext-programme-controller.md), [`config/vnext-programme.json`](config/vnext-programme.json) |
 | Product/game rule | [`docs/adr/README.md`](docs/adr/README.md) + governing ADR; accepted gaps live in [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) |
 | Database / migration | machine records under `config/`, [`docs/ops/ops-pending-migrations.md`](docs/ops/ops-pending-migrations.md), relevant SQL/tests |
 | Deployment / hosted claim | [`docs/quality/current-status.md`](docs/quality/current-status.md) + exact machine record/runbook |
