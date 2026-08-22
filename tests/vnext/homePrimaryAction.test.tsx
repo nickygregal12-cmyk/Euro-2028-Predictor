@@ -1,10 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+import {
+  competitionGameRoute,
+  competitionMatchCentreRoute,
+  competitionSectionRoute,
+} from '../../src/app/weeklyRoutes'
+import { homeIntentRoute } from '../../src/app/vnext/homeNavigation'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { homeScenarios, shellScenarios } from '../../src/vnext/fixtures'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { VNextHome, type HomeIntent } from '../../src/vnext/home/VNextHome'
-import { homeIntentToShellIntent } from '../../src/vnext/integration/home/VNextHomeScreen'
 import type { HomeModel } from '../../src/vnext/models/home'
 
 function renderHome(
@@ -45,35 +50,42 @@ describe('Home primary actions', () => {
     })
   })
 
-  it('routes every existing action type through an existing shell destination', () => {
-    const contextId = 't-1'
+  it('emits the featured fixture when the banner promises Match centre', () => {
+    const onIntent = vi.fn()
+    const featured = homeScenarios.live.liveMatches.find((match) => match.isFeatured)
+    if (featured === undefined) throw new Error('live Home must expose a featured fixture')
 
-    expect(
-      homeIntentToShellIntent(
-        { kind: 'primary-action', actionType: 'predict' },
-        contextId,
-      ),
-    ).toEqual({ kind: 'game', game: 'match-predictor', contextId })
+    renderHome(homeScenarios.live, onIntent)
+    fireEvent.click(screen.getByRole('button', { name: 'Match centre' }))
 
-    expect(
-      homeIntentToShellIntent(
-        { kind: 'primary-action', actionType: 'review' },
-        contextId,
-      ),
-    ).toEqual({ kind: 'game', game: 'match-predictor', contextId })
+    expect(onIntent).toHaveBeenCalledWith({
+      kind: 'primary-action',
+      actionType: 'watchLive',
+      matchId: featured.id,
+    })
+  })
 
-    expect(
-      homeIntentToShellIntent(
-        { kind: 'primary-action', actionType: 'watchLive' },
-        contextId,
-      ),
-    ).toEqual({ kind: 'destination', destination: 'matches', contextId })
+  it('routes every existing action to its accepted application destination', () => {
+    const context = {
+      competitionSlug: 'premier-league',
+      seasonSlug: '2027-28',
+    }
 
+    expect(homeIntentRoute(context, { kind: 'primary-action', actionType: 'predict' })).toBe(
+      competitionGameRoute(context, 'match-predictor'),
+    )
+    expect(homeIntentRoute(context, { kind: 'primary-action', actionType: 'review' })).toBe(
+      competitionGameRoute(context, 'match-predictor'),
+    )
+    expect(homeIntentRoute(context, { kind: 'primary-action', actionType: 'joinLeague' })).toBe(
+      competitionSectionRoute(context, 'leagues'),
+    )
     expect(
-      homeIntentToShellIntent(
-        { kind: 'primary-action', actionType: 'joinLeague' },
-        contextId,
-      ),
-    ).toEqual({ kind: 'destination', destination: 'leagues', contextId })
+      homeIntentRoute(context, {
+        kind: 'primary-action',
+        actionType: 'watchLive',
+        matchId: 'fixture-live',
+      }),
+    ).toBe(competitionMatchCentreRoute(context, 'fixture-live'))
   })
 })

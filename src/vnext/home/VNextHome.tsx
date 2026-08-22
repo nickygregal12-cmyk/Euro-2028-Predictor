@@ -19,10 +19,17 @@ import {
 } from './selectHomeEmphasis'
 import styles from './home.module.css'
 
-export type HomeIntent = {
-  readonly kind: 'primary-action'
-  readonly actionType: PrimaryActionType
-}
+export type HomeIntent =
+  | {
+      readonly kind: 'primary-action'
+      readonly actionType: Exclude<PrimaryActionType, 'watchLive'>
+    }
+  | {
+      readonly kind: 'primary-action'
+      readonly actionType: 'watchLive'
+      /** The Match Centre promise is exact, so the canonical fixture travels. */
+      readonly matchId: string
+    }
 
 export type VNextHomeProps = {
   model: HomeModel
@@ -87,8 +94,19 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const emphasis = selectHomeEmphasis(model)
   const featured = pickFeaturedLiveMatch(model)
   const decision = pickDecisionMatch(model)
-  const primaryAction = () =>
-    onIntent?.({ kind: 'primary-action', actionType: model.primaryAction.type })
+  const primaryAction = () => {
+    const actionType = model.primaryAction.type
+    if (actionType === 'watchLive') {
+      // The button literally promises Match Centre. A destination without a
+      // fixture id can only reach Matches, so carry the exact featured match
+      // that Home is already presenting rather than letting a later layer guess.
+      if (featured) {
+        onIntent?.({ kind: 'primary-action', actionType, matchId: featured.id })
+      }
+      return
+    }
+    onIntent?.({ kind: 'primary-action', actionType })
+  }
 
   const allMatches = [
     ...model.liveMatches,

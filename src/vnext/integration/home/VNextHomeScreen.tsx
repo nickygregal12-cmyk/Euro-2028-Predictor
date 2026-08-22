@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import { VNextHome, type HomeIntent } from '../../home/VNextHome'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { HomeModel } from '../../models/home'
@@ -52,6 +52,15 @@ export type VNextHomeScreenProps = VNextHomeSourceInput & {
    */
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
   /**
+   * What the host does with Home's own content action.
+   *
+   * THIS IS DELIBERATELY SEPARATE FROM `onShellIntent`. The shell can say
+   * "Matches" or "Games" without knowing a fixture; Home can promise an exact
+   * "Match centre" and therefore has to carry the fixture id. The application
+   * adapter owns the final URL, exactly as the Matches screen does.
+   */
+  readonly onIntent?: ((intent: HomeIntent) => void) | undefined
+  /**
    * The player's OTHER competitions and what is waiting in them, where the host
    * loads them. `undefined` is the one-competition shape: the shell states this
    * page's competition and says nothing about any other, which is what a
@@ -59,34 +68,6 @@ export type VNextHomeScreenProps = VNextHomeSourceInput & {
    * belongs to a host that mounts it once above the pages.
    */
   readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
-}
-
-/**
- * HOME'S ACTION IS ROUTE-AGNOSTIC; THE SHELL ALREADY KNOWS THESE PLACES.
- *
- * The workshop model still carries `routePlaceholder`, but production must not
- * turn that old design note into a URL. Home says only which existing action the
- * player pressed. This adapter translates it into the same typed shell intents
- * used by the competition navigation, and the application host remains the only
- * layer that turns an intent into a route.
- */
-export function homeIntentToShellIntent(
-  intent: HomeIntent,
-  contextId: string,
-): ShellIntent {
-  switch (intent.actionType) {
-    case 'predict':
-    case 'review':
-      return { kind: 'game', game: 'match-predictor', contextId }
-    case 'watchLive':
-      return { kind: 'destination', destination: 'matches', contextId }
-    case 'joinLeague':
-      return { kind: 'destination', destination: 'leagues', contextId }
-    default: {
-      const unreachable: never = intent.actionType
-      return unreachable
-    }
-  }
 }
 
 export function VNextHomeScreen(props: VNextHomeScreenProps) {
@@ -130,29 +111,11 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
     [state, model, props.onShellIntent, elsewhere],
   )
 
-  const onHomeIntent = useCallback(
-    (intent: HomeIntent) => {
-      if (state.status !== 'ready' || props.onShellIntent === undefined) return
-      props.onShellIntent(
-        homeIntentToShellIntent(intent, state.source.competition.tournamentId),
-      )
-    },
-    [state, props.onShellIntent],
-  )
-
   return shell === null ? (
-    <VNextHomeBody
-      state={state}
-      model={model}
-      onIntent={props.onShellIntent === undefined ? undefined : onHomeIntent}
-    />
+    <VNextHomeBody state={state} model={model} onIntent={props.onIntent} />
   ) : (
     <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
-      <VNextHomeBody
-        state={state}
-        model={model}
-        onIntent={props.onShellIntent === undefined ? undefined : onHomeIntent}
-      />
+      <VNextHomeBody state={state} model={model} onIntent={props.onIntent} />
     </VNextShellProvider>
   )
 }
