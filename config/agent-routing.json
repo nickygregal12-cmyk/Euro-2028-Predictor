@@ -31,7 +31,7 @@
       "id": "vnext-shell",
       "priority": 170,
       "paths": ["src/vnext/app/", "src/vnext/integration/shell/", "src/vnext/models/shell.ts"],
-      "taskKeywords": ["competition switcher", "vnext shell", "shell navigation", "bottom navigation", "navigation rail"],
+      "taskKeywords": ["vnext shell", "competition deck", "vnext competition switcher"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-shell-ia.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -39,7 +39,7 @@
       "id": "vnext-matches",
       "priority": 165,
       "paths": ["src/vnext/matches/", "src/vnext/integration/matches/", "src/vnext/models/matches.ts"],
-      "taskKeywords": ["match centre", "vnext matches", "fixture list"],
+      "taskKeywords": ["vnext matches", "match centre"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-matches.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -47,7 +47,7 @@
       "id": "vnext-leagues",
       "priority": 165,
       "paths": ["src/vnext/leagues/", "src/vnext/integration/leagues/", "src/vnext/models/leagues.ts"],
-      "taskKeywords": ["vnext leagues", "league standings", "player row"],
+      "taskKeywords": ["vnext leagues"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-leagues.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -55,7 +55,7 @@
       "id": "vnext-player",
       "priority": 165,
       "paths": ["src/vnext/player/", "src/vnext/integration/playerProfile/", "src/vnext/models/playerProfile.ts"],
-      "taskKeywords": ["player profile", "rival profile", "head to head"],
+      "taskKeywords": ["vnext player profile", "vnext rival profile"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-player-profiles.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -63,7 +63,7 @@
       "id": "vnext-lms",
       "priority": 165,
       "paths": ["src/vnext/lms/", "src/vnext/integration/lms/", "src/vnext/models/lms.ts"],
-      "taskKeywords": ["last man standing", "vnext lms", "survival game"],
+      "taskKeywords": ["vnext lms", "vnext last man standing"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-lms.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -71,7 +71,7 @@
       "id": "vnext-championship",
       "priority": 165,
       "paths": ["src/vnext/championship/", "src/vnext/integration/championship/", "src/vnext/models/championship.ts"],
-      "taskKeywords": ["predictor championship", "championship bracket", "vnext championship"],
+      "taskKeywords": ["vnext championship", "predictor championship bracket"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-championship.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -79,7 +79,7 @@
       "id": "vnext-home",
       "priority": 160,
       "paths": ["src/vnext/home/", "src/vnext/integration/home/", "src/vnext/models/home.ts"],
-      "taskKeywords": ["vnext home", "home page", "find a league"],
+      "taskKeywords": ["vnext home", "find a league", "around the grounds"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -87,7 +87,7 @@
       "id": "vnext-predictor",
       "priority": 160,
       "paths": ["src/vnext/predictor/", "src/vnext/integration/predictor/", "src/vnext/models/predictor.ts"],
-      "taskKeywords": ["match predictor", "prediction card", "score entry"],
+      "taskKeywords": ["vnext match predictor"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
       "skills": ["predictor-ui-review"]
     },
