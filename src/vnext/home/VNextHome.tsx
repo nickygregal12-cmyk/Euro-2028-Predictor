@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import type { HomeModel } from '../models/home'
+import type { HomeModel, PrimaryActionType } from '../models/home'
 import { VNextShell } from '../app/VNextShell'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
@@ -19,8 +19,14 @@ import {
 } from './selectHomeEmphasis'
 import styles from './home.module.css'
 
+export type HomeIntent = {
+  readonly kind: 'primary-action'
+  readonly actionType: PrimaryActionType
+}
+
 export type VNextHomeProps = {
   model: HomeModel
+  onIntent?: ((intent: HomeIntent) => void) | undefined
 }
 
 /** What the secondary football zone is called, per emphasis. */
@@ -73,7 +79,7 @@ const GROUNDS_TITLE = {
  * about locks, scoring, settlement, reveal or whether a match is officially
  * under way, and it must never become so.
  */
-export function VNextHome({ model }: VNextHomeProps) {
+export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
@@ -81,6 +87,8 @@ export function VNextHome({ model }: VNextHomeProps) {
   const emphasis = selectHomeEmphasis(model)
   const featured = pickFeaturedLiveMatch(model)
   const decision = pickDecisionMatch(model)
+  const primaryAction = () =>
+    onIntent?.({ kind: 'primary-action', actionType: model.primaryAction.type })
 
   const allMatches = [
     ...model.liveMatches,
@@ -140,7 +148,7 @@ export function VNextHome({ model }: VNextHomeProps) {
           sits above the football, because a deadline you can still act on
           outranks a match you cannot. */}
       {emphasis === 'decision' ? null : (
-        <ActionBanner action={model.primaryAction} now={now} />
+        <ActionBanner action={model.primaryAction} now={now} onAction={primaryAction} />
       )}
 
       {/* Keyed on the emphasis so a change of state re-runs the entrance
@@ -157,7 +165,7 @@ export function VNextHome({ model }: VNextHomeProps) {
         <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
           {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
           {emphasis === 'decision' && decision ? (
-            <DecisionHero match={decision} now={now} />
+            <DecisionHero match={decision} now={now} onAction={primaryAction} />
           ) : null}
           {emphasis === 'competition' ? <CompetitionFocus model={model} /> : null}
         </motion.div>
