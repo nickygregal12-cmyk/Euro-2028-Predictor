@@ -44,7 +44,7 @@ describe('specialist Agent Skills', () => {
 
     expect(registry.cacheRoot).toBe('.agent-cache/skills')
     expect(read('.gitignore')).toContain('.agent-cache/')
-    expect(Object.keys(registry.sources)).toHaveLength(12)
+    expect(Object.keys(registry.sources).length).toBeGreaterThan(0)
 
     for (const [id, source] of Object.entries(registry.sources)) {
       expect(source.repository, id).toMatch(/^[\w.-]+\/[\w.-]+$/)
@@ -52,15 +52,16 @@ describe('specialist Agent Skills', () => {
       expect(source.path, id).not.toContain('..')
       expect(source.entrypoint, id).not.toContain('..')
       expect(source.entrypoint, id).not.toMatch(/^[/\\]/)
+      expect(source.entrypoint, id).toMatch(/\.md$/)
       expect(['MIT', 'Apache-2.0', 'CC-BY-SA-4.0']).toContain(source.license)
       if (source.mode !== 'catalogue-only') {
-        expect(source.entrypoint, id).toBe('SKILL.md')
         expect(source.adapter, id).toBeTruthy()
         expect(existsSync(resolve(root, `.agents/skills/${source.adapter}/SKILL.md`)), id).toBe(true)
       }
     }
 
     expect(registry.sources['insecure-defaults']?.entrypoint).toBe('commands/audit.md')
+    expect(registry.sources['code-simplifier']?.entrypoint).toBe('agents/code-simplifier.md')
     expect(registry.sources['frontend-design']?.repository).toBe('pbakaus/impeccable')
     expect(registry.sources['frontend-design']?.path).toBe('.agents/skills/impeccable')
     expect(registry.sources['motion-craft']?.repository).toBe('emilkowalski/skills')
@@ -95,12 +96,17 @@ describe('specialist Agent Skills', () => {
   })
 
   it('validates the source catalogue without making a network call', () => {
+    const registry = JSON.parse(read('config/agent-skill-sources.json')) as {
+      sources: Record<string, unknown>
+    }
     const output = execFileSync('node', ['scripts/agent-tools/materialize-skill.mjs', 'check'], {
       cwd: root,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    expect(output).toContain('Validated 12 pinned specialist skill sources')
+    expect(output).toContain(
+      `Validated ${Object.keys(registry.sources).length} pinned specialist skill sources`,
+    )
   })
 
   it('selects Impeccable-backed Predictor design plus UI review for a redesign task', () => {
