@@ -248,3 +248,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 4. For why a historical contract existed, use the archived narrative or the migration/PR itself — do not reconstruct history from this live index.
 
 The old “Repository candidate … applied to no hosted environment by this record” blocks are **historical contract records**, not a current pending queue; that wording is intentionally kept only in the archive.
+
+### Contract 214 — pending hosted rollout
+
+`20260820170000_confirmation_tracks_current_card.sql` is repository-ready but not claimed as applied to a hosted environment. It must follow the existing guarded migration sequence and parity/acceptance checks before hosted clients may depend on the new current-confirmation evidence.

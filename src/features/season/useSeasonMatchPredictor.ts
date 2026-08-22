@@ -123,6 +123,14 @@ export type SeasonMatchPredictorView = {
 const JOKER_KEY = 'joker'
 const CARD_KEY = 'card'
 
+function samePrediction(
+  current: ScorelinePrediction | null,
+  requested: ScorelinePrediction | null,
+): boolean {
+  if (current === null || requested === null) return current === requested
+  return current.home === requested.home && current.away === requested.away
+}
+
 export function useSeasonMatchPredictor(
   gateway: MatchPredictorGateway,
   matchweek: number,
@@ -378,6 +386,13 @@ export function useSeasonMatchPredictor(
 
   const setPrediction = useCallback(
     (fixtureId: string, prediction: ScorelinePrediction | null) => {
+      const current = pageRef.current
+      const stored = current?.fixtures.find((fixture) => fixture.fixtureId === fixtureId)?.prediction
+      // Contract 214: the server treats an identical scoreline (or clearing an
+      // already-empty fixture) as a no-op so it does not invalidate a current
+      // confirmation. Do the same before creating a device draft or save event.
+      if (stored !== undefined && samePrediction(stored, prediction)) return
+
       // INNOV-020. Recorded on the device BEFORE the write is attempted, so a
       // save that never leaves the phone still leaves the work somewhere. It is
       // cleared the moment the server says `saved` — never before, and never on
@@ -385,17 +400,19 @@ export function useSeasonMatchPredictor(
       if (store) commitDrafts(upsertDraft(draftsRef.current, fixtureId, prediction))
 
       issue(fixtureId, { kind: 'setPrediction', fixtureId, prediction }, () => {
-        setPage((current) =>
-          current === null
-            ? current
+        setPage((next) =>
+          next === null
+            ? next
             : {
-                ...current,
-                // A player who edits anything has engaged the matchweek, so the
-                // card stops being `no_submission`. That is the difference
-                // between unbanked and banking what they entered, so it has to
-                // move here rather than waiting for a server round trip.
-                cardStatus: current.cardStatus === 'no_submission' ? 'provisional' : current.cardStatus,
-                fixtures: current.fixtures.map((fixture) =>
+                ...next,
+                // Contract 214. A material edit means the CURRENT card is not
+                // the one the previous confirmation described. Clear the
+                // server evidence at the same instant the edited score appears;
+                // waiting for a reload would show a self-contradictory screen.
+                cardStatus: 'provisional',
+                confirmedAt: null,
+                confirmationReference: null,
+                fixtures: next.fixtures.map((fixture) =>
                   fixture.fixtureId === fixtureId ? { ...fixture, prediction } : fixture,
                 ),
               },
@@ -407,18 +424,31 @@ export function useSeasonMatchPredictor(
 
   const setJoker = useCallback(
     (played: boolean) => {
+      const current = pageRef.current
+      // Same no-op rule as the server: repeating the current Joker state changes
+      // no card content and therefore cannot invalidate confirmation.
+      if (current?.joker.playedHere === played) return
+
       issue(JOKER_KEY, { kind: 'setJoker', played }, () => {
-        setPage((current) =>
-          current === null
-            ? current
+        setPage((next) =>
+          next === null
+            ? next
             : {
-                ...current,
+                ...next,
+                // Playing or taking back a Joker changes what the card means at
+                // settlement. An existing confirmation therefore stops
+                // describing the card. Unlike a prediction save, a Joker does
+                // not create a card from absence, so no_submission stays absent.
+                cardStatus: next.cardStatus === 'confirmed' ? 'provisional' : next.cardStatus,
+                confirmedAt: next.cardStatus === 'confirmed' ? null : next.confirmedAt,
+                confirmationReference:
+                  next.cardStatus === 'confirmed' ? null : next.confirmationReference,
                 joker: {
-                  ...current.joker,
+                  ...next.joker,
                   playedHere: played,
                   remainingThisHalf: Math.max(
                     0,
-                    current.joker.remainingThisHalf + (played ? -1 : 1),
+                    next.joker.remainingThisHalf + (played ? -1 : 1),
                   ),
                 },
               },
@@ -429,8 +459,21 @@ export function useSeasonMatchPredictor(
   )
 
   const confirmCard = useCallback(() => {
+    if (pageRef.current?.cardStatus === 'confirmed') return
     issue(CARD_KEY, { kind: 'confirmCard' }, () => {
-      setPage((current) => (current === null ? current : { ...current, cardStatus: 'confirmed' }))
+      setPage((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              cardStatus: 'confirmed',
+              // The server has not answered yet. A browser clock/reference here
+              // would be invented evidence, so the receipt appears without an
+              // evidence line until the next authoritative read.
+              confirmedAt: null,
+              confirmationReference: null,
+            },
+      )
     })
   }, [issue])
 

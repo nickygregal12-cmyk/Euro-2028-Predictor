@@ -39,6 +39,10 @@ import type {
 type CardPayload = {
   matchweek: { number: number; of: number }
   card_status: 'no_submission' | 'provisional' | 'confirmed'
+  // Contract 214. Optional during the repository/hosted rollout gap; absence is
+  // not permission to invent a browser timestamp or receipt id.
+  confirmed_at?: string | null
+  confirmation_reference?: string | null
   joker: {
     played: boolean
     used_first_half: number
@@ -196,6 +200,11 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           locked: fixture.locked,
         })),
         cardStatus: card.card_status,
+        // Contract 214. These are CURRENT-confirmation evidence supplied by the
+        // server. A pre-214 hosted database returns neither, which maps to null
+        // and keeps the UI from fabricating a time or reference during rollout.
+        confirmedAt: card.confirmed_at ?? null,
+        confirmationReference: card.confirmation_reference ?? null,
         lock,
         joker: {
           playedHere: card.joker.played,

@@ -95,6 +95,15 @@ export type MatchPredictorPage = {
   }
   fixtures: readonly MatchPredictorFixture[]
   cardStatus: CardStatus
+  /**
+   * Contract 214. Server evidence for the CURRENT confirmation only.
+   *
+   * Optional during the repository/hosted rollout gap. A client reading a
+   * database below contract 214 has neither field and must not manufacture a
+   * timestamp or reference from its own clock.
+   */
+  confirmedAt?: string | null | undefined
+  confirmationReference?: string | null | undefined
   lock: ResolvedLockState
   joker: MatchweekJoker
   /** Total points for this matchweek once settled, else null. */
@@ -257,9 +266,6 @@ export function commandRefusal(
       if (presentation.state === 'unavailable') {
         return 'This matchweek is unavailable, so it cannot be edited.'
       }
-      // Said of the FIXTURE, because that is what is locked. Telling a player
-      // the matchweek is locked while its other fixtures accept edits would be
-      // the same class of untruth this contract exists to remove.
       return fixtureEditable(presentation, fixture) ? null : 'This fixture is locked.'
     }
   }
@@ -273,46 +279,24 @@ export function commandRefusal(
     return 'This matchweek is locked.'
   }
   if (command.kind === 'setJoker' && command.played && !joker.playable) {
-    return 'You have no Jokers left for this half of the season.'
-  }
-  if (command.kind === 'confirmCard' && presentation.entered === 0) {
-    return 'Enter at least one prediction before confirming the card.'
+    return 'You have used every Joker available in this half.'
   }
   return null
 }
 
-/**
- * One offline draft as the gateway reconciles it. Deliberately carries NO
- * version and NO instant: the version is the gateway's private concern, exactly
- * as it is for `apply`, and contract 177 accepts no instant at all.
- */
-export type MatchPredictorDraft = {
-  fixtureId: string
-  prediction: ScorelinePrediction | null
-}
-
-/** The read/write boundary. One implementation reads fixtures; another an RPC. */
+/** The storage boundary. A real Supabase gateway and fixtures both implement this. */
 export type MatchPredictorGateway = {
-  /** Load one matchweek, or fail with a reason the page can render. */
   load(matchweek: number): Promise<MatchPredictorPage>
-  /**
-   * Apply one command. Rejects with a version-conflict error when the row moved
-   * underneath us, which is what drives `conflict_requires_refresh`.
-   */
   apply(matchweek: number, command: MatchPredictorCommand): Promise<void>
   /**
-   * `INNOV-020`. Submit a batch of drafts written while the device was offline
-   * and answer per fixture.
-   *
-   * OPTIONAL, AND ITS ABSENCE IS THE FEATURE BEING OFF. The development
-   * fixture gateway has no batch path and never claims one, so a surface asks
-   * whether the method exists rather than being told by a flag that can
-   * disagree with the gateway it is describing.
+   * Optional until INNOV-020's server contract is present. A gateway without it
+   * still supports the ordinary online journey exactly as before.
    */
-  reconcile?:
-    | ((
-        matchweek: number,
-        drafts: readonly MatchPredictorDraft[],
-      ) => Promise<PredictionBatchResult>)
-    | undefined
+  reconcile?(
+    matchweek: number,
+    drafts: readonly {
+      fixtureId: string
+      prediction: ScorelinePrediction | null
+    }[],
+  ): Promise<PredictionBatchResult>
 }
