@@ -3,27 +3,9 @@ import { db } from './client'
 
 /**
  * Bet Builder reads only bounded competition-admin RPCs; the browser never
- * queries schema `ai` directly.
- *
- * THE CURRENCY RULE MOVED TO THE DATABASE, AND IT IS THE SAME RULE.
- * `admin_ai_bet_builder_candidates` used to filter `where decision = 'BET'`
- * before its `distinct on (prediction_id)`, so it returned the newest BET for a
- * prediction rather than the newest DECISION, and a fixture whose price had gone
- * stale still offered its two-day-old BET as a leg. This module compensated by
- * fetching `admin_ai_recommendation_log` for all nine leagues, 500 rows each,
- * keeping the newest row per fixture and intersecting — nine extra round trips
- * to re-derive something the database could answer in one, and a second
- * definition of "current" living in TypeScript beside the SQL one.
- *
- * Contract 201 gave that rule one home in `ai.current_fixture_recommendations`
- * and contract 203 made the candidate read use it, so a superseded BET cannot
- * leave the database in the first place. `ai.recommendations` stays append-only:
- * nothing is rewritten and the older BET remains readable in the decision log as
- * the record of what the lab said at the time. The protection is not weaker for
- * being in one place — `ai/test_db_lifecycle.py` and `supabase/tests/251` both
- * prove a newer PASS supersedes an older BET, in both directions.
+ * queries schema `ai` directly. The database owns whether a fixture currently
+ * has a BET. The browser only combines those already-approved legs.
  */
-
 type RawBook = {
   code: string
   name: string
@@ -59,9 +41,27 @@ type RawLeg = {
   uses_market: boolean | null
 }
 
+type RawCoverage = {
+  fixtures_in_window?: number | string | null
+  with_current_decision?: number | string | null
+  actionable_anywhere?: number | string | null
+  actionable_at_this_book?: number | string | null
+  passed?: number | string | null
+  pass_reason_counts?: Record<string, number | string | null> | null
+}
+
 export type BookmakerSummary = Bookmaker & {
   readonly legs: number
   readonly lastDecidedAt: string | null
+}
+
+export type BetBuilderCoverage = {
+  readonly fixturesInWindow: number
+  readonly withCurrentDecision: number
+  readonly actionableAnywhere: number
+  readonly actionableAtThisBook: number
+  readonly passed: number
+  readonly passReasonCounts: Readonly<Record<string, number>>
 }
 
 export type BetBuilderCandidates = {
@@ -70,6 +70,7 @@ export type BetBuilderCandidates = {
   readonly legCount: number
   readonly truncatedAt: number
   readonly window: { from: string; to: string }
+  readonly coverage: BetBuilderCoverage
   readonly generatedAt: string
 }
 
@@ -83,6 +84,20 @@ function kind(value: string): Bookmaker['kind'] {
   return value === 'bookmaker' || value === 'exchange' || value === 'aggregate'
     ? value
     : 'unknown'
+}
+
+function coverage(value: RawCoverage | null | undefined): BetBuilderCoverage {
+  const reasons = value?.pass_reason_counts ?? {}
+  return {
+    fixturesInWindow: num(value?.fixtures_in_window) ?? 0,
+    withCurrentDecision: num(value?.with_current_decision) ?? 0,
+    actionableAnywhere: num(value?.actionable_anywhere) ?? 0,
+    actionableAtThisBook: num(value?.actionable_at_this_book) ?? 0,
+    passed: num(value?.passed) ?? 0,
+    passReasonCounts: Object.fromEntries(
+      Object.entries(reasons).map(([code, count]) => [code, num(count) ?? 0]),
+    ),
+  }
 }
 
 export function mapBookmakers(payload: unknown): readonly BookmakerSummary[] {
@@ -105,6 +120,7 @@ export function mapCandidates(payload: unknown): BetBuilderCandidates {
     leg_count?: number
     truncated_at?: number
     window?: { from: string; to: string }
+    coverage?: RawCoverage
     generated_at?: string
   }
   const book = body.bookmaker
@@ -140,14 +156,12 @@ export function mapCandidates(payload: unknown): BetBuilderCandidates {
     legCount: body.leg_count ?? 0,
     truncatedAt: body.truncated_at ?? 0,
     window: body.window ?? { from: '', to: '' },
+    coverage: coverage(body.coverage),
     generatedAt: body.generated_at ?? '',
   }
 }
 
 export async function fetchBetBuilderBookmakers(): Promise<readonly BookmakerSummary[]> {
-  // Contract 203: `legs` is the number of CURRENT BET decisions naming this
-  // venue, so the count on the picker is the number of legs selecting it
-  // returns rather than a historical total that promises more than it delivers.
   const { data, error } = await db.rpc('admin_ai_bet_builder_books')
   if (error) throw error
   return mapBookmakers(data)
