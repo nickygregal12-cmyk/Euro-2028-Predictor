@@ -1,5 +1,5 @@
-import { useMemo } from 'react'
-import { VNextHome } from '../../home/VNextHome'
+import { useCallback, useMemo } from 'react'
+import { VNextHome, type HomeIntent } from '../../home/VNextHome'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { HomeModel } from '../../models/home'
 import type { ShellIntent } from '../../models/shell'
@@ -61,6 +61,34 @@ export type VNextHomeScreenProps = VNextHomeSourceInput & {
   readonly shellElsewhere?: ShellSourceElsewhere | null | undefined
 }
 
+/**
+ * HOME'S ACTION IS ROUTE-AGNOSTIC; THE SHELL ALREADY KNOWS THESE PLACES.
+ *
+ * The workshop model still carries `routePlaceholder`, but production must not
+ * turn that old design note into a URL. Home says only which existing action the
+ * player pressed. This adapter translates it into the same typed shell intents
+ * used by the competition navigation, and the application host remains the only
+ * layer that turns an intent into a route.
+ */
+export function homeIntentToShellIntent(
+  intent: HomeIntent,
+  contextId: string,
+): ShellIntent {
+  switch (intent.actionType) {
+    case 'predict':
+    case 'review':
+      return { kind: 'game', game: 'match-predictor', contextId }
+    case 'watchLive':
+      return { kind: 'destination', destination: 'matches', contextId }
+    case 'joinLeague':
+      return { kind: 'destination', destination: 'leagues', contextId }
+    default: {
+      const unreachable: never = intent.actionType
+      return unreachable
+    }
+  }
+}
+
 export function VNextHomeScreen(props: VNextHomeScreenProps) {
   const elsewhere = useShellElsewhere(props.shellElsewhere)
   const state = useVNextHomeSource(props)
@@ -102,11 +130,29 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
     [state, model, props.onShellIntent, elsewhere],
   )
 
+  const onHomeIntent = useCallback(
+    (intent: HomeIntent) => {
+      if (state.status !== 'ready' || props.onShellIntent === undefined) return
+      props.onShellIntent(
+        homeIntentToShellIntent(intent, state.source.competition.tournamentId),
+      )
+    },
+    [state, props.onShellIntent],
+  )
+
   return shell === null ? (
-    <VNextHomeBody state={state} model={model} />
+    <VNextHomeBody
+      state={state}
+      model={model}
+      onIntent={props.onShellIntent === undefined ? undefined : onHomeIntent}
+    />
   ) : (
     <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
-      <VNextHomeBody state={state} model={model} />
+      <VNextHomeBody
+        state={state}
+        model={model}
+        onIntent={props.onShellIntent === undefined ? undefined : onHomeIntent}
+      />
     </VNextShellProvider>
   )
 }
@@ -115,9 +161,11 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
 function VNextHomeBody({
   state,
   model,
+  onIntent,
 }: {
   readonly state: ReturnType<typeof useVNextHomeSource>
   readonly model: HomeModel | null
+  readonly onIntent?: ((intent: HomeIntent) => void) | undefined
 }) {
   switch (state.status) {
     case 'loading':
@@ -152,6 +200,6 @@ function VNextHomeBody({
       // A ready state with no model is unreachable: the memo builds one for
       // exactly this branch. The guard exists so the type narrows without a
       // non-null assertion, which would be the one place this file could lie.
-      return model ? <VNextHome model={model} /> : <VNextHomeLoading />
+      return model ? <VNextHome model={model} onIntent={onIntent} /> : <VNextHomeLoading />
   }
 }
