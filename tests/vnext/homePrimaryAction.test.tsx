@@ -44,12 +44,25 @@ describe('Home navigation actions', () => {
     expect(onIntent).toHaveBeenCalledWith({ kind: 'open-predictor' })
   })
 
-  it('emits the featured fixture when the banner promises Match centre', () => {
+  it('emits the featured fixture when the primary banner promises Match centre', () => {
     const onIntent = vi.fn()
     const featured = homeScenarios.live.liveMatches.find((match) => match.isFeatured)
     if (featured === undefined) throw new Error('live Home must expose a featured fixture')
 
-    renderHome(homeScenarios.live, onIntent)
+    const watchLive: HomeModel = {
+      ...homeScenarios.live,
+      primaryAction: {
+        type: 'watchLive',
+        title: 'Glenmore are live',
+        description: 'Open the live match centre.',
+        deadline: null,
+        progress: null,
+        routePlaceholder: 'fixtures',
+        urgency: 'urgent',
+      },
+    }
+
+    renderHome(watchLive, onIntent)
     fireEvent.click(screen.getByRole('button', { name: 'Match centre' }))
 
     expect(onIntent).toHaveBeenCalledWith({ kind: 'open-match', matchId: featured.id })
@@ -63,7 +76,9 @@ describe('Home navigation actions', () => {
     renderHome(homeScenarios.live, onIntent)
     fireEvent.click(
       screen.getByRole('button', {
-        name: `Match centre for ${featured.home.team.name} versus ${featured.away.team.name}`,
+        name: new RegExp(
+          `^Match centre\\s*for ${featured.home.team.name} versus ${featured.away.team.name}$`,
+        ),
       }),
     )
 
