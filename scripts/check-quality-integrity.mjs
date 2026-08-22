@@ -62,12 +62,77 @@ export function extractPlaywrightRetries(source) {
   return match ? Number(match[1]) : 0
 }
 
-function scrubComments(source) {
-  return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
+function scrubNonCode(source) {
+  let output = ''
+  let state = 'code'
+  let quote = ''
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index]
+    const next = source[index + 1]
+
+    if (state === 'code') {
+      if (char === '/' && next === '/') {
+        output += '  '
+        index += 1
+        state = 'line-comment'
+      } else if (char === '/' && next === '*') {
+        output += '  '
+        index += 1
+        state = 'block-comment'
+      } else if (char === "'" || char === '"' || char === '`') {
+        quote = char
+        output += ' '
+        state = 'string'
+      } else {
+        output += char
+      }
+      continue
+    }
+
+    if (state === 'line-comment') {
+      if (char === '\n') {
+        output += '\n'
+        state = 'code'
+      } else {
+        output += ' '
+      }
+      continue
+    }
+
+    if (state === 'block-comment') {
+      if (char === '*' && next === '/') {
+        output += '  '
+        index += 1
+        state = 'code'
+      } else {
+        output += char === '\n' ? '\n' : ' '
+      }
+      continue
+    }
+
+    if (state === 'string') {
+      if (char === '\\') {
+        output += ' '
+        if (index + 1 < source.length) {
+          output += source[index + 1] === '\n' ? '\n' : ' '
+          index += 1
+        }
+      } else if (char === quote) {
+        output += ' '
+        state = 'code'
+        quote = ''
+      } else {
+        output += char === '\n' ? '\n' : ' '
+      }
+    }
+  }
+
+  return output
 }
 
 export function countTestControls(source) {
-  const code = scrubComments(source)
+  const code = scrubNonCode(source)
   return {
     suppressions: [...code.matchAll(/\b(?:test|it|describe)\.(?:skip|todo|fixme)\s*\(/g)].length,
     focused: [...code.matchAll(/\b(?:test|it|describe)\.only\s*\(/g)].length,
