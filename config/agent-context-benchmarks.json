@@ -177,6 +177,23 @@
       "requiredSkills": ["predictor-compound-learning"],
       "maxAuthorities": 1,
       "maxSelectedSkills": 1
+    },
+    {
+      "id": "broken-journey-cleanup-does-not-simplify",
+      "prompt": "Clean up this broken journey and fix the bug",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "forbiddenSkills": ["predictor-code-simplification"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "routine-architecture-review-needs-orientation",
+      "prompt": "Review the architecture of this component boundary",
+      "forbiddenSkills": ["predictor-second-opinion"],
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
     }
   ]
 }
