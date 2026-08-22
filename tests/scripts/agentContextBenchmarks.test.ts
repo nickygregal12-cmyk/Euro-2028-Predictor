@@ -49,7 +49,7 @@ describe('agent context acceptance benchmark', () => {
 
     expect(result.ok, result.failures.join('\n')).toBe(true)
     expect(result.failures).toEqual([])
-    expect(result.cases).toHaveLength(10)
+    expect(result.cases).toHaveLength(15)
     expect(result.routing.graphifyBudget).toBeLessThanOrEqual(1200)
     expect(result.routing.maxCandidatePaths).toBeLessThanOrEqual(8)
     expect(result.routing.maxAuthorities).toBeLessThanOrEqual(3)

@@ -1,6 +1,6 @@
 {
   "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
-  "version": 3,
+  "version": 4,
   "graphifyBudget": 900,
   "maxCandidatePaths": 8,
   "maxAuthorities": 3,
@@ -42,9 +42,16 @@
       "skills": ["predictor-ai-lab-verifier"]
     },
     {
+      "id": "motion-craft",
+      "priority": 178,
+      "taskKeywords": ["animation", "animate", "transition", "easing", "spring", "microinteraction", "micro-interaction", "gesture", "motion polish", "animation polish", "entrance motion", "exit motion", "page transition", "route transition", "reduced motion", "reduced-motion"],
+      "authorities": [],
+      "skills": ["predictor-motion-craft"]
+    },
+    {
       "id": "intentional-ui-design",
       "priority": 175,
-      "taskKeywords": ["redesign", "design new ui", "new vnext page", "reshape the ui", "visual direction", "premium ui", "visual polish"],
+      "taskKeywords": ["redesign", "design new ui", "new vnext page", "reshape the ui", "visual direction", "visual directions", "premium ui", "visual polish"],
       "authorities": ["docs/product/ui.md"],
       "skills": ["predictor-frontend-design"]
     },
@@ -60,7 +67,7 @@
       "id": "vnext-matches",
       "priority": 165,
       "paths": ["src/vnext/matches/", "src/vnext/integration/matches/", "src/vnext/models/matches.ts"],
-      "taskKeywords": ["vnext matches", "match centre"],
+      "taskKeywords": ["vnext matches", "match centre", "matches table"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-matches.md"],
       "skills": ["predictor-ui-review"]
     },

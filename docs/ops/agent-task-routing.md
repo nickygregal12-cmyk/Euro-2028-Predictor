@@ -27,9 +27,11 @@ simple task
   -> tracked source/test shortlist
   -> deterministic route match
   -> exact authority + skill budget
+  -> one relevant domain skill
+  -> optional narrowly relevant specialist
   -> source/tests
   -> Serena for exact symbols when useful
-  -> executable verification
+  -> repo-specific review / executable verification
 ```
 
 If the exact tracked implementation file is already known, pass it directly and avoid unnecessary graph work:
@@ -59,9 +61,12 @@ If Graphify is unavailable or genuinely stale, the packet says so and the agent 
 - navigation;
 - process;
 - domain;
+- specialist;
 - review.
 
-Installed does not mean loaded. A task should not carry several competing planning, debugging or review workflows simply because they are available in the repository.
+The specialist role exists for a genuinely narrow extra lens that can compose with a domain skill without competing with it. It does not raise the global representative-prompt ceiling: `config/agent-context-benchmarks.json` still allows at most three selected skills. The first routed specialist is `predictor-motion-craft`, and it is triggered only by explicit animation/motion concerns.
+
+Installed does not mean loaded. A task should not carry several competing planning, debugging, design or review workflows simply because they are available in the repository.
 
 When multiple routes suggest skills in the same role, the higher-priority route wins and the packet records the suppressed skill rather than silently loading both.
 
@@ -99,6 +104,7 @@ When a routed adapter tells the agent to load its upstream guidance, materialize
 
 ```bash
 npm run agent:skill -- frontend-design
+npm run agent:skill -- motion-craft
 npm run agent:skill -- systematic-debugging
 npm run agent:skill -- react-best-practices
 npm run agent:skill -- composition-patterns
@@ -121,14 +127,32 @@ The normal routed set is deliberately small:
 
 | Situation | Specialist |
 | --- | --- |
-| New/materially reshaped UI or deliberate visual polish | `predictor-frontend-design` |
+| New/materially reshaped UI or deliberate visual direction | `predictor-frontend-design` (Impeccable-backed Predictor adapter) |
+| Explicit animation, transition, easing, spring, gesture or reduced-motion work | `predictor-motion-craft` (Emil Kowalski `animate`) |
 | Reproducible bug, failed journey, release blocker or regression | `predictor-systematic-debugging` |
 | Measured React rerender/bundle/async/rendering problem | `predictor-react-best-practices` |
 | Brittle/prop-heavy reusable component API | `predictor-composition-patterns` |
 | Postgres/Supabase query, schema, RLS, locking or migration implementation | `predictor-postgres-best-practices` |
 | Security/contract-sensitive diff with meaningful blast radius | `predictor-differential-review` |
 
-`web-design-guidelines`, `insecure-defaults` and `react-view-transitions` remain catalogue-only. They are not registered for normal automatic routing; use them only when a task explicitly needs that additional review/architecture lens.
+### UI craft authority boundary
+
+Impeccable is the primary external general UI craft source, but its upstream project-context workflow is deliberately **not** adopted. The Predictor adapter suppresses Impeccable `context.mjs`, `init`, `document`, `doctor`, hooks/pinning and any behaviour that creates or replaces `PRODUCT.md`, `DESIGN.md`, surface briefs or a parallel design-system truth. Predictor product/UI authorities, current source, navigation rules, brand decisions, dependencies and runtime behaviour remain authoritative.
+
+`predictor-ui-review` remains the Predictor-specific acceptance layer. External design skills improve craft or provide critique; they do not decide whether Storybook, Playwright, accessibility, responsive behaviour, visual contracts, football usefulness or performance evidence is acceptable.
+
+`ui-ux-pro-max` and `taste-redesign` are **catalogue-only**. They may be deliberately materialized for genuinely exploratory work such as new visual directions, chart/data-visualisation exploration, palette/system exploration or a new landing-page concept, but they are not registered in `config/agent-skills.json` and never load from normal routing. UI UX Pro Max's own persisted design-system workflow and Taste's framework/font/icon/style defaults must not become Predictor authority or dependencies.
+
+Other catalogue-only sources (`web-design-guidelines`, `insecure-defaults`, `react-view-transitions`) follow the same rule: deliberate reference use only, never default startup context.
+
+For deliberate catalogue exploration, materialize only the source actually justified by the task:
+
+```bash
+npm run agent:skill -- ui-ux-pro-max
+npm run agent:skill -- taste-redesign
+```
+
+Do not materialize Impeccable + motion craft + UI UX Pro Max + Taste together for ordinary UI work.
 
 Vercel's React guidance includes a large compiled `AGENTS.md`. Do **not** preload it. Read the upstream `SKILL.md` and only the individual referenced rule files needed for the measured issue. The Predictor adapter also excludes Next.js-only assumptions because this application is React + Vite.
 

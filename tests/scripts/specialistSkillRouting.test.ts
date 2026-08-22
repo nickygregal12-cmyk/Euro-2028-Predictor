@@ -44,7 +44,7 @@ describe('specialist Agent Skills', () => {
 
     expect(registry.cacheRoot).toBe('.agent-cache/skills')
     expect(read('.gitignore')).toContain('.agent-cache/')
-    expect(Object.keys(registry.sources)).toHaveLength(9)
+    expect(Object.keys(registry.sources)).toHaveLength(12)
 
     for (const [id, source] of Object.entries(registry.sources)) {
       expect(source.repository, id).toMatch(/^[\w.-]+\/[\w.-]+$/)
@@ -61,6 +61,12 @@ describe('specialist Agent Skills', () => {
     }
 
     expect(registry.sources['insecure-defaults']?.entrypoint).toBe('commands/audit.md')
+    expect(registry.sources['frontend-design']?.repository).toBe('pbakaus/impeccable')
+    expect(registry.sources['frontend-design']?.path).toBe('.agents/skills/impeccable')
+    expect(registry.sources['motion-craft']?.repository).toBe('emilkowalski/skills')
+    expect(registry.sources['motion-craft']?.path).toBe('skills/animate')
+    expect(registry.sources['ui-ux-pro-max']?.mode).toBe('catalogue-only')
+    expect(registry.sources['taste-redesign']?.mode).toBe('catalogue-only')
     expect(execFileSync('git', ['ls-files', '.agent-cache'], { cwd: root, encoding: 'utf8' }).trim()).toBe('')
   })
 
@@ -94,43 +100,74 @@ describe('specialist Agent Skills', () => {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    expect(output).toContain('Validated 9 pinned specialist skill sources')
+    expect(output).toContain('Validated 12 pinned specialist skill sources')
   })
 
-  it('selects frontend design plus Predictor UI review for a real redesign task', () => {
-    const packet = route(
-      '--no-graph',
-      '--path',
-      'src/vnext/leagues/VNextLeagues.tsx',
-      'Redesign the vNext Leagues page with a more premium UI',
-    )
-    expect(packet.routes).toContain('intentional-ui-design')
-    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-frontend-design')
-    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-ui-review')
-    expect(packet.skills.filter((skill) => skill.role === 'domain')).toHaveLength(1)
-    expect(packet.skills.filter((skill) => skill.role === 'review')).toHaveLength(1)
-  })
-
-  it('uses root-cause debugging for real-world does-nothing wording without stacking another process', () => {
+  it('selects Impeccable-backed Predictor design plus UI review for a redesign task', () => {
     const packet = route(
       '--no-graph',
       '--path',
       'src/vnext/home/VNextHome.tsx',
-      'Find a league does nothing',
+      'Redesign the vNext Home page',
+    )
+    expect(packet.routes).toContain('intentional-ui-design')
+    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-frontend-design')
+    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-ui-review')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-motion-craft')
+    expect(packet.skills.filter((skill) => skill.role === 'domain')).toHaveLength(1)
+    expect(packet.skills.filter((skill) => skill.role === 'review')).toHaveLength(1)
+  })
+
+  it('routes explicit motion work to the narrow Emil specialist without loading general design', () => {
+    const packet = route(
+      '--no-graph',
+      '--path',
+      'src/vnext/app/CompetitionSwitcher.tsx',
+      'The competition switcher animation feels sluggish',
+    )
+    expect(packet.routes).toContain('motion-craft')
+    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-motion-craft')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-frontend-design')
+    expect(packet.skills.filter((skill) => skill.role === 'specialist')).toHaveLength(1)
+  })
+
+  it('can add motion craft to an explicitly motion-heavy redesign without displacing design or review', () => {
+    const packet = route(
+      '--no-graph',
+      '--path',
+      'src/vnext/home/VNextHome.tsx',
+      'Redesign the vNext Home page and polish the entrance animation',
+    )
+    expect(packet.skills.map((skill) => skill.name)).toEqual(expect.arrayContaining([
+      'predictor-frontend-design',
+      'predictor-motion-craft',
+      'predictor-ui-review',
+    ]))
+    expect(packet.skills).toHaveLength(3)
+  })
+
+  it('uses root-cause debugging for real-world does-nothing wording without stacking general design', () => {
+    const packet = route(
+      '--no-graph',
+      '--path',
+      'src/vnext/home/VNextHome.tsx',
+      'Fix Find a league — it does nothing',
     )
     expect(packet.routes).toContain('systematic-defect')
     expect(packet.routes).toContain('vnext-home')
     expect(packet.skills.filter((skill) => skill.role === 'process').map((skill) => skill.name)).toEqual([
       'predictor-systematic-debugging',
     ])
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-frontend-design')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-motion-craft')
   })
 
   it('routes React performance and component architecture to different domain specialists', () => {
     const performance = route(
       '--no-graph',
       '--path',
-      'src/vnext/leagues/VNextLeagues.tsx',
-      'Investigate a React performance rerender regression',
+      'src/vnext/matches/VNextMatches.tsx',
+      'Improve Match Centre rendering performance',
     )
     expect(performance.skills.filter((skill) => skill.role === 'domain').map((skill) => skill.name)).toEqual([
       'predictor-react-best-practices',
@@ -145,6 +182,27 @@ describe('specialist Agent Skills', () => {
     expect(composition.skills.filter((skill) => skill.role === 'domain').map((skill) => skill.name)).toEqual([
       'predictor-composition-patterns',
     ])
+  })
+
+  it('keeps ordinary layout polish on the normal UI route without motion or catalogue bloat', () => {
+    const packet = route(
+      '--no-graph',
+      '--path',
+      'src/vnext/matches/VNextMatches.tsx',
+      'Improve the Matches table spacing',
+    )
+    expect(packet.routes).toContain('vnext-matches')
+    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-ui-review')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-motion-craft')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-frontend-design')
+  })
+
+  it('uses design craft for new landing-page exploration while reference catalogues remain dormant', () => {
+    const packet = route('--no-graph', 'Explore three visual directions for the pre-signup landing page')
+    expect(packet.routes).toContain('intentional-ui-design')
+    expect(packet.skills.map((skill) => skill.name)).toContain('predictor-frontend-design')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('ui-ux-pro-max')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('taste-redesign')
   })
 
   it('adds Postgres guidance for database work and differential review only for sensitive changes', () => {
@@ -163,6 +221,8 @@ describe('specialist Agent Skills', () => {
     expect(skills.skills['web-design-guidelines']).toBeUndefined()
     expect(skills.skills['insecure-defaults']).toBeUndefined()
     expect(skills.skills['react-view-transitions']).toBeUndefined()
+    expect(skills.skills['ui-ux-pro-max']).toBeUndefined()
+    expect(skills.skills['taste-redesign']).toBeUndefined()
   })
 
   it('exposes materialization without adding a runtime dependency', () => {
