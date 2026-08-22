@@ -1,18 +1,18 @@
--- Contract 215: current value evidence cannot survive a newer forecast.
+-- Contract 214: current value evidence cannot survive a newer forecast.
 
 begin;
 
 select plan(5);
 
 insert into ai.models (id, league, version, family, training_matches, artifact_sha256)
-values ('00000000-0000-4000-8000-000000000601', 'EPL', 'c215-old', 'poisson', 10, repeat('a', 64)),
-       ('00000000-0000-4000-8000-000000000602', 'EPL', 'c215-new', 'poisson', 10, repeat('b', 64));
+values ('00000000-0000-4000-8000-000000000601', 'EPL', 'c214-old', 'poisson', 10, repeat('a', 64)),
+       ('00000000-0000-4000-8000-000000000602', 'EPL', 'c214-new', 'poisson', 10, repeat('b', 64));
 
 insert into ai.fixtures (id, division, season, league_key, match_date, kickoff_at,
                          home_canonical, away_canonical)
 values ('00000000-0000-4000-8000-000000000603', 'E0', '2627', 'EPL',
         (now() + interval '3 days')::date, now() + interval '3 days',
-        'C215 Home', 'C215 Away');
+        'C214 Home', 'C214 Away');
 
 insert into ai.predictions (id, model_id, league, fixture_id, kickoff_at,
                             home_canonical, away_canonical, p_home, p_draw, p_away,
@@ -21,12 +21,12 @@ insert into ai.predictions (id, model_id, league, fixture_id, kickoff_at,
 values ('00000000-0000-4000-8000-000000000604',
         '00000000-0000-4000-8000-000000000601', 'EPL',
         '00000000-0000-4000-8000-000000000603', now() + interval '3 days',
-        'C215 Home', 'C215 Away', .48, .27, .25, 'H', '{}', 't120', 100, 'f2',
+        'C214 Home', 'C214 Away', .48, .27, .25, 'H', '{}', 't120', 100, 'f2',
         now() - interval '2 days', now() - interval '2 days'),
        ('00000000-0000-4000-8000-000000000605',
         '00000000-0000-4000-8000-000000000602', 'EPL',
         '00000000-0000-4000-8000-000000000603', now() + interval '3 days',
-        'C215 Home', 'C215 Away', .37, .27, .36, 'H', '{}', 't72', 72, 'f2',
+        'C214 Home', 'C214 Away', .37, .27, .36, 'H', '{}', 't72', 72, 'f2',
         now() - interval '1 hour', now() - interval '1 hour');
 
 insert into ai.recommendations (prediction_id, model_id, league, market, selection,
