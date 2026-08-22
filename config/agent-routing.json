@@ -1,6 +1,6 @@
 {
   "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
-  "version": 5,
+  "version": 6,
   "graphifyBudget": 900,
   "maxCandidatePaths": 8,
   "maxAuthorities": 3,
@@ -41,6 +41,13 @@
       "skills": ["predictor-systematic-debugging"]
     },
     {
+      "id": "release-journey-closure",
+      "priority": 184,
+      "taskKeywords": ["finish this journey", "finish the journey", "finish this feature", "finish the feature", "complete this journey", "complete the journey", "make this release ready", "make it release ready", "release ready", "close the remaining blockers", "close remaining blockers", "finish it properly", "finish this properly", "complete it properly", "end-to-end complete", "end to end complete", "get this finished"],
+      "authorities": [],
+      "skills": ["predictor-release-journey-closer"]
+    },
+    {
       "id": "skill-evaluation",
       "priority": 183,
       "taskKeywords": ["skill evaluation", "evaluate this skill", "evaluate agent skill", "benchmark this skill", "skill benchmark", "skill efficacy", "skill performance", "skill triggering", "trigger accuracy", "optimize skill", "optimise skill", "improve agent skill"],
@@ -55,12 +62,27 @@
       "skills": ["predictor-product-brainstorming"]
     },
     {
+      "id": "product-opportunity",
+      "priority": 181,
+      "taskKeywords": ["improve", "make this better", "make it better", "take this to the next level", "what is missing", "what's missing", "make this more useful", "make it more useful", "make this genuinely better", "review this feature", "improve this feature", "improve the site", "improve the website", "make the site better", "make the website better"],
+      "excludeKeywords": ["performance", "rendering", "rerender", "re-render", "bundle", "spacing", "animation", "motion", "transition", "easing", "spring", "redesign", "visual direction", "visual polish", "bug", "broken", "does not work", "doesn't work", "fix", "simplify", "refactor", "security", "migration", "database", "postgres", "rls", "rpc", "scoring", "settlement", "lock rule", "reveal rule", "loading", "empty state", "error state", "state completeness", "edge state", "release ready", "finish", "complete", "benchmark", "agent skill"],
+      "authorities": [],
+      "skills": ["predictor-product-opportunity-scout", "predictor-football-experience-critic"]
+    },
+    {
       "id": "ai-lab",
       "priority": 180,
       "paths": ["ai/", "src/features/admin/ai"],
       "taskKeywords": ["ai lab", "model evidence", "model promotion"],
       "authorities": ["ai/README.md"],
       "skills": ["predictor-ai-lab-verifier"]
+    },
+    {
+      "id": "environment-contract",
+      "priority": 179,
+      "taskKeywords": ["hosted contract", "development contract", "production contract", "contract number", "next contract", "apply migration", "rollout migration", "migration rollout", "deploy to development", "deploy to production", "production promotion", "promote to production", "netlify environment", "supabase environment", "environment variable", "site variant", "hosted state"],
+      "authorities": ["docs/quality/current-status.md", "docs/ops/ops-pending-migrations.md"],
+      "skills": ["predictor-environment-contract-guardian"]
     },
     {
       "id": "motion-craft",
@@ -70,11 +92,32 @@
       "skills": ["predictor-motion-craft"]
     },
     {
+      "id": "player-state-matrix",
+      "priority": 177,
+      "taskKeywords": ["state completeness", "state matrix", "edge states", "edge state", "loading state", "empty state", "error state", "permission state", "locked state", "live state", "settled state", "first-use state", "first use state", "loading, empty", "loading empty", "locked, live", "locked live"],
+      "authorities": [],
+      "skills": ["predictor-player-state-matrix"]
+    },
+    {
+      "id": "competitive-integrity",
+      "priority": 176,
+      "taskKeywords": ["competitive integrity", "scoring", "points calculation", "rank calculation", "lock rule", "reveal rule", "prediction reveal", "prediction visibility", "official result", "membership rule", "settlement", "progression rule", "game rule"],
+      "authorities": ["docs/adr/README.md"],
+      "skills": ["predictor-competitive-integrity"]
+    },
+    {
       "id": "intentional-ui-design",
       "priority": 175,
       "taskKeywords": ["redesign", "design new ui", "new vnext page", "reshape the ui", "visual direction", "visual directions", "premium ui", "visual polish"],
       "authorities": ["docs/product/ui.md"],
       "skills": ["predictor-frontend-design"]
+    },
+    {
+      "id": "football-experience",
+      "priority": 174,
+      "taskKeywords": ["football experience", "football usefulness", "prediction experience", "rivalry experience", "feel more like football", "feel like a football product", "feel more like a football product"],
+      "authorities": [],
+      "skills": ["predictor-football-experience-critic"]
     },
     {
       "id": "vnext-shell",

@@ -32,8 +32,13 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 
 ## Automatic skill use
 
-Users should be able to describe the outcome in normal language; they should not need to name skills. Treat the `agent:route` packet as the default skill selection:
+Users should be able to describe the outcome in normal language; they should not need to name skills. Treat the `agent:route` packet as the default skill selection. **Specific intent beats broad improvement wording**: if the user names a bug, performance problem, motion issue, state problem, migration, scoring boundary or redesign, route directly to that specialist instead of first inventing product opportunities.
 
+- broad **“improve this / make this better / take this to the next level”** player-facing work → `predictor-product-opportunity-scout` plus the narrow `predictor-football-experience-critic`; inspect the real surface and find the highest-value authorised capability/UX gap before polishing;
+- **finish / complete / release-ready journey** → `predictor-release-journey-closer` to prove entry → action → authoritative read/write → persistence → navigation → responsive/accessibility → acceptance closeout;
+- explicit **loading / empty / error / locked / live / settled / edge-state completeness** → `predictor-player-state-matrix`;
+- **scoring / points / rank / locks / reveal / membership / official results / settlement / progression / prediction visibility** → `predictor-competitive-integrity` review;
+- **migration / hosted contract / environment / rollout / site-variant / Production promotion** → `predictor-environment-contract-guardian` before mutation;
 - unresolved **idea / approach / product-direction** work → bounded `predictor-product-brainstorming`;
 - reproducible **bug / broken journey** → `predictor-systematic-debugging`;
 - deliberate **UI design** → `predictor-frontend-design`; explicit motion work may add the one motion specialist;
@@ -42,7 +47,7 @@ Users should be able to describe the outcome in normal language; they should not
 - **agent skill changes/evaluation** → `predictor-skill-evaluator`;
 - high-stakes **architecture/release pressure-test** → a separate read-only `predictor-second-opinion` critic when a genuinely independent model is available.
 
-Do not infer that every feature needs brainstorming, every PR needs a second model, or every implementation needs a simplifier. Those tools add value by being selective. Catalogue-only skills stay dormant unless deliberately justified.
+Do not infer that every feature needs brainstorming, every UI task needs opportunity discovery, every PR needs a second model, or every implementation needs a simplifier. These tools add value by being selective. Catalogue-only skills stay dormant unless deliberately justified.
 
 ## Task-packet / Graphify fast path
 

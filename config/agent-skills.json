@@ -34,6 +34,24 @@
       "source": "brainstorming",
       "purpose": "Bounded option exploration for genuinely unresolved product or architecture choices before implementation."
     },
+    "predictor-product-opportunity-scout": {
+      "path": ".agents/skills/predictor-product-opportunity-scout/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Find the highest-value authorised player-facing improvement when the user gives a broad outcome prompt instead of a named implementation technique."
+    },
+    "predictor-release-journey-closer": {
+      "path": ".agents/skills/predictor-release-journey-closer/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Prove and close an end-to-end player journey across entry, write/read seams, persistence, navigation, responsive/accessibility evidence and requirement closeout."
+    },
+    "predictor-environment-contract-guardian": {
+      "path": ".agents/skills/predictor-environment-contract-guardian/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Keep repository, Development, Production, site, migration and hosted-contract identity explicit during environment-sensitive work."
+    },
     "predictor-compound-learning": {
       "path": ".agents/skills/predictor-compound-learning/SKILL.md",
       "role": "process",
@@ -45,6 +63,12 @@
       "role": "review",
       "mode": "installed",
       "purpose": "Predictor-specific UI, responsive, interaction and accessibility review."
+    },
+    "predictor-competitive-integrity": {
+      "path": ".agents/skills/predictor-competitive-integrity/SKILL.md",
+      "role": "review",
+      "mode": "installed",
+      "purpose": "Guard scoring, lock, reveal, result, membership, progression, settlement and prediction-visibility invariants."
     },
     "predictor-ai-lab-verifier": {
       "path": ".agents/skills/predictor-ai-lab-verifier/SKILL.md",
@@ -71,6 +95,18 @@
       "mode": "pinned-adapter",
       "source": "motion-craft",
       "purpose": "Narrow motion craft for animation, transitions, easing, gestures and reduced-motion behaviour."
+    },
+    "predictor-player-state-matrix": {
+      "path": ".agents/skills/predictor-player-state-matrix/SKILL.md",
+      "role": "specialist",
+      "mode": "installed",
+      "purpose": "Derive and prove the meaningful player-state matrix for loading, empty, error, permission, game-phase, responsive and content-extreme states."
+    },
+    "predictor-football-experience-critic": {
+      "path": ".agents/skills/predictor-football-experience-critic/SKILL.md",
+      "role": "specialist",
+      "mode": "installed",
+      "purpose": "Critique player-facing surfaces for football context, prediction clarity, consequence, rivalry and next-action value rather than generic dashboard polish."
     },
     "predictor-code-simplification": {
       "path": ".agents/skills/predictor-code-simplification/SKILL.md",
