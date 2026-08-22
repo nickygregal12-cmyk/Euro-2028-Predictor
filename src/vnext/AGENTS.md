@@ -8,7 +8,7 @@ These instructions apply to `src/vnext/`. They contain only the **universal vNex
 2. When the exact implementation surface is not already known, run `npm run agent:route -- "THE TASK"`. The task packet should normally identify the relevant vNext surface, source/tests and one surface authority before you open files broadly.
 3. Read [`../../docs/product/ui.md`](../../docs/product/ui.md) plus **only the matching surface authority below**. Read workshop/history/audit material only when the task genuinely needs it.
 4. Inspect the exact source/tests returned by Graphify or bounded search. Use Serena after the area is known when exact symbols/callers matter.
-5. For non-trivial delivery or review, load only the process/review skill selected by the task packet.
+5. For non-trivial delivery or review, load only the skills selected by the task packet within its navigation/process/domain/review role budget.
 
 ## Surface authority routing
 

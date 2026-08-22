@@ -65,6 +65,50 @@ Installed does not mean loaded. A task should not carry several competing planni
 
 When multiple routes suggest skills in the same role, the higher-priority route wins and the packet records the suppressed skill rather than silently loading both.
 
+## Pinned specialist skills
+
+Specialist external guidance is split into two layers so it remains useful without becoming permanent startup context:
+
+1. a small Predictor adapter in `.agents/skills/` owns the repository-specific trigger and safety boundary;
+2. `config/agent-skill-sources.json` pins the upstream source to an exact repository commit and licence.
+
+When a routed adapter tells the agent to load its upstream guidance, materialize exactly that source:
+
+```bash
+npm run agent:skill -- frontend-design
+npm run agent:skill -- systematic-debugging
+npm run agent:skill -- react-best-practices
+npm run agent:skill -- composition-patterns
+npm run agent:skill -- supabase-postgres-best-practices
+npm run agent:skill -- differential-review
+```
+
+The command prints the local entrypoint. Materialized bytes live under ignored `.agent-cache/skills/`; they are reproducible reference material, not repository authority. A cached copy is reused only when its stamped repository, commit and path still match the pinned registry.
+
+Useful maintenance commands are:
+
+```bash
+npm run agent:skill -- list
+npm run agent:skill -- check
+```
+
+`check` is network-free and validates the catalogue structure/pins. The Agent Skills validation workflow additionally proves that routed sources can be fetched at their exact commit. Do not replace the exact-pin path with an installer command that follows a moving branch or cached latest version.
+
+The normal routed set is deliberately small:
+
+| Situation | Specialist |
+| --- | --- |
+| New/materially reshaped UI or deliberate visual polish | `predictor-frontend-design` |
+| Reproducible bug, failed journey, release blocker or regression | `predictor-systematic-debugging` |
+| Measured React rerender/bundle/async/rendering problem | `predictor-react-best-practices` |
+| Brittle/prop-heavy reusable component API | `predictor-composition-patterns` |
+| Postgres/Supabase query, schema, RLS, locking or migration implementation | `predictor-postgres-best-practices` |
+| Security/contract-sensitive diff with meaningful blast radius | `predictor-differential-review` |
+
+`web-design-guidelines`, `insecure-defaults` and `react-view-transitions` remain catalogue-only. They are not registered for normal automatic routing; use them only when a task explicitly needs that additional review/architecture lens.
+
+Vercel's React guidance includes a large compiled `AGENTS.md`. Do **not** preload it. Read the upstream `SKILL.md` and only the individual referenced rule files needed for the measured issue. The Predictor adapter also excludes Next.js-only assumptions because this application is React + Vite.
+
 ## vNext
 
 `src/vnext/AGENTS.md` is intentionally a compact universal router. Detailed Matches, Leagues, player-profile, Last Man Standing and Championship rules live in their dedicated product authorities and are loaded only when the task enters that surface.
@@ -76,8 +120,10 @@ Do not grow the scoped router back into a combined copy of all vNext product doc
 - `NOW.md`: generated current-fact index.
 - `AGENTS.md` / `CLAUDE.md`: startup and safety routing.
 - `config/agent-routing.json`: task/path -> pointer metadata only.
-- `config/agent-skills.json`: skill role/load metadata only.
-- `.agents/skills/*/SKILL.md`: actual skill instructions.
+- `config/agent-skills.json`: project skill role/load metadata only.
+- `config/agent-skill-sources.json`: immutable external source/commit/licence metadata only.
+- `.agents/skills/*/SKILL.md`: actual Predictor skill/adaptor instructions.
+- `.agent-cache/skills/`: ignored upstream reference bytes, never authority.
 - product/ADR/ops authorities: the rules and decisions themselves.
 - Graphify/Serena: navigation evidence only.
 

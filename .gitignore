@@ -70,8 +70,10 @@ provider-bakeoff/
 # See docs/ops/graphify-navigation.md.
 graphify-out/
 
-# On-demand engineering-tool reports; regenerated rather than versioned.
+# On-demand engineering-tool reports and immutable external skill caches;
+# regenerated/materialized rather than versioned and never repository authority.
 .artifacts/
+.agent-cache/
 .stryker-tmp/
 reports/mutation/
 
