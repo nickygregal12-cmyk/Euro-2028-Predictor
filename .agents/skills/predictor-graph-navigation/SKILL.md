@@ -1,17 +1,20 @@
 ---
 name: predictor-graph-navigation
-description: Use for broad cross-file architecture, dependency, call-flow and ownership questions in the Predictor repository. Start with Graphify, narrow with Serena when symbols matter, and verify every important conclusion against repository source and authorities.
+description: Use when the exact implementation surface is not already known, or when a Predictor task may span files/layers. Start with a bounded Graphify query to shortlist source/tests, use affected/path for impact and call-flow, narrow with Serena when symbols matter, and verify important conclusions against repository source and authorities.
 ---
 
 # Predictor graph navigation
 
-Use this skill when a task asks questions such as:
+Use this skill before broad source browsing when a task asks questions such as:
 
+- where a user-visible defect or feature is actually implemented;
 - what calls or depends on this function, hook, RPC, model or migration surface;
 - how a user action travels through React/domain/Supabase layers;
 - which files form one subsystem or cross a subsystem boundary;
 - where an implementation and its tests/documentation connect;
 - what may be affected by a proposed refactor.
+
+Skip Graphify when the task already identifies the exact file/symbol and is genuinely bounded. The goal is fewer source reads, not mandatory ceremony.
 
 ## Authority boundary
 
@@ -26,7 +29,11 @@ A generated graph, semantic index or context pack is navigation—not repository
 
 Use the narrowest specialist rather than asking one tool to do everything:
 
-- **Graphify** — broad repository structure, dependency/call-flow paths and cross-layer orientation.
+- **Graphify `query`** — bounded first-pass orientation when the likely implementation surface is unknown.
+- **Graphify `path`** — trace between two known concepts/layers.
+- **Graphify `affected`** — reverse impact before refactors or cross-file changes.
+- **Graphify `explain`** — inspect one known graph node.
+- **Graphify `god-nodes`** — architecture/audit use only; not routine task startup.
 - **Serena** — exact symbol definitions, callers, references and bounded symbol-level edits once the likely surface is known.
 - **Context7** — current external-library/API documentation only; it does not explain Predictor architecture.
 - **Repomix** — disposable bounded context export after the relevant surface is known; it is not a replacement for Graphify/Serena search.
@@ -34,28 +41,28 @@ Use the narrowest specialist rather than asking one tool to do everything:
 
 ## Preferred workflow
 
-1. Read the current repository entrypoint/authority for the task first.
-2. For merged code, prefer the latest snapshot on the `graphify-navigation` branch. For pull-request-specific work, prefer that PR's Graphify Actions artifact because the snapshot branch follows `main`.
-3. Check snapshot freshness: `graphify-navigation/README.md` records the exact source SHA used to build the graph.
-4. Use `bash scripts/agent-tools/graphify-query.sh query "QUESTION"` so the
-   snapshot freshness, non-empty graph and pinned CLI are checked before
-   Graphify narrows the likely implementation path. For a PR artifact, pass
-   `--graph PATH --source-sha PR_COMMIT_SHA`.
-5. If the question becomes symbol-specific, switch to Serena instead of repeatedly opening whole files.
-6. Open the returned/referenced source and verify the actual control/data flow; inspect exact tests and negative cases.
-7. For a refactor that can violate dependency direction, run `bash scripts/agent-tools/architecture-check.sh` before completion.
-8. Generate a Repomix task pack only when a separate model/handoff genuinely benefits from one.
-9. Record only source/evidence-backed findings in issues, PRs and durable documentation.
+1. Read the current repository entrypoint and identify the smallest task authority class; do not preload the documentation tree.
+2. If the implementation surface is not exact, run `bash scripts/agent-tools/graphify-query.sh query "QUESTION"`. The wrapper defaults routine query output to about 1200 tokens; increase `--budget` only if the bounded result is genuinely insufficient.
+3. For merged code, use the latest persistent `graphify-navigation` snapshot. For pull-request-specific work, prefer that PR's Graphify Actions artifact because the snapshot branch follows `main`.
+4. Trust freshness by the snapshot's **input fingerprint**. The source commit may differ from current `main` when only files outside the indexed input set changed. Pre-fingerprint snapshots retain the older exact-SHA fallback.
+5. Use `path` for a known end-to-end chain or `affected` before changing a shared symbol/file. Do not keep firing broad queries once the likely area is known.
+6. If the question becomes symbol-specific, switch to Serena instead of repeatedly opening whole files.
+7. Open the returned/referenced source and verify the actual control/data flow; inspect exact tests and negative cases.
+8. For a refactor that can violate dependency direction, run `bash scripts/agent-tools/architecture-check.sh` before completion.
+9. Generate a Repomix task pack only when a separate model/handoff genuinely benefits from one.
+10. Record only source/evidence-backed findings in issues, PRs and durable documentation.
 
 If Graphify/Serena is unavailable, continue with normal repository search. Do not block a task on an indexing tool.
 
 ## Graph freshness
 
-`.github/workflows/graphify-navigation.yml` is the default graph builder. It runs a code-only structural scan on relevant PRs and pushes to `main`, and it can be started manually with `workflow_dispatch`.
+`.github/workflows/graphify-navigation.yml` is the default graph builder. It runs a code-only structural scan on relevant PRs and `main` changes, and it can be started manually with `workflow_dispatch`.
 
-- A PR Actions artifact represents that PR commit and is the best graph for branch-specific impact work.
+- A PR Actions artifact is the best graph for branch-specific impact work.
 - The `graphify-navigation` branch is a replace-in-place snapshot of the latest successful relevant build from `main`.
-- Its `README.md` names the source SHA. If that SHA predates the code being discussed, treat the graph as stale and fall back to source/search until it is refreshed.
+- Its `README.md` names the source commit and `sha256:` input fingerprint.
+- `scripts/agent-tools/graphify-input-fingerprint.mjs` hashes the tracked graph-input paths. An unrelated documentation/operations workflow commit does not invalidate the graph; a source/configuration change in the indexed set does.
+- Use `--allow-stale` only deliberately when an older ancestor graph remains useful for orientation. It never turns stale navigation into evidence.
 
 The workflow is intentionally non-blocking; graph freshness is never a release or product-CI gate.
 
@@ -75,7 +82,7 @@ Serena is an editing/navigation mechanism, not permission to bypass tests or dep
 
 ## Generated output
 
-Normal application branches keep Graphify output and Repomix context packs ignored. The dedicated `graphify-navigation` branch may publish only portable Graphify navigation output plus a source-SHA freshness marker.
+Normal application branches keep Graphify output and Repomix context packs ignored. The dedicated `graphify-navigation` branch may publish only portable Graphify navigation output plus source/fingerprint freshness metadata.
 
 Caches, manifests, Serena index state, generated context packs, interpreter paths and detection sidecars stay disposable and are not promoted into documentation.
 
