@@ -18,14 +18,18 @@ function usage() {
   console.log(`Usage:
   npm run agent:route -- "TASK"
   npm run agent:route -- --path src/example.ts "TASK"
+  npm run agent:route -- --graph /path/to/graph.json --source-sha SHA "TASK"
   npm run agent:route -- --no-graph --path src/example.ts --json "TASK"
 
 Options:
-  --path PATH    Add a known implementation path. Repeatable.
-  --no-graph     Skip Graphify even when no exact implementation path is known.
-  --budget N     Override the bounded Graphify orientation budget.
-  --json         Emit the task packet as JSON.
-  -h, --help     Show this help.
+  --path PATH       Add a known implementation path. Repeatable.
+  --graph PATH      Use a downloaded PR Graphify artifact instead of merged main.
+  --source-sha SHA  Assert the source commit represented by --graph.
+  --allow-stale     Deliberately permit an older ancestor graph through the wrapper.
+  --no-graph        Skip Graphify even when no exact implementation path is known.
+  --budget N        Override the bounded Graphify orientation budget.
+  --json            Emit the task packet as JSON.
+  -h, --help        Show this help.
 
 The router is navigation only. It points to canonical authorities and skills; it
 never decides product, database or hosted truth.`)
@@ -47,6 +51,9 @@ const routing = readJson(routingPath)
 const skillRegistry = readJson(skillsPath)
 const args = process.argv.slice(2)
 const explicitPaths = []
+let graphPath = null
+let graphSourceSha = null
+let allowStale = false
 let noGraph = false
 let jsonOutput = false
 let budget = Number(routing.graphifyBudget ?? 900)
@@ -59,6 +66,18 @@ for (let index = 0; index < args.length; index += 1) {
     if (!value) fail('--path requires a value')
     explicitPaths.push(value.replace(/^\.\//, ''))
     index += 1
+  } else if (arg === '--graph') {
+    const value = args[index + 1]
+    if (!value) fail('--graph requires a path')
+    graphPath = value
+    index += 1
+  } else if (arg === '--source-sha') {
+    const value = args[index + 1]
+    if (!value) fail('--source-sha requires a SHA')
+    graphSourceSha = value
+    index += 1
+  } else if (arg === '--allow-stale') {
+    allowStale = true
   } else if (arg === '--no-graph') {
     noGraph = true
   } else if (arg === '--json') {
@@ -76,6 +95,13 @@ for (let index = 0; index < args.length; index += 1) {
   } else {
     taskParts.push(arg)
   }
+}
+
+if ((graphPath && !graphSourceSha) || (!graphPath && graphSourceSha)) {
+  fail('--graph and --source-sha must be supplied together')
+}
+if (noGraph && graphPath) {
+  fail('--no-graph cannot be combined with --graph')
 }
 
 const task = taskParts.join(' ').trim()
@@ -111,18 +137,23 @@ for (const path of explicitPaths) {
 let graphStatus = noGraph ? 'skipped' : knownPaths.length > 0 ? 'not-needed' : 'not-run'
 let graphOutput = ''
 let graphWarning = null
+let graphSource = graphPath ? 'pr-artifact' : 'merged-main-snapshot'
 
 if (!noGraph && knownPaths.length === 0) {
-  const result = spawnSync(
-    'bash',
-    [graphifyWrapper, 'query', task, '--budget', String(budget)],
-    {
-      cwd: root,
-      encoding: 'utf8',
-      env: { ...process.env, GRAPHIFY_QUERY_LOG_DISABLE: '1' },
-      maxBuffer: 1024 * 1024,
-    },
-  )
+  const wrapperArgs = [graphifyWrapper]
+  if (graphPath) wrapperArgs.push('--graph', graphPath, '--source-sha', graphSourceSha)
+  if (allowStale) wrapperArgs.push('--allow-stale')
+
+  const orientationQuestion =
+    `For this task, identify the smallest likely implementation path and relevant executable tests: ${task}`
+  wrapperArgs.push('query', orientationQuestion, '--budget', String(budget))
+
+  const result = spawnSync('bash', wrapperArgs, {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, GRAPHIFY_QUERY_LOG_DISABLE: '1' },
+    maxBuffer: 1024 * 1024,
+  })
 
   if (result.status === 0) {
     graphStatus = 'queried'
@@ -211,6 +242,8 @@ const packet = {
   task,
   orientation: {
     graphify: graphStatus,
+    source: graphStatus === 'queried' ? graphSource : null,
+    sourceSha: graphPath ? graphSourceSha : null,
     budget: graphStatus === 'queried' ? budget : null,
     warning: graphWarning,
   },
@@ -223,6 +256,7 @@ const packet = {
     'Read only the listed authorities that are relevant to the change.',
     'Open the candidate source/tests; use Serena for exact symbols/callers instead of broad file reading.',
     'If Graphify found no useful path, use bounded repository search and update the working set before editing.',
+    'For an existing unmerged PR, use that PR Graphify artifact when branch-specific traversal matters.',
     'Verify behaviour in executable source/tests; routing output is navigation, never product or hosted truth.',
   ],
 }
@@ -233,23 +267,45 @@ if (jsonOutput) {
 }
 
 console.log(`TASK\n${packet.task}\n`)
-console.log(`ORIENTATION\nGraphify: ${packet.orientation.graphify}${packet.orientation.budget ? ` (${packet.orientation.budget}-token budget)` : ''}`)
+console.log(
+  `ORIENTATION\nGraphify: ${packet.orientation.graphify}${packet.orientation.source ? ` via ${packet.orientation.source}` : ''}${packet.orientation.budget ? ` (${packet.orientation.budget}-token budget)` : ''}`,
+)
 if (packet.orientation.warning) console.log(`Warning: ${packet.orientation.warning}`)
 
 console.log('\nROUTES')
-console.log(packet.routes.length ? packet.routes.map((route) => `- ${route}`).join('\n') : '- no deterministic route matched')
+console.log(
+  packet.routes.length
+    ? packet.routes.map((route) => `- ${route}`).join('\n')
+    : '- no deterministic route matched',
+)
 
 console.log('\nWORKING SET')
-console.log(packet.candidatePaths.length ? packet.candidatePaths.map((path) => `- ${path}`).join('\n') : '- no source path identified yet')
+console.log(
+  packet.candidatePaths.length
+    ? packet.candidatePaths.map((path) => `- ${path}`).join('\n')
+    : '- no source path identified yet',
+)
 
 console.log('\nREAD')
-console.log(packet.authorities.length ? packet.authorities.map((path) => `- ${path}`).join('\n') : '- root AGENTS.md / NOW.md, then the smallest authority found during source inspection')
+console.log(
+  packet.authorities.length
+    ? packet.authorities.map((path) => `- ${path}`).join('\n')
+    : '- root AGENTS.md / NOW.md, then the smallest authority found during source inspection',
+)
 
 console.log('\nSKILLS')
-console.log(packet.skills.length ? packet.skills.map((skill) => `- ${skill.role}: ${skill.name} (${skill.path})`).join('\n') : '- none')
+console.log(
+  packet.skills.length
+    ? packet.skills
+        .map((skill) => `- ${skill.role}: ${skill.name} (${skill.path})`)
+        .join('\n')
+    : '- none',
+)
 if (packet.suppressedSkills.length) {
   console.log('\nSKILLS NOT LOADED')
-  console.log(packet.suppressedSkills.map((skill) => `- ${skill.name}: ${skill.reason}`).join('\n'))
+  console.log(
+    packet.suppressedSkills.map((skill) => `- ${skill.name}: ${skill.reason}`).join('\n'),
+  )
 }
 
 console.log('\nNEXT')
