@@ -57,7 +57,7 @@ describe('bounded agent task routing', () => {
       }
       for (const skillName of routeEntry.skills ?? []) {
         const skill = registry.skills[skillName]
-        expect(skill, skillName).toBeDefined()
+        if (!skill) throw new Error(`unregistered routed skill: ${skillName}`)
         expect(existsSync(resolve(root, skill.path)), skill.path).toBe(true)
       }
     }
