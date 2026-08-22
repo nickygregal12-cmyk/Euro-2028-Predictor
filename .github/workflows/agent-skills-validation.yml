@@ -65,20 +65,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for source in \
-            frontend-design \
-            motion-craft \
-            systematic-debugging \
-            react-best-practices \
-            composition-patterns \
-            supabase-postgres-best-practices \
-            differential-review \
-            web-design-guidelines \
-            ui-ux-pro-max \
-            taste-redesign \
-            insecure-defaults \
-            react-view-transitions
-          do
+          mapfile -t sources < <(
+            node -e "const registry=require('./config/agent-skill-sources.json'); process.stdout.write(Object.keys(registry.sources).join('\\n'))"
+          )
+          if [ "${#sources[@]}" -eq 0 ]; then
+            echo 'No pinned specialist sources found.' >&2
+            exit 1
+          fi
+          for source in "${sources[@]}"; do
             entrypoint="$(node scripts/agent-tools/materialize-skill.mjs "$source")"
             test -f "$entrypoint"
             echo "$source -> $entrypoint"

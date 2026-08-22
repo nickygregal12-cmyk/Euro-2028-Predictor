@@ -32,6 +32,7 @@ simple task
   -> source/tests
   -> Serena for exact symbols when useful
   -> repo-specific review / executable verification
+  -> optional separate high-stakes independent critic
 ```
 
 If the exact tracked implementation file is already known, pass it directly and avoid unnecessary graph work:
@@ -62,13 +63,33 @@ If Graphify is unavailable or genuinely stale, the packet says so and the agent 
 - process;
 - domain;
 - specialist;
-- review.
+- review;
+- critic.
 
-The specialist role exists for a genuinely narrow extra lens that can compose with a domain skill without competing with it. It does not raise the global representative-prompt ceiling: `config/agent-context-benchmarks.json` still allows at most three selected skills. The first routed specialist is `predictor-motion-craft`, and it is triggered only by explicit animation/motion concerns.
+The specialist role exists for a genuinely narrow extra lens that can compose with a domain skill without competing with it. It does not raise the global representative-prompt ceiling: `config/agent-context-benchmarks.json` still allows at most three selected skills. `predictor-motion-craft` and behaviour-preserving `predictor-code-simplification` are examples; they are selected only by explicit relevant intent.
 
-Installed does not mean loaded. A task should not carry several competing planning, debugging, design or review workflows simply because they are available in the repository.
+The critic role is deliberately separate from normal repository review. `predictor-second-opinion` is for explicit high-stakes pressure-testing with a genuinely independent model/runtime, normally as a **separate read-only pass after native tests/review are green**. A routine architecture review does not select it. The critic does not raise the representative-prompt skill ceiling and never becomes product or repository authority.
+
+Installed does not mean loaded. A task should not carry several competing planning, debugging, design, simplification or review workflows simply because they are available in the repository.
 
 When multiple routes suggest skills in the same role, the higher-priority route wins and the packet records the suppressed skill rather than silently loading both.
+
+## Natural-language selection
+
+Users should normally describe the outcome rather than remembering skill names. The deterministic routes recognize bounded intent such as:
+
+- unresolved feature/approach exploration → `predictor-product-brainstorming`;
+- a reproducible bug or broken journey → `predictor-systematic-debugging`;
+- deliberate visual direction → `predictor-frontend-design`;
+- explicit motion concerns → `predictor-motion-craft`;
+- measured React/component/Postgres pressure → the existing domain specialist;
+- explicit **post-green/recent-change** simplification → `predictor-code-simplification`;
+- skill creation/evaluation/trigger accuracy → `predictor-skill-evaluator`;
+- explicit independent pressure-test/release-critical review → `predictor-second-opinion`.
+
+Broad words such as `cleanup` or ordinary `architecture review` are intentionally insufficient for expensive specialists. Ambiguous work should orient through Graphify/source rather than guess a high-cost route.
+
+`predictor-compound-learning` is a post-task closeout skill rather than a default implementation dependency. Use it only when completed work produced a non-obvious reusable lesson with evidence and a clear existing home; otherwise record nothing.
 
 ## Acceptance benchmark
 
@@ -81,12 +102,14 @@ npm run agent:bench -- --check
 
 `config/agent-context-benchmarks.json` contains the simple prompts and their expected deterministic fallback. The benchmark deliberately disables Graphify: obvious task/domain intent must still classify sensibly if the graph is unavailable, while a symbol-only prompt such as `Refactor MatchCard` must stay unclassified rather than guess which subsystem owns it. In normal use that ambiguous case proceeds through the Graphify fast path.
 
+The benchmark includes negative cases for costly specialists: cleanup wording on a broken journey must remain a debugging task, and a routine architecture review must not automatically load an independent critic.
+
 The benchmark also holds these first-orientation ceilings:
 
 - Graphify query budget at or below **1,200 tokens**;
 - no more than **8 candidate source/test paths** in the initial packet;
 - no more than **3 authorities** in the initial packet;
-- no more than **3 selected specialist/process/review skills** for the representative prompts;
+- no more than **3 selected specialist/process/review/critic skills** for the representative prompts;
 - a deterministic no-graph JSON packet below **8 KiB**.
 
 These are context-efficiency guards, not reasons to hide genuinely required authority. If a real task needs broader context, expand deliberately after the first packet rather than raising the global ceilings to make one exceptional task convenient.
@@ -95,21 +118,27 @@ The normal CI test suite and Agent tooling smoke both execute the network-free b
 
 ## Pinned specialist skills
 
-Specialist external guidance is split into two layers so it remains useful without becoming permanent startup context:
+External guidance is split into two layers so it remains useful without becoming permanent startup context:
 
 1. a small Predictor adapter in `.agents/skills/` owns the repository-specific trigger and safety boundary;
-2. `config/agent-skill-sources.json` pins the upstream source to an exact repository commit and licence.
+2. `config/agent-skill-sources.json` pins the upstream source to an exact repository commit, path, entrypoint and licence.
+
+Most upstream sources use `SKILL.md`. A source may deliberately expose another Markdown entrypoint when the upstream capability is packaged as an agent rather than an Agent Skill (currently Anthropic Code Simplifier uses `agents/code-simplifier.md`). The materializer validates the configured entrypoint as a safe relative path and CI must materialize **every registry entry**; the Predictor adapter remains the routed repository-facing skill in all cases.
 
 When a routed adapter tells the agent to load its upstream guidance, materialize exactly that source:
 
 ```bash
 npm run agent:skill -- frontend-design
 npm run agent:skill -- motion-craft
+npm run agent:skill -- brainstorming
 npm run agent:skill -- systematic-debugging
+npm run agent:skill -- code-simplifier
+npm run agent:skill -- skill-creator
 npm run agent:skill -- react-best-practices
 npm run agent:skill -- composition-patterns
 npm run agent:skill -- supabase-postgres-best-practices
 npm run agent:skill -- differential-review
+npm run agent:skill -- second-opinion
 ```
 
 The command prints the local entrypoint. Materialized bytes live under ignored `.agent-cache/skills/`; they are reproducible reference material, not repository authority. A cached copy is reused only when its stamped repository, commit and path still match the pinned registry.
@@ -121,19 +150,34 @@ npm run agent:skill -- list
 npm run agent:skill -- check
 ```
 
-`check` is network-free and validates the catalogue structure/pins. The Agent Skills validation workflow additionally proves that routed sources can be fetched at their exact commit. Do not replace the exact-pin path with an installer command that follows a moving branch or cached latest version.
+`check` is network-free and validates the catalogue structure/pins. The Agent Skills validation workflow derives its source IDs from `config/agent-skill-sources.json` and proves **every** pinned entry can be fetched/materialized at the exact commit; do not maintain a second hand-written source list in CI.
 
 The normal routed set is deliberately small:
 
-| Situation | Specialist |
+| Situation | Routed skill |
 | --- | --- |
+| Genuine unresolved product/architecture options before implementation | `predictor-product-brainstorming` (Superpowers-backed, repository-adapted) |
 | New/materially reshaped UI or deliberate visual direction | `predictor-frontend-design` (Impeccable-backed Predictor adapter) |
 | Explicit animation, transition, easing, spring, gesture or reduced-motion work | `predictor-motion-craft` (Emil Kowalski `animate`) |
 | Reproducible bug, failed journey, release blocker or regression | `predictor-systematic-debugging` |
+| Explicit post-green simplification of recent changes without behaviour change | `predictor-code-simplification` (Anthropic Code Simplifier-backed) |
 | Measured React rerender/bundle/async/rendering problem | `predictor-react-best-practices` |
 | Brittle/prop-heavy reusable component API | `predictor-composition-patterns` |
 | Postgres/Supabase query, schema, RLS, locking or migration implementation | `predictor-postgres-best-practices` |
+| Agent skill creation/change, benchmark or trigger-accuracy work | `predictor-skill-evaluator` (Anthropic Skill Creator-backed) |
 | Security/contract-sensitive diff with meaningful blast radius | `predictor-differential-review` |
+| Explicit high-stakes independent-model pressure-test | `predictor-second-opinion` (Trail of Bits-backed critic) |
+| Evidence-backed reusable lesson after completed work | `predictor-compound-learning` (repo-native closeout process) |
+
+### Independent-review boundary
+
+`predictor-second-opinion` borrows the useful cross-model review mechanism from Trail of Bits rather than treating multiple same-model personas as independent evidence. The reviewer is read-only and diff-bounded. If Claude implemented a change, Codex is the preferred independent critic when available; if Codex implemented it, use another genuinely independent reviewer. The upstream Gemini `--yolo` invocation is **not** automatically authorised by this repository. If no independent reviewer is available, report the skip and rely on native review/gates rather than pretending independence.
+
+### Brainstorming and learning boundary
+
+The Superpowers brainstorming source is useful for clarifying intent, alternatives, trade-offs and YAGNI, but its upstream mandatory approval ceremony and `docs/superpowers/` spec hierarchy are not adopted. Explicit user authorization to implement a bounded, authority-clear change remains authorization to proceed; pause only when proceeding would invent an unresolved product choice.
+
+Compound learning likewise does not create a memory system or documentation dump. Prefer executable regression/invariant tests, then the nearest existing ADR/product/ops/agent authority. If a candidate lesson is already encoded or is not likely to recur, write nothing. Candidate skill changes go through `predictor-skill-evaluator` before adoption.
 
 ### UI craft authority boundary
 

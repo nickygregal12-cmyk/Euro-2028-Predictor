@@ -1,6 +1,6 @@
 {
   "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
-  "version": 4,
+  "version": 5,
   "graphifyBudget": 900,
   "maxCandidatePaths": 8,
   "maxAuthorities": 3,
@@ -27,11 +27,32 @@
       "skills": ["predictor-context"]
     },
     {
+      "id": "independent-second-opinion",
+      "priority": 186,
+      "taskKeywords": ["second opinion", "pressure-test", "pressure test", "stress-test", "stress test", "cross-model review", "independent model review", "adversarial architecture review", "critical shipping review", "release-critical review"],
+      "authorities": [],
+      "skills": ["predictor-second-opinion"]
+    },
+    {
       "id": "systematic-defect",
       "priority": 185,
       "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "does nothing", "not working", "broken journey", "failing journey", "regression", "flaky", "reproducible bug", "bug"],
       "authorities": [],
       "skills": ["predictor-systematic-debugging"]
+    },
+    {
+      "id": "skill-evaluation",
+      "priority": 183,
+      "taskKeywords": ["skill evaluation", "evaluate this skill", "evaluate agent skill", "benchmark this skill", "skill benchmark", "skill efficacy", "skill performance", "skill triggering", "trigger accuracy", "optimize skill", "optimise skill", "improve agent skill"],
+      "authorities": ["docs/ops/agent-skills-architecture.md"],
+      "skills": ["predictor-skill-evaluator"]
+    },
+    {
+      "id": "product-brainstorming",
+      "priority": 182,
+      "taskKeywords": ["feature idea", "new idea", "explore approaches", "compare approaches", "product direction", "what should we build", "work out the approach", "work out an approach", "decide between", "brainstorm"],
+      "authorities": [],
+      "skills": ["predictor-product-brainstorming"]
     },
     {
       "id": "ai-lab",
@@ -127,6 +148,13 @@
       "skills": ["predictor-react-best-practices"]
     },
     {
+      "id": "code-simplification",
+      "priority": 154,
+      "taskKeywords": ["simplify recent", "simplify the recent", "simplification pass", "behaviour-preserving simplification", "behavior-preserving simplification", "reduce accidental complexity", "maintainability pass", "generated code cleanup", "post-green cleanup", "refactor recent changes", "refactor the recent changes"],
+      "authorities": [],
+      "skills": ["predictor-code-simplification"]
+    },
+    {
       "id": "component-composition",
       "priority": 150,
       "taskKeywords": ["component api", "boolean prop", "prop-heavy", "compound component", "composition pattern", "prop drilling", "reusable component architecture"],
@@ -170,6 +198,13 @@
       "taskKeywords": ["graphify", "serena", "context7", "repomix", "agent tooling", "agent skill"],
       "authorities": ["docs/ops/agent-tooling-map.md", "docs/architecture/developer-operating-system.md", "docs/ops/developer-toolchain.md"],
       "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "compound-learning",
+      "priority": 75,
+      "taskKeywords": ["capture reusable lesson", "compound learning", "what did we learn", "record this lesson", "promote this pattern", "reusable engineering lesson"],
+      "authorities": ["docs/ops/agent-skills-architecture.md"],
+      "skills": ["predictor-compound-learning"]
     },
     {
       "id": "legacy-ui",
