@@ -1,0 +1,47 @@
+{
+  "$comment": "Small routing registry for project Agent Skills. This file owns role/load metadata only; each SKILL.md owns its instructions and repository authorities remain above every skill.",
+  "budget": {
+    "navigation": 1,
+    "process": 1,
+    "domain": 1,
+    "review": 1
+  },
+  "skills": {
+    "predictor-context": {
+      "path": ".agents/skills/predictor-context/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Broad investigation, audit and compact handoff context."
+    },
+    "predictor-graph-navigation": {
+      "path": ".agents/skills/predictor-graph-navigation/SKILL.md",
+      "role": "navigation",
+      "mode": "installed",
+      "purpose": "Repository dependency, call-flow and ownership navigation."
+    },
+    "predictor-spec-driven-delivery": {
+      "path": ".agents/skills/predictor-spec-driven-delivery/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Non-trivial multi-file delivery from outcome through executable evidence."
+    },
+    "predictor-ui-review": {
+      "path": ".agents/skills/predictor-ui-review/SKILL.md",
+      "role": "review",
+      "mode": "installed",
+      "purpose": "Predictor-specific UI, responsive, interaction and accessibility review."
+    },
+    "predictor-ai-lab-verifier": {
+      "path": ".agents/skills/predictor-ai-lab-verifier/SKILL.md",
+      "role": "domain",
+      "mode": "installed",
+      "purpose": "AI Lab evidence and model-policy verification."
+    },
+    "vnext-programme-runner": {
+      "path": ".agents/skills/vnext-programme-runner/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Resume and execute the controlled multi-stage vNext programme."
+    }
+  }
+}

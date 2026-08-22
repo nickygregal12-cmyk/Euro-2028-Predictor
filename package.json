@@ -36,6 +36,7 @@
     "generate:types": "node scripts/generate-database-types.mjs",
     "notifications:workflows": "node scripts/list-notification-workflows.mjs",
     "check:now": "node scripts/generate-now.mjs --check",
+    "agent:route": "node scripts/agent-tools/route-task.mjs",
     "storybook": "storybook dev -p 6006",
     "build:storybook": "storybook build",
     "test:storybook": "vitest run --config vitest.storybook.config.ts",
