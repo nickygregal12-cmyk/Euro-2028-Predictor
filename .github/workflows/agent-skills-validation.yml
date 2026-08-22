@@ -4,12 +4,18 @@ on:
   pull_request:
     paths:
       - '.agents/skills/**'
+      - 'config/agent-skills.json'
+      - 'config/agent-skill-sources.json'
+      - 'scripts/agent-tools/materialize-skill.mjs'
       - '.github/workflows/agent-skills-validation.yml'
   push:
     branches:
       - main
     paths:
       - '.agents/skills/**'
+      - 'config/agent-skills.json'
+      - 'config/agent-skill-sources.json'
+      - 'scripts/agent-tools/materialize-skill.mjs'
       - '.github/workflows/agent-skills-validation.yml'
   workflow_dispatch:
 
@@ -29,6 +35,10 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.22.2'
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -50,3 +60,21 @@ jobs:
             echo 'No Predictor skills found to validate.' >&2
             exit 1
           fi
+      - name: Validate immutable specialist source registry
+        run: node scripts/agent-tools/materialize-skill.mjs check
+      - name: Prove routed specialist pins materialize
+        shell: bash
+        run: |
+          set -euo pipefail
+          for source in \
+            frontend-design \
+            systematic-debugging \
+            react-best-practices \
+            composition-patterns \
+            supabase-postgres-best-practices \
+            differential-review
+          do
+            entrypoint="$(node scripts/agent-tools/materialize-skill.mjs "$source")"
+            test -f "$entrypoint"
+            echo "$source -> $entrypoint"
+          done

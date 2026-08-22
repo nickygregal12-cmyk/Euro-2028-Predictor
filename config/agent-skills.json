@@ -42,6 +42,48 @@
       "role": "process",
       "mode": "installed",
       "purpose": "Resume and execute the controlled multi-stage vNext programme."
+    },
+    "predictor-frontend-design": {
+      "path": ".agents/skills/predictor-frontend-design/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "frontend-design",
+      "purpose": "Distinctive visual direction for new or materially reshaped Predictor UI."
+    },
+    "predictor-systematic-debugging": {
+      "path": ".agents/skills/predictor-systematic-debugging/SKILL.md",
+      "role": "process",
+      "mode": "pinned-adapter",
+      "source": "systematic-debugging",
+      "purpose": "Root-cause-first defect diagnosis and regression repair."
+    },
+    "predictor-react-best-practices": {
+      "path": ".agents/skills/predictor-react-best-practices/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "react-best-practices",
+      "purpose": "React/Vite performance, rerender, async and bundle optimization guidance."
+    },
+    "predictor-composition-patterns": {
+      "path": ".agents/skills/predictor-composition-patterns/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "composition-patterns",
+      "purpose": "Scalable React component APIs and composition for real architecture pressure."
+    },
+    "predictor-postgres-best-practices": {
+      "path": ".agents/skills/predictor-postgres-best-practices/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "supabase-postgres-best-practices",
+      "purpose": "Postgres/Supabase query, schema, RLS, locking and migration implementation guidance."
+    },
+    "predictor-differential-review": {
+      "path": ".agents/skills/predictor-differential-review/SKILL.md",
+      "role": "review",
+      "mode": "conditional-adapter",
+      "source": "differential-review",
+      "purpose": "Extra blast-radius and adversarial diff review for sensitive changes only."
     }
   }
 }
