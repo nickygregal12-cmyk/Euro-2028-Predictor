@@ -280,7 +280,7 @@ export function BetBuilderPanel() {
     minDataConfidence !== null,
     excludeTeams.trim() !== '',
   ].filter(Boolean).length
-  const goal = GOALS.find((choice) => choice.key === objective) ?? GOALS[0]
+  const goal = GOALS.find((choice) => choice.key === objective) ?? GOALS[0]!
 
   return (
     <div className={styles.builder}>

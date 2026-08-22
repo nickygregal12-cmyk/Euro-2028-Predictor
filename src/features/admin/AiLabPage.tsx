@@ -22,7 +22,6 @@ import { BetBuilderPanel } from './BetBuilderPanel'
 import {
   forecastVerdict,
   marketComparison,
-  outcomeLabel,
   scorelineHealth,
   valueVerdict,
 } from './aiLabInsights'
