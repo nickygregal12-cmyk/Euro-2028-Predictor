@@ -65,6 +65,29 @@ Installed does not mean loaded. A task should not carry several competing planni
 
 When multiple routes suggest skills in the same role, the higher-priority route wins and the packet records the suppressed skill rather than silently loading both.
 
+## Acceptance benchmark
+
+The context-routing contract is held by a small, network-free representative benchmark:
+
+```bash
+npm run agent:bench
+npm run agent:bench -- --check
+```
+
+`config/agent-context-benchmarks.json` contains the simple prompts and their expected deterministic fallback. The benchmark deliberately disables Graphify: obvious task/domain intent must still classify sensibly if the graph is unavailable, while a symbol-only prompt such as `Refactor MatchCard` must stay unclassified rather than guess which subsystem owns it. In normal use that ambiguous case proceeds through the Graphify fast path.
+
+The benchmark also holds these first-orientation ceilings:
+
+- Graphify query budget at or below **1,200 tokens**;
+- no more than **8 candidate source/test paths** in the initial packet;
+- no more than **3 authorities** in the initial packet;
+- no more than **3 selected specialist/process/review skills** for the representative prompts;
+- a deterministic no-graph JSON packet below **8 KiB**.
+
+These are context-efficiency guards, not reasons to hide genuinely required authority. If a real task needs broader context, expand deliberately after the first packet rather than raising the global ceilings to make one exceptional task convenient.
+
+The normal CI test suite and Agent tooling smoke both execute the benchmark. A routing/skill change that causes a representative prompt to over-route therefore fails before it can silently turn progressive disclosure back into repository preloading.
+
 ## Pinned specialist skills
 
 Specialist external guidance is split into two layers so it remains useful without becoming permanent startup context:
@@ -122,6 +145,7 @@ Do not grow the scoped router back into a combined copy of all vNext product doc
 - `config/agent-routing.json`: task/path -> pointer metadata only.
 - `config/agent-skills.json`: project skill role/load metadata only.
 - `config/agent-skill-sources.json`: immutable external source/commit/licence metadata only.
+- `config/agent-context-benchmarks.json`: representative navigation acceptance cases and context ceilings only.
 - `.agents/skills/*/SKILL.md`: actual Predictor skill/adaptor instructions.
 - `.agent-cache/skills/`: ignored upstream reference bytes, never authority.
 - product/ADR/ops authorities: the rules and decisions themselves.
