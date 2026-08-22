@@ -1,4 +1,4 @@
--- Contract 215: value evidence must use the forecast the Lab currently shows.
+-- Contract 214: value evidence must use the forecast the Lab currently shows.
 --
 -- A fixture deliberately owns several immutable forecast horizons. Contract 202
 -- widened those horizons so new completed football can reach a fixture as the
@@ -15,7 +15,8 @@
 --   * after a new forecast arrives but before value is recalculated, yesterday's
 --     recommendation still looks current.
 --
--- `find_value.py` now reads `ai.canonical_fixture_predictions`. This migration
+-- `find_value.py` now retains all historical candidate rows for audit/debugging
+-- but marks the canonical forecast and assesses ONLY that row. This migration
 -- makes the read side fail closed too: a recommendation is current only when it
 -- belongs to the fixture's canonical forecast. A new unpriced forecast therefore
 -- produces NO current recommendation until the normal value job evaluates it.
