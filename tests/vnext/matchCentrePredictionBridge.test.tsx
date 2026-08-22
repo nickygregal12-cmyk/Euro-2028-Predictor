@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
 import { VNextMatchCentreDestination } from '../../src/app/vnext/VNextMatchesDestination'
@@ -8,25 +9,22 @@ import {
   competitionSectionRoute,
 } from '../../src/app/weeklyRoutes'
 
-const bridge = vi.hoisted(() => ({
-  gameCompetitionId: 'game-competition-main',
-  predictorReachable: true,
+const mocks = vi.hoisted(() => ({
+  seasonGameCompetitionId: vi.fn(() => 'game-competition-main'),
+  routeEnabled: vi.fn(() => true),
   screenProps: null as null | Record<string, unknown>,
 }))
-
-const seasonGameCompetitionId = vi.hoisted(() => vi.fn(() => bridge.gameCompetitionId))
-const routeEnabled = vi.hoisted(() => vi.fn(() => bridge.predictorReachable))
 
 vi.mock('../../src/features/auth/AuthProvider', () => ({
   useAuth: () => ({ userId: 'player-1', loading: false }),
 }))
 
 vi.mock('../../src/features/hub/useSeasonGameCompetitionId', () => ({
-  useSeasonGameCompetitionId: seasonGameCompetitionId,
+  useSeasonGameCompetitionId: mocks.seasonGameCompetitionId,
 }))
 
 vi.mock('../../src/app/routeFlags', () => ({
-  isNextUi: routeEnabled,
+  isNextUi: mocks.routeEnabled,
 }))
 
 vi.mock('../../src/app/vnext/seam', () => ({
@@ -35,7 +33,7 @@ vi.mock('../../src/app/vnext/seam', () => ({
 }))
 
 vi.mock('../../src/app/vnext/VNextAppRoot', () => ({
-  VNextAppRoot: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  VNextAppRoot: ({ children }: { children: ReactNode }) => <>{children}</>,
 }))
 
 vi.mock('../../src/vnext/integration/matches/VNextMatchesScreen', () => ({
@@ -44,7 +42,7 @@ vi.mock('../../src/vnext/integration/matches/VNextMatchesScreen', () => ({
 
 vi.mock('../../src/vnext/integration/matches/VNextMatchCentreScreen', () => ({
   VNextMatchCentreScreen: (props: Record<string, unknown>) => {
-    bridge.screenProps = props
+    mocks.screenProps = props
     const onIntent = props.onIntent as
       | ((intent: { kind: 'link'; link: 'match-predictor' }) => void)
       | undefined
@@ -77,13 +75,13 @@ describe('Match Centre prediction bridge', () => {
   it('passes the cached Match Predictor membership and route capability into the connected screen', () => {
     renderDestination()
 
-    expect(seasonGameCompetitionId).toHaveBeenCalledWith(
+    expect(mocks.seasonGameCompetitionId).toHaveBeenCalledWith(
       'premier-league',
       '2027-28',
       'main_predictor',
     )
-    expect(routeEnabled).toHaveBeenCalledWith('seasonMatchPredictor')
-    expect(bridge.screenProps).toMatchObject({
+    expect(mocks.routeEnabled).toHaveBeenCalledWith('seasonMatchPredictor')
+    expect(mocks.screenProps).toMatchObject({
       gameCompetitionId: 'game-competition-main',
       predictorReachable: true,
     })
