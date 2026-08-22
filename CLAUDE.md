@@ -7,7 +7,7 @@ Claude Code should use this file as a router, not as a project diary.
 1. Read [`NOW.md`](NOW.md) for current moving facts.
 2. Read [`AGENTS.md`](AGENTS.md) for canonical safety and authority rules.
 3. Inspect current `main`, branch ancestry and open pull requests before editing.
-4. If the exact implementation file/symbol is not already known, run `npm run agent:route -- "THE TASK"` before broad source browsing.
+4. If the exact implementation file/symbol is not already known, use the Graphify fast path: run `npm run agent:route -- "THE TASK"` before broad source browsing.
 5. Load only the authorities, skill(s), candidate source and tests returned by that task packet. If the task already names an exact tracked file/symbol, skip unnecessary Graphify ceremony and use the local route directly.
 
 Do not preload old contract histories, deployment narratives, design chronicles or unrelated subsystem documentation. Pull historical evidence only when the task is historical, investigative or regression-focused.
