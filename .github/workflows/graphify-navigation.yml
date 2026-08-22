@@ -72,6 +72,14 @@ jobs:
           test -n "${version}"
           echo "GRAPHIFY_VERSION=${version}" >> "${GITHUB_ENV}"
 
+      - name: Fingerprint indexed inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          fingerprint="$(node scripts/agent-tools/graphify-input-fingerprint.mjs --ref HEAD)"
+          [[ "${fingerprint}" =~ ^sha256:[0-9a-f]{64}$ ]]
+          echo "GRAPHIFY_INPUT_FINGERPRINT=${fingerprint}" >> "${GITHUB_ENV}"
+
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -111,6 +119,7 @@ jobs:
             echo "## Graphify navigation"
             echo
             echo "- Source: \`${GITHUB_REPOSITORY}@${GITHUB_SHA}\`"
+            echo "- Input fingerprint: \`${GRAPHIFY_INPUT_FINGERPRINT:-unknown}\`"
             echo "- Graphify: \`${GRAPHIFY_VERSION:-unknown}\`"
             echo "- Mode: structural code-only, no semantic model/API"
             echo "- Artifact: \`graphify-navigation-${GITHUB_SHA}\`"
@@ -176,6 +185,8 @@ jobs:
           Generated from \`${GITHUB_REPOSITORY}@${GITHUB_SHA}\` by
           \`.github/workflows/graphify-navigation.yml\` using Graphify
           \`${GRAPHIFY_VERSION}\`.
+
+          - Input fingerprint: \`${GRAPHIFY_INPUT_FINGERPRINT}\`
 
           This branch is a replace-in-place navigation snapshot, not repository
           authority or release evidence. Verify important conclusions against the
