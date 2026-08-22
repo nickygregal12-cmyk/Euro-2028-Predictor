@@ -8,7 +8,7 @@ Before editing:
 
 1. Read [`NOW.md`](NOW.md). It is the generated index of current moving facts.
 2. Check current `main`, your branch ancestry, and open PRs for overlap.
-3. If the exact implementation file/symbol is not already known, run `npm run agent:route -- "THE TASK"`. It uses bounded Graphify orientation plus [`config/agent-routing.json`](config/agent-routing.json) to return the smallest likely source, authority and skill set.
+3. If the exact implementation file/symbol is not already known, before broad source browsing run `npm run agent:route -- "THE TASK"`. It uses bounded Graphify orientation plus [`config/agent-routing.json`](config/agent-routing.json) to return the smallest likely source, authority and skill set.
 4. Read only the returned authority plus the source/tests you need. If an exact file was supplied from the start, use the task table below without forcing Graphify ceremony.
 5. For non-trivial multi-file delivery, use [`.agents/skills/predictor-spec-driven-delivery/SKILL.md`](.agents/skills/predictor-spec-driven-delivery/SKILL.md) unless the task packet selected a different process skill.
 
