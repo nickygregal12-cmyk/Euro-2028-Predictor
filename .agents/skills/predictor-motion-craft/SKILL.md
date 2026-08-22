@@ -1,6 +1,6 @@
 ---
 name: predictor-motion-craft
-description: Use only for explicit Predictor motion work: animation, transitions, easing, springs, microinteractions, entrance/exit motion, interaction feedback, gestures, route/page transitions, animation polish or reduced-motion behaviour.
+description: "Use only for explicit Predictor motion work: animation, transitions, easing, springs, microinteractions, entrance/exit motion, interaction feedback, gestures, route/page transitions, animation polish or reduced-motion behaviour."
 ---
 
 # Predictor motion craft adapter
