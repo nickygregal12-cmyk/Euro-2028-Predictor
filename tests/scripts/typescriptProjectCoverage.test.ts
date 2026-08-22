@@ -232,6 +232,7 @@ describe('JavaScript under scripts/', () => {
    * deferred set silently.
    */
   const DEFERRED = [
+    ['scripts/agent-tools/benchmark-context.mjs', null],
     ['scripts/agent-tools/graphify-input-fingerprint.mjs', null],
     ['scripts/agent-tools/materialize-skill.mjs', null],
     ['scripts/agent-tools/route-task.mjs', null],

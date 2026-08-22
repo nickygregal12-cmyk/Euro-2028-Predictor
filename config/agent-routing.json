@@ -1,9 +1,9 @@
 {
   "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
-  "version": 2,
+  "version": 3,
   "graphifyBudget": 900,
-  "maxCandidatePaths": 12,
-  "maxAuthorities": 4,
+  "maxCandidatePaths": 8,
+  "maxAuthorities": 3,
   "routes": [
     {
       "id": "vnext-programme",
@@ -20,9 +20,16 @@
       "skills": ["predictor-context"]
     },
     {
+      "id": "security-investigation",
+      "priority": 188,
+      "taskKeywords": ["security audit", "security concern", "security investigation", "security review"],
+      "authorities": [],
+      "skills": ["predictor-context"]
+    },
+    {
       "id": "systematic-defect",
       "priority": 185,
-      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "does nothing", "not working", "broken journey", "failing journey", "regression", "flaky", "reproducible bug"],
+      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "does nothing", "not working", "broken journey", "failing journey", "regression", "flaky", "reproducible bug", "bug"],
       "authorities": [],
       "skills": ["predictor-systematic-debugging"]
     },
@@ -77,7 +84,7 @@
       "id": "vnext-lms",
       "priority": 165,
       "paths": ["src/vnext/lms/", "src/vnext/integration/lms/", "src/vnext/models/lms.ts"],
-      "taskKeywords": ["vnext lms", "vnext last man standing"],
+      "taskKeywords": ["vnext lms", "vnext last man standing", "lms pick", "last man standing"],
       "authorities": ["docs/product/ui.md", "docs/product/vnext-lms.md"],
       "skills": ["predictor-ui-review"]
     },
@@ -108,7 +115,7 @@
     {
       "id": "react-performance",
       "priority": 155,
-      "taskKeywords": ["react performance", "rerender", "re-render", "bundle size", "async waterfall", "react scan", "performance regression"],
+      "taskKeywords": ["react performance", "rendering performance", "render performance", "rerender", "re-render", "bundle size", "async waterfall", "react scan", "performance regression"],
       "authorities": [],
       "skills": ["predictor-react-best-practices"]
     },
@@ -123,7 +130,7 @@
       "id": "sensitive-diff-review",
       "priority": 145,
       "paths": ["supabase/migrations/", "supabase/functions/", "src/services/supabase/", "src/features/admin/", "src/services/providers/"],
-      "taskKeywords": ["auth change", "rls change", "rpc change", "permission change", "secret handling", "environment handling", "scoring change", "settlement change", "security-sensitive", "cross-layer refactor"],
+      "taskKeywords": ["auth change", "rls change", "rpc change", "supabase rpc", "add rpc", "new rpc", "permission change", "secret handling", "environment handling", "scoring change", "settlement change", "security-sensitive", "cross-layer refactor"],
       "authorities": ["docs/adr/README.md"],
       "skills": ["predictor-differential-review"]
     },
