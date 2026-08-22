@@ -130,6 +130,16 @@ describe('bounded agent task routing', () => {
     expect(packet.skills.filter((skill) => skill.role === 'specialist')).toHaveLength(1)
   })
 
+  it('does not load simplification for cleanup wording on a broken journey', () => {
+    const packet = route('--no-graph', 'Clean up this broken journey and fix the bug')
+    const names = packet.skills.map((skill) => skill.name)
+
+    expect(packet.routes).toContain('systematic-defect')
+    expect(packet.routes).not.toContain('code-simplification')
+    expect(names).toContain('predictor-systematic-debugging')
+    expect(names).not.toContain('predictor-code-simplification')
+  })
+
   it('routes skill efficacy work to the evaluation domain without loading unrelated product skills', () => {
     const packet = route('--no-graph', 'Benchmark this skill and measure its trigger accuracy')
 
@@ -144,6 +154,13 @@ describe('bounded agent task routing', () => {
     expect(packet.routes).toContain('independent-second-opinion')
     expect(packet.skills.map((skill) => skill.name)).toContain('predictor-second-opinion')
     expect(packet.skills.find((skill) => skill.name === 'predictor-second-opinion')?.role).toBe('critic')
+  })
+
+  it('does not spend an independent critic on a routine architecture review', () => {
+    const packet = route('--no-graph', 'Review the architecture of this component boundary')
+
+    expect(packet.routes).not.toContain('independent-second-opinion')
+    expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-second-opinion')
   })
 
   it('routes compound learning only when a reusable lesson is deliberately being captured', () => {
