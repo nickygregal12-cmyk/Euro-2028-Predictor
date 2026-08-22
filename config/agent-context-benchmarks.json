@@ -10,12 +10,58 @@
   },
   "cases": [
     {
+      "id": "home-redesign",
+      "prompt": "Redesign the vNext Home page",
+      "requiredRoutes": ["intentional-ui-design"],
+      "requiredSkills": ["predictor-frontend-design"],
+      "forbiddenSkills": ["predictor-motion-craft"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "competition-switcher-motion",
+      "prompt": "The competition switcher animation feels sluggish",
+      "requiredRoutes": ["motion-craft"],
+      "requiredSkills": ["predictor-motion-craft"],
+      "forbiddenSkills": ["predictor-frontend-design"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
       "id": "home-release-blocker",
-      "prompt": "Find a League does nothing",
+      "prompt": "Fix Find a league — it does nothing",
       "requiredRoutes": ["systematic-defect", "vnext-home"],
       "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft"],
       "maxAuthorities": 3,
       "maxSelectedSkills": 2
+    },
+    {
+      "id": "match-centre-rendering-performance",
+      "prompt": "Improve Match Centre rendering performance",
+      "requiredRoutes": ["vnext-matches", "react-performance"],
+      "requiredSkills": ["predictor-react-best-practices", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "landing-page-directions",
+      "prompt": "Explore three visual directions for the pre-signup landing page",
+      "requiredRoutes": ["intentional-ui-design"],
+      "requiredSkills": ["predictor-frontend-design"],
+      "forbiddenSkills": ["predictor-motion-craft"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matches-table-spacing",
+      "prompt": "Improve the Matches table spacing",
+      "requiredRoutes": ["vnext-matches"],
+      "requiredSkills": ["predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
     },
     {
       "id": "match-centre-ui",
