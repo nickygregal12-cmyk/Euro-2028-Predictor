@@ -22,7 +22,7 @@
     {
       "id": "systematic-defect",
       "priority": 185,
-      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "broken journey", "failing journey", "regression", "flaky", "reproducible bug"],
+      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "does nothing", "not working", "broken journey", "failing journey", "regression", "flaky", "reproducible bug"],
       "authorities": [],
       "skills": ["predictor-systematic-debugging"]
     },
