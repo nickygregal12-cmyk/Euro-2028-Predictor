@@ -86,7 +86,7 @@ The benchmark also holds these first-orientation ceilings:
 
 These are context-efficiency guards, not reasons to hide genuinely required authority. If a real task needs broader context, expand deliberately after the first packet rather than raising the global ceilings to make one exceptional task convenient.
 
-The normal CI test suite and Agent tooling smoke both execute the benchmark. A routing/skill change that causes a representative prompt to over-route therefore fails before it can silently turn progressive disclosure back into repository preloading.
+The normal CI test suite and Agent tooling smoke both execute the network-free benchmark. The tooling smoke additionally provisions the pinned Graphify baseline and runs a real `agent:route` task packet through the live merged-main graph, asserting the same Graphify/path/authority/skill ceilings. A routing/skill change that over-routes therefore fails before it can silently turn progressive disclosure back into repository preloading.
 
 ## Pinned specialist skills
 
