@@ -43,7 +43,7 @@ function payload(confirmation: Record<string, unknown> = {}) {
   }
 }
 
-describe('createSeasonMatchPredictorRpcGateway — Contract 214 confirmation authority', () => {
+describe('createSeasonMatchPredictorRpcGateway — Contract 214 server-owned confirmation authority', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
