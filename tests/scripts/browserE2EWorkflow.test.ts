@@ -4,6 +4,11 @@ import { describe, expect, it } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
 const workflow = readFileSync(resolve(root, '.github/workflows/browser-e2e.yml'), 'utf8')
+const shippingVNextConfig = readFileSync(
+  resolve(root, 'playwright.shipping-vnext.config.ts'),
+  'utf8',
+)
+const envExample = readFileSync(resolve(root, '.env.example'), 'utf8')
 const productionWorkflow = readFileSync(
   resolve(root, '.github/workflows/production-smoke.yml'),
   'utf8',
@@ -35,6 +40,23 @@ const forbiddenHostedRefs = [
   'gcfdwobpnanjchcnvdco',
 ]
 
+const shippingHubFlags = [
+  'VITE_UI_FOOTBALL_HUB_HOME',
+  'VITE_UI_FOOTBALL_HUB_MATCHES',
+  'VITE_UI_FOOTBALL_HUB_GAMES',
+  'VITE_UI_FOOTBALL_HUB_LEAGUES',
+  'VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE',
+  'VITE_UI_FOOTBALL_HUB_DISCOVERY',
+  'VITE_UI_FOOTBALL_HUB_ACCOUNT',
+  'VITE_UI_FOOTBALL_HUB_LMS',
+  'VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP',
+  'VITE_UI_FOOTBALL_HUB_PREDICTOR',
+  'VITE_UI_FOOTBALL_HUB_ONBOARDING',
+  'VITE_UI_FOOTBALL_HUB_INVITE',
+  'VITE_UI_FOOTBALL_HUB_CREATE',
+  'VITE_UI_FOOTBALL_HUB_WRAPPED',
+] as const
+
 const [authenticatedWorkflow, previewWorkflow = ''] = workflow.split(
   '\n  deploy-preview-smoke:',
 )
@@ -49,6 +71,29 @@ describe('authenticated browser E2E workflow', () => {
     expect(authenticatedWorkflow).toContain('playwright install --with-deps chromium')
     expect(authenticatedWorkflow).toContain('npm run test:e2e')
     expect(authenticatedWorkflow).toContain('playwright-report')
+  })
+
+  it('runs a dedicated shipping-vNext player suite in the same disposable database', () => {
+    expect(authenticatedWorkflow).toContain('Run shipping vNext player journeys')
+    expect(authenticatedWorkflow).toContain('npm run test:e2e:shipping-vnext')
+    expect(authenticatedWorkflow).toContain('playwright-report-shipping-vnext')
+    expect(packageJson.scripts['test:e2e:shipping-vnext']).toBe(
+      'playwright test --config=playwright.shipping-vnext.config.ts',
+    )
+    expect(shippingVNextConfig).toContain("testMatch: ['shipping-vnext-journeys.spec.ts']")
+    expect(shippingVNextConfig).toContain("devices['Desktop Chrome']")
+    expect(shippingVNextConfig).toContain("devices['Pixel 7']")
+    expect(shippingVNextConfig).toContain("globalSetup: './e2e/global-setup.ts'")
+  })
+
+  it('takes every Football Hub cutover switch from the committed shipping template', () => {
+    expect(shippingVNextConfig).toContain("new URL('./.env.example', import.meta.url)")
+    expect(shippingVNextConfig).toContain("VITE_SITE_VARIANT: 'hub'")
+    for (const flag of shippingHubFlags) {
+      expect(envExample).toContain(`${flag}=true`)
+      expect(shippingVNextConfig).toContain(`'${flag}'`)
+    }
+    expect(shippingVNextConfig).toContain("value !== 'true'")
   })
 
   it('publishes the canonical Bonus Games catalogue only inside disposable browser E2E', () => {
@@ -96,6 +141,7 @@ describe('authenticated browser E2E workflow', () => {
   it('contains no hosted Supabase project reference', () => {
     for (const ref of forbiddenHostedRefs) {
       expect(authenticatedBrowserHarness).not.toContain(ref)
+      expect(shippingVNextConfig).not.toContain(ref)
     }
   })
 

@@ -28,14 +28,20 @@ import type { ShellSource } from './shellSource'
 export function buildShellModel(source: ShellSource): VNextShellModel {
   const { competition } = source
   const outstanding = source.outstandingPredictions
+  const statedPlayerName = source.playerName?.trim() ?? ''
+  const playerName = statedPlayerName.length > 0 ? statedPlayerName : 'Your account'
 
   return {
     player: {
-      // "Player" rather than a blank: the account control has to be nameable,
-      // and a nameless button is worse than a generic one. It is never a
-      // fabricated identity — the shell shows no id and claims no profile.
-      name: source.playerName ?? 'Your account',
-      initials: initialsOf(source.playerName),
+      // THE FALLBACK IS A CONTROL LABEL, NOT A PERSON. The previous fallback
+      // named the control "Your account" but derived its visual mark from the
+      // missing source name, which produced a lone middle dot. That was both
+      // unrecognisable in the mobile chrome and indistinguishable from a
+      // loading artefact. Deriving initials from the SAME deliberate fallback
+      // keeps the visible and accessible states in agreement without inventing
+      // an identity or requiring an avatar read.
+      name: playerName,
+      initials: initialsOf(playerName),
     },
     // NO COMPETITION MEANS NO ACTIVE CONTEXT, not an invented one. A page
     // outside a competition renders with a null active context, which is the
@@ -156,10 +162,16 @@ function monogramOf(name: string): string {
   return (first ?? name).slice(0, 2).toUpperCase()
 }
 
-function initialsOf(name: string | null): string {
-  if (!name) return '·'
+/**
+ * A compact visual mark for a label the shell can already say.
+ *
+ * The caller always hands this a non-empty label. Keeping the defensive `?`
+ * means a future malformed label fails recognisably rather than regressing to
+ * punctuation that looks like a rendering glitch.
+ */
+function initialsOf(name: string): string {
   const words = name.split(/\s+/).filter(Boolean)
   const [first, second] = words
   if (first && second) return `${first[0] ?? ''}${second[0] ?? ''}`.toUpperCase()
-  return (first ?? '').slice(0, 2).toUpperCase() || '·'
+  return (first ?? '').slice(0, 2).toUpperCase() || '?'
 }

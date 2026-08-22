@@ -1,0 +1,159 @@
+/* SECONDARY LEAGUE-TABLE CONTEXT FOR MATCHES.
+ *
+ * The fixtures stay primary. Compact layouts expose one disclosure; expanded
+ * layouts spend the existing secondary column on the same authoritative table.
+ * No viewport query is used: the shell's `vnext-page` container owns this
+ * composition, exactly like the rest of Matches.
+ */
+
+.tablePanel {
+  min-width: 0;
+}
+
+.tableDisclosure {
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+}
+
+.tableSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3);
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-small);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  list-style-position: inside;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.tableSummary:focus-visible,
+.tableRetry:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tableSummary:hover,
+  .tableRetry:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    color: var(--vnext-text);
+  }
+}
+
+.tableDesktop {
+  display: none;
+}
+
+.tableHeader {
+  padding: var(--vnext-space-3) var(--vnext-space-3) 0;
+}
+
+.tableContent {
+  min-width: 0;
+  padding: var(--vnext-space-2) var(--vnext-space-3) var(--vnext-space-3);
+}
+
+.tableScroll {
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.leagueTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  color: var(--vnext-text-secondary);
+  font-size: var(--vnext-size-caption);
+}
+
+.leagueTable th,
+.leagueTable td {
+  padding: var(--vnext-space-2) var(--vnext-space-1);
+  border-bottom: 1px solid var(--vnext-hairline);
+  vertical-align: middle;
+}
+
+.leagueTable thead th {
+  color: var(--vnext-text-muted);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  text-align: end;
+}
+
+.leagueTable thead th:nth-child(2),
+.leagueTable tbody th {
+  text-align: start;
+}
+
+.leagueTable tbody th {
+  min-width: 11ch;
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+.leagueTable td {
+  text-align: end;
+  white-space: nowrap;
+}
+
+.tablePoints {
+  color: var(--vnext-text);
+  font-weight: var(--vnext-weight-display);
+}
+
+.tableStatus,
+.tableProvenance {
+  margin: var(--vnext-space-2) 0 0;
+  color: var(--vnext-text-muted);
+}
+
+.tableNotice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: var(--vnext-space-3);
+  color: var(--vnext-text-secondary);
+}
+
+.tableNotice p {
+  margin: 0;
+}
+
+.tableRetry {
+  align-self: flex-start;
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background-color: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+@container vnext-page (min-width: 1120px) {
+  .tableDisclosure {
+    display: none;
+  }
+
+  .tableDesktop {
+    display: block;
+    min-width: 0;
+    border: 1px solid var(--vnext-hairline);
+    border-radius: var(--vnext-radius-md);
+    background-color: var(--vnext-surface-sunken);
+  }
+}

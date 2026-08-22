@@ -7,24 +7,6 @@ import type { CreateWrites } from '../../src/vnext/integration/create/VNextCreat
 import { shellScenarios } from '../../src/vnext/fixtures'
 import type { PlayerCompetitions } from '../../src/features/hub/playerCompetitions'
 
-/**
- * THE CREATE CORRIDOR, END TO END, WITHOUT A NETWORK.
- *
- * The properties worth protecting are the ones a corridor gets wrong quietly:
- *
- *   1. THE RIGHT FUNCTION FOR THE RIGHT CONTAINER. A private Match Predictor
- *      league is created against a `game_competition_id`; a private Last Man
- *      Standing or Championship against a SEASON. Sending one to the other's
- *      creator produces a league on an id the function cannot use, or a
- *      competition nobody chose — and both look like a server error.
- *   2. THE THREE GAMES STAY PEERS. A game that cannot be created keeps its row
- *      and carries its reason, rather than disappearing and leaving a player to
- *      conclude the product does not have it.
- *   3. A CHAMPIONSHIP IS NOT LAUNCHED HERE. It is created and handed over with
- *      an invite; the draw is a separate, irreversible decision.
- *   4. NOTHING IS RE-VALIDATED. A refusal is the server's sentence, printed.
- */
-
 const player = {
   mine: [
     {
@@ -52,24 +34,51 @@ const player = {
 } as unknown as PlayerCompetitions
 
 function writes(over: Partial<CreateWrites> = {}): CreateWrites {
-  return {
-    createLeague: vi.fn(async (id: string, name: string) => ({
-      id: 'lg-1',
-      name,
-      inviteCode: `LEAGUE-${id}`,
-    })),
-    createLms: vi.fn(async (id: string, name: string) => ({
-      competitionId: 'comp-1',
-      name,
-      inviteCode: `LMS-${id}`,
-    })),
-    createCup: vi.fn(async (id: string, name: string) => ({
-      competitionId: 'comp-2',
-      name,
-      inviteCode: `CUP-${id}`,
-    })),
-    ...over,
+  let leagueName = 'Private league'
+  let lmsName = 'Private LMS'
+  let cupName = 'Private Championship'
+
+  const base: CreateWrites = {
+    createLeague: vi.fn(async (id: string, name: string) => {
+      leagueName = name
+      return { id: 'lg-1', name, inviteCode: `MUTATION-${id}` }
+    }),
+    createLms: vi.fn(async (id: string, name: string) => {
+      lmsName = name
+      return { competitionId: 'comp-1', name, inviteCode: `MUTATION-LMS-${id}` }
+    }),
+    createCup: vi.fn(async (id: string, name: string) => {
+      cupName = name
+      return { competitionId: 'comp-2', name, inviteCode: `MUTATION-CUP-${id}` }
+    }),
+    readLeagues: vi.fn(async (id: string) => [
+      {
+        id: 'lg-1',
+        name: leagueName,
+        inviteCode: `LEAGUE-${id}`,
+        isOwner: true,
+      },
+    ]),
+    readPrivateCompetitions: vi.fn(async () => [
+      {
+        competitionId: 'comp-1',
+        name: lmsName,
+        gameKey: 'last_man_standing' as const,
+        tournamentId: 'season-1',
+        isOwner: true,
+        inviteCode: 'LMS-season-1',
+      },
+      {
+        competitionId: 'comp-2',
+        name: cupName,
+        gameKey: 'predictor_cup' as const,
+        tournamentId: 'season-1',
+        isOwner: true,
+        inviteCode: 'CUP-season-1',
+      },
+    ]),
   }
+  return { ...base, ...over }
 }
 
 function renderCorridor(
@@ -92,12 +101,6 @@ function renderCorridor(
   return { ...view, perform }
 }
 
-/**
- * SCOPED TO THE CHOICE, because the shell above draws the player's games too
- * and the Championship's own sentence contains the words "Match Predictor
- * points". An unscoped role query matches three things and would have started
- * failing for a reason that had nothing to do with the corridor.
- */
 function chooseGame(game: string) {
   const zone = within(
     document.querySelector('[data-vnext-zone="choose-game"]') as HTMLElement,
@@ -112,11 +115,19 @@ function chooseAndName(game: string, name: string) {
   })
 }
 
+function review() {
+  fireEvent.click(screen.getByRole('button', { name: 'Review' }))
+  return within(document.querySelector('[data-vnext-zone="review"]') as HTMLElement)
+}
+
+function createFromReview() {
+  const zone = review()
+  fireEvent.click(zone.getByRole('button', { name: 'Create it' }))
+}
+
 describe('the create corridor offers all three games as peers', () => {
   it('draws a row for every game, including the ones it cannot create', () => {
     renderCorridor({
-      // Nothing joined and nothing published: every game refuses, and every
-      // game still has to say so.
       player: { mine: [], catalogue: [] } as unknown as PlayerCompetitions,
     })
 
@@ -130,7 +141,6 @@ describe('the create corridor offers all three games as peers', () => {
     renderCorridor({
       player: { mine: [], catalogue: [] } as unknown as PlayerCompetitions,
     })
-    // A CONTROL THAT EXISTS AND REFUSES teaches a player the product is broken.
     const zone = within(
       document.querySelector('[data-vnext-zone="choose-game"]') as HTMLElement,
     )
@@ -138,12 +148,30 @@ describe('the create corridor offers all three games as peers', () => {
   })
 })
 
-describe('each container is created by the function its own shape requires', () => {
+describe('review is a real mutation gate', () => {
+  it('does not create from setup and lets the player edit the reviewed choices', () => {
+    const { perform } = renderCorridor()
+    chooseAndName('Match Predictor', 'The Sunday Club')
+
+    expect(screen.queryByRole('button', { name: 'Create it' })).toBeNull()
+    const zone = review()
+    expect(perform.createLeague).not.toHaveBeenCalled()
+    expect(zone.getByText(/The Sunday Club/)).toBeInTheDocument()
+    expect(zone.getByText(/Caledonian Premiership/)).toBeInTheDocument()
+
+    fireEvent.click(zone.getByRole('button', { name: 'Edit' }))
+    expect(screen.getByRole('textbox', { name: /what is it called/i })).toHaveValue(
+      'The Sunday Club',
+    )
+  })
+})
+
+describe('each container is created by its own authority and then reread', () => {
   it('creates a private league against the game membership', async () => {
     const { perform } = renderCorridor()
 
     chooseAndName('Match Predictor', 'The Sunday Club')
-    fireEvent.click(screen.getByRole('button', { name: 'Create it' }))
+    createFromReview()
 
     await waitFor(() =>
       expect(perform.createLeague).toHaveBeenCalledWith(
@@ -151,56 +179,91 @@ describe('each container is created by the function its own shape requires', () 
         'The Sunday Club',
       ),
     )
+    await waitFor(() => expect(perform.readLeagues).toHaveBeenCalledWith('game-competition-mp'))
     expect(perform.createLms).not.toHaveBeenCalled()
     expect(perform.createCup).not.toHaveBeenCalled()
   })
 
-  it('creates a private Last Man Standing against the SEASON, with its rules', async () => {
+  it('creates Last Man Standing against the season with its reviewed rules', async () => {
     const { perform } = renderCorridor()
 
     chooseAndName('Last Man Standing', 'Survivors')
     fireEvent.click(screen.getByRole('button', { name: 'A draw keeps you in' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create it' }))
+    const zone = review()
+    expect(zone.getByText('A draw keeps you in')).toBeInTheDocument()
+    fireEvent.click(zone.getByRole('button', { name: 'Create it' }))
 
     await waitFor(() => expect(perform.createLms).toHaveBeenCalled())
     const call = (perform.createLms as ReturnType<typeof vi.fn>).mock.calls[0]
     expect(call?.[0]).toBe('season-1')
     expect(call?.[1]).toBe('Survivors')
     expect(call?.[2]).toMatchObject({ drawsRule: 'survive' })
+    await waitFor(() => expect(perform.readPrivateCompetitions).toHaveBeenCalledTimes(1))
     expect(perform.createLeague).not.toHaveBeenCalled()
   })
 
-  it('creates a private Championship against the season and does not launch it', async () => {
+  it('creates a Championship against the season and does not launch it', async () => {
     const { perform } = renderCorridor()
 
     chooseAndName('Predictor Championship', 'Office Cup')
-    fireEvent.click(screen.getByRole('button', { name: 'Create it' }))
+    createFromReview()
 
     await waitFor(() => expect(perform.createCup).toHaveBeenCalledWith('season-1', 'Office Cup'))
-    // THE DRAW IS FIXED AT LAUNCH AND LAUNCHING CLOSES REGISTRATION. The
-    // corridor hands over an invite and says so; it never launches.
     expect(await screen.findByText(/Nobody is drawn yet/)).toBeInTheDocument()
   })
 })
 
-describe('what the organiser is left holding', () => {
-  it('shows the invite the server issued', async () => {
+describe('success means the authoritative destination can find the container', () => {
+  it('shows the invite from the authoritative reread, not the mutation response', async () => {
     renderCorridor()
 
     chooseAndName('Match Predictor', 'The Sunday Club')
-    fireEvent.click(screen.getByRole('button', { name: 'Create it' }))
+    createFromReview()
 
     expect(await screen.findByText('LEAGUE-game-competition-mp')).toBeInTheDocument()
+    expect(screen.queryByText('MUTATION-game-competition-mp')).toBeNull()
     expect(screen.getByText(/The Sunday Club is ready/)).toBeInTheDocument()
   })
 
-  it('reports a refusal in safe copy and keeps the player on the form', async () => {
-    // `userFacingError` is the repository's one translator and it never returns
-    // a raw database, RPC or network detail — the legacy journey routes its
-    // refusals through the same function with its own fallback. What the
-    // corridor owes is that the refusal is SHOWN, that it is the operation's
-    // own sentence rather than a generic one, and that nothing was navigated
-    // away from: a player whose create was refused still has their name typed.
+  it('does not claim success when the write returns but the authoritative reread misses it', async () => {
+    const perform = writes({ readLeagues: vi.fn(async () => []) })
+    renderCorridor({ writes: perform })
+
+    chooseAndName('Match Predictor', 'The Sunday Club')
+    createFromReview()
+
+    const warning = await screen.findByRole('alert')
+    expect(warning).toHaveTextContent(/could not confirm it in your private-play list/i)
+    expect(warning).toHaveTextContent(/do not create a duplicate/i)
+    expect(screen.queryByText(/is ready/)).toBeNull()
+    expect(perform.createLeague).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not double-submit a create while the first call is in flight', async () => {
+    let release: (() => void) | undefined
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    const perform = writes({
+      createLeague: vi.fn(async (_id: string, name: string) => {
+        await blocked
+        return { id: 'lg-1', name, inviteCode: 'MUTATION' }
+      }),
+    })
+    renderCorridor({ writes: perform })
+
+    chooseAndName('Match Predictor', 'The Sunday Club')
+    const zone = review()
+    const button = zone.getByRole('button', { name: 'Create it' })
+    fireEvent.click(button)
+    fireEvent.click(button)
+    expect(perform.createLeague).toHaveBeenCalledTimes(1)
+
+    release?.()
+    expect(await screen.findByText(/The Sunday Club is ready/)).toBeInTheDocument()
+  })
+
+  it('reports a write refusal in safe copy and retains the setup for editing', async () => {
     renderCorridor({
       writes: writes({
         createLeague: vi.fn(async () => {
@@ -210,11 +273,12 @@ describe('what the organiser is left holding', () => {
     })
 
     chooseAndName('Match Predictor', 'The Sunday Club')
-    fireEvent.click(screen.getByRole('button', { name: 'Create it' }))
+    createFromReview()
 
     const refusal = await screen.findByRole('alert')
     expect(refusal).toHaveTextContent('We could not create that just now.')
     expect(refusal.textContent).not.toContain('unique constraint')
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }))
     expect(screen.getByRole('textbox', { name: /what is it called/i })).toHaveValue(
       'The Sunday Club',
     )
@@ -228,8 +292,6 @@ describe('the other way in', () => {
 
     const join = within(document.querySelector('[data-vnext-zone="join"]') as HTMLElement)
     fireEvent.change(join.getByRole('textbox'), {
-      // PEOPLE PASTE THE LINK as often as they type the code, and a corridor
-      // that refused a working invite URL would be refusing the commonest input.
       target: { value: 'https://example.test/join/SUN4KD' },
     })
     fireEvent.click(join.getByRole('button', { name: 'Open it' }))
@@ -245,8 +307,6 @@ describe('the other way in', () => {
     fireEvent.change(join.getByRole('textbox'), { target: { value: 'nonsense' } })
     fireEvent.click(join.getByRole('button', { name: 'Open it' }))
 
-    // `/join/:code` owns every answer about a code, including the refusals it
-    // deliberately makes indistinguishable from each other.
     expect(onJoinCode).toHaveBeenCalledWith('nonsense')
   })
 })

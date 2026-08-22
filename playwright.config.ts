@@ -36,6 +36,11 @@ export default defineConfig({
     'vnext-supporting.spec.ts',
     'vnext-ia.spec.ts',
     'vnext-visual-contract.spec.ts',
+    // Shipping-vNext journeys have their own config because that config reads
+    // the committed production route flags and refuses to run unless every
+    // shipping flag is true. Playwright applies RegExp ignores to the full test
+    // path, so this must not be anchored at the start of the filename.
+    /shipping-vnext-.*\.spec\.ts$/,
     'admin-results.spec.ts',
     'authenticated-browser.spec.ts',
     'automatic-submission.spec.ts',

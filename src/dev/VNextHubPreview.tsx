@@ -4,11 +4,12 @@ import { AuthProvider, useAuth } from '../features/auth/AuthProvider'
 import { PlayerCompetitionsProvider } from '../app/providers/PlayerCompetitionsProvider'
 import { VNextRoot } from '../vnext/foundations/VNextRoot'
 import { VNextShellElsewhereHost } from '../vnext/integration/shell/VNextShellElsewhereHost'
+import type { VNextNavigationIntent } from '../vnext/integration/shell/navigationIntent'
 import { VNextHomeScreen } from '../vnext/integration/home/VNextHomeScreen'
 import { VNextMatchesScreen } from '../vnext/integration/matches/VNextMatchesScreen'
 import { VNextGamesScreen } from '../vnext/integration/games/VNextGamesScreen'
 import { VNextLeaguesScreen } from '../vnext/integration/leagues/VNextLeaguesScreen'
-import type { ShellDestinationId, ShellIntent } from '../vnext/models/shell'
+import type { ShellDestinationId } from '../vnext/models/shell'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -35,9 +36,9 @@ import styles from './VNextHomePreview.module.css'
  * Behind `import.meta.env.DEV` at its import site in `App.tsx`, like every
  * other harness here. **The production Football Hub is untouched and nothing
  * about the cutover is decided by this file.** The destination switch is the
- * harness's own control, not a router: a real host answers a `ShellIntent` with
- * a navigation, and this one answers it with `useState`, which is exactly the
- * seam `VNextShellProvider` documents.
+ * harness's own control, not a router: a real host answers a navigation intent
+ * with a navigation, and this one answers it with `useState`, which is exactly
+ * the seam `VNextShellProvider` documents.
  *
  * ============================ THE GAMES DESTINATION WRITES ===============
  *
@@ -95,10 +96,10 @@ function HubHarness() {
     [params, setParams],
   )
 
-  // THE HOST'S HALF OF THE INTENT SEAM. The shell says what the player asked
-  // for; deciding what that means is the host's job and never the shell's.
+  // THE HOST'S HALF OF THE INTENT SEAM. Connected vNext screens say what the
+  // player asked for; deciding what that means is the host's job.
   const onShellIntent = useCallback(
-    (intent: ShellIntent) => {
+    (intent: VNextNavigationIntent) => {
       switch (intent.kind) {
         case 'destination':
           go(intent.destination)
@@ -108,6 +109,9 @@ function HubHarness() {
             `Competition switch to ${intent.contextId} — a real host reloads the ` +
               'page reads for that competition; this harness reports it.',
           )
+          return
+        case 'match-centre':
+          setNote(`Match Centre requested for fixture ${intent.fixtureId}.`)
           return
         default:
           setNote(`Shell intent: ${intent.kind}`)

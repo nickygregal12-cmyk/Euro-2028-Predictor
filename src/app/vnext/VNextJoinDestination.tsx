@@ -2,44 +2,26 @@ import { Navigate, useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthSplash } from '../../features/auth/AuthSplash'
 import { useInviteLanding } from '../../features/leagues/useInviteLanding'
+import type { InviteJoinResult } from '../../features/leagues/useInviteCode'
+import { fetchHubMembership } from '../../services/supabase/competitionGames'
+import { isActiveMembership } from '../../services/supabase/competitionGamesModel'
+import { fetchMyGameLeagues } from '../../services/supabase/gameLeagues'
+import { fetchPublishedWeeklySeasons } from '../../services/supabase/weeklyCatalogue'
 import { VNextInviteScreen } from '../../vnext/integration/invite/VNextInviteScreen'
-import { weeklyRoutes } from '../weeklyRoutes'
+import { competitionSectionRoute, weeklyRoutes } from '../weeklyRoutes'
+import { resolvePrivateCompetitionHref } from './privateCompetitionRoute'
 import { useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
 
 /**
  * THE INVITE DEEP LINK, `/join/:code`, IN THE PRODUCT IT LEADS INTO.
  *
- * ============================ THE SEAM THIS CLOSES ======================
- *
- * Stage 13 built `src/vnext/invite/` and its integration adapter — stories,
- * tests, a `/dev` harness — and production went on serving the legacy card. So
- * the most common way a NEW player meets this product for the first time, a
- * link from a friend, was the one surface still wearing the old design.
- *
- * ============================ WHAT IT DOES NOT DO ======================
- *
- * IT DOES NOT TOUCH INVITE SECURITY. `useInviteCode` resolves and accepts, and
- * dispatches on the server's own `joinWith` rather than on the code's shape or
- * anything the browser inferred; `VNextInviteScreen` calls it and this file
- * calls neither. There is no second copy of the join here, which is the whole
- * reason that hook exists.
- *
- * IT DOES NOT REDECIDE THE HAND-OFF. Stashing the code, routing a signed-out
- * visitor through sign-up so the auth gate can resume the exact deep link,
- * consuming the pending redirect on arrival, and where a joined container OPENS
- * on this build are all `useInviteLanding`'s — the same hook the legacy page
- * calls. A pending invitation surviving authentication AND onboarding is an
- * accepted requirement, and a second copy of it is how that requirement breaks
- * without anybody noticing.
- *
- * ============================ AND IT BRINGS ITS OWN FRAME ===============
- *
- * `/join/:code` is registered outside `RequireAuth` and outside `AppShell`, so
- * there is no legacy chrome to surrender and no frame-ownership row is owed —
- * `frameOwnership.ts` names this address in `OUTSIDE_THE_LEGACY_FRAME` for
- * exactly that reason. `VNextInviteScreen` builds its own shell, with no
- * competition in it, because accepting the invitation is how a player gets one.
+ * The join itself remains wholly `useInviteCode`'s: the server decides whether
+ * a code is a league or private competition and which write accepts it. This
+ * destination only answers the post-success routing question for shipping
+ * vNext. Private containers are rediscovered after the write before any exact
+ * instance address is used; if the authoritative reads cannot answer, the
+ * established conservative landing remains the fallback.
  */
 export function VNextJoinDestination() {
   useViewerFormatting()
@@ -52,6 +34,80 @@ export function VNextJoinDestination() {
   if (landing.kind === 'sign-up') return <Navigate to="/auth/signup" replace />
 
   const landOn = landing.landOn
+  const onJoined = (joined: InviteJoinResult) => {
+    if (joined.kind === 'league') {
+      // DO NOT USE THE SHELL CACHE AS POST-WRITE PROOF. A player may have joined
+      // Match Predictor seconds earlier while following this invite, and the
+      // long-lived shell provider can still hold its pre-join membership answer.
+      // Re-read the published seasons and their server-owned game memberships,
+      // then use the same game-scoped league read as vNext Leagues. The exact
+      // route is therefore derived from current server state, never from invite
+      // display copy and never from mutation optimism.
+      void (async () => {
+        try {
+          const published = await fetchPublishedWeeklySeasons()
+          const memberships = await fetchHubMembership(
+            published.map((season) => season.seasonName),
+          )
+          const publishedBySeasonId = new Map(
+            published.map((season) => [season.seasonId, season] as const),
+          )
+          const candidates = memberships.flatMap((membership) => {
+            const season = publishedBySeasonId.get(membership.tournamentId)
+            if (!season) return []
+            return membership.seasonGames.games
+              .filter(
+                (game) =>
+                  game.gameKey === 'main_predictor' && isActiveMembership(game),
+              )
+              .map((game) => ({ gameId: game.id, season }))
+          })
+
+          const results = await Promise.allSettled(
+            candidates.map(async (candidate) => ({
+              candidate,
+              leagues: await fetchMyGameLeagues(candidate.gameId),
+            })),
+          )
+          const match = results.find(
+            (result) =>
+              result.status === 'fulfilled' &&
+              result.value.leagues.some((league) => league.id === joined.leagueId),
+          )
+          if (!match || match.status !== 'fulfilled') {
+            landOn(joined)
+            return
+          }
+
+          const href = competitionSectionRoute(
+            {
+              competitionSlug: match.value.candidate.season.competitionSlug,
+              seasonSlug: match.value.candidate.season.seasonKey,
+            },
+            'leagues',
+          )
+          navigate(`${href}?league=${encodeURIComponent(joined.leagueId)}`, {
+            replace: true,
+          })
+        } catch {
+          landOn(joined)
+        }
+      })()
+      return
+    }
+
+    if (joined.competitionId === null) {
+      landOn(joined)
+      return
+    }
+
+    void resolvePrivateCompetitionHref(joined.competitionId)
+      .then((href) => {
+        if (href === null) landOn(joined)
+        else navigate(href, { replace: true })
+      })
+      .catch(() => landOn(joined))
+  }
 
   return (
     <VNextAppRoot>
@@ -59,16 +115,18 @@ export function VNextJoinDestination() {
         userId={userId}
         authLoading={loading}
         code={code}
-        // THE ATTENTION LAYER IS DELIBERATELY ABSENT. `shellElsewhere` costs a
-        // play-context read plus up to three game reads per competition, and
-        // this address is reached by people who frequently have none. The
-        // screen's own prop docs call `undefined` "the one-competition shape",
-        // which is the honest shape for a page-scoped host.
-        onJoined={landOn}
-        onGoHome={() => navigate(weeklyRoutes.leagues, { replace: true })}
-        // No `onOpenGame`: contract 159 stopped the resolver returning a
-        // container id, so there is nothing to open BY. A player who is already
-        // in is sent to their private play, which is where it is.
+        // A pre-join LEAGUE invite deliberately exposes no competition id or
+        // slug (contract 159), so this route cannot truthfully manufacture a
+        // Match Predictor address. Discovery is the existing public authority
+        // that lets the player choose the season the invite names, join its
+        // game, then reopen the same code. This keeps the prerequisite control
+        // useful without leaking or guessing private addressing state.
+        onOpenGame={() => navigate(weeklyRoutes.competitions)}
+        // THE ATTENTION LAYER IS DELIBERATELY ABSENT. This address is commonly
+        // a new player's first signed-in page and should not pay every
+        // cross-competition attention read before the invitation itself lands.
+        onJoined={onJoined}
+        onGoHome={() => navigate(weeklyRoutes.hub, { replace: true })}
       />
     </VNextAppRoot>
   )

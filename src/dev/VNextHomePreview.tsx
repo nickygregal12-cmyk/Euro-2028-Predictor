@@ -7,7 +7,7 @@ import {
   VNextHomeLoading,
   VNextHomeNotice,
 } from '../vnext/integration/home/VNextHomeStates'
-import type { ShellIntent } from '../vnext/models/shell'
+import type { VNextNavigationIntent } from '../vnext/integration/shell/navigationIntent'
 import styles from './VNextHomePreview.module.css'
 
 /**
@@ -224,7 +224,7 @@ function PreviewBody() {
 function useShellIntentHost(report: (message: string) => void) {
   const navigate = useNavigate()
   return useCallback(
-    (intent: ShellIntent) => {
+    (intent: VNextNavigationIntent) => {
       switch (intent.kind) {
         case 'discover':
           navigate('/competitions')
@@ -244,7 +244,7 @@ function useShellIntentHost(report: (message: string) => void) {
   )
 }
 
-function describeIntent(intent: ShellIntent): string {
+function describeIntent(intent: VNextNavigationIntent): string {
   switch (intent.kind) {
     case 'destination':
       return `Destination "${intent.destination}" — a vNext surface later stages build.`
@@ -254,6 +254,8 @@ function describeIntent(intent: ShellIntent): string {
       return `Open ${intent.game} in "${intent.contextId}".`
     case 'league':
       return `Open league "${intent.leagueId}".`
+    case 'match-centre':
+      return `Open Match Centre for fixture "${intent.fixtureId}" in "${intent.contextId}".`
     default:
       // `discover` and `account` are handled by the host above and never reach
       // this describer; the branch exists so the union stays exhaustive.

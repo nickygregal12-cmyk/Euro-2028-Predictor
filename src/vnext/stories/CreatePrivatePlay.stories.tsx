@@ -12,31 +12,12 @@ import {
 } from '../models/createPrivatePlay'
 
 /**
- * CREATE PRIVATE PLAY — the corridor Stage 9 declined to build a door onto.
+ * CREATE PRIVATE PLAY — the reviewable vNext corridor.
  *
- * ============================ WHAT A REVIEWER IS BEING ASKED ============
- *
- *   1. DO THE THREE GAMES STILL READ AS PEERS? Open `ChooseGame`. This is the
- *      easiest surface in the product on which to quietly reintroduce a
- *      hierarchy — by drawing one larger, by ordering them by popularity, or by
- *      hiding the two that cannot be created today. None of that happens; a
- *      refused game keeps its row and carries its reason.
- *   2. IS A REFUSAL ACTIONABLE? Open `NothingToBuildOn`. "Join Match Predictor
- *      in a competition first" is a thing a player can go and do; a greyed-out
- *      button is not.
- *   3. DOES THE CHAMPIONSHIP SAY WHAT LAUNCHING COSTS BEFORE IT OFFERS IT?
- *      Open `ChampionshipSetup`. The draw is fixed at launch and registration
- *      closes with it, and that is said before the control rather than after.
- *   4. IS THE FINISHED STATE A HANDOVER RATHER THAN A CONGRATULATION? Open
- *      `Created`. What an organiser needs at that moment is the invite.
- *
- * ============================ NOTHING HERE CREATES ANYTHING =============
- *
- * Every world is a literal. The surface emits intents and the host performs
- * them; these stories hold the intents rather than acting on them, so walking
- * every step cannot create a competition.
+ * The stories are literals: nothing here creates a competition. They protect
+ * the peer game choice, setup, read-only review, refusal, and verified handover
+ * states at phone and desktop widths.
  */
-
 const meta = {
   title: 'vNext/Create private play',
   component: WorkshopCanvas,
@@ -159,15 +140,33 @@ export const LmsSetup: Story = board(
   0.8,
 )
 
+export const LmsReview: Story = board(
+  world({
+    step: 'review',
+    chosen: LMS,
+    host: HOSTS[0],
+    name: 'The Sunday Club',
+    lms: { ...DEFAULT_LMS_SETUP, lives: 2, saves: 1, drawsRule: 'survive' },
+  }),
+  PHONE_AND_DESKTOP,
+  0.8,
+)
+
 export const ChampionshipSetup: Story = board(
   world({ step: 'setup', chosen: CHAMPIONSHIP, host: HOSTS[0], name: 'Office Cup' }),
   PHONE_AND_DESKTOP,
   0.8,
 )
 
+export const ChampionshipReview: Story = board(
+  world({ step: 'review', chosen: CHAMPIONSHIP, host: HOSTS[0], name: 'Office Cup' }),
+  PHONE_AND_DESKTOP,
+  0.8,
+)
+
 export const Refused: Story = board(
   world({
-    step: 'setup',
+    step: 'review',
     chosen: PREDICTOR,
     host: HOSTS[0],
     name: 'The Sunday Club',
@@ -181,6 +180,7 @@ export const Created: Story = board(
   world({
     step: 'created',
     created: {
+      containerId: 'league-verified-1',
       game: 'match-predictor',
       name: 'The Sunday Club',
       competitionName: 'Caledonian Premiership',
@@ -197,6 +197,7 @@ export const CreatedChampionship: Story = board(
   world({
     step: 'created',
     created: {
+      containerId: 'championship-verified-1',
       game: 'championship',
       name: 'Office Cup',
       competitionName: 'Caledonian Premiership',

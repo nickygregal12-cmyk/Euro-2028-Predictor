@@ -10,6 +10,7 @@ on:
       - 'playwright.config.ts'
       - 'playwright.auth.config.ts'
       - 'playwright.production.config.ts'
+      - 'playwright.shipping-vnext.config.ts'
       - 'scripts/bonus-games/**'
       - 'scripts/production-smoke.mjs'
       - 'vite.config.ts'
@@ -37,7 +38,7 @@ permissions:
 jobs:
   authenticated-browser:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
 
     steps:
       - name: Harden runner (audit egress)
@@ -141,6 +142,9 @@ jobs:
             npm run test:e2e -- ${BROWSER_JOURNEYS}
           fi
 
+      - name: Run shipping vNext player journeys
+        run: npm run test:e2e:shipping-vnext
+
       - name: Run signup and password-recovery journeys
         run: npm run test:e2e:auth
 
@@ -152,6 +156,7 @@ jobs:
           path: |
             playwright-report/
             playwright-report-auth/
+            playwright-report-shipping-vnext/
             test-results/
           if-no-files-found: ignore
           retention-days: 7

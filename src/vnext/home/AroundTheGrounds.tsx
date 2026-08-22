@@ -16,6 +16,8 @@ export type AroundTheGroundsProps = {
   now: string
   /** Heading for the zone. The competition emphasis calls it something else. */
   title?: string
+  /** Row intent only. This presentation component owns no application route. */
+  onActivate?: ((match: Match) => void) | undefined
 }
 
 type GroundsGroup = {
@@ -24,29 +26,11 @@ type GroundsGroup = {
   matches: readonly Match[]
 }
 
-/**
- * AROUND THE GROUNDS — the rest of the football.
- *
- * ROWS, NOT CARDS, AND THAT IS THE POINT. The dominant zone above already
- * spends a whole area on one match. If everything else were also a card, the
- * page would be a grid of equal things again and the hierarchy Home exists to
- * express would be gone. A row is dense enough that four fixtures — with form,
- * the user's call and the state of each — fit in the space one card would take.
- *
- * GROUPED BY WHAT THE USER CAN STILL DO ABOUT THEM: matches in play, matches
- * with a deadline ahead, matches already settled, matches not happening. The
- * headings say so, so the grouping is never carried by position alone.
- *
- * A ROW IS SIZED AGAINST ITS OWN COLUMN. Stage 3 measured this three times and
- * got it wrong three times: a four-column row that fits at 1920 starves club
- * names to "Ca…" and "E" at 1440, because this column is ~420px there and never
- * the ~680px such a row needs. It stays stacked at every width. A list that
- * fits is worth more than a table that does not.
- */
 export function AroundTheGrounds({
   matches,
   now,
   title = 'Around the grounds',
+  onActivate,
 }: AroundTheGroundsProps) {
   const headingId = useId()
   const groups: readonly GroundsGroup[] = [
@@ -89,7 +73,7 @@ export function AroundTheGrounds({
           <ul className={styles.groundsList}>
             {group.matches.map((match) => (
               <li key={match.id}>
-                <GroundRow match={match} now={now} />
+                <GroundRow match={match} now={now} onActivate={onActivate} />
               </li>
             ))}
           </ul>
@@ -99,7 +83,15 @@ export function AroundTheGrounds({
   )
 }
 
-function GroundRow({ match, now }: { match: Match; now: string }) {
+function GroundRow({
+  match,
+  now,
+  onActivate,
+}: {
+  match: Match
+  now: string
+  onActivate?: ((match: Match) => void) | undefined
+}) {
   const inPlay = match.status === 'live' || match.status === 'halfTime'
   const needsPrediction = match.prediction === null && match.status === 'upcoming'
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
@@ -112,9 +104,6 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
         match.score ? `, ${match.score.home}–${match.score.away}` : ''
       }`}
     >
-      {/* The colour spine: the home club's colour as a 4px edge. Enough identity
-          to tell two rows apart at a glance, nowhere near enough to be mistaken
-          for a state — semantic colour never arrives as a club colour. */}
       <span className={styles.groundSpine} aria-hidden="true" />
 
       <div className={styles.groundState}>
@@ -190,9 +179,6 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
         )}
       </div>
 
-      {/* A postponed fixture offers nothing to do, so it gets no control. An
-          empty button labelled with a verb the product cannot honour is worse
-          than a row that simply says the match is off. */}
       {match.status === 'postponed' ? null : (
         <button
           type="button"
@@ -200,6 +186,8 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
           aria-label={`${actionLabel(match)} — ${match.home.team.name} versus ${
             match.away.team.name
           }`}
+          onClick={() => onActivate?.(match)}
+          data-vnext-control="home-fixture-action"
         >
           {actionLabel(match)}
         </button>
@@ -208,15 +196,6 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
   )
 }
 
-/**
- * The verb on a row.
- *
- * Only two destinations exist in this product's vocabulary: the predictor and
- * Match Centre. Stage 3's rows offered "Follow" and "Breakdown", neither of
- * which names anything that has been specified — so an in-play or settled row
- * goes to Match Centre, which is a page that is actually going to be built, and
- * an open fixture goes to the prediction it is asking for.
- */
 function actionLabel(match: Match): string {
   if (match.status === 'upcoming') {
     return match.prediction === null ? 'Predict' : 'Change'
