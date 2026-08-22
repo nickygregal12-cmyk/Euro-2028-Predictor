@@ -128,7 +128,22 @@ describe('specialist Agent Skills', () => {
     expect(packet.routes).toContain('motion-craft')
     expect(packet.skills.map((skill) => skill.name)).toContain('predictor-motion-craft')
     expect(packet.skills.map((skill) => skill.name)).not.toContain('predictor-frontend-design')
-    expect(packet.skills.filter((skill) => skill.role === 'domain')).toHaveLength(1)
+    expect(packet.skills.filter((skill) => skill.role === 'specialist')).toHaveLength(1)
+  })
+
+  it('can add motion craft to an explicitly motion-heavy redesign without displacing design or review', () => {
+    const packet = route(
+      '--no-graph',
+      '--path',
+      'src/vnext/home/VNextHome.tsx',
+      'Redesign the vNext Home page and polish the entrance animation',
+    )
+    expect(packet.skills.map((skill) => skill.name)).toEqual(expect.arrayContaining([
+      'predictor-frontend-design',
+      'predictor-motion-craft',
+      'predictor-ui-review',
+    ]))
+    expect(packet.skills).toHaveLength(3)
   })
 
   it('uses root-cause debugging for real-world does-nothing wording without stacking general design', () => {
