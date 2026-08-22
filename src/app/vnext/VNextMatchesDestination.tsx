@@ -2,7 +2,9 @@ import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
-import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyRoutes'
+import { isNextUi } from '../routeFlags'
+import { competitionMatchCentreRoute } from '../weeklyRoutes'
+import { matchCentreIntentRoute } from './matchCentreNavigation'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
 
@@ -77,6 +79,13 @@ export function VNextMatchesDestination() {
  * 148 does not need them, because the SCREEN uses them for the way back —
  * "Back to Matches" has to name a competition even when the fixture read
  * could resolve without one.
+ *
+ * THE MATCH PREDICTOR LINK IS A HOST CAPABILITY, NOT A GUESS. The Stage 8
+ * source only produces it when the host says the season Match Predictor route
+ * is reachable AND the competition context resolves. This adapter supplies
+ * that route fact and turns the emitted intent into the application's existing
+ * game address. It deliberately does not opt the page into any additional
+ * social reads: opening the core football context remains network-neutral.
  */
 export function VNextMatchCentreDestination() {
   useViewerFormatting()
@@ -84,6 +93,7 @@ export function VNextMatchCentreDestination() {
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
   const onShellIntent = useShellIntentNavigation()
+  const predictorReachable = isNextUi('seasonMatchPredictor')
 
   return (
     <VNextAppRoot>
@@ -93,11 +103,12 @@ export function VNextMatchCentreDestination() {
         fixtureId={fixtureId ?? ''}
         competitionSlug={competitionSlug}
         seasonSlug={seasonSlug}
+        predictorReachable={predictorReachable}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
-          if (intent.kind !== 'link' || intent.link !== 'competition-matches') return
           if (competitionSlug === undefined || seasonSlug === undefined) return
-          navigate(competitionSectionRoute({ competitionSlug, seasonSlug }, 'matches'))
+          const href = matchCentreIntentRoute({ competitionSlug, seasonSlug }, intent)
+          if (href !== null) navigate(href)
         }}
       />
     </VNextAppRoot>
