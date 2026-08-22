@@ -1,4 +1,4 @@
-"""Join today's model probabilities to today's prices and record the decisions.
+"""Join today's canonical model probabilities to today's prices and record decisions.
 
     python find_value.py --league EPL --dry-run
 
@@ -22,6 +22,14 @@ the same selection at the same bookmaker — and every one of those repeats
 inflated the bet count, the exposure, the win rate, the ROI and the CLV sample
 by counting one opinion about one match more than once. One fixture, one market,
 one advised paper bet.
+
+THE FORECAST CURRENCY IS ALSO THE FIXTURE. A fixture deliberately accumulates
+immutable t168/t120/t72/t48/t24/t6 forecasts as better evidence arrives. Value
+must be assessed from the same canonical newest forecast that the Lab shows to
+an operator; assessing every historical horizon can otherwise let an older
+forecast record the immutable paper bet while the screen is displaying a newer
+probability. `ai.canonical_fixture_predictions` is therefore the only live
+forecast source for this job.
 
 The refusals are the point. "Edge exceeds 3%, therefore selection" fires on a
 four-day-old price, on a club with four matches of history, and on a fixture
@@ -56,12 +64,13 @@ DEFAULT_BOOK: str | None = None
 
 
 def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.DataFrame:
-    """Upcoming predictions plus every latest REAL venue price and references.
+    """Canonical upcoming forecasts plus latest REAL prices and references.
 
-    One fixture can therefore appear once per actionable bookmaker/exchange.
-    The common `ValueGate` decides freshness and actionability again in Python;
-    the registry join here is an earlier fail-closed boundary and avoids ever
-    presenting AVG/MAX as candidate venues in the first place.
+    One fixture can therefore appear once per actionable bookmaker/exchange,
+    never once per historical forecast horizon. The common `ValueGate` decides
+    freshness and actionability again in Python; the registry join here is an
+earlier fail-closed boundary and avoids ever presenting AVG/MAX as candidate
+venues in the first place.
 
     `AVG` and `MAX` are still retained beside each row as REFERENCE prices:
     AVG supplies the de-vigged market probability and MAX is a diagnostic
@@ -119,7 +128,7 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
                a.captured_at as action_captured_at,
                r.avg_h, r.avg_d, r.avg_a, r.avg_captured_at,
                r.max_h, r.max_d, r.max_a, r.max_captured_at
-          from ai.valid_predictions p
+          from ai.canonical_fixture_predictions p
           join ai.fixtures f on f.id = p.fixture_id
           join actionable a on a.fixture_id = p.fixture_id
      left join reference r on r.fixture_id = p.fixture_id
@@ -255,7 +264,7 @@ def main() -> int:
     with job("find_value", args.league) as state:
         df = load_candidates(args.league, args.book)
         if df.empty:
-            print("No upcoming prediction has a price at a real actionable venue.")
+            print("No upcoming canonical prediction has a price at a real actionable venue.")
             state["detail"] = {"candidates": 0}
             return 0
 
