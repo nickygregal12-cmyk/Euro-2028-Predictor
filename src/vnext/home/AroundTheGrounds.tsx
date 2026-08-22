@@ -16,6 +16,8 @@ export type AroundTheGroundsProps = {
   now: string
   /** Heading for the zone. The competition emphasis calls it something else. */
   title?: string
+  onOpenMatch?: ((matchId: string) => void) | undefined
+  onOpenPredictor?: (() => void) | undefined
 }
 
 type GroundsGroup = {
@@ -47,6 +49,8 @@ export function AroundTheGrounds({
   matches,
   now,
   title = 'Around the grounds',
+  onOpenMatch,
+  onOpenPredictor,
 }: AroundTheGroundsProps) {
   const headingId = useId()
   const groups: readonly GroundsGroup[] = [
@@ -89,7 +93,12 @@ export function AroundTheGrounds({
           <ul className={styles.groundsList}>
             {group.matches.map((match) => (
               <li key={match.id}>
-                <GroundRow match={match} now={now} />
+                <GroundRow
+                  match={match}
+                  now={now}
+                  onOpenMatch={onOpenMatch}
+                  onOpenPredictor={onOpenPredictor}
+                />
               </li>
             ))}
           </ul>
@@ -99,10 +108,28 @@ export function AroundTheGrounds({
   )
 }
 
-function GroundRow({ match, now }: { match: Match; now: string }) {
+function GroundRow({
+  match,
+  now,
+  onOpenMatch,
+  onOpenPredictor,
+}: {
+  match: Match
+  now: string
+  onOpenMatch?: ((matchId: string) => void) | undefined
+  onOpenPredictor?: (() => void) | undefined
+}) {
   const inPlay = match.status === 'live' || match.status === 'halfTime'
   const needsPrediction = match.prediction === null && match.status === 'upcoming'
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
+
+  const open = () => {
+    if (match.status === 'upcoming') {
+      onOpenPredictor?.()
+      return
+    }
+    onOpenMatch?.(match.id)
+  }
 
   return (
     <article
@@ -200,6 +227,7 @@ function GroundRow({ match, now }: { match: Match; now: string }) {
           aria-label={`${actionLabel(match)} — ${match.home.team.name} versus ${
             match.away.team.name
           }`}
+          onClick={open}
         >
           {actionLabel(match)}
         </button>

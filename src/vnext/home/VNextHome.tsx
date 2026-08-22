@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import type { HomeModel, PrimaryActionType } from '../models/home'
+import type { HomeModel } from '../models/home'
 import { VNextShell } from '../app/VNextShell'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
@@ -19,17 +19,14 @@ import {
 } from './selectHomeEmphasis'
 import styles from './home.module.css'
 
+/**
+ * Home says WHAT the player asked to open; the application says WHERE it lives.
+ * No route string crosses the vNext presentation boundary.
+ */
 export type HomeIntent =
-  | {
-      readonly kind: 'primary-action'
-      readonly actionType: Exclude<PrimaryActionType, 'watchLive'>
-    }
-  | {
-      readonly kind: 'primary-action'
-      readonly actionType: 'watchLive'
-      /** The Match Centre promise is exact, so the canonical fixture travels. */
-      readonly matchId: string
-    }
+  | { readonly kind: 'open-predictor' }
+  | { readonly kind: 'open-leagues' }
+  | { readonly kind: 'open-match'; readonly matchId: string }
 
 export type VNextHomeProps = {
   model: HomeModel
@@ -94,18 +91,27 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const emphasis = selectHomeEmphasis(model)
   const featured = pickFeaturedLiveMatch(model)
   const decision = pickDecisionMatch(model)
+
+  const openPredictor = () => onIntent?.({ kind: 'open-predictor' })
+  const openLeagues = () => onIntent?.({ kind: 'open-leagues' })
+  const openMatch = (matchId: string) => onIntent?.({ kind: 'open-match', matchId })
+
   const primaryAction = () => {
-    const actionType = model.primaryAction.type
-    if (actionType === 'watchLive') {
-      // The button literally promises Match Centre. A destination without a
-      // fixture id can only reach Matches, so carry the exact featured match
-      // that Home is already presenting rather than letting a later layer guess.
-      if (featured) {
-        onIntent?.({ kind: 'primary-action', actionType, matchId: featured.id })
-      }
-      return
+    switch (model.primaryAction.type) {
+      case 'predict':
+      case 'review':
+        openPredictor()
+        return
+      case 'joinLeague':
+        openLeagues()
+        return
+      case 'watchLive':
+        // The button literally promises Match Centre. A destination without a
+        // fixture id can only reach Matches, so carry the exact featured match
+        // Home is already presenting rather than letting a later layer guess.
+        if (featured) openMatch(featured.id)
+        return
     }
-    onIntent?.({ kind: 'primary-action', actionType })
   }
 
   const allMatches = [
@@ -181,7 +187,9 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
         animate="visible"
       >
         <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
-          {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
+          {emphasis === 'live' && featured ? (
+            <FeaturedMatch match={featured} onOpenMatch={openMatch} />
+          ) : null}
           {emphasis === 'decision' && decision ? (
             <DecisionHero match={decision} now={now} onAction={primaryAction} />
           ) : null}
@@ -197,6 +205,8 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
             matches={supporting}
             now={now}
             title={GROUNDS_TITLE[emphasis]}
+            onOpenMatch={openMatch}
+            onOpenPredictor={openPredictor}
           />
         </motion.div>
 

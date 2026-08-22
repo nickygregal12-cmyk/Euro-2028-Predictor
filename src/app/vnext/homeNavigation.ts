@@ -11,22 +11,19 @@ export type HomeRouteContext = {
 }
 
 /**
- * TURN ONE HOME ACTION INTO THE ADDRESS THE APPLICATION ALREADY OWNS.
+ * TURN ONE HOME INTENT INTO THE ADDRESS THE APPLICATION ALREADY OWNS.
  *
- * Home never carries URLs. It emits what the player pressed; this app-layer
- * adapter is where competition routes already belong. `watchLive` is the one
- * action whose destination is an exact fixture, so its intent carries the
- * canonical fixture id instead of degrading the promise "Match centre" into
- * the generic Matches destination.
+ * Home never carries URLs. It says which accepted surface the player asked to
+ * open; this app-layer adapter owns the route helpers. Exact Match Centre
+ * navigation keeps the canonical fixture id all the way to the route.
  */
 export function homeIntentRoute(context: HomeRouteContext, intent: HomeIntent): string {
-  switch (intent.actionType) {
-    case 'predict':
-    case 'review':
+  switch (intent.kind) {
+    case 'open-predictor':
       return competitionGameRoute(context, 'match-predictor')
-    case 'joinLeague':
+    case 'open-leagues':
       return competitionSectionRoute(context, 'leagues')
-    case 'watchLive':
+    case 'open-match':
       return competitionMatchCentreRoute(context, intent.matchId)
     default: {
       const unreachable: never = intent
