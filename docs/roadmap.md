@@ -529,3 +529,7 @@ same paragraph existed in seven places at once.
 > winner. **`CUP-006` is the remaining Championship work.**
 
 **Contract 206 delivery effect:** `PROF-001` gains its backend boundary: a season entrant can address another entrant's bounded profile by the season-scoped `playerRef` without receiving the target auth UUID. The requirement remains open until Development rollout, generated types and the browser consumer are proven; this contract does not reorder the roadmap.
+
+## Contract 214 review — AI Lab forecast/value currency
+
+Contract 214 is a repository-only consistency correction for the private AI Lab. The value loop keeps historical forecast horizons for audit but assesses only `ai.canonical_fixture_predictions`, and the current-recommendation read fails closed when a fresher canonical forecast has not yet been evaluated. This does not reorder the product roadmap, widen betting exposure, change model-selection policy or close #854: generated Bet Builder slips still need immutable slip-level settlement/performance evidence, and hosted rollout remains a separate guarded milestone.

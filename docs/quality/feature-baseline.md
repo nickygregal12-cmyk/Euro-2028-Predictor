@@ -371,3 +371,7 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 203:** records a backend correctness fix in the private admin Bet Builder: a superseded BET could be offered as an actionable leg, and the browser was re-deriving currency across nine paged reads to compensate. The rule moves to the database rather than disappearing, and is proved in both directions. No public surface and no threshold moves.
 
 **Contract 206:** records backend support for same-season competitive profile visibility using the season-scoped player reference. It deliberately does not reclassify a user-facing feature yet: Development rollout, generated types and the consuming browser journey are still required, and the new path exposes no target authentication identifier.
+
+## Contract 214 review — private AI Lab evidence currency
+
+Contract 214 hardens an existing private administrative research capability rather than creating a new compact user feature or safeguard identifier. Historical forecasts remain inspectable, but only the canonical newest forecast may produce the current value decision and stale recommendation evidence fails closed across a forecast-version change. No public betting surface, scoring rule, competition state, player data boundary or hosted classification changes here, so the compact `FEAT-*` / `SAFE-*` rows above are unchanged.

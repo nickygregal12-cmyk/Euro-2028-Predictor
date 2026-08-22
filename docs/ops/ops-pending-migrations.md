@@ -2,10 +2,12 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 213, Production 211, Development 213 (21 August 2026)
+## Current state — repository 214, Production 211, Development 213 (23 August 2026)
 
-**Development has completed the 211→213 boundary and is independently verified at 213.** Production remains at **211**. Contracts 212 and 213 are therefore pending on Production only; the next sequence is the reviewed Production backup → disposable-copy rehearsal → guarded rollout → independent postflight. PR #969 remains held back until Production is also 213; its migration number is not part of the current repository contract yet.
+**Development is independently verified at 213; the repository is now 214 and Production remains at 211.** Contract 214 is therefore pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, backup/rehearsal where applicable, guarded rollout and independent postflight; repository progress is not rollout authority.
 
+
+> **Contract 214 repository candidate — current value follows the canonical forecast (23 August 2026):** `20260823001000_ai_canonical_value_currency.sql` is **not hosted**. It redefines only the private `ai.current_fixture_recommendations` view: a decision is current only if its prediction is the fixture's canonical newest non-quarantined forecast. Historical recommendations remain append-only evidence. The companion Python change keeps historical candidate horizons inspectable but evaluates only the canonical-marked row, so an older horizon cannot create today's immutable paper advice while the Lab shows a newer probability. pgTAP suite **261** proves both fail-closed currency and preservation of the old audit row. No provider call, paid odds credit, public betting exposure or player-owned row is involved.
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
 > rows from `predictor_internal.provider_status_kinds`. It goes through
