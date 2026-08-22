@@ -119,9 +119,11 @@ export function scorelineHealth(fixtures: readonly CoverageFixture[]): Scoreline
 
   const counts = new Map<string, number>()
   for (const score of scores) counts.set(score, (counts.get(score) ?? 0) + 1)
-  const [topScore, topCount] = [...counts.entries()].sort(
+  const top = [...counts.entries()].sort(
     (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
-  )[0] ?? [null, 0]
+  )[0] ?? null
+  const topScore = top?.[0] ?? null
+  const topCount = top?.[1] ?? 0
   const share = topCount / scores.length
   return {
     sample: scores.length,
