@@ -5,7 +5,8 @@
     "process": 1,
     "domain": 1,
     "specialist": 1,
-    "review": 1
+    "review": 1,
+    "critic": 1
   },
   "skills": {
     "predictor-context": {
@@ -25,6 +26,19 @@
       "role": "process",
       "mode": "installed",
       "purpose": "Non-trivial multi-file delivery from outcome through executable evidence."
+    },
+    "predictor-product-brainstorming": {
+      "path": ".agents/skills/predictor-product-brainstorming/SKILL.md",
+      "role": "process",
+      "mode": "pinned-adapter",
+      "source": "brainstorming",
+      "purpose": "Bounded option exploration for genuinely unresolved product or architecture choices before implementation."
+    },
+    "predictor-compound-learning": {
+      "path": ".agents/skills/predictor-compound-learning/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Capture only durable, evidence-backed lessons from completed work into an existing authoritative home."
     },
     "predictor-ui-review": {
       "path": ".agents/skills/predictor-ui-review/SKILL.md",
@@ -58,6 +72,13 @@
       "source": "motion-craft",
       "purpose": "Narrow motion craft for animation, transitions, easing, gestures and reduced-motion behaviour."
     },
+    "predictor-code-simplification": {
+      "path": ".agents/skills/predictor-code-simplification/SKILL.md",
+      "role": "specialist",
+      "mode": "pinned-adapter",
+      "source": "code-simplifier",
+      "purpose": "Behaviour-preserving simplification of recently changed code after correctness is established."
+    },
     "predictor-systematic-debugging": {
       "path": ".agents/skills/predictor-systematic-debugging/SKILL.md",
       "role": "process",
@@ -86,12 +107,26 @@
       "source": "supabase-postgres-best-practices",
       "purpose": "Postgres/Supabase query, schema, RLS, locking and migration implementation guidance."
     },
+    "predictor-skill-evaluator": {
+      "path": ".agents/skills/predictor-skill-evaluator/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "skill-creator",
+      "purpose": "Measure whether a routed skill improves real repository outcomes and triggering without auto-promoting unproven skills."
+    },
     "predictor-differential-review": {
       "path": ".agents/skills/predictor-differential-review/SKILL.md",
       "role": "review",
       "mode": "conditional-adapter",
       "source": "differential-review",
       "purpose": "Extra blast-radius and adversarial diff review for sensitive changes only."
+    },
+    "predictor-second-opinion": {
+      "path": ".agents/skills/predictor-second-opinion/SKILL.md",
+      "role": "critic",
+      "mode": "conditional-adapter",
+      "source": "second-opinion",
+      "purpose": "Read-only independent-model review for high-stakes architecture or release decisions."
     }
   }
 }
