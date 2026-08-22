@@ -1,0 +1,41 @@
+name: Temporary UX-008 hosted index fix
+
+on:
+  push:
+    branches:
+      - codex/ux008-confirmation-integrity-v1
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/ux008-confirmation-integrity-v1
+      - name: Align the live hosted index with the machine records
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('docs/ops/ops-pending-migrations.md')
+          text = p.read_text()
+          old = '''## Current state — repository 213, Production 211, Development 213 (21 August 2026)
+
+**Development has completed the 211→213 boundary and is independently verified at 213.** Production remains at **211**. Contracts 212 and 213 are therefore pending on Production only; the next sequence is the reviewed Production backup → disposable-copy rehearsal → guarded rollout → independent postflight. PR #969 remains held back until Production is also 213; its migration number is not part of the current repository contract yet.'''
+          new = '''## Current state — repository 214, Production 211, Development 213 (23 August 2026)
+
+**Development is independently verified at 213; the repository is 214 and Production remains at 211.** Contract 214 is pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.'''
+          if old not in text:
+              raise SystemExit('Expected Contract-213 current-state block not found')
+          p.write_text(text.replace(old, new, 1))
+      - name: Remove helper and push
+        run: |
+          git rm .github/workflows/temporary-ux008-hosted-index-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/ops/ops-pending-migrations.md
+          git diff --cached --check
+          git commit -m "docs: align hosted index with Contract 214"
+          git push origin HEAD:codex/ux008-confirmation-integrity-v1
