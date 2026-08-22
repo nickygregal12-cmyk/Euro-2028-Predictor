@@ -68,4 +68,12 @@ describe('agent context acceptance benchmark', () => {
     expect(new Set(benchmark.cases.map((benchmarkCase) => benchmarkCase.prompt)).size).toBe(benchmark.cases.length)
     expect(benchmark.cases.some((benchmarkCase) => benchmarkCase.expectNoDeterministicFallback)).toBe(true)
   })
+
+  it('keeps the documented benchmark command wired through package scripts', () => {
+    const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
+      scripts: Record<string, string>
+    }
+
+    expect(packageJson.scripts['agent:bench']).toBe('node scripts/agent-tools/benchmark-context.mjs')
+  })
 })
