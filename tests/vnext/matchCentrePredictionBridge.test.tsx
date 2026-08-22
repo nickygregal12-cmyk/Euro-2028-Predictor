@@ -10,17 +10,12 @@ import {
 } from '../../src/app/weeklyRoutes'
 
 const mocks = vi.hoisted(() => ({
-  seasonGameCompetitionId: vi.fn(() => 'game-competition-main'),
   routeEnabled: vi.fn(() => true),
   screenProps: null as null | Record<string, unknown>,
 }))
 
 vi.mock('../../src/features/auth/AuthProvider', () => ({
   useAuth: () => ({ userId: 'player-1', loading: false }),
-}))
-
-vi.mock('../../src/features/hub/useSeasonGameCompetitionId', () => ({
-  useSeasonGameCompetitionId: mocks.seasonGameCompetitionId,
 }))
 
 vi.mock('../../src/app/routeFlags', () => ({
@@ -72,19 +67,12 @@ function renderDestination() {
 }
 
 describe('Match Centre prediction bridge', () => {
-  it('passes the cached Match Predictor membership and route capability into the connected screen', () => {
+  it('passes the real Match Predictor route capability into the connected screen', () => {
     renderDestination()
 
-    expect(mocks.seasonGameCompetitionId).toHaveBeenCalledWith(
-      'premier-league',
-      '2027-28',
-      'main_predictor',
-    )
     expect(mocks.routeEnabled).toHaveBeenCalledWith('seasonMatchPredictor')
-    expect(mocks.screenProps).toMatchObject({
-      gameCompetitionId: 'game-competition-main',
-      predictorReachable: true,
-    })
+    expect(mocks.screenProps).toMatchObject({ predictorReachable: true })
+    expect(mocks.screenProps).not.toHaveProperty('gameCompetitionId')
   })
 
   it('turns the Match Predictor intent into a real application navigation', () => {
