@@ -29,7 +29,7 @@
     {
       "id": "independent-second-opinion",
       "priority": 186,
-      "taskKeywords": ["second opinion", "pressure-test", "pressure test", "stress-test", "stress test", "cross-model review", "independent model review", "architecture review", "adversarial architecture review", "critical shipping review", "release-critical review"],
+      "taskKeywords": ["second opinion", "pressure-test", "pressure test", "stress-test", "stress test", "cross-model review", "independent model review", "adversarial architecture review", "critical shipping review", "release-critical review"],
       "authorities": [],
       "skills": ["predictor-second-opinion"]
     },
@@ -150,7 +150,7 @@
     {
       "id": "code-simplification",
       "priority": 154,
-      "taskKeywords": ["simplify", "simplification", "cleanup", "clean up", "reduce complexity", "accidental complexity", "maintainability pass", "generated code cleanup", "refactor recent changes", "refactor the recent changes"],
+      "taskKeywords": ["simplify recent", "simplify the recent", "simplification pass", "behaviour-preserving simplification", "behavior-preserving simplification", "reduce accidental complexity", "maintainability pass", "generated code cleanup", "post-green cleanup", "refactor recent changes", "refactor the recent changes"],
       "authorities": [],
       "skills": ["predictor-code-simplification"]
     },
