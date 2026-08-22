@@ -1,0 +1,132 @@
+{
+  "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
+  "version": 1,
+  "graphifyBudget": 900,
+  "maxCandidatePaths": 12,
+  "maxAuthorities": 4,
+  "routes": [
+    {
+      "id": "vnext-programme",
+      "priority": 200,
+      "taskKeywords": ["vnext programme", "resume vnext", "continue vnext stages", "programme controller"],
+      "authorities": ["docs/product/vnext-programme-controller.md", "config/vnext-programme.json"],
+      "skills": ["vnext-programme-runner"]
+    },
+    {
+      "id": "broad-investigation",
+      "priority": 190,
+      "taskKeywords": ["repo audit", "repository audit", "broad audit", "handoff", "get context from the repo", "whole repo"],
+      "authorities": [],
+      "skills": ["predictor-context"]
+    },
+    {
+      "id": "ai-lab",
+      "priority": 180,
+      "paths": ["ai/", "src/features/admin/ai"],
+      "taskKeywords": ["ai lab", "model evidence", "model promotion"],
+      "authorities": ["ai/README.md"],
+      "skills": ["predictor-ai-lab-verifier"]
+    },
+    {
+      "id": "vnext-shell",
+      "priority": 170,
+      "paths": ["src/vnext/app/", "src/vnext/integration/shell/", "src/vnext/models/shell.ts"],
+      "taskKeywords": ["competition switcher", "vnext shell", "shell navigation", "bottom navigation", "navigation rail"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-shell-ia.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-matches",
+      "priority": 165,
+      "paths": ["src/vnext/matches/", "src/vnext/integration/matches/", "src/vnext/models/matches.ts"],
+      "taskKeywords": ["match centre", "vnext matches", "fixture list"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-matches.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-leagues",
+      "priority": 165,
+      "paths": ["src/vnext/leagues/", "src/vnext/integration/leagues/", "src/vnext/models/leagues.ts"],
+      "taskKeywords": ["vnext leagues", "league standings", "player row"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-leagues.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-player",
+      "priority": 165,
+      "paths": ["src/vnext/player/", "src/vnext/integration/playerProfile/", "src/vnext/models/playerProfile.ts"],
+      "taskKeywords": ["player profile", "rival profile", "head to head"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-player-profiles.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-lms",
+      "priority": 165,
+      "paths": ["src/vnext/lms/", "src/vnext/integration/lms/", "src/vnext/models/lms.ts"],
+      "taskKeywords": ["last man standing", "vnext lms", "survival game"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-lms.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-championship",
+      "priority": 165,
+      "paths": ["src/vnext/championship/", "src/vnext/integration/championship/", "src/vnext/models/championship.ts"],
+      "taskKeywords": ["predictor championship", "championship bracket", "vnext championship"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-championship.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-home",
+      "priority": 160,
+      "paths": ["src/vnext/home/", "src/vnext/integration/home/", "src/vnext/models/home.ts"],
+      "taskKeywords": ["vnext home", "home page", "find a league"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-predictor",
+      "priority": 160,
+      "paths": ["src/vnext/predictor/", "src/vnext/integration/predictor/", "src/vnext/models/predictor.ts"],
+      "taskKeywords": ["match predictor", "prediction card", "score entry"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-general",
+      "priority": 100,
+      "paths": ["src/vnext/"],
+      "authorities": ["docs/product/ui.md", "src/vnext/AGENTS.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "database",
+      "priority": 90,
+      "paths": ["supabase/", "src/services/supabase/"],
+      "taskKeywords": ["migration", "rls", "rpc", "database contract"],
+      "authorities": ["docs/ops/ops-pending-migrations.md", "docs/adr/README.md"],
+      "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "provider-enrichment",
+      "priority": 85,
+      "taskKeywords": ["provider enrichment", "football provider", "odds provider", "live provider"],
+      "authorities": ["docs/architecture/provider-enrichment-plan.md"],
+      "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "developer-tooling",
+      "priority": 80,
+      "paths": ["scripts/agent-tools/", ".agents/skills/", "config/agent-", ".mcp.json", ".dependency-cruiser.cjs"],
+      "taskKeywords": ["graphify", "serena", "context7", "repomix", "agent tooling", "agent skill"],
+      "authorities": ["docs/ops/agent-tooling-map.md", "docs/architecture/developer-operating-system.md", "docs/ops/developer-toolchain.md"],
+      "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "legacy-ui",
+      "priority": 70,
+      "taskKeywords": ["legacy ui", "current production ui"],
+      "authorities": ["docs/design/README.md"],
+      "skills": ["predictor-ui-review"]
+    }
+  ]
+}
