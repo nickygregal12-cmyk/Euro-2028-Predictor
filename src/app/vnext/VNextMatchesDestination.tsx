@@ -1,8 +1,11 @@
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { useSeasonGameCompetitionId } from '../../features/hub/useSeasonGameCompetitionId'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
-import { competitionSectionRoute, competitionMatchCentreRoute } from '../weeklyRoutes'
+import { isNextUi } from '../routeFlags'
+import { competitionMatchCentreRoute } from '../weeklyRoutes'
+import { matchCentreIntentRoute } from './matchCentreNavigation'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
 
@@ -77,6 +80,14 @@ export function VNextMatchesDestination() {
  * 148 does not need them, because the SCREEN uses them for the way back —
  * "Back to Matches" has to name a competition even when the fixture read
  * could resolve without one.
+ *
+ * THE PREDICTION BRIDGE USES ANSWERS THE APP ALREADY HAS. The player's
+ * `game_competition_id` comes from `PlayerCompetitionsProvider` through
+ * `useSeasonGameCompetitionId`, so enabling the Match Centre's existing
+ * You / Your leagues / Everyone modules adds no catalogue request. The
+ * predictor link is offered only when the season Match Predictor route is
+ * actually reachable; the source already combines that host capability with a
+ * successfully resolved season before it produces the link.
  */
 export function VNextMatchCentreDestination() {
   useViewerFormatting()
@@ -84,6 +95,12 @@ export function VNextMatchCentreDestination() {
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
   const onShellIntent = useShellIntentNavigation()
+  const gameCompetitionId = useSeasonGameCompetitionId(
+    competitionSlug,
+    seasonSlug,
+    'main_predictor',
+  )
+  const predictorReachable = isNextUi('seasonMatchPredictor')
 
   return (
     <VNextAppRoot>
@@ -93,11 +110,13 @@ export function VNextMatchCentreDestination() {
         fixtureId={fixtureId ?? ''}
         competitionSlug={competitionSlug}
         seasonSlug={seasonSlug}
+        predictorReachable={predictorReachable}
+        gameCompetitionId={gameCompetitionId}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
-          if (intent.kind !== 'link' || intent.link !== 'competition-matches') return
           if (competitionSlug === undefined || seasonSlug === undefined) return
-          navigate(competitionSectionRoute({ competitionSlug, seasonSlug }, 'matches'))
+          const href = matchCentreIntentRoute({ competitionSlug, seasonSlug }, intent)
+          if (href !== null) navigate(href)
         }}
       />
     </VNextAppRoot>
