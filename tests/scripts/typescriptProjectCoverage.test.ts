@@ -145,6 +145,8 @@ const sources = committedTypeScriptSources()
 
 describe('TypeScript project coverage', () => {
   it('reads a plausible number of sources at all', () => {
+    // Without this, a `git ls-files` that returned nothing would make the
+    // coverage assertion below pass while checking no files.
     expect(sources.length).toBeGreaterThan(400)
   })
 
@@ -161,6 +163,8 @@ describe('TypeScript project coverage', () => {
   })
 
   it('references every project from the root config', () => {
+    // The prefixes above are only true because these projects are built. A
+    // reference removed here would silently un-cover a whole tree.
     expect(projectReferences().sort()).toEqual([
       './tsconfig.app.json',
       './tsconfig.gates.json',
@@ -172,6 +176,13 @@ describe('TypeScript project coverage', () => {
 })
 
 describe('JavaScript under scripts/', () => {
+  /**
+   * Typechecked JavaScript under `allowJs`/`checkJs` in tsconfig.gates.json.
+   * Originally the three deploy gates plus the
+   * environment validator; it now also carries scripts that typecheck cleanly
+   * on arrival, because adding a new script to the deferred backlog when it
+   * has zero errors would record a debt that does not exist.
+   */
   const CHECKED = [
     'scripts/check-documentation-authorities.mjs',
     'scripts/check-knip-baseline.mjs',
@@ -181,12 +192,27 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
     'scripts/production-hosted-contract-expectations.mjs',
+    // The site-session trio arrived clean: measured at zero checkJs errors on
+    // 10 August 2026, so they are checked rather than deferred. They also
+    // handle the site password and the session JWT, which is the last place
+    // an unexamined type error should be allowed to live.
     'scripts/production-site-session.mjs',
     'scripts/wait-for-production-release.mjs',
     'scripts/write-production-storage-state.mjs',
+    // Arrived clean: measured at zero checkJs errors on 10 August 2026, so it is
+    // checked rather than deferred. It also names hosted project refs and
+    // refuses Production by name, which is not code to leave unexamined.
     'scripts/generate-database-types.mjs',
     'scripts/generate-now.mjs',
+    // Arrived with one implicit-any, fixed on the spot rather than recorded as
+    // a deferred count. It parses the notification source to produce the
+    // workflow manifest an operator builds the provider environment from, so a
+    // type error here would surface as a workflow somebody never created.
     'scripts/list-notification-workflows.mjs',
+    // Arrived clean under JSDoc annotation rather than as a deferred count: it
+    // draws the installed identity of both products, and an unexamined type
+    // error there produces an icon nobody looks at until it is on a home
+    // screen.
     'scripts/og/generate-site-icons.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
@@ -196,10 +222,14 @@ describe('JavaScript under scripts/', () => {
   ] as const
 
   /**
-   * Deliberately not checked yet. New operational scripts may be classified
-   * here with `null` until their checkJs backlog is deliberately measured; this
-   * keeps the coverage decision explicit instead of letting a new script join
-   * the deferred set silently.
+   * Deliberately not checked yet. Existing entries retain the checkJs error
+   * counts measured on 30 July and 2 August 2026. New operational scripts may
+   * be classified here with `null` until their backlog is deliberately measured;
+   * that keeps the coverage decision explicit without inventing a debt count.
+   * None of these is a deploy gate. The Stage C1 and database-rollout operational
+   * scripts are separately covered by fail-closed runtime, source and
+   * disposable-database tests. Recorded here so a new script cannot join the
+   * deferred set silently.
    */
   const DEFERRED = [
     ['scripts/agent-tools/graphify-input-fingerprint.mjs', null],
@@ -219,14 +249,10 @@ describe('JavaScript under scripts/', () => {
   ] as const
 
   it('accounts for every committed JavaScript file under scripts/', () => {
-    const committed = execFileSync(
-      'git',
-      ['ls-files', 'scripts/*.mjs', 'scripts/**/*.mjs', 'scripts/*.js', 'scripts/**/*.js'],
-      {
-        cwd: repositoryRoot,
-        encoding: 'utf8',
-      },
-    )
+    const committed = execFileSync('git', ['ls-files', 'scripts/*.mjs', 'scripts/**/*.mjs', 'scripts/*.js', 'scripts/**/*.js'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    })
       .split('\n')
       .filter(Boolean)
       .sort()
@@ -242,6 +268,8 @@ describe('JavaScript under scripts/', () => {
     ) as { files: string[]; compilerOptions: Record<string, unknown> }
 
     expect(gates.files.sort()).toEqual([...CHECKED].sort())
+    // Without both flags the project would include the files and examine
+    // nothing, which reads exactly like passing.
     expect(gates.compilerOptions.allowJs).toBe(true)
     expect(gates.compilerOptions.checkJs).toBe(true)
   })
@@ -249,12 +277,19 @@ describe('JavaScript under scripts/', () => {
 
 describe('TypeScript strictness', () => {
   it('states strict rather than inheriting it', () => {
+    // TypeScript 6 enables `strict` by default, so these declarations change
+    // nothing today. They exist so the guarantee belongs to the repository
+    // instead of to the pinned compiler major: without them, a compiler
+    // upgrade that changed the default, or a downgrade to TypeScript 5, would
+    // switch off strictNullChecks and noImplicitAny with nothing failing.
     for (const project of ['tsconfig.app.json', 'tsconfig.node.json']) {
       expect(readProjectConfig(project).compilerOptions?.strict).toBe(true)
     }
   })
 
   it('keeps the derived projects extending the strict base', () => {
+    // `tsconfig.test.json` and `tsconfig.tools.json` carry no `strict` of their
+    // own; they must keep extending the app project or they lose it.
     for (const project of ['tsconfig.test.json', 'tsconfig.tools.json']) {
       const config = readProjectConfig(project)
       expect(config.extends).toBe('./tsconfig.app.json')
