@@ -20,6 +20,15 @@
       "mode": "routed",
       "adapter": "predictor-motion-craft"
     },
+    "brainstorming": {
+      "repository": "obra/superpowers",
+      "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/brainstorming",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-product-brainstorming"
+    },
     "systematic-debugging": {
       "repository": "obra/superpowers",
       "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
@@ -28,6 +37,24 @@
       "license": "MIT",
       "mode": "routed",
       "adapter": "predictor-systematic-debugging"
+    },
+    "code-simplifier": {
+      "repository": "anthropics/claude-plugins-official",
+      "commit": "340e33aef211d95769d252324854497af871dafe",
+      "path": "plugins/code-simplifier",
+      "entrypoint": "agents/code-simplifier.md",
+      "license": "Apache-2.0",
+      "mode": "routed",
+      "adapter": "predictor-code-simplification"
+    },
+    "skill-creator": {
+      "repository": "anthropics/claude-plugins-official",
+      "commit": "340e33aef211d95769d252324854497af871dafe",
+      "path": "plugins/skill-creator/skills/skill-creator",
+      "entrypoint": "SKILL.md",
+      "license": "Apache-2.0",
+      "mode": "routed",
+      "adapter": "predictor-skill-evaluator"
     },
     "react-best-practices": {
       "repository": "vercel-labs/agent-skills",
@@ -64,6 +91,15 @@
       "license": "CC-BY-SA-4.0",
       "mode": "conditional-review",
       "adapter": "predictor-differential-review"
+    },
+    "second-opinion": {
+      "repository": "trailofbits/skills",
+      "commit": "293fb74c3151cceda32a85a545fe8acd67f8f5c6",
+      "path": "plugins/second-opinion/skills/second-opinion",
+      "entrypoint": "SKILL.md",
+      "license": "CC-BY-SA-4.0",
+      "mode": "conditional-review",
+      "adapter": "predictor-second-opinion"
     },
     "web-design-guidelines": {
       "repository": "vercel-labs/agent-skills",
