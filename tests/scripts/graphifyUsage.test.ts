@@ -95,6 +95,18 @@ describe('Graphify navigation consumption', () => {
     }
   })
 
+  it('routes unknown implementation surfaces through Graphify before broad source reads', () => {
+    const agents = read('AGENTS.md')
+    const claude = read('CLAUDE.md')
+    const skill = read('.agents/skills/predictor-graph-navigation/SKILL.md')
+
+    expect(agents).toContain('exact implementation file/symbol is not already known')
+    expect(agents).toContain('before broad source browsing')
+    expect(claude).toContain('use the Graphify fast path')
+    expect(skill).toContain('Use this skill before broad source browsing')
+    expect(skill).toContain('Skip Graphify when the task already identifies the exact file/symbol')
+  })
+
   it('makes broad-change navigation evidence visible in pull requests', () => {
     const template = read('.github/pull_request_template.md')
 
