@@ -1,6 +1,5 @@
 import { useNavigate, useParams } from 'react-router'
 import { useAuth } from '../../features/auth/AuthProvider'
-import { useSeasonGameCompetitionId } from '../../features/hub/useSeasonGameCompetitionId'
 import { VNextMatchesScreen } from '../../vnext/integration/matches/VNextMatchesScreen'
 import { VNextMatchCentreScreen } from '../../vnext/integration/matches/VNextMatchCentreScreen'
 import { isNextUi } from '../routeFlags'
@@ -81,13 +80,12 @@ export function VNextMatchesDestination() {
  * "Back to Matches" has to name a competition even when the fixture read
  * could resolve without one.
  *
- * THE PREDICTION BRIDGE USES ANSWERS THE APP ALREADY HAS. The player's
- * `game_competition_id` comes from `PlayerCompetitionsProvider` through
- * `useSeasonGameCompetitionId`, so enabling the Match Centre's existing
- * You / Your leagues / Everyone modules adds no catalogue request. The
- * predictor link is offered only when the season Match Predictor route is
- * actually reachable; the source already combines that host capability with a
- * successfully resolved season before it produces the link.
+ * THE MATCH PREDICTOR LINK IS A HOST CAPABILITY, NOT A GUESS. The Stage 8
+ * source only produces it when the host says the season Match Predictor route
+ * is reachable AND the competition context resolves. This adapter supplies
+ * that route fact and turns the emitted intent into the application's existing
+ * game address. It deliberately does not opt the page into any additional
+ * social reads: opening the core football context remains network-neutral.
  */
 export function VNextMatchCentreDestination() {
   useViewerFormatting()
@@ -95,11 +93,6 @@ export function VNextMatchCentreDestination() {
   const { userId, loading } = useAuth()
   const navigate = useNavigate()
   const onShellIntent = useShellIntentNavigation()
-  const gameCompetitionId = useSeasonGameCompetitionId(
-    competitionSlug,
-    seasonSlug,
-    'main_predictor',
-  )
   const predictorReachable = isNextUi('seasonMatchPredictor')
 
   return (
@@ -111,7 +104,6 @@ export function VNextMatchCentreDestination() {
         competitionSlug={competitionSlug}
         seasonSlug={seasonSlug}
         predictorReachable={predictorReachable}
-        gameCompetitionId={gameCompetitionId}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
           if (competitionSlug === undefined || seasonSlug === undefined) return
