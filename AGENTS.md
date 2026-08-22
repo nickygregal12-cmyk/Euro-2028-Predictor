@@ -9,7 +9,7 @@ Before editing:
 1. Read [`NOW.md`](NOW.md). It is the generated index of current moving facts.
 2. Check current `main`, your branch ancestry, and open PRs for overlap.
 3. Route the task using the table below and load only that authority plus the source/tests you need.
-4. For a broad cross-file question, use Graphify to **narrow** the likely path before opening many files.
+4. If the exact implementation file/symbol is not already known, use Graphify to **narrow the likely source/test surface before broad source browsing**. Skip it for an explicitly bounded one-file/symbol task.
 5. For non-trivial multi-file delivery, use [`.agents/skills/predictor-spec-driven-delivery/SKILL.md`](.agents/skills/predictor-spec-driven-delivery/SKILL.md).
 
 Do **not** preload the documentation tree. Dated audits, rollout narratives, old TODOs and generated tool output are evidence on demand, not startup context.
@@ -32,17 +32,19 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 
 ## Graphify fast path
 
-Use Graphify for **blast radius, dependency/call flow, and cross-layer ownership**. Do not use it to decide product rules or hosted truth.
+Use Graphify when the implementation surface is not already exact, or when a task may cross files/layers. Its job is to answer **where to look** for blast radius, dependency/call flow and cross-layer ownership before source files consume the context window. Do not use it to decide product rules or hosted truth.
 
-For merged code, the `graphify-navigation` branch is a generated replace-in-place snapshot. Verify its `README.md` source SHA matches the `main` you are analysing. For unmerged work, prefer that PR's Graphify Actions artifact.
+For merged code, the `graphify-navigation` branch is a generated replace-in-place snapshot. Its `README.md` records both the source commit and a fingerprint of the inputs that affect the graph; an unrelated `main` commit does not make a still-current graph stale. For unmerged work, prefer that PR's Graphify Actions artifact.
 
 ```bash
 bash scripts/agent-tools/graphify-query.sh query "what connects this UI to its RPC?"
 bash scripts/agent-tools/graphify-query.sh path "ComponentName" "rpc_name"
 bash scripts/agent-tools/graphify-query.sh explain "symbol_name"
+bash scripts/agent-tools/graphify-query.sh affected "symbol_or_file"
+bash scripts/agent-tools/graphify-query.sh god-nodes --top 10
 ```
 
-**Do not load `graph.json` wholesale into context.** Query it to shortlist files/symbols, then open the real source and executable tests. If Graphify is unavailable or stale, use normal repository search and continue. See [`docs/ops/graphify-navigation.md`](docs/ops/graphify-navigation.md).
+Routine `query` output is capped at about 1200 tokens by the wrapper unless you pass an explicit `--budget`. **Do not load `graph.json` wholesale into context.** Query it to shortlist files/symbols, switch to Serena when exact symbol references matter, then open the real source and executable tests. If Graphify is unavailable or its indexed inputs are genuinely stale, use normal repository search and continue. See [`docs/ops/graphify-navigation.md`](docs/ops/graphify-navigation.md).
 
 ## Non-negotiable invariants
 
