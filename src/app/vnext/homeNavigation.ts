@@ -29,7 +29,7 @@ export function homeIntentRoute(context: HomeRouteContext, intent: HomeIntent): 
     case 'watchLive':
       return competitionMatchCentreRoute(context, intent.matchId)
     default: {
-      const unreachable: never = intent.actionType
+      const unreachable: never = intent
       return unreachable
     }
   }
