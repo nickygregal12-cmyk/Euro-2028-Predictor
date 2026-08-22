@@ -3,21 +3,31 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 
-const GRAPHIFY_INPUT_PATHS = [
-  'src',
-  'ai',
-  'supabase',
-  'scripts',
-  'tests',
-  'e2e',
-  'config',
+const GRAPHIFY_INPUT_ROOTS = [
+  'src/',
+  'ai/',
+  'supabase/',
+  'scripts/',
+  'tests/',
+  'e2e/',
+  'config/',
+]
+
+const GRAPHIFY_INPUT_FILES = new Set([
   'package.json',
   'package-lock.json',
-  ':(glob)tsconfig*.json',
   '.graphifyignore',
   '.gitignore',
   '.github/workflows/graphify-navigation.yml',
-]
+])
+
+function isGraphifyInput(path) {
+  return (
+    GRAPHIFY_INPUT_FILES.has(path) ||
+    /^tsconfig[^/]*\.json$/.test(path) ||
+    GRAPHIFY_INPUT_ROOTS.some((root) => path.startsWith(root))
+  )
+}
 
 function usage() {
   console.error('Usage: node scripts/agent-tools/graphify-input-fingerprint.mjs [--ref GIT_REF]')
@@ -47,11 +57,10 @@ for (let index = 2; index < process.argv.length; index += 1) {
 
 let raw
 try {
-  raw = execFileSync(
-    'git',
-    ['ls-tree', '-r', '-z', ref, '--', ...GRAPHIFY_INPUT_PATHS],
-    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
-  )
+  raw = execFileSync('git', ['ls-tree', '-r', '-z', ref], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
 } catch (error) {
   const detail = error?.stderr?.toString().trim() || error?.message || String(error)
   console.error(`Graphify input fingerprint: unable to read ${ref}: ${detail}`)
@@ -74,6 +83,7 @@ const entries = raw
     }
     return { objectId, path }
   })
+  .filter(({ path }) => isGraphifyInput(path))
   .sort((left, right) => left.path.localeCompare(right.path))
 
 const digest = createHash('sha256')
