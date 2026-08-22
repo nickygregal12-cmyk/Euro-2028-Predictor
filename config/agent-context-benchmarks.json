@@ -12,11 +12,11 @@
     {
       "id": "home-redesign",
       "prompt": "Redesign the vNext Home page",
-      "requiredRoutes": ["intentional-ui-design"],
-      "requiredSkills": ["predictor-frontend-design"],
+      "requiredRoutes": ["intentional-ui-design", "vnext-home"],
+      "requiredSkills": ["predictor-frontend-design", "predictor-ui-review"],
       "forbiddenSkills": ["predictor-motion-craft"],
-      "maxAuthorities": 1,
-      "maxSelectedSkills": 1
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
     },
     {
       "id": "competition-switcher-motion",
