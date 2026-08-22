@@ -67,8 +67,8 @@
     "insecure-defaults": {
       "repository": "trailofbits/skills",
       "commit": "293fb74c3151cceda32a85a545fe8acd67f8f5c6",
-      "path": "plugins/insecure-defaults/skills/insecure-defaults",
-      "entrypoint": "SKILL.md",
+      "path": "plugins/insecure-defaults",
+      "entrypoint": "commands/audit.md",
       "license": "CC-BY-SA-4.0",
       "mode": "catalogue-only"
     },
