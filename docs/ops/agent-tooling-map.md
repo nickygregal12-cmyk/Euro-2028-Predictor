@@ -8,6 +8,7 @@ This file **routes only**. The architecture and authority model lives in [`../ar
 
 | Question | Primary tool | Lane |
 | --- | --- | --- |
+| I only have a task prompt; what small repo context should I load? | **`npm run agent:route -- "TASK"`** | bounded orientation |
 | What repository authority should I read? | root **`AGENTS.md` → `NOW.md` → task authority** | authority |
 | Which dependency/call-flow/cross-layer path should I inspect? | **Graphify** | navigation |
 | Which exact symbol/reference/caller should I inspect or edit? | **Serena** | semantic code intelligence |
@@ -56,6 +57,7 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 
 | Capability | Authority / runbook |
 | --- | --- |
+| Bounded task/context routing | [`agent-task-routing.md`](agent-task-routing.md) |
 | Developer tool architecture and authority boundary | [`../architecture/developer-operating-system.md`](../architecture/developer-operating-system.md) |
 | Install/run/activate developer tools | [`developer-toolchain.md`](developer-toolchain.md) |
 | Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |

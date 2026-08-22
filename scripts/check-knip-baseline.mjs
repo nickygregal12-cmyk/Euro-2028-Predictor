@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 
@@ -103,13 +103,6 @@ function main() {
   }
 
   const report = parseKnipOutput(run.stdout)
-  // Temporary PR diagnostic: the CI workflow already uploads .lighthouseci/
-  // with `if: always()`, so preserve Knip's exact JSON there without changing
-  // the gate or baseline. This line is reverted once the branch-only finding is
-  // identified and fixed.
-  mkdirSync(resolve(repositoryRoot, '.lighthouseci'), { recursive: true })
-  writeFileSync(resolve(repositoryRoot, '.lighthouseci', 'knip-report.json'), JSON.stringify(report, null, 2))
-
   const current = collectFindingSignatures(report)
   const baseline = /** @type {{schemaVersion?: number, signatures?: string[]}} */ (
     JSON.parse(readFileSync(baselinePath, 'utf8'))

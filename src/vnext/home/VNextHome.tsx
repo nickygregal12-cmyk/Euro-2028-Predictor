@@ -19,8 +19,18 @@ import {
 } from './selectHomeEmphasis'
 import styles from './home.module.css'
 
+/**
+ * Home says WHAT the player asked to open; the application says WHERE it lives.
+ * No route string crosses the vNext presentation boundary.
+ */
+export type HomeIntent =
+  | { readonly kind: 'open-predictor' }
+  | { readonly kind: 'open-leagues' }
+  | { readonly kind: 'open-match'; readonly matchId: string }
+
 export type VNextHomeProps = {
   model: HomeModel
+  onIntent?: ((intent: HomeIntent) => void) | undefined
 }
 
 /** What the secondary football zone is called, per emphasis. */
@@ -73,7 +83,7 @@ const GROUNDS_TITLE = {
  * about locks, scoring, settlement, reveal or whether a match is officially
  * under way, and it must never become so.
  */
-export function VNextHome({ model }: VNextHomeProps) {
+export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
@@ -81,6 +91,28 @@ export function VNextHome({ model }: VNextHomeProps) {
   const emphasis = selectHomeEmphasis(model)
   const featured = pickFeaturedLiveMatch(model)
   const decision = pickDecisionMatch(model)
+
+  const openPredictor = () => onIntent?.({ kind: 'open-predictor' })
+  const openLeagues = () => onIntent?.({ kind: 'open-leagues' })
+  const openMatch = (matchId: string) => onIntent?.({ kind: 'open-match', matchId })
+
+  const primaryAction = () => {
+    switch (model.primaryAction.type) {
+      case 'predict':
+      case 'review':
+        openPredictor()
+        return
+      case 'joinLeague':
+        openLeagues()
+        return
+      case 'watchLive':
+        // The button literally promises Match Centre. A destination without a
+        // fixture id can only reach Matches, so carry the exact featured match
+        // Home is already presenting rather than letting a later layer guess.
+        if (featured) openMatch(featured.id)
+        return
+    }
+  }
 
   const allMatches = [
     ...model.liveMatches,
@@ -140,7 +172,7 @@ export function VNextHome({ model }: VNextHomeProps) {
           sits above the football, because a deadline you can still act on
           outranks a match you cannot. */}
       {emphasis === 'decision' ? null : (
-        <ActionBanner action={model.primaryAction} now={now} />
+        <ActionBanner action={model.primaryAction} now={now} onAction={primaryAction} />
       )}
 
       {/* Keyed on the emphasis so a change of state re-runs the entrance
@@ -155,9 +187,11 @@ export function VNextHome({ model }: VNextHomeProps) {
         animate="visible"
       >
         <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
-          {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
+          {emphasis === 'live' && featured ? (
+            <FeaturedMatch match={featured} onOpenMatch={openMatch} />
+          ) : null}
           {emphasis === 'decision' && decision ? (
-            <DecisionHero match={decision} now={now} />
+            <DecisionHero match={decision} now={now} onAction={primaryAction} />
           ) : null}
           {emphasis === 'competition' ? <CompetitionFocus model={model} /> : null}
         </motion.div>
@@ -171,6 +205,8 @@ export function VNextHome({ model }: VNextHomeProps) {
             matches={supporting}
             now={now}
             title={GROUNDS_TITLE[emphasis]}
+            onOpenMatch={openMatch}
+            onOpenPredictor={openPredictor}
           />
         </motion.div>
 

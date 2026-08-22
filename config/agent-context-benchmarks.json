@@ -1,0 +1,199 @@
+{
+  "$comment": "Representative simple prompts used to keep task routing useful and bounded. These are navigation acceptance cases, not product authorities.",
+  "version": 2,
+  "limits": {
+    "maxGraphifyBudget": 1200,
+    "maxCandidatePaths": 8,
+    "maxAuthorities": 3,
+    "maxSelectedSkills": 3,
+    "maxPacketBytesWithoutGraph": 8192
+  },
+  "cases": [
+    {
+      "id": "home-redesign",
+      "prompt": "Redesign the vNext Home page",
+      "requiredRoutes": ["intentional-ui-design", "vnext-home"],
+      "requiredSkills": ["predictor-frontend-design", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-motion-craft", "predictor-product-brainstorming"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "competition-switcher-motion",
+      "prompt": "The competition switcher animation feels sluggish",
+      "requiredRoutes": ["motion-craft"],
+      "requiredSkills": ["predictor-motion-craft"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-code-simplification"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "home-release-blocker",
+      "prompt": "Fix Find a league — it does nothing",
+      "requiredRoutes": ["systematic-defect", "vnext-home"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-product-brainstorming"],
+      "maxAuthorities": 3,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "match-centre-rendering-performance",
+      "prompt": "Improve Match Centre rendering performance",
+      "requiredRoutes": ["vnext-matches", "react-performance"],
+      "requiredSkills": ["predictor-react-best-practices", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-code-simplification"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "landing-page-directions",
+      "prompt": "Explore three visual directions for the pre-signup landing page",
+      "requiredRoutes": ["intentional-ui-design"],
+      "requiredSkills": ["predictor-frontend-design"],
+      "forbiddenSkills": ["predictor-motion-craft", "predictor-product-brainstorming"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matches-table-spacing",
+      "prompt": "Improve the Matches table spacing",
+      "requiredRoutes": ["vnext-matches"],
+      "requiredSkills": ["predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-code-simplification", "predictor-product-brainstorming"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "match-centre-ui",
+      "prompt": "Improve Match Centre UI",
+      "requiredRoutes": ["vnext-matches"],
+      "requiredSkills": ["predictor-ui-review"],
+      "forbiddenSkills": ["predictor-product-brainstorming", "predictor-code-simplification", "predictor-skill-evaluator", "predictor-second-opinion", "predictor-compound-learning"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "supabase-rpc",
+      "prompt": "Add a Supabase RPC",
+      "requiredRoutes": ["sensitive-diff-review", "database"],
+      "requiredSkills": ["predictor-differential-review", "predictor-spec-driven-delivery", "predictor-postgres-best-practices"],
+      "forbiddenSkills": ["predictor-second-opinion"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 3
+    },
+    {
+      "id": "lms-pick-bug",
+      "prompt": "Fix LMS pick bug",
+      "requiredRoutes": ["systematic-defect", "vnext-lms"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "react-rendering-performance",
+      "prompt": "Improve React rendering performance",
+      "requiredRoutes": ["react-performance"],
+      "requiredSkills": ["predictor-react-best-practices"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matchcard-refactor-needs-graph",
+      "prompt": "Refactor MatchCard",
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
+    },
+    {
+      "id": "security-investigation",
+      "prompt": "Investigate security concern",
+      "requiredRoutes": ["security-investigation"],
+      "requiredSkills": ["predictor-context"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "production-routing-regression",
+      "prompt": "Fix production routing regression",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "continue-vnext-programme",
+      "prompt": "Continue vNext programme",
+      "requiredRoutes": ["vnext-programme"],
+      "requiredSkills": ["vnext-programme-runner"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "ai-lab-evidence",
+      "prompt": "Investigate AI Lab evidence",
+      "requiredRoutes": ["ai-lab"],
+      "requiredSkills": ["predictor-ai-lab-verifier"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "product-idea-brainstorm",
+      "prompt": "I have a new idea; brainstorm approaches for a private league challenge",
+      "requiredRoutes": ["product-brainstorming"],
+      "requiredSkills": ["predictor-product-brainstorming"],
+      "forbiddenSkills": ["predictor-systematic-debugging", "predictor-code-simplification"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "recent-code-simplification",
+      "prompt": "Simplify the recent Match Centre changes without changing behaviour",
+      "requiredRoutes": ["vnext-matches", "code-simplification"],
+      "requiredSkills": ["predictor-ui-review", "predictor-code-simplification"],
+      "forbiddenSkills": ["predictor-product-brainstorming"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "skill-efficacy",
+      "prompt": "Benchmark this skill and measure its trigger accuracy",
+      "requiredRoutes": ["skill-evaluation"],
+      "requiredSkills": ["predictor-skill-evaluator"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "independent-architecture-review",
+      "prompt": "Pressure-test this architecture review with an independent model",
+      "requiredRoutes": ["independent-second-opinion"],
+      "requiredSkills": ["predictor-second-opinion"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "compound-learning",
+      "prompt": "Capture reusable lesson from this completed PR",
+      "requiredRoutes": ["compound-learning"],
+      "requiredSkills": ["predictor-compound-learning"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "broken-journey-cleanup-does-not-simplify",
+      "prompt": "Clean up this broken journey and fix the bug",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "forbiddenSkills": ["predictor-code-simplification"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "routine-architecture-review-needs-orientation",
+      "prompt": "Review the architecture of this component boundary",
+      "forbiddenSkills": ["predictor-second-opinion"],
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
+    }
+  ]
+}
