@@ -1,0 +1,92 @@
+{
+  "$comment": "Representative simple prompts used to keep task routing useful and bounded. These are navigation acceptance cases, not product authorities.",
+  "version": 1,
+  "limits": {
+    "maxGraphifyBudget": 1200,
+    "maxCandidatePaths": 8,
+    "maxAuthorities": 3,
+    "maxSelectedSkills": 3,
+    "maxPacketBytesWithoutGraph": 8192
+  },
+  "cases": [
+    {
+      "id": "home-release-blocker",
+      "prompt": "Find a League does nothing",
+      "requiredRoutes": ["systematic-defect", "vnext-home"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "maxAuthorities": 3,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "match-centre-ui",
+      "prompt": "Improve Match Centre UI",
+      "requiredRoutes": ["vnext-matches"],
+      "requiredSkills": ["predictor-ui-review"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "supabase-rpc",
+      "prompt": "Add a Supabase RPC",
+      "requiredRoutes": ["sensitive-diff-review", "database"],
+      "requiredSkills": ["predictor-differential-review", "predictor-spec-driven-delivery", "predictor-postgres-best-practices"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 3
+    },
+    {
+      "id": "lms-pick-bug",
+      "prompt": "Fix LMS pick bug",
+      "requiredRoutes": ["systematic-defect", "vnext-lms"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "react-rendering-performance",
+      "prompt": "Improve React rendering performance",
+      "requiredRoutes": ["react-performance"],
+      "requiredSkills": ["predictor-react-best-practices"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matchcard-refactor-needs-graph",
+      "prompt": "Refactor MatchCard",
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
+    },
+    {
+      "id": "security-investigation",
+      "prompt": "Investigate security concern",
+      "requiredRoutes": ["security-investigation"],
+      "requiredSkills": ["predictor-context"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "production-routing-regression",
+      "prompt": "Fix production routing regression",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "continue-vnext-programme",
+      "prompt": "Continue vNext programme",
+      "requiredRoutes": ["vnext-programme"],
+      "requiredSkills": ["vnext-programme-runner"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "ai-lab-evidence",
+      "prompt": "Investigate AI Lab evidence",
+      "requiredRoutes": ["ai-lab"],
+      "requiredSkills": ["predictor-ai-lab-verifier"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    }
+  ]
+}
