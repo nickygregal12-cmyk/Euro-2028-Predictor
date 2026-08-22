@@ -4,6 +4,7 @@
     "navigation": 1,
     "process": 1,
     "domain": 1,
+    "specialist": 1,
     "review": 1
   },
   "skills": {
@@ -48,7 +49,14 @@
       "role": "domain",
       "mode": "pinned-adapter",
       "source": "frontend-design",
-      "purpose": "Distinctive visual direction for new or materially reshaped Predictor UI."
+      "purpose": "Impeccable-backed visual and interaction craft for new or materially reshaped Predictor UI."
+    },
+    "predictor-motion-craft": {
+      "path": ".agents/skills/predictor-motion-craft/SKILL.md",
+      "role": "specialist",
+      "mode": "pinned-adapter",
+      "source": "motion-craft",
+      "purpose": "Narrow motion craft for animation, transitions, easing, gestures and reduced-motion behaviour."
     },
     "predictor-systematic-debugging": {
       "path": ".agents/skills/predictor-systematic-debugging/SKILL.md",
