@@ -2,7 +2,7 @@ import type { MatchCentreIntent } from '../../vnext/matches/VNextMatchCentre'
 import {
   competitionGameRoute,
   competitionSectionRoute,
-  type CompetitionSeasonRef,
+  type CompetitionRouteRef,
 } from '../weeklyRoutes'
 
 /**
@@ -14,7 +14,7 @@ import {
  * answer rather than each host growing its own switch.
  */
 export function matchCentreIntentRoute(
-  context: CompetitionSeasonRef,
+  context: CompetitionRouteRef,
   intent: MatchCentreIntent,
 ): string | null {
   if (intent.kind !== 'link') return null
