@@ -50,15 +50,42 @@ describe('specialist Agent Skills', () => {
       expect(source.repository, id).toMatch(/^[\w.-]+\/[\w.-]+$/)
       expect(source.commit, id).toMatch(/^[0-9a-f]{40}$/)
       expect(source.path, id).not.toContain('..')
-      expect(source.entrypoint, id).toBe('SKILL.md')
+      expect(source.entrypoint, id).not.toContain('..')
+      expect(source.entrypoint, id).not.toMatch(/^[/\\]/)
       expect(['MIT', 'Apache-2.0', 'CC-BY-SA-4.0']).toContain(source.license)
       if (source.mode !== 'catalogue-only') {
+        expect(source.entrypoint, id).toBe('SKILL.md')
         expect(source.adapter, id).toBeTruthy()
         expect(existsSync(resolve(root, `.agents/skills/${source.adapter}/SKILL.md`)), id).toBe(true)
       }
     }
 
+    expect(registry.sources['insecure-defaults']?.entrypoint).toBe('commands/audit.md')
     expect(execFileSync('git', ['ls-files', '.agent-cache'], { cwd: root, encoding: 'utf8' }).trim()).toBe('')
+  })
+
+  it('keeps routed adapter metadata and immutable sources in one-to-one sync', () => {
+    const sources = JSON.parse(read('config/agent-skill-sources.json')) as {
+      sources: Record<string, { adapter?: string; mode: string }>
+    }
+    const skills = JSON.parse(read('config/agent-skills.json')) as {
+      skills: Record<string, { source?: string; mode: string }>
+    }
+
+    for (const [skillName, skill] of Object.entries(skills.skills)) {
+      if (!skill.source) continue
+      const source = sources.sources[skill.source]
+      expect(source, skillName).toBeDefined()
+      if (!source) continue
+      expect(source.adapter, skillName).toBe(skillName)
+      expect(source.mode, skillName).not.toBe('catalogue-only')
+    }
+
+    for (const [sourceName, source] of Object.entries(sources.sources)) {
+      if (source.mode === 'catalogue-only') continue
+      expect(source.adapter, sourceName).toBeTruthy()
+      expect(skills.skills[source.adapter ?? '']?.source, sourceName).toBe(sourceName)
+    }
   })
 
   it('validates the source catalogue without making a network call', () => {
