@@ -48,6 +48,8 @@ npm run agent:route -- \
   "Continue the release-blocker fixes"
 ```
 
+`--graph` and `--source-sha` are a pair: the router refuses one without the other so a branch graph cannot silently lose the commit identity it represents. If a PR graph is not available, the merged-main snapshot can still orient the baseline architecture, but conclusions about the branch delta must come from the real branch source/tests.
+
 If Graphify is unavailable or genuinely stale, the packet says so and the agent falls back to bounded repository search. Do not block delivery on an indexing tool.
 
 ## Context and skill budgets
