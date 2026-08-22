@@ -233,6 +233,7 @@ describe('JavaScript under scripts/', () => {
    */
   const DEFERRED = [
     ['scripts/agent-tools/graphify-input-fingerprint.mjs', null],
+    ['scripts/agent-tools/materialize-skill.mjs', null],
     ['scripts/agent-tools/route-task.mjs', null],
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
