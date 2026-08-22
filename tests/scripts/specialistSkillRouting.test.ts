@@ -111,14 +111,15 @@ describe('specialist Agent Skills', () => {
     expect(packet.skills.filter((skill) => skill.role === 'review')).toHaveLength(1)
   })
 
-  it('uses root-cause debugging for a release blocker without stacking another process', () => {
+  it('uses root-cause debugging for real-world does-nothing wording without stacking another process', () => {
     const packet = route(
       '--no-graph',
       '--path',
-      'src/vnext/leagues/VNextLeagues.tsx',
-      'Release blocker: the player row does not work; reproduce and find root cause',
+      'src/vnext/home/VNextHome.tsx',
+      'Find a league does nothing',
     )
     expect(packet.routes).toContain('systematic-defect')
+    expect(packet.routes).toContain('vnext-home')
     expect(packet.skills.filter((skill) => skill.role === 'process').map((skill) => skill.name)).toEqual([
       'predictor-systematic-debugging',
     ])
