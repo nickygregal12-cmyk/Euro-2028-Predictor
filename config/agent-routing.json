@@ -1,6 +1,6 @@
 {
   "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
-  "version": 1,
+  "version": 2,
   "graphifyBudget": 900,
   "maxCandidatePaths": 12,
   "maxAuthorities": 4,
@@ -20,12 +20,26 @@
       "skills": ["predictor-context"]
     },
     {
+      "id": "systematic-defect",
+      "priority": 185,
+      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "broken journey", "failing journey", "regression", "flaky", "reproducible bug"],
+      "authorities": [],
+      "skills": ["predictor-systematic-debugging"]
+    },
+    {
       "id": "ai-lab",
       "priority": 180,
       "paths": ["ai/", "src/features/admin/ai"],
       "taskKeywords": ["ai lab", "model evidence", "model promotion"],
       "authorities": ["ai/README.md"],
       "skills": ["predictor-ai-lab-verifier"]
+    },
+    {
+      "id": "intentional-ui-design",
+      "priority": 175,
+      "taskKeywords": ["redesign", "design new ui", "new vnext page", "reshape the ui", "visual direction", "premium ui", "visual polish"],
+      "authorities": ["docs/product/ui.md"],
+      "skills": ["predictor-frontend-design"]
     },
     {
       "id": "vnext-shell",
@@ -92,6 +106,28 @@
       "skills": ["predictor-ui-review"]
     },
     {
+      "id": "react-performance",
+      "priority": 155,
+      "taskKeywords": ["react performance", "rerender", "re-render", "bundle size", "async waterfall", "react scan", "performance regression"],
+      "authorities": [],
+      "skills": ["predictor-react-best-practices"]
+    },
+    {
+      "id": "component-composition",
+      "priority": 150,
+      "taskKeywords": ["component api", "boolean prop", "prop-heavy", "compound component", "composition pattern", "prop drilling", "reusable component architecture"],
+      "authorities": [],
+      "skills": ["predictor-composition-patterns"]
+    },
+    {
+      "id": "sensitive-diff-review",
+      "priority": 145,
+      "paths": ["supabase/migrations/", "supabase/functions/", "src/services/supabase/", "src/features/admin/", "src/services/providers/"],
+      "taskKeywords": ["auth change", "rls change", "rpc change", "permission change", "secret handling", "environment handling", "scoring change", "settlement change", "security-sensitive", "cross-layer refactor"],
+      "authorities": ["docs/adr/README.md"],
+      "skills": ["predictor-differential-review"]
+    },
+    {
       "id": "vnext-general",
       "priority": 100,
       "paths": ["src/vnext/"],
@@ -102,9 +138,9 @@
       "id": "database",
       "priority": 90,
       "paths": ["supabase/", "src/services/supabase/"],
-      "taskKeywords": ["migration", "rls", "rpc", "database contract"],
+      "taskKeywords": ["migration", "rls", "rpc", "database contract", "postgres query", "database index"],
       "authorities": ["docs/ops/ops-pending-migrations.md", "docs/adr/README.md"],
-      "skills": ["predictor-spec-driven-delivery"]
+      "skills": ["predictor-spec-driven-delivery", "predictor-postgres-best-practices"]
     },
     {
       "id": "provider-enrichment",
