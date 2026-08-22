@@ -113,6 +113,7 @@ describe('Graphify navigation consumption', () => {
     expect(template).toContain('## Navigation evidence')
     expect(template).toContain('Graphify / Serena / repository search')
     expect(template).toContain('Graph source SHA')
+    expect(template).toContain('Graph input fingerprint')
     expect(template).toContain('Key paths or symbols')
     expect(template).toContain('Why not used')
   })
