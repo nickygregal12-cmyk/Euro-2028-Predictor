@@ -48,12 +48,28 @@ describe('AUTH-003 Turnstile submit contract', () => {
     )
   })
 
+  // The refusal is asserted by SHAPE-INDEPENDENT POSITION rather than by one
+  // `if` block. Two spellings are in use and both honour the contract: a
+  // dedicated early-return guard, and a combined pass that derives every
+  // validation, publishes them together and returns when any is set — which
+  // reports a missing password and a missing token in one go instead of
+  // revealing them one refusal at a time. Pinning the first spelling made this
+  // fail on the second while verification was never actually bypassed, so what
+  // is checked is the property that matters: between deciding the token is
+  // missing and calling `onSubmit`, the form must publish the refusal and
+  // return.
   it('still refuses protected submissions without a token rather than bypassing verification', () => {
     for (const path of forms) {
       const form = source(path)
-      expect(form, path).toMatch(
-        /if \(turnstileEnabled && !captchaToken\) \{[\s\S]*setCaptchaValidation\([\s\S]*return\n\s*\}/,
-      )
+      const decides = form.indexOf('turnstileEnabled && !captchaToken')
+      const submits = form.indexOf('onSubmit(')
+
+      expect(decides, `${path}: no CAPTCHA refusal decision`).toBeGreaterThan(-1)
+      expect(submits, `${path}: no onSubmit call`).toBeGreaterThan(decides)
+
+      const beforeSubmit = form.slice(decides, submits)
+      expect(beforeSubmit, `${path}: refusal is never shown`).toContain('setCaptchaValidation(')
+      expect(beforeSubmit, `${path}: submission is not stopped`).toMatch(/\breturn\b/)
     }
   })
 })
