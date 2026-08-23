@@ -31,7 +31,10 @@ const inJourneyScannedRoutes = readdirSync(resolve(repositoryRoot, 'e2e'))
  * while route tests prove the redirect itself.
  */
 const DEFERRED: ReadonlyArray<readonly [route: string, reason: string]> = [
-  ['/admin', 'redirect only — /admin/results is the actual administrator surface'],
+  [
+    '/admin/euro',
+    'owner-only Euro publication route — the weekly results + competitions admin proves direct-route refusal instead of impersonating a super administrator',
+  ],
   ['/fixtures', 'compatibility redirect only — canonical /matches is axe-scanned directly'],
   ['/league', 'compatibility redirect only — canonical /leagues is axe-scanned directly'],
   ['/more/points', 'compatibility redirect only — canonical /profile is axe-scanned directly'],
