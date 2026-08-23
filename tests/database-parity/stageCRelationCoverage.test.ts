@@ -300,6 +300,13 @@ const PROVIDER_RELATIONS = [
   // immutable once written: predictions are made against fixtures placed inside
   // this span.
   'table:bonus_cup_launches',
+  // Contract 217. One row per browser that has granted permission to notify
+  // it. NOT browser-revoked, and that is the reviewed decision rather than an
+  // omission: the owner may select and delete their own rows under policy, so
+  // "you can make us unable to reach you" needs no function call. Insert and
+  // update stay out of reach, because a new subscription can have to be taken
+  // off another account when a device changes hands.
+  'table:push_subscriptions',
 ]
 
 const reviewedRelations = [
@@ -319,11 +326,12 @@ describe('Stage C public-relation coverage after C1b and the season fixtures', (
     // provider identity map, and 51 → 52 by contract 114's poll target list.
     // Contract 114's other new table is in `predictor_internal` and so is not
     // counted here. Raised 56 → 59 by contract 160's three league-table
-    // relations, and 62 → 63 by contract 186’s Championship launch record. This
+    // relations, 62 → 63 by contract 186’s Championship launch record, and
+    // 63 → 64 by contract 217's push subscriptions. This
     // count is a positive control on the migration parser:
     // if it silently stopped recognising `create table`, every disposition
     // below would be vacuously satisfied by an empty set.
-    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(63)
+    expect(effectiveRelations.filter((relation) => relation.startsWith('table:'))).toHaveLength(64)
     expect(effectiveRelations.filter((relation) => relation.startsWith('view:'))).toEqual([
       'view:entry_totals',
     ])
