@@ -31,6 +31,9 @@ const mocks = vi.hoisted(() => ({
   joinPrivateCompetition: vi.fn(),
   joinLeague: vi.fn(),
   getOrCreateEntry: vi.fn(),
+  fetchHubMembership: vi.fn(),
+  fetchMyGameLeagues: vi.fn(),
+  fetchPublishedWeeklySeasons: vi.fn(),
 }))
 
 vi.mock('../../src/features/auth/AuthProvider', () => ({
@@ -48,6 +51,21 @@ vi.mock('../../src/services/supabase/leagues', () => ({
 
 vi.mock('../../src/services/supabase/predictions', () => ({
   getOrCreateEntry: mocks.getOrCreateEntry,
+}))
+
+// VNextJoinDestination now re-reads the authoritative game/league catalogue
+// after a successful join. Keep those integration adapters out of this unit
+// test so importing the destination never boots the real Supabase client.
+vi.mock('../../src/services/supabase/competitionGames', () => ({
+  fetchHubMembership: mocks.fetchHubMembership,
+}))
+
+vi.mock('../../src/services/supabase/gameLeagues', () => ({
+  fetchMyGameLeagues: mocks.fetchMyGameLeagues,
+}))
+
+vi.mock('../../src/services/supabase/weeklyCatalogue', () => ({
+  fetchPublishedWeeklySeasons: mocks.fetchPublishedWeeklySeasons,
 }))
 
 function renderInvite(code = 'ABC234DEF567') {
@@ -94,6 +112,9 @@ beforeEach(() => {
   clearPendingJoin()
   mocks.auth.userId = null
   mocks.auth.loading = false
+  mocks.fetchPublishedWeeklySeasons.mockResolvedValue([])
+  mocks.fetchHubMembership.mockResolvedValue([])
+  mocks.fetchMyGameLeagues.mockResolvedValue([])
 })
 
 describe('the vNext invite deep link', () => {

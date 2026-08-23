@@ -146,6 +146,7 @@ export function FeaturedMatch({ match, onOpenMatch }: FeaturedMatchProps) {
             type="button"
             className={styles.featurePrimary}
             onClick={() => onOpenMatch?.(match.id)}
+            data-vnext-control="home-featured-match"
           >
             Match centre
             <span className={typography.srOnly}>

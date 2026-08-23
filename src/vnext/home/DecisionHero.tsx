@@ -148,7 +148,12 @@ export function DecisionHero({ match, now, onAction }: DecisionHeroProps) {
               ? `Your call: ${formatScoreline(prediction.score.home, prediction.score.away)}`
               : 'You have not predicted this one'}
           </span>
-          <button type="button" className={styles.decisionPrimary} onClick={onAction}>
+          <button
+            type="button"
+            className={styles.decisionPrimary}
+            onClick={onAction}
+            data-vnext-control="home-decision"
+          >
             {prediction ? 'Change prediction' : 'Make your prediction'}
             <span className={typography.srOnly}>
               {' '}

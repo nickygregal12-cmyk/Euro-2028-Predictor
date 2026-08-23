@@ -28,10 +28,15 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
-.button:hover {
-  background: var(--vnext-surface-interactive-hover);
+.button:focus-visible,
+.row:focus-visible,
+.explore:focus-visible,
+.search:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
 }
 
 /* In the rail it is the head of the column and takes the full width it is
@@ -113,10 +118,7 @@
   color: inherit;
   text-align: start;
   cursor: pointer;
-}
-
-.row:hover {
-  background: var(--vnext-surface-interactive-hover);
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
 .row[aria-current] {
@@ -165,8 +167,14 @@
   font-size: var(--vnext-size-small);
   color: var(--vnext-text);
   cursor: pointer;
+  transition: background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
-.explore:hover {
-  background: var(--vnext-surface-interactive-hover);
+/* Hover is mouse/trackpad feedback, never a state a tap can leave stuck. */
+@media (hover: hover) and (pointer: fine) {
+  .button:hover,
+  .row:hover,
+  .explore:hover {
+    background: var(--vnext-surface-interactive-hover);
+  }
 }

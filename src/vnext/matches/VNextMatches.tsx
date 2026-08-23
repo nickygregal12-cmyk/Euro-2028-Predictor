@@ -9,20 +9,12 @@ import { competitionsInModel, filterMatchDays } from '../models/matches'
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
+import { LeagueTablePanel, type MatchesLeagueTableState } from './LeagueTablePanel'
 import { MatchesBrowse, MatchesStageSummary } from './MatchesBrowse'
 import { MatchRow } from './MatchRow'
 import text from '../foundations/typography.module.css'
 import styles from './matches.module.css'
 
-/**
- * WHAT THE PLAYER ASKED THIS SURFACE FOR.
- *
- * ONE INTENT TYPE, NOT FOUR CALLBACKS — the shell's own idiom, for the shell's
- * own reason. In Storybook the host is `useState`; in the dev harness it is a
- * state hook; after the production cutover it will be a router writing a query
- * string. None of those is this page's business, and a page holding four `onX`
- * props would have to be re-plumbed for each of them.
- */
 export type MatchesIntent =
   | { readonly kind: 'openMatch'; readonly matchId: string }
   | { readonly kind: 'filter'; readonly filter: MatchesFilter }
@@ -35,15 +27,11 @@ export type MatchesView = {
 export type VNextMatchesProps = {
   readonly model: MatchesModel
   /**
-   * The browsing state to open with. A host that preserves it in a URL passes
-   * it back on the way in; a story passes nothing.
-   *
-   * IT IS AN INITIAL VALUE AND NOT A CONTROLLED PROP. §30 asks for deliberate
-   * state and warns against an enormous query-string machine, and this is the
-   * smaller of the two shapes: the page owns the interaction, the host owns
-   * persistence, and pressing a filter never has to survive a round trip
-   * through a router before the list changes.
+   * SECONDARY FOOTBALL CONTEXT. Presentation defaults to unavailable so the
+   * deterministic/marketing renders remain fixture-only. The connected route
+   * supplies the existing authoritative table read when one exists.
    */
+  readonly leagueTable?: MatchesLeagueTableState | undefined
   readonly initialView?: MatchesView | undefined
   readonly onIntent?: ((intent: MatchesIntent) => void) | undefined
 }
@@ -51,56 +39,23 @@ export type VNextMatchesProps = {
 /**
  * vNEXT MATCHES — WHAT FOOTBALL IS HAPPENING?
  *
- * ============================ IT IS A COMPETITION'S FOOTBALL ==============
+ * Fixtures remain the page purpose. League standings are context: collapsed
+ * behind one compact control on phone and placed in the spare secondary column
+ * on wide desktop. They never become a permanent block above the football.
  *
- * The Competition Deck is the selected architecture, so this page is the ACTIVE
- * COMPETITION's matches and not a platform fixture database filtered down to
- * them. That is a data shape rather than a promise: `MatchesModel` carries one
- * `competition`, and the combined mode is a secondary scope over the player's
- * own competitions — never the landing state, and never a fifth destination.
- *
- * ============================ FOOTBALL, NOT GAMES =========================
- *
- * Everything on this page is a real fixture. The Match Predictor, Last Man
- * Standing and the Predictor Championship are GAMES and live behind `Games`;
- * the only thing of theirs that appears here is an optional status badge on a
- * row, which cannot be pressed and cannot collect a score.
- *
- * ============================ THE COMPOSITION =============================
- *
- *   compact  (< 760px)   one column: browse controls, then days, then rows.
- *                        A row is TWO LINES — the clubs stacked, the score or
- *                        kickoff leading — because that is what stays scannable
- *                        at 375 without abbreviating a club to three letters.
- *   regular  (>= 760px)  the same column with more room per row; the day
- *                        heading gains its count.
- *   expanded (>= 1120px) TWO COLUMNS. The fixtures keep the working column and
- *                        the browsing controls move BESIDE them, where they
- *                        stop consuming vertical space above the football. The
- *                        row becomes single-line, because at that width the
- *                        clubs, the score and the state fit on one.
- *
- * Desktop is not a stretched phone and mobile is not a squeezed scoreboard:
- * the row's own container query decides which shape it takes, so a row in a
- * 400px side column composes as a phone row even at 1920.
- *
- * ============================ NOTHING HERE READS A CLOCK ==================
- *
- * Not one component below compares an instant to `Date.now()`. Live is
- * `state.kind === 'live'`, the minute is the provider's or absent, and the day
- * headings and kickoff labels were formatted by the mapper against the model's
- * own `generatedAt`.
+ * The fixture row itself measures its own container. On compact rows the two
+ * clubs read like a small football scoreboard with the score/kickoff beside the
+ * pairing; once the row has room it becomes the conventional
+ * `home · score/time · away` line. Full club names wrap rather than truncate.
  */
-export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps) {
+export function VNextMatches({
+  model,
+  leagueTable = { kind: 'unavailable' },
+  initialView,
+  onIntent,
+}: VNextMatchesProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
-
-  // `useId` prefixed rather than a bare data key. An id built from data alone is
-  // unique only while the data is, and the public landing page's product preview
-  // mounts this surface more than once in a document — at which point
-  // `aria-labelledby` points at whichever of two identical ids the browser finds
-  // first. `duplicate-id-aria` is a critical axe rule, and this is the property
-  // that satisfies it by construction.
   const dayIds = useId()
   const [filter, setFilter] = useState<MatchesFilter>(initialView?.filter ?? 'all')
 
@@ -148,14 +103,11 @@ export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps
           />
           <MatchesStageSummary model={model} />
           {model.unavailable.length > 0 ? (
-            // SAID, RATHER THAN SILENTLY DRAWN LESS. An enrichment that did not
-            // answer is a fact about this page, and a reader who cannot see
-            // their prediction status deserves to know it is missing rather
-            // than concluding they have not predicted.
             <p className={`${text.micro} ${styles.unavailable}`}>
               Not available just now: {model.unavailable.join(', ')}.
             </p>
           ) : null}
+          <LeagueTablePanel table={leagueTable} />
         </motion.div>
 
         <motion.div
@@ -189,9 +141,6 @@ export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps
                     <li key={match.id}>
                       <MatchRow
                         match={match}
-                        // The competition is named on every row in combined
-                        // scope — the condition that mode exists under — and
-                        // also whenever the window itself spans more than one.
                         showCompetition={combined || competitions.length > 1}
                         onOpen={(matchId) => onIntent?.({ kind: 'openMatch', matchId })}
                       />
@@ -207,20 +156,6 @@ export function VNextMatches({ model, initialView, onIntent }: VNextMatchesProps
   )
 }
 
-/**
- * NO FOOTBALL, SAID PROPERLY.
- *
- * THE TWO EMPTY STATES ARE DIFFERENT SENTENCES. "Nothing in this window" is a
- * fact about the competition — an international break, a season that has not
- * started. "Nothing matches this filter" is a fact about the CONTROL the player
- * just pressed, and the useful thing to offer is the way back. Collapsing them
- * would tell a player who filtered to Live on a Tuesday that their competition
- * has no fixtures.
- *
- * NEITHER INVENTS CONTENT. There is no "you might like", no sample fixture and
- * no placeholder row — §25's rule, and the one an empty state is most often
- * broken by.
- */
 function MatchesEmpty({
   model,
   filter,

@@ -137,6 +137,9 @@
   font-size: var(--vnext-size-body);
   text-align: start;
   cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
 .chip {
@@ -218,6 +221,10 @@
   font-family: var(--vnext-font-display);
   font-size: var(--vnext-size-body);
   cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    filter var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
 .primary {
@@ -234,6 +241,29 @@
   border-color: var(--vnext-hairline);
   background-color: transparent;
   color: var(--vnext-text-secondary);
+}
+
+.hostOption:focus-visible,
+.chip:focus-visible,
+.primary:focus-visible,
+.quiet:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hostOption:hover:not([aria-pressed='true']),
+  .chip:hover:not([aria-pressed='true']),
+  .quiet:hover:not(:disabled) {
+    border-color: var(--vnext-hairline-strong);
+    background-color: var(--vnext-surface-interactive-hover);
+    color: var(--vnext-text);
+  }
+
+  .primary:hover:not(:disabled) {
+    filter: brightness(1.08);
+  }
 }
 
 /* ---- the other way in --------------------------------------------------- */

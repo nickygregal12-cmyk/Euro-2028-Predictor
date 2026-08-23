@@ -34,9 +34,11 @@
     box-shadow var(--vnext-duration-base) var(--vnext-ease-standard);
 }
 
-/* Hover depth is a pointer affordance. `any-hover` keeps it away from touch,
- * where a sticky hover state reads as a stuck selection. */
-@media (any-hover: hover) {
+/* Hover depth is a POINTER affordance. Both conditions matter: hybrid/touch
+ * devices may report that some attached pointer can hover even while the
+ * current primary input is coarse. Requiring a fine primary pointer keeps the
+ * visual state from sticking after a tap. */
+@media (hover: hover) and (pointer: fine) {
   .interactive:hover {
     background-color: var(--vnext-surface-interactive-hover);
     border-color: var(--vnext-hairline-strong);

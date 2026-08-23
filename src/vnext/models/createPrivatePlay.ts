@@ -1,34 +1,10 @@
 /**
  * CREATING SOMETHING FOR YOUR OWN FRIENDS — the presentation model.
  *
- * ============================ WHAT THIS IS NOT ==========================
- *
  * It is not a second opinion about what may be created. The application's
  * `features/leagues/createJourneyModel.ts` already answers that, from
- * membership and the published catalogue, and states at length why the two
- * container shapes cannot be collapsed into one:
- *
- *   • a private MATCH PREDICTOR container is a LEAGUE — a table on top of the
- *     one public game, addressed by a `game_competition_id`, so its hosts are
- *     the competitions the player already PLAYS;
- *   • a private LAST MAN STANDING or PREDICTOR CHAMPIONSHIP is a COMPETITION of
- *     its own, addressed by a season, so its hosts are the published seasons
- *     whether or not the player plays anything in them.
- *
- * The integration adapter maps that answer into the shapes below and this lane
- * adds nothing to it. A refusal arrives as a sentence and is printed; a name
- * length, a lives range and a lock are the server's and its messages come back
- * from it. Nothing here re-validates anything.
- *
- * ============================ AND THE THREE GAMES STAY PEERS ============
- *
- * The Games destination exists because Match Predictor, Last Man Standing and
- * the Predictor Championship are peers rather than one product with two
- * add-ons, and a create corridor is the easiest place to quietly undo that — by
- * ordering them, by describing two of them relative to the first, or by
- * offering the other two only where the first is already played. The model
- * carries the three as a flat list, each with the same fields, and a game that
- * cannot be created carries its own reason rather than being hidden.
+ * membership and the published catalogue. The integration adapter maps that
+ * answer into the shapes below and this lane adds nothing to it.
  */
 
 /** The three weekly games, as the create corridor addresses them. */
@@ -37,10 +13,8 @@ export type CreateGameKey = 'match-predictor' | 'last-man-standing' | 'champions
 /**
  * Where a container would be created.
  *
- * `id` is opaque here on purpose: which server identifier it is — a
- * `game_competition_id` for a league, a season row for the other two — is the
- * adapter's business, and a presentation component that knew the difference
- * would be a presentation component that could send one to the wrong function.
+ * `id` is opaque here on purpose: for a league it is a
+ * `game_competition_id`; for the other two it is a season row.
  */
 export type CreateHost = {
   readonly id: string
@@ -59,13 +33,7 @@ export type CreateGameOption = {
   readonly refusal: string | null
 }
 
-/**
- * The Last Man Standing rules an organiser sets.
- *
- * OFFERED AS CHOICES, NEVER RE-VALIDATED. `season_lms_setups` constrains the
- * ranges; the day the server widens one, this widens with it rather than
- * refusing something it would have accepted.
- */
+/** The Last Man Standing rules an organiser sets. */
 export type CreateLmsSetup = {
   readonly lives: number
   readonly saves: number
@@ -73,7 +41,7 @@ export type CreateLmsSetup = {
   readonly endgameOnWipeout: 'play_on' | 'shared_win' | 'reset'
 }
 
-/** What the create write is doing. `idle` where nothing has been submitted. */
+/** What the create write/readback is doing. */
 export type CreateCommit =
   | { readonly kind: 'idle' }
   | { readonly kind: 'working' }
@@ -82,28 +50,26 @@ export type CreateCommit =
 /**
  * WHAT A FINISHED CREATE LEAVES THE ORGANISER HOLDING.
  *
- * An invite code where the server issued one, and the absence stated where it
- * did not — never a blank field that looks like a code that failed to load.
- * `shareUrl` is composed by the host from the application's own origin, because
- * a presentation module has no business knowing what this deployment is called.
+ * `containerId` is retained only after an authoritative reread has found the
+ * new object. The create RPC's returned id is a locator for that reread, not
+ * sufficient evidence by itself that the next surface can find it.
  */
 export type CreatedPrivatePlay = {
+  readonly containerId: string
   readonly game: CreateGameKey
   readonly name: string
   readonly competitionName: string
   readonly inviteCode: string | null
   readonly shareUrl: string | null
-  /**
-   * True for a Championship, which is created and then separately LAUNCHED.
-   * The draw is fixed at whatever field size the organiser launches with and
-   * refuses ever after, and launching closes registration — so the corridor
-   * says that in words before it offers the control, and never blurs the two
-   * into one button.
-   */
+  /** True for a Championship, which is created and separately launched. */
   readonly awaitsLaunch: boolean
 }
 
-export type CreateStep = 'game' | 'setup' | 'created'
+/**
+ * `review` is a real state. A create is an externally visible mutation with an
+ * invite attached, so the player gets one final read-only view before it runs.
+ */
+export type CreateStep = 'game' | 'setup' | 'review' | 'created'
 
 export type CreatePrivatePlayModel = {
   /** The instant the model describes, supplied rather than read. */
@@ -115,20 +81,7 @@ export type CreatePrivatePlayModel = {
   readonly host: CreateHost | null
   readonly name: string
   readonly lms: CreateLmsSetup
-  /**
-   * The invite code a player is typing, where they have one.
-   *
-   * THE CORRIDOR HAS TWO WAYS IN, and joining is the commoner of them: most
-   * people arrive at private play because a friend sent them something. It is
-   * carried here rather than as a second surface because the choice — "I have
-   * one" or "I am starting one" — is the same choice, and splitting it across
-   * two pages makes a player who has a code hunt for the door.
-   *
-   * NOTHING IS VALIDATED HERE. `/join/:code` resolves it and answers, and its
-   * refusals are deliberately indistinguishable from each other; a corridor
-   * that pre-judged the shape of a code would be a second opinion about which
-   * codes exist.
-   */
+  /** Invite code or URL a player is typing. `/join/:code` validates it. */
   readonly joinCode: string
   readonly commit: CreateCommit
   readonly created: CreatedPrivatePlay | null

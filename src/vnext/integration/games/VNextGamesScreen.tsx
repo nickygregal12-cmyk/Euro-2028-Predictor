@@ -14,8 +14,10 @@ import { useVNextGamesSource } from './useVNextGamesSource'
  *
  * `useVNextGamesSource` acquires and classifies; `buildGamesModel` maps,
  * purely; `VNextGames` draws. This file only chooses which of those to show,
- * which is why it holds no registration logic at all — that rule belongs to
- * `lmsRegistrationModel`, which the mapper calls and nothing here restates.
+ * which is why it holds no layout, no column and no copy about standings —
+ * everything visible in the ready state belongs to the page, and this file
+ * could not change how a card looks without importing something it does not
+ * import.
  *
  * ============================ THE JOIN IS THE SERVER'S, AND IT IS WIRED ==
  *

@@ -24,12 +24,6 @@ import {
  * makes that fail loudly instead of shipping.
  */
 
-/**
- * The competition, named separately so these tests can vary it.
- * `ShellSource.competition` is nullable — a page outside a competition is a
- * real state — and spreading a nullable field is not the assertion any test
- * here is making.
- */
 const COMPETITION = {
   tournamentId: 'tournament-1',
   name: 'Scottish Premiership',
@@ -42,8 +36,6 @@ const SOURCE: ShellSource = {
   playerName: 'Rowan Adeyemi',
   outstandingPredictions: 3,
   canNavigateAway: true,
-  // The page-scoped host's answer, and the shape every case below asserts
-  // against. The cross-competition cases build their own source.
   elsewhere: null,
 }
 
@@ -54,16 +46,11 @@ describe('the connected shell states one football context', () => {
     expect(model.contexts).toHaveLength(1)
     expect(shellActiveContext(model)?.competition.name).toBe('Scottish Premiership')
     expect(shellActiveContext(model)?.competition.seasonLabel).toBe('2026/27')
-    // The page was reached BY this competition's play context, which the
-    // application only answers for a competition the player is in.
     expect(shellActiveContext(model)?.relationship).toBe('playing')
   })
 
   it('is the one-competition shape, not a degraded one', () => {
     const model = buildShellModel(SOURCE)
-
-    // No switcher, no shortcut group, no accelerator — because the application
-    // has not claimed there is anything to switch to.
     expect(shellSwitchable(model)).toBe(false)
     expect(shellJumpAvailable(model)).toBe(false)
   })
@@ -99,9 +86,6 @@ describe('the connected shell states one football context', () => {
 
 describe('the connected shell invents nothing', () => {
   it('reports no cross-competition attention, because no read answers it', () => {
-    // THE INTEGRATION GAP, AS DATA. An attention item derived from a deadline in
-    // the page's own model would be presentation asserting something the
-    // application never said — and it would look entirely plausible.
     const model = buildShellModel(SOURCE)
     expect(model.attention).toEqual([])
     expect(attentionElsewhere(model)).toEqual([])
@@ -114,9 +98,6 @@ describe('the connected shell invents nothing', () => {
   })
 
   it('states no tempo, because the shell has no read for one', () => {
-    // Home answers "is football happening here" INSIDE the page. The chrome
-    // saying it too would be Home's job leaking upwards, and guessing it would
-    // be worse.
     expect(shellActiveContext(buildShellModel(SOURCE))?.tempoLabel).toBeNull()
   })
 
@@ -131,8 +112,6 @@ describe('discovery follows the host, not the shell', () => {
   })
 
   it('offers none where the host has nowhere to send the player', () => {
-    // A control that exists and refuses teaches a player the product is broken —
-    // the same rule `PlayerReach` records for a name with no address.
     expect(buildShellModel({ ...SOURCE, canNavigateAway: false }).discovery.reachable)
       .toBe(false)
   })
@@ -143,17 +122,12 @@ describe('the outstanding count rides on Games', () => {
     const games = buildShellModel(SOURCE).destinations.find((entry) => entry.id === 'games')
     expect(games?.badge).toBe(3)
 
-    // And nowhere else. Under Stage 5's platform navigation it rode on
-    // `Fixtures`, beside the football; the Competition Deck separates the two.
     for (const entry of buildShellModel(SOURCE).destinations) {
       if (entry.id !== 'games') expect(entry.badge).toBeUndefined()
     }
   })
 
-  it('renders no badge at all for zero, and none for "cannot say"', () => {
-    // `null` is never zero and zero is never a badge: a navigation item marked
-    // "0" is an item that has to be read every time to learn it has nothing to
-    // say.
+  it('renders no badge at all for zero, and none for cannot say', () => {
     for (const outstanding of [0, null]) {
       const model = buildShellModel({ ...SOURCE, outstandingPredictions: outstanding })
       expect(model.destinations.every((entry) => entry.badge === undefined)).toBe(true)
@@ -169,23 +143,16 @@ describe('the player is presentation and never an identity', () => {
     })
   })
 
-  it('names the control rather than inventing a person when there is no name', () => {
-    const player = buildShellModel({ ...SOURCE, playerName: null }).player
-    expect(player.name).toBe('Your account')
-    expect(player.initials).toBe('·')
-  })
+  it.each([null, '', '   '])(
+    'keeps the account control recognisable when the display name is %p',
+    (playerName) => {
+      const player = buildShellModel({ ...SOURCE, playerName }).player
+      expect(player).toEqual({ name: 'Your account', initials: 'YA' })
+      expect(player.initials).not.toMatch(/^\W$/)
+    },
+  )
 })
 
-/**
- * A PAGE THAT IS NOT INSIDE A COMPETITION.
- *
- * `VNextShellModel.activeContextId` has always been nullable, documented as "a
- * REAL state — a new account that has followed nothing — and the shell must
- * answer it without inventing a competition to be inside". Only `ShellSource`
- * could not express it, so no connected page could reach that state. Account is
- * the first that must: the route matrix keeps platform identity deliberately
- * outside the tournament boundary.
- */
 describe('the shell can be chrome for a page outside every competition', () => {
   const PLATFORM: ShellSource = { ...SOURCE, competition: null }
 
@@ -196,8 +163,6 @@ describe('the shell can be chrome for a page outside every competition', () => {
   })
 
   it('offers no context to switch to, rather than a fabricated one', () => {
-    // The module's own header forbids inventing a second context to make an
-    // affordance light up. Inventing the FIRST one is the same mistake.
     expect(buildShellModel(PLATFORM).contexts).toEqual([])
   })
 

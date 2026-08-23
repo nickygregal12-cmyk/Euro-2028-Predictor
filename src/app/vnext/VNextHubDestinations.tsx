@@ -16,6 +16,7 @@ import { VNextAccountScreen } from '../../vnext/integration/account/VNextAccount
 import type { AccountIntent } from '../../vnext/account/VNextAccount'
 import { VNextPredictorScreen } from '../../vnext/integration/predictor/VNextPredictorScreen'
 import { VNextLmsScreen } from '../../vnext/integration/lms/VNextLmsScreen'
+import { VNextPrivateLmsScreen } from '../../vnext/integration/lms/VNextPrivateLmsScreen'
 import { VNextChampionshipScreen } from '../../vnext/integration/championship/VNextChampionshipScreen'
 import {
   competitionCreatePrivatePlayRoute,
@@ -430,23 +431,43 @@ export function VNextPredictorDestination() {
   )
 }
 
-/** LAST MAN STANDING, at `/competitions/:c/:s/games/lms`. */
+/**
+ * LAST MAN STANDING, at `/competitions/:c/:s/games/lms`.
+ *
+ * The optional `competition=<id>` query is an APPLICATION ADDRESS concern:
+ * absent means the public season LMS; present means one caller-addressed
+ * private LMS instance. Dispatch happens here, before either connected source
+ * hook mounts, so the public read never receives a private competition id.
+ */
 export function VNextLmsDestination() {
   useViewerFormatting()
   const { competitionSlug, seasonSlug } = useParams()
   const { userId, loading } = useAuth()
+  const [search] = useSearchParams()
   const onShellIntent = useShellIntentNavigation()
+  const privateCompetitionId = search.get('competition')?.trim() ?? ''
 
   return (
     <VNextAppRoot>
-      <VNextLmsScreen
-        userId={userId}
-        authLoading={loading}
-        competitionSlug={competitionSlug}
-        seasonSlug={seasonSlug}
-        gameName="Last Man Standing"
-        onShellIntent={onShellIntent}
-      />
+      {privateCompetitionId.length > 0 ? (
+        <VNextPrivateLmsScreen
+          userId={userId}
+          authLoading={loading}
+          competitionSlug={competitionSlug}
+          seasonSlug={seasonSlug}
+          privateCompetitionId={privateCompetitionId}
+          onShellIntent={onShellIntent}
+        />
+      ) : (
+        <VNextLmsScreen
+          userId={userId}
+          authLoading={loading}
+          competitionSlug={competitionSlug}
+          seasonSlug={seasonSlug}
+          gameName="Last Man Standing"
+          onShellIntent={onShellIntent}
+        />
+      )}
     </VNextAppRoot>
   )
 }

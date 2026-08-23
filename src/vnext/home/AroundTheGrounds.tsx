@@ -228,6 +228,7 @@ function GroundRow({
             match.away.team.name
           }`}
           onClick={open}
+          data-vnext-control="home-fixture-action"
         >
           {actionLabel(match)}
         </button>

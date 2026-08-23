@@ -71,7 +71,12 @@ export function ActionBanner({ action, now, onAction }: ActionBannerProps) {
         </span>
       ) : null}
 
-      <button type="button" className={styles.bannerButton} onClick={onAction}>
+      <button
+        type="button"
+        className={styles.bannerButton}
+        onClick={onAction}
+        data-vnext-control="home-primary-action"
+      >
         {CALL[action.type]}
       </button>
     </section>

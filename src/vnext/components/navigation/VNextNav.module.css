@@ -22,16 +22,35 @@
   min-height: var(--vnext-tap-target);
   min-width: var(--vnext-tap-target);
   border: 0;
-  background: none;
+  background-color: transparent;
   color: var(--vnext-text-muted);
   font-family: var(--vnext-font-display);
   font-size: var(--vnext-size-micro);
   cursor: pointer;
-  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
+  transition:
+    color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
 }
 
 .active {
   color: var(--vnext-text);
+}
+
+/* Pointer feedback is deliberately a surface change, not a scale/translate.
+ * The four destinations are permanent chrome: they should acknowledge the
+ * mouse without wobbling the bar or competing with the travelling ACTIVE
+ * marker. Touch never depends on this state, and keyboard focus remains its own
+ * stronger outline above. */
+@media (hover: hover) and (pointer: fine) {
+  .link:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    color: var(--vnext-text);
+  }
 }
 
 /* The travelling marker. It sits behind the icon and label, so the shared-layout

@@ -19,55 +19,23 @@ import { VNextNotice } from '../states/VNextStates'
 import styles from './create.module.css'
 
 /**
- * CREATE PRIVATE PLAY — the corridor Stage 9 said it was not building.
+ * CREATE PRIVATE PLAY.
  *
- * ============================ THE DEAD END THIS ENDS ====================
- *
- * `VNextLeagues` says, in a comment beside the sentence a player actually
- * reads: *"Stage 9 does not own joining or creating a league, so a button here
- * would be a door onto a corridor that has not been built."* That was the right
- * call at the time and it left the product with a real hole — a player told
- * they are in no private league, and no way from there to be in one. The
- * legacy product has a complete create journey; vNext had none, so the only
- * route to it was out of the new product and into the old one.
- *
- * ============================ IT WRITES NOTHING =========================
- *
- * Every control emits an INTENT. The host performs the create — through
- * `create_game_league`, `create_private_season_lms` or
- * `create_private_season_cup`, whichever the game's own shape requires — and
- * reports back through `commit`. There is no second copy of the creation rules
- * here, no re-validated name, no re-checked lives range and no lock: those
- * belong to the functions and their refusals come back from them.
- *
- * ============================ THE THREE GAMES ARE PEERS =================
- *
- * Same row, same size, same kind of sentence, in the order the Games
- * destination uses. A game that cannot be created carries its reason instead of
- * disappearing — "join Match Predictor in a competition first" is a thing a
- * player can act on, and a missing row is not.
- *
- * ============================ AND A CHAMPIONSHIP IS NOT LAUNCHED HERE ===
- *
- * It is created, and then separately launched: the draw is fixed at whatever
- * field size the organiser launches with and refuses ever after, and launching
- * closes registration. The corridor says so and hands the organiser their
- * invite; launching is a decision they make once their friends are in, on the
- * Championship's own surface.
+ * Every control emits an intent. The integration host owns writes, authoritative
+ * rereads and routing; this presentation never invents a create rule or a
+ * destination. The three games remain peers and a game that cannot be created
+ * keeps its row with the server-backed reason.
  */
-
 export type CreateIntent =
   | { readonly kind: 'choose-game'; readonly game: CreateGameKey }
-  /** The player is typing an invite code. Not validated here. */
   | { readonly kind: 'join-code'; readonly code: string }
-  /** Take that code to `/join/:code`, which owns every answer about it. */
   | { readonly kind: 'join' }
   | { readonly kind: 'choose-host'; readonly hostId: string }
   | { readonly kind: 'name'; readonly name: string }
   | { readonly kind: 'lms'; readonly setup: CreateLmsSetup }
+  | { readonly kind: 'review' }
   | { readonly kind: 'back' }
   | { readonly kind: 'create' }
-  /** Copy the invite the server issued. Never a code this lane composed. */
   | { readonly kind: 'share' }
   | { readonly kind: 'open-created' }
   | { readonly kind: 'leave' }
@@ -128,6 +96,8 @@ export function VNextCreatePrivatePlay({ view, onIntent }: VNextCreatePrivatePla
             <GameChoice model={model} onIntent={onIntent} />
           ) : model.step === 'setup' ? (
             <Setup model={model} onIntent={onIntent} />
+          ) : model.step === 'review' ? (
+            <Review model={model} onIntent={onIntent} />
           ) : (
             <Created model={model} onIntent={onIntent} />
           )}
@@ -136,8 +106,6 @@ export function VNextCreatePrivatePlay({ view, onIntent }: VNextCreatePrivatePla
     </VNextShell>
   )
 }
-
-/* ========================================================================== */
 
 type Section = {
   readonly model: Extract<CreatePrivatePlayView, { kind: 'ready' }>['model']
@@ -153,10 +121,6 @@ function GameChoice({ model, onIntent }: Section) {
       </p>
 
       {model.blocked ? (
-        // NOT AN ERROR, AND IT MUST NOT LOOK LIKE ONE. Nothing has failed: there
-        // is no open season to build on, or no game joined to rank. Each row
-        // below still states its own reason, which is the thing a player can act
-        // on.
         <p className={`${text.body} ${styles.blocked}`} data-vnext-zone="blocked">
           There is nothing to build on just now. Each game below says why.
         </p>
@@ -170,11 +134,6 @@ function GameChoice({ model, onIntent }: Section) {
         ))}
       </ul>
 
-      {/* THE OTHER WAY IN, AND THE COMMONER ONE. Most people reach private play
-          because somebody sent them something. It is the same decision as the
-          three above — "I have one" or "I am starting one" — so it is on the
-          same screen; putting it behind another press makes a player who
-          already has a code hunt for the door. */}
       <form
         className={styles.join}
         data-vnext-zone="join"
@@ -203,11 +162,7 @@ function GameChoice({ model, onIntent }: Section) {
         </button>
       </form>
 
-      <button
-        type="button"
-        className={styles.quiet}
-        onClick={() => onIntent?.({ kind: 'leave' })}
-      >
+      <button type="button" className={styles.quiet} onClick={() => onIntent?.({ kind: 'leave' })}>
         Not now
       </button>
     </section>
@@ -226,9 +181,6 @@ function GameRow({
       <span className={`${text.title} ${styles.gameName}`}>{game.name}</span>
       <span className={`${text.body} ${styles.gameBody}`}>{game.description}</span>
       {game.refusal === null ? null : (
-        // THE REASON, NOT A DISABLED BUTTON. A control that exists and refuses
-        // teaches a player the product is broken; a sentence tells them what to
-        // do instead.
         <span className={`${text.micro} ${styles.refusal}`}>{game.refusal}</span>
       )}
     </>
@@ -254,13 +206,10 @@ function GameRow({
   )
 }
 
-/* ========================================================================== */
-
 function Setup({ model, onIntent }: Section) {
   const game = model.chosen
   if (game === null) return null
 
-  const working = model.commit.kind === 'working'
   const ready = model.host !== null && model.name.trim().length > 0
 
   return (
@@ -290,8 +239,6 @@ function Setup({ model, onIntent }: Section) {
           type="text"
           value={model.name}
           maxLength={CREATE_NAME_MAX}
-          // STATED, NOT ENFORCED TWICE. The server owns the policy; this is the
-          // number it enforces, said before somebody hits it.
           placeholder="The Sunday Club"
           onChange={(event) => onIntent?.({ kind: 'name', name: event.target.value })}
         />
@@ -300,17 +247,67 @@ function Setup({ model, onIntent }: Section) {
         </span>
       </label>
 
-      {game.key === 'last-man-standing' ? (
-        <LmsRules setup={model.lms} onIntent={onIntent} />
-      ) : null}
+      {game.key === 'last-man-standing' ? <LmsRules setup={model.lms} onIntent={onIntent} /> : null}
 
       {game.key === 'championship' ? (
-        // SAID BEFORE THE CONTROL, NOT AFTER IT. Creating and launching are two
-        // decisions and the second one is irreversible.
         <p className={`${text.micro} ${styles.hint}`} data-vnext-zone="launch-note">
           You will get an invite straight away. The draw is made when you launch it, and
           launching closes it to anyone who has not joined by then — so launch once your
           friends are in.
+        </p>
+      ) : null}
+
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={styles.primary}
+          disabled={!ready}
+          onClick={() => onIntent?.({ kind: 'review' })}
+        >
+          Review
+        </button>
+        <button type="button" className={styles.quiet} onClick={() => onIntent?.({ kind: 'back' })}>
+          Back
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function Review({ model, onIntent }: Section) {
+  const game = model.chosen
+  const host = model.host
+  if (game === null || host === null) return null
+
+  const working = model.commit.kind === 'working'
+  const drawRule = DRAWS.find((option) => option.value === model.lms.drawsRule)?.label
+  const wipeoutRule = WIPEOUT.find(
+    (option) => option.value === model.lms.endgameOnWipeout,
+  )?.label
+
+  return (
+    <section className={styles.section} data-vnext-zone="review">
+      <p className={`${text.title} ${styles.setupTitle}`}>Review {model.name.trim()}</p>
+      <p className={`${text.body} ${styles.lead}`}>
+        {game.name} · {host.competitionName} {host.seasonLabel}
+      </p>
+
+      {game.key === 'last-man-standing' ? (
+        <div className={styles.rules} data-vnext-zone="review-lms-rules">
+          <p className={text.label}>Your rules</p>
+          <p className={`${text.body} ${styles.hint}`}>
+            {model.lms.lives} {model.lms.lives === 1 ? 'life' : 'lives'} · {model.lms.saves}{' '}
+            {model.lms.saves === 1 ? 'save' : 'saves'}
+          </p>
+          <p className={`${text.body} ${styles.hint}`}>{drawRule}</p>
+          <p className={`${text.body} ${styles.hint}`}>{wipeoutRule}</p>
+        </div>
+      ) : null}
+
+      {game.key === 'championship' ? (
+        <p className={`${text.micro} ${styles.hint}`} data-vnext-zone="review-launch-note">
+          Creating this does not make the draw. Share the invite first; launch only when your field
+          is complete, because launch fixes the draw and closes registration.
         </p>
       ) : null}
 
@@ -324,7 +321,7 @@ function Setup({ model, onIntent }: Section) {
         <button
           type="button"
           className={styles.primary}
-          disabled={!ready || working}
+          disabled={working}
           onClick={() => onIntent?.({ kind: 'create' })}
         >
           {working ? 'Creating…' : 'Create it'}
@@ -335,7 +332,7 @@ function Setup({ model, onIntent }: Section) {
           disabled={working}
           onClick={() => onIntent?.({ kind: 'back' })}
         >
-          Back
+          Edit
         </button>
       </div>
     </section>
@@ -352,12 +349,7 @@ function HostOption({
   readonly onChoose: () => void
 }) {
   return (
-    <button
-      type="button"
-      className={styles.hostOption}
-      aria-pressed={chosen}
-      onClick={onChoose}
-    >
+    <button type="button" className={styles.hostOption} aria-pressed={chosen} onClick={onChoose}>
       <span className={styles.hostName}>{host.competitionName}</span>
       <span className={`${text.micro} ${styles.hostSeason}`}>{host.seasonLabel}</span>
     </button>
@@ -460,14 +452,8 @@ function LmsRules({
   )
 }
 
-/* ========================================================================== */
-
 function Created({ model, onIntent }: Section) {
   const created = model.created
-
-  // A CONTAINER THAT EXISTS NOW AND DID NOT A MOMENT AGO. `success` rather than
-  // `important`: this is a completion, and the page states it in words either
-  // way — nothing here depends on the device having a motor.
   useFeedbackOnLatch(created !== null, 'success')
 
   if (created === null) return null
@@ -480,20 +466,14 @@ function Created({ model, onIntent }: Section) {
       </p>
 
       {created.inviteCode === null ? (
-        // STATED, NOT BLANK. A code that failed to arrive and a container that
-        // has none are different facts, and an empty box looks like the first.
         <p className={`${text.body} ${styles.refusal}`} data-vnext-zone="no-code">
-          We could not read the invite code just now. It exists — open the competition and
-          the organiser panel will show it.
+          We could not read the invite code just now. Open your private-play list to read the
+          organiser state again.
         </p>
       ) : (
         <div className={`${surfaces.sunken} ${styles.invite}`}>
           <span className={styles.code}>{created.inviteCode}</span>
-          <button
-            type="button"
-            className={styles.primary}
-            onClick={() => onIntent?.({ kind: 'share' })}
-          >
+          <button type="button" className={styles.primary} onClick={() => onIntent?.({ kind: 'share' })}>
             Copy invite link
           </button>
         </div>
@@ -501,24 +481,16 @@ function Created({ model, onIntent }: Section) {
 
       {created.awaitsLaunch ? (
         <p className={`${text.micro} ${styles.hint}`} data-vnext-zone="awaits-launch">
-          Nobody is drawn yet. Launch it from the Championship once your friends have
-          joined — the draw is fixed at that point and it closes to anyone else.
+          Nobody is drawn yet. Launch it from the Championship once your friends have joined — the
+          draw is fixed at that point and it closes to anyone else.
         </p>
       ) : null}
 
       <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.primary}
-          onClick={() => onIntent?.({ kind: 'open-created' })}
-        >
+        <button type="button" className={styles.primary} onClick={() => onIntent?.({ kind: 'open-created' })}>
           Open it
         </button>
-        <button
-          type="button"
-          className={styles.quiet}
-          onClick={() => onIntent?.({ kind: 'leave' })}
-        >
+        <button type="button" className={styles.quiet} onClick={() => onIntent?.({ kind: 'leave' })}>
           Done
         </button>
       </div>

@@ -1,0 +1,213 @@
+/* ONE FIXTURE, COMPOSED LIKE A FOOTBALL SCOREBOARD.
+ *
+ * Compact rows put the two club identities down the left and the score/kickoff
+ * in one stable right-hand column. This keeps HOME above AWAY, keeps crests
+ * subordinate to names, and stops the old layout from reading as
+ * `time | two unrelated labels | status`.
+ *
+ * Once this ROW (not the viewport) has 620px, it becomes the conventional
+ * desktop scoreboard: home identity | score/time | away identity, with state
+ * and prediction status at the edge. Full names always wrap; nothing clamps.
+ */
+
+.rowFrame {
+  display: contents;
+}
+
+.row {
+  container-name: vnext-match-row;
+  container-type: inline-size;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-inline-start: 3px solid var(--vnext-fixture-home, var(--vnext-hairline));
+  border-radius: var(--vnext-radius-lg);
+  background-color: var(--vnext-surface-interactive);
+  box-shadow: var(--vnext-shadow-sm);
+  color: var(--vnext-text);
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    box-shadow var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.row:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .row:hover {
+    background-color: var(--vnext-surface-interactive-hover);
+    border-color: var(--vnext-hairline-strong);
+  }
+}
+
+.row[data-live='true'] {
+  border-color: var(--vnext-live-veil);
+  box-shadow: var(--vnext-glow-live);
+}
+
+.rowBody {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--vnext-space-3);
+  min-width: 0;
+}
+
+.scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(58px, auto);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: var(--vnext-space-3);
+  row-gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.club {
+  display: flex;
+  align-items: center;
+  gap: var(--vnext-space-2);
+  min-width: 0;
+}
+
+.home {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.away {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.clubName {
+  min-width: 0;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  font-weight: var(--vnext-weight-medium);
+  line-height: var(--vnext-leading-snug);
+  overflow-wrap: anywhere;
+}
+
+.rowLead {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 58px;
+  text-align: end;
+}
+
+.rowTail {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--vnext-space-1);
+  min-width: 0;
+}
+
+.rowContext {
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 2px var(--vnext-space-2);
+  border-radius: var(--vnext-radius-pill);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  white-space: normal;
+  text-align: end;
+}
+
+.badgeNeeded {
+  background-color: var(--vnext-warn-veil);
+  color: var(--vnext-warn);
+}
+
+.badgeEntered {
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-secondary);
+}
+
+.badgeLocked {
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text-muted);
+}
+
+.badgeSettled {
+  background-color: var(--vnext-hit-veil);
+  color: var(--vnext-hit);
+}
+
+@container vnext-match-row (min-width: 620px) {
+  .rowBody {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--vnext-space-4);
+  }
+
+  .scoreboard {
+    grid-template-columns: minmax(0, 1fr) minmax(72px, auto) minmax(0, 1fr);
+    grid-template-rows: auto;
+    column-gap: var(--vnext-space-3);
+  }
+
+  .home {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    text-align: end;
+  }
+
+  .rowLead {
+    grid-column: 2;
+    grid-row: 1;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .away {
+    grid-column: 3;
+    grid-row: 1;
+    justify-content: flex-start;
+    text-align: start;
+  }
+
+  .rowTail {
+    min-width: 110px;
+  }
+}
+
+@container vnext-match-row (max-width: 420px) {
+  .rowBody {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .rowTail {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--vnext-space-2);
+  }
+
+  .badge {
+    margin-inline-start: auto;
+  }
+}
