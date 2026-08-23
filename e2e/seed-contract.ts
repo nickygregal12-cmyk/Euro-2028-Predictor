@@ -291,10 +291,13 @@
  * which reads the new table through the definer, so no policy stands between
  * the administrator and a number.
  *
- * The run evidence for this contract is recorded here once this branch's own
- * Database parity and Browser E2E jobs have completed on an exact head that
- * contains the migration; until that line names them, the raise rests on the
- * analysis above and nothing else.
+ * One reachable function is again one, so the marker is raised only after the
+ * exact head `e6699976` passed Database parity run 32661359461 (which is both
+ * `local-supabase` and `migration-transition`) and Browser E2E run 32661359509.
+ * Both rebuild the migration chain through 217; the browser job also reseeds
+ * and exercises authenticated journeys — including the administrator's —
+ * against that rebuilt database, which is the only evidence that actually
+ * answers the question this marker asks.
  */
 export const SEED_REVIEWED_AT_CONTRACT = 217
 
