@@ -5,13 +5,17 @@
  * prose plus real destinations; presentation does not decide policy wording,
  * processor state, retention promises or contact details.
  */
-export type PublicDocumentSection = {
+// Not exported: both are structural parts of `PublicDocumentModel`, which is
+// what every surface imports. Exporting them added two names nothing referenced,
+// which the dead-code gate reports rather than forgives. They stay named so the
+// model reads as prose plus destinations rather than as two inline shapes.
+type PublicDocumentSection = {
   readonly id: string
   readonly heading: string
   readonly paragraphs: readonly string[]
 }
 
-export type PublicDocumentLink = {
+type PublicDocumentLink = {
   readonly label: string
   readonly href: string
 }
