@@ -85,6 +85,7 @@ install_beads_release() {
 uv_version="$(read_tool_value 'c.uv.version')"
 graphify_version="$(read_tool_value 'c.graphify.version')"
 omniroute_version="$(read_tool_value 'c.omniroute.version')"
+opencode_version="$(read_tool_value 'c.opencode.version')"
 serena_version="$(read_tool_value 'c.serena.version')"
 serena_python="$(read_tool_value 'c.serena.python')"
 spec_kit_version="$(read_tool_value 'c.specKit.version')"
@@ -121,6 +122,7 @@ uv tool install --force --python "$spec_kit_python" "specify-cli==${spec_kit_ver
 printf 'Installing Node-based developer CLIs under ~/.local...\n'
 npm install --global --prefix "${HOME}/.local" --no-fund --no-audit \
   "omniroute@${omniroute_version}" \
+  "opencode-ai@${opencode_version}" \
   "@ast-grep/cli@${ast_grep_version}"
 
 printf 'Installing Beads %s from the checksum-verified GitHub release...\n' "$beads_version"
@@ -132,6 +134,7 @@ from importlib.metadata import version
 print(f"Graphify: {version('graphifyy')}")
 PY
 "${bin_home}/omniroute" --version || true
+"${bin_home}/opencode" --version || true
 "${bin_home}/ast-grep" --version || true
 "${bin_home}/bd" version || true
 "${bin_home}/serena" --help >/dev/null
