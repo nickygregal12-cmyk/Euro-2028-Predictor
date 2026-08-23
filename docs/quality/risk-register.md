@@ -608,6 +608,49 @@ The 6 August audit record above says `DB-005` was "deliberately not acted on" be
 | `OPS-010` | A verified hosted record can fail to reach `main` | **Open pending proof; both causes addressed** | The follow-up workflow can no longer strand a record silently, and the owner enabled the repository setting permitting GitHub Actions to create pull requests on 6 August 2026. Neither half is proven yet: the next fast-lane rollout is the first run that will exercise both. Close it on that run opening its pull request unaided; if it is refused again, the fallback should say so in a job summary and an issue rather than in silence. |
 | `UX-005` | vNext has no light theme while production ships a persisted one, and the stage that would inherit the mismatch may not resolve it | **Open, recorded 19 August 2026.** `src/app/providers/ThemeProvider.tsx` persists a user theme choice at `euro28-theme` and `src/styles/tokens.css` carries a full `[data-theme="light"]` block; `src/vnext/foundations/tokens.css` is dark-only by a stated, deliberate workshop decision. Stage 14 makes vNext the production Football Hub, so on the current plan the cutover removes a preference a user set. | Either the light theme is answered as Stage 13 scope, or retirement of the stored preference is recorded as a deliberate decision in the route-migration and cutover work. Stage 14 cannot be the place it is discovered: its own contract excludes creative redesign of accepted vNext surfaces. The product decision is `DEC-016`; this row is the delivery risk around it, and closes when either outcome is recorded. If the theme is built, `UX-006` is a prerequisite — an inverted dark ramp is not a measured light ramp. |
 
+## Correction record — 23 August 2026, a binding product number the code did not carry
+
+`UX-009` — **the small-numbers honesty rule was enforced at half its stated pool
+size.** `docs/design-system.md` §1, decided 2026-07-22 and restated in the Match
+Centre and post-tournament sections, requires a pool of **at least 50 players**
+before a percentile is shown, on a privacy-and-dignity rationale: under about
+fifty, an "anonymous" bar is trivially de-anonymisable by league mates and
+"top 48%" reads as mockery. `src/features/season/rankContext.ts` implemented
+`MIN_FIELD_FOR_PERCENTILE = 25`, so a pool of 25–49 was shown a percentile the
+authority forbids.
+
+**The constant appeared nowhere in `docs/`,** so the divergence was never
+recorded as a decision, and its own comment argues for *a* threshold without
+mentioning the rule or justifying 25 over 50. The repository's history here is
+shallow, so which came first could not be established and is not claimed.
+
+**Why no test caught it, which is the more useful half.**
+`tests/features/season/rankContext.test.ts` asserted the boundary as
+`percentileLine(2, MIN_FIELD_FOR_PERCENTILE)` — in terms of the constant under
+test. That reports a CHANGE to the threshold but can never report that the
+threshold was wrong to begin with, because the assertion and the implementation
+read the same number.
+
+**Closed by making the number exist once.**
+`tests/documentation/smallNumbersHonesty.test.ts` reads the threshold out of the
+design system and asserts the implementation matches, so the two cannot disagree
+again in either direction; a rule deleted from the document fails the guard
+rather than passing it for want of anything to find. The boundary assertions in
+the original test were rewritten as literals. The constant now matches the
+authority.
+
+**Player-visible effect, stated rather than buried:** pools of 25–49 now show the
+plain rank and field size instead of a percentile, which is what §1 asks for. One
+line, trivially reverted if the owner decides 25 was intended and the document
+should move instead.
+
+Scoped deliberately, and measured before this was called a class rather than an
+instance — it is an instance. Wrapped and profile percentiles are the server's
+and derive nothing in the browser; the season consensus suppresses below ten
+entries by a *recorded* later decision tied to `PRIV-001`
+(`docs/quality/investigations/2026-07-29-priv-001-options.md`), not drift; and the
+"How everyone called it" page is exempt in §1 itself.
+
 ## Medium
 
 | ID | Finding | Current status |

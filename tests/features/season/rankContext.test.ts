@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  MIN_FIELD_FOR_PERCENTILE,
-  formatFieldSize,
-  percentileLine,
-} from '../../../src/features/season/rankContext'
+import { formatFieldSize, percentileLine } from '../../../src/features/season/rankContext'
 
 /**
  * Rank context (`UI-F07`), and the line it must not cross.
@@ -40,8 +36,14 @@ describe('percentileLine', () => {
   it('says nothing for a field too small for a percentile to be context', () => {
     // In a league of eight, "top 25%" is second place said less clearly.
     expect(percentileLine(2, 8)).toBeNull()
-    expect(percentileLine(2, MIN_FIELD_FOR_PERCENTILE - 1)).toBeNull()
-    expect(percentileLine(2, MIN_FIELD_FOR_PERCENTILE)).toBe('Top 8%')
+    expect(percentileLine(2, 49)).toBeNull()
+    expect(percentileLine(2, 50)).toBe('Top 4%')
+    // Literals, deliberately. Writing these as `MIN_FIELD_FOR_PERCENTILE - 1`
+    // and `MIN_FIELD_FOR_PERCENTILE` made the assertion agree with the constant
+    // by construction, so it could report a CHANGE to the threshold but never
+    // that the threshold was wrong — which is how it sat at 25 while
+    // `docs/design-system.md` said 50. The rule's own number is asserted
+    // against the document in `tests/documentation/smallNumbersHonesty.test.ts`.
   })
 
   it('refuses anything it cannot compute honestly', () => {

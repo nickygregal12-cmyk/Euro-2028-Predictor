@@ -290,21 +290,25 @@ function notStartedStageId(): string {
 }
 
 /**
- * A stage whose dependency has NOT finished, whichever that is today.
+ * A stage and one thing it depends on, for the out-of-order case to CONSTRUCT.
  *
- * Naming one would make the out-of-order case pass for a reason that expires:
- * it used to name stage 2 depending on stage 1, and the moment stage 1 really
- * completed the case stopped testing the rule and started testing the calendar.
- * The same trap the negative cases above were rewritten to avoid.
+ * Naming a pair would make the case pass for a reason that expires: it used to
+ * name stage 2 depending on stage 1, and the moment stage 1 really completed the
+ * case stopped testing the rule and started testing the calendar.
+ *
+ * Finding a pair that is ALREADY out of order has the mirror-image fault, and it
+ * is the one that actually bit: the case could only run while the live file
+ * happened to contain an incomplete dependency, so the programme progressing
+ * far enough took the test away. A negative case must not need the real data to
+ * be wrong. This returns any real dependency edge; the caller breaks it in a
+ * draft, so the rule is exercised whatever the programme's true state is.
  */
-function stageAheadOfItsDependency(): { readonly id: string; readonly dependency: string } {
-  const byStatus = new Map(state.stages.map((stage) => [stage.id, stage.status]))
+function aDependencyEdge(): { readonly id: string; readonly dependency: string } {
   for (const stage of state.stages) {
-    for (const dependency of stage.dependencies) {
-      if (byStatus.get(dependency) !== 'complete') return { id: stage.id, dependency }
-    }
+    const dependency = stage.dependencies[0]
+    if (dependency !== undefined) return { id: stage.id, dependency }
   }
-  throw new Error('every dependency is complete, so this case needs rewriting')
+  throw new Error('no stage declares a dependency, so this case needs rewriting')
 }
 
 /**
@@ -447,8 +451,16 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses a stage completed ahead of what it depends on', () => {
-    const { id, dependency } = stageAheadOfItsDependency()
+    const { id, dependency } = aDependencyEdge()
     const outOfOrder = bend((draft) => {
+      // Break the edge in the draft rather than hoping the real file has a
+      // broken one, so this exercises the rule at every point in the programme.
+      const blocker = stageIn(draft, dependency)
+      blocker.status = 'not_started'
+      blocker.pr = null
+      blocker.headSha = null
+      blocker.mergedSha = null
+      blocker.acceptanceEvidence = []
       const stage = stageIn(draft, id)
       stage.status = 'complete'
       stage.pr = 1000

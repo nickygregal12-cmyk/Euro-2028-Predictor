@@ -11,14 +11,6 @@
   },
   "openPullRequestClassification": [
     {
-      "pr": 1005,
-      "branch": "claude/euro-2028-ia-decision-xzn57m-home",
-      "headSha": "7b2ab796be2bcf4238f76823abad9e71dbcb58bb",
-      "draft": false,
-      "classification": "unrelated",
-      "rationale": "vNext Home information architecture. Carries no migration and makes no contract claim; shares no file with any stage here."
-    },
-    {
       "pr": 1008,
       "branch": "claude/euro-2028-ia-decision-xzn57m-games",
       "headSha": "a4279032216b3eab5d1e8808fa0333596783a2c2",
@@ -113,11 +105,17 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1009,
+      "headSha": "d2942a4818542d37b4fd3f6ab952d5951052f28f",
+      "mergedSha": "685937471bf890a2d0d9ca36b87cb109d533e19c",
+      "acceptanceEvidence": [
+        "Named scenarios seed the three hostile states the design rule names and the seed previously could not express: a guaranteed tie on the top total, entries that were never submitted, and a one-member and two-member pool.",
+        "The tie is created by construction — the best entry's predictions are copied onto the worst, so they must score identically — and verified through the real scoring pipeline rather than by any reimplementation of it.",
+        "Every guarantee was proved by removing it and watching the assertion fail, in four directions; an unrecognised scenario name refuses rather than falling back to the ordinary world.",
+        "The dry run ranks submitted entries only, matching what the database ranks from, after review found it would otherwise print a table the seeded app refuses to render.",
+        "The default scenario is byte-identical to the previous output, so nothing depending on the seed moved. No migration."
+      ],
       "blocker": null
     },
     {
@@ -126,7 +124,7 @@
       "dependencies": [
         "4"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,
