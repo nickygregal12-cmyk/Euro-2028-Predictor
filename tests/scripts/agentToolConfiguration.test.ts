@@ -70,6 +70,7 @@ describe('Predictor developer operating system', () => {
         'lostPixel',
         'mergiraf',
         'omniroute',
+        'opencode',
         'reactScan',
         'repomix',
         'serena',
@@ -126,6 +127,8 @@ describe('Predictor developer operating system', () => {
 
     expect(tools.graphify?.extras).toEqual(['sql', 'openai'])
     expect(tools.omniroute?.port).toBe(20128)
+    expect(tools.opencode?.package).toBe('opencode-ai')
+    expect(tools.opencode?.mode).toBe('bootstrap-cloud-agent')
     expect(tools.agentMail?.port).toBe(8765)
     expect(tools.beads?.repository).toBe('gastownhall/beads')
   })
@@ -182,6 +185,7 @@ describe('Predictor developer operating system', () => {
     expect(bootstrap).toContain("require('./config/agent-tools.json')")
     expect(bootstrap).toContain('graphifyy[sql,openai]==${graphify_version}')
     expect(bootstrap).toContain('omniroute@${omniroute_version}')
+    expect(bootstrap).toContain('opencode-ai@${opencode_version}')
     expect(bootstrap).toContain('serena-agent==${serena_version}')
     expect(bootstrap).toContain('specify-cli==${spec_kit_version}')
     expect(bootstrap).toContain('@ast-grep/cli@${ast_grep_version}')
@@ -197,6 +201,15 @@ describe('Predictor developer operating system', () => {
     expect(bootstrap).not.toContain('cargo install')
     expect(bootstrap).not.toContain('bd init')
     expect(bootstrap).not.toMatch(/(?:^|\n)\s*omniroute\s+--no-open/)
+  })
+
+  it('keeps Ox Alpha opt-in, Codespaces-secret-backed and repository-authority-bound', () => {
+    const launcher = read('scripts/agent-tools/ox-alpha.sh')
+    expect(launcher).toContain('OPENROUTER_API_KEY')
+    expect(launcher).toContain('openrouter/stealth/ox-alpha')
+    expect(launcher).toContain('AGENTS.md and NOW.md')
+    expect(launcher).not.toContain('sk-or-')
+    expect(launcher).not.toContain('--auto')
   })
 
   it('keeps MCP retrieval tools pinned and developer-only', () => {
@@ -266,6 +279,7 @@ describe('Predictor developer operating system', () => {
     const devcontainer = readJson<{
       postCreateCommand?: string
       remoteEnv?: Record<string, string>
+      secrets?: Record<string, { description?: string; documentationUrl?: string }>
       forwardPorts?: number[]
       features?: Record<string, { version?: string }>
       portsAttributes?: Record<string, { label?: string; onAutoForward?: string }>
@@ -275,6 +289,10 @@ describe('Predictor developer operating system', () => {
     expect(devcontainer.features?.['ghcr.io/devcontainers/features/rust:1']).toBeDefined()
     expect(devcontainer.remoteEnv?.BD_DISABLE_METRICS).toBe('1')
     expect(devcontainer.remoteEnv?.DOLT_DISABLE_EVENT_FLUSH).toBe('1')
+    expect(devcontainer.secrets?.OPENROUTER_API_KEY?.description).toContain('OpenCode/Ox Alpha')
+    expect(devcontainer.secrets?.OPENROUTER_API_KEY?.documentationUrl).toBe(
+      'https://openrouter.ai/settings/keys',
+    )
     expect(devcontainer.forwardPorts).toEqual(expect.arrayContaining([20128, 8765]))
     expect(devcontainer.portsAttributes?.['20128']?.label).toContain('OmniRoute')
     expect(devcontainer.portsAttributes?.['8765']?.label).toContain('Agent Mail')
