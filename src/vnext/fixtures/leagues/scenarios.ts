@@ -24,6 +24,8 @@ import type {
   LeaguesGlobalRow,
   LeaguesGlobalTable,
   LeaguesModel,
+  LeaguesNeighbourRow,
+  LeaguesNeighbourhood,
   LeaguesPrivateRow,
   LeaguesPrivateTable,
 } from '../../models/leagues'
@@ -90,6 +92,23 @@ function unaddressed(displayName: string, ref: string): LeaguePlayer {
   return { ref, displayName, destination: { kind: 'closed', reason: 'not-stated' } }
 }
 
+/**
+ * A NEIGHBOUR THE LEADERBOARD PAGE COULD NOT IDENTIFY.
+ *
+ * The commonest row in the chase, and the one that is easiest to get wrong.
+ * Contract 183's window predates contract 191 and carries no reference, no
+ * reach and no id, so a neighbour is openable ONLY where the loaded page held
+ * identity for the same server-issued position — and a player standing 318th
+ * shares no position with the three rows on page one.
+ *
+ * `ref` IS NULL HERE, DELIBERATELY. It is the one player type in this file with
+ * no reference at all, because inventing one would let a surface key a row, or
+ * open a profile, on an identity the server never issued.
+ */
+function unnamedNeighbour(displayName: string): LeaguePlayer {
+  return { ref: null, displayName, destination: { kind: 'closed', reason: 'not-stated' } }
+}
+
 /* ==========================================================================
    ROW BUILDERS — every field explicit, nothing defaulted
    ========================================================================== */
@@ -111,6 +130,37 @@ function globalRow(row: {
     points: row.points,
     matchweeksPlayed: row.matchweeksPlayed,
     isYou: row.isYou ?? false,
+  }
+}
+
+/**
+ * ONE ENTRANT IN THE CHASE.
+ *
+ * `pointsFromYou` IS STATED AND NEVER DERIVED, here as everywhere. The server
+ * owns the subtraction, so a fixture that computed it from `points` would be
+ * proving the surface against arithmetic that is explicitly not the surface's
+ * to do — and the world would then agree with a mapper that had started doing
+ * it wrongly.
+ */
+function neighbourRow(row: {
+  player: LeaguePlayer
+  rank: number
+  position: number
+  points: number
+  matchweeksPlayed: number
+  pointsFromYou: number
+  tied?: boolean
+  isYou?: boolean
+}): LeaguesNeighbourRow {
+  return {
+    player: row.player,
+    rank: row.rank,
+    tied: row.tied ?? false,
+    position: row.position,
+    points: row.points,
+    matchweeksPlayed: row.matchweeksPlayed,
+    isYou: row.isYou ?? false,
+    pointsFromYou: row.pointsFromYou,
   }
 }
 
@@ -154,12 +204,38 @@ function globalTable(table: {
   totalCount?: number
   you?: LeaguesGlobalRow | null
   hasMore?: boolean
+  neighbourhood?: LeaguesNeighbourhood | null
 }): LeaguesGlobalTable {
   return {
     rows: table.rows,
     totalCount: table.totalCount ?? table.rows.length,
     you: table.you ?? null,
     hasMore: table.hasMore ?? false,
+    // ABSENT BY DEFAULT, WHICH IS THE HONEST DEFAULT. `null` is "the window did
+    // not land", so every existing world keeps drawing exactly what it drew
+    // before and only a scenario that asks for the chase gets one.
+    neighbourhood: table.neighbourhood ?? null,
+  }
+}
+
+/**
+ * A CHASE AROUND THE CALLER, for the worlds that want to review it.
+ *
+ * The gap is stated per row rather than derived from `points`, because the
+ * SERVER states it — a fixture that computed it would be proving the mapper
+ * against arithmetic the mapper is required not to do.
+ */
+function neighbourhood(window: {
+  rows: readonly LeaguesNeighbourRow[]
+  totalCount?: number
+  atTop?: boolean
+  atBottom?: boolean
+}): LeaguesNeighbourhood {
+  return {
+    rows: window.rows,
+    totalCount: window.totalCount ?? window.rows.length,
+    atTop: window.atTop ?? false,
+    atBottom: window.atBottom ?? false,
   }
 }
 
@@ -342,6 +418,228 @@ const seasonYouOffPage = seasonModel({
       matchweeksPlayed: 9,
       isYou: true,
     }),
+  }),
+})
+
+/* ==========================================================================
+   THE CHASE — contract 183's window around the caller
+   ========================================================================== */
+
+/**
+ * THE WORLD THE WINDOW EXISTS FOR: 412 entrants, the reader 318th.
+ *
+ * It is `seasonYouOffPage` with the chase attached, deliberately, so a reviewer
+ * can put the two side by side and see exactly what the second read adds — a
+ * pinned row saying "318th" becomes three people to catch and three holding on.
+ *
+ * NOBODY IN THE WINDOW IS ON PAGE ONE, which is the ordinary case and the one
+ * that matters: the leaderboard page holds identity for ranks 1 to 3, the
+ * window covers 315 to 321, and the two sets do not intersect. So every
+ * neighbour here is closed for want of a stated reach — except the caller —
+ * and a surface that rendered them as openable would be inventing a door.
+ */
+const chaseMidTable = seasonModel({
+  leagues: [sundayClub],
+  global: globalTable({
+    rows: [
+      globalRow({
+        player: shared('Rhona Buchanan', 'ref-rhona'),
+        rank: 1,
+        position: 1,
+        points: 214,
+        matchweeksPlayed: 12,
+      }),
+      globalRow({
+        player: shared('Callum Bruce', 'ref-callum'),
+        rank: 2,
+        position: 2,
+        points: 209,
+        matchweeksPlayed: 12,
+      }),
+      globalRow({
+        player: shared('Elspeth Nairn', 'ref-elspeth'),
+        rank: 3,
+        position: 3,
+        points: 205,
+        matchweeksPlayed: 12,
+      }),
+    ],
+    totalCount: 412,
+    hasMore: true,
+    you: globalRow({
+      player: you('Nicky Gregal', 'ref-you'),
+      rank: 318,
+      position: 318,
+      points: 96,
+      matchweeksPlayed: 9,
+      isYou: true,
+    }),
+    neighbourhood: neighbourhood({
+      totalCount: 412,
+      rows: [
+        neighbourRow({
+          player: unnamedNeighbour('Isla McNair'),
+          rank: 315,
+          position: 315,
+          points: 101,
+          matchweeksPlayed: 9,
+          pointsFromYou: 5,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Fraser Dalgleish'),
+          rank: 316,
+          position: 316,
+          points: 99,
+          matchweeksPlayed: 10,
+          pointsFromYou: 3,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Marta Oyelaran'),
+          rank: 317,
+          position: 317,
+          points: 97,
+          matchweeksPlayed: 9,
+          pointsFromYou: 1,
+        }),
+        neighbourRow({
+          player: you('Nicky Gregal', 'ref-you'),
+          rank: 318,
+          position: 318,
+          points: 96,
+          matchweeksPlayed: 9,
+          pointsFromYou: 0,
+          isYou: true,
+        }),
+        // LEVEL ON POINTS AND A RANK BELOW. The gap column reads 0 and the rank
+        // column reads 319, which is the pair a reader needs: the tie-break is
+        // the server's and the surface must not resolve it into "tied".
+        neighbourRow({
+          player: unnamedNeighbour('Dermot Kyle'),
+          rank: 319,
+          position: 319,
+          points: 96,
+          matchweeksPlayed: 10,
+          pointsFromYou: 0,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Priya Ramanathan'),
+          rank: 320,
+          position: 320,
+          points: 94,
+          matchweeksPlayed: 9,
+          pointsFromYou: -2,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Ewan Tait'),
+          rank: 321,
+          position: 321,
+          points: 91,
+          matchweeksPlayed: 8,
+          pointsFromYou: -5,
+        }),
+      ],
+    }),
+  }),
+})
+
+/**
+ * THE READER LEADS THE SEASON, so there is nobody above them.
+ *
+ * The window returns fewer rows above than it asked for, and the SERVER says
+ * why with `atTop`. This world exists because the failure it guards against is
+ * invisible: a surface inferring the edge from the row count draws an identical
+ * strip and silently reports the top of the table as missing data.
+ *
+ * The caller is also on page one here, which is what makes their own row the
+ * one row in the window the page can identify.
+ */
+const chaseAtTop = seasonModel({
+  leagues: [sundayClub],
+  global: globalTable({
+    rows: [
+      globalRow({
+        player: you('Nicky Gregal', 'ref-you'),
+        rank: 1,
+        position: 1,
+        points: 214,
+        matchweeksPlayed: 12,
+        isYou: true,
+      }),
+      globalRow({
+        player: shared('Callum Bruce', 'ref-callum'),
+        rank: 2,
+        position: 2,
+        points: 209,
+        matchweeksPlayed: 12,
+      }),
+    ],
+    totalCount: 412,
+    hasMore: true,
+    neighbourhood: neighbourhood({
+      totalCount: 412,
+      atTop: true,
+      rows: [
+        neighbourRow({
+          player: you('Nicky Gregal', 'ref-you'),
+          rank: 1,
+          position: 1,
+          points: 214,
+          matchweeksPlayed: 12,
+          pointsFromYou: 0,
+          isYou: true,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Callum Bruce'),
+          rank: 2,
+          position: 2,
+          points: 209,
+          matchweeksPlayed: 12,
+          pointsFromYou: -5,
+        }),
+        neighbourRow({
+          player: unnamedNeighbour('Elspeth Nairn'),
+          rank: 3,
+          position: 3,
+          points: 205,
+          matchweeksPlayed: 12,
+          pointsFromYou: -9,
+        }),
+      ],
+    }),
+  }),
+})
+
+/**
+ * THE TABLE ANSWERED AND THE WINDOW DID NOT.
+ *
+ * The strip renders NOTHING — not an empty frame, not a message, not a
+ * spinner. A player who loses the chase to a failed second read must still get
+ * their standings, and a surface that reported the absence would be reporting
+ * a thing the reader never asked for.
+ */
+const chaseUnavailable = seasonModel({
+  leagues: [sundayClub],
+  global: globalTable({
+    rows: [
+      globalRow({
+        player: shared('Rhona Buchanan', 'ref-rhona'),
+        rank: 1,
+        position: 1,
+        points: 214,
+        matchweeksPlayed: 12,
+      }),
+    ],
+    totalCount: 412,
+    hasMore: true,
+    you: globalRow({
+      player: you('Nicky Gregal', 'ref-you'),
+      rank: 318,
+      position: 318,
+      points: 96,
+      matchweeksPlayed: 9,
+      isYou: true,
+    }),
+    neighbourhood: null,
   }),
 })
 
@@ -1162,6 +1460,9 @@ const leagueEmpty = leagueModel({
 export const leaguesScenarios = {
   seasonTable,
   seasonYouOffPage,
+  chaseMidTable,
+  chaseAtTop,
+  chaseUnavailable,
   tiedRanks,
   duplicateNames,
   nothingOpenable,
@@ -1196,6 +1497,12 @@ export const leaguesScenarioPremises: Readonly<Record<LeaguesScenarioName, strin
     'The ordinary visit. Most rows are strangers and cannot be opened; two are league co-members and can.',
   seasonYouOffPage:
     'The commonest real shape: 412 entrants, three shown, and the reader is 318th. The pinned row is the whole answer to "where do I stand".',
+  chaseMidTable:
+    'The same 412-entrant season with contract 183 attached. 318th stops being a label: three players to catch, three holding on, and a signed gap on each. Nobody in the window is on page one, so no neighbour opens.',
+  chaseAtTop:
+    'The reader leads. The window returns fewer rows above than it asked for and the SERVER says why with atTop — a surface counting rows to decide draws an identical strip and calls the top of the table missing data.',
+  chaseUnavailable:
+    'The table answered and the window did not. The chase renders nothing at all; the standings are unaffected.',
   tiedRanks:
     'Four players share rank 2 and the next row is rank 6. Any renumbering from the array index produces 1–6 and looks plausible.',
   duplicateNames:

@@ -33,6 +33,9 @@ import { ShellOverlay } from './ShellOverlay'
 import { useVNextShellContext } from './VNextShellProvider'
 import text from '../foundations/typography.module.css'
 import styles from './VNextShell.module.css'
+import { ActionCentreControl } from './ActionCentreControl'
+import { ActionCentreBody } from './ActionCentreBody'
+import { useShellActions, type VNextShellActions } from './VNextActionsProvider'
 
 export type VNextShellProps = {
   /** The page. The shell has no opinion about what is in here. */
@@ -68,6 +71,20 @@ export type VNextShellProps = {
    * is how a page and its chrome end up painting different competitions.
    */
   competitionColours?: { readonly primary: string; readonly accent: string } | null
+  /**
+   * THE DURABLE ACTION FEED, or `undefined` where no host supplies one.
+   *
+   * `undefined` DRAWS NO CONTROL AT ALL, which is the shape a story, a render
+   * test or a page-scoped `/dev` harness gets — the same rule `shellElsewhere`
+   * follows. It is not a degraded state: a shell with no action host is a shell
+   * that was never given one, and an inbox control opening an empty panel would
+   * be worse than no control.
+   *
+   * A HOST THAT SUPPLIES IT OWNS THE READ. The shell renders the control and
+   * the panel and issues nothing itself, because chrome mounted per page would
+   * re-read the feed on every navigation.
+   */
+  actions?: VNextShellActions | undefined
 }
 
 /**
@@ -157,6 +174,7 @@ export function VNextShell({
   shell,
   onIntent,
   competitionColours,
+  actions: suppliedActions,
 }: VNextShellProps) {
   const headingId = useId()
   const contentId = useId()
@@ -176,9 +194,18 @@ export function VNextShell({
    * over a scrim and a focus return to a control that is behind both. One value
    * makes that state unrepresentable.
    */
-  const [overlay, setOverlay] = useState<'none' | 'competitions' | 'attention' | 'jump'>(
-    'none',
-  )
+  const [overlay, setOverlay] = useState<
+    'none' | 'competitions' | 'attention' | 'jump' | 'actions'
+  >('none')
+
+  /**
+   * THE ACTION FEED, FROM THE PROP OR FROM THE HOST ABOVE THE PAGES.
+   *
+   * Resolved the same way `shell` is, and for the same reason: twenty connected
+   * screens render this component and none of them should have to carry a feed
+   * they never read. `undefined` draws no Action Centre at all.
+   */
+  const actions = useShellActions(suppliedActions)
   /**
    * THE OPENER IS CAPTURED FROM THE PRESS, NOT HELD IN A REF.
    *
@@ -193,11 +220,18 @@ export function VNextShell({
   const jumpSearchRef = useRef<HTMLInputElement>(null)
 
   const open = useCallback(
-    (which: 'competitions' | 'attention' | 'jump', opener: HTMLElement | null) => {
+    (
+      which: 'competitions' | 'attention' | 'jump' | 'actions',
+      opener: HTMLElement | null,
+    ) => {
       captureOpener(opener)
       setOverlay(which)
+      // SEEN IS RECORDED ON READING, NOT ON LOADING. Marking when the feed
+      // arrives would record that a player had seen a BADGE, which is not the
+      // same thing and is what makes the state worth persisting at all.
+      if (which === 'actions') actions?.onOpen?.()
     },
-    [captureOpener],
+    [captureOpener, actions],
   )
 
   const close = useCallback(() => {
@@ -366,6 +400,21 @@ export function VNextShell({
               />
             ) : null}
 
+            {/* THE ACTION CENTRE — a PLACE rather than an alarm, so unlike the
+                attention control above it stays when there is nothing unread.
+                It sits below the destinations because it is a utility, and
+                below the attention layer because that one is about the next
+                hour and this one is about everything. */}
+            {actions ? (
+              <ActionCentreControl
+                unseen={actions.model?.unseen ?? null}
+                variant="rail"
+                open={overlay === 'actions'}
+                onOpen={(opener) => open('actions', opener)}
+                onClose={close}
+              />
+            ) : null}
+
             {/* THE BOUNDED SHORTCUT GROUP. Six, then a count — the rail's
                 height is a function of what the player plays and never of what
                 the platform publishes. Absent entirely at one competition,
@@ -494,6 +543,20 @@ export function VNextShell({
                     <span className={styles.exploreLabel}>Explore</span>
                   </button>
                 ) : null}
+                {/* ON THE PHONE IT IS ICON-ONLY AND SITS BEFORE THE AVATAR.
+                    The rail is gone below 1120, so without this the Action
+                    Centre would be a desktop-only place — which is the wrong
+                    way round for a feed whose whole value is that a matchweek
+                    deadline reaches the player wherever they are. */}
+                {actions ? (
+                  <ActionCentreControl
+                    unseen={actions.model?.unseen ?? null}
+                    variant="bar"
+                    open={overlay === 'actions'}
+                    onOpen={(opener) => open('actions', opener)}
+                    onClose={close}
+                  />
+                ) : null}
                 {player ? (
                   <button
                     type="button"
@@ -608,6 +671,42 @@ export function VNextShell({
               // the shell's own architecture.
               leave({ kind: 'game', contextId: item.contextId, game: item.game })
             }
+          />
+        </ShellOverlay>
+      ) : null}
+
+      {/* IT DOES NOT REQUIRE `model`, unlike the three overlays around it.
+          Those are all ABOUT the competition deck — a switcher, a
+          cross-competition attention list, a jump across contexts — and none of
+          them means anything without one. The action feed is the player's, not
+          a competition's, and a player whose shell model has not landed still
+          has a matchweek locking. */}
+      {actions && overlay === 'actions' ? (
+        <ShellOverlay title="Updates" onClose={close}>
+          <ActionCentreBody
+            model={actions.model}
+            status={actions.status}
+            // THE SHEET CLOSES FIRST, THEN THE HOST NAVIGATES — the same order
+            // `leave` uses for the attention rows, and for the same reason.
+            // Passing the host's callback straight through left the panel open
+            // over the destination whenever `navigate` was a no-op, which is
+            // every row that targets the route the player is already on:
+            // opening a Match Predictor action from the Match Predictor did
+            // nothing visible at all.
+            //
+            // Focus is NOT returned to the opener here. The player asked to go
+            // somewhere, so focus follows the content — the rule `leave`
+            // records for a deliberate destination.
+            onOpenItem={
+              actions.onOpenItem === undefined
+                ? undefined
+                : (item) => {
+                    setOverlay('none')
+                    actions.onOpenItem?.(item)
+                  }
+            }
+            onDismiss={actions.onDismiss}
+            onRetry={actions.onRetry}
           />
         </ShellOverlay>
       ) : null}

@@ -15,6 +15,7 @@ import type {
   LeaguesGlobalRow,
   LeaguesGlobalTable,
   LeaguesModel,
+  LeaguesNeighbourhood,
   LeaguesPrivateRow,
   LeaguesPrivateTable,
   LeaguesScope,
@@ -236,6 +237,76 @@ function globalTableOf(source: LeaguesSource): LeaguesGlobalTable | null {
             isYou: true,
           },
     hasMore: page.hasMore,
+    neighbourhood: neighbourhoodOf(source),
+  }
+}
+
+/**
+ * THE ENTRANTS EITHER SIDE OF THE CALLER — contract 183, `MIG-UI-18`.
+ *
+ * ============================ NO NEIGHBOUR IS OPENABLE, AND HERE IS WHY ==
+ *
+ * The neighbourhood payload predates contract 191 and carries no `playerRef`,
+ * no `reach` and no `playerId`. Every row is therefore a name, a rank and a
+ * gap — real football information — with nowhere to go, and that is the honest
+ * shape rather than a degraded one.
+ *
+ * **AN EARLIER VERSION OF THIS FUNCTION JOINED THE WINDOW TO THE PAGED
+ * LEADERBOARD ON `position` AND THAT WAS WRONG.** The reasoning was that pgTAP
+ * `232_season_clubs_and_neighbourhood.sql` requires the two reads to agree on
+ * the ordinal, so the ordinal was a safe key. It is not, and the test does not
+ * say it is: it runs both reads inside ONE transaction and proves they agree on
+ * a single snapshot. `useVNextLeaguesSource` fires them as two independent
+ * concurrent RPCs, so they are two snapshots — and a matchweek settling between
+ * them re-ranks the table. Position 316 in the page and position 316 in the
+ * window are then DIFFERENT ENTRANTS, and the row would have shown one player's
+ * name and points while opening the other player's profile.
+ *
+ * That is exactly the class of defect contract 191's reference exists to make
+ * impossible, arrived at by a different route than a display-name match. An
+ * ordinal is unique within a snapshot and identifies nobody across two.
+ *
+ * ============================ WHAT WOULD MAKE THEM OPENABLE ==============
+ *
+ * Either the neighbourhood contract returning contract 191's identity itself,
+ * or one server read answering both the page and the window from a single
+ * snapshot. Both are migrations. Neither is presentation's to invent, and until
+ * one exists a neighbour is `closed` with reason `not-stated` — the server did
+ * not state a reach for this row, which is a different fact from having refused
+ * one, and `LeaguePlayerCell` draws it as plain text rather than as a disabled
+ * control.
+ */
+function neighbourhoodOf(source: LeaguesSource): LeaguesNeighbourhood | null {
+  const window = source.neighbourhood
+  if (window === null) return null
+
+  return {
+    rows: window.rows.map((row) => ({
+      player: {
+        // NO REF, BECAUSE THIS PAYLOAD HAS NONE and one may not be invented —
+        // not from the other read's ordinal, and not from a display name.
+        ref: null,
+        displayName: row.displayName,
+        // The caller is still drawn as themselves: `isYou` is the SERVER's mark
+        // on this row rather than an identity recovered from anywhere else.
+        destination: row.isYou ? { kind: 'you' } : { kind: 'closed', reason: 'not-stated' },
+      },
+      rank: row.rank,
+      tied: row.tied,
+      position: row.position,
+      points: row.points,
+      matchweeksPlayed: row.matchweeksPlayed,
+      isYou: row.isYou,
+      // THE SERVER'S SIGNED GAP, CARRIED. Recomputing it from two points totals
+      // would put a second opinion about the chase in the browser.
+      pointsFromYou: row.pointsFromYou,
+    })),
+    totalCount: window.totalCount,
+    // Both flags are the server's. See the model's own note: a caller at rank 2
+    // receives fewer rows above than the window asked for, so inferring either
+    // from the row count draws the top of the table as missing data.
+    atTop: window.atTop,
+    atBottom: window.atBottom,
   }
 }
 

@@ -172,6 +172,79 @@ export type LeaguesGlobalTable = {
   readonly you: LeaguesGlobalRow | null
   /** True where the server has more to give. Never derived from a count. */
   readonly hasMore: boolean
+  /**
+   * THE ENTRANTS EITHER SIDE OF THE CALLER, or `null` where that read has not
+   * landed. `null` is "not loaded or failed" and is NOT an empty neighbourhood.
+   */
+  readonly neighbourhood: LeaguesNeighbourhood | null
+}
+
+/* ==========================================================================
+   THE NEIGHBOURHOOD — who is immediately above and below the caller
+   ========================================================================== */
+
+/**
+ * WHY THIS EXISTS BESIDE A TABLE THAT ALREADY HAS THE CALLER'S ROW.
+ *
+ * The paged table answers "who is at the top" and pins the caller's own row on
+ * the end, so a player learns they are 412th and can learn nothing else: the
+ * players either side are eighty pages away and `LeaguesGlobalTable` has no
+ * paging control on purpose. A rank with nobody next to it is a label rather
+ * than a chase, and contract 183 exists to close exactly that.
+ *
+ * IT IS A SECOND READ AND NEVER A SECOND RANKING. Every figure here — rank,
+ * points, position, the signed gap and the field size — comes from
+ * `predictor_internal.season_standings` through contract 95's ordering, which
+ * is the same total order the paged table is built from.
+ *
+ * **BUT IT IS ALSO A SECOND SNAPSHOT, AND THAT IS WHY NO ROW HERE OPENS.** The
+ * page and the window are two independent concurrent RPCs. pgTAP
+ * `232_season_clubs_and_neighbourhood.sql` proves they agree on `position`
+ * within ONE transaction; it says nothing about two calls with a settlement
+ * between them, and a re-ranked table makes the same ordinal a different
+ * entrant. `buildLeaguesModel` records the defect that reasoning produced.
+ */
+export type LeaguesNeighbourRow = {
+  /**
+   * THE PERSON, AND NOBODY HERE IS OPENABLE.
+   *
+   * The neighbourhood payload predates contract 191 and carries no `playerRef`,
+   * no `reach` and no `playerId`, so every row is `closed` with reason
+   * `not-stated` — except the caller, whom the server marks with `isYou`.
+   *
+   * NO IDENTITY MAY BE RECOVERED FROM ANYWHERE ELSE. Not from a display name,
+   * which two entrants may share, and not from the paged leaderboard's
+   * `position`, which identifies a row only within the snapshot that produced
+   * it. Making these rows openable needs the identity in this contract, or one
+   * read answering both payloads from one snapshot — a migration either way.
+   */
+  readonly player: LeaguePlayer
+  readonly rank: number
+  readonly tied: boolean
+  /** The server's total-order ordinal. The only key another read may join on. */
+  readonly position: number
+  readonly points: number
+  readonly matchweeksPlayed: number
+  readonly isYou: boolean
+  /**
+   * SIGNED, AND THE SERVER'S ARITHMETIC. Positive is ahead of the caller,
+   * negative behind, zero level — or the caller's own row. Never recomputed
+   * here from two points totals.
+   */
+  readonly pointsFromYou: number
+}
+
+export type LeaguesNeighbourhood = {
+  readonly rows: readonly LeaguesNeighbourRow[]
+  /** The field size, so a rank never stands alone. */
+  readonly totalCount: number
+  /**
+   * STATED BY THE SERVER, NEVER INFERRED FROM THE ROW COUNT. A caller at rank 2
+   * legitimately receives fewer rows above them than the window asked for, so
+   * counting rows would draw the top of the table as missing data.
+   */
+  readonly atTop: boolean
+  readonly atBottom: boolean
 }
 
 /* ==========================================================================

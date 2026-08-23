@@ -3,6 +3,7 @@ import type {
   LeagueMovement,
   LeaguesGlobalRow,
   LeaguesGlobalTable,
+  LeaguesNeighbourhood,
   LeaguesPrivateRow,
   LeaguesPrivateTable,
 } from '../models/leagues'
@@ -275,7 +276,194 @@ export function GlobalStandingsTable({
       <p id={captionId} className={`${text.micro} ${styles.tableFoot}`}>
         {tableFootSentence(table.rows.length, table.totalCount, table.hasMore, 'player')}
       </p>
+
+      <RankNeighbourhood neighbourhood={table.neighbourhood} onOpenPlayer={onOpenPlayer} />
     </div>
+  )
+}
+
+/**
+ * THE CHASE — who the caller is actually racing, contract 183 / `MIG-UI-18`.
+ *
+ * ============================ THE PROBLEM IT CLOSES ======================
+ *
+ * The table above shows the leaders and pins the caller's own row underneath,
+ * so a player standing 412th learns the number 412 and nothing else. The people
+ * that number is about — 411th and 413th — are eighty pages away, and this
+ * surface has no paging control on purpose. A rank with nobody beside it is a
+ * label; a rank with two names and two gaps is a game.
+ *
+ * ============================ IT DRAWS ONLY WHAT IT WAS TOLD =============
+ *
+ * `null` renders NOTHING — not an empty strip, not a spinner, not a zero. It
+ * means the window has not landed or did not answer, which is different from
+ * "nobody is near you", and a strip that appeared empty would teach a player to
+ * ignore the one place worth reading.
+ *
+ * The gap on each row is the SERVER's signed arithmetic and the edges are the
+ * server's flags. Nothing here subtracts two points totals and nothing counts
+ * rows to decide whether the caller is at the top — the model's own header
+ * records why both would be wrong.
+ *
+ * ============================ AND MOST ROWS DO NOT OPEN ==================
+ *
+ * The window payload predates contract 191 and carries no identity, so a
+ * neighbour is openable only where the loaded page already held the door for
+ * the same server-issued position. `LeaguePlayerCell` draws a closed row as
+ * plain text rather than as a disabled control, which is the same rule the
+ * tables above follow.
+ */
+function RankNeighbourhood({
+  neighbourhood,
+  onOpenPlayer,
+}: {
+  readonly neighbourhood: LeaguesNeighbourhood | null
+  readonly onOpenPlayer?:
+    | ((playerRef: string, playerId: string | null) => void)
+    | undefined
+}) {
+  const headingId = useId()
+
+  // NOT LOADED IS NOT EMPTY, and a window with no caller in it is a season the
+  // player holds no standing in — which the table above already says better.
+  if (neighbourhood === null || neighbourhood.rows.length === 0) return null
+
+  // A window containing ONLY the caller is a table of one. There is no chase to
+  // draw and the pinned row above has already said where they stand.
+  if (neighbourhood.rows.every((row) => row.isYou)) return null
+
+  return (
+    <section
+      className={styles.neighbourhood}
+      data-vnext-zone="rank-neighbourhood"
+      aria-labelledby={headingId}
+    >
+      <h3 id={headingId} className={`${text.label} ${styles.neighbourhoodTitle}`}>
+        The chase
+      </h3>
+
+      {/* THE EDGES, IN WORDS, BECAUSE THE ROWS CANNOT SHOW THEM. A caller at
+          the top receives fewer rows above than the window asked for, and a
+          strip that simply started at their name would be indistinguishable
+          from one whose data was missing. Both flags are the server's. */}
+      {neighbourhood.atTop ? (
+        <p className={`${text.micro} ${styles.neighbourhoodEdge}`}>
+          Nobody above you — you lead this season.
+        </p>
+      ) : null}
+
+      <div className={styles.tableScroll}>
+        <table className={styles.table}>
+          <caption className={text.srOnly}>
+            The players immediately above and below you, of{' '}
+            {formatNumber(neighbourhood.totalCount)}
+          </caption>
+          <thead>
+            <tr>
+              <th scope="col" className={styles.colRank}>
+                Rank
+              </th>
+              <th scope="col" className={styles.colPlayer}>
+                Player
+              </th>
+              <th scope="col" className={styles.colPoints}>
+                Points
+              </th>
+              <th scope="col" className={styles.colGap}>
+                Gap
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {neighbourhood.rows.map((row) => (
+              <tr
+                key={leagueRowKey(row.player, row.position)}
+                className={`${styles.row} ${row.isYou ? styles.rowYou : ''}`}
+                data-vnext-neighbour-row={leagueRowKey(row.player, row.position)}
+                {...(row.isYou ? { 'aria-current': 'true' as const } : {})}
+              >
+                <th scope="row" className={styles.cellRank}>
+                  <RankCell rank={row.rank} tied={row.tied} />
+                </th>
+                <td className={styles.cellPlayer}>
+                  <LeaguePlayerCell player={row.player} onOpen={onOpenPlayer} />
+                </td>
+                <td className={styles.cellPoints}>
+                  <PointsCell points={row.points} matchweeksPlayed={row.matchweeksPlayed} />
+                </td>
+                <td className={styles.cellGap}>
+                  <GapCell isYou={row.isYou} pointsFromYou={row.pointsFromYou} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {neighbourhood.atBottom ? (
+        <p className={`${text.micro} ${styles.neighbourhoodEdge}`}>
+          Nobody below you yet.
+        </p>
+      ) : null}
+    </section>
+  )
+}
+
+/**
+ * THE GAP, AS A DIRECTION AND A NUMBER.
+ *
+ * The sign is the server's and it is the whole point of the cell: "+3" is three
+ * points to catch and "−1" is one point of cushion, and a bare "3" is neither.
+ *
+ * IT IS NEVER A COLOUR ALONE. The sign character carries the direction for a
+ * greyscale reader, and the screen-reader text says it in words because "+3"
+ * and "−3" are read identically by some voices — the same rule `MovementCell`
+ * follows two hundred lines up.
+ */
+function GapCell({
+  isYou,
+  pointsFromYou,
+}: {
+  readonly isYou: boolean
+  readonly pointsFromYou: number
+}) {
+  // NO GAP TO YOURSELF. A dash rather than a zero, because "0" beside the
+  // caller's own row reads as "level with somebody" rather than as "this is
+  // you", and the row is already marked.
+  if (isYou) {
+    return (
+      <span className={styles.gapSelf}>
+        <span aria-hidden="true">—</span>
+        <span className={text.srOnly}>your total</span>
+      </span>
+    )
+  }
+
+  if (pointsFromYou === 0) {
+    return (
+      <span className={`${text.numeric} ${styles.gapLevel}`}>
+        <span aria-hidden="true">0</span>
+        <span className={text.srOnly}>level with you</span>
+      </span>
+    )
+  }
+
+  const ahead = pointsFromYou > 0
+  const size = Math.abs(pointsFromYou)
+
+  return (
+    <span
+      className={`${text.numeric} ${ahead ? styles.gapAhead : styles.gapBehind}`}
+    >
+      <span aria-hidden="true">
+        {ahead ? '+' : '−'}
+        {formatNumber(size)}
+      </span>
+      <span className={text.srOnly}>
+        {formatNumber(size)} {size === 1 ? 'point' : 'points'}{' '}
+        {ahead ? 'ahead of you' : 'behind you'}
+      </span>
+    </span>
   )
 }
 

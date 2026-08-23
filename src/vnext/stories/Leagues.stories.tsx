@@ -196,6 +196,40 @@ export const SeasonTable: Story = board('seasonTable', ALL_WIDTHS, 0.42)
 export const SeasonYouOffPage: Story = board('seasonYouOffPage', ALL_WIDTHS, 0.42)
 
 /**
+ * THE SAME 412-ENTRANT SEASON, WITH THE CHASE ATTACHED — contract 183.
+ *
+ * PUT IT BESIDE `SeasonYouOffPage` AND THE POINT IS THE WHOLE REVIEW. That
+ * world ends at a pinned row saying 318th, which is a number a player can do
+ * nothing with: the people it is about are eighty pages away and this surface
+ * has no paging control on purpose. This one turns it into three players to
+ * catch and three holding on, each with the gap in points.
+ *
+ * NOBODY IN THE WINDOW IS ON PAGE ONE, which is the ordinary case rather than
+ * an awkward one: the loaded page holds identity for ranks 1 to 3 and the
+ * window covers 315 to 321. So no neighbour opens, and each is plain text
+ * rather than a disabled control.
+ */
+export const ChaseMidTable: Story = board('chaseMidTable', ALL_WIDTHS, 0.42)
+
+/**
+ * THE READER LEADS, AND THE SERVER SAYS SO IN WORDS.
+ *
+ * The window returns fewer rows above than it asked for. A surface that
+ * inferred the edge by counting rows draws an identical strip and silently
+ * reports the top of the table as missing data — which is why `atTop` is a
+ * field and this world exists as a picture rather than as a rule to remember.
+ */
+export const ChaseAtTop: Story = board('chaseAtTop', ALL_WIDTHS, 0.42)
+
+/**
+ * THE TABLE ANSWERED AND THE WINDOW DID NOT.
+ *
+ * Nothing is drawn — no empty frame, no message, no spinner. A failed second
+ * read costs the chase and never the standings the reader came for.
+ */
+export const ChaseUnavailable: Story = board('chaseUnavailable', ALL_WIDTHS, 0.42)
+
+/**
  * FOUR PLAYERS SHARE RANK 2, AND THE NEXT ROW IS RANK 6.
  *
  * Read the rank column. `index + 1` would produce 1, 2, 3, 4, 5, 6 — perfectly

@@ -4,7 +4,9 @@ import type { ReactNode } from 'react'
 import { usePlayerCompetitions } from '../providers/PlayerCompetitionsProvider'
 import { configureVNextTimeZone } from '../../vnext/foundations/format'
 import { VNextShellElsewhereHost } from '../../vnext/integration/shell/VNextShellElsewhereHost'
+import { VNextActionsHost } from '../../vnext/integration/actions/VNextActionsHost'
 import type { ShellGameKey, ShellIntent } from '../../vnext/models/shell'
+import type { VNextActionItem } from '../../vnext/models/actions'
 import { viewerTimeZone } from '../../shared/time/kickoff'
 import {
   competitionGameRoute,
@@ -82,12 +84,24 @@ const GAME_ROUTES: Readonly<Record<ShellGameKey, 'match-predictor' | 'lms' | 'ch
  * resolves to nothing and navigates nowhere, rather than being pasted into a
  * URL that would 404.
  */
-export function useShellIntentNavigation(): (intent: ShellIntent) => void {
-  const navigate = useNavigate()
+/**
+ * A COMPETITION IDENTITY, RESOLVED TO AN ADDRESS.
+ *
+ * Extracted so the shell's intents and the Action Centre's rows share ONE
+ * mapping. A second copy would be a second answer to "where does this
+ * tournament id live", and the two would drift the first time either grew a
+ * rule — which is the same argument the codebase makes everywhere else about
+ * one fact having one home.
+ *
+ * `null` in gives the competition the CURRENT ROUTE is about; a tournament id
+ * the player holds no membership for gives `null` out, so a caller navigates
+ * nowhere rather than pasting an unknown id into a URL that would 404.
+ */
+function useCompetitionRefResolver(): (contextId: string | null) => CompetitionRouteRef | null {
   const { competitionSlug, seasonSlug } = useParams()
   const { player } = usePlayerCompetitions()
 
-  const refFor = useCallback(
+  return useCallback(
     (contextId: string | null): CompetitionRouteRef | null => {
       if (contextId === null) {
         return competitionSlug === undefined || seasonSlug === undefined
@@ -101,6 +115,11 @@ export function useShellIntentNavigation(): (intent: ShellIntent) => void {
     },
     [player, competitionSlug, seasonSlug],
   )
+}
+
+export function useShellIntentNavigation(): (intent: ShellIntent) => void {
+  const navigate = useNavigate()
+  const refFor = useCompetitionRefResolver()
 
   return useCallback(
     (intent: ShellIntent) => {
@@ -175,8 +194,94 @@ export function useShellIntentNavigation(): (intent: ShellIntent) => void {
  * attention, so until the seam is closed the production Matches route would
  * show a player nothing about the competitions they are not looking at."*
  */
+/**
+ * AN ACTION CENTRE ROW, AS NAVIGATION.
+ *
+ * ============================ WHY THE MODEL DOES NOT HOLD THIS ===========
+ *
+ * `VNextActionItem` carries `game` and `contextId` — what the row is about and
+ * which competition it belongs to — and deliberately no URL. Which address a
+ * game lives at is a routing fact, and the vNext lane must not hold one. This
+ * is the same split `useGlobalPlayInbox` made when it resolved destinations
+ * outside its model, and for the same reason: the Match Predictor's route
+ * answers Not Found while its flag is off, so a model that had baked a link
+ * would have been handing out dead ones.
+ *
+ * ============================ WORK GOES TO THE GAME, NEWS GOES HOME ======
+ *
+ * A row that NEEDS the player goes to the game, because the thing they owe is
+ * on that game's current round and the game's route is exactly what shows it.
+ *
+ * `matchweek-settled` deliberately does NOT. It carries `settled_round_id` and
+ * no route in this application takes a round id, so sending a player to the
+ * Match Predictor would land them on the CURRENT matchweek — tapping
+ * "Matchweek 11 is settled" and arriving at Matchweek 13's open card. The
+ * competition's Home is where the recap and the since-you-were-here zones live,
+ * which is the honest answer to "show me what happened".
+ *
+ * A `game-consequence` goes to the game it names, because survival and
+ * elimination are that game's own state.
+ *
+ * ============================ AND A ROW MAY GO NOWHERE ===================
+ *
+ * `null` from either the game lookup or the competition resolver means the row
+ * renders as plain information rather than as a control. That is the honest
+ * outcome for an action in a competition the player's membership read did not
+ * return, or for a `game_key` with no vNext surface — and `ActionCentreBody`
+ * draws it as text rather than as a disabled button.
+ */
+export function useActionItemNavigation(): (item: VNextActionItem) => void {
+  const navigate = useNavigate()
+  const refFor = useCompetitionRefResolver()
+
+  return useCallback(
+    (item: VNextActionItem) => {
+      const ref = refFor(item.contextId)
+      if (ref === null) return
+
+      if (item.kind === 'matchweek-settled') {
+        navigate(competitionRoute(ref))
+        return
+      }
+
+      if (item.game === null) return
+      navigate(competitionGameRoute(ref, GAME_ROUTES[item.game]))
+    },
+    [navigate, refFor],
+  )
+}
+
 export function VNextSeamHost({ children }: { children: ReactNode }) {
-  return <VNextShellElsewhereHost>{children}</VNextShellElsewhereHost>
+  return (
+    <VNextShellElsewhereHost>
+      {/* THE DURABLE ACTION FEED, MOUNTED BESIDE IT AND FOR A DIFFERENT REASON.
+          The inbox above is the live cross-competition urgency layer; this is
+          the server's own record of what needs the player and what has happened
+          to them, with seen state that survives a change of device.
+
+          The Football Hub cutover is why it is here at all. `vNextOwnsFrame`
+          makes `AppShell` render no AppBar on a Hub destination, so
+          `get_my_actions` — generated by five drivers and scheduled since
+          contract 172 — had no reachable consumer in the production frame at
+          all. It is mounted at the seam rather than per page because it is one
+          read per player and a page-scoped host would repeat it on every
+          navigation. */}
+      <VNextActionsHostWithNavigation>{children}</VNextActionsHostWithNavigation>
+    </VNextShellElsewhereHost>
+  )
+}
+
+/**
+ * The host with its rows made openable.
+ *
+ * A separate component because `useActionItemNavigation` reads the router, and
+ * calling it in `VNextSeamHost` would put a hook above the boundary that
+ * component is meant to be — the host is the thing mounted inside the route
+ * tree, and this keeps the routing read where the routing is.
+ */
+function VNextActionsHostWithNavigation({ children }: { children: ReactNode }) {
+  const openItem = useActionItemNavigation()
+  return <VNextActionsHost onOpenItem={openItem}>{children}</VNextActionsHost>
 }
 
 /**

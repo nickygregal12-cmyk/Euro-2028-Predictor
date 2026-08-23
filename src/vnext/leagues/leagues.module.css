@@ -449,6 +449,60 @@
   text-transform: uppercase;
 }
 
+/* ---- the chase: the entrants either side of the caller (contract 183) ----- */
+
+.neighbourhood {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  /* It is a SECOND table under the first, so it needs a boundary the eye reads
+     as "different question" rather than "more rows of the same one". */
+  margin-block-start: var(--vnext-space-4);
+  padding-block-start: var(--vnext-space-4);
+  border-block-start: 1px solid var(--vnext-hairline);
+}
+
+.neighbourhoodTitle {
+  color: var(--vnext-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.neighbourhoodEdge {
+  color: var(--vnext-text-muted);
+}
+
+.colGap {
+  text-align: right;
+}
+
+.table thead .colGap {
+  text-align: right;
+}
+
+.cellGap {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* THE DIRECTION IS THE SIGN FIRST AND THE COLOUR SECOND. `GapCell` renders a
+   literal + or − inside the cell, so these two rules are reinforcement for a
+   reader who can see them and never the only carrier of the fact — which is
+   the same rule the movement cells above are written under. */
+.gapAhead {
+  color: var(--vnext-rank-down);
+}
+
+.gapBehind {
+  color: var(--vnext-rank-up);
+}
+
+.gapLevel,
+.gapSelf {
+  color: var(--vnext-rank-flat);
+}
+
 /* ---- the foot and the asides --------------------------------------------- */
 
 .tableFoot {
