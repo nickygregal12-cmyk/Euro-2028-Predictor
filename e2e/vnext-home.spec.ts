@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 /**
@@ -494,5 +495,103 @@ test.describe('reduced motion', () => {
     expect(reduced.horizontalOverflow).toBe(0)
     expect(reduced.smallTargets).toEqual([])
     expect(reduced.clipped).toEqual([])
+  })
+})
+
+/**
+ * THE CROSS-GAME WEEK, IN A REAL ENGINE.
+ *
+ * `DFA-010`'s shape — one primary action and at most two compact secondary ones
+ * — is asserted in Vitest against the mapper. What only a browser can say is
+ * whether the zone that draws them survives a 430px column and a 1440px one
+ * without overflowing, whether its controls clear the 44px target the tokens
+ * promise, and whether a settled game really renders with nothing to press.
+ *
+ * THE DISTINCTION THAT MATTERS IS COUNTED, NOT DESCRIBED. A report and a task
+ * differ by whether the row has a BUTTON, so these tests count buttons inside
+ * the zone rather than reading its classes.
+ */
+test.describe('the rest of the week', () => {
+  test('draws at most two compact rows and never overflows', async ({ page }) => {
+    for (const story of ['lms-first-430', 'lms-first-1440']) {
+      await open(page, story)
+      const reading = await read(page)
+
+      expect(reading.horizontalOverflow, `${story} scrolls sideways`).toBe(0)
+      expect(reading.smallTargets, `${story} has a control under 44px`).toEqual([])
+
+      const rows = page.locator('[data-vnext-zone="week-elsewhere"] li')
+      expect(await rows.count(), `${story} row count`).toBeLessThanOrEqual(2)
+      expect(await rows.count(), `${story} says nothing`).toBeGreaterThan(0)
+    }
+  })
+
+  test('gives a control only to a game that is still asking', async ({ page }) => {
+    await open(page, 'lms-first-430')
+    const zone = page.locator('[data-vnext-zone="week-elsewhere"]')
+    // The Match Predictor is outstanding in this world; the Championship never is.
+    await expect(zone.getByRole('button')).toHaveCount(1)
+
+    await open(page, 'side-games-settled-430')
+    // Both side games are settled. Two reports, nothing to press.
+    await expect(
+      page.locator('[data-vnext-zone="week-elsewhere"]').getByRole('button'),
+    ).toHaveCount(0)
+  })
+
+  test('never offers an eliminated player a pick', async ({ page }) => {
+    await open(page, 'lms-eliminated-430')
+    const zone = page.locator('[data-vnext-zone="week-elsewhere"]')
+
+    await expect(zone).toContainText('you are out')
+    await expect(zone.getByRole('button', { name: /Pick your club/ })).toHaveCount(0)
+  })
+
+  test('is absent entirely for a player with one game', async ({ page }) => {
+    await open(page, 'live-matchday-430')
+
+    await expect(page.locator('[data-vnext-zone="week-elsewhere"]')).toHaveCount(0)
+  })
+
+  test('leads with the pick when Last Man Standing locks first', async ({ page }) => {
+    await open(page, 'lms-first-430')
+
+    // The banner above the zone promises the club pick, not the matchweek.
+    await expect(page.getByRole('button', { name: 'Pick your club' })).toBeVisible()
+  })
+
+  test('is reachable and distinguishable from the keyboard', async ({ page }) => {
+    await open(page, 'lms-first-430')
+
+    // Tab until the zone's own control takes focus. A row that could not be
+    // reached would exhaust the page without ever landing here.
+    const target = page.locator('[data-vnext-zone="week-elsewhere"] button').first()
+    let focused = false
+    for (let press = 0; press < 40 && !focused; press += 1) {
+      await page.keyboard.press('Tab')
+      focused = await target.evaluate((node) => node === document.activeElement)
+    }
+
+    expect(focused, 'the zone’s control never took focus').toBe(true)
+    // The verb alone would read as a repeated control; the game name travels in
+    // the accessible name so two rows are told apart.
+    await expect(target).toHaveAccessibleName(/Match Predictor/)
+  })
+
+  test('scans clean for serious accessibility violations', async ({ page }) => {
+    for (const story of ['lms-first-430', 'side-games-settled-1440', 'lms-eliminated-430']) {
+      await open(page, story)
+      const results = await new AxeBuilder({ page })
+        .withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa'])
+        .analyze()
+
+      const serious = results.violations.filter(
+        (violation) => violation.impact === 'critical' || violation.impact === 'serious',
+      )
+      expect(
+        serious.map((violation) => `${story}: ${violation.id}`),
+        'serious accessibility violations',
+      ).toEqual([])
+    }
   })
 })

@@ -251,3 +251,26 @@ export const Responsive: StoryObj<typeof meta> = {
     children: <VNextHome model={homeScenarios.live} />,
   },
 }
+
+/* ---- THE CROSS-GAME WEEK — the states the shipped Home could not express -- */
+
+/**
+ * LAST MAN STANDING LEADS, because its round locks before the matchweek does.
+ *
+ * The ordinary arrangement rather than an exotic one: ADR 0013's thirty-minute
+ * buffer belongs to the Last Man Standing game while the Main Predictor locks
+ * at first kickoff, so on a normal week the pick is the FIRST thing the week
+ * asks for. Before Home consumed the whole `CompetitionWeek`, this world drew a
+ * Predict banner and said nothing at all about the pick closing first.
+ */
+export const LmsFirst430: StoryObj = home('lmsFirst', ['phone-430'])
+
+export const LmsFirst1440: StoryObj = home('lmsFirst', ['laptop-1440'], 0.8)
+
+/** Both side games settled: two reports, and nothing dressed as a task. */
+export const SideGamesSettled430: StoryObj = home('sideGamesSettled', ['phone-430'])
+
+export const SideGamesSettled1440: StoryObj = home('sideGamesSettled', ['laptop-1440'], 0.8)
+
+/** Out of Last Man Standing — a state to read, never a pick to make. */
+export const LmsEliminated430: StoryObj = home('lmsEliminated', ['phone-430'])
