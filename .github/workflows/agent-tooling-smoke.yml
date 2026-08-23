@@ -6,6 +6,10 @@ on:
     paths:
       - 'AGENTS.md'
       - 'config/agent-tools.json'
+      - 'config/agent-routing.json'
+      - 'config/agent-skills.json'
+      - 'config/agent-skill-sources.json'
+      - 'config/agent-context-benchmarks.json'
       - 'renovate.json'
       - '.devcontainer/**'
       - '.graphifyignore'
@@ -15,6 +19,7 @@ on:
       - 'repomix.config.json'
       - 'lostpixel.config.js'
       - 'scripts/agent-tools/**'
+      - 'tests/scripts/agentContextBenchmarks.test.ts'
       - 'tests/scripts/agentToolConfiguration.test.ts'
       - 'tests/scripts/mcpServerConfiguration.test.ts'
       - '.agents/skills/predictor-context/**'
@@ -22,6 +27,7 @@ on:
       - '.agents/skills/predictor-spec-driven-delivery/**'
       - '.agents/skills/predictor-ui-review/**'
       - 'docs/architecture/developer-operating-system.md'
+      - 'docs/ops/agent-task-routing.md'
       - 'docs/ops/agent-tooling-map.md'
       - 'docs/ops/developer-toolchain.md'
       - 'docs/ops/graphify-navigation.md'
@@ -31,6 +37,10 @@ on:
     branches: [main]
     paths:
       - 'config/agent-tools.json'
+      - 'config/agent-routing.json'
+      - 'config/agent-skills.json'
+      - 'config/agent-skill-sources.json'
+      - 'config/agent-context-benchmarks.json'
       - 'renovate.json'
       - '.devcontainer/**'
       - '.mcp.json'
@@ -39,6 +49,8 @@ on:
       - 'repomix.config.json'
       - 'lostpixel.config.js'
       - 'scripts/agent-tools/**'
+      - 'tests/scripts/agentContextBenchmarks.test.ts'
+      - 'docs/ops/agent-task-routing.md'
       - '.github/workflows/agent-tooling-smoke.yml'
 
 permissions:
@@ -95,12 +107,17 @@ jobs:
             '.devcontainer/devcontainer.json',
             '.mcp.json',
             'config/agent-tools.json',
+            'config/agent-routing.json',
+            'config/agent-skills.json',
+            'config/agent-skill-sources.json',
+            'config/agent-context-benchmarks.json',
             'renovate.json',
             'repomix.config.json',
           ]) JSON.parse(fs.readFileSync(file, 'utf8'))
           NODE
           node --check lostpixel.config.js
           node --check .dependency-cruiser.cjs
+          node --check scripts/agent-tools/benchmark-context.mjs
 
       - name: Run configuration guards
         shell: bash
@@ -108,8 +125,15 @@ jobs:
           set -euo pipefail
           npm ci
           npx vitest run \
+            tests/scripts/agentContextBenchmarks.test.ts \
             tests/scripts/agentToolConfiguration.test.ts \
             tests/scripts/mcpServerConfiguration.test.ts
+
+      - name: Benchmark bounded agent context
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm run agent:bench -- --check
 
       - name: Provision the supported baseline
         shell: bash
@@ -132,6 +156,37 @@ jobs:
           specify --help >/dev/null
           ast-grep --version
           bd version
+
+      - name: Exercise live Graphify task routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="${HOME}/.local/bin:${PATH}"
+          packet="${RUNNER_TEMP}/agent-route-live.json"
+          npm run --silent agent:route -- --json "Find a League does nothing" > "${packet}"
+          node - "${packet}" <<'NODE'
+          const fs = require('node:fs')
+          const packet = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+          if (packet.orientation?.graphify !== 'queried') {
+            throw new Error(`expected live Graphify query, got ${packet.orientation?.graphify}`)
+          }
+          if ((packet.orientation?.budget ?? Infinity) > 1200) {
+            throw new Error(`Graphify budget exceeded: ${packet.orientation?.budget}`)
+          }
+          if ((packet.candidatePaths ?? []).length > 8) {
+            throw new Error(`candidate path budget exceeded: ${packet.candidatePaths.length}`)
+          }
+          if ((packet.authorities ?? []).length > 3) {
+            throw new Error(`authority budget exceeded: ${packet.authorities.length}`)
+          }
+          if ((packet.skills ?? []).length > 3) {
+            throw new Error(`skill budget exceeded: ${packet.skills.length}`)
+          }
+          if (!(packet.routes ?? []).includes('systematic-defect') || !(packet.routes ?? []).includes('vnext-home')) {
+            throw new Error(`unexpected live routes: ${(packet.routes ?? []).join(', ')}`)
+          }
+          console.log(`live Graphify packet: ${packet.candidatePaths.length} candidate paths, ${packet.authorities.length} authorities, ${packet.skills.length} skills`)
+          NODE
 
       - name: Verify pinned on-demand packages exist
         shell: bash
@@ -187,6 +242,8 @@ jobs:
             echo '## Developer tooling smoke'
             echo
             echo '- Baseline bootstrap executed from the canonical registry.'
+            echo '- Representative simple task packets passed the bounded agent-context acceptance benchmark.'
+            echo '- A live Graphify-backed task packet was exercised through agent:route and stayed inside the same path/authority/skill ceilings.'
             echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
             echo '- Beads command metrics and Dolt event flushing were disabled for the whole smoke job.'
             echo '- Serena loaded the shared IDE context, tracked project configuration and passed its language-server health check.'

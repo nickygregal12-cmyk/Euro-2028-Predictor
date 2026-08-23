@@ -7,6 +7,7 @@ import type { VNextNavItem } from '../components/navigation/VNextNav'
 import { competitionColourStyle } from '../foundations/teamColour'
 import { useFocusReturn } from '../foundations/focusReturn'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
+import { useStickyScrollPadding } from '../foundations/useStickyScrollPadding'
 import type {
   ShellDestinationId,
   ShellIntent,
@@ -258,6 +259,9 @@ export function VNextShell({
     return () => node.removeEventListener('keydown', onKeyDown)
   }, [jumpAvailable, captureOpener])
 
+  const mastheadRef = useRef<HTMLElement | null>(null)
+  const navBarRef = useRef<HTMLDivElement | null>(null)
+
   const navItems = useMemo(() => toNavItems(model), [model])
   const attentionCount = model ? attentionElsewhere(model).length : 0
   const shortcuts = model ? shellShortcuts(model) : null
@@ -277,6 +281,13 @@ export function VNextShell({
 
   const exploreControl = model?.discovery.reachable ?? false
   const player = model?.player ?? null
+
+  /**
+   * `UX-007`. The two sticky bars are the two ends of the scrollport, and the
+   * browser aligns a focused control to exactly those edges unless the scroller
+   * is told otherwise. Measured rather than assumed — see the hook.
+   */
+  useStickyScrollPadding(mastheadRef, navBarRef)
 
   return (
     <div
@@ -436,6 +447,7 @@ export function VNextShell({
         {/* ---------------- the content column ---------------- */}
         <div className={styles.column}>
           <motion.header
+            ref={mastheadRef}
             className={styles.masthead}
             data-vnext-zone="masthead"
             variants={rise}
@@ -554,7 +566,7 @@ export function VNextShell({
       </div>
 
       {/* ---------------- the mobile bottom bar ---------------- */}
-      <div className={styles.navBar} data-vnext-shell-zone="navbar">
+      <div ref={navBarRef} className={styles.navBar} data-vnext-shell-zone="navbar">
         <VNextNav
           variant="bar"
           activeId={destination}

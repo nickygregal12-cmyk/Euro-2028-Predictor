@@ -1015,3 +1015,254 @@ describe('abnormal fixture state on Home', () => {
     expect(first(model.upcomingMatches).status).toBe('upcoming')
   })
 })
+
+/**
+ * "SINCE YOU WERE LAST HERE" — the mapper's half.
+ *
+ * The zone's rendering rules live in `sinceLastVisit.test.tsx`; these are the
+ * SELECTION rules, stated where the selection is made. The marker is the one
+ * input to this mapper that is not a read, so every way it can be absent or
+ * wrong has to produce a page rather than a defect.
+ */
+describe('what finished while the player was away', () => {
+  const settled = () =>
+    source({
+      fixtures: [
+        fixture({ id: 'early', kickoffAt: '2027-08-20T14:00:00.000Z', status: 'played', result: { home: 1, away: 0 } }),
+        fixture({ id: 'late', kickoffAt: '2027-08-21T14:00:00.000Z', status: 'played', result: { home: 2, away: 1 } }),
+      ],
+    })
+
+  it('answers null when this device has never been here', () => {
+    // A first visit has no marker, and a summary of the whole season dressed as
+    // "what changed" is the worst possible first impression of the feature.
+    expect(buildHomeModel({ ...settled(), lastVisitAt: null }).sinceLastVisit).toBeNull()
+    expect(buildHomeModel(settled()).sinceLastVisit).toBeNull()
+  })
+
+  it('answers null rather than everything when the marker is unreadable', () => {
+    expect(buildHomeModel({ ...settled(), lastVisitAt: 'yesterday' }).sinceLastVisit).toBeNull()
+  })
+
+  it('shows what finished after the marker, newest first', () => {
+    const model = buildHomeModel({ ...settled(), lastVisitAt: '2000-01-01T00:00:00.000Z' })
+
+    expect(model.sinceLastVisit?.results.map((match) => match.id)).toEqual(['late', 'early'])
+    expect(model.sinceLastVisit?.more).toBe(0)
+  })
+
+  it('shows only what finished after the marker', () => {
+    const model = buildHomeModel({ ...settled(), lastVisitAt: '2027-08-21T00:00:00.000Z' })
+
+    expect(model.sinceLastVisit?.results.map((match) => match.id)).toEqual(['late'])
+  })
+
+  it('answers null when nothing has finished since', () => {
+    // The ordinary Tuesday. A present-but-empty zone teaches a player to scroll
+    // past the one place worth reading on the day it matters.
+    expect(
+      buildHomeModel({ ...settled(), lastVisitAt: '2099-01-01T00:00:00.000Z' }).sinceLastVisit,
+    ).toBeNull()
+  })
+
+  it('never shows a match the server has not settled', () => {
+    const model = buildHomeModel({
+      ...source({
+        fixtures: [
+          fixture({ id: 'off', kickoffAt: '2027-08-20T14:00:00.000Z', status: 'postponed' }),
+          fixture({ id: 'open', kickoffAt: '2027-08-20T15:00:00.000Z', status: 'scheduled' }),
+        ],
+      }),
+      lastVisitAt: '2000-01-01T00:00:00.000Z',
+    })
+
+    // Recency decides ORDER. Settlement decides membership, and it is the
+    // server's word rather than a kickoff that has gone past.
+    expect(model.sinceLastVisit).toBeNull()
+  })
+})
+
+/**
+ * THE MATCHWEEK RECAP — what the last settled matchweek was worth.
+ *
+ * A capability the Hub had and the Competition Deck dropped. It reaches Home
+ * from reads Home already holds, and the questions worth holding are the ones
+ * about WHICH matchweek it describes: a matchweek that has locked but not
+ * settled is not one, and a league whose most recent settled matchweek is a
+ * different one is describing another week entirely.
+ */
+describe('the matchweek recap', () => {
+  const movementFor = (ordinal: number) => ({
+    leagueId: 'lg-1',
+    matchweek: { id: `mw-${ordinal}`, ordinal, label: `Matchweek ${ordinal}` },
+    settled: true,
+    serverNow: NOW,
+    members: [
+      {
+        userId: 'u-1',
+        displayName: 'Aisha Kaur',
+        isSelf: true,
+        pointsBefore: 63,
+        pointsAfter: 84,
+        pointsThisMatchweek: 21,
+        rankBefore: 5,
+        rankAfter: 2,
+        movement: 3,
+        gapToLeaderBefore: 14,
+        gapToLeaderAfter: 8,
+      },
+    ],
+  })
+
+  it('describes the most recent matchweek whose points are banked', () => {
+    // The profile's history leads with Matchweek 4 (21 points) and also holds
+    // Matchweek 5 with null points, which has locked but not settled.
+    const recap = buildHomeModel(source()).matchweekRecap
+
+    expect(recap?.matchweekOrdinal).toBe(4)
+    expect(recap?.points).toBe(21)
+  })
+
+  it('states the season figures the profile read actually answered', () => {
+    const recap = buildHomeModel(source()).matchweekRecap
+
+    expect(recap?.seasonPoints).toBe(84)
+    expect(recap?.seasonRank).toBe(312)
+    expect(recap?.fieldSize).toBe(12490)
+    expect(recap?.exactScores).toBe(6)
+    expect(recap?.correctOutcomes).toBe(22)
+  })
+
+  it('answers null for a player who has not entered', () => {
+    expect(buildHomeModel(source({ profile: profile({ entered: false }) })).matchweekRecap).toBeNull()
+  })
+
+  it('answers null when nothing has settled yet', () => {
+    const nothingSettled = profile({
+      history: [
+        { matchweekId: 'mw-1', ordinal: 1, label: 'Matchweek 1', points: null, jokerPlayed: false, predictions: {} },
+      ],
+    })
+
+    // Locked is not settled. A blank score reported as a recap would be worse
+    // than no recap at all.
+    expect(buildHomeModel(source({ profile: nothingSettled })).matchweekRecap).toBeNull()
+  })
+
+  it('answers null when the profile read did not answer', () => {
+    expect(buildHomeModel(source({ profile: null })).matchweekRecap).toBeNull()
+  })
+
+  it('carries a league that moved over THIS matchweek', () => {
+    const recap = buildHomeModel(
+      source({ leagues: [league({ movement: movementFor(4) })] }),
+    ).matchweekRecap
+
+    expect(recap?.leagues).toHaveLength(1)
+    expect(recap?.leagues[0]?.leagueName).toBe('Work League')
+    // The server's sign, not a subtraction of two ranks here.
+    expect(recap?.leagues[0]?.movement).toBe(3)
+    expect(recap?.leagues[0]?.rankAfter).toBe(2)
+    expect(recap?.leagues[0]?.gapToLeader).toBe(8)
+  })
+
+  it('drops a league whose settled matchweek is a different one', () => {
+    const recap = buildHomeModel(
+      source({ leagues: [league({ movement: movementFor(3) })] }),
+    ).matchweekRecap
+
+    // Matchweek 3's movement beside a Matchweek 4 heading would be a claim
+    // about the wrong week, stated confidently.
+    expect(recap?.leagues).toEqual([])
+  })
+
+  it('drops a league whose movement answer is unsettled', () => {
+    const recap = buildHomeModel(
+      source({
+        leagues: [
+          league({
+            movement: {
+              leagueId: 'lg-1',
+              matchweek: null,
+              settled: false,
+              serverNow: NOW,
+              members: [],
+            },
+          }),
+        ],
+      }),
+    ).matchweekRecap
+
+    expect(recap?.leagues).toEqual([])
+  })
+})
+
+/**
+ * A WATCHED RIVAL LEADS, and is the only one the player chose.
+ *
+ * Every other relation in the strip is something the software worked out from
+ * where two people stand. A pin is a preference — it says which of those
+ * answers the reader actually cares about — so it comes first and it renames
+ * the person rather than listing them twice.
+ */
+describe('who the player is watching', () => {
+  const table = () =>
+    league({
+      standings: standings([
+        { userId: 'u-9', name: 'Jamie Fox', points: 92, rank: 1 },
+        { userId: 'u-1', name: 'Aisha Kaur', points: 84, rank: 2, isYou: true },
+        { userId: 'u-4', name: 'Sam Okafor', points: 80, rank: 3 },
+        { userId: 'u-7', name: 'Bea Nowak', points: 61, rank: 4 },
+      ]),
+    })
+
+  it('leads with a watched rival who is nowhere near the reader', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-7'] }),
+    )
+
+    expect(model.rivals[0]?.player.name).toBe('Bea Nowak')
+    expect(model.rivals[0]?.relation).toBe('watched')
+  })
+
+  it('still derives the neighbours behind the pin', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-7'] }),
+    )
+
+    expect(model.rivals.map((rival) => rival.relation)).toEqual([
+      'watched',
+      'closestAbove',
+      'closestBelow',
+    ])
+  })
+
+  it('names a watched neighbour once, as watched', () => {
+    // Jamie is both the leader and directly above. Pinning them must not put
+    // the same person in the strip two or three times with three reasons.
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-9'] }),
+    )
+    const jamie = model.rivals.filter((rival) => rival.player.name === 'Jamie Fox')
+
+    expect(jamie).toHaveLength(1)
+    expect(jamie[0]?.relation).toBe('watched')
+  })
+
+  it('never watches the reader', () => {
+    const model = buildHomeModel(
+      source({ leagues: [table()], watchedRivalIds: ['u-1'] }),
+    )
+
+    expect(model.rivals.some((rival) => rival.relation === 'watched')).toBe(false)
+  })
+
+  it('is the derived strip when nothing is pinned', () => {
+    const model = buildHomeModel(source({ leagues: [table()] }))
+
+    expect(model.rivals.map((rival) => rival.relation)).toEqual([
+      'closestAbove',
+      'closestBelow',
+    ])
+  })
+})

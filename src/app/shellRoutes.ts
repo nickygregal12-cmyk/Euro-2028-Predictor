@@ -39,10 +39,36 @@ export const weeklyRoutePatterns = {
   matchPredictor: '/competitions/:competitionSlug/:seasonSlug/games/match-predictor',
   matchPredictorStandings:
     '/competitions/:competitionSlug/:seasonSlug/games/match-predictor/standings',
+  /**
+   * CREATE PRIVATE PLAY, inside Games because that is what it creates.
+   *
+   * It is an ADDRESS rather than a sheet because the two surfaces that lead to
+   * it — Games and the Leagues empty state — are different pages, and a
+   * corridor reached from two places is one a player can also be sent a link
+   * to. It spans competitions: the competition in the address is where the
+   * player pressed, and the corridor still offers every season a Championship
+   * or a Last Man Standing could be built on, because that is what the server
+   * permits.
+   */
+  createPrivatePlay: '/competitions/:competitionSlug/:seasonSlug/games/create',
   lms: '/competitions/:competitionSlug/:seasonSlug/games/lms',
   championship: '/competitions/:competitionSlug/:seasonSlug/games/championship',
   championshipWildcard: '/competitions/:competitionSlug/:seasonSlug/games/championship/*',
   leagues: '/competitions/:competitionSlug/:seasonSlug/leagues',
+  /**
+   * SEASON WRAPPED — this competition season, once it has ended (contract 156).
+   *
+   * AT THE COMPETITION'S OWN LEVEL rather than under a game, because contract
+   * 156 archives a SEASON: `get_season_wrapped` is addressed by the tournament
+   * and holds one row per player per season. A game-scoped address would
+   * promise a per-game Wrapped that the archive does not store.
+   *
+   * IT IS ALWAYS REACHABLE, not only once a season ends. A player who follows a
+   * link to a running season's Wrapped is asking a fair question and gets a
+   * fair answer — "this season is still going" — rather than a 404 that reads
+   * as a broken link. The page decides; the route does not.
+   */
+  seasonWrapped: '/competitions/:competitionSlug/:seasonSlug/wrapped',
   /**
    * INNOV-006 — the matchday screen for a television. Registered OUTSIDE the
    * signed-in shell, deliberately: a frame built for a phone in a pocket is the

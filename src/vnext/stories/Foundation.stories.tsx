@@ -8,6 +8,7 @@ import {
   vnextMotion,
   vnextTransition,
 } from '../foundations/motion'
+import { VNextTrophyIcon } from '../foundations/VNextIcon'
 import { VNextRoot } from '../foundations/VNextRoot'
 import surfaces from '../foundations/surfaces.module.css'
 import typography from '../foundations/typography.module.css'
@@ -155,6 +156,8 @@ function MotionSamples() {
   const list = useVNextMotion(vnextMotion.stagger)
   const item = useVNextMotion(vnextMotion.railItem)
   const panel = useVNextMotion(vnextMotion.disclose)
+  const settle = useVNextMotion(vnextMotion.saveSettle)
+  const earned = useVNextMotion(vnextMotion.achievementArrive)
   const indicator = useVNextMotion(vnextMotion.navIndicator)
   const indicatorTravel = useVNextTransition(vnextTransition.navIndicator)
 
@@ -275,6 +278,37 @@ function MotionSamples() {
           125
         </motion.span>
         <span className={typography.caption}>pointsEmphasis — points change</span>
+      </div>
+
+      <div className={`${surfaces.surface} ${styles.sample}`}>
+        <motion.span
+          key={`settle-${replay}`}
+          className={typography.caption}
+          variants={settle}
+          initial="rest"
+          animate="landed"
+        >
+          Saved
+        </motion.span>
+        <span className={typography.caption}>saveSettle — a write came back</span>
+      </div>
+
+      {/* The whole celebration vocabulary, and it is one entry. Kept in the
+          gallery beside the rest precisely so its restraint is visible: a
+          reviewer can see that winning gets a beat and nothing else does. */}
+      <div className={`${surfaces.surface} ${styles.sample}`}>
+        <motion.span
+          key={`earned-${replay}`}
+          variants={earned}
+          initial="rest"
+          animate="earned"
+          aria-hidden="true"
+        >
+          <VNextTrophyIcon />
+        </motion.span>
+        <span className={typography.caption}>
+          achievementArrive — something was won
+        </span>
       </div>
 
       <div className={`${surfaces.surface} ${styles.discloseSample}`}>

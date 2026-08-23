@@ -16,8 +16,8 @@ import {
   destinationContextLabel,
   destinationTitle,
 } from '../shared/Surfaces'
-import { emitFeedback } from '../feedback'
-import type { FeedbackPreference } from '../feedback'
+import { emitFeedback } from '../../foundations/feedback'
+import type { FeedbackPreference } from '../../foundations/feedback'
 import styles from './conceptA.module.css'
 import text from '../../foundations/typography.module.css'
 

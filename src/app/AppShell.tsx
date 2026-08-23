@@ -131,7 +131,17 @@ function SignedInFrame() {
   // The membership provider above stays mounted either way: `AppShell` supplies
   // it outside this component, and the vNext seam reads it to turn a shell
   // intent into a URL.
-  if (isTvModePath(location.pathname) || vNextOwnsFrame(location.pathname)) {
+  //
+  // A SHARED ADDRESS IS ASKED ABOUT THE BUILD AS WELL AS THE FLAG. `/` is one
+  // of `variantRoutes.ts`'s four shared paths, and on the Euro deployment it is
+  // the tournament's home rather than a vNext surface — so the frame is
+  // surrendered there only where this build serves the domestic tree.
+  if (
+    isTvModePath(location.pathname) ||
+    vNextOwnsFrame(location.pathname, {
+      servesDomesticCompetitions: site.servesDomesticCompetitions,
+    })
+  ) {
     return (
       <Suspense fallback={<RouteFallback />}>
         <Outlet />

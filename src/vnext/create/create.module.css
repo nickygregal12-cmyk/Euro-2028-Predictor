@@ -1,0 +1,253 @@
+/* CREATE PRIVATE PLAY — the corridor from "you are in no private league" to
+ * being in one.
+ *
+ * WHAT IS NOT HERE. The canvas, the competition wash, the page bounds, the
+ * masthead, both navigations, the `<main>` landmark and the mobile bottom
+ * spacing are the shell's.
+ *
+ * EVERY GAME ROW IS THE SAME SIZE, at every width, exactly as the Games
+ * destination requires. A create corridor is the easiest place to quietly
+ * reintroduce a hierarchy between the three games — by drawing one larger, or
+ * by hiding the two that cannot be created today — and neither happens here: a
+ * refused game keeps its row and carries its reason.
+ *
+ * NOTHING IS CARRIED BY COLOUR ALONE. A chosen competition and a chosen rule
+ * are `aria-pressed` and are drawn with a border and a weight change as well as
+ * a tint; a refusal is a sentence.
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+}
+
+.lead {
+  max-width: 60ch;
+  color: var(--vnext-text-secondary);
+}
+
+.blocked {
+  color: var(--vnext-text-secondary);
+}
+
+.setupTitle {
+  margin: 0;
+}
+
+/* ---- the three games --------------------------------------------------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gameRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  width: 100%;
+  min-height: var(--vnext-tap-target);
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-lg);
+  text-align: start;
+}
+
+.gameName {
+  margin: 0;
+}
+
+/* NO CLAMP, NO ELLIPSIS. A long competition name or a long rule grows the row.
+ * Truncating the one sentence that explains a game is how a player ends up
+ * choosing between three things they cannot tell apart. */
+.gameBody,
+.refusal {
+  color: var(--vnext-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.refusal {
+  color: var(--vnext-warn);
+}
+
+/* ---- setup -------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.hint {
+  color: var(--vnext-text-secondary);
+}
+
+.input {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: var(--vnext-surface-sunken);
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-body);
+}
+
+.hostList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hostOption,
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--vnext-tap-target);
+  padding-block: var(--vnext-space-2);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-body);
+  text-align: start;
+  cursor: pointer;
+}
+
+.chip {
+  align-items: center;
+  justify-content: center;
+}
+
+/* THE SELECTED STATE IS THREE THINGS AT ONCE — a border, a weight and a tint —
+ * because any one of them alone is a state carried by colour. */
+.hostOption[aria-pressed='true'],
+.chip[aria-pressed='true'] {
+  border-color: var(--vnext-accent);
+  background-color: var(--vnext-accent-veil);
+  font-weight: 600;
+}
+
+.hostName {
+  font-weight: 600;
+}
+
+.hostSeason {
+  color: var(--vnext-text-secondary);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-4);
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}
+
+.failed {
+  color: var(--vnext-warn);
+}
+
+/* ---- created ------------------------------------------------------------ */
+
+.invite {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--vnext-space-4);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.code {
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-title);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
+}
+
+/* ---- actions ------------------------------------------------------------ */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  align-items: center;
+}
+
+.primary,
+.quiet {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-5);
+  border: 1px solid transparent;
+  border-radius: var(--vnext-radius-md);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
+}
+
+.primary {
+  background-color: var(--vnext-accent);
+  color: var(--vnext-text-on-accent);
+}
+
+.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quiet {
+  border-color: var(--vnext-hairline);
+  background-color: transparent;
+  color: var(--vnext-text-secondary);
+}
+
+/* ---- the other way in --------------------------------------------------- */
+
+.join {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-3);
+  align-items: flex-end;
+  padding: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-lg);
+}
+
+.join .field {
+  flex: 1 1 16rem;
+}

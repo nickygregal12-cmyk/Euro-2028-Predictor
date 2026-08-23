@@ -1,4 +1,6 @@
+import { useId } from 'react'
 import type { MatchesFilter, MatchesModel, MatchesScope } from '../models/matches'
+import { ScopeMarker } from '../components/navigation/ScopeMarker'
 import text from '../foundations/typography.module.css'
 import styles from './matches.module.css'
 
@@ -51,6 +53,8 @@ export type MatchesBrowseProps = {
  * order says so.
  */
 export function MatchesBrowse({ model, filter, onFilter, onScope }: MatchesBrowseProps) {
+  const scopeGroup = useId()
+
   return (
     <div className={styles.browse} data-vnext-zone="browse">
       {model.scope.combinedAvailable ? (
@@ -66,7 +70,8 @@ export function MatchesBrowse({ model, filter, onFilter, onScope }: MatchesBrows
             aria-pressed={model.scope.active === 'competition'}
             onClick={() => onScope('competition')}
           >
-            In {model.competition.shortName}
+            {model.scope.active === 'competition' ? <ScopeMarker group={scopeGroup} /> : null}
+            <span className={styles.scopeLabel}>In {model.competition.shortName}</span>
           </button>
           <button
             type="button"
@@ -74,7 +79,10 @@ export function MatchesBrowse({ model, filter, onFilter, onScope }: MatchesBrows
             aria-pressed={model.scope.active === 'combined'}
             onClick={() => onScope('combined')}
           >
-            Across your {model.scope.competitionCount} competitions
+            {model.scope.active === 'combined' ? <ScopeMarker group={scopeGroup} /> : null}
+            <span className={styles.scopeLabel}>
+              Across your {model.scope.competitionCount} competitions
+            </span>
           </button>
         </div>
       ) : null}

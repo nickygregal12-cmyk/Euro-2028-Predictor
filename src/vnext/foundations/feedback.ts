@@ -1,5 +1,5 @@
 /**
- * A SEMANTIC INTERACTION-FEEDBACK MODEL — STAGE 7.5 PROTOTYPE, NOT ADOPTED.
+ * THE SEMANTIC INTERACTION-FEEDBACK MODEL. ADOPTED.
  *
  * THE PRINCIPLE BEING TESTED. Visual feedback, motion and optional haptic
  * feedback should describe the SAME semantic state change. A component says
@@ -14,12 +14,18 @@
  * made consistent, cannot be reasoned about ("does this product buzz too
  * much?" becomes a grep), and cannot be tested. One module can be all four.
  *
- * WHY IT LIVES UNDER `ia/` AND NOT UNDER `foundations/`. It is a Stage 7.5
- * PROPOSAL. `foundations/` is the accepted vNext language, and putting an
- * unreviewed abstraction there would make it look settled — the same mistake as
- * amending the documentation to pretend a concept has been chosen. If the
- * principle survives review it moves; until then no accepted surface imports it
- * and `tests/vnext/iaFeedback.test.ts` holds that.
+ * WHY IT NOW LIVES UNDER `foundations/`. It was written under `ia/` as a Stage
+ * 7.5 PROPOSAL, with its own note saying that "if the principle survives review
+ * it moves". It survived: the four semantics turned out to describe every
+ * moment worth feeling in the finished product without a fifth, and the absence
+ * of a `navigation` semantic turned out to be the load-bearing part. So it
+ * moved, unchanged in substance — the same four semantics, the same patterns,
+ * the same refusal to return a value a component could render.
+ *
+ * WHAT MOVING IT MEANS. `foundations/` is the accepted vNext language, so
+ * accepted surfaces may now import it — through `useVNextFeedback` in
+ * `VNextRoot`, which resolves the player's stored preference once rather than
+ * threading it through every component.
  *
  * THE FOUR SEMANTICS, AND THE FIFTH THING THAT IS NOT ONE.
  *
@@ -59,9 +65,17 @@
 export type FeedbackSemantic = 'selection' | 'success' | 'important' | 'warning'
 
 /**
- * What the player has asked for. `system` means "not chosen", and it currently
- * resolves to ON — a decision worth stating rather than hiding in a default,
- * and one a preferences surface would settle properly.
+ * What the player has asked for.
+ *
+ * `system` means "not chosen", and it resolves to ON. That is a decision rather
+ * than a default nobody made: a device with no vibration motor already answers
+ * `unsupported`, a device with one has a system-level setting of its own that
+ * `navigator.vibrate` already respects, and the four semantics below are
+ * deliberately too sparse to be a nuisance. `off` exists for the player who
+ * disagrees, and `src/app/providers/HapticsProvider.tsx` persists all three.
+ *
+ * REDUCED MOTION IS NOT WIRED TO IT — see the header. A vestibular preference
+ * and a preference about being buzzed are different preferences.
  */
 export type FeedbackPreference = 'system' | 'on' | 'off'
 

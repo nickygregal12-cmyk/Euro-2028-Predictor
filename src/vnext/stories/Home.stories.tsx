@@ -147,6 +147,26 @@ export const Reduced1440: StoryObj = home('reduced', ['laptop-1440'], 0.8)
 
 export const Reduced1920: StoryObj = home('reduced', ['desktop-1920'], 0.62)
 
+/**
+ * A PLAYER WHO HAS BEEN AWAY SINCE THE WEEKEND.
+ *
+ * The only board where "Since you were last here" is drawn at all, which is
+ * why it exists: the zone renders nothing on a first visit and nothing when
+ * nothing has finished since the marker, so every other scenario is correctly
+ * silent about it and none of them shows a reviewer what it looks like.
+ *
+ * WHAT TO LOOK FOR. That it reads as a catch-up rather than as a second
+ * fixture list: quieter rows, no form runs, no league positions, and the
+ * "and 2 more" that stops the sample reading as the whole weekend. And that it
+ * sits ABOVE the deadline banner — a player who has not been told the results
+ * should not be asked for a prediction first.
+ */
+export const Returning430: StoryObj = home('returning', ['phone-430'])
+
+export const Returning1440: StoryObj = home('returning', ['laptop-1440'], 0.8)
+
+export const Returning1920: StoryObj = home('returning', ['desktop-1920'], 0.62)
+
 /* ---- CROSS-CUTTING REVIEWS ---------------------------------------------- */
 
 /** The two review widths side by side, which is how hierarchy is judged. */

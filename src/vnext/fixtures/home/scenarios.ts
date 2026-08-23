@@ -616,10 +616,76 @@ export const reducedHomeModel: HomeModel = {
 }
 
 /** Every Home scenario, for the stories and the consistency suite. */
+/**
+ * THE PLAYER WHO HAS BEEN AWAY.
+ *
+ * The competition world, plus the one thing a device knows that the
+ * application does not: which of the settled results this reader has not seen.
+ * It exists as a world of its own because "since you were last here" is
+ * ABSENT from every other scenario — a first visit has no marker, and a
+ * reviewer needs a board where the zone is actually drawn.
+ *
+ * `more` says the list is a sample rather than the whole weekend, which is the
+ * honesty rule the Hub's own recap follows: a cap nobody can see reads as "we
+ * covered everything".
+ */
+const returningHomeModel: HomeModel = {
+  ...competitionHomeModel,
+  /*
+   * TWO OF THE THREE, AND `more` IS THE THIRD.
+   *
+   * It used to be all three with `more: 2`, which was a fixture that lied: the
+   * "and 2 more" line promised results that were not in this world at all, and
+   * Around the Grounds had nothing left to put under "Already settled". A
+   * scenario whose own numbers do not add up is worse than no scenario,
+   * because it looks right in a screenshot.
+   */
+  sinceLastVisit: {
+    results: competitionResults.slice(0, 2),
+    more: 1,
+  },
+  /*
+   * AND WHAT THOSE RESULTS WERE WORTH. The two zones are a pair on the day a
+   * matchweek settles — one says which matches finished, the other says what
+   * they did to the reader — so the board that shows either shows both, which
+   * is the only way a reviewer can check they do not say the same thing twice.
+   *
+   * Every figure agrees with `competitionHomeModel`'s own standing: 133 season
+   * points, 1,102nd of 12,490. A fixture whose recap disagreed with the
+   * masthead above it would look right in isolation and wrong on the page.
+   */
+  matchweekRecap: {
+    matchweekLabel: 'Matchweek 4',
+    matchweekOrdinal: 4,
+    points: 14,
+    jokerPlayed: true,
+    seasonPoints: 133,
+    seasonRank: 1102,
+    fieldSize: 12490,
+    exactScores: 10,
+    correctOutcomes: 15,
+    leagues: [
+      {
+        leagueId: 'league-work',
+        leagueName: 'The Work League',
+        rankBefore: 4,
+        rankAfter: 2,
+        movement: 2,
+        // ELEVEN, MATCHING THE LADDER ABOVE IT. The league race on the same
+        // page says "11 players"; a recap that said 9 would be the same league
+        // two different sizes on one screen.
+        fieldSize: 11,
+        gapToLeader: 4,
+      },
+    ],
+  },
+}
+
 export const homeScenarios = {
   live: workshopHomeModel,
   decision: decisionHomeModel,
   competition: competitionHomeModel,
+  returning: returningHomeModel,
   newSeason: newSeasonHomeModel,
   reduced: reducedHomeModel,
 } as const

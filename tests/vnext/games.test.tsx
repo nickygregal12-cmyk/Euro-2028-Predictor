@@ -11,7 +11,7 @@ function renderGames(
   props: {
     onRetry?: () => void
     refreshing?: boolean
-    onIntent?: (intent: { kind: string; gameId: string }) => void
+    onIntent?: (intent: { kind: string; gameId?: string }) => void
     joiningGameId?: string | null
   } = {},
 ) {

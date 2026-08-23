@@ -65,6 +65,7 @@
 }
 
 .scopeOption {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--vnext-space-2);
@@ -79,13 +80,17 @@
   font-size: var(--vnext-size-small);
   font-weight: var(--vnext-weight-medium);
   cursor: pointer;
-  transition:
-    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
-    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+  transition: color var(--vnext-duration-fast) var(--vnext-ease-standard);
 }
 
+/*
+ * THE FILL MOVED TO THE MARKER. See `ScopeMarker` — the chosen table's
+ * background now travels from the one before it rather than appearing, and the
+ * fill this rule used to paint is handed to the pill through the variable.
+ */
 .scopeOption[aria-pressed='true'] {
-  background-color: var(--vnext-surface-interactive);
+  --vnext-scope-marker-fill: var(--vnext-surface-interactive);
+
   color: var(--vnext-text);
 }
 
@@ -94,10 +99,12 @@
 }
 
 .scopeName {
+  position: relative;
   overflow-wrap: anywhere;
 }
 
 .scopeCount {
+  position: relative;
   color: var(--vnext-text-muted);
 }
 
@@ -204,6 +211,52 @@
   text-align: right;
 }
 
+/*
+ * WATCHING SOMEBODY, and the pressed state is a word rather than a colour.
+ *
+ * It is quiet on purpose: eight of these in a table must not compete with the
+ * points beside them, and the control is a preference rather than an action on
+ * the game. The pressed state is the only one that borrows the accent.
+ */
+.watchToggle {
+  /* The visible pill stays deliberately quiet, but the BUTTON ITSELF owns the
+   * full interaction target. Row/cell padding cannot enlarge a button's hit
+   * box, and the browser acceptance gate measures the actual control. */
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--vnext-tap-target);
+  white-space: nowrap;
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-pill);
+  background-color: transparent;
+  color: var(--vnext-text-muted);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-micro);
+  font-weight: var(--vnext-weight-medium);
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.watchToggle:hover {
+  color: var(--vnext-text);
+  border-color: var(--vnext-text-muted);
+}
+
+.watchToggle[aria-pressed='true'] {
+  background-color: var(--vnext-accent-veil);
+  border-color: var(--vnext-accent);
+  color: var(--vnext-text);
+}
+
+.watchToggle:focus-visible {
+  outline: 2px solid var(--vnext-focus);
+  outline-offset: 2px;
+}
+
 .row {
   border-bottom: 1px solid var(--vnext-hairline);
 }
@@ -304,6 +357,7 @@
 
 .playerTags {
   display: inline-flex;
+  align-items: center;
   gap: var(--vnext-space-2);
   flex-wrap: wrap;
   margin-inline-start: var(--vnext-space-2);
@@ -451,4 +505,46 @@
   .tableRegion {
     max-width: 960px;
   }
+}
+
+/* ---- the empty state, which is now an offer ----------------------------- */
+
+/* TWO WAYS OUT, AND NEITHER OF THEM IS IN A TABLE. The controls sit under the
+ * sentence rather than inside the ranking above it: a table is a list of
+ * people and a button in one is a row that does something different from every
+ * other row. */
+.emptyOffer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+}
+
+/*
+ * RESTORED, AND THE DELETION IS WORTH RECORDING. `30ffc7a` removed these two
+ * classes alongside its (correct) touch-target fix above, while
+ * `VNextLeagues.tsx` still names them at three call sites — so
+ * `styles.emptyAction` resolved to `undefined` and the two ways out of the
+ * empty state became unstyled native buttons.
+ *
+ * The irony is the point: a native button is about 21px tall, so a change that
+ * fixed one 44px failure quietly opened another on the surface directly below
+ * it. That is exactly why `min-height` here is the token rather than a number.
+ */
+.emptyActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--vnext-space-2);
+}
+
+.emptyAction {
+  min-height: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline);
+  border-radius: var(--vnext-radius-md);
+  background-color: transparent;
+  color: var(--vnext-text);
+  font-family: var(--vnext-font-display);
+  font-size: var(--vnext-size-body);
+  cursor: pointer;
 }

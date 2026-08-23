@@ -160,6 +160,15 @@ export type PrivateLeague = {
 }
 
 export type RivalRelation =
+  /**
+   * SOMEBODY THE PLAYER CHOSE TO WATCH (contract 157).
+   *
+   * The only relation that is not derived from the table. Every other one is a
+   * fact about where two people stand; this one is a preference, and it is why
+   * it leads: a rival the player picked out beats an adjacency the software
+   * worked out.
+   */
+  | 'watched'
   | 'leagueLeader'
   | 'closestAbove'
   | 'closestBelow'
@@ -202,6 +211,96 @@ export type ActivityItem = {
   readonly emphasis: 'positive' | 'negative' | 'neutral'
 }
 
+/**
+ * WHAT FINISHED WHILE THE PLAYER WAS AWAY.
+ *
+ * ============================ IT IS A SELECTION, NOT A CLAIM =============
+ *
+ * Every match here is already in `recentResults` and is settled because the
+ * server settled it. This zone says only WHICH of them are new to this reader,
+ * and it is the one thing on Home that depends on a device rather than on the
+ * application: the marker is local, so a player who read the results on their
+ * phone still sees them on their laptop. That cost is deliberate and small —
+ * nothing here can be wrong in a way that changes a point, a lock or a rank.
+ *
+ * ============================ NULL ON A FIRST VISIT ======================
+ *
+ * With no marker there is no "since", and a summary of the whole season dressed
+ * as "what changed" would be the worst possible first impression of the
+ * feature. `null` is also the answer when the marker exists and nothing has
+ * finished since it, which is the ordinary case on a Tuesday.
+ */
+export type SinceLastVisit = {
+  /** Settled matches that finished since the marker, most recent first. */
+  readonly results: readonly Match[]
+  /** How many more there were beyond the cap. */
+  readonly more: number
+}
+
+/**
+ * WHAT ONE SETTLED MATCHWEEK DID INSIDE ONE PRIVATE LEAGUE.
+ *
+ * `rankBefore` and `rankAfter` are contract 150's, measured over the matchweek
+ * this recap is about. `movement` is positive for a CLIMB — the sign is the
+ * server's and is never derived from the two ranks here, because a rank is a
+ * smaller number when you are doing better and that is exactly the subtraction
+ * somebody gets backwards.
+ */
+type MatchweekRecapLeague = {
+  readonly leagueId: string
+  readonly leagueName: string
+  readonly rankBefore: number
+  readonly rankAfter: number
+  /** Positive is a climb. */
+  readonly movement: number
+  readonly fieldSize: number
+  readonly gapToLeader: number
+}
+
+/**
+ * THE MATCHWEEK RECAP — what the last settled matchweek did to the player.
+ *
+ * ============================ IT IS NOT "SINCE YOU WERE LAST HERE" =======
+ *
+ * That zone says which matches finished. This one says what those results were
+ * WORTH, and the two are deliberately separate models fed from separate
+ * authorities: one derives from the football, the other from the player's own
+ * banked totals. Merging them would put a points claim inside a list of
+ * results that has no points in it.
+ *
+ * ============================ AND IT IS NOT SEASON WRAPPED ===============
+ *
+ * This is the CURRENT settled matchweek, derived live every time. The
+ * permanent, immutable end-of-season archive is contract 156's and is a
+ * different surface; a live derivation must never be presented as one.
+ *
+ * ============================ SETTLED MEANS BANKED =======================
+ *
+ * Contract 151 returns no points for a matchweek that has not settled, so "the
+ * latest settled matchweek" is the most recent one with points — never a
+ * comparison against a clock, and never the most recent matchweek that merely
+ * has predictions in it. `null` for the whole model is the ordinary state of a
+ * season that has not settled anything yet.
+ *
+ * Every nullable field below is a figure the application genuinely may not
+ * state. `null` never means zero.
+ */
+export type MatchweekRecap = {
+  readonly matchweekLabel: string
+  readonly matchweekOrdinal: number
+  readonly points: number
+  readonly jokerPlayed: boolean
+  /** The season so far — a current position, never a movement. */
+  readonly seasonPoints: number | null
+  readonly seasonRank: number | null
+  readonly fieldSize: number | null
+  /** Over settled matchweeks only, from the read's own counts. */
+  readonly exactScores: number | null
+  readonly correctOutcomes: number | null
+  /** Empty unless a league of the player's settled THIS matchweek. */
+  readonly leagues: readonly MatchweekRecapLeague[]
+}
+
 export type HomeModel = {
   /** The instant the model describes. Components take "now" as an input so the
    *  workshop renders identically on every run. */
@@ -213,6 +312,21 @@ export type HomeModel = {
   readonly upcomingMatches: readonly Match[]
   /** Settled matches worth showing back to the user today. */
   readonly recentResults: readonly Match[]
+  /**
+   * Which of those are new to this reader. Null on a first visit and whenever
+   * nothing has finished since the marker — see `SinceLastVisit`.
+   *
+   * OPTIONAL so a hand-written fixture that predates it still type-checks; an
+   * absent field and an explicit null mean the same thing.
+   */
+  readonly sinceLastVisit?: SinceLastVisit | null
+  /**
+   * The last settled matchweek, as performance. Null while nothing has settled
+   * — see `MatchweekRecap`.
+   *
+   * OPTIONAL so a hand-written fixture that predates it still type-checks.
+   */
+  readonly matchweekRecap?: MatchweekRecap | null
   readonly recentPerformance: RecentPerformance
   readonly privateLeagues: readonly PrivateLeague[]
   readonly rivals: readonly Rival[]

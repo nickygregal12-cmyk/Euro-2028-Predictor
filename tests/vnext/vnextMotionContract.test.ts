@@ -45,7 +45,7 @@ const presets = Object.entries(vnextMotion)
 
 describe('vNext reduced motion removes movement', () => {
   it('has a reduced pair for every primitive, with the same states', () => {
-    expect(presets.length).toBe(9)
+    expect(presets.length).toBe(11)
 
     for (const [name, preset] of presets) {
       expect(statesOf(preset.reduced).sort(), name).toEqual(
@@ -181,14 +181,22 @@ describe('vNext components resolve their motion through the foundation', () => {
   const vnextRoot = resolve(import.meta.dirname, '../../src/vnext')
 
   /**
-   * `components/` AND `home/`. Home animates as much as the shared components
-   * do — masthead and zone entrances, staggered content, points emphasis, the
-   * emphasis change itself — so a Home component reaching for `vnextSpring`
-   * directly would be exactly the defect this guard was written for, in the
-   * tree that matters most. Scoping it to one directory would have made the
-   * rule true of the smaller half of the animated code.
+   * EVERY TREE UNDER `src/vnext/`, AND IT USED TO BE TWO.
+   *
+   * The guard was written for `components/` and `home/` when those were the
+   * only animated surfaces, and it stayed that way while thirteen more shipped.
+   * The 20 August 2026 motion-consistency audit read all of them and found the
+   * rule already held everywhere — no accepted surface names a raw motion value
+   * and none builds a variant object inline — so widening the guard costs
+   * nothing today and is the only way that stays true tomorrow. A rule proved
+   * by an audit and enforced over a fifth of the code is a rule that will be
+   * broken by the next surface nobody thought to audit.
+   *
+   * `models/` and `states/` carry no JSX and simply contribute no files.
    */
-  const roots = ['components', 'home'].map((tree) => resolve(vnextRoot, tree))
+  const roots = readdirSync(vnextRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => resolve(vnextRoot, entry.name))
 
   function sources(directory: string): string[] {
     return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -204,8 +212,10 @@ describe('vNext components resolve their motion through the foundation', () => {
   /** Raw, unresolved motion values. A component naming one has bypassed the pair. */
   const RAW_MOTION = /\b(vnextSpring|vnextEase|vnextDuration)\b/
 
-  it('reads the vNext components and Home at all', () => {
-    expect(files.length).toBeGreaterThan(14)
+  it('reads the whole of vNext at all', () => {
+    // Well under the real count, so an accidental narrowing of the walk is
+    // caught while an ordinary new component is not a reason to edit this.
+    expect(files.length).toBeGreaterThan(90)
   })
 
   it('imports no raw full-motion value into a component', () => {
@@ -224,6 +234,28 @@ describe('vNext components resolve their motion through the foundation', () => {
     )
 
     expect(offenders.map((file) => relative(componentsRoot, file))).toEqual([])
+  })
+
+  /**
+   * AND IT BUILDS NO VARIANT WHERE IT STANDS.
+   *
+   * `animate={{ opacity: 1 }}` is not caught by either rule above: it names no
+   * foundation value and reaches into no preset, and it is still one animation
+   * the player's preference cannot reach. It is also the easiest thing in the
+   * world to write while adding a surface at speed, which is why the audit that
+   * found none of them left this behind rather than a sentence saying so.
+   */
+  const INLINE_MOTION =
+    /\b(initial|animate|exit|whileHover|whileTap|whileFocus|whileInView|transition|variants)=\{\{/
+
+  it('builds no motion object inline', () => {
+    const offenders = files.filter((file) => INLINE_MOTION.test(readFileSync(file, 'utf8')))
+
+    expect(
+      offenders.map((file) => relative(componentsRoot, file)),
+      'motion belongs to a preset in foundations/motion.ts, which is the only ' +
+        'place a reduced-motion pair can be written for it',
+    ).toEqual([])
   })
 })
 
@@ -267,5 +299,28 @@ describe('MatchCard press feedback', () => {
     expect(source.slice(articleAt, buttonAt)).toContain(
       "{...(action ? { whileHover: 'hover' } : {})}",
     )
+  })
+})
+
+/**
+ * THE WORKSHOP MUST SHOW THE WHOLE VOCABULARY.
+ *
+ * The motion gallery is where a reviewer sees what this product's movement IS,
+ * and it had already drifted: `saveSettle` was added to the foundation and the
+ * gallery went on showing nine primitives as though it were all of them. A
+ * gallery that is silently a subset is worse than no gallery, because it
+ * licenses "there is no preset for that" from somebody who looked.
+ */
+describe('the motion gallery', () => {
+  const gallery = readFileSync(
+    resolve(__dirname, '../../src/vnext/stories/Foundation.stories.tsx'),
+    'utf8',
+  )
+
+  it.each(Object.keys(vnextMotion))('shows %s', (name) => {
+    expect(gallery).toContain(`vnextMotion.${name}`)
+    // Named in words as well as consumed, so the sample has a caption rather
+    // than being an unlabelled rectangle that moves.
+    expect(gallery).toContain(name)
   })
 })

@@ -38,6 +38,12 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: npm
+      - name: Reject silent quality-gate weakening
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/check-quality-integrity.mjs "$BASE_SHA" "$HEAD_SHA"
       - name: Install dependencies
         run: npm ci
       - name: Enforce dependency boundaries

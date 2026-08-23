@@ -29,7 +29,7 @@ import type { OnboardingScenarioName } from '../fixtures'
  *
  * ============================ NOTHING HERE COMMITS =======================
  *
- * The worlds are views. The commit belongs to the host — `OnboardingJourney`
+ * The worlds are views. The commit belongs to the host — `commitOnboarding`
  * owns the only copy of it — so `Saving`, `PartiallyRefused` and `Failed`
  * depict states the host reports back, not states this component can enter on
  * its own.

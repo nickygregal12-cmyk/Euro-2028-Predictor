@@ -59,6 +59,14 @@ export type GamesIntent =
       readonly gameKey: CatalogueGameKey
     }
   | { readonly kind: 'join-game'; readonly gameId: string }
+  /**
+   * START SOMETHING FOR YOUR OWN FRIENDS.
+   *
+   * NOT PER GAME, and that is the point. A create control on the Match
+   * Predictor row would say that private play is a Match Predictor feature; it
+   * is a thing all three games have, and the corridor asks WHICH one first.
+   */
+  | { readonly kind: 'create-private-play' }
 
 export type VNextGamesProps = {
   readonly model: GamesPageModel
@@ -123,6 +131,27 @@ export function VNextGames({
             joiningGameId={joiningGameId}
             joinFailure={joinFailure}
           />
+
+          {/* PRIVATE PLAY, WHERE THE GAMES ARE. It sits below the three rather
+              than on one of them, because a group of friends is something all
+              three games can be played as and the corridor asks which. It is
+              drawn wherever the host can route it — a host that cannot simply
+              passes no `onIntent`, and no control appears. */}
+          {onIntent === undefined ? null : (
+            <div className={styles.privatePlay} data-vnext-zone="private-play">
+              <p className={`${text.body} ${styles.privateLead}`}>
+                Want a table of just your friends? You can run any of these three as your own
+                private competition.
+              </p>
+              <button
+                type="button"
+                className={styles.privateAction}
+                onClick={() => onIntent({ kind: 'create-private-play' })}
+              >
+                Create private play
+              </button>
+            </div>
+          )}
 
           {/* THE RULES, BESIDE THE GAMES THEY GOVERN. The route matrix absorbs
               `/more/scoring` for exactly this: rules are reached from a game,

@@ -127,6 +127,65 @@ Nothing above is wired. `DFA-012` and `SITE-007` are **not** closed by this
 change: no provider is configured, no claim loop calls this boundary, and
 nothing sends.
 
+## Every event, classified — 20 August 2026
+
+**Nineteen kinds exist. Two can be delivered.** A taxonomy is a list of things
+somebody could be told; it is not a list of things this platform can currently
+tell anybody, and the gap between those two is where a notifications programme
+usually goes wrong — a preference screen offering nineteen switches, seventeen
+of which do nothing.
+
+The classification is derived from what actually emits. `player_action_items`
+constrains its `action_type` to six values, `reminder_deliveries` constrains
+its `reminder_kind` to `deadline` and `final_call`, and
+`notification-dispatch/reminderEvents.ts` names ONE supported action type. That
+chain, not the taxonomy, is what decides.
+
+| Kind | State | Why |
+| --- | --- | --- |
+| `prediction.window_closing` | **deliverable** | `reminder_kind = 'deadline'` on `matchweek_predictions_due`, mapped and tested. |
+| `prediction.entries_outstanding` | **deliverable** | `reminder_kind = 'final_call'` on the same action type. |
+| `league.invitation_received` | server event exists, not wired | `league_invitation` is a generated action item; the dispatch loop refuses it as `unsupported-action-type`. |
+| `lms.round_opened` | server event exists, not wired | `lms_pick_due` is generated; same refusal. Which of the LMS kinds it should become is a product question, not a mapping one. |
+| `results.matchweek_points` | server event exists, not wired | `matchweek_settled` is generated; same refusal. Its `basis` must carry `awarded` vs `provisional`, which is why a plausible mapping is not good enough. |
+| `results.rank_movement` | server event exists, not wired | `game_consequence` is generated and covers more than rank movement; splitting it needs evidence about what a player should be told. |
+| `results.competition_milestone` | server event exists, not wired | Same action type, same question. |
+| `prediction.locked` | blocked — no emitter | Nothing schedules a reminder for a lock that has already passed, and a lock is not an action item. |
+| `matchweek.opened` | blocked — no emitter | The matchweek opening generates no action item and no reminder row. |
+| `lms.selection_confirmed` | blocked — no emitter | `save_lms_selection` writes the pick; nothing emits a fact about it. |
+| `lms.survived` | blocked — no emitter | Settlement writes the outcome; no reminder or event is produced from it. |
+| `lms.eliminated` | blocked — no emitter | As above. |
+| `lms.next_round_available` | blocked — no emitter | As above. |
+| `league.rank_changed` | blocked — no emitter | Movement is computed on read (contract 150), not emitted. |
+| `league.overtaken` | blocked — no emitter | As above, and it needs a per-player before/after nothing currently stores. |
+| `league.rival_moved` | blocked — no emitter | As above. |
+| `results.exact_score` | blocked — no emitter | Settlement stores the fact; nothing emits it per player. |
+| `social.head_to_head_moved` | future | Contract 192 supplies a rivalry READ; there is no movement event and no schedule for one. |
+| `social.followed_player_activity` | **future, and blocked at the product layer** | Following another player is genuinely unimplemented — `PROF-002`. `get_my_preferences` returns pinned rivals as bare ids with no name and no season ref, so there is no list to notify about. |
+
+**One generated action type has no kind at all.**
+`cup_penalty_number_due` is a real action item the Championship produces and the
+taxonomy has nowhere to put it. That is a gap in the taxonomy rather than in the
+wiring, and it is named here rather than papered over by mapping it to something
+adjacent.
+
+### What this means for the interface, and it is a restraint
+
+The vNext Account surface offers ONE notification preference — reminder emails,
+which is the only thing the ledger schedules — and it will keep offering exactly
+one until a second kind is genuinely deliverable.
+`tests/vnext/notificationPreferences.test.tsx` holds that: a switch for a
+category the backend cannot honour is a promise the product cannot keep, and the
+player who turns it on has no way to discover that nothing happened.
+
+The three layers stay separate and none of them stands in for another:
+
+| Layer | Where it is | State |
+| --- | --- | --- |
+| In-app attention | `player_action_items`, drawn by the vNext shell's attention band and Home | **live**, and independent of any of the above |
+| Email reminders | `reminder_deliveries` → this boundary → Novu | implemented end to end, **switched off** |
+| Browser/device push | — | **does not exist.** No service worker, no push subscription, no VAPID key, no storage for one. It is not offered, because offering it would be the interface inventing a channel. |
+
 ## Switching it on
 
 Nothing here is a hosted action, and none of it is done.

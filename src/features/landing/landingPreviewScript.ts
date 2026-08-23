@@ -27,6 +27,13 @@
  * product to break one. The league phase is a SETTLED matchweek, which is when
  * the real product reveals.
  *
+ * AND NO FRAME STATES A FOOTBALL RESULT. The clubs are real now, so a scoreline,
+ * a minute, a form run or a league position in one of these pictures would be a
+ * claim about football that did not happen, attached to a club that exists.
+ * `src/vnext/fixtures/marketing/realFootball.ts` removes all of it from every
+ * model, and it is why the third step is a locked matchweek rather than the live
+ * scores it used to be — the beat survives, the invented result does not.
+ *
  * Nothing here is an authority. No number below is a standing, nothing computes
  * one, and the surfaces that render them are exposed to assistive technology as
  * one described picture rather than as a table of results.
@@ -53,14 +60,21 @@ export type PreviewStep = {
  * Five steps, in the order the week happens.
  *
  * The first four are the weekly loop — an action arrives, the fixtures are
- * there, the football happens, the table moves — and the fifth is the one thing
+ * there, the deadline passes, the table moves — and the fifth is the one thing
  * a week cannot show: that the season holds more than one game.
+ *
+ * THE CAPTIONS ARE WRITTEN FOR A VISITOR, not for a reviewer. They describe
+ * what a person would DO or SEE at that point in the week — "Make your picks",
+ * "Matchday" — rather than naming the implementation state the frame is in. The
+ * accessible descriptions below are the exception and stay literal, because
+ * their job is to tell somebody who cannot see the device that it is a picture
+ * of a product rather than their own account.
  */
 export const PREVIEW_STEPS: readonly PreviewStep[] = [
   {
     id: 'deadline',
-    step: 'An action is waiting',
-    headline: 'Thursday. One thing needs you, and the app says which.',
+    step: 'Make your picks',
+    headline: 'Thursday. Two predictions still to make before Saturday.',
     description:
       'Preview of the signed-in product on Home, with one outstanding action: two ' +
       'predictions still to make before Saturday, the matchweek beneath it, and the ' +
@@ -72,28 +86,30 @@ export const PREVIEW_STEPS: readonly PreviewStep[] = [
     headline: 'Friday. Every fixture in your competition, in one list.',
     description:
       'Preview of the signed-in product on Matches: the competition’s fixtures grouped ' +
-      'by day, each with its kick-off time and state, and no other competition in sight.',
+      'by day, each with its kick-off time, and no other competition in sight.',
   },
   {
-    id: 'live',
-    step: 'The football happens',
-    headline: 'Saturday. Provisional points move while the matches do.',
+    id: 'locked',
+    step: 'Deadline day',
+    headline: 'Saturday. Everything is in — now you just watch.',
     description:
-      'Preview of the signed-in product on Home during a live matchweek: matches in play ' +
-      'with their minute, and points clearly labelled as provisional rather than final.',
+      'Preview of the signed-in product on Home once the matchweek has locked: all five ' +
+      'predictions entered, nothing left to do, and the competition’s own navigation ' +
+      'down the side.',
   },
   {
     id: 'table',
     step: 'The table moves',
-    headline: 'Monday. Your league settles, and you see where you finished.',
+    headline: 'Monday. See where the weekend left you and your rivals.',
     description:
-      'Preview of the signed-in product on Leagues: a settled private league table of five ' +
-      'players ranked by points, with rank movement, and the reader’s own row marked.',
+      'Preview of the signed-in product on Leagues: an invented private league table of ' +
+      'five made-up players ranked by points, with rank movement, and the reader’s own ' +
+      'row marked.',
   },
   {
     id: 'games',
-    step: 'More than one way to win',
-    headline: 'And the season holds three games, each joined on its own.',
+    step: 'Play your way',
+    headline: 'Three games in one season. Play the ones you fancy.',
     description:
       'Preview of the signed-in product on Games: the Match Predictor, Last Man Standing ' +
       'and the Predictor Championship offered side by side, each joined separately.',

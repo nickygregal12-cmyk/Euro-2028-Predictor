@@ -12,6 +12,10 @@ export type RivalStripProps = {
 }
 
 const RELATION_LABEL: Record<Rival['relation'], string> = {
+  // "Watching" rather than "Watched": it says what the READER is doing, which
+  // is the truth of it — the relation is one-directional and the person named
+  // is not told about it.
+  watched: 'Watching',
   leagueLeader: 'Leader',
   closestAbove: 'Just ahead',
   closestBelow: 'Just behind',

@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router'
-import { VNextRoot } from '../../vnext/foundations/VNextRoot'
+import { VNextAppRoot } from '../../app/vnext/VNextAppRoot'
 import { VNextAboutScreen } from '../../vnext/integration/about/VNextAboutScreen'
 import { useAuth } from '../auth/AuthProvider'
 import type { ShellIntent } from '../../vnext/models/shell'
@@ -69,8 +69,8 @@ export function AboutPage() {
   )
 
   return (
-    <VNextRoot>
+    <VNextAppRoot>
       <VNextAboutScreen playerName={displayName} onShellIntent={onShellIntent} />
-    </VNextRoot>
+    </VNextAppRoot>
   )
 }

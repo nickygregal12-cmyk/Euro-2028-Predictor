@@ -59,7 +59,16 @@ interface ImportMetaEnv {
   readonly VITE_UI_FOOTBALL_HUB_LMS?: string
   /** Stage 14: the vNext Predictor Championship. */
   readonly VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP?: string
+  /** Stage 14: the vNext Match Predictor at the competition's game address. */
   readonly VITE_UI_FOOTBALL_HUB_PREDICTOR?: string
+  /** The vNext onboarding PRESENTATION at `/welcome`. The commit is shared. */
+  readonly VITE_UI_FOOTBALL_HUB_ONBOARDING?: string
+  /** The vNext invite PRESENTATION at `/join/:code`. The join is shared. */
+  readonly VITE_UI_FOOTBALL_HUB_INVITE?: string
+  /** The vNext create-private-play corridor. No legacy element at that address. */
+  readonly VITE_UI_FOOTBALL_HUB_CREATE?: string
+  /** Contract 156's Season Wrapped. No legacy element at that address either. */
+  readonly VITE_UI_FOOTBALL_HUB_WRAPPED?: string
   // ADR 0026's two deployments (src/app/site/). "hub" | "euro"; anything else,
   // including unset, resolves to "hub" — Euro 2028 must never appear because a
   // variable was mistyped (`EURO-001`).

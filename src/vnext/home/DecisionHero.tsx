@@ -16,6 +16,7 @@ import styles from './home.module.css'
 export type DecisionHeroProps = {
   match: Match
   now: string
+  onAction?: (() => void) | undefined
 }
 
 /**
@@ -40,7 +41,7 @@ export type DecisionHeroProps = {
  * IT IS STILL THE SAME HOME. Same tokens, same radii, same surfaces, same
  * masthead above it and same ticker under that. Only the emphasis moved.
  */
-export function DecisionHero({ match, now }: DecisionHeroProps) {
+export function DecisionHero({ match, now, onAction }: DecisionHeroProps) {
 // `useId` RATHER THAN THE MATCH ID, AND THE REASON IS NOT HYPOTHETICAL. An id
 // built from data is unique only while the data is, and the public landing
 // page's product preview mounts this surface more than once in a document.
@@ -147,7 +148,7 @@ export function DecisionHero({ match, now }: DecisionHeroProps) {
               ? `Your call: ${formatScoreline(prediction.score.home, prediction.score.away)}`
               : 'You have not predicted this one'}
           </span>
-          <button type="button" className={styles.decisionPrimary}>
+          <button type="button" className={styles.decisionPrimary} onClick={onAction}>
             {prediction ? 'Change prediction' : 'Make your prediction'}
             <span className={typography.srOnly}>
               {' '}

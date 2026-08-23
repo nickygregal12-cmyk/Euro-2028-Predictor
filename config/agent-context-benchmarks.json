@@ -1,0 +1,248 @@
+{
+  "$comment": "Representative simple prompts used to keep task routing useful and bounded. These are navigation acceptance cases, not product authorities.",
+  "version": 3,
+  "limits": {
+    "maxGraphifyBudget": 1200,
+    "maxCandidatePaths": 8,
+    "maxAuthorities": 3,
+    "maxSelectedSkills": 3,
+    "maxPacketBytesWithoutGraph": 8192
+  },
+  "cases": [
+    {
+      "id": "home-redesign",
+      "prompt": "Redesign the vNext Home page",
+      "requiredRoutes": ["intentional-ui-design", "vnext-home"],
+      "requiredSkills": ["predictor-frontend-design", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-motion-craft", "predictor-product-brainstorming", "predictor-product-opportunity-scout", "predictor-football-experience-critic"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "competition-switcher-motion",
+      "prompt": "The competition switcher animation feels sluggish",
+      "requiredRoutes": ["motion-craft"],
+      "requiredSkills": ["predictor-motion-craft"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-code-simplification", "predictor-product-opportunity-scout"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "home-release-blocker",
+      "prompt": "Fix Find a league — it does nothing",
+      "requiredRoutes": ["systematic-defect", "vnext-home"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-product-brainstorming", "predictor-product-opportunity-scout", "predictor-football-experience-critic"],
+      "maxAuthorities": 3,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "match-centre-rendering-performance",
+      "prompt": "Improve Match Centre rendering performance",
+      "requiredRoutes": ["vnext-matches", "react-performance"],
+      "requiredSkills": ["predictor-react-best-practices", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-code-simplification", "predictor-product-opportunity-scout", "predictor-football-experience-critic"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "landing-page-directions",
+      "prompt": "Explore three visual directions for the pre-signup landing page",
+      "requiredRoutes": ["intentional-ui-design"],
+      "requiredSkills": ["predictor-frontend-design"],
+      "forbiddenSkills": ["predictor-motion-craft", "predictor-product-brainstorming", "predictor-product-opportunity-scout"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matches-table-spacing",
+      "prompt": "Improve the Matches table spacing",
+      "requiredRoutes": ["vnext-matches"],
+      "requiredSkills": ["predictor-ui-review"],
+      "forbiddenSkills": ["predictor-frontend-design", "predictor-motion-craft", "predictor-code-simplification", "predictor-product-brainstorming", "predictor-product-opportunity-scout", "predictor-football-experience-critic"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "match-centre-ui",
+      "prompt": "Improve Match Centre UI",
+      "requiredRoutes": ["product-opportunity", "vnext-matches"],
+      "requiredSkills": ["predictor-product-opportunity-scout", "predictor-football-experience-critic", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-product-brainstorming", "predictor-code-simplification", "predictor-skill-evaluator", "predictor-second-opinion", "predictor-compound-learning"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 3
+    },
+    {
+      "id": "vnext-predictor-release-closure",
+      "prompt": "Finish the vNext Match Predictor journey properly and make it release ready",
+      "requiredRoutes": ["release-journey-closure", "vnext-predictor"],
+      "requiredSkills": ["predictor-release-journey-closer", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout", "predictor-product-brainstorming"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "vnext-predictor-state-matrix",
+      "prompt": "Review vNext Match Predictor loading, empty, locked, live and error states",
+      "requiredRoutes": ["player-state-matrix", "vnext-predictor"],
+      "requiredSkills": ["predictor-player-state-matrix", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout", "predictor-football-experience-critic", "predictor-motion-craft"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "development-migration-guard",
+      "prompt": "Apply the next migration to Development and update the hosted contract record",
+      "requiredRoutes": ["environment-contract", "database"],
+      "requiredSkills": ["predictor-environment-contract-guardian", "predictor-postgres-best-practices"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout"],
+      "maxAuthorities": 3,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "competitive-integrity-review",
+      "prompt": "Review this scoring and prediction reveal change for competitive integrity",
+      "requiredRoutes": ["competitive-integrity"],
+      "requiredSkills": ["predictor-competitive-integrity"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout", "predictor-ui-review"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "football-experience-critique",
+      "prompt": "Make this feel more like a football product",
+      "requiredRoutes": ["football-experience"],
+      "requiredSkills": ["predictor-football-experience-critic"],
+      "forbiddenSkills": ["predictor-product-brainstorming"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "supabase-rpc",
+      "prompt": "Add a Supabase RPC",
+      "requiredRoutes": ["sensitive-diff-review", "database"],
+      "requiredSkills": ["predictor-differential-review", "predictor-spec-driven-delivery", "predictor-postgres-best-practices"],
+      "forbiddenSkills": ["predictor-second-opinion", "predictor-environment-contract-guardian"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 3
+    },
+    {
+      "id": "lms-pick-bug",
+      "prompt": "Fix LMS pick bug",
+      "requiredRoutes": ["systematic-defect", "vnext-lms"],
+      "requiredSkills": ["predictor-systematic-debugging", "predictor-ui-review"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "react-rendering-performance",
+      "prompt": "Improve React rendering performance",
+      "requiredRoutes": ["react-performance"],
+      "requiredSkills": ["predictor-react-best-practices"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout", "predictor-football-experience-critic"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "matchcard-refactor-needs-graph",
+      "prompt": "Refactor MatchCard",
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
+    },
+    {
+      "id": "security-investigation",
+      "prompt": "Investigate security concern",
+      "requiredRoutes": ["security-investigation"],
+      "requiredSkills": ["predictor-context"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "production-routing-regression",
+      "prompt": "Fix production routing regression",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "continue-vnext-programme",
+      "prompt": "Continue vNext programme",
+      "requiredRoutes": ["vnext-programme"],
+      "requiredSkills": ["vnext-programme-runner"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "ai-lab-evidence",
+      "prompt": "Investigate AI Lab evidence",
+      "requiredRoutes": ["ai-lab"],
+      "requiredSkills": ["predictor-ai-lab-verifier"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "product-idea-brainstorm",
+      "prompt": "I have a new idea; brainstorm approaches for a private league challenge",
+      "requiredRoutes": ["product-brainstorming"],
+      "requiredSkills": ["predictor-product-brainstorming"],
+      "forbiddenSkills": ["predictor-systematic-debugging", "predictor-code-simplification", "predictor-product-opportunity-scout"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "recent-code-simplification",
+      "prompt": "Simplify the recent Match Centre changes without changing behaviour",
+      "requiredRoutes": ["vnext-matches", "code-simplification"],
+      "requiredSkills": ["predictor-ui-review", "predictor-code-simplification"],
+      "forbiddenSkills": ["predictor-product-brainstorming", "predictor-product-opportunity-scout"],
+      "maxAuthorities": 2,
+      "maxSelectedSkills": 2
+    },
+    {
+      "id": "skill-efficacy",
+      "prompt": "Benchmark this skill and measure its trigger accuracy",
+      "requiredRoutes": ["skill-evaluation"],
+      "requiredSkills": ["predictor-skill-evaluator"],
+      "forbiddenSkills": ["predictor-product-opportunity-scout"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "independent-architecture-review",
+      "prompt": "Pressure-test this architecture review with an independent model",
+      "requiredRoutes": ["independent-second-opinion"],
+      "requiredSkills": ["predictor-second-opinion"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "compound-learning",
+      "prompt": "Capture reusable lesson from this completed PR",
+      "requiredRoutes": ["compound-learning"],
+      "requiredSkills": ["predictor-compound-learning"],
+      "maxAuthorities": 1,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "broken-journey-cleanup-does-not-simplify",
+      "prompt": "Clean up this broken journey and fix the bug",
+      "requiredRoutes": ["systematic-defect"],
+      "requiredSkills": ["predictor-systematic-debugging"],
+      "forbiddenSkills": ["predictor-code-simplification", "predictor-product-opportunity-scout"],
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 1
+    },
+    {
+      "id": "routine-architecture-review-needs-orientation",
+      "prompt": "Review the architecture of this component boundary",
+      "forbiddenSkills": ["predictor-second-opinion", "predictor-product-opportunity-scout"],
+      "expectNoDeterministicFallback": true,
+      "maxAuthorities": 0,
+      "maxSelectedSkills": 0
+    }
+  ]
+}

@@ -168,6 +168,11 @@ describe('the map cannot rot', () => {
       // controls, on a phone, for somebody ninety seconds into the product.
       'vnext-supporting.spec.ts',
       'vnext-ia.spec.ts',
+      // The canonical screenshot suite, on the vNext config for the same
+      // reason as the rest. It is not a journey and never will be: it visits no
+      // application route and asserts nothing about a read, which is why the
+      // journey map cannot reach it and should not try.
+      'vnext-visual-contract.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(

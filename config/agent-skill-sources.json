@@ -1,0 +1,145 @@
+{
+  "$comment": "Immutable upstream skill catalogue. Product/repository authorities outrank every entry. Materialized bytes live in ignored .agent-cache/skills and are never a source of repository truth.",
+  "cacheRoot": ".agent-cache/skills",
+  "sources": {
+    "frontend-design": {
+      "repository": "pbakaus/impeccable",
+      "commit": "56f44523f76efdcec813e67b38ee550e49b16f48",
+      "path": ".agents/skills/impeccable",
+      "entrypoint": "SKILL.md",
+      "license": "Apache-2.0",
+      "mode": "routed",
+      "adapter": "predictor-frontend-design"
+    },
+    "motion-craft": {
+      "repository": "emilkowalski/skills",
+      "commit": "d23d7f88a2e21c9e4b1418c7abe420f5c1052ba7",
+      "path": "skills/animate",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-motion-craft"
+    },
+    "brainstorming": {
+      "repository": "obra/superpowers",
+      "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/brainstorming",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-product-brainstorming"
+    },
+    "systematic-debugging": {
+      "repository": "obra/superpowers",
+      "commit": "b36e0829c6d0140e93cfef2ca599b1b07d4a7797",
+      "path": "skills/systematic-debugging",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-systematic-debugging"
+    },
+    "code-simplifier": {
+      "repository": "anthropics/claude-plugins-official",
+      "commit": "340e33aef211d95769d252324854497af871dafe",
+      "path": "plugins/code-simplifier",
+      "entrypoint": "agents/code-simplifier.md",
+      "license": "Apache-2.0",
+      "mode": "routed",
+      "adapter": "predictor-code-simplification"
+    },
+    "skill-creator": {
+      "repository": "anthropics/claude-plugins-official",
+      "commit": "340e33aef211d95769d252324854497af871dafe",
+      "path": "plugins/skill-creator/skills/skill-creator",
+      "entrypoint": "SKILL.md",
+      "license": "Apache-2.0",
+      "mode": "routed",
+      "adapter": "predictor-skill-evaluator"
+    },
+    "react-best-practices": {
+      "repository": "vercel-labs/agent-skills",
+      "commit": "dd089a8c752c966dee8bf0f27cb625ba193ffd9e",
+      "path": "skills/react-best-practices",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-react-best-practices"
+    },
+    "composition-patterns": {
+      "repository": "vercel-labs/agent-skills",
+      "commit": "dd089a8c752c966dee8bf0f27cb625ba193ffd9e",
+      "path": "skills/composition-patterns",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-composition-patterns"
+    },
+    "supabase-postgres-best-practices": {
+      "repository": "supabase/agent-skills",
+      "commit": "8331f910845103c08d51f6ca1d86ebb7d1f745e3",
+      "path": "skills/supabase-postgres-best-practices",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "routed",
+      "adapter": "predictor-postgres-best-practices"
+    },
+    "differential-review": {
+      "repository": "trailofbits/skills",
+      "commit": "293fb74c3151cceda32a85a545fe8acd67f8f5c6",
+      "path": "plugins/differential-review/skills/differential-review",
+      "entrypoint": "SKILL.md",
+      "license": "CC-BY-SA-4.0",
+      "mode": "conditional-review",
+      "adapter": "predictor-differential-review"
+    },
+    "second-opinion": {
+      "repository": "trailofbits/skills",
+      "commit": "293fb74c3151cceda32a85a545fe8acd67f8f5c6",
+      "path": "plugins/second-opinion/skills/second-opinion",
+      "entrypoint": "SKILL.md",
+      "license": "CC-BY-SA-4.0",
+      "mode": "conditional-review",
+      "adapter": "predictor-second-opinion"
+    },
+    "web-design-guidelines": {
+      "repository": "vercel-labs/agent-skills",
+      "commit": "dd089a8c752c966dee8bf0f27cb625ba193ffd9e",
+      "path": "skills/web-design-guidelines",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "catalogue-only"
+    },
+    "ui-ux-pro-max": {
+      "repository": "nextlevelbuilder/ui-ux-pro-max-skill",
+      "commit": "bc826e2267a36d98a2dcf5231e16c30ff546770f",
+      "path": ".claude/skills/ui-ux-pro-max",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "catalogue-only"
+    },
+    "taste-redesign": {
+      "repository": "Leonxlnx/taste-skill",
+      "commit": "72e299530e2eb31ed8da06181bc19f6c18a00821",
+      "path": "skills/redesign-skill",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "catalogue-only"
+    },
+    "insecure-defaults": {
+      "repository": "trailofbits/skills",
+      "commit": "293fb74c3151cceda32a85a545fe8acd67f8f5c6",
+      "path": "plugins/insecure-defaults",
+      "entrypoint": "commands/audit.md",
+      "license": "CC-BY-SA-4.0",
+      "mode": "catalogue-only"
+    },
+    "react-view-transitions": {
+      "repository": "vercel-labs/agent-skills",
+      "commit": "dd089a8c752c966dee8bf0f27cb625ba193ffd9e",
+      "path": "skills/react-view-transitions",
+      "entrypoint": "SKILL.md",
+      "license": "MIT",
+      "mode": "catalogue-only"
+    }
+  }
+}

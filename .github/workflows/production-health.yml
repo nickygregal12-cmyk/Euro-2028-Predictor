@@ -1,0 +1,44 @@
+name: Scheduled Production Health
+
+on:
+  schedule:
+    # Off the top of the hour to avoid the busiest public scheduler window.
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    concurrency:
+      group: production-health-${{ matrix.site }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        site:
+          - euro
+          - hub
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.2
+
+      - name: Check the currently served production release
+        env:
+          EURO28_HEALTH_ORIGIN: ${{ matrix.site == 'hub' && 'https://predictorhub.netlify.app' || 'https://euro28predictor.com' }}
+          EURO28_SITE_PASSWORD: ${{ secrets.PRODUCTION_SITE_PASSWORD }}
+        run: node scripts/production-health.mjs

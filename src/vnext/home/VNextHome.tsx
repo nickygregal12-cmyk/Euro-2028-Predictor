@@ -4,6 +4,8 @@ import { VNextShell } from '../app/VNextShell'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
+import { SinceYouWereHere } from './SinceYouWereHere'
+import { MatchweekRecap } from './MatchweekRecap'
 import { CompetitionFocus } from './CompetitionFocus'
 import { DecisionHero } from './DecisionHero'
 import { FeaturedMatch } from './FeaturedMatch'
@@ -17,8 +19,18 @@ import {
 } from './selectHomeEmphasis'
 import styles from './home.module.css'
 
+/**
+ * Home says WHAT the player asked to open; the application says WHERE it lives.
+ * No route string crosses the vNext presentation boundary.
+ */
+export type HomeIntent =
+  | { readonly kind: 'open-predictor' }
+  | { readonly kind: 'open-leagues' }
+  | { readonly kind: 'open-match'; readonly matchId: string }
+
 export type VNextHomeProps = {
   model: HomeModel
+  onIntent?: ((intent: HomeIntent) => void) | undefined
 }
 
 /** What the secondary football zone is called, per emphasis. */
@@ -71,7 +83,7 @@ const GROUNDS_TITLE = {
  * about locks, scoring, settlement, reveal or whether a match is officially
  * under way, and it must never become so.
  */
-export function VNextHome({ model }: VNextHomeProps) {
+export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const rise = useVNextMotion(vnextMotion.riseIn)
   const stagger = useVNextMotion(vnextMotion.stagger)
 
@@ -79,6 +91,28 @@ export function VNextHome({ model }: VNextHomeProps) {
   const emphasis = selectHomeEmphasis(model)
   const featured = pickFeaturedLiveMatch(model)
   const decision = pickDecisionMatch(model)
+
+  const openPredictor = () => onIntent?.({ kind: 'open-predictor' })
+  const openLeagues = () => onIntent?.({ kind: 'open-leagues' })
+  const openMatch = (matchId: string) => onIntent?.({ kind: 'open-match', matchId })
+
+  const primaryAction = () => {
+    switch (model.primaryAction.type) {
+      case 'predict':
+      case 'review':
+        openPredictor()
+        return
+      case 'joinLeague':
+        openLeagues()
+        return
+      case 'watchLive':
+        // The button literally promises Match Centre. A destination without a
+        // fixture id can only reach Matches, so carry the exact featured match
+        // Home is already presenting rather than letting a later layer guess.
+        if (featured) openMatch(featured.id)
+        return
+    }
+  }
 
   const allMatches = [
     ...model.liveMatches,
@@ -90,7 +124,28 @@ export function VNextHome({ model }: VNextHomeProps) {
   // emphasis puts no match on the stage, so nothing is withheld from the list.
   const staged =
     emphasis === 'live' ? featured : emphasis === 'decision' ? decision : null
-  const supporting = allMatches.filter((match) => match.id !== staged?.id)
+
+  /*
+   * AND NEITHER IS A RESULT THE RECAP ZONE ALREADY SHOWED.
+   *
+   * "Since you were last here" draws a handful of settled matches at the top of
+   * the page with the reader's own call beside each. Around the Grounds then
+   * draws every settled match again under "Already settled" — so on the one day
+   * the recap zone appears, the page showed the same three results twice, forty
+   * lines apart, with the second copy carrying points the first deliberately
+   * omits. That reads as two different things having happened.
+   *
+   * The rule is the one directly above, applied to a second zone: a match shown
+   * higher up is not repeated lower down. What Around the Grounds keeps is
+   * everything the recap zone did NOT have room for, which is exactly what the
+   * "and N more" line promised was still there.
+   */
+  const alreadyShown = new Set(
+    (model.sinceLastVisit?.results ?? []).map((match) => match.id),
+  )
+  const supporting = allMatches.filter(
+    (match) => match.id !== staged?.id && !alreadyShown.has(match.id),
+  )
 
   return (
     <VNextShell
@@ -106,12 +161,18 @@ export function VNextHome({ model }: VNextHomeProps) {
     >
       <FixtureTicker matches={allMatches} now={now} />
 
+      {/* WHAT HAPPENED, BEFORE WHAT NOW. A player returning on a Monday wants
+          the weekend before they want the deadline, and every other zone on
+          this page answers "what now". It renders nothing on a first visit and
+          nothing when nothing has finished since — which is most days. */}
+      <SinceYouWereHere since={model.sinceLastVisit} />
+
       {/* In decision emphasis the hero IS the outstanding action, so the
           banner would say the same thing twice in a row. Everywhere else it
           sits above the football, because a deadline you can still act on
           outranks a match you cannot. */}
       {emphasis === 'decision' ? null : (
-        <ActionBanner action={model.primaryAction} now={now} />
+        <ActionBanner action={model.primaryAction} now={now} onAction={primaryAction} />
       )}
 
       {/* Keyed on the emphasis so a change of state re-runs the entrance
@@ -126,9 +187,11 @@ export function VNextHome({ model }: VNextHomeProps) {
         animate="visible"
       >
         <motion.div className={styles.stage} data-vnext-zone="stage" variants={rise}>
-          {emphasis === 'live' && featured ? <FeaturedMatch match={featured} /> : null}
+          {emphasis === 'live' && featured ? (
+            <FeaturedMatch match={featured} onOpenMatch={openMatch} />
+          ) : null}
           {emphasis === 'decision' && decision ? (
-            <DecisionHero match={decision} now={now} />
+            <DecisionHero match={decision} now={now} onAction={primaryAction} />
           ) : null}
           {emphasis === 'competition' ? <CompetitionFocus model={model} /> : null}
         </motion.div>
@@ -142,6 +205,8 @@ export function VNextHome({ model }: VNextHomeProps) {
             matches={supporting}
             now={now}
             title={GROUNDS_TITLE[emphasis]}
+            onOpenMatch={openMatch}
+            onOpenPredictor={openPredictor}
           />
         </motion.div>
 
@@ -156,6 +221,28 @@ export function VNextHome({ model }: VNextHomeProps) {
             <SocialContext model={model} />
           </motion.div>
         )}
+      </motion.div>
+
+      {/*
+        HOW YOU DID, UNDER EVERYTHING THAT IS HAPPENING.
+
+        A BAND RATHER THAN A GRID AREA, deliberately. `.body` places three named
+        areas across three widths and three emphases — nine declarations, each
+        tuned against a specific void the composition used to open — and a
+        fourth area would mean editing all nine to add something that is not
+        football and not an action. The recap is neither, so it sits below the
+        grid at page width in every emphasis, which is also the right reading
+        order: what needs you, what is happening, what happened, then how you
+        did. It renders nothing at all until a matchweek has settled.
+      */}
+      <motion.div
+        className={styles.recapBand}
+        data-vnext-zone="recap-band"
+        variants={rise}
+        initial="hidden"
+        animate="visible"
+      >
+        <MatchweekRecap recap={model.matchweekRecap} />
       </motion.div>
     </VNextShell>
   )

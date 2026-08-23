@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **213** | latest `20260820150000_drop_unmeasured_sportmonks_tokens.sql` |
-| Development hosted | **211** | at `20260820090000_provider_deadline_watch_tier.sql`, verified `2026-08-20T09:54:01.756Z`, fast-lane run `32353837721` |
+| Development hosted | **213** | at `20260820150000_drop_unmeasured_sportmonks_tokens.sql`, verified `2026-08-21T09:22:18.620Z` |
 | Production | **211** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 2 — `20260820130000_matchweek_card_publishes_the_fixture_lock.sql`, `20260820150000_drop_unmeasured_sportmonks_tokens.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 214. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
@@ -33,14 +33,18 @@ before claiming it — two branches claiming one number is a known failure here.
 | --- | --- |
 | `VITE_UI_FOOTBALL_HUB_ACCOUNT` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_CREATE` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_DISCOVERY` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_GAMES` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_HOME` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_INVITE` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_LEAGUES` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_LMS` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_MATCHES` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_ONBOARDING` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` | set in the base build environment |
 | `VITE_UI_FOOTBALL_HUB_PREDICTOR` | set in the base build environment |
+| `VITE_UI_FOOTBALL_HUB_WRAPPED` | set in the base build environment |
 | `VITE_UI_PUBLIC_LANDING` | set in the base build environment |
 | `VITE_UI_SEASON_MATCH_PREDICTOR` | set in the base build environment |
 

@@ -57,7 +57,10 @@ describe('the landing page content model', () => {
 
   it('leads the games with Match Predictor and discloses the rest after it', () => {
     // E.3's sixth surface and E.6 together: Match Predictor is the weekly
-    // habit being sold, and the other two are optional depth behind it.
+    // ORDER IS NOT PROMINENCE, and this asserts only the order. The three are
+    // peers — the case below holds that — and Match Predictor leads because it
+    // is the one whose card the other two are built on top of, which is a fact
+    // about the formats rather than a ranking of them.
     expect(GAMES[0]?.name).toBe('Match Predictor')
     expect(GAMES.map((game) => game.name)).toContain('Last Man Standing')
     expect(GAMES.map((game) => game.name)).toContain('Predictor Championship')
@@ -75,8 +78,17 @@ describe('the landing page content model', () => {
 
     expect(prose).not.toMatch(/automatically (join|enter|enrol)/i)
     expect(prose).not.toMatch(/(joins?|enters?) you (in|into)/i)
-    // And the independence is stated somewhere rather than merely not denied.
-    expect(prose).toMatch(/separately|independent/i)
+
+    // AND THE FACT IS STATED SOMEWHERE, IN WHATEVER WORDS FIT. This used to
+    // demand the literal `separately` or `independent`, which forced a
+    // specification's vocabulary onto an acquisition page: the copy read "every
+    // game is joined separately and scored on its own", which is true, is a
+    // sentence somebody wrote to settle a product rule, and makes no stranger
+    // want to predict any football. The REQUIREMENT is that a visitor is not
+    // left believing one sign-up enrols them in three games. "Each game is its
+    // own competition" carries that; so would half a dozen other phrasings, and
+    // this accepts them.
+    expect(prose).toMatch(/separately|independent|its own competition|on its own/i)
   })
 
   it('gives the three weekly games equal prominence', () => {
@@ -92,7 +104,10 @@ describe('the landing page content model', () => {
 
     // No game is ranked against another, and none is described as secondary.
     expect(prose).not.toMatch(/foundation|optional|extra|add-on|the rest|later/i)
-    expect(prose).not.toMatch(/start with|begin with|first, /i)
+    // "start with" and "begin with" rank the games. A group stage that comes
+    // before a knockout does not, so the ordering words are matched only where
+    // they are about which GAME to play.
+    expect(prose).not.toMatch(/start with|begin with|then the others|once you have mastered/i)
 
     // Each says the same KIND of thing: what you do, and how often.
     for (const game of GAMES) {

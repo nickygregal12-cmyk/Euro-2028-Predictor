@@ -61,3 +61,62 @@ describe('always-present merge gate', () => {
     }
   })
 })
+
+/**
+ * THE vNEXT BROWSER GATE, AND WHY ITS SHAPE IS ASSERTED RATHER THAN TRUSTED.
+ *
+ * `OPS-012` recorded that the suite proving a vNext stage's layout contract is
+ * not a merge condition, and that the obvious fix — adding its context to the
+ * ruleset — is the one thing that must not be done, because a `paths:`-filtered
+ * workflow does not run at all on a pull request it does not match, so a
+ * required context that never posts blocks that pull request for ever. The
+ * repository has already lost a day to that class of failure under `DOC-001`.
+ *
+ * The finding's own closure named the way out: *"the path-scoped workflow gains
+ * a companion job that always reports a conclusion (success when its paths did
+ * not match) and THAT becomes required"*. The gate itself now has that
+ * property, which is the same thing with one context rather than two.
+ *
+ * These cases hold the three properties that make it safe to require. Each one
+ * of them, reversed, reintroduces exactly one of the failures above.
+ */
+const vnextWorkshop = readFileSync(
+  resolve(repositoryRoot, '.github/workflows/vnext-workshop.yml'),
+  'utf8',
+)
+
+describe('the vNext browser gate can be required without blocking anything', () => {
+  it('runs on every pull request rather than only on the paths it measures', () => {
+    const trigger = vnextWorkshop.slice(
+      vnextWorkshop.indexOf('on:'),
+      vnextWorkshop.indexOf('jobs:'),
+    )
+    expect(trigger).toContain('pull_request:')
+    // THE FILTER MOVED INSIDE. A workflow-level `paths:` is what makes a
+    // required context impossible to satisfy on a pull request that does not
+    // match it.
+    expect(trigger).not.toContain('paths:')
+  })
+
+  it('reports a conclusion whatever the shards did, including not running', () => {
+    // `always()` rather than `!cancelled()`: a gate that vanished when a shard
+    // failed would be indistinguishable, to a ruleset, from one that passed.
+    const gate = vnextWorkshop.slice(vnextWorkshop.indexOf('  layout:'))
+    expect(gate).toContain('name: vNext merged browser gate')
+    expect(gate).toContain('if: ${{ always() }}')
+    expect(gate).toContain('needs: [changes, shard]')
+  })
+
+  it('fails unless the shards actually succeeded where they were owed', () => {
+    // The propagation is the whole point. Without it the gate would be an
+    // always-green context, which is worse than no context at all: it would
+    // satisfy the programme's stage-transition requirement while the evidence
+    // was red, cancelled or absent.
+    const gate = vnextWorkshop.slice(vnextWorkshop.indexOf('  layout:'))
+    expect(gate).toContain("needs.changes.outputs.vnext == 'true' && needs.shard.result != 'success'")
+    // And an unanswered decision is not "nothing to measure": an empty output
+    // is not `'true'`, so without this the gate would pass a pull request
+    // nobody had classified.
+    expect(gate).toContain("needs.changes.result != 'success'")
+  })
+})
