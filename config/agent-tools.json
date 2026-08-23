@@ -31,6 +31,16 @@
       "versioning": "npm"
     }
   },
+  "opencode": {
+    "package": "opencode-ai",
+    "version": "1.18.19",
+    "mode": "bootstrap-cloud-agent",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "opencode-ai",
+      "versioning": "npm"
+    }
+  },
   "serena": {
     "package": "serena-agent",
     "version": "1.6.1",
