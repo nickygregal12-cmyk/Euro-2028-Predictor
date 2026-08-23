@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type {} from 'vitest/config'
@@ -241,23 +241,38 @@ export default defineConfig(({ command, mode }) => {
         // the site is simply blank. Taking the finished bytes and swapping only
         // the managed block makes the two impossible to drift apart.
         //
-        // `writeBundle` RATHER THAN `generateBundle`, and that is not a style
-        // choice: under Vite 8 the bundle holds only `assets/*` while
-        // `generateBundle` runs, and the document is produced afterwards. An
-        // `emitFile` there silently had nothing to copy.
-        writeBundle(options) {
+        // WHICH HOOK, AND WHY IT READS THE BUNDLE RATHER THAN THE DISK.
+        // Measured rather than assumed, because both plausible answers are
+        // wrong in different ways:
+        //
+        //   * at `generateBundle` the bundle holds only `assets/*` — the
+        //     document does not exist yet, and an `emitFile` there silently has
+        //     nothing to copy;
+        //   * at `writeBundle` the document is present BOTH in the bundle and
+        //     on disk.
+        //
+        // So this takes it from the bundle. Reading `dist/index.html` back off
+        // the filesystem would work today and would make the build depend on
+        // when Vite happens to flush it, which is an internal detail and not a
+        // promise. The in-memory asset is the same bytes with no such
+        // dependency, and the guard below fails loudly if a future version
+        // stops providing it rather than emitting an invite page from nothing.
+        writeBundle(options, bundle) {
           const directory = options.dir
           if (!directory) throw new Error('The build has no output directory to write into.')
-          const built = resolve(directory, 'index.html')
-          if (!existsSync(built)) {
+
+          const document = bundle['index.html']
+          if (!document || document.type !== 'asset') {
             throw new Error(
-              `${built} was not written, so the invite document cannot be derived ` +
-                'from it. An authored copy would drift on the next hashed asset.',
+              'index.html is not among the written bundle assets, so the invite ' +
+                'document cannot be derived from it. An authored copy would drift ' +
+                'from the built one on the next hashed asset.',
             )
           }
+
           writeFileSync(
             resolve(directory, INVITE_DOCUMENT_PATH.slice(1)),
-            applyDocumentHead(readFileSync(built, 'utf8'), site, inviteShareCard(site)),
+            applyDocumentHead(String(document.source), site, inviteShareCard(site)),
           )
         },
       },
