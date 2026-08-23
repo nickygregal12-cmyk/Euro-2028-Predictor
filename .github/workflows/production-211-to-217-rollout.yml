@@ -273,26 +273,32 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          {
-            echo '## Production applied Contracts 212 through 217'
-            echo
-            echo 'This job applied the boundary and ran its own postflight. That postflight'
-            echo 'is NOT the evidence this repository records: a job reporting on its own'
-            echo 'write is not independent. Before updating any machine record, take a'
-            echo 'SEPARATE read-only query against the Production project and read:'
-            echo
-            echo '- the ledger holds 217 rows ending `20260824090000_web_push_channel`;'
-            echo '- every player-owned count is unchanged from `before.json` in this run''s artifact;'
-            echo '- `predictor_internal.reminder_sender_configuration()` reports `secrets_present` false,'
-            echo '  so the newly scheduled dispatch job refuses and posts nothing;'
-            echo '- both publication gates are still false and Euro publication is still hidden.'
-            echo
-            echo 'Then write `config/production-hosted-contract.json` BY HAND from that query.'
-            echo '`promotionAuthorised` stays `false`: it is a property of the record, pinned'
-            echo 'there by `check-hosted-migration-inventory.mjs` and'
-            echo '`production-hosted-contract-expectations.mjs`, and not a statement about'
-            echo 'whether this promotion happened.'
-          } >> "${GITHUB_STEP_SUMMARY}"
+          # A QUOTED heredoc rather than a run of `echo`s in single quotes.
+          # Every backtick below is literal markdown for the step summary and
+          # must not expand, which is exactly what shellcheck's SC2016 asks about
+          # one `echo` at a time. The repository's usual answer is to declare the
+          # intent and disable the rule; here the construct that raises it can
+          # simply be removed, and a heredoc reads better than twenty echoes.
+          cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
+          ## Production applied Contracts 212 through 217
+
+          This job applied the boundary and ran its own postflight. That postflight
+          is NOT the evidence this repository records: a job reporting on its own
+          write is not independent. Before updating any machine record, take a
+          SEPARATE read-only query against the Production project and read:
+
+          - the ledger holds 217 rows ending `20260824090000_web_push_channel`;
+          - every player-owned count is unchanged from `before.json` in this run's artifact;
+          - `predictor_internal.reminder_sender_configuration()` reports `secrets_present` false,
+            so the newly scheduled dispatch job refuses and posts nothing;
+          - both publication gates are still false and Euro publication is still hidden.
+
+          Then write `config/production-hosted-contract.json` BY HAND from that query.
+          `promotionAuthorised` stays `false`: it is a property of the record, pinned
+          there by `check-hosted-migration-inventory.mjs` and
+          `production-hosted-contract-expectations.mjs`, and not a statement about
+          whether this promotion happened.
+          SUMMARY
 
       - name: Upload rollout evidence
         if: ${{ !cancelled() }}
