@@ -92,6 +92,20 @@ no caller there — which is the same reason item 4 withholds contract 162. *(Th
 deleted: Production holds ten. What is true and narrower is that no job there
 calls this driver.)*
 
+**That narrower claim has also stopped being true, measured read-only on 23
+August 2026 and corrected here rather than deleted.** Production holds
+**eleven** cron jobs and one of them is `player-action-centre-generate`,
+`*/15 * * * *`, active — so the action driver does have a caller there, and
+`player_action_items` holds 5 rows on Production and 12 on Development. All
+five generators are installed in both, and `get_my_actions`,
+`mark_actions_seen` and `dismiss_action` are executable by `authenticated` in
+both. **This does not make contract 170 consumed** — that is a frontend fact
+and this item is about a backend one — but it removes "unhosted" as the reason,
+and the reason item 4 gives for withholding contract 162 is now the incomplete
+feed alone. The vNext Action Centre consumes the feed as of the same date; the
+`MIG-UI-14` row in [`quality/accepted-requirements.md`](quality/accepted-requirements.md)
+is that item's authority and this line is not a second one.
+
 **Contracts 172 and 173 are not consumed, and neither is consumable by a browser at all.** Contract 172 schedules jobs and adds one administrator read; contract 173 adds a generator behind an existing read. What a frontend gains from the pair is that `get_my_actions` stops answering every player with an empty list — which is a reason to build the notification control item 4 names, not a new read to call. `admin_reminder_delivery_health` is still not shown anywhere.
 
 **Contracts 174 to 178 are consumed as of 12 August 2026.** `database.types.ts` was regenerated against hosted Development at contract 178 through `regenerate-database-types.yml`, which is what made the five callable at all. Contract 174's staged calendar changes and contract 178's shadow-scoring report are both on `/admin/season`; contract 175's projection replaced the browser What-If derivation and contract 176's metrics replaced the browser Prediction DNA derivation, in each case DELETING the derivation rather than running it beside the read; and contract 177 carries the offline drafting `INNOV-020` had deferred. Contract 178 still has no scheduled caller, and its panel says "never checked" rather than inventing evidence — see `UI-F23` in [`design/ui-finalisation.md`](design/ui-finalisation.md).

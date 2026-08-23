@@ -212,8 +212,29 @@ running it enough times to be evidence, not building it.
 Repository-only. No hosted mutation, no migration, no environment change, no
 Production promotion. Rollback is the revert of this branch.
 
-The reads are installed on both hosted environments (they predate the current
-development contract), so no surface here is gated on a rollout.
+**The hosted position, measured read-only on 23 August 2026 rather than
+inferred.** This paragraph originally said the reads were installed "because
+they predate the current development contract", which is exactly the
+contract-number inference `AGENTS.md` forbids — a ledger count is not evidence
+that a particular function is installed and granted. Independent read-only
+queries against both projects (`iouzoutneyjpugbbtdem` and
+`vkfnsqdyhvtwyqkisxhk`), separate from any rollout output:
+
+| Fact | Development | Production |
+| --- | --- | --- |
+| `get_my_actions`, `mark_actions_seen`, `dismiss_action`, `get_season_leaderboard_neighbourhood` executable by `authenticated` | all four true | all four true |
+| The five action generators installed | all five | all five |
+| `process_player_action_items` has a cron caller | `player-action-centre-generate`, `*/15 * * * *`, active | `player-action-centre-generate`, `*/15 * * * *`, active |
+| `player_action_items` rows | 12 | 5 |
+
+Argument identities were checked too, because a bound name that does not exist
+fails at the PostgREST boundary rather than at compile time: `p_limit` /
+`p_include_dismissed`, `p_action_keys`, `p_action_key` and `p_tournament_id` /
+`p_window`, all matching the gateways in `src/services/supabase/`.
+
+So neither surface is gated on a rollout, and the Action Centre has real
+content to show in both environments rather than an empty list. **No mutation
+was made and no Production write is claimed by this record.**
 
 ## 9. Completion predicate
 
