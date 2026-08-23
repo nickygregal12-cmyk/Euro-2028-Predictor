@@ -93,6 +93,12 @@ export type GeneratedEntry = {
   groupOrders: { groupLetter: string; order: number[] }[] // slots, predicted 1st→4th
   progression: { groupLetter: string; slot: number; stage: KnockoutStage }[]
   totalGoals: number
+  /**
+   * Whether the player pressed submit. Everyone does by default — the
+   * `sparse` scenario (`scenarios.ts`) is what turns this off, because
+   * `docs/design-system.md` requires non-submitters to be reviewable.
+   */
+  submitted: boolean
 }
 
 export type GeneratedResult = { matchRef: string; homeScore: number; awayScore: number }
@@ -167,6 +173,7 @@ function generateEntry(name: string, index: number, fixture: Fixture, rng: () =>
     groupOrders,
     progression: generateProgression(rng),
     totalGoals: 60 + intBelow(rng, 60), // a plausible group-stage total guess
+    submitted: true,
   }
 }
 

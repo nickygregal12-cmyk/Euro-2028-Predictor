@@ -9,7 +9,24 @@
     "note": "The repository's own position is deliberately absent; it is read from the authority named above, which on any branch already carries that branch's own claim. What is recorded here is every OTHER open branch that holds a number, so the next free one is this branch's position plus one plus the claims below. Two branches holding one number is the known failure this record exists to prevent, so a claim names an exact pull-request head and is invalid the moment the repository reaches it.",
     "claimedByOpenPullRequests": []
   },
-  "openPullRequestClassification": [],
+  "openPullRequestClassification": [
+    {
+      "pr": 1005,
+      "branch": "claude/euro-2028-ia-decision-xzn57m-home",
+      "headSha": "7b2ab796be2bcf4238f76823abad9e71dbcb58bb",
+      "draft": false,
+      "classification": "unrelated",
+      "rationale": "vNext Home information architecture. Carries no migration and makes no contract claim; shares no file with any stage here."
+    },
+    {
+      "pr": 1008,
+      "branch": "claude/euro-2028-ia-decision-xzn57m-games",
+      "headSha": "a4279032216b3eab5d1e8808fa0333596783a2c2",
+      "draft": false,
+      "classification": "overlapping_but_compatible",
+      "rationale": "vNext Games information architecture. It branched before this programme's recent stages and carries a STALE copy of this controller (stage 1 complete, stages 2 and 3 empty, this classification list emptied). Its migration set and contract claim match the repository's own position, so it competes for no number. Because both sides edited the same controller lines the merge CONFLICTS rather than silently reverting, which is the safe failure; whoever merges it must keep the repository's stage records rather than the branch's. Not this programme's branch to push to."
+    }
+  ],
   "stages": [
     {
       "id": "0",
@@ -77,11 +94,17 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
+      "status": "complete",
       "pr": 1007,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "headSha": "a1708daf0312502e08bb6643ce7c6848c520a25c",
+      "mergedSha": "0664d973d1c7c92ef876f3b86e436695f39c8d07",
+      "acceptanceEvidence": [
+        "An invite link rewrites to a build-derived join document that says it is an invitation; the document is taken from the Vite bundle asset, so it can never drift from index.html's hashed script and stylesheet tags.",
+        "The card is a pure function of the site and takes no invite code: contracts 152, 158 and 159 narrowed invite disclosure onto one rate-limited budget, and a crawler-fetched card carrying per-code content would be a fourth, unlimited door. A card that merely DIFFERED between a real and a guessed code would be a free validity oracle, so the suite asserts the arity (inviteShareCard.length === 1) rather than the wording.",
+        "robots.txt carries Disallow: /join/ and the invite document carries noindex, nofollow and emits no canonical or og:url. Each of the three disclosure guards was proved by removing what it guards and watching it fail.",
+        "Closes the crawlable half of SEC-001 and advances SEO-002, both recorded in docs/quality/risk-register.md.",
+        "No migration; the deployment contract is untouched at 217."
+      ],
       "blocker": null
     },
     {
@@ -90,7 +113,7 @@
       "dependencies": [
         "0"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

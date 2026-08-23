@@ -6,6 +6,9 @@
 //   SUPABASE_URL=… SUPABASE_SERVICE_ROLE_KEY=… \
 //   npx tsx scripts/seed-dev/index.ts --commit   # write to the DEV database
 //
+// Add --scenario=<standard|contested|sparse> to seed a named hostile state
+// (scenarios.ts). Omitted means `standard`, which is the behaviour above.
+//
 // Dry run is the default so an accidental run is harmless. Committing is
 // fail-closed (scripts/seed-dev/seedPolicy.ts) and idempotent (it deletes any
 // prior seed users first, identified by their @seed.euro28.test email domain).
@@ -20,6 +23,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildFixture } from './fixture'
 import { generateSeedData, SEED_EMAIL_DOMAIN, type GeneratedEntry } from './generate'
 import { rankScored, scoreEntries } from './scoreEntries'
+import { applyScenario, readScenario, SCENARIOS, type ScenarioName } from './scenarios'
 import { evaluateSeedPolicy } from './seedPolicy'
 
 // A loosely-typed admin client (default generics). The seed writes to a handful
@@ -29,12 +33,13 @@ type Admin = SupabaseClient
 
 const SEED_USER_PASSWORD = 'seed-user-euro28!'
 
-function printDryRun(): void {
+function printDryRun(scenario: ScenarioName): void {
   const fixture = buildFixture()
-  const data = generateSeedData(fixture)
+  const data = applyScenario(fixture, generateSeedData(fixture), scenario)
   const scored = rankScored(scoreEntries(fixture, data))
 
   console.log('\nDEV SEED — DRY RUN (nothing written)\n')
+  console.log(`Scenario: ${scenario} — ${SCENARIOS[scenario].summary}\n`)
   console.log(
     `${data.entries.length} test users · ${data.results.length} results entered · ` +
       `${fixture.matches.length} group matches in the fixture\n`,
@@ -62,14 +67,41 @@ function printDryRun(): void {
     if (sample.events.length > 8) console.log(`  … ${sample.events.length - 8} more`)
   }
 
+  const unsubmitted = data.entries.filter((entry) => !entry.submitted)
+  if (unsubmitted.length > 0) {
+    console.log(
+      `\n${unsubmitted.length} of ${data.entries.length} entries were never submitted: ` +
+        unsubmitted.map((entry) => entry.displayName).join(', '),
+    )
+  }
+
+  const best = scored[0]
+  if (best !== undefined) {
+    const level = scored.filter((entry) => entry.total === best.total)
+    if (level.length > 1) {
+      console.log(
+        `\nLevel at the top on ${best.total}: ` +
+          level.map((entry) => entry.displayName).join(' and '),
+      )
+    }
+  }
+
   console.log(
     '\nCommitting also creates "The Seed Test League" (code SEEDLG) owned by the ' +
       'first seed user with ~8 members, so the League detail page renders populated.',
   )
+  const extraPools = SCENARIOS[scenario].extraPoolSizes
+  if (extraPools.length > 0) {
+    console.log(
+      `It also creates ${extraPools.length} smaller pool(s) of ` +
+        `${extraPools.join(' and ')} member(s), the sizes at which a leaderboard stops ` +
+        'meaning anything.',
+    )
+  }
   console.log('\nRe-run with --commit (and the dev env vars) to write this to the database.\n')
 }
 
-async function commit(): Promise<void> {
+async function commit(scenario: ScenarioName): Promise<void> {
   const { url, serviceKey } = evaluateSeedPolicy(process.env)
 
   // Imported lazily so the dry-run path never touches the network layer.
@@ -79,7 +111,7 @@ async function commit(): Promise<void> {
   }) as unknown as Admin
 
   const fixture = buildFixture()
-  const data = generateSeedData(fixture)
+  const data = applyScenario(fixture, generateSeedData(fixture), scenario)
 
   // --- resolve the real reference data by stable references -----------------
   const { data: tournament, error: tErr } = await admin
@@ -181,7 +213,13 @@ async function commit(): Promise<void> {
 
     const { data: entryRow, error: eErr } = await admin
       .from('entries')
-      .insert({ user_id: userId, tournament_id: tournamentId, submitted_at: new Date().toISOString() })
+      .insert({
+        user_id: userId,
+        tournament_id: tournamentId,
+        // A non-submitter keeps a full set of drafted predictions and simply
+        // never pressed the button, which is the state under review.
+        submitted_at: entry.submitted ? new Date().toISOString() : null,
+      })
       .select('id')
       .single()
     if (eErr || !entryRow) throw new Error(`entry insert failed for ${entry.email}: ${eErr?.message}`)
@@ -276,6 +314,72 @@ async function commit(): Promise<void> {
 
   // --- a populated test league (so the League detail page has real members) --
   await seedTestLeague(admin, tournamentId, seededUsers)
+  await seedSmallPools(admin, tournamentId, seededUsers, SCENARIOS[scenario].extraPoolSizes)
+}
+
+/**
+ * The pools a leaderboard cannot say anything useful about. `docs/design-system.md`
+ * requires the "Only you" surface to survive 1-entry and 2-entry pools, and the
+ * ordinary seed has never produced one — every league it made had eight members.
+ *
+ * Owners are taken from the END of the seed user list so these pools do not
+ * overlap the populated league, which takes the first eight. Best-effort and
+ * idempotent on the same terms as `seedTestLeague`: the seed-user wipe removes
+ * any league a seed user owns before the users themselves go.
+ */
+async function seedSmallPools(
+  admin: Admin,
+  tournamentId: string,
+  users: { userId: string; displayName: string }[],
+  sizes: readonly number[],
+): Promise<void> {
+  if (sizes.length === 0) return
+
+  let taken = 0
+  for (const [index, size] of sizes.entries()) {
+    // Count back from the end, so the populated league's members are untouched.
+    // Checked BEFORE slicing: a negative start index would silently count from
+    // the end again and hand back somebody else's pool members.
+    if (users.length - taken < size) {
+      console.warn(`Skipped a ${size}-member pool: only ${users.length} seed users exist.`)
+      continue
+    }
+    const members = users.slice(users.length - taken - size, users.length - taken)
+    taken += size
+
+    const owner = members[0]
+    if (owner === undefined) continue
+    const name = size === 1 ? 'A Pool Of One' : `A Pool Of ${size}`
+    const inviteCode = `SEEDP${index + 1}`
+
+    const { data: league, error: leagueError } = await admin
+      .from('leagues')
+      .insert({
+        tournament_id: tournamentId,
+        owner_id: owner.userId,
+        name,
+        invite_code: inviteCode,
+      })
+      .select('id')
+      .single()
+    if (leagueError || !league) {
+      console.warn(`Skipped the ${size}-member pool: ${leagueError?.message ?? 'no row'}`)
+      continue
+    }
+
+    const { error: memberError } = await admin.from('league_members').insert(
+      members.map((member) => ({
+        league_id: league.id,
+        user_id: member.userId,
+        role: member.userId === owner.userId ? 'owner' : 'member',
+      })),
+    )
+    if (memberError) {
+      console.warn(`Pool "${name}" created but members failed: ${memberError.message}`)
+      continue
+    }
+    console.log(`Seeded "${name}" (code ${inviteCode}) — ${members.length} member(s).`)
+  }
 }
 
 // Creates one league owned by the first seed user with several seed members, so
@@ -407,11 +511,13 @@ function describeError(error: unknown): string {
 
 // --- entrypoint --------------------------------------------------------------
 async function main(): Promise<void> {
-  const isCommit = process.argv.includes('--commit')
-  if (isCommit) {
-    await commit()
+  // Read the scenario BEFORE anything else, so an unrecognised name refuses
+  // without having touched a database.
+  const scenario = readScenario(process.argv)
+  if (process.argv.includes('--commit')) {
+    await commit(scenario)
   } else {
-    printDryRun()
+    printDryRun(scenario)
   }
 }
 

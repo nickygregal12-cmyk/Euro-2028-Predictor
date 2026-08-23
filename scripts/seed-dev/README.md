@@ -45,6 +45,35 @@ npx tsx scripts/seed-dev/index.ts --commit
   the existing tournament/teams/matches by stable references (group letter +
   slot, `GA-1..GF-6` match refs), so placeholder team names are fine.
 
+## Hostile scenarios
+
+`docs/design-system.md` binds every page to be reviewed against worst-case data
+and names the cases. Three of them the ordinary seed cannot produce: a **tied
+top**, a **non-submitter**, and a **pool too small for a leaderboard to mean
+anything**. `--scenario=` seeds them on demand, and guarantees them rather than
+leaving them to luck — a seed that ties by chance is no use for reviewing a
+tie-break, because the next run may not tie.
+
+| Scenario | Guarantees |
+| --- | --- |
+| `standard` (default) | Today's populated mid-tournament. Byte-identical to omitting the flag. |
+| `contested` | Two players level on the top total, so a tie-break has something to resolve. |
+| `sparse` | Entries that were never submitted, plus a one-member and a two-member pool. |
+
+```sh
+npx tsx scripts/seed-dev/index.ts --scenario=contested          # dry run
+SEED_DEV=i-understand … --commit --scenario=sparse              # write it
+```
+
+An unrecognised name **refuses** rather than falling back to `standard`: a typo
+that silently seeded the ordinary world would be found only by a reviewer
+wondering why the state they asked for is not on the page.
+
+The tie is created by construction — the best entry's predictions are copied
+onto the worst, which must then score identically — so nothing here re-implements
+or second-guesses scoring. `scripts/seed-dev/scenarios.ts` holds them, and
+`tests/scripts/seedScenarios.test.ts` proves each guarantee actually bites.
+
 ## Fail-closed (never production)
 
 Committing goes through `evaluateSeedPolicy` (`seedPolicy.ts`, unit-tested),
