@@ -266,6 +266,9 @@ export function commandRefusal(
       if (presentation.state === 'unavailable') {
         return 'This matchweek is unavailable, so it cannot be edited.'
       }
+      // Said of the FIXTURE, because that is what is locked. Telling a player
+      // the matchweek is locked while its other fixtures accept edits would be
+      // the same class of untruth this contract exists to remove.
       return fixtureEditable(presentation, fixture) ? null : 'This fixture is locked.'
     }
   }
@@ -279,24 +282,46 @@ export function commandRefusal(
     return 'This matchweek is locked.'
   }
   if (command.kind === 'setJoker' && command.played && !joker.playable) {
-    return 'You have used every Joker available in this half.'
+    return 'You have no Jokers left for this half of the season.'
+  }
+  if (command.kind === 'confirmCard' && presentation.entered === 0) {
+    return 'Enter at least one prediction before confirming the card.'
   }
   return null
 }
 
-/** The storage boundary. A real Supabase gateway and fixtures both implement this. */
+/**
+ * One offline draft as the gateway reconciles it. Deliberately carries NO
+ * version and NO instant: the version is the gateway's private concern, exactly
+ * as it is for `apply`, and contract 177 accepts no instant at all.
+ */
+export type MatchPredictorDraft = {
+  fixtureId: string
+  prediction: ScorelinePrediction | null
+}
+
+/** The read/write boundary. One implementation reads fixtures; another an RPC. */
 export type MatchPredictorGateway = {
+  /** Load one matchweek, or fail with a reason the page can render. */
   load(matchweek: number): Promise<MatchPredictorPage>
+  /**
+   * Apply one command. Rejects with a version-conflict error when the row moved
+   * underneath us, which is what drives `conflict_requires_refresh`.
+   */
   apply(matchweek: number, command: MatchPredictorCommand): Promise<void>
   /**
-   * Optional until INNOV-020's server contract is present. A gateway without it
-   * still supports the ordinary online journey exactly as before.
+   * `INNOV-020`. Submit a batch of drafts written while the device was offline
+   * and answer per fixture.
+   *
+   * OPTIONAL, AND ITS ABSENCE IS THE FEATURE BEING OFF. The development
+   * fixture gateway has no batch path and never claims one, so a surface asks
+   * whether the method exists rather than being told by a flag that can
+   * disagree with the gateway it is describing.
    */
-  reconcile?(
-    matchweek: number,
-    drafts: readonly {
-      fixtureId: string
-      prediction: ScorelinePrediction | null
-    }[],
-  ): Promise<PredictionBatchResult>
+  reconcile?:
+    | ((
+        matchweek: number,
+        drafts: readonly MatchPredictorDraft[],
+      ) => Promise<PredictionBatchResult>)
+    | undefined
 }
