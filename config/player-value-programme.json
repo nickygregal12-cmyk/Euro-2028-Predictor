@@ -78,7 +78,7 @@
         "0"
       ],
       "status": "in_progress",
-      "pr": null,
+      "pr": 1007,
       "headSha": null,
       "mergedSha": null,
       "acceptanceEvidence": [],
