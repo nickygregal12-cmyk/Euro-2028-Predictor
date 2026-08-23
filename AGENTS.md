@@ -8,9 +8,9 @@ Before editing:
 
 1. Read [`NOW.md`](NOW.md). It is the generated index of current moving facts.
 2. Check current `main`, your branch ancestry, and open PRs for overlap.
-3. Route the task using the table below and load only that authority plus the source/tests you need.
-4. For a broad cross-file question, use Graphify to **narrow** the likely path before opening many files.
-5. For non-trivial multi-file delivery, use [`.agents/skills/predictor-spec-driven-delivery/SKILL.md`](.agents/skills/predictor-spec-driven-delivery/SKILL.md).
+3. If the exact implementation file/symbol is not already known, before broad source browsing run `npm run agent:route -- "THE TASK"`. It uses bounded Graphify orientation plus [`config/agent-routing.json`](config/agent-routing.json) to return the smallest likely source, authority and skill set.
+4. Read only the returned authority plus the source/tests you need. If an exact file was supplied from the start, use the task table below without forcing Graphify ceremony.
+5. For non-trivial multi-file delivery, use [`.agents/skills/predictor-spec-driven-delivery/SKILL.md`](.agents/skills/predictor-spec-driven-delivery/SKILL.md) unless the task packet selected a different process skill.
 
 Do **not** preload the documentation tree. Dated audits, rollout narratives, old TODOs and generated tool output are evidence on demand, not startup context.
 
@@ -18,7 +18,7 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 
 | Task | Read next |
 | --- | --- |
-| vNext UI / frontend | [`docs/product/ui.md`](docs/product/ui.md), then [`src/vnext/AGENTS.md`](src/vnext/AGENTS.md) |
+| vNext UI / frontend | [`docs/product/ui.md`](docs/product/ui.md), then the one surface authority returned by `agent:route`; [`src/vnext/AGENTS.md`](src/vnext/AGENTS.md) is the compact universal vNext router |
 | vNext multi-stage programme / resume Stages 8–15 | [`.agents/skills/vnext-programme-runner/SKILL.md`](.agents/skills/vnext-programme-runner/SKILL.md), [`docs/product/vnext-programme-controller.md`](docs/product/vnext-programme-controller.md), [`config/vnext-programme.json`](config/vnext-programme.json) |
 | Product/game rule | [`docs/adr/README.md`](docs/adr/README.md) + governing ADR; accepted gaps live in [`docs/quality/accepted-requirements.md`](docs/quality/accepted-requirements.md) |
 | Database / migration | machine records under `config/`, [`docs/ops/ops-pending-migrations.md`](docs/ops/ops-pending-migrations.md), relevant SQL/tests |
@@ -30,19 +30,42 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 | Historical archaeology | [`docs/history/README.md`](docs/history/README.md) + the specific dated evidence |
 | Developer/AI tooling | [`docs/ops/agent-tooling-map.md`](docs/ops/agent-tooling-map.md); exact commands live in [`docs/ops/developer-toolchain.md`](docs/ops/developer-toolchain.md) |
 
-## Graphify fast path
+## Automatic skill use
 
-Use Graphify for **blast radius, dependency/call flow, and cross-layer ownership**. Do not use it to decide product rules or hosted truth.
+Users should be able to describe the outcome in normal language; they should not need to name skills. Treat the `agent:route` packet as the default skill selection. **Specific intent beats broad improvement wording**: if the user names a bug, performance problem, motion issue, state problem, migration, scoring boundary or redesign, route directly to that specialist instead of first inventing product opportunities.
 
-For merged code, the `graphify-navigation` branch is a generated replace-in-place snapshot. Verify its `README.md` source SHA matches the `main` you are analysing. For unmerged work, prefer that PR's Graphify Actions artifact.
+- broad **“improve this / make this better / take this to the next level”** player-facing work → `predictor-product-opportunity-scout` plus the narrow `predictor-football-experience-critic`; inspect the real surface and find the highest-value authorised capability/UX gap before polishing;
+- **finish / complete / release-ready journey** → `predictor-release-journey-closer` to prove entry → action → authoritative read/write → persistence → navigation → responsive/accessibility → acceptance closeout;
+- explicit **loading / empty / error / locked / live / settled / edge-state completeness** → `predictor-player-state-matrix`;
+- **scoring / points / rank / locks / reveal / membership / official results / settlement / progression / prediction visibility** → `predictor-competitive-integrity` review;
+- **migration / hosted contract / environment / rollout / site-variant / Production promotion** → `predictor-environment-contract-guardian` before mutation;
+- unresolved **idea / approach / product-direction** work → bounded `predictor-product-brainstorming`;
+- reproducible **bug / broken journey** → `predictor-systematic-debugging`;
+- deliberate **UI design** → `predictor-frontend-design`; explicit motion work may add the one motion specialist;
+- **React performance / component API / Postgres** pressure → the existing domain specialist;
+- explicit **simplification / cleanup after correctness** → `predictor-code-simplification`;
+- **agent skill changes/evaluation** → `predictor-skill-evaluator`;
+- high-stakes **architecture/release pressure-test** → a separate read-only `predictor-second-opinion` critic when a genuinely independent model is available.
+
+Do not infer that every feature needs brainstorming, every UI task needs opportunity discovery, every PR needs a second model, or every implementation needs a simplifier. These tools add value by being selective. Catalogue-only skills stay dormant unless deliberately justified.
+
+## Task-packet / Graphify fast path
+
+`npm run agent:route -- "TASK"` is the normal orientation command when the implementation surface is unknown. It runs a small Graphify query, extracts tracked source paths from that result, resolves them through the deterministic routing registry, and applies the skill-role budget from [`config/agent-skills.json`](config/agent-skills.json).
+
+Use Graphify directly when investigating the graph itself or when you need a traversal beyond the task packet:
 
 ```bash
 bash scripts/agent-tools/graphify-query.sh query "what connects this UI to its RPC?"
 bash scripts/agent-tools/graphify-query.sh path "ComponentName" "rpc_name"
 bash scripts/agent-tools/graphify-query.sh explain "symbol_name"
+bash scripts/agent-tools/graphify-query.sh affected "symbol_or_file"
+bash scripts/agent-tools/graphify-query.sh god-nodes --top 10
 ```
 
-**Do not load `graph.json` wholesale into context.** Query it to shortlist files/symbols, then open the real source and executable tests. If Graphify is unavailable or stale, use normal repository search and continue. See [`docs/ops/graphify-navigation.md`](docs/ops/graphify-navigation.md).
+Graphify answers **where to look**. It does not decide product rules or hosted truth. For merged code, the `graphify-navigation` snapshot records both source commit and indexed-input fingerprint; an unrelated `main` commit does not make a still-current graph stale. For unmerged work, prefer that PR's Graphify Actions artifact when branch-specific traversal matters.
+
+Routine query output is bounded. **Do not load `graph.json` wholesale into context.** Query it to shortlist files/symbols, switch to Serena when exact symbol references matter, then open the real source and executable tests. If Graphify is unavailable or genuinely stale, use bounded repository search and continue. See [`docs/ops/graphify-navigation.md`](docs/ops/graphify-navigation.md).
 
 ## Non-negotiable invariants
 
@@ -56,6 +79,12 @@ bash scripts/agent-tools/graphify-query.sh explain "symbol_name"
 - Keep unrelated product areas unchanged. Presentation work cannot silently move backend rules.
 - Developer tooling stays outside application/runtime dependencies.
 
+## Closeout intelligence
+
+After a substantial completed change, run a **cheap compound check**: did this work reveal a non-obvious, reusable lesson that future agents could otherwise rediscover incorrectly? If yes, route a separate `capture reusable lesson ...` task to `predictor-compound-learning`. Prefer an executable test/check or the nearest existing authority; do not create a catch-all lessons file. If no durable lesson emerged, record nothing.
+
+For high-risk auth/RLS/permission, cross-layer architecture, or release-critical work, consider a separate independent-model critic after repository-native tests/review are green. This is a second pass, not extra startup context, and it must remain read-only.
+
 ## Documentation-impact closeout
 
 Before handoff, update the one live authority affected by the change, or state **No documentation impact**. If contract/hosted records or accepted-requirement status moved, run `npm run generate:now` plus the relevant authority/freshness checks. Never rewrite dated audits, investigations or rollout evidence to make history look current.
@@ -63,5 +92,7 @@ Before handoff, update the one live authority affected by the change, or state *
 ## Documentation discipline
 
 Use **one fact, one home**. `NOW.md` is generated; do not hand-edit moving values into routers or support docs. `MASTER-TODO.md` is the active work index, not a history dump. Dated evidence remains dated evidence and is never rewritten to look current.
+
+`config/agent-routing.json` owns only task/path pointers. `config/agent-skills.json` owns only skill role/load metadata. Neither is a product or hosted-state authority.
 
 For broad audits/handoffs, [`.agents/skills/predictor-context/SKILL.md`](.agents/skills/predictor-context/SKILL.md) defines the context budget. Persist only objective, exact head/PR, authorities, changed files, tests/evidence, decisions, blockers, next action and explicit non-actions.

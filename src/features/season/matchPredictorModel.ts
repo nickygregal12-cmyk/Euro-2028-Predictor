@@ -95,6 +95,15 @@ export type MatchPredictorPage = {
   }
   fixtures: readonly MatchPredictorFixture[]
   cardStatus: CardStatus
+  /**
+   * Contract 214. Server evidence for the CURRENT confirmation only.
+   *
+   * Optional during the repository/hosted rollout gap. A client reading a
+   * database below contract 214 has neither field and must not manufacture a
+   * timestamp or reference from its own clock.
+   */
+  confirmedAt?: string | null | undefined
+  confirmationReference?: string | null | undefined
   lock: ResolvedLockState
   joker: MatchweekJoker
   /** Total points for this matchweek once settled, else null. */
@@ -291,6 +300,20 @@ export type MatchPredictorDraft = {
   prediction: ScorelinePrediction | null
 }
 
+/**
+ * Contract 214. The server's own confirmation evidence, as answered by the
+ * confirm RPC itself.
+ *
+ * This exists so the evidence reaches the screen from the WRITE that produced
+ * it rather than waiting for some later authoritative read. The browser still
+ * never derives either value: a gateway that cannot supply them answers
+ * nothing at all, and the receipt keeps showing no evidence line.
+ */
+export type MatchPredictorConfirmationEvidence = {
+  confirmedAt: string | null
+  confirmationReference: string | null
+}
+
 /** The read/write boundary. One implementation reads fixtures; another an RPC. */
 export type MatchPredictorGateway = {
   /** Load one matchweek, or fail with a reason the page can render. */
@@ -298,8 +321,15 @@ export type MatchPredictorGateway = {
   /**
    * Apply one command. Rejects with a version-conflict error when the row moved
    * underneath us, which is what drives `conflict_requires_refresh`.
+   *
+   * A `confirmCard` command MAY answer with the server's confirmation evidence
+   * (Contract 214). Every other command, and any gateway below 214, answers
+   * nothing — which is why the result is optional rather than required.
    */
-  apply(matchweek: number, command: MatchPredictorCommand): Promise<void>
+  apply(
+    matchweek: number,
+    command: MatchPredictorCommand,
+  ): Promise<MatchPredictorConfirmationEvidence | void>
   /**
    * `INNOV-020`. Submit a batch of drafts written while the device was offline
    * and answer per fixture.

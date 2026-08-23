@@ -371,3 +371,7 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 > **Contract 203:** records a backend correctness fix in the private admin Bet Builder: a superseded BET could be offered as an actionable leg, and the browser was re-deriving currency across nine paged reads to compensate. The rule moves to the database rather than disappearing, and is proved in both directions. No public surface and no threshold moves.
 
 **Contract 206:** records backend support for same-season competitive profile visibility using the season-scoped player reference. It deliberately does not reclassify a user-facing feature yet: Development rollout, generated types and the consuming browser journey are still required, and the new path exposes no target authentication identifier.
+
+### Contract 214 — season card confirmation baseline
+
+Season matchweek confirmation now describes the current card rather than an earlier edit state. Successful material prediction/Joker changes clear the confirmation back to provisional; no-op and rejected writes do not. Confirmation time/reference are server-derived display evidence, not a second receipt ledger or cryptographic proof.

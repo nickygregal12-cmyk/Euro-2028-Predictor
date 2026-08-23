@@ -147,3 +147,7 @@ same paragraph existed in seven places at once.
 > **Contract 202:** adds no rule and changes no ADR. It restores an invariant ADR 0029's pipeline already claimed: the deployment artefact is fitted on every eligible completed match and the forecast that ships reflects them. Model selection, promotion and activation remain ADR 0030's, unchanged — the second weekly training pass runs the same `train_selected_challengers.py` through the same verified gates.
 
 **Contract 206:** implements the backend half of ADR 0031 § 2 without changing the decision. Same-season `compare` reach may open the bounded profile through a season-scoped ref, while the stable auth UUID remains withheld and co-member-only features keep their narrower boundary.
+
+### Contract 214 implementation note
+
+Contract 214 refines the existing season-card implementation so a confirmation belongs to the current material card state. It introduces no replacement ADR and no second settlement/receipt authority; the existing card row remains authoritative.

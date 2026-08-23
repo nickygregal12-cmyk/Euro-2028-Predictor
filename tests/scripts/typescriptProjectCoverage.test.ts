@@ -232,8 +232,13 @@ describe('JavaScript under scripts/', () => {
    * deferred set silently.
    */
   const DEFERRED = [
+    ['scripts/agent-tools/benchmark-context.mjs', null],
+    ['scripts/agent-tools/graphify-input-fingerprint.mjs', null],
+    ['scripts/agent-tools/materialize-skill.mjs', null],
+    ['scripts/agent-tools/route-task.mjs', null],
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
+    ['scripts/check-quality-integrity.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-b.mjs', null],
     ['scripts/og/renderAssets.js', 61],
@@ -242,6 +247,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],
     ['scripts/ops/run-stage-c1-hosted-preflight.mjs', 3],
     ['scripts/ops/stage-c1-evidence-lib.mjs', 41],
+    ['scripts/production-health.mjs', null],
     ['scripts/production-smoke.mjs', 28],
   ] as const
 

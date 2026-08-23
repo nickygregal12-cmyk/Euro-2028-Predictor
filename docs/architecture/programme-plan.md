@@ -303,3 +303,7 @@ blockquotes could never show without being read end to end.
 > **Contract 203 programme effect:** the Bet Builder's currency rule stops existing twice, and a builder with no legs explains itself. No programme reordering.
 
 **Contract 206 programme effect:** the backend now supports ADR 0031's same-season bounded player-profile visibility without publishing an auth UUID. No programme phase, product gate or external-review dependency moves.
+
+## Contract 214 confirmation-integrity review
+
+Contract 214 changes only season matchweek confirmation integrity and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.

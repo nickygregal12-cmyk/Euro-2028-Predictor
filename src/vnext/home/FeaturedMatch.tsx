@@ -10,6 +10,7 @@ import styles from './home.module.css'
 
 export type FeaturedMatchProps = {
   match: Match
+  onOpenMatch?: ((matchId: string) => void) | undefined
 }
 
 /**
@@ -35,7 +36,7 @@ export type FeaturedMatchProps = {
  * The colour field carries a scrim, so text contrast is decided by the scrim
  * rather than by whichever two clubs happen to be playing.
  */
-export function FeaturedMatch({ match }: FeaturedMatchProps) {
+export function FeaturedMatch({ match, onOpenMatch }: FeaturedMatchProps) {
 // `useId` RATHER THAN THE MATCH ID, AND THE REASON IS NOT HYPOTHETICAL. An id
 // built from data is unique only while the data is, and the public landing
 // page's product preview mounts this surface more than once in a document.
@@ -141,7 +142,11 @@ export function FeaturedMatch({ match }: FeaturedMatchProps) {
 
         {/* ONE destination, and it is a real one. See the note above. */}
         <div className={styles.featureActions}>
-          <button type="button" className={styles.featurePrimary}>
+          <button
+            type="button"
+            className={styles.featurePrimary}
+            onClick={() => onOpenMatch?.(match.id)}
+          >
             Match centre
             <span className={typography.srOnly}>
               {' '}

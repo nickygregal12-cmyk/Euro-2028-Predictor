@@ -392,3 +392,7 @@ blockquotes could never show without being read end to end.
 > **Contract 203 stage effect:** the Bet Builder reads one authority instead of nine paged logs. No hub build-stage scope changes.
 
 **Contract 206 stage effect:** the weekly player-profile backend can be reached from a season-scoped leaderboard reference by another entrant, with reveal rules unchanged and no auth UUID disclosed. No engineering stage or build order changes.
+
+## Contract 214 confirmation-integrity review
+
+Contract 214 changes only season matchweek confirmation integrity and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
