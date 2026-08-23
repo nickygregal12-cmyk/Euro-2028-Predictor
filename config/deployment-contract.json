@@ -1,6 +1,6 @@
 {
-  "contractVersion": 216,
-  "requiredMigrationCount": 216,
+  "contractVersion": 217,
+  "requiredMigrationCount": 217,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",
@@ -134,6 +134,7 @@
     "public.process_due_entry_submissions(timestamp with time zone)",
     "public.process_player_action_items()",
     "public.process_reminder_schedule(interval,boolean)",
+    "public.prune_push_subscription(text)",
     "public.reclaim_stalled_reminders(interval)",
     "public.record_ai_odds_snapshot(text,integer,jsonb,text,jsonb,integer,integer,integer,integer,text,text)",
     "public.record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)",
@@ -147,6 +148,7 @@
     "public.run_shadow_scoring_verification(uuid,integer)",
     "public.save_knockout_prediction(uuid,smallint,smallint,uuid,integer)",
     "public.save_lms_selection(uuid,uuid,integer)",
+    "public.save_push_subscription(text,text,text)",
     "public.save_season_prediction(uuid,uuid,smallint,smallint,integer)",
     "public.save_season_predictions_batch(uuid,jsonb)",
     "public.search_league_transfer_candidates(uuid,text,integer)",

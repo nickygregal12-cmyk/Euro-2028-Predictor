@@ -28,6 +28,11 @@ function reminder(overrides: Partial<ClaimedReminder> = {}): ClaimedReminder {
     deadline_at: '2026-08-18T11:00:00.000Z',
     attempts: 0,
     dry_run: false,
+    // Contract 217. The claim stamps this from the player's live subscriptions;
+    // `email` is what a player with no device gets, and this module's decisions
+    // are the same either way — it maps a reminder to an event, not to a
+    // channel.
+    channel: 'email',
     ...overrides,
   }
 }

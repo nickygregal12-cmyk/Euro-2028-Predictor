@@ -104,6 +104,21 @@ Contract 214 is implemented in the repository: a successful material season pred
 
 Contract 215 is implemented in the repository: the value loop keeps every historical forecast horizon as immutable audit evidence but assesses only the fixture's canonical newest non-quarantined forecast, and the current-recommendation read fails closed while a fresher canonical forecast awaits value evaluation. Hosted rollout remains pending; this repository change does not claim a hosted schema update.
 
+## Contract 217 sweep — a channel that does not need a provider
+
+The reminder path gained a second channel it can actually run. Web push needs no
+provider account and no brand decision, so contract 217 adds it inside the
+existing ledger: `channel` is a column on the row that was already there, chosen
+at claim time from the player's live subscriptions, and the once-per-action
+unique key is untouched so nobody is told the same thing twice.
+
+**Outstanding, and it is one thing.** No player can turn it on. The account
+switch cannot be written until the generated database types know contract 217,
+and those come from hosted Development, which trails the repository. Rolling
+this contract out to Development and regenerating the types is the single step
+that unblocks the player-facing half; `tests/vnext/notificationPreferences.test.tsx`
+fails at that moment and says what to build.
+
 ## Contract 216 sweep — the reminder sender gets a caller
 
 Contract 216 is implemented in the repository: a `pg_cron` job posts a run id to

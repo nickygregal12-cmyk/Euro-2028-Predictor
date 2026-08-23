@@ -14,9 +14,15 @@
 // scheduled row.
 //
 // IT HAS A CALLER NOW. Contract 216 schedules `player-reminder-dispatch`, which
-// posts a run id here every five minutes. What has NOT changed is that no
-// environment carries a provider credential, so the third gate below refuses
-// every run until an owner provisions one deliberately.
+// posts a run id here every five minutes.
+//
+// AND FROM CONTRACT 217 IT HAS TWO CHANNELS. The claimed row names one — `push`
+// where the player has a live subscription, `email` otherwise — and this
+// function performs whichever it was handed. Each channel needs its own
+// credential, so the deployment gate now asks whether ANY sender is configured
+// and each row is refused by name where its own is not. Web push needs no
+// provider account: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and
+// `VAPID_SUBJECT` are generated once by an operator and belong to nobody else.
 //
 // A run id arrives in the body and MUST be closed on every path this function
 // can reach, including the refusals. That is the half the delivery ledger
@@ -25,6 +31,15 @@
 // docs/ops/notification-delivery.md.
 
 import { authorized } from '../_shared/callerAuthorization.ts'
+import type { NotificationEvent } from '../_shared/notifications/notificationEvents.ts'
+import { buildPushPayload } from '../_shared/push/pushPayload.ts'
+import {
+  sendWebPush,
+  summarisePushOutcomes,
+  type PushOutcome,
+  type StoredPushSubscription,
+  type VapidKeys,
+} from '../_shared/push/webPush.ts'
 import {
   mapReminderToEvent,
   sendingIsPermitted,
@@ -49,6 +64,9 @@ interface DispatchSummary {
   delivered: number
   refused: number
   skipped: number
+  /** Contract 217. Which channel carried what, so a run says more than a total. */
+  deliveredByEmail: number
+  deliveredByPush: number
 }
 
 /** The dispatcher's whole body: the run this invocation belongs to. */
@@ -64,6 +82,22 @@ function required(name: string): string {
   const value = Deno.env.get(name)
   if (!value) throw new Error(`${name} is not configured`)
   return value
+}
+
+/**
+ * This deployment's push identity, or null where an operator has not set one.
+ *
+ * ALL THREE OR NONE. A public key without its private key signs nothing, and a
+ * pair without a subject is refused by some push services and accepted by
+ * others — a half-configured channel that fails only in production is worse
+ * than one that is plainly off.
+ */
+function readVapidKeys(): VapidKeys | null {
+  const publicKey = Deno.env.get('VAPID_PUBLIC_KEY')?.trim()
+  const privateKey = Deno.env.get('VAPID_PRIVATE_KEY')?.trim()
+  const subject = Deno.env.get('VAPID_SUBJECT')?.trim()
+  if (!publicKey || !privateKey || !subject) return null
+  return { publicKey, privateKey, subject }
 }
 
 /** Call a Postgres function as the service role. */
@@ -115,6 +149,84 @@ async function readActionItem(
   if (!response.ok) return null
   const rows = (await response.json()) as ActionItem[]
   return rows[0] ?? null
+}
+
+/**
+ * Every browser this player has granted permission to.
+ *
+ * Read at send time by the same service-role REST route `readActionItem` uses.
+ * The keys are deliberately not carried on the claimed row: a claim returns one
+ * row per reminder and a player may have three devices, and widening the claim
+ * to a key-bearing join would put credentials-shaped values in the ledger's own
+ * return for every row whether or not it is going by push.
+ */
+async function readPushSubscriptions(
+  supabaseUrl: string,
+  serviceKey: string,
+  userId: string,
+): Promise<StoredPushSubscription[]> {
+  const query = new URLSearchParams({
+    select: 'endpoint,p256dh,auth',
+    user_id: `eq.${userId}`,
+  })
+  const response = await fetch(`${supabaseUrl}/rest/v1/push_subscriptions?${query}`, {
+    headers: { apikey: serviceKey, authorization: `Bearer ${serviceKey}` },
+  })
+  if (!response.ok) return []
+  return (await response.json()) as StoredPushSubscription[]
+}
+
+/**
+ * Deliver one reminder to every device the player has, and prune the dead ones.
+ *
+ * PRUNING HAPPENS ON 404 AND 410 ONLY, which `sendWebPush` is the single place
+ * that decides. Deleting on a 500 would let a push service having a bad ten
+ * minutes opt every player out of a channel they chose, and the row would then
+ * be gone before anybody noticed.
+ */
+async function deliverByPush(
+  supabaseUrl: string,
+  serviceKey: string,
+  reminder: ClaimedReminder,
+  event: NotificationEvent,
+  keys: VapidKeys,
+): Promise<{ delivered: boolean; reason: string | null }> {
+  // The SAME event the email channel would have sent, worded for a lock screen
+  // instead of for an inbox. Building a second event here would be a second
+  // answer to "what is this reminder about".
+  const mapped = buildPushPayload(event)
+  if (!mapped.ok) return { delivered: false, reason: mapped.reason }
+
+  const subscriptions = await readPushSubscriptions(supabaseUrl, serviceKey, reminder.user_id)
+  const nowSeconds = Math.floor(Date.now() / 1000)
+  // Never outlive the deadline it is about. A reminder held by a push service
+  // and delivered after the lock is worse than one that never arrived.
+  const ttlSeconds = Math.floor(
+    (new Date(reminder.deadline_at).getTime() - Date.now()) / 1000,
+  )
+
+  const outcomes: PushOutcome[] = []
+  for (const subscription of subscriptions) {
+    const outcome = await sendWebPush({
+      subscription,
+      payload: JSON.stringify(mapped.payload),
+      keys,
+      ttlSeconds,
+      nowSeconds,
+    })
+    outcomes.push(outcome)
+    if (outcome.kind === 'gone') {
+      await rpc(supabaseUrl, serviceKey, 'prune_push_subscription', {
+        p_endpoint: subscription.endpoint,
+      }).catch((error) => {
+        // A prune that fails costs one wasted attempt on the next run, which is
+        // strictly better than failing a delivery that already succeeded.
+        console.error('could not prune a dead endpoint:', (error as Error).message)
+      })
+    }
+  }
+
+  return summarisePushOutcomes(outcomes)
 }
 
 /**
@@ -189,8 +301,14 @@ Deno.serve(async (request: Request) => {
   const deliveryEnabled =
     Deno.env.get('NOTIFICATIONS_DELIVERY')?.trim().toLowerCase() === 'enabled'
   const novuApiKey = Deno.env.get('NOVU_API_KEY')?.trim()
-  if (!deliveryEnabled || !novuApiKey) {
-    // WHICH of the two is missing, never what either contains. Whether a
+  const vapidKeys = readVapidKeys()
+
+  // TWO GATES, NOT ONE, from contract 217. `NOTIFICATIONS_DELIVERY` is consent
+  // and is not negotiable; a credential is capability, and there are now two
+  // channels that could supply it. A deployment with VAPID keys and no email
+  // provider is a working deployment, which is the point of adding push.
+  if (!deliveryEnabled || (!novuApiKey && !vapidKeys)) {
+    // WHICH sender is missing, never what any of them contains. Whether a
     // credential is present is an operations fact; its value is not.
     await closeRun(
       supabaseUrl,
@@ -198,13 +316,18 @@ Deno.serve(async (request: Request) => {
       runId,
       'delivery-disabled',
       null,
-      `deliveryEnabled=${deliveryEnabled} credentialPresent=${Boolean(novuApiKey)}`,
+      `deliveryEnabled=${deliveryEnabled} emailSender=${Boolean(novuApiKey)} ` +
+        `pushSender=${Boolean(vapidKeys)}`,
     )
     return json(
       {
         error: 'delivery is not authorised for this deployment',
         deliveryEnabled,
+        // Kept under its old name: contract 216's operations documentation and
+        // the run ledger's detail strings both read it, and renaming a field
+        // to add a sibling is a change nobody asked for.
         credentialPresent: Boolean(novuApiKey),
+        pushCredentialPresent: Boolean(vapidKeys),
       },
       503,
     )
@@ -218,6 +341,8 @@ Deno.serve(async (request: Request) => {
     delivered: 0,
     refused: 0,
     skipped: 0,
+    deliveredByEmail: 0,
+    deliveredByPush: 0,
   }
 
   // `false` means "this sender imposes no dry run of its own". Before contract
@@ -242,7 +367,10 @@ Deno.serve(async (request: Request) => {
       await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
         p_id: reminder.id,
         p_sent: false,
-        p_provider: 'novu',
+        // The channel the row was claimed for. Recording every dry run as
+        // `novu` would make the ledger say a push reminder went nowhere by
+        // email, which is two wrong facts rather than one missing one.
+        p_provider: reminder.channel === 'push' ? 'web-push' : 'novu',
         p_provider_message_id: null,
         p_error: 'ledger-dry-run',
       })
@@ -264,9 +392,69 @@ Deno.serve(async (request: Request) => {
       await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
         p_id: reminder.id,
         p_sent: false,
-        p_provider: 'novu',
+        p_provider: reminder.channel === 'push' ? 'web-push' : 'novu',
         p_provider_message_id: null,
         p_error: mapped.reason,
+      })
+      continue
+    }
+
+    // WHICHEVER CHANNEL THE LEDGER CHOSE. The claim decided it from the live
+    // subscriptions, and this function performs it rather than deciding again:
+    // a second opinion here could send by email a reminder the ledger recorded
+    // as push, and the ledger is what an operator reads.
+    if (reminder.channel === 'push') {
+      if (!vapidKeys) {
+        // Named, not silent. A row claimed as push in a deployment with no
+        // push credential is a configuration gap, and the retry will say email
+        // only once the player's last device is pruned — which it is not.
+        summary.refused += 1
+        await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
+          p_id: reminder.id,
+          p_sent: false,
+          p_provider: 'web-push',
+          p_provider_message_id: null,
+          p_error: 'push-sender-not-configured',
+        })
+        continue
+      }
+
+      const push = await deliverByPush(
+        supabaseUrl,
+        serviceKey,
+        reminder,
+        mapped.event,
+        vapidKeys,
+      )
+
+      if (push.delivered) {
+        summary.delivered += 1
+        summary.deliveredByPush += 1
+      } else {
+        summary.refused += 1
+      }
+
+      await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
+        p_id: reminder.id,
+        p_sent: push.delivered,
+        p_provider: 'web-push',
+        // A push service issues no message id, so there is none to record.
+        // Inventing one would put a value in the ledger no support enquiry
+        // could ever look up.
+        p_provider_message_id: null,
+        p_error: push.reason,
+      })
+      continue
+    }
+
+    if (!novuApiKey) {
+      summary.refused += 1
+      await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
+        p_id: reminder.id,
+        p_sent: false,
+        p_provider: 'novu',
+        p_provider_message_id: null,
+        p_error: 'email-sender-not-configured',
       })
       continue
     }
@@ -285,8 +473,12 @@ Deno.serve(async (request: Request) => {
 
     const outcome = await service.deliver(mapped.event)
 
-    if (outcome.delivered) summary.delivered += 1
-    else summary.refused += 1
+    if (outcome.delivered) {
+      summary.delivered += 1
+      summary.deliveredByEmail += 1
+    } else {
+      summary.refused += 1
+    }
 
     await rpc(supabaseUrl, serviceKey, 'record_reminder_result', {
       p_id: reminder.id,

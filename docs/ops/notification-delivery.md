@@ -234,6 +234,114 @@ word about a row it scheduled, and the two switches are two switches again.
 
 This cost nothing until now only because nothing had ever invoked the sender.
 
+## The second channel — web push (contract 217)
+
+Email is not the only way to reach a player, and it is the one that is still
+blocked: `SITE-007` records the transactional sender as waiting on the brand
+decision, so no environment carries a provider credential. Web push needs no
+provider account and no such decision. The browser hands the application an
+endpoint, this deployment signs a request to it with a key pair it generated
+itself, and the push service delivers ciphertext it cannot read.
+
+**One reminder is still one row.** `channel` is a column on
+`public.reminder_deliveries`, not a second row, so contract 163's
+`(user_id, action_key, reminder_kind)` key is untouched and a player with both
+channels available is told once. The claim stamps it:
+
+| the player has | scheduled? | channel at claim |
+| --- | --- | --- |
+| `reminder_emails` on, no device | yes | `email` |
+| `reminder_emails` off, a device | yes | `push` |
+| both | yes | `push` |
+| neither | **no row at all** | — |
+| emails off, and the device is later pruned | already scheduled | **not claimed** |
+
+That last row is the one that is easy to get wrong, and this contract's first
+draft did. A player with emails off is scheduled because they have a device; if
+that device is later disowned by the push service, a claim that simply fell
+through to `email` would send them the one thing they switched off — and the
+withdrawal sweep cannot catch it, because by then the row is `failed` and
+retrying rather than `pending`. The claim therefore requires a channel the
+player actually accepts, and a row with neither is left for the sweep to
+withdraw.
+
+**The subscription is the opt-in.** There is no `reminder_push` boolean beside
+`reminder_emails`: a row in `public.push_subscriptions` exists only because a
+player granted a browser permission, so it already records the consent. Turning
+push off deletes the endpoint and the keys, which is the same "we cannot reach
+you" that contract 163 chose for email.
+
+**A dead endpoint falls back to email by itself.** The channel is recomputed on
+every claim rather than fixed at scheduling. A push service answering 404 or 410
+means the subscription is gone for good; the sender prunes it through
+`public.prune_push_subscription`, records the attempt as failed, and contract
+163's retry policy schedules another — which finds no device and chooses email.
+Nothing else answers 404 or 410, and no other status deletes anything: a push
+service having a bad ten minutes must not opt a player out of a channel they
+chose.
+
+**What may be stored as an endpoint.** The column is written from a browser and
+read by a service-role function that POSTs to it, so an `https://` check alone
+would let any signed-in player aim the sender at an internal address. The
+request is blind, POST-only and once per reminder — the ceiling is low, but low
+is not none. Both the schema and `sendWebPush` refuse an address literal, a host
+with no dot, and the `.local` / `.internal` / `.lan` / `.home` / `.corp`
+suffixes, and the sender does not follow redirects.
+
+It is deliberately **not** an origin allow-list. Push endpoints live on Google's,
+Mozilla's, Microsoft's and Apple's services and on self-hosted ones, and a list
+of hostnames would silently stop working for a browser nobody anticipated. What
+is refused is the shape that can never be a public push service; the suites
+check the real four are still accepted.
+
+**What a lock screen may show.** `supabase/functions/_shared/push/pushPayload.ts`
+owns the wording, and it carries no prediction, pick, score, rank, league, name
+or address — a push notification is rendered by the operating system in front of
+whoever is in the room, and contract 151's whole pre-lock privacy boundary would
+be undone by one helpful notification. It states no time of day either: nothing
+in that path knows the player's timezone, and a deadline rendered in the wrong
+one is specific, credible and wrong.
+
+### Generating the key pair
+
+VAPID keys are a P-256 pair this deployment owns. They identify the sender to a
+push service and are not a provider account, so there is nothing to sign up for:
+
+```bash
+node -e "const c=require('node:crypto');
+const {privateKey}=c.generateKeyPairSync('ec',{namedCurve:'prime256v1'});
+const j=privateKey.export({format:'jwk'});
+console.log('VAPID_PUBLIC_KEY =',Buffer.concat([Buffer.of(4),
+  Buffer.from(j.x,'base64url'),Buffer.from(j.y,'base64url')]).toString('base64url'));
+console.log('VAPID_PRIVATE_KEY=',j.d)"
+```
+
+The public key is assembled from the JWK coordinates rather than sliced out of
+a DER export at a fixed byte offset. Both produce the same 65 bytes today; only
+one of them stays correct if a key format ever changes.
+
+The public half is public by design — every subscribing browser receives it, and
+a push service uses it to check a signature. The private half is a credential and
+belongs only in the Edge Function's secret store.
+
+### What is not built yet, and what unblocks it
+
+**No player can turn push on.** Everything behind the switch exists — the table,
+the RPCs, the signing, the encryption, the service worker's `push` and
+`notificationclick` handlers — and the account surface offers no control,
+because `TYPE-001` checks every call from `src/` against
+`src/services/supabase/database.types.ts`, which is generated from hosted
+Development. Development trails the repository, so `save_push_subscription` is
+not in that file and a switch calling it would not compile. The repository
+states that ordering as a feature: an RPC exists on Development before a browser
+is written against it.
+
+One action unblocks it — roll contract 217 out to hosted Development through the
+existing lane and run `npm run generate:types`. The reminder is executable, not
+prose: `tests/vnext/notificationPreferences.test.tsx` fails the moment the
+generated types know `save_push_subscription`, and its comment says what to
+build.
+
 ## Switching it on
 
 Nothing here is a hosted action, and none of it is done.
@@ -268,6 +376,17 @@ Nothing here is a hosted action, and none of it is done.
    underscored, because Supabase rejects a hyphen in a secret name),
    `NOVU_API_KEY`, `NOTIFICATIONS_DELIVERY` and optionally
    `NOVU_API_ORIGIN` / `NOTIFICATIONS_ENVIRONMENT`.
+
+   For the push channel it also reads `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`
+   and `VAPID_SUBJECT` (a `mailto:` or an https origin a push service can
+   contact). **All three or none** — a pair without a subject is refused by some
+   push services and accepted by others, which is the worst combination to
+   debug. The subject is validated as a whole rather than by its prefix: the
+   bare string `mailto:`, which is what a half-filled variable produces, is
+   refused here rather than signed into every JWT and refused by the push
+   service where only its logs would say so. From contract 217 the deployment gate asks for `NOTIFICATIONS_DELIVERY`
+   **and at least one** of the two senders, so a deployment with VAPID keys and
+   no email provider is a working deployment.
 5. **Scheduling is done.** Contract 216 installs `player-reminder-dispatch`,
    which runs `select public.dispatch_due_reminders();` every five minutes. It
    needs two vault secrets to reach anything, created the same way contract 155
