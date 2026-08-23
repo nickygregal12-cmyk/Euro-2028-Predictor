@@ -47,7 +47,6 @@ const COVERED_FILES = [
   'playwright.visual.config.ts',
   'playwright.euro.config.ts',
   'playwright.vnext.config.ts',
-  'playwright.shipping-vnext.config.ts',
 ] as const
 
 function committedTypeScriptSources(): string[] {

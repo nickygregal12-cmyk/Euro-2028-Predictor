@@ -22,7 +22,6 @@
     "test:e2e:auth": "playwright test --config=playwright.auth.config.ts",
     "test:e2e:euro": "playwright test --config=playwright.euro.config.ts",
     "test:e2e:vnext": "playwright test --config=playwright.vnext.config.ts",
-    "test:e2e:shipping-vnext": "playwright test --config=playwright.shipping-vnext.config.ts",
     "test:e2e:install": "playwright install --with-deps chromium",
     "smoke:production": "node scripts/production-smoke.mjs",
     "reset:development": "node scripts/reset-development-seed.mjs",

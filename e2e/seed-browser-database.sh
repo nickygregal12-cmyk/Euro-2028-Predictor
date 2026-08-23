@@ -2,11 +2,12 @@
 #
 # The disposable browser catalogue, applied straight after a `supabase db reset`.
 #
-# This is a script rather than an inline workflow block because the browser job
-# rebuilds the database more than once: `e2e/global-setup.ts` provisions the
+# This is a script rather than an inline workflow block because it belongs to
+# the rebuild rather than to one step: `e2e/global-setup.ts` provisions the
 # seeded identities by hard-deleting and recreating them, which only works on a
-# freshly rebuilt database, so each Playwright configuration that runs it gets
-# its own rebuild and therefore its own catalogue.
+# freshly rebuilt database, so any Playwright configuration that runs it needs a
+# rebuild of its own -- and a rebuild is only usable once this has run against
+# it. tests/scripts/browserE2EWorkflow.test.ts holds the workflow to that.
 #
 # It targets the local Supabase container by name and must never be pointed at a
 # hosted database.
@@ -27,12 +28,10 @@ docker exec -i "$DB_CONTAINER" \
 docker exec -i "$DB_CONTAINER" \
   psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
   < e2e/league-season-fixture.sql
-# The harness reads this catalogue as the service role, and the shipping-vNext
-# setup also opens the domestic season's own Match Predictor, which the
-# repository seeds unpublished and no application path publishes. Base-table
-# privileges are otherwise withheld from `service_role` on purpose -- writes go
-# through the RPCs -- so both grants are made here, in the disposable database
-# only, rather than by widening the schema.
+# The harness reads this catalogue as the service role. Base-table privileges
+# are withheld from `service_role` on purpose -- writes go through the RPCs --
+# so the read is granted back here, in the disposable database only, rather than
+# by widening the schema.
 docker exec "$DB_CONTAINER" \
   psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
-  --command='grant select, update on table public.bonus_competitions to service_role;'
+  --command='grant select on table public.bonus_competitions to service_role;'

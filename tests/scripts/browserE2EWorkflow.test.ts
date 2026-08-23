@@ -5,11 +5,6 @@ import { at } from '../support/indexed'
 
 const root = resolve(import.meta.dirname, '../..')
 const workflow = readFileSync(resolve(root, '.github/workflows/browser-e2e.yml'), 'utf8')
-const shippingVNextConfig = readFileSync(
-  resolve(root, 'playwright.shipping-vnext.config.ts'),
-  'utf8',
-)
-const envExample = readFileSync(resolve(root, '.env.example'), 'utf8')
 const productionWorkflow = readFileSync(
   resolve(root, '.github/workflows/production-smoke.yml'),
   'utf8',
@@ -42,23 +37,6 @@ const forbiddenHostedRefs = [
   'gcfdwobpnanjchcnvdco',
 ]
 
-const shippingHubFlags = [
-  'VITE_UI_FOOTBALL_HUB_HOME',
-  'VITE_UI_FOOTBALL_HUB_MATCHES',
-  'VITE_UI_FOOTBALL_HUB_GAMES',
-  'VITE_UI_FOOTBALL_HUB_LEAGUES',
-  'VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE',
-  'VITE_UI_FOOTBALL_HUB_DISCOVERY',
-  'VITE_UI_FOOTBALL_HUB_ACCOUNT',
-  'VITE_UI_FOOTBALL_HUB_LMS',
-  'VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP',
-  'VITE_UI_FOOTBALL_HUB_PREDICTOR',
-  'VITE_UI_FOOTBALL_HUB_ONBOARDING',
-  'VITE_UI_FOOTBALL_HUB_INVITE',
-  'VITE_UI_FOOTBALL_HUB_CREATE',
-  'VITE_UI_FOOTBALL_HUB_WRAPPED',
-] as const
-
 const workflowJobs = workflow.split('\n  deploy-preview-smoke:')
 const authenticatedWorkflow = at(workflowJobs, 0)
 const [, previewWorkflow = ''] = workflowJobs
@@ -75,28 +53,22 @@ describe('authenticated browser E2E workflow', () => {
     expect(authenticatedWorkflow).toContain('playwright-report')
   })
 
-  // What the shipping configuration itself declares is asserted once, in
-  // tests/scripts/shippingVNextE2E.test.ts. This guard owns only how the
-  // workflow runs it.
-  it('gives the shipping-vNext player suite its own rebuilt disposable database', () => {
-    expect(authenticatedWorkflow).toContain('Run shipping vNext player journeys')
-    expect(authenticatedWorkflow).toContain('npm run test:e2e:shipping-vnext')
-    expect(authenticatedWorkflow).toContain('playwright-report-shipping-vnext')
-    expect(packageJson.scripts['test:e2e:shipping-vnext']).toBe(
-      'playwright test --config=playwright.shipping-vnext.config.ts',
-    )
-
-    // `e2e/global-setup.ts` provisions by hard-deleting the seeded identities,
-    // and leagues.owner_id and bonus_competitions.owner_id both RESTRICT that
-    // delete. A second Playwright configuration running the same setup over the
-    // first suite's leftovers therefore fails on a GoTrue 500 before any test
-    // starts, so each one that runs it must be handed a rebuilt database.
+  // `e2e/global-setup.ts` provisions by hard-deleting the seeded identities, and
+  // leagues.owner_id and bonus_competitions.owner_id both RESTRICT that delete.
+  // A configuration running that setup over an earlier suite's leftovers fails
+  // on a GoTrue 500 before any test starts, so every step that runs it must be
+  // handed a database rebuilt since the last one did.
+  it('rebuilds the disposable database for every suite that provisions identities', () => {
     expect(globalSetup).toContain('admin.auth.admin.deleteUser')
-    const setupRuns = [
-      authenticatedWorkflow.indexOf('npm run test:e2e\n'),
-      authenticatedWorkflow.indexOf('npm run test:e2e:shipping-vnext'),
-    ]
-    expect(setupRuns.every((index) => index > 0)).toBe(true)
+    // By step rather than by occurrence: the ordinary suite's step names the
+    // script twice, once for the full run and once for a targeted one.
+    const steps = [...authenticatedWorkflow.matchAll(/\n      - name: /g)].map(
+      (match) => match.index ?? -1,
+    )
+    const bodyOf = (start: number) =>
+      authenticatedWorkflow.slice(start, steps.find((index) => index > start) ?? undefined)
+    const setupRuns = steps.filter((start) => /npm run test:e2e(?![:-])/.test(bodyOf(start)))
+    expect(setupRuns.length).toBeGreaterThan(0)
     const rebuilds = [...authenticatedWorkflow.matchAll(/supabase db reset --local/g)].map(
       (match) => match.index ?? -1,
     )
@@ -113,16 +85,6 @@ describe('authenticated browser E2E workflow', () => {
     ).toHaveLength(rebuilds.length)
   })
 
-  it('takes every Football Hub cutover switch from the committed shipping template', () => {
-    expect(shippingVNextConfig).toContain("new URL('./.env.example', import.meta.url)")
-    expect(shippingVNextConfig).toContain("VITE_SITE_VARIANT: 'hub'")
-    for (const flag of shippingHubFlags) {
-      expect(envExample).toContain(`${flag}=true`)
-      expect(shippingVNextConfig).toContain(`'${flag}'`)
-    }
-    expect(shippingVNextConfig).toContain("value !== 'true'")
-  })
-
   it('publishes the canonical Bonus Games catalogue only inside disposable browser E2E', () => {
     expect(authenticatedWorkflow).toContain('e2e/seed-browser-database.sh')
     expect(browserSeed).toContain('scripts/bonus-games/publish-catalogue.sql')
@@ -133,7 +95,7 @@ describe('authenticated browser E2E workflow', () => {
     )
     expect(browserSeed).toContain('--set=ON_ERROR_STOP=1')
     expect(browserSeed).toContain(
-      'grant select, update on table public.bonus_competitions to service_role',
+      'grant select on table public.bonus_competitions to service_role',
     )
     expect(bonusGamesFixture).toContain('It must never run against a hosted DB.')
     expect(bonusGamesFixture).toContain("match.match_ref = 'R16-1'")
@@ -170,7 +132,6 @@ describe('authenticated browser E2E workflow', () => {
   it('contains no hosted Supabase project reference', () => {
     for (const ref of forbiddenHostedRefs) {
       expect(authenticatedBrowserHarness).not.toContain(ref)
-      expect(shippingVNextConfig).not.toContain(ref)
     }
   })
 
@@ -182,7 +143,6 @@ describe('authenticated browser E2E workflow', () => {
     expect(localFixtures).toContain("LOCAL_SUPABASE_PORT = '54321'")
     expect(localFixtures).toContain('parsed.port !== LOCAL_SUPABASE_PORT')
   })
-
 
   it('pins the Playwright dependency and exposes stable scripts', () => {
     expect(packageJson.devDependencies['@playwright/test']).toBe('1.62.1')
