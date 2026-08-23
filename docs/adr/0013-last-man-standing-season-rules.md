@@ -16,7 +16,7 @@ The game is also the platform's strongest transfer and, with the Predictor Cup, 
 
 **Core play.** One team selected per matchweek; win to survive. A team, once selected, cannot be selected again until the player's used list resets.
 
-**Round cadence.** Every matchweek is an LMS round, midweek included. This aligns the LMS deadline with the Predictor deadline within a competition season, so one lock instant and one notification cover both.
+**Round cadence.** Every matchweek is an LMS round, midweek included. This aligns the LMS round with the Predictor matchweek within a competition season, so one round boundary and one notification cover both. **Superseded in part by the ADR 0020 amendment recorded above:** the thirty-minute buffer is a property of the Last Man Standing game rather than of the competition season, so the two do **not** share one lock instant — the LMS deadline ordinarily falls thirty minutes before the Main Predictor's, which locks at first kickoff. The round cadence itself is unchanged.
 
 **Postponed fixture: the player survives and the team is consumed.** Survival avoids a punitive and arbitrary elimination; consuming the team prevents a postponement being a free pass and avoids a carried pick colliding with the following round.
 

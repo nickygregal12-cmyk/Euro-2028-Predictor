@@ -5,6 +5,7 @@
 - **Amends:** [ADR 0020](0020-football-prediction-hub-product-model.md) (public domestic game name, Hub/competition navigation and onboarding), [ADR 0013](0013-last-man-standing-season-rules.md) (creator limits around the private competitions it already permits), and [ADR 0015](0015-commercial-and-social-model.md) (the concrete private-container model). It supersedes the navigation clause in [`../architecture-and-tournament-states.md`](../architecture-and-tournament-states.md) §0 and the navigation/catalogue section in [`../competition-structure.md`](../competition-structure.md).
 
 - **Amended by:** [ADR 0026](0026-public-site-separation-shared-accounts-and-euro-2028-acquisition.md), 6 August 2026 — this record is scoped to the weekly platform and gains a Euro visibility boundary. Three sections were also clarified on that date without changing any decision: § Operating-limit classes separates the four kinds of limit, § Administration and provider changes states the automatic/approval boundary by change class, and neither alters a value or a rule.
+- **Navigation clause superseded 23 August 2026:** the two navigation bars in [§ Hub and competition modes](#hub-and-competition-modes) — `Home · Play · Matches · Leagues · More` and `Overview · Play · Matches · Games · Leagues` — are **superseded for the domestic Hub** by the selected vNext information architecture, the **Competition Deck** (`Home · Matches · Games · Leagues`), recorded in [`../product/vnext-shell-ia.md`](../product/vnext-shell-ia.md) and selected by [`../product/ui.md`](../product/ui.md). **Only those two bars are obsolete.** Every other decision in this record — deterministic parent navigation, the canonical game routes, `Matches` owning the football subviews, game-level secondary navigation, onboarding, the private-container model, standings visibility, managed entrants and administration — remains in force. Competition Play's *job* also remains in force and moved to Home; see the note in § Game status, weekly action and subordinate navigation.
 - **Reconciled 7 August 2026:** the owner-approved **Domestic Frontend Alpha** direction is incorporated here rather than kept as a parallel planning authority. This amendment adds the one-time onboarding completion model, optional favourite-team preference, deterministic parent navigation, game-level navigation, action-state rule, reusable shirt-style club identity, Scottish Development rehearsal, Development competition-admin journey and two-stage public landing-page timing. It does not claim any of those additions are implemented.
 
 > **Implementation progress — current implementation belongs in [`../quality/current-status.md`](../quality/current-status.md).** Competition/game identity, separate memberships, private/public competition instances, game leagues, bounded standings authorities and the Match Predictor public name exist in the backend, and several domestic surfaces have landed. This ADR records the accepted product boundary, not a moving route-by-route implementation report.
@@ -43,13 +44,38 @@ The player-level acceptance principle is:
 
 The authenticated root route `/` always opens the **Football Prediction Hub**. It never redirects to the last competition.
 
-The global Hub navigation is:
+> ### ⚠ The two navigation bars below are SUPERSEDED for the domestic Hub
+>
+> **Superseded on 23 August 2026 by the selected vNext information
+> architecture — the Competition Deck.** The current domestic navigation is
+> `Home · Matches · Games · Leagues`, scoped to the active competition. There is
+> no `Play` destination and no `More` destination: `/play`'s job split between
+> Home (what needs doing *here*) and the shell's cross-competition attention
+> layer, and `/more` was absorbed into the account surface. The authority is
+> [`../product/vnext-shell-ia.md`](../product/vnext-shell-ia.md), selected by
+> [`../product/ui.md`](../product/ui.md), and it is what the shipping product
+> implements.
+>
+> **The two bars are retained, not deleted**, because the decisions that hang
+> off them — deterministic parent navigation, `Matches` owning the football
+> subviews, game-level secondary navigation, the private-container model, the
+> onboarding sequence and everything else in this record — remain in force and
+> are read from here. Only the two navigation shapes below are obsolete.
+>
+> **What survives, and matters, is `Play`'s *job* rather than its tab:**
+> Competition Play was defined below as *"the cross-game answer to 'What do I
+> need to do this week?'"*, aggregating authoritative game state across all
+> three games. That requirement is unchanged and is now **Home's**. See
+> `DFA-006` and `DFA-010` in
+> [`../quality/accepted-requirements.md`](../quality/accepted-requirements.md).
+
+The global Hub navigation *(superseded — see above)* was:
 
 ```text
 Home · Play · Matches · Leagues · More
 ```
 
-Opening a competition season enters a focused competition mode. The global tab bar or rail is replaced by:
+Opening a competition season enters a focused competition mode. The global tab bar or rail *(superseded — see above)* was replaced by:
 
 ```text
 Overview · Play · Matches · Games · Leagues
@@ -125,7 +151,9 @@ Last Man Standing may show pick required/current pick, active/eliminated state, 
 
 Predictor Championship may show current opponent, fixture/result state, table position, phase/group and a direct matchup/table action, with clear wording that Match Predictor points feed the Championship fixture automatically.
 
-Competition **Play** is the cross-game answer to **“What do I need to do this week?”** It aggregates authoritative game state; it does not invent a fifth prediction workflow. An incomplete Match Predictor card leads to predictions, a missing LMS selection leads to the pick, and Championship normally exposes matchup/status because its points arrive through Match Predictor automatically. The same action model may later feed Hub Home priority and reminder eligibility.
+The cross-game answer to **“What do I need to do this week?”** aggregates authoritative game state; it does not invent a fifth prediction workflow. An incomplete Match Predictor card leads to predictions, a missing LMS selection leads to the pick, and Championship normally exposes matchup/status because its points arrive through Match Predictor automatically. The same action model may later feed reminder eligibility.
+
+> **Where this surface lives, updated 23 August 2026.** This clause originally placed the job on a competition **Play** destination. The destination is superseded with the navigation above; **the job is not, and is now Home's** — “what needs doing *here*” is answered by the competition's Home, and “what needs doing *elsewhere*” by the shell's cross-competition attention layer. Nothing else in this clause changes: the ordering is still the games' own authoritative state, and the Championship still reports rather than asks.
 
 Each game may use compact subordinate navigation, always beneath the competition context:
 
