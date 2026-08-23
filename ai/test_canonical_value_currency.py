@@ -1,4 +1,4 @@
-"""Contract 214 regressions for fixture-level forecast currency in the value loop.
+"""Contract 215 regressions for fixture-level forecast currency in the value loop.
 
 A fixture deliberately owns several immutable forecast horizons. The raw
 candidate reader keeps them inspectable, but value advice must be calculated

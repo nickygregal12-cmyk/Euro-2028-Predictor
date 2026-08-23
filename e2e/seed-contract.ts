@@ -231,8 +231,25 @@
  * Every one of those is dispatch configuration or an internal function; the seed
  * creates no poll target, and no browser journey queries that table. No relation
  * a seeded user reads is touched, so again there is no new gate to fail.
+ *
+ * **CONTRACT 214 IS RE-VERIFIED, NOT ASSUMED.** The confirmation-integrity
+ * migration redefines authenticated season-card reads and writes, so the seed
+ * marker is raised only after the exact Contract-214 head `c81ee258` passed
+ * Database parity run 32629534014 and Browser E2E run 32629533989. Both rebuild
+ * the migration chain through 214; the browser job also reseeds and exercises
+ * authenticated journeys against that rebuilt database.
+ *
+ * **CONTRACT 215 IS THE 210/211 ANSWER, AND IT IS CHECKABLE.** The whole
+ * migration is one statement: `create or replace view
+ * ai.current_fixture_recommendations`, plus its comment. It creates no relation
+ * in `public`, alters no policy, and grants nothing to `authenticated` or
+ * `anon` — the `ai` schema is the private Lab's, and no seeded identity and no
+ * browser journey reads it. There is therefore no new gate for a seeded user to
+ * fail. This paragraph is the claim: if Contract 215 ever grows a `public`
+ * relation or an authenticated grant, it is wrong and this number comes back
+ * down until a seeded user has actually been re-verified against it.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 213
+export const SEED_REVIEWED_AT_CONTRACT = 215
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

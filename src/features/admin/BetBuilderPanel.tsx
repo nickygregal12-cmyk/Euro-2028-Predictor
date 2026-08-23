@@ -419,7 +419,7 @@ export function BetBuilderPanel() {
               />
             </label>
           </div>
-          <div className={styles.leagueFilters} aria-label="League filters">
+          <div className={styles.leagueFilters} role="group" aria-label="League filters">
             {AI_LAB_LEAGUES.map((item) => {
               const active = leagues.includes(item.key)
               return (

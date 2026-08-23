@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { formatKickoffWithDay } from '../../shared/time/kickoff'
 import { Alert, Button, Skeleton, Workspace } from '../../design-system'
 import {
   AI_LAB_LEAGUES,
@@ -225,7 +226,7 @@ export function AiLabPage({
         {snapshot && currentContext ? (
           <LabPulse snapshot={snapshot} review={currentContext.review} coverage={currentContext.coverage} />
         ) : (
-          <div className={styles.pulseLoading} aria-label="Loading AI Lab headline evidence">
+          <div className={styles.pulseLoading} role="status" aria-label="Loading AI Lab headline evidence">
             <Skeleton height={92} radius="card" />
             <Skeleton height={92} radius="card" />
             <Skeleton height={92} radius="card" />
@@ -374,7 +375,7 @@ function FixtureCard({ fixture }: { fixture: CoverageFixture }) {
       <header className={styles.fixtureHeader}>
         <div>
           <span className={styles.leagueCode}>{fixture.league}</span>
-          <span>{when(fixture.kickoffAt)}</span>
+          <span>{formatKickoffWithDay(fixture.kickoffAt) ?? 'Not recorded'}</span>
         </div>
         <span className={styles.decisionPill} data-kind={value.kind}>{value.headline}</span>
       </header>
@@ -388,7 +389,7 @@ function FixtureCard({ fixture }: { fixture: CoverageFixture }) {
                 <span>Most likely result</span>
                 <strong>{forecast.label} · {percent(forecast.probability, 0)}</strong>
               </div>
-              <div className={styles.probabilities} aria-label="Match result probabilities">
+              <div className={styles.probabilities} role="group" aria-label="Match result probabilities">
                 {([
                   ['H', fixture.home, p.pHome],
                   ['D', 'Draw', p.pDraw],

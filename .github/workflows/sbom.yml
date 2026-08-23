@@ -1,0 +1,68 @@
+name: Dependency SBOM
+
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/sbom.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/sbom.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cyclonedx:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up repository Node version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22.22.2
+      - name: Generate lockfile-only CycloneDX SBOM
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .artifacts/supply-chain
+          npm run --silent report:sbom > .artifacts/supply-chain/sbom.cdx.json
+      - name: Validate SBOM shape and record digest
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs'
+          const path = '.artifacts/supply-chain/sbom.cdx.json'
+          const sbom = JSON.parse(readFileSync(path, 'utf8'))
+          if (sbom.bomFormat !== 'CycloneDX') throw new Error('SBOM is not CycloneDX')
+          if (!String(sbom.specVersion ?? '').startsWith('1.')) throw new Error('SBOM has no supported specVersion')
+          if (!sbom.metadata?.component?.name) throw new Error('SBOM is missing root application metadata')
+          if (!Array.isArray(sbom.components) || sbom.components.length === 0) {
+            throw new Error('SBOM contains no dependency components')
+          }
+          console.log(`Validated ${sbom.components.length} SBOM components`)
+          NODE
+          sha256sum .artifacts/supply-chain/sbom.cdx.json \
+            > .artifacts/supply-chain/sbom.cdx.json.sha256
+      - name: Upload dependency inventory
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: dependency-sbom-${{ github.sha }}
+          path: .artifacts/supply-chain/
+          if-no-files-found: error
+          retention-days: 30

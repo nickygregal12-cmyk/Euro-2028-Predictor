@@ -22,7 +22,7 @@
      Do not edit between these markers — run `npm run generate:now`.
      `npm run check:now` fails in CI when this region disagrees with those records. -->
 
-The repository is at **contract 214**, through `20260823001000_ai_canonical_value_currency.sql`.
+The repository is at **contract 215**, through `20260823001000_ai_canonical_value_currency.sql`.
 Development Supabase is hosted at **213**, verified `2026-08-21T09:22:18.620Z`.
 Production Supabase is hosted at **211**, verified `2026-08-20T10:32:54.145Z`; further promotion is **not authorised**.
 
@@ -709,4 +709,10 @@ Contract 132 adds a tested initial provider-calendar approval boundary. New prov
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Development and Production were directly reverified at Contract 132 during the 03:00 session; Contract 133 remains repository-only until its guarded Development rollout completes.
 
-**Contract 214 — current value follows the current forecast (23 August 2026), repository only.** A fixture deliberately accumulates immutable forecast horizons as evidence improves. `find_value.py` previously allowed every valid historical horizon to compete for today's betting decision, while the Lab's fixture read displayed only the canonical newest forecast; separately, `ai.current_fixture_recommendations` could continue exposing an older recommendation after a fresher forecast arrived but before value was recalculated. Contract 214 keeps all historical forecasts and recommendations as audit evidence, marks the canonical row in the value candidate read and assesses only that row, and redefines the current recommendation view so a recommendation is current only when it belongs to the canonical forecast. The gap between a fresh forecast and its value run therefore reads as no current decision rather than stale advice. No hosted environment is changed by this repository contract; Development remains at its machine-recorded boundary and Production remains at its own separately authorised boundary.
+### Contract 214 repository status
+
+Contract 214 is the repository contract for current-card confirmation integrity. It adds server-held `confirmed_at`/confirmation-reference read evidence and invalidates that evidence only after successful material prediction or Joker changes. This is repository state only; no hosted Contract 214 application is asserted here.
+
+### Contract 215 repository status
+
+**Contract 215 — current value follows the current forecast (23 August 2026), repository only.** A fixture deliberately accumulates immutable forecast horizons as evidence improves. `find_value.py` previously allowed every valid historical horizon to compete for today's betting decision, while the Lab's fixture read displayed only the canonical newest forecast; separately, `ai.current_fixture_recommendations` could continue exposing an older recommendation after a fresher forecast arrived but before value was recalculated. Contract 215 keeps all historical forecasts and recommendations as audit evidence, marks the canonical row in the value candidate read and assesses only that row, and redefines the current recommendation view so a recommendation is current only when it belongs to the canonical forecast. The gap between a fresh forecast and its value run therefore reads as no current decision rather than stale advice. No hosted environment is changed by this repository contract; Development remains at its machine-recorded boundary and Production remains at its own separately authorised boundary.

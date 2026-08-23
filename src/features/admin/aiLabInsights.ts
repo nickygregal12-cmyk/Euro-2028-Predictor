@@ -1,6 +1,6 @@
 import type { AiResultsReview, CoverageFixture } from '../../services/supabase/aiLabCoverageModel'
 
-export type OutcomeKey = 'H' | 'D' | 'A'
+type OutcomeKey = 'H' | 'D' | 'A'
 
 export type ForecastVerdict = {
   readonly key: OutcomeKey
@@ -23,7 +23,10 @@ function pct(value: number, digits = 0): string {
   return `${(value * 100).toFixed(digits)}%`
 }
 
-export function outcomeLabel(key: string, fixture: Pick<CoverageFixture, 'home' | 'away'>): string {
+// Not exported: used only by the verdict helpers below. The Lab's rebuilt
+// surfaces render their own labels, so exporting this left a name nothing
+// imported while the function itself is still doing work here.
+function outcomeLabel(key: string, fixture: Pick<CoverageFixture, 'home' | 'away'>): string {
   if (key === 'H') return fixture.home
   if (key === 'A') return fixture.away
   if (key === 'D') return 'Draw'

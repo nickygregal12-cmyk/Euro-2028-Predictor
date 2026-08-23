@@ -55,7 +55,9 @@ export type BookmakerSummary = Bookmaker & {
   readonly lastDecidedAt: string | null
 }
 
-export type BetBuilderCoverage = {
+// Not exported: it is the shape of `BetBuilderCandidates.coverage`, which is what
+// callers actually receive. Exporting it added a name nothing imported.
+type BetBuilderCoverage = {
   readonly fixturesInWindow: number
   readonly withCurrentDecision: number
   readonly actionableAnywhere: number
