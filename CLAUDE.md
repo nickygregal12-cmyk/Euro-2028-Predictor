@@ -28,7 +28,21 @@ Do not preload old contract histories, deployment narratives, design chronicles 
 
 `config/agent-skills.json` classifies skills by role. Normally load at most one navigation skill, one process skill, one domain skill, one narrow specialist and one repository review skill. The independent-model `critic` is a separate high-stakes pass, not default startup context.
 
-The user should not have to name skills. Use natural-language routing from `agent:route`: idea/option exploration can select product brainstorming; defects select systematic debugging; design/performance/database work selects its domain skill; explicit post-green cleanup selects code simplification; agent-skill changes select the evaluator; high-stakes pressure-testing can select the independent critic. Do not load any of these merely because they exist.
+The user should not have to name skills. Use natural-language routing from `agent:route`, and let **specific intent outrank broad “improve” wording**:
+
+- broad player-facing `improve this`, `make this better`, `take this to the next level` work can select `predictor-product-opportunity-scout` plus `predictor-football-experience-critic` so Claude finds the strongest real player-value gap before defaulting to cosmetics;
+- `finish`, `complete`, or `make this release ready` can select `predictor-release-journey-closer`;
+- explicit loading/empty/error/locked/live/settled/edge-state work can select `predictor-player-state-matrix`;
+- scoring/points/rank/lock/reveal/membership/result/settlement/progression visibility work can select `predictor-competitive-integrity`;
+- migration/hosted-contract/environment/rollout/site-variant/Production-promotion work can select `predictor-environment-contract-guardian`;
+- idea/option exploration can select product brainstorming;
+- defects select systematic debugging;
+- design/performance/component/database work selects its existing domain specialist;
+- explicit post-green cleanup selects code simplification;
+- agent-skill changes select the evaluator;
+- high-stakes pressure-testing can select the independent critic.
+
+Do not load any of these merely because they exist. A precise request such as `improve rendering performance`, `fix this bug`, `redesign this page`, `improve the spacing`, or `polish this animation` should stay on that precise route rather than invoking product opportunity discovery.
 
 For broad investigations or handoffs use [`.agents/skills/predictor-context/SKILL.md`](.agents/skills/predictor-context/SKILL.md). For AI Lab verification use [`.agents/skills/predictor-ai-lab-verifier/SKILL.md`](.agents/skills/predictor-ai-lab-verifier/SKILL.md). For non-trivial multi-file delivery use the process skill selected by the task packet, normally [`predictor-spec-driven-delivery`](.agents/skills/predictor-spec-driven-delivery/SKILL.md).
 
