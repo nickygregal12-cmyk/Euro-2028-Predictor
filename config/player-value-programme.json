@@ -7,29 +7,13 @@
   "contractRunway": {
     "authority": "config/deployment-contract.json",
     "note": "The repository contract number is deliberately absent. It is read from the authority named above, and the next free number is derived: repository requiredMigrationCount + 1 + the number of distinct contracts claimed below. Two branches claiming one number is the known failure this record exists to prevent, so a claim is recorded against an exact pull-request head and is invalid the moment the repository reaches it.",
-    "claimedByOpenPullRequests": [
-      {
-        "pr": 997,
-        "branch": "codex/ai-lab-vnext-rebuild",
-        "headSha": "c449a3e11d999654c522cae2fdf8ffe57e80329e",
-        "contract": 215,
-        "migration": "supabase/migrations/20260823001000_ai_canonical_value_currency.sql"
-      }
-    ]
+    "claimedByOpenPullRequests": []
   },
   "openPullRequestClassification": [
     {
-      "pr": 997,
-      "branch": "codex/ai-lab-vnext-rebuild",
-      "headSha": "c449a3e11d999654c522cae2fdf8ffe57e80329e",
-      "draft": true,
-      "classification": "unrelated",
-      "rationale": "Rebuilds AI Lab around forecast, value and evidence. It shares no surface with any stage of this programme. It matters here only because it is the single open branch carrying a migration, so it owns the next contract number and every migration-bearing stage of this programme must take the one after it."
-    },
-    {
       "pr": 971,
       "branch": "codex/vnext-release-blockers-shipping-journeys",
-      "headSha": "af61b35ae4afba5c9fc97a27661ec7643b04c85a",
+      "headSha": "df27d02299d81386e5b525984947a363138b9644",
       "draft": true,
       "classification": "unrelated",
       "rationale": "vNext shipping journeys and release blockers, owned by the separate vNext programme controller. It carries no migration. Re-anchoring it onto current main is that programme's work, not this one's, and no file it touches is shared with any stage here."
