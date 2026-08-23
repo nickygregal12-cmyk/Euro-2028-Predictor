@@ -141,6 +141,16 @@ describe('the vNext workshop', () => {
     '/src/vnext/fixtures/about/',
     '/src/vnext/integration/about/',
     '/src/vnext/integration/shell/',
+    // The public policy documents, admitted on exactly the argument `/about`
+    // was: Privacy and Terms are owed by the product AS IT STANDS rather than
+    // by the stage that changes its shape. They are read-only routes outside
+    // the auth gate and behind no cutover flag, so a signed-out reader and a
+    // signed-in one get the same current-service wording. Gating them on the
+    // cutover would make a legally-owed page appear and disappear with a build
+    // flag, which is the one thing these two documents may not do. Named by
+    // directory like every other entry, so nothing else rides in with them.
+    '/src/vnext/publicDocument/',
+    '/src/vnext/integration/publicDocument/',
     // The public landing page's product preview, and the deterministic world it
     // renders. `fixtures/marketing/` reaches the other fixture families, which
     // is why the whole fixtures tree is admitted rather than one directory of
@@ -256,9 +266,17 @@ describe('the vNext workshop', () => {
     // `/about` IS THE THIRD, and the oldest. It is a routed page rather than a
     // cutover adapter, because ADR 0017's non-affiliation statement is owed by
     // the product as it stands rather than by the stage that changes its shape.
+    //
+    // `/privacy` AND `/terms` ARE THE FOURTH, and they are one door rather than
+    // two because a single module serves both. They join on `/about`'s argument
+    // rather than a new one: a policy document is owed by the product as it
+    // stands, so it cannot be gated on the cutover flag without a legally-owed
+    // page appearing and disappearing with a build. Subtracted here by the same
+    // construction as the rest, so anything they do NOT pull in still fails.
     const otherEntries = [
       'src/features/landing/ProductPreview.tsx',
       'src/features/about/AboutPage.tsx',
+      'src/features/legal/LegalPage.tsx',
     ]
     const throughOtherDoors = new Set<string>()
     for (const entry of otherEntries) {

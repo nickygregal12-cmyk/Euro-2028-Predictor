@@ -12,3 +12,11 @@ enable_confirmations = true
 
 [functions.provider-poll]
 verify_jwt = false
+
+# Browser support calls need to reach the function for CORS preflight, but the
+# function does not trust a gateway decision as its authorization boundary: it
+# re-resolves the bearer token through Auth /user and then reads server-owned
+# app_metadata before any service-role query. Keep that contract explicit here
+# rather than inheriting the platform default implicitly.
+[functions.admin-control-room]
+verify_jwt = false

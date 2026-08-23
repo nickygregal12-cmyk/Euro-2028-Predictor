@@ -46,8 +46,8 @@ export type RouteOwnership = {
    * The cutover flag that decides this row, where one does.
    *
    * `null` means the row is not switchable: an admin page, an auth screen, a
-   * compatibility redirect, or `/about`, which is vNext and behind no flag
-   * because the address did not exist before it.
+   * compatibility redirect, or a public platform document such as About,
+   * Privacy or Terms, which exists independently of the domestic cutover.
    */
   readonly journey: string | null
   /** One line. Why this owner, in the product's own terms. */
@@ -85,6 +85,18 @@ export const ROUTE_OWNERSHIP: readonly RouteOwnership[] = [
     owner: 'vnext',
     journey: null,
     why: 'ADR 0017 non-affiliation, built in vNext and behind no flag: the address did not exist before it.',
+  },
+  {
+    path: '/privacy',
+    owner: 'vnext',
+    journey: null,
+    why: 'Public current-service privacy notice, rendered in the vNext platform language and intentionally outside authentication.',
+  },
+  {
+    path: '/terms',
+    owner: 'vnext',
+    journey: null,
+    why: 'Public current-service terms, rendered in the vNext platform language and intentionally outside authentication.',
   },
 
   /* ---- The way in ---------------------------------------------------- */
