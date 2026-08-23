@@ -38,6 +38,7 @@ export function SignUpForm({
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fieldErrors, setFieldErrors] = useState<SignUpFieldErrors>({})
+  const [captchaValidation, setCaptchaValidation] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaKey, setCaptchaKey] = useState(0)
   const [checkingPassword, setCheckingPassword] = useState(false)
@@ -45,9 +46,15 @@ export function SignUpForm({
   useEffect(() => {
     if (error && turnstileEnabled) {
       setCaptchaToken(null)
+      setCaptchaValidation(null)
       setCaptchaKey((k) => k + 1)
     }
   }, [error])
+
+  function handleCaptchaToken(token: string | null) {
+    setCaptchaToken(token)
+    if (token) setCaptchaValidation(null)
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -56,7 +63,14 @@ export function SignUpForm({
     const errors = validateSignUp(values)
     setFieldErrors(errors)
     if (hasErrors(errors)) return
-    if (turnstileEnabled && !captchaToken) return
+
+    if (turnstileEnabled && !captchaToken) {
+      setCaptchaValidation(
+        'Complete the security check before creating your account. If it did not load, use the retry option above.',
+      )
+      return
+    }
+    setCaptchaValidation(null)
 
     setCheckingPassword(true)
     let breachCount = 0
@@ -122,17 +136,21 @@ export function SignUpForm({
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        {/* Renders nothing when Turnstile is off, and — when it is on but
+            cannot load — explains that and offers a retry rather than leaving
+            the visitor with an inert form. */}
         <TurnstileField
           resetKey={captchaKey}
-          onToken={setCaptchaToken}
+          onToken={handleCaptchaToken}
           className={s.turnstile}
         />
+        {captchaValidation ? <Alert variant="error">{captchaValidation}</Alert> : null}
         <Button
           type="submit"
           variant="primary"
           fullWidth
           loading={submitting || checkingPassword}
-          disabled={turnstileEnabled && !captchaToken}
+          disabled={submitting || checkingPassword}
         >
           Create account
         </Button>

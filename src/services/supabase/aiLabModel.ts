@@ -49,7 +49,7 @@ export type AiCalibrationPoint = {
   actualRate: number
 }
 
-export type AiJob = {
+type AiJob = {
   name: string
   status: string
   startedAt: string | null
@@ -58,7 +58,11 @@ export type AiJob = {
   message: string | null
 }
 
-export type AiPrediction = {
+// Not exported: these are the building blocks of the aggregate reads below,
+// which are what every surface imports. Exporting them added names nothing
+// referenced, which the dead-code gate reports rather than forgives. They stay
+// named so the aggregates read as composed shapes rather than inline ones.
+type AiPrediction = {
   id: string
   league: string
   kickoffAt: string | null
@@ -75,7 +79,7 @@ export type AiPrediction = {
   fixtureStatus: string | null
 }
 
-export type AiRecentResult = AiPrediction & {
+type AiRecentResult = AiPrediction & {
   actualHomeGoals: number | null
   actualAwayGoals: number | null
   actualResult: string | null
@@ -85,7 +89,7 @@ export type AiRecentResult = AiPrediction & {
   rps: number | null
 }
 
-export type AiMetricSlice = {
+type AiMetricSlice = {
   observations: number
   accuracy: number | null
   logLoss: number | null
@@ -142,7 +146,7 @@ export type AiBettingGate = {
   currentlyPublic: boolean
 }
 
-export type AiMarketEvidence = {
+type AiMarketEvidence = {
   code: string
   name: string
   settledBets: number

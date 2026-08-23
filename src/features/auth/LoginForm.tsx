@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Alert, Button, TextInput } from '../../design-system'
 import { TurnstileField } from './TurnstileField'
 import { turnstileEnabled } from './turnstileConfig'
+import { emailError } from './authValidation'
 import s from './auth.module.css'
 
 export type LoginFormProps = {
@@ -21,7 +22,7 @@ export type LoginFormProps = {
 }
 
 /**
- * Presentational log-in form. Owns its field state and shows a friendly error;
+ * Presentational log-in form. Owns its field state and shows friendly validation;
  * the parent owns the actual sign-in call and navigation. No session or Supabase
  * logic here, so it's previewable in /dev/components.
  */
@@ -35,6 +36,9 @@ export function LoginForm({
 }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [emailValidation, setEmailValidation] = useState<string | undefined>(undefined)
+  const [passwordValidation, setPasswordValidation] = useState<string | undefined>(undefined)
+  const [captchaValidation, setCaptchaValidation] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   // Bumping this remounts the widget to fetch a fresh, single-use token.
   const [captchaKey, setCaptchaKey] = useState(0)
@@ -43,14 +47,32 @@ export function LoginForm({
   useEffect(() => {
     if (error && turnstileEnabled) {
       setCaptchaToken(null)
+      setCaptchaValidation(null)
       setCaptchaKey((k) => k + 1)
     }
   }, [error])
 
+  function handleCaptchaToken(token: string | null) {
+    setCaptchaToken(token)
+    if (token) setCaptchaValidation(null)
+  }
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (submitting) return
-    if (turnstileEnabled && !captchaToken) return
+
+    const nextEmailError = emailError(email)
+    const nextPasswordError = password ? undefined : 'Please enter your password.'
+    const nextCaptchaError =
+      turnstileEnabled && !captchaToken
+        ? 'Complete the security check before logging in. If it did not load, use the retry option above.'
+        : null
+
+    setEmailValidation(nextEmailError)
+    setPasswordValidation(nextPasswordError)
+    setCaptchaValidation(nextCaptchaError)
+
+    if (nextEmailError || nextPasswordError || nextCaptchaError) return
     onSubmit(email.trim(), password, captchaToken ?? undefined)
   }
 
@@ -74,6 +96,7 @@ export function LoginForm({
           inputMode="email"
           placeholder="you@example.com"
           value={email}
+          error={emailValidation}
           disabled={submitting}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -84,6 +107,7 @@ export function LoginForm({
           autoComplete="current-password"
           placeholder="Your password"
           value={password}
+          error={passwordValidation}
           disabled={submitting}
           onChange={(e) => setPassword(e.target.value)}
           required
@@ -95,17 +119,21 @@ export function LoginForm({
             </button>
           </div>
         ) : null}
+        {/* Renders nothing when Turnstile is off, and — when it is on but
+            cannot load — explains that and offers a retry rather than leaving
+            the visitor with an inert form. */}
         <TurnstileField
           resetKey={captchaKey}
-          onToken={setCaptchaToken}
+          onToken={handleCaptchaToken}
           className={s.turnstile}
         />
+        {captchaValidation ? <Alert variant="error">{captchaValidation}</Alert> : null}
         <Button
           type="submit"
           variant="primary"
           fullWidth
           loading={submitting}
-          disabled={!email.trim() || !password || (turnstileEnabled && !captchaToken)}
+          disabled={submitting}
         >
           Log in
         </Button>

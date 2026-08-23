@@ -1,0 +1,134 @@
+{
+  "$comment": "Machine state for the player-value and reliability delivery programme. Orchestration only. It never carries repository, hosted, contract, scoring or product facts — those live in their own authorities and are read fresh. See docs/product/player-value-programme-controller.md and tests/documentation/playerValueProgrammeController.test.ts.",
+  "schemaVersion": 1,
+  "programme": "player-value",
+  "completionPredicate": "every_stage_complete_with_its_merged_pr_present_on_main",
+  "controller": "docs/product/player-value-programme-controller.md",
+  "contractRunway": {
+    "authority": "config/deployment-contract.json",
+    "note": "The repository contract number is deliberately absent. It is read from the authority named above, and the next free number is derived: repository requiredMigrationCount + 1 + the number of distinct contracts claimed below. Two branches claiming one number is the known failure this record exists to prevent, so a claim is recorded against an exact pull-request head and is invalid the moment the repository reaches it.",
+    "claimedByOpenPullRequests": []
+  },
+  "openPullRequestClassification": [
+    {
+      "pr": 971,
+      "branch": "codex/vnext-release-blockers-shipping-journeys",
+      "headSha": "df27d02299d81386e5b525984947a363138b9644",
+      "draft": true,
+      "classification": "unrelated",
+      "rationale": "vNext shipping journeys and release blockers, owned by the separate vNext programme controller. It carries no migration. Re-anchoring it onto current main is that programme's work, not this one's, and no file it touches is shared with any stage here."
+    }
+  ],
+  "stages": [
+    {
+      "id": "0",
+      "title": "Reconcile the contract runway",
+      "dependencies": [],
+      "status": "in_progress",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "1",
+      "title": "Deploy the reminder delivery path",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "2",
+      "title": "Web push notifications",
+      "dependencies": ["1"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "3",
+      "title": "Server-rendered invite metadata and dynamic share cards",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "4",
+      "title": "Deterministic hostile scenario seed",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "5",
+      "title": "Adversarial failure-mode tests",
+      "dependencies": ["4"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "6",
+      "title": "Synthetic journey probe and public status page",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "7",
+      "title": "Live leaderboard over Supabase Realtime",
+      "dependencies": ["4"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "8",
+      "title": "Operator announcement banner",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    },
+    {
+      "id": "9",
+      "title": "First-party product events",
+      "dependencies": ["0"],
+      "status": "not_started",
+      "pr": null,
+      "headSha": null,
+      "mergedSha": null,
+      "acceptanceEvidence": [],
+      "blocker": null
+    }
+  ]
+}

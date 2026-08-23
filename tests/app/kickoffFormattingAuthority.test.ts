@@ -101,6 +101,13 @@ const ALLOWED: Record<string, string> = {
   // length beside the formatter. Nothing a player sees is formatted here.
   'src/vnext/fixtures/matches/scenarios.ts':
     'builds deterministic review worlds in a pinned zone; formats nothing a player sees',
+  // The private Lab's OPERATIONAL clock, and the distinction is checkable. The
+  // one genuine kickoff on this page goes through `formatKickoffWithDay` above;
+  // what remains formats when a job last ran, when a model was trained and the
+  // date a model was trained through. None of those is a kickoff, a deadline or
+  // a match day, and none is player-facing — this surface is administrator-only.
+  'src/features/admin/AiLabPage.tsx':
+    'formats operational instants (job runs, training timestamps); its one kickoff uses the authority',
 }
 
 function productionModules(): string[] {

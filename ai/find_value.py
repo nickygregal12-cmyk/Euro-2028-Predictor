@@ -1,10 +1,11 @@
-"""Join today's model probabilities to today's prices and record the decisions.
+"""Join today's model probabilities to today's prices and record decisions.
 
     python find_value.py --league EPL --dry-run
 
 Writes ai.bets rows for the selections that survive the gate, all flagged
 is_paper=true until you deliberately say otherwise — and writes an
-ai.recommendations row for EVERY candidate, including the ones it refused.
+ai.recommendations row for EVERY current candidate, including the ones it
+refused.
 
 Recommendations are deliberately re-evaluated whenever fresher prices arrive,
 even after a paper bet has already been recorded for that fixture/market. The
@@ -22,6 +23,14 @@ the same selection at the same bookmaker — and every one of those repeats
 inflated the bet count, the exposure, the win rate, the ROI and the CLV sample
 by counting one opinion about one match more than once. One fixture, one market,
 one advised paper bet.
+
+THE FORECAST CURRENCY IS ALSO THE FIXTURE. A fixture deliberately accumulates
+immutable t168/t120/t72/t48/t24/t6 forecasts as better evidence arrives. The
+candidate read retains those historical rows because they are useful audit
+history and existing lifecycle tests deliberately inspect them. It also marks
+the one row selected by `ai.canonical_fixture_predictions`. The decision loop
+assesses ONLY that canonical row, so an older horizon can never create today's
+BET/PASS while the Lab is showing a newer probability.
 
 The refusals are the point. "Edge exceeds 3%, therefore selection" fires on a
 four-day-old price, on a club with four matches of history, and on a fixture
@@ -56,21 +65,26 @@ DEFAULT_BOOK: str | None = None
 
 
 def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.DataFrame:
-    """Upcoming predictions plus every latest REAL venue price and references.
+    """Upcoming forecast history plus latest REAL prices and references.
 
-    One fixture can therefore appear once per actionable bookmaker/exchange.
-    The common `ValueGate` decides freshness and actionability again in Python;
-    the registry join here is an earlier fail-closed boundary and avoids ever
+    Historical forecast horizons remain in this read for audit/debugging. Each
+    row carries `is_canonical`; callers that make a CURRENT betting decision
+    must assess only rows where that flag is true. This keeps evidence history
+    inspectable without allowing it to compete with the forecast the Lab shows.
+
+    One prediction can appear once per actionable bookmaker/exchange. The
+    common `ValueGate` decides freshness and actionability again in Python; the
+    registry join here is an earlier fail-closed boundary and avoids ever
     presenting AVG/MAX as candidate venues in the first place.
 
-    `AVG` and `MAX` are still retained beside each row as REFERENCE prices:
-    AVG supplies the de-vigged market probability and MAX is a diagnostic
-    cross-book ceiling. Neither is written to `ai.bets.bookmaker`.
+    `AVG` and `MAX` are retained beside each row as REFERENCE prices: AVG
+    supplies the de-vigged market probability and MAX is a diagnostic cross-book
+    ceiling. Neither is written to `ai.bets.bookmaker`.
 
     Existing paper/advised bets do NOT remove a prediction from this read. A
     fresh price must be allowed to produce a fresh recommendation so Bet Builder
     never has to rely on yesterday's BET decision. `has_existing_bet` travels
-    with the row and is used only to suppress a second ai.bets insert, and it
+    with every horizon and is used only to suppress a second ai.bets insert; it
     asks about the FIXTURE rather than about this prediction row.
     """
     return query_df(
@@ -107,6 +121,7 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
                p.kickoff_at, p.home_canonical, p.away_canonical,
                p.p_home, p.p_draw, p.p_away,
                p.data_confidence, p.agreement, p.uncertainty,
+               (p.id = cp.id) as is_canonical,
                -- Keyed on the FIXTURE, not on p.id. A retrain produces a new
                -- prediction row for a match that has already been advised, and
                -- keying this on the prediction id let that new row record a
@@ -120,6 +135,7 @@ def load_candidates(league_key: str, book: str | None = DEFAULT_BOOK) -> pd.Data
                r.avg_h, r.avg_d, r.avg_a, r.avg_captured_at,
                r.max_h, r.max_d, r.max_a, r.max_captured_at
           from ai.valid_predictions p
+          join ai.canonical_fixture_predictions cp on cp.fixture_id = p.fixture_id
           join ai.fixtures f on f.id = p.fixture_id
           join actionable a on a.fixture_id = p.fixture_id
      left join reference r on r.fixture_id = p.fixture_id
@@ -259,9 +275,18 @@ def main() -> int:
             state["detail"] = {"candidates": 0}
             return 0
 
+        # Historical horizons remain in `df` for auditability. Only the one
+        # canonical prediction per fixture is allowed to produce the current
+        # recommendation or immutable paper advice.
+        current = df.loc[df["is_canonical"].fillna(False)].copy()
+        if current.empty:
+            print("No priced fixture has a canonical current prediction.")
+            state["detail"] = {"candidates": 0}
+            return 0
+
         now = datetime.now(timezone.utc)
         assessed = []
-        for _, group in df.groupby("prediction_id", sort=False):
+        for _, group in current.groupby("prediction_id", sort=False):
             result = _assess_fixture(
                 group, gate, now, args.devig, is_paper=not args.real_money)
             if result is not None:

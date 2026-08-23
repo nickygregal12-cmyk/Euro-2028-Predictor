@@ -200,7 +200,11 @@ describe('generated public metadata', () => {
     expect(head).toContain('<title>Euro 2028 Predictor</title>')
     expect(head).toContain(`<link rel="canonical" href="${EURO_ORIGIN}/" />`)
     expect(head).toContain(`<meta property="og:url" content="${EURO_ORIGIN}/" />`)
-    expect(head).toContain(`<meta property="og:image" content="${EURO_ORIGIN}/og-image.jpg" />`)
+    // PNG rather than the historical JPEG: the social card is now generated per
+    // site alongside that variant's installed identity, and Vite emits only the
+    // current variant's copy at the root. The single cross-branded
+    // `public/og-image.jpg` it replaced is no longer referenced by any surface.
+    expect(head).toContain(`<meta property="og:image" content="${EURO_ORIGIN}/og-image.png" />`)
   })
 
   it('omits every absolute-URL tag when the site has no origin', () => {

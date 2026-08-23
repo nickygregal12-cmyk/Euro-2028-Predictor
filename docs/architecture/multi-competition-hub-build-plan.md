@@ -396,3 +396,7 @@ blockquotes could never show without being read end to end.
 ## Contract 214 confirmation-integrity review
 
 Contract 214 changes only season matchweek confirmation integrity and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
+
+## Contract 215 AI Lab value-currency review
+
+Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.

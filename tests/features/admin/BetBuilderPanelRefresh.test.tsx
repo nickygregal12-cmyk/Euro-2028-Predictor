@@ -15,7 +15,13 @@ const staleBooks = [
 ]
 
 const freshBooks = [
-  { ...at(staleBooks, 0), legs: 2 },
+  // ONE leg, and the number is the test rather than an incidental fixture. The
+  // Builder now defaults to a probability-first DOUBLE, so a book offering two
+  // legs is a possible default and keeping it would be correct behaviour. The
+  // case this exercises is the IMPOSSIBLE one — a stale default that cannot
+  // satisfy the requested count — so B365 has to sit below the default, not on
+  // it, or the assertion below stops measuring the escape at all.
+  { ...at(staleBooks, 0), legs: 1 },
   { ...at(staleBooks, 1), legs: 38 },
   { code: 'MAX', name: 'MAX', kind: 'aggregate' as const, isRealPrice: false, exchangeCommission: null, legs: 999, lastDecidedAt: null },
 ]
@@ -29,6 +35,19 @@ function candidates(bookmaker: string) {
     },
     legs: [], legCount: 0, truncatedAt: 200,
     window: { from: '2026-08-15T00:00:00Z', to: '2026-08-22T00:00:00Z' },
+    // This fixture returns no legs, and the coverage counts have to SAY so
+    // rather than be absent: an empty Builder result that cannot explain itself
+    // is the thing the server counts exist to stop looking like a fault. Zeros
+    // across the board is the honest reading of an empty window here — nothing
+    // was in it, so nothing carried a decision or was actionable anywhere.
+    coverage: {
+      fixturesInWindow: 0,
+      withCurrentDecision: 0,
+      actionableAnywhere: 0,
+      actionableAtThisBook: 0,
+      passed: 0,
+      passReasonCounts: {},
+    },
     generatedAt: '2026-08-15T03:00:00Z',
   }
 }
@@ -54,7 +73,7 @@ describe('Bet Builder live refresh', () => {
     const select = await screen.findByRole('combobox', { name: /Bookmaker/i }) as HTMLSelectElement
     await waitFor(() => expect(select.value).toBe('B365'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Refresh selections' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
 
     await waitFor(() => expect(fetchBetBuilderBookmakers).toHaveBeenCalledTimes(2))
     await waitFor(() => expect(select.value).toBe('BFE'))

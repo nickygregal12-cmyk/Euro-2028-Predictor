@@ -151,3 +151,7 @@ same paragraph existed in seven places at once.
 ### Contract 214 implementation note
 
 Contract 214 refines the existing season-card implementation so a confirmation belongs to the current material card state. It introduces no replacement ADR and no second settlement/receipt authority; the existing card row remains authoritative.
+
+### Contract 215 review — no new product decision
+
+Contract 215 requires no new ADR. It is a consistency fix inside the already-private AI Lab: the betting decision shown as current must be derived from the same canonical forecast the Lab shows as current, while historical forecasts/recommendations remain evidence. It changes neither the accepted model-selection/publication authority nor the boundary that this is paper research with no public bet placement. Hosted rollout remains separately authorised.
