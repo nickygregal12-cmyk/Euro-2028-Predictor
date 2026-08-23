@@ -23,11 +23,11 @@ The tracked model team is deliberately subscription/free-first:
 | `predictor-builder` | OpenAI GPT-5.6 Sol via direct OpenCode OpenAI login | use existing ChatGPT allowance first | sole write-capable worker |
 | `predictor-critic` | Ox Alpha via OpenRouter | currently free | independent read-only critic |
 
-Do **not** route GPT through OpenRouter by default. OpenCode supports signing into OpenAI with a ChatGPT account; use that path so ordinary Conductor/Builder work uses the user's existing ChatGPT plan allowance. If that allowance is exhausted, stop rather than silently switching to paid API usage.
+Do **not** route GPT through OpenRouter by default. OpenCode supports signing into OpenAI with a ChatGPT account; use that path so ordinary Conductor/Builder work uses the user's existing ChatGPT/Codex allowance. Included usage is still rate-limited by the ChatGPT plan; if it is exhausted, stop or wait for reset rather than silently switching to paid API usage.
 
 Ox Alpha remains behind a separately scoped `OPENROUTER_API_KEY`; the model is currently free, but availability/pricing is external and may change.
 
-Claude is optional rather than a mandatory per-task charge. If the operator already has Claude Pro/Max, use the **official Claude Code client** for selected escalations/reviews. Do not reuse Claude subscription credentials through OpenCode or third-party plugins. Anthropic's supported subscription path is Claude Code itself. If no Claude subscription exists, leave that lane disabled rather than creating API spend.
+Claude is optional rather than a mandatory per-task charge. If the operator already has Claude Pro/Max, use the **official Claude Code client** for selected escalations/reviews. Anthropic supports Claude Code with those subscriptions. Scripted `claude -p` work can draw from Claude's separate Agent SDK allowance/credits, so it is not assumed to be unlimited or permanently zero-cost. Do not reuse Claude subscription credentials through OpenCode or third-party plugins. If no Claude subscription exists, leave that lane disabled rather than creating API spend.
 
 ## Free host choice A — Oracle Cloud Always Free
 
@@ -38,7 +38,7 @@ Important limitations:
 - the free A1 shape is ARM64;
 - capacity can be unavailable in a region;
 - the repository installer supports both x86-64 and ARM64 Node binaries;
-- very heavy Playwright/build workloads will be slower than a paid 8/16 GB development VM.
+- very heavy Playwright/build workloads will be slower than a paid development VM.
 
 Use Ubuntu 24.04 LTS and allocate the free A1 allowance to one VM where possible.
 
@@ -52,7 +52,7 @@ Electricity is the only incremental infrastructure cost.
 
 ## Free host choice C — Codespaces on demand
 
-Personal GitHub accounts include a monthly Codespaces quota. Use this when persistent 24/7 availability is not necessary. Codespaces automatically stops when idle, so it is not the always-on architecture, but it is a good zero-cost fallback and the repository already bootstraps OpenCode there.
+Personal GitHub accounts include a monthly Codespaces quota. Current GitHub documentation lists 120 core-hours/month for personal Free accounts and 180 for GitHub Pro, plus included storage. Use this when persistent 24/7 availability is not necessary. Codespaces automatically stops when idle, so it is not the always-on architecture, but it is a good zero-cost fallback and the repository already bootstraps OpenCode there.
 
 Do not keep Codespaces running simply to imitate an always-on server; that wastes the included core-hours.
 
@@ -126,7 +126,7 @@ It makes no model request during installation.
 
 ### Ox Alpha
 
-Create a separately scoped OpenRouter key for the workspace and provide it to the installer. Do not put money on the key merely because it exists; Ox Alpha is the intended OpenRouter model for the default critic lane.
+Create a separately scoped OpenRouter key for the workspace and provide it to the installer. Do not add a positive spend budget merely because the key exists; Ox Alpha is the intended OpenRouter model for the default critic lane. Re-check its price before relying on it long term.
 
 ### ChatGPT / OpenAI
 
@@ -138,13 +138,13 @@ If the ChatGPT/Codex allowance is exhausted, wait for reset or explicitly decide
 
 ### Claude — optional escalation
 
-If you already pay for Claude Pro/Max, install/authenticate the official Claude Code client on the same host and use the Claude account subscription route. Keep Anthropic API keys unset if the goal is to stay within the subscription rather than pay API rates.
+If you already pay for Claude Pro/Max, install/authenticate the official Claude Code client on the same host and use the Claude account subscription route. Keep `ANTHROPIC_API_KEY` unset if the goal is to avoid API billing.
 
 Claude is not required for every task. A good cost policy is:
 
 - GPT subscription: ordinary coordination/build work;
 - Ox Alpha free: independent challenge/review;
-- Claude Code subscription: use only on tasks where a genuinely different implementation/review pass is valuable.
+- Claude Code subscription: selected tasks where a genuinely different implementation/review pass is worth consuming its allowance.
 
 If you do not have a Claude subscription, skip Claude initially.
 
@@ -191,7 +191,7 @@ Use the browser/device flow. `git push` and `gh pr create` remain explicit appro
 bash scripts/agent-tools/cloud-conductor-doctor.sh
 ```
 
-Healthy state includes the exact Node version, OpenCode, tracked agents, OpenRouter key, localhost-only service, Tailscale/Serve and optional GitHub CLI auth.
+Healthy state includes the exact Node version, OpenCode, tracked agents, direct OpenAI/ChatGPT auth, the Ox/OpenRouter key, localhost-only service, Tailscale/Serve and optional GitHub CLI auth.
 
 ## Normal use
 
