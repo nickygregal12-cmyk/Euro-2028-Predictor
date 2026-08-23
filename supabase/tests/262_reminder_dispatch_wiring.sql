@@ -154,9 +154,17 @@ select is(
   'an unconfigured job reports itself rather than raising every five minutes until somebody finishes the setup'
 );
 
+-- SCOPED TO THIS TRANSACTION'S CLOCK, and that is not fussiness. This contract
+-- schedules `player-reminder-dispatch` every five minutes and pg_cron is live
+-- here, so an unscoped count of this ledger is a count of what the test did
+-- PLUS whatever the job did while the test ran. `now()` is fixed for the whole
+-- transaction and a cron firing carries its own, so this counts only the row
+-- the statement above just wrote. The first version of this assertion counted
+-- globally, passed once and failed once.
 select is(
   (select count(*)::integer from predictor_internal.reminder_dispatch_runs
-    where outcome = 'not-configured' and reported_at is not null),
+    where outcome = 'not-configured' and reported_at is not null
+      and requested_at = now()),
   1,
   'and it RECORDS the refusal, closed, which is the fact the delivery ledger cannot carry because nothing was ever claimed'
 );
@@ -309,12 +317,15 @@ select throws_ok(
   'a replayed callback cannot reopen a closed run and rewrite what happened, for the same reason record_reminder_result refuses a row that is not in flight'
 );
 
-insert into predictor_internal.reminder_dispatch_runs (requested_at, due_at_request, configured)
-values (now(), 0, true);
-
-select set_config('test.c216_open',
-  (select id::text from predictor_internal.reminder_dispatch_runs
-    where reported_at is null order by requested_at desc limit 1), true);
+-- Named by the insert itself rather than found by a search. Every row this
+-- transaction writes shares one `requested_at`, so `order by requested_at desc
+-- limit 1` had no tie-break and a concurrent cron row could win it outright.
+with opened as (
+  insert into predictor_internal.reminder_dispatch_runs (requested_at, due_at_request, configured)
+  values (now(), 0, true)
+  returning id
+)
+select set_config('test.c216_open', (select id::text from opened), true);
 
 select throws_ok(
   format('select public.record_reminder_dispatch_run(%L, %L)',

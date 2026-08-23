@@ -39,6 +39,15 @@
 -- never came, which is what an unreachable endpoint or a rejected caller key
 -- looks like from the database's side.
 --
+-- THIS DIFFERS FROM CONTRACT 155 DELIBERATELY, and costs something. The provider
+-- poll dispatcher writes NOTHING when it is unconfigured, so its ledger counts
+-- only real dispatches. This one writes a refusal, because the refusal is the
+-- fact that cannot be recovered from anywhere else — and the price is a row
+-- every five minutes for as long as an environment stays unconfigured, roughly
+-- 288 a day. That is the intended trade: a small bounded table against a job
+-- whose silence is indistinguishable from its absence. Anything counting this
+-- ledger must scope itself, because the job is live and writing while it counts.
+--
 -- ---------------------------------------------------------------------------
 -- WHAT THIS MUST NOT BECOME
 -- ---------------------------------------------------------------------------
