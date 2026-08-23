@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { readLastVisit, writeLastVisit } from '../../../features/hub/lastVisit'
 import { presentCard } from '../../../features/season/matchPredictorModel'
-import { presentCompetitionWeek, weekActionForGame } from '../../../features/hub/competitionWeekModel'
+import { presentCompetitionWeek } from '../../../features/hub/competitionWeekModel'
 import type { HomeSource, HomeSourceLeague } from './homeSource'
 
 /**
@@ -124,6 +124,25 @@ export type VNextHomeSourceInput = {
    * what private leagues hang off. Null where the player has not joined it.
    */
   gameCompetitionId: string | null
+  /**
+   * Whether this player has an ACTIVE Last Man Standing membership here.
+   *
+   * IT COSTS NO REQUEST. The shell already holds the membership answer —
+   * `usePlayerCompetitions` carries every competition's `games` with its
+   * membership row, and `useSeasonGameCompetitionId` reads the same context for
+   * the Match Predictor id above. Asking the LMS round read for a non-entrant
+   * would spend a request to be told what the membership read already said, and
+   * `loadCompetitionWeek` declines to do that for the same reason.
+   */
+  playsLms: boolean
+  /**
+   * The exact Championship competition this player is in, or null.
+   *
+   * AN ID RATHER THAN A BOOLEAN, because a season can run several Championships
+   * — contract 133's discovery read exists because of it — so "the
+   * Championship" is not a thing to look up by game key alone.
+   */
+  championshipCompetitionId: string | null
 }
 
 function settled<T>(result: PromiseSettledResult<T>): T | null {
@@ -131,12 +150,19 @@ function settled<T>(result: PromiseSettledResult<T>): T | null {
 }
 
 /**
- * WHICH REQUEST A PAYLOAD ANSWERS: the four inputs that ADDRESS Home's reads.
+ * WHICH REQUEST A PAYLOAD ANSWERS: the inputs that ADDRESS Home's reads.
  *
  * `userId` addresses the profile and the card, the two slugs address the play
- * context every other read hangs off, and `gameCompetitionId` addresses the
- * private leagues. Change any one of them and every answer already in hand is
- * about somebody else, some other competition, or some other set of leagues.
+ * context every other read hangs off, `gameCompetitionId` addresses the private
+ * leagues, and the two membership inputs address the Last Man Standing round
+ * and the Championship view. Change any one of them and every answer already in
+ * hand is about somebody else, some other competition, some other set of
+ * leagues, or a game the player is no longer in.
+ *
+ * THE MEMBERSHIP INPUTS ARE PART OF THE ADDRESS AND NOT MERELY OF THE ANSWER.
+ * A player who joins Last Man Standing mid-session changes what Home may ask
+ * for; leaving them out would keep serving a payload computed when there was no
+ * round to read, and the pick would not appear until something else moved.
  *
  * `displayName` is deliberately not part of it — it addresses no read, and it is
  * merged into the source at the end rather than re-fetched for. `authLoading` is
@@ -153,12 +179,16 @@ function requestIdentity(input: {
   competitionSlug: string
   seasonSlug: string
   gameCompetitionId: string | null
+  playsLms: boolean
+  championshipCompetitionId: string | null
 }): RequestIdentity {
   return JSON.stringify([
     input.userId,
     input.competitionSlug,
     input.seasonSlug,
     input.gameCompetitionId,
+    input.playsLms,
+    input.championshipCompetitionId,
   ])
 }
 
@@ -222,6 +252,8 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     competitionSlug,
     seasonSlug,
     gameCompetitionId,
+    playsLms,
+    championshipCompetitionId,
   } = input
 
   useEffect(() => {
@@ -232,7 +264,14 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
       return
     }
 
-    const identity = requestIdentity({ userId, competitionSlug, seasonSlug, gameCompetitionId })
+    const identity = requestIdentity({
+      userId,
+      competitionSlug,
+      seasonSlug,
+      gameCompetitionId,
+      playsLms,
+      championshipCompetitionId,
+    })
 
     let active = true
     // Dropped rather than kept-while-loading. The derivation below would refuse
@@ -258,8 +297,25 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
         const matchweek = context.matchweek
 
         // WAVE TWO. Six reads, concurrently, each allowed to fail alone.
-        const [fixtures, card, profile, leagueList, clubForm, consensus, projection] =
-          await Promise.allSettled([
+        // WAVE TWO. Eight reads, concurrently, each allowed to fail alone.
+        //
+        // THE TWO SIDE-GAME READS JOIN THIS WAVE RATHER THAN FOLLOWING IT, so
+        // finishing the week costs Home no extra round trip: they need only
+        // `context.tournamentId` and the membership ids the shell already
+        // holds, which is exactly what wave one produced. A third wave would
+        // have added its own latency to every Home load to answer a question
+        // the same wave could ask.
+        const [
+          fixtures,
+          card,
+          profile,
+          leagueList,
+          clubForm,
+          consensus,
+          projection,
+          lmsRound,
+          championshipView,
+        ] = await Promise.allSettled([
             fetchSeasonFixtureList(context.tournamentId),
             matchweek === null
               ? Promise.resolve(null)
@@ -299,6 +355,27 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
               : import('../../../services/supabase/seasonMatchweekProjection').then((module) =>
                   module.fetchSeasonMatchweekProjection(context.tournamentId, matchweek),
                 ),
+            // THE LAST MAN STANDING ROUND, only where the player is actually in
+            // it. The round read reports `entered: false` for a non-entrant, so
+            // this gate is about not spending the request rather than about
+            // trusting the answer — `lmsAction` still decides what the payload
+            // means.
+            playsLms
+              ? import('../../../services/supabase/seasonLms').then((module) =>
+                  module.createSeasonLmsRpcGateway({
+                    tournamentId: context.tournamentId,
+                  }).load(),
+                )
+              : Promise.resolve(null),
+            // THE CHAMPIONSHIP THIS PLAYER IS IN, addressed by its own
+            // competition id because a season may run several.
+            championshipCompetitionId === null
+              ? Promise.resolve(null)
+              : import('../../../services/supabase/seasonCupPlayer').then((module) =>
+                  module.createSeasonCupPlayerViewRpcGateway({
+                    competitionId: championshipCompetitionId,
+                  }).load(),
+                ),
           ])
         if (!active) return
 
@@ -311,6 +388,13 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
         }
 
         const cardPage = settled(card)
+        // Each side game is allowed to fail alone. `settled` turns a rejection
+        // into `null`, which the week model reads as "this game said nothing" —
+        // the same answer as a player who is not in it. That is deliberate for
+        // Home: a broken Championship read must cost its own line and nothing
+        // else on the page.
+        const lmsRoundValue = settled(lmsRound)
+        const championshipValue = settled(championshipView)
         const allLeagues = settled(leagueList) ?? []
         const shown = allLeagues.slice(0, LEAGUE_LIMIT)
 
@@ -384,18 +468,31 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
             // reads the answer. `false` for the conflict flag: Home issues no
             // commands, so it can hold no stale version.
             cardPresentation: cardPage ? presentCard(cardPage, false) : null,
-            weekAction: cardPage
-              ? weekActionForGame(
-                  // The Hub's own week model, over the same card. Reusing it is
-                  // what keeps Home's "what is outstanding" identical to the
-                  // Hub's, rather than a second count that can disagree.
-                  presentCompetitionWeek({
-                    matchPredictor: { page: cardPage, href: null },
+            // THE WHOLE WEEK, ACROSS EVERY GAME THAT ANSWERED.
+            //
+            // The Hub's own week model, over the same reads the Hub uses.
+            // Reusing it is what keeps Home's "what is outstanding" identical
+            // to the Hub's rather than a second count that can disagree — and
+            // it is the ONLY thing that orders these three, so Home never
+            // decides that one game outranks another.
+            //
+            // EACH GAME IS INDEPENDENTLY OMITTED, never substituted. A rejected
+            // Championship read arrives here as `null` and the week is built
+            // without it, so an unreadable side game costs the player its line
+            // and never the Match Predictor action beside it. `null` overall
+            // means nothing answered at all, which the mapper treats as "we
+            // could not ask" rather than "nothing to do".
+            week:
+              cardPage || lmsRoundValue || championshipValue
+                ? presentCompetitionWeek({
+                    matchPredictor: cardPage ? { page: cardPage, href: null } : null,
+                    lms: lmsRoundValue ? { page: lmsRoundValue, href: null } : null,
+                    championship: championshipValue
+                      ? { view: championshipValue, href: null }
+                      : null,
                     now: new Date(),
-                  }),
-                  'main_predictor',
-                )
-              : null,
+                  })
+                : null,
             profile: profileValue,
             leagues,
             clubForm: clubFormValue,
@@ -425,7 +522,16 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     // `displayName` is DELIBERATELY ABSENT. It addresses no read, and including
     // it made every read fire twice — once before the profile resolved and once
     // after. It is merged into the source below instead.
-  }, [authLoading, userId, competitionSlug, seasonSlug, gameCompetitionId, nonce])
+  }, [
+    authLoading,
+    userId,
+    competitionSlug,
+    seasonSlug,
+    gameCompetitionId,
+    playsLms,
+    championshipCompetitionId,
+    nonce,
+  ])
 
   /**
    * THE PUBLIC STATE IS DERIVED FROM THE CURRENT INPUTS, IN THIS ORDER, and the
@@ -445,7 +551,14 @@ export function useVNextHomeSource(input: VNextHomeSourceInput): VNextHomeSource
     if (!userId) return { status: 'signedOut' }
     if (!competitionSlug || !seasonSlug) return { status: 'noCompetition' }
 
-    const identity = requestIdentity({ userId, competitionSlug, seasonSlug, gameCompetitionId })
+    const identity = requestIdentity({
+      userId,
+      competitionSlug,
+      seasonSlug,
+      gameCompetitionId,
+      playsLms,
+      championshipCompetitionId,
+    })
     if (state.status === 'idle' || state.identity !== identity) return { status: 'loading' }
     if (state.status === 'failed') return { status: 'failed', retry }
 

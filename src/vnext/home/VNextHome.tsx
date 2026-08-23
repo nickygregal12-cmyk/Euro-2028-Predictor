@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
-import type { HomeModel } from '../models/home'
+import type { HomeActionGame, HomeModel } from '../models/home'
 import { VNextShell } from '../app/VNextShell'
 import { useVNextMotion, vnextMotion } from '../foundations/motion'
+import { WeekElsewhere } from './WeekElsewhere'
 import { ActionBanner } from './ActionBanner'
 import { AroundTheGrounds } from './AroundTheGrounds'
 import { SinceYouWereHere } from './SinceYouWereHere'
@@ -27,6 +28,11 @@ export type HomeIntent =
   | { readonly kind: 'open-predictor' }
   | { readonly kind: 'open-leagues' }
   | { readonly kind: 'open-match'; readonly matchId: string }
+  /* The two side games Home can now speak for. Separate kinds rather than one
+     `open-game` with a key, because the host maps each to a route helper and a
+     union it must exhaust is what stops a third game being added silently. */
+  | { readonly kind: 'open-lms' }
+  | { readonly kind: 'open-championship' }
 
 export type VNextHomeProps = {
   model: HomeModel
@@ -95,12 +101,22 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
   const openPredictor = () => onIntent?.({ kind: 'open-predictor' })
   const openLeagues = () => onIntent?.({ kind: 'open-leagues' })
   const openMatch = (matchId: string) => onIntent?.({ kind: 'open-match', matchId })
+  const openGame = (game: HomeActionGame) => {
+    if (game === 'last-man-standing') onIntent?.({ kind: 'open-lms' })
+    else if (game === 'championship') onIntent?.({ kind: 'open-championship' })
+    else openPredictor()
+  }
 
   const primaryAction = () => {
     switch (model.primaryAction.type) {
       case 'predict':
       case 'review':
         openPredictor()
+        return
+      case 'pickClub':
+        // The banner promises "Pick your club", and only Last Man Standing has
+        // one. Sending this anywhere else would be the label lying.
+        onIntent?.({ kind: 'open-lms' })
         return
       case 'joinLeague':
         openLeagues()
@@ -174,6 +190,12 @@ export function VNextHome({ model, onIntent }: VNextHomeProps) {
       {emphasis === 'decision' ? null : (
         <ActionBanner action={model.primaryAction} now={now} onAction={primaryAction} />
       )}
+
+      {/* Directly beneath the primary action, because it is the same question —
+          "what does this week want from me?" — for the games the banner is not
+          about. Above the football for the same reason the banner is: a
+          deadline you can still act on outranks a match you cannot. */}
+      <WeekElsewhere actions={model.secondaryActions} onOpen={openGame} />
 
       {/* Keyed on the emphasis so a change of state re-runs the entrance
           rather than swapping content in place. Under reduced motion the

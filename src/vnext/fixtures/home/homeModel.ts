@@ -44,6 +44,7 @@ export const workshopHomeModel: HomeModel = {
     routePlaceholder: 'predict/matchweek-4',
     urgency: 'urgent',
   },
+  secondaryActions: [],
   liveMatches,
   upcomingMatches,
   recentResults,

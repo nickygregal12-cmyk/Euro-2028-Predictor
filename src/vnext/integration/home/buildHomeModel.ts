@@ -30,8 +30,10 @@ import type {
   TeamKitPattern,
   UserPrediction,
 } from '../../models/football'
+import type { WeekActionKind } from '../../../features/hub/competitionWeekModel'
 import type {
   CompetitionContext,
+  HomeActionGame,
   HomeModel,
   HomeUser,
   PlayerRef,
@@ -42,6 +44,7 @@ import type {
   PrivateLeague,
   PrivateLeagueStanding,
   RankMovement,
+  SecondaryAction,
   MatchweekRecap,
   RecentPerformance,
   Rival,
@@ -548,14 +551,40 @@ function urgencyOf(locksAt: string | null, generatedAt: string): PrimaryActionUr
  */
 function primaryActionOf(source: HomeSource, liveCount: number): PrimaryAction {
   const editable = source.cardPresentation?.editable ?? false
-  const action = source.weekAction
+  // THE WEEK'S OWN ANSWER, NOT A GAME THIS FUNCTION CHOSE. `primary` is the
+  // outstanding action that locks soonest across every game the player joined
+  // here, decided by `presentCompetitionWeek` and read rather than recomputed.
+  const action = source.week?.primary ?? null
   const presentation = source.cardPresentation
   const progress =
     presentation === null
       ? null
       : { completed: presentation.entered, total: presentation.total }
 
-  if (action?.outstanding && editable && presentation !== null) {
+  // LAST MAN STANDING CAN LEAD, and on a real week it frequently does: its
+  // round locks thirty minutes before the Match Predictor's matchweek. There is
+  // no `editable` guard to apply here — the round's own read already refused to
+  // report an outstanding pick for an eliminated or unentered player, and a
+  // second opinion about whether the player may pick would be presentation
+  // deciding a permission.
+  if (action?.kind === 'last_man_standing' && action.outstanding) {
+    return {
+      type: 'pickClub',
+      // The week model's own sentence names the round; this is the banner's
+      // short form of the same job, and `weekActionCallToAction` already fixes
+      // the verb for this game so the two surfaces cannot drift apart.
+      title: 'Pick your club',
+      description: action.title,
+      deadline: action.locksAt,
+      // The Match Predictor's fraction is not this action's progress. A pick is
+      // one decision, and "3 of 10" beside it would be another game's number.
+      progress: null,
+      routePlaceholder: 'lms',
+      urgency: urgencyOf(action.locksAt, source.generatedAt),
+    }
+  }
+
+  if (action?.kind === 'match_predictor' && action.outstanding && editable && presentation !== null) {
     const remaining = presentation.total - presentation.entered
     const label = source.competition.matchweek === null ? 'this matchweek' : `matchweek ${source.competition.matchweek}`
     return {
@@ -604,6 +633,51 @@ function primaryActionOf(source: HomeSource, liveCount: number): PrimaryAction {
         routePlaceholder: 'season',
         urgency: 'calm',
       }
+}
+
+/**
+ * THE REST OF THE WEEK, AS AT MOST TWO COMPACT LINES.
+ *
+ * `DFA-010` fixes the shape — one primary and at most two secondary — and
+ * `presentCompetitionWeek` has already produced exactly that, ordered, with the
+ * primary excluded. This function TRANSLATES; it does not choose, rank, cap or
+ * compose a sentence. The cap is asserted rather than applied for that reason:
+ * if the week model ever returned three, the right fix is there and not a
+ * second `slice` here quietly hiding it.
+ *
+ * A GAME THE PLAYER HAS NOT JOINED IS NOT IN THE LIST AT ALL. `lmsAction`
+ * returns null for a non-entrant and `championshipAction` for a player who is
+ * not in one, so absence is the week model's answer and never a filter here.
+ * That is what stops Home implying a membership.
+ *
+ * `outstanding` travels with each row so a settled game is drawn as a report
+ * rather than as a task. It is the week model's field, unmodified.
+ */
+function secondaryActionsOf(source: HomeSource): readonly SecondaryAction[] {
+  const week = source.week
+  if (week === null) return []
+
+  return week.secondary.map((action) => ({
+    game: HOME_ACTION_GAME[action.kind],
+    title: action.title,
+    outstanding: action.outstanding,
+    deadline: action.locksAt,
+  }))
+}
+
+/**
+ * The week model's kinds in the shell's vocabulary.
+ *
+ * The two vocabularies already meet once, in `competitionWeekModel`'s own
+ * `GAME_KEY`, which maps to the CATALOGUE's keys (`main_predictor`,
+ * `predictor_cup`). Home speaks the shell's route-facing names instead, so this
+ * is the second and last translation and it is total by construction — a new
+ * `WeekActionKind` fails to compile until it is named here.
+ */
+const HOME_ACTION_GAME: Record<WeekActionKind, HomeActionGame> = {
+  match_predictor: 'match-predictor',
+  last_man_standing: 'last-man-standing',
+  championship: 'championship',
 }
 
 /* ------------------------------------------------------------------ *
@@ -1009,6 +1083,7 @@ export function buildHomeModel(source: HomeSource): HomeModel {
     user: userOf(source),
     competition: competitionOf(source, source.fixtures),
     primaryAction: primaryActionOf(source, liveMatches.length),
+    secondaryActions: secondaryActionsOf(source),
     liveMatches,
     upcomingMatches,
     recentResults,

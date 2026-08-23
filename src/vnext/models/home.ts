@@ -57,7 +57,47 @@ export type CompetitionContext = {
   } | null
 }
 
-export type PrimaryActionType = 'predict' | 'review' | 'watchLive' | 'joinLeague'
+/**
+ * `pickClub` IS LAST MAN STANDING, AND IT IS A PEER OF `predict` RATHER THAN A
+ * LESSER KIND OF IT. LMS asks for one club every matchweek and ordinarily locks
+ * thirty minutes BEFORE the Match Predictor (ADR 0013, as amended by ADR 0020),
+ * so on a real week it is frequently the first thing the player owes. Which of
+ * the two leads is decided by `competitionWeekModel`'s ordering and never here.
+ *
+ * THERE IS NO CHAMPIONSHIP MEMBER, deliberately. A Championship fixture is won
+ * by the Match Predictor points the player is already being told to earn, so
+ * `championshipAction` marks it `outstanding: false` and it can never be a
+ * primary action. It reaches Home as CONTEXT — a `SecondaryAction` — and a
+ * member here would be a type that says otherwise.
+ */
+export type PrimaryActionType =
+  | 'predict'
+  | 'pickClub'
+  | 'review'
+  | 'watchLive'
+  | 'joinLeague'
+
+/** Which game a Home action speaks for. The shell's vocabulary, not the RPCs'. */
+export type HomeActionGame = 'match-predictor' | 'last-man-standing' | 'championship'
+
+/**
+ * ONE OF THE AT MOST TWO COMPACT SECONDARY ACTIONS `DFA-010` ASKS FOR.
+ *
+ * A REPORT AND AN ASK ARE THE SAME SHAPE WITH A DIFFERENT `outstanding`, which
+ * is what stops the surface dressing a settled game as a task. "Matchweek 5
+ * card is complete", "Last Man Standing: you are out" and "Championship:
+ * Matchday 3 against Rowan" are all worth saying and none of them is a job. The
+ * title is the week model's own sentence; nothing here rewrites it.
+ */
+export type SecondaryAction = {
+  readonly game: HomeActionGame
+  /** The week model's sentence for this game. Never composed here. */
+  readonly title: string
+  /** True only where that game is genuinely still asking for something. */
+  readonly outstanding: boolean
+  /** ISO 8601, or null where the game's read supplied no instant. */
+  readonly deadline: string | null
+}
 
 /** How close the deadline is, decided by the fixture rather than by the clock. */
 export type PrimaryActionUrgency = 'calm' | 'soon' | 'urgent'
@@ -308,6 +348,14 @@ export type HomeModel = {
   readonly user: HomeUser
   readonly competition: CompetitionContext
   readonly primaryAction: PrimaryAction
+  /**
+   * The rest of this player's week here, capped at two by `DFA-010`.
+   *
+   * ALREADY ORDERED, AND ALREADY EXCLUDING WHATEVER BECAME THE PRIMARY ACTION.
+   * Empty is the ordinary state for a player in one game, and empty is also
+   * what an unreadable week produces — Home never fills this by guessing.
+   */
+  readonly secondaryActions: readonly SecondaryAction[]
   readonly liveMatches: readonly Match[]
   readonly upcomingMatches: readonly Match[]
   /** Settled matches worth showing back to the user today. */

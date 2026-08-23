@@ -11,6 +11,25 @@ import type { SeasonListFixture } from '../../src/services/supabase/seasonFixtur
 import type { SeasonLeagueStandingsPage } from '../../src/services/supabase/seasonLeagueStandingsModel'
 import type { SeasonMatchweekProjection } from '../../src/services/supabase/seasonMatchweekProjectionModel'
 import type { SeasonPlayerProfile } from '../../src/services/supabase/seasonPlayerProfileModel'
+import type { CompetitionWeek, WeekAction } from '../../src/features/hub/competitionWeekModel'
+
+/**
+ * One game's action as the week that contains it.
+ *
+ * The same arrangement `presentCompetitionWeek` produces for a single supplied
+ * game, written out rather than called so these cases stay about the MAPPING.
+ * The cross-game ordering itself is exercised against the real function in
+ * `homeCrossGameWeek.test.ts`.
+ */
+function weekOf(action: WeekAction): CompetitionWeek {
+  return {
+    primary: action.outstanding ? action : null,
+    secondary: action.outstanding ? [] : [action],
+    actions: [action],
+    allClear: !action.outstanding,
+    empty: false,
+  }
+}
 
 /**
  * THE STAGE 6 MAPPING, TESTED AS TRUTH RATHER THAN AS SHAPE.
@@ -176,13 +195,13 @@ function source(overrides: Partial<HomeSource> = {}): HomeSource {
     fixtures: [fixture()],
     card: card(),
     cardPresentation: presentation(),
-    weekAction: {
+    week: weekOf({
       kind: 'match_predictor',
       title: 'Matchweek 5 card is complete',
       locksAt: '2027-08-21T13:45:00.000Z',
       outstanding: false,
       href: null,
-    },
+    }),
     profile: profile(),
     leagues: [league()],
     clubForm: null,
@@ -322,7 +341,7 @@ describe('the primary action', () => {
   it('offers Predict when the application says something is outstanding and open', () => {
     const model = buildHomeModel(
       source({
-        weekAction: outstanding,
+        week: weekOf(outstanding),
         cardPresentation: presentation({ entered: 0, total: 2, state: 'active_empty' }),
         fixtures: [fixture({ kickoffAt: '2027-08-21T16:15:00.000Z' })],
       }),
@@ -340,7 +359,7 @@ describe('the primary action', () => {
     // no longer editable. Presentation must not be the permission.
     const model = buildHomeModel(
       source({
-        weekAction: outstanding,
+        week: weekOf(outstanding),
         cardPresentation: presentation({ editable: false, state: 'locked' }),
       }),
     )
@@ -354,7 +373,7 @@ describe('the primary action', () => {
     // mapper comparing `lockAt` to `generatedAt` would reopen the card here.
     const model = buildHomeModel(
       source({
-        weekAction: { ...outstanding, locksAt: '2099-01-01T00:00:00.000Z' },
+        week: weekOf({ ...outstanding, locksAt: '2099-01-01T00:00:00.000Z' }),
         cardPresentation: presentation({ editable: false, state: 'locked' }),
         card: card({
           lock: {
@@ -375,13 +394,13 @@ describe('the primary action', () => {
   it('bands urgency from the supplied deadline and the supplied instant', () => {
     const soon = buildHomeModel(
       source({
-        weekAction: { ...outstanding, locksAt: '2027-08-21T16:00:00.000Z' },
+        week: weekOf({ ...outstanding, locksAt: '2027-08-21T16:00:00.000Z' }),
         cardPresentation: presentation({ entered: 0, total: 2 }),
       }),
     )
     const calm = buildHomeModel(
       source({
-        weekAction: { ...outstanding, locksAt: '2027-08-30T16:00:00.000Z' },
+        week: weekOf({ ...outstanding, locksAt: '2027-08-30T16:00:00.000Z' }),
         cardPresentation: presentation({ entered: 0, total: 2 }),
       }),
     )
@@ -425,7 +444,7 @@ describe('a new user', () => {
     profile: profile({ season: null, accuracy: null, history: [], jokers: null }),
     card: null,
     cardPresentation: null,
-    weekAction: null,
+    week: null,
     leagues: [],
   })
 
@@ -854,7 +873,7 @@ describe('optional enrichment and awkward states', () => {
       source({
         card: null,
         cardPresentation: null,
-        weekAction: null,
+        week: null,
         profile: null,
         leagues: [],
         clubForm: null,

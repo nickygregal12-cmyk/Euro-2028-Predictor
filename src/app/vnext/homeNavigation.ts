@@ -21,6 +21,12 @@ export function homeIntentRoute(context: HomeRouteContext, intent: HomeIntent): 
   switch (intent.kind) {
     case 'open-predictor':
       return competitionGameRoute(context, 'match-predictor')
+    // The two side games Home can now send the player to. Same route helper,
+    // same canonical `…/games/:game` tree — Home still carries no URL.
+    case 'open-lms':
+      return competitionGameRoute(context, 'lms')
+    case 'open-championship':
+      return competitionGameRoute(context, 'championship')
     case 'open-leagues':
       return competitionSectionRoute(context, 'leagues')
     case 'open-match':

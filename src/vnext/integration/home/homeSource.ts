@@ -1,5 +1,5 @@
 import type { CardPresentation, MatchPredictorPage } from '../../../features/season/matchPredictorModel'
-import type { WeekAction } from '../../../features/hub/competitionWeekModel'
+import type { CompetitionWeek } from '../../../features/hub/competitionWeekModel'
 import type { SeasonListFixture } from '../../../services/supabase/seasonFixtureListModel'
 import type { SeasonClubFormTable } from '../../../services/supabase/seasonClubFormModel'
 import type { SeasonConsensus } from '../../../services/supabase/seasonConsensusModel'
@@ -107,10 +107,28 @@ export type HomeSource = {
   readonly cardPresentation: CardPresentation | null
 
   /**
-   * The Hub's own answer to "what does this player need to do this week?", for
-   * the Match Predictor. Null where the week model produced no action.
+   * The Hub's own answer to "what does this player need to do this week?",
+   * ACROSS EVERY GAME THE PLAYER HAS JOINED HERE.
+   *
+   * IT IS THE WHOLE `CompetitionWeek`, not one game's action out of it. Home
+   * used to take a single `WeekAction` filtered to `main_predictor`, which is
+   * why a Last Man Standing pick could not reach the front door however close
+   * its deadline was — and LMS ordinarily locks THIRTY MINUTES BEFORE the Match
+   * Predictor (ADR 0013, as amended by ADR 0020). `DFA-010` asks this surface
+   * for "one primary urgent/next action, at most two compact secondary
+   * actions"; that is `primary` and `secondary`, and both arrive already
+   * ordered.
+   *
+   * THE ORDERING IS NOT HOME'S AND MUST NOT BE COPIED. `presentCompetitionWeek`
+   * ranks outstanding-before-settled and then by lock instant. A second sorter
+   * in the mapper would be a second opinion about urgency, and the one nearer
+   * the player would be the one that was wrong.
+   *
+   * `null` where no game supplied a read at all. That is not "nothing to do" —
+   * it is "we could not ask", and the mapper draws the Match Predictor from its
+   * own card rather than claiming the week is clear.
    */
-  readonly weekAction: WeekAction | null
+  readonly week: CompetitionWeek | null
 
   /** Contract 151 over the caller themselves: points, rank, field size, accuracy, history. */
   readonly profile: SeasonPlayerProfile | null

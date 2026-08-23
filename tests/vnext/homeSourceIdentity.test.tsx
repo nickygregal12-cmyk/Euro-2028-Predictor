@@ -297,6 +297,8 @@ function input(over: Partial<VNextHomeSourceInput> = {}): VNextHomeSourceInput {
     userId: 'user-a',
     displayName: 'Alex',
     authLoading: false,
+    playsLms: false,
+    championshipCompetitionId: null,
     competitionSlug: 'premier-league',
     seasonSlug: '2027-28',
     gameCompetitionId: 'game-a',

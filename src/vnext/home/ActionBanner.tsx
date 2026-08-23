@@ -20,6 +20,9 @@ export type ActionBannerProps = {
  */
 const CALL: Record<PrimaryAction['type'], string> = {
   predict: 'Predict now',
+  // Last Man Standing's own verb, taken from `weekActionCallToAction` so the
+  // banner and the week model cannot promise two different things.
+  pickClub: 'Pick your club',
   review: 'Review picks',
   watchLive: 'Match centre',
   joinLeague: 'Find a league',
