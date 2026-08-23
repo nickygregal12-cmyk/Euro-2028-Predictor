@@ -133,7 +133,7 @@ describe('authenticated browser E2E workflow', () => {
     )
     expect(browserSeed).toContain('--set=ON_ERROR_STOP=1')
     expect(browserSeed).toContain(
-      'grant select on table public.bonus_competitions to service_role',
+      'grant select, update on table public.bonus_competitions to service_role',
     )
     expect(bonusGamesFixture).toContain('It must never run against a hosted DB.')
     expect(bonusGamesFixture).toContain("match.match_ref = 'R16-1'")

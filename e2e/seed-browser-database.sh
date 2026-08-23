@@ -27,6 +27,12 @@ docker exec -i "$DB_CONTAINER" \
 docker exec -i "$DB_CONTAINER" \
   psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
   < e2e/league-season-fixture.sql
+# The harness reads this catalogue as the service role, and the shipping-vNext
+# setup also opens the domestic season's own Match Predictor, which the
+# repository seeds unpublished and no application path publishes. Base-table
+# privileges are otherwise withheld from `service_role` on purpose -- writes go
+# through the RPCs -- so both grants are made here, in the disposable database
+# only, rather than by widening the schema.
 docker exec "$DB_CONTAINER" \
   psql --username postgres --dbname postgres --set=ON_ERROR_STOP=1 \
-  --command='grant select on table public.bonus_competitions to service_role;'
+  --command='grant select, update on table public.bonus_competitions to service_role;'
