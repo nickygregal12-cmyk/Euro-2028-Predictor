@@ -186,6 +186,8 @@ function HubHarness() {
             competitionSlug={competitionSlug}
             seasonSlug={seasonSlug}
             gameCompetitionId={gameCompetitionId}
+            playsLms={false}
+            championshipCompetitionId={null}
             onShellIntent={onShellIntent}
           />
         ) : destination === 'matches' ? (

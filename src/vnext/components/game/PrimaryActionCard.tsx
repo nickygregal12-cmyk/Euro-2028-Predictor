@@ -104,6 +104,10 @@ function ctaLabel(action: PrimaryAction): string {
   switch (action.type) {
     case 'predict':
       return 'Make your predictions'
+    case 'pickClub':
+      // The verb `weekActionCallToAction` already fixes for Last Man Standing,
+      // so the workshop card and the shipped banner promise the same thing.
+      return 'Pick your club'
     case 'review':
       return 'See how you did'
     case 'watchLive':

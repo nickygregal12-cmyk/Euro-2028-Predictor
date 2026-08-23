@@ -108,6 +108,7 @@ export const decisionHomeModel: HomeModel = {
     routePlaceholder: 'predict/matchweek-4',
     urgency: 'urgent',
   },
+  secondaryActions: [],
   liveMatches: [],
   upcomingMatches: decisionUpcoming,
   recentResults: [settledMatch],
@@ -264,6 +265,7 @@ export const competitionHomeModel: HomeModel = {
     routePlaceholder: 'predict/matchweek-5',
     urgency: 'calm',
   },
+  secondaryActions: [],
   liveMatches: [],
   upcomingMatches: competitionUpcoming,
   recentResults: competitionResults,
@@ -501,6 +503,7 @@ export const newSeasonHomeModel: HomeModel = {
     routePlaceholder: 'leagues/join',
     urgency: 'calm',
   },
+  secondaryActions: [],
   liveMatches: [],
   upcomingMatches: bareUpcoming,
   recentResults: [bareResult],
@@ -594,6 +597,7 @@ export const reducedHomeModel: HomeModel = {
     routePlaceholder: 'fixtures/matchweek-5',
     urgency: 'calm',
   },
+  secondaryActions: [],
   liveMatches: [],
   upcomingMatches: bareUpcoming,
   recentResults: [],
@@ -681,6 +685,86 @@ const returningHomeModel: HomeModel = {
   },
 }
 
+/* ------------------------------------------------------------------ *
+ * The cross-game week — the states the shipped Home could not express
+ * ------------------------------------------------------------------ */
+
+/**
+ * LAST MAN STANDING LEADS, because its round locks before the matchweek does.
+ *
+ * The deliberate case: an incomplete Match Predictor card and an unpicked LMS
+ * round, with the LMS deadline earlier — which is the ORDINARY arrangement,
+ * since ADR 0013's thirty-minute buffer belongs to the LMS game while the Main
+ * Predictor locks at first kickoff. Before the cross-game week reached Home,
+ * this world drew a Predict banner and said nothing at all about the pick that
+ * was closing first.
+ */
+const lmsFirstHomeModel: HomeModel = {
+  ...competitionHomeModel,
+  primaryAction: {
+    type: 'pickClub',
+    title: 'Pick your club',
+    description: 'Last Man Standing: pick a club for Round 12',
+    deadline: '2027-08-21T13:30:00.000Z',
+    progress: null,
+    routePlaceholder: 'lms',
+    urgency: 'urgent',
+  },
+  secondaryActions: [
+    {
+      game: 'match-predictor',
+      title: 'Matchweek 12: 7 of 10 still to predict',
+      outstanding: true,
+      deadline: '2027-08-21T14:00:00.000Z',
+    },
+    {
+      game: 'championship',
+      title: 'Championship: Matchday 3 against Rowan Adeyemi',
+      outstanding: false,
+      deadline: '2027-08-21T14:00:00.000Z',
+    },
+  ],
+}
+
+/**
+ * THE PREDICTOR LEADS AND THE SIDE GAMES REPORT.
+ *
+ * The pick is in and the Championship is riding on points the player is already
+ * being told to earn, so neither is a task. Both are still worth saying, and
+ * neither may be drawn with a control — the case that proves a settled game is
+ * not dressed as a job.
+ */
+const sideGamesSettledHomeModel: HomeModel = {
+  ...competitionHomeModel,
+  secondaryActions: [
+    {
+      game: 'last-man-standing',
+      title: 'Last Man Standing: Round 12 pick is in',
+      outstanding: false,
+      deadline: '2027-08-21T13:30:00.000Z',
+    },
+    {
+      game: 'championship',
+      title: 'Championship: Matchday 3 against Rowan Adeyemi',
+      outstanding: false,
+      deadline: '2027-08-21T14:00:00.000Z',
+    },
+  ],
+}
+
+/** Out of Last Man Standing: a state to read, never a pick to make. */
+const lmsEliminatedHomeModel: HomeModel = {
+  ...competitionHomeModel,
+  secondaryActions: [
+    {
+      game: 'last-man-standing',
+      title: 'Last Man Standing: you are out',
+      outstanding: false,
+      deadline: null,
+    },
+  ],
+}
+
 export const homeScenarios = {
   live: workshopHomeModel,
   decision: decisionHomeModel,
@@ -688,6 +772,9 @@ export const homeScenarios = {
   returning: returningHomeModel,
   newSeason: newSeasonHomeModel,
   reduced: reducedHomeModel,
+  lmsFirst: lmsFirstHomeModel,
+  sideGamesSettled: sideGamesSettledHomeModel,
+  lmsEliminated: lmsEliminatedHomeModel,
 } as const
 
 export type HomeScenarioName = keyof typeof homeScenarios

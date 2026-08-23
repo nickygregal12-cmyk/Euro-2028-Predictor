@@ -1,0 +1,93 @@
+/* THE REST OF THE WEEK — at most two compact lines beneath the football.
+ *
+ * DELIBERATELY QUIET. This zone reports on the games the primary action is not
+ * about, so it must never compete with the banner above it: no accent fill, no
+ * card elevation, no urgency colour. A hairline and muted text are the whole
+ * treatment. If a row here started shouting, the surface would have two
+ * primary actions and `DFA-010`'s shape would be gone.
+ *
+ * CONTAINER QUERIES, NEVER THE VIEWPORT — the workshop's load-bearing rule.
+ * The one breakpoint matches Home's own `regular` band so the rows sit beside
+ * each other exactly where the rest of the page stops being one column.
+ */
+
+.zone {
+  padding-inline: var(--vnext-page-inset);
+  padding-block: var(--vnext-space-4) 0;
+}
+
+/* SIZE COMES FROM THE TYPOGRAPHY FOUNDATION, never from a literal here — the
+   component wears `text.label` and `text.micro`, and this file only says what
+   is specific to the zone. */
+.heading {
+  margin: 0 0 var(--vnext-space-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.list {
+  display: grid;
+  gap: var(--vnext-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@container vnext-page (min-width: 760px) {
+  .list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A ROW IS A REPORT UNTIL `data-outstanding` SAYS OTHERWISE.
+ * The attribute is the model's own `outstanding`, so the only thing that can
+ * make a row look like a task is the game actually asking for something. */
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--vnext-space-2);
+  padding-block: var(--vnext-space-3);
+  border-top: 1px solid var(--vnext-hairline);
+}
+
+.title {
+  color: var(--vnext-text-secondary);
+  /* Long club and player names wrap rather than truncate — the same rule the
+     rest of vNext applies to football names. */
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.row[data-outstanding='true'] .title {
+  color: var(--vnext-text);
+  font-weight: 600;
+}
+
+.action {
+  flex: none;
+  /* Clears the 44px target on a phone without becoming a second banner. */
+  min-height: 44px;
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-surface-interactive);
+  color: var(--vnext-text);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color var(--vnext-duration-fast) var(--vnext-ease-standard),
+    border-color var(--vnext-duration-fast) var(--vnext-ease-standard);
+}
+
+.action:hover {
+  border-color: var(--vnext-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .action {
+    transition: none;
+  }
+}

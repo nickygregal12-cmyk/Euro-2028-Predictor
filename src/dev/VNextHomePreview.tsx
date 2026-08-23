@@ -74,10 +74,14 @@ function PreviewBody() {
   const [competitionSlug, setCompetitionSlug] = useState('')
   const [seasonSlug, setSeasonSlug] = useState('')
   const [gameCompetitionId, setGameCompetitionId] = useState('')
+  const [playsLms, setPlaysLms] = useState(false)
+  const [championshipCompetitionId, setChampionshipCompetitionId] = useState('')
   const [applied, setApplied] = useState<{
     competitionSlug: string
     seasonSlug: string
     gameCompetitionId: string | null
+    playsLms: boolean
+    championshipCompetitionId: string | null
   } | null>(null)
 
   const [shellNote, setShellNote] = useState<string | null>(null)
@@ -106,6 +110,8 @@ function PreviewBody() {
               competitionSlug: competitionSlug.trim(),
               seasonSlug: seasonSlug.trim(),
               gameCompetitionId: gameCompetitionId.trim() || null,
+              playsLms,
+              championshipCompetitionId: championshipCompetitionId.trim() || null,
             })
           }}
         >
@@ -135,6 +141,29 @@ function PreviewBody() {
               value={gameCompetitionId}
               onChange={(event) => setGameCompetitionId(event.target.value)}
               placeholder="uuid — leave blank for no private leagues"
+            />
+          </label>
+          {/* THE SIDE GAMES ARE SUPPLIED HERE RATHER THAN READ.
+              `useSeasonWeekMemberships` answers from
+              `PlayerCompetitionsProvider`, which this harness deliberately does
+              not mount — it is a sessionless dev route. Asking the hook here
+              would answer `false` forever and quietly make the cross-game Home
+              unreviewable. Supplying them makes the LMS and Championship states
+              something a reviewer can actually open on purpose. */}
+          <label className={styles.field}>
+            <span>Plays Last Man Standing</span>
+            <input
+              type="checkbox"
+              checked={playsLms}
+              onChange={(event) => setPlaysLms(event.target.checked)}
+            />
+          </label>
+          <label className={styles.field}>
+            <span>Championship competition id (optional)</span>
+            <input
+              value={championshipCompetitionId}
+              onChange={(event) => setChampionshipCompetitionId(event.target.value)}
+              placeholder="uuid — leave blank for no Championship"
             />
           </label>
           <button type="submit">Render Home</button>
@@ -184,6 +213,8 @@ function PreviewBody() {
             competitionSlug={applied.competitionSlug}
             seasonSlug={applied.seasonSlug}
             gameCompetitionId={applied.gameCompetitionId}
+            playsLms={applied.playsLms}
+            championshipCompetitionId={applied.championshipCompetitionId}
             onShellIntent={onShellIntent}
           />
         ) : (
@@ -197,6 +228,8 @@ function PreviewBody() {
             competitionSlug={undefined}
             seasonSlug={undefined}
             gameCompetitionId={null}
+            playsLms={false}
+            championshipCompetitionId={null}
           />
         )}
       </VNextRoot>

@@ -5,6 +5,7 @@ import { buildAdminSupportHref } from '../../features/account/accountSupport'
 import { useHapticsPreference } from '../providers/HapticsProvider'
 import { useTheme } from '../providers/ThemeProvider'
 import { useSite } from '../site/SiteProvider'
+import { useSeasonWeekMemberships } from '../../features/hub/useSeasonWeekMemberships'
 import { useSeasonGameCompetitionId } from '../../features/hub/useSeasonGameCompetitionId'
 import { useWatchedRivals } from './useWatchedRivals'
 import { VNextHomeScreen } from '../../vnext/integration/home/VNextHomeScreen'
@@ -80,6 +81,13 @@ export function VNextHomeDestination() {
   // The pins the player set from a league table, so the rival strip leads with
   // the person they chose rather than with an adjacency.
   const { watchedRivalIds } = useWatchedRivals(competitionSlug, seasonSlug)
+  // Which side games this player is actually in here, from the membership the
+  // shell has already read. Home asks each game's own read only where this says
+  // there is something of theirs to ask about.
+  const { playsLms, championshipCompetitionId } = useSeasonWeekMemberships(
+    competitionSlug,
+    seasonSlug,
+  )
 
   return (
     <VNextAppRoot>
@@ -91,6 +99,8 @@ export function VNextHomeDestination() {
         competitionSlug={competitionSlug}
         seasonSlug={seasonSlug}
         gameCompetitionId={gameCompetitionId}
+        playsLms={playsLms}
+        championshipCompetitionId={championshipCompetitionId}
         onShellIntent={onShellIntent}
         onIntent={(intent) => {
           if (competitionSlug === undefined || seasonSlug === undefined) return
