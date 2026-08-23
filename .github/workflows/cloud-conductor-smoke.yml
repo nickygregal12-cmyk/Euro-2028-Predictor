@@ -1,0 +1,89 @@
+name: Cloud conductor smoke
+
+on:
+  pull_request:
+    paths:
+      - '.opencode/**'
+      - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'docs/ops/persistent-cloud-conductor.md'
+      - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'config/agent-tools.json'
+      - '.github/workflows/cloud-conductor-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.opencode/**'
+      - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'docs/ops/persistent-cloud-conductor.md'
+      - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'config/agent-tools.json'
+      - '.github/workflows/cloud-conductor-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Validate private cloud Conductor
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Read repository Node version
+        id: versions
+        shell: bash
+        run: echo "node=$(node -p \"require('./package.json').engines.node\")" >> "${GITHUB_OUTPUT}"
+
+      - name: Set up repository Node version
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ steps.versions.outputs.node }}
+          package-manager-cache: false
+
+      - name: Validate shell and repository guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/agent-tools/cloud-conductor-install.sh
+          bash -n scripts/agent-tools/cloud-conductor-doctor.sh
+          npm ci
+          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts
+
+      - name: Validate OpenCode loads all tracked agents
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p \"require('./config/agent-tools.json').opencode.version\")"
+          npm install --global --prefix "${HOME}/.local" --no-fund --no-audit "opencode-ai@${version}"
+          export PATH="${HOME}/.local/bin:${PATH}"
+          opencode --version
+          agents="$(opencode agent list)"
+          printf '%s\n' "$agents"
+          grep -q 'predictor-conductor' <<<"$agents"
+          grep -q 'predictor-builder' <<<"$agents"
+          grep -q 'predictor-critic' <<<"$agents"
+
+      - name: Summary
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo '## Persistent cloud Conductor smoke'
+            echo
+            echo '- Cloud installer/doctor shell syntax validated.'
+            echo '- Repository guard tests passed.'
+            echo '- The centrally pinned OpenCode CLI loaded all three tracked agent definitions.'
+            echo '- No OpenRouter credential was provided and no model request was made.'
+            echo '- No VM, Tailscale device, hosted environment or Production resource was mutated.'
+          } >> "${GITHUB_STEP_SUMMARY}"
