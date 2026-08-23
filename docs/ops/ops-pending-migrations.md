@@ -2,7 +2,7 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 214, Production 211, Development 213 (23 August 2026)
+## Current state — repository 215, Production 211, Development 213 (23 August 2026)
 
 **Development is independently verified at 213; the repository is now 215 and Production remains at 211.** Contract 214 and Contract 215 are therefore pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, backup/rehearsal where applicable, guarded rollout and independent postflight; repository progress is not rollout authority.
 
