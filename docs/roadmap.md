@@ -529,3 +529,7 @@ same paragraph existed in seven places at once.
 > winner. **`CUP-006` is the remaining Championship work.**
 
 **Contract 206 delivery effect:** `PROF-001` gains its backend boundary: a season entrant can address another entrant's bounded profile by the season-scoped `playerRef` without receiving the target auth UUID. The requirement remains open until Development rollout, generated types and the browser consumer are proven; this contract does not reorder the roadmap.
+
+### Contract 214 — current-card confirmation integrity
+
+The repository now keeps matchweek confirmation tied to the card that was actually confirmed: material prediction/Joker edits return it to provisional, while no-op and rejected writes leave the current confirmation intact. The migration still requires the normal hosted rollout gate before any hosted environment can rely on these fields.

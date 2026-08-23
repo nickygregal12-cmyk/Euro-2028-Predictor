@@ -95,3 +95,7 @@ When work completes:
 4. never delete the historical snapshot merely to make the backlog look shorter.
 
 The goal is simple: **if an AI sees an unchecked item in this file, it should be able to assume that meaningful work still remains.**
+
+## Contract 214 sweep — current-card confirmation integrity
+
+Contract 214 is implemented in the repository: a successful material season prediction or Joker change invalidates the previous matchweek confirmation, no-op or rejected writes preserve it, and the card read exposes the server-held confirmation instant plus a compact reference. Hosted rollout remains pending; this repository change does not claim a hosted schema update.

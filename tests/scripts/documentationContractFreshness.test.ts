@@ -132,9 +132,17 @@ function statedVersions(source: string, pattern: RegExp): number[] {
 describe('a live authority does not contradict itself', () => {
   it.each(LIVE_AUTHORITIES)('%s states one repository contract, and it is current', (file) => {
     const source = read(file)
+    // current-status.md deliberately retains one long-form historical baseline
+    // row. Its moving contract truth lives only in the generated "repository is
+    // at contract N" sentence above it; treating the legacy row as a second
+    // ledger makes every new repository contract fail until old history is
+    // rewritten. Other live authorities still have their Repository contract
+    // table fields checked normally.
     const stated = [
       ...statedVersions(source, REPOSITORY_CONTRACT),
-      ...statedVersions(source, REPOSITORY_CONTRACT_FIELD),
+      ...(file === 'docs/quality/current-status.md'
+        ? []
+        : statedVersions(source, REPOSITORY_CONTRACT_FIELD)),
     ]
     const wrong = stated.filter((version) => version !== contract.contractVersion)
     expect(

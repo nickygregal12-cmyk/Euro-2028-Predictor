@@ -4,9 +4,9 @@ import { SubmissionReceipt } from '../../../src/features/season/SubmissionReceip
 import type { MatchPredictorPage } from '../../../src/features/season/matchPredictorModel'
 
 /**
- * `INNOV-017`. The receipt's whole job is trust, so the test that matters is
- * the one about what it does NOT say: no invented reference, no browser
- * timestamp, and no claim of cryptographic verification.
+ * `INNOV-017`. The receipt's whole job is trust. Contract 214 lets it print a
+ * server confirmation instant and compact reference, but it must still say no
+ * more than the server supplied and must never call that evidence cryptographic.
  */
 
 const club = (name: string) => ({
@@ -78,14 +78,27 @@ describe('SubmissionReceipt', () => {
     expect(screen.getByText(/held by the server, not by this device/)).toBeInTheDocument()
   })
 
-  it('invents no reference, no timestamp and no cryptographic claim', () => {
+  it('prints the server confirmation evidence when Contract 214 supplied it', () => {
+    render(
+      <SubmissionReceipt
+        card={cardOf({
+          cardStatus: 'confirmed',
+          confirmedAt: '2026-08-20T12:34:00Z',
+          confirmationReference: 'MW5-1A2B3C4D',
+        })}
+      />,
+    )
+
+    expect(screen.getByText(/Ref MW5-1A2B3C4D/)).toBeInTheDocument()
+    expect(screen.getByText(/Confirmed .*12:34|Confirmed .*13:34/)).toBeInTheDocument()
+  })
+
+  it('invents no evidence during the hosted rollout gap and makes no cryptographic claim', () => {
     const { container } = render(<SubmissionReceipt card={cardOf({ cardStatus: 'confirmed' })} />)
     const text = container.textContent ?? ''
-    expect(text).not.toMatch(/reference/i)
+    expect(text).not.toMatch(/\bRef\b/)
     expect(text).not.toMatch(/cryptograph/i)
     expect(text).not.toMatch(/verified/i)
-    // No clock time of any shape: the server returns none and the browser's
-    // own would be the device's opinion of when the server acted.
     expect(text).not.toMatch(/\d{1,2}:\d{2}/)
   })
 
