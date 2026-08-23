@@ -2,10 +2,14 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 215, Production 211, Development 213 (23 August 2026)
+## Current state — repository 216, Production 211, Development 213 (23 August 2026)
 
-**Development is independently verified at 213; the repository is at 215 and Production remains at 211.** Contracts 214 and 215 are pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.
+**Development is independently verified at 213; the repository is now 216 and Production remains at 211.** Contracts 214, 215 and 216 are therefore pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, backup/rehearsal where applicable, guarded rollout and independent postflight; repository progress is not rollout authority.
 
+**Development is independently verified at 213; the repository is at 216 and Production remains at 211.** Contracts 214, 215 and 216 are pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.
+
+
+> **Contract 214 repository candidate — current value follows the canonical forecast (23 August 2026):** `20260823001000_ai_canonical_value_currency.sql` is **not hosted**. It redefines only the private `ai.current_fixture_recommendations` view: a decision is current only if its prediction is the fixture's canonical newest non-quarantined forecast. Historical recommendations remain append-only evidence. The companion Python change keeps historical candidate horizons inspectable but evaluates only the canonical-marked row, so an older horizon cannot create today's immutable paper advice while the Lab shows a newer probability. pgTAP suite **261** proves both fail-closed currency and preservation of the old audit row. No provider call, paid odds credit, public betting exposure or player-owned row is involved.
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
 > rows from `predictor_internal.provider_status_kinds`. It goes through
@@ -234,7 +238,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 | Netlify `euro28predictor` non-production contexts | **178 hosted declaration** |
 | Netlify `euro28predictor` production | **178 hosted declaration** |
 
-- Development is hosted at **213** and has Contracts **214–215** pending. Production remains at **211** and has Contracts **212–215** pending through its reviewed Production promotion lane.
+- Development is hosted at **213** and has Contracts **214–216** pending. Production remains at **211** and has Contracts **212–216** pending through its reviewed Production promotion lane.
 - Production is intentionally behind Development during this promotion window. Repository contracts may continue to advance under their own reviewed migrations; each hosted promotion remains a separate authorised operation and must preserve the Development-first rule for the boundary it applies.
 - **A level migration chain is not the same as a fresh feed, but the shape of the staleness has changed and the old sentence here was wrong after contract 211.** Both environments still poll SportMonks on a **1440-minute idle cadence**, so a fixture with no deadline near it can be up to roughly a day stale. What is no longer true is that the staleness spans a prediction lock: the deadline watch opens **720 minutes** before an unresolved kickoff and polls every **60**, closing at the kickoff, so the hours before a lock are covered hourly rather than not at all. `ING-006` is closed on both environments by this boundary; the residual idle staleness away from a deadline is deliberate, is what keeps the matchweek at 77 polls rather than 252, and lives in `provider_poll_targets` rather than in the migration chain.
 - Repository, Development and Production remain separate closure states. Never infer hosted state from the repository count.
@@ -249,7 +253,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 
 The old “Repository candidate … applied to no hosted environment by this record” blocks are **historical contract records**, not a current pending queue; that wording is intentionally kept only in the archive.
 
-### Contract 215 — pending hosted rollout
+### Contract 216 — pending hosted rollout
 
 `20260823120000_reminder_dispatch_wiring.sql` gives the reminder sender a caller.
 It is **additive** and therefore eligible for the ADR 0024 development fast lane:

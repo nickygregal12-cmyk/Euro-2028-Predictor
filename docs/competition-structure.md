@@ -226,7 +226,12 @@ same paragraph existed in seven places at once.
 ## Contract 214 confirmation-integrity review
 
 Contract 214 changes only season matchweek confirmation integrity and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
-## Contract 215 reminder-dispatch review
+
+## Contract 215 AI Lab value-currency review
+
+Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
+
+## Contract 216 reminder-dispatch review
 
 Nothing in the competition structure moves. A reminder is addressed to a player
 about an action item that already exists; it does not create an entry, a
@@ -238,4 +243,3 @@ may never derive one. A reminder that a window is closing is sent because the
 lock authority set that deadline. It is not evidence the deadline exists, and no
 surface may treat a delivered, failed or abandoned reminder as saying anything
 about a lock, a result, a settlement or an elimination.
-

@@ -1,16 +1,12 @@
-import { useEffect, useState } from 'react'
-import { Alert, Button, Modal, Skeleton, Workspace } from '../../design-system'
+import { useEffect, useMemo, useState } from 'react'
+import { formatKickoffWithDay } from '../../shared/time/kickoff'
+import { Alert, Button, Skeleton, Workspace } from '../../design-system'
 import {
   AI_LAB_LEAGUES,
-  type AiJob,
   type AiLabSnapshot,
-  type AiMarketEvidence,
-  type AiMetricSlice,
   type AiModel,
-  type AiPrediction,
-  type AiRecentResult,
 } from '../../services/supabase/aiLabModel'
-import { fetchAiLabSnapshot, promoteAiModel } from '../../services/supabase/aiLab'
+import { fetchAiLabSnapshot } from '../../services/supabase/aiLab'
 import {
   fetchAiCoverage,
   fetchAiOperationalHealth,
@@ -20,54 +16,36 @@ import type {
   AiCoverage,
   AiHealth,
   AiResultsReview,
+  CoverageFixture,
 } from '../../services/supabase/aiLabCoverageModel'
+import { userFacingError } from '../../shared/errors/userFacingError'
 import { BetBuilderPanel } from './BetBuilderPanel'
 import {
-  CoverageFixtures,
-  CoverageSummary,
-  OperationalHealth,
-  ResultsReview,
-} from './AiLabCoverageViews'
-import { userFacingError } from '../../shared/errors/userFacingError'
+  forecastVerdict,
+  marketComparison,
+  scorelineHealth,
+  valueVerdict,
+} from './aiLabInsights'
 import styles from './AiLabPage.module.css'
 
-type View =
-  | 'overview'
-  | 'coverage'
-  | 'results'
-  | 'predictions'
-  | 'betting'
-  | 'betBuilder'
-  | 'operations'
+type View = 'today' | 'performance' | 'builder' | 'models'
+
 type State =
   | { kind: 'loading' }
   | { kind: 'failed'; message: string }
   | { kind: 'ready'; snapshot: AiLabSnapshot }
 
-const VIEW_LABELS: readonly { key: View; label: string }[] = [
-  { key: 'overview', label: 'Overview' },
-  { key: 'coverage', label: 'This weekend' },
-  { key: 'results', label: 'Recent results' },
-  { key: 'predictions', label: 'Predictions' },
-  { key: 'betting', label: 'Betting evidence' },
-  { key: 'betBuilder', label: 'Bet Builder' },
-  { key: 'operations', label: 'Operations' },
-]
-
-/**
- * Contract 201's three reads, kept in their own request rather than folded into
- * `fetchAiLabSnapshot`. They are windowed and the snapshot is not, and an
- * operator changing the window should not re-read nine other RPCs to do it.
- */
 type LabContext =
   | { kind: 'loading' }
   | { kind: 'failed'; message: string }
-  | {
-      kind: 'ready'
-      health: AiHealth
-      coverage: AiCoverage
-      review: AiResultsReview
-    }
+  | { kind: 'ready'; health: AiHealth; coverage: AiCoverage; review: AiResultsReview }
+
+const VIEWS: readonly { key: View; label: string; description: string }[] = [
+  { key: 'today', label: 'Today', description: 'Forecasts and current value in one place' },
+  { key: 'performance', label: 'Performance', description: 'Is the model actually working?' },
+  { key: 'builder', label: 'Bet Builder', description: 'Combine current value-qualified legs' },
+  { key: 'models', label: 'Model Lab', description: 'Selected models and pipeline health' },
+]
 
 const COVERAGE_DAYS_AHEAD = 7
 const REVIEW_DAYS_BACK = 7
@@ -80,8 +58,9 @@ function decimal(value: number | null, digits = 3): string {
   return value === null ? '—' : value.toFixed(digits)
 }
 
-function signed(value: number, suffix = ''): string {
-  return `${value > 0 ? '+' : ''}${value.toFixed(2)}${suffix}`
+function signedPercent(value: number | null, digits = 1): string {
+  if (value === null) return '—'
+  return `${value > 0 ? '+' : ''}${(value * 100).toFixed(digits)}%`
 }
 
 function when(value: string | null): string {
@@ -89,23 +68,24 @@ function when(value: string | null): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Not recorded'
   return date.toLocaleString(undefined, {
-    day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
+    weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit',
   })
 }
 
-function pickLabel(pick: string): string {
-  return ({ H: 'Home', D: 'Draw', A: 'Away' } as Record<string, string>)[pick] ?? pick
+function shortDate(value: string | null): string {
+  if (!value) return 'Not recorded'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-/**
- * `previewContext` exists so the development preview can render the FIVE tabs
- * that were previously unreachable without a hosted admin session. Coverage,
- * the results review and operational health all come from separate reads, and
- * a preview snapshot only ever filled the dashboard — so This weekend, Recent
- * results, Predictions, Betting evidence and Operations all showed "Coverage
- * unavailable · Preview snapshot" and nobody could look at them. It is also
- * what lets a visual contract cover them.
- */
+function sampleLabel(count: number): string {
+  if (count < 30) return 'Very small sample'
+  if (count < 100) return 'Early sample'
+  if (count < 300) return 'Building evidence'
+  return 'Established sample'
+}
+
 export function AiLabPage({
   previewSnapshot = null,
   previewContext = null,
@@ -114,7 +94,7 @@ export function AiLabPage({
   previewContext?: { health: AiHealth; coverage: AiCoverage; review: AiResultsReview } | null
 } = {}) {
   const [league, setLeague] = useState<string | null>(null)
-  const [view, setView] = useState<View>('overview')
+  const [view, setView] = useState<View>('today')
   const [reload, setReload] = useState(0)
   const [state, setState] = useState<State>(
     previewSnapshot ? { kind: 'ready', snapshot: previewSnapshot } : { kind: 'loading' },
@@ -123,13 +103,9 @@ export function AiLabPage({
     previewContext
       ? { kind: 'ready', ...previewContext }
       : previewSnapshot
-        ? { kind: 'failed', message: 'Preview snapshot' }
+        ? { kind: 'failed', message: 'Preview context unavailable.' }
         : { kind: 'loading' },
   )
-  const [promotion, setPromotion] = useState<AiModel | null>(null)
-  const [promotionReason, setPromotionReason] = useState('')
-  const [promotionBusy, setPromotionBusy] = useState(false)
-  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (previewSnapshot) {
@@ -164,20 +140,19 @@ export function AiLabPage({
     let active = true
     setContext({ kind: 'loading' })
     const now = new Date()
-    const coverageWindow = {
-      from: now,
-      to: new Date(now.getTime() + COVERAGE_DAYS_AHEAD * 86400000),
-      leagues: league ? [league] : null,
-    }
-    const reviewWindow = {
-      from: new Date(now.getTime() - REVIEW_DAYS_BACK * 86400000),
-      to: now,
-      leagues: league ? [league] : null,
-    }
+    const scope = league ? [league] : null
     Promise.all([
       fetchAiOperationalHealth(),
-      fetchAiCoverage(coverageWindow),
-      fetchAiResultsReview(reviewWindow),
+      fetchAiCoverage({
+        from: now,
+        to: new Date(now.getTime() + COVERAGE_DAYS_AHEAD * 86_400_000),
+        leagues: scope,
+      }),
+      fetchAiResultsReview({
+        from: new Date(now.getTime() - REVIEW_DAYS_BACK * 86_400_000),
+        to: now,
+        leagues: scope,
+      }),
     ])
       .then(([health, coverage, review]) => {
         if (active) setContext({ kind: 'ready', health, coverage, review })
@@ -186,10 +161,7 @@ export function AiLabPage({
         if (active) {
           setContext({
             kind: 'failed',
-            message: userFacingError(
-              error,
-              'Coverage, health and the results review could not be read.',
-            ),
+            message: userFacingError(error, 'Current forecast/value evidence could not be read.'),
           })
         }
       })
@@ -198,468 +170,506 @@ export function AiLabPage({
     }
   }, [league, reload, previewSnapshot, previewContext])
 
-  async function confirmPromotion() {
-    if (!promotion || promotionReason.trim().length < 10) return
-    setPromotionBusy(true)
-    setNotice(null)
-    try {
-      await promoteAiModel(promotion.id, promotionReason.trim())
-      setNotice(`${promotion.league} ${promotion.version} is now the current model.`)
-      setPromotion(null)
-      setPromotionReason('')
-      setReload((value) => value + 1)
-    } catch (error: unknown) {
-      setNotice(userFacingError(error, 'That model could not be promoted.'))
-    } finally {
-      setPromotionBusy(false)
-    }
-  }
-
   const snapshot = state.kind === 'ready' ? state.snapshot : null
-  const filteredLeagueName = league
+  const currentContext = context.kind === 'ready' ? context : null
+  const leagueName = league
     ? AI_LAB_LEAGUES.find((item) => item.key === league)?.name ?? league
     : 'All nine leagues'
+
+  const comparison = currentContext ? marketComparison(currentContext.review) : null
+  const exactHealth = useMemo(
+    () => scorelineHealth(currentContext?.coverage.fixtures ?? []),
+    [currentContext],
+  )
 
   return (
     <Workspace width="full">
       <div className={styles.page}>
         <header className={styles.hero}>
           <div className={styles.heroCopy}>
+            {/* WHO MAY SEE THIS, and the wording is a merged browser contract
+                rather than a preference: weekly-admin-access.spec.ts asserts
+                this exact line on /admin/ai. The rebuild had replaced it with a
+                paper-betting boundary, which is true but answers a different
+                question — and this page already answers that one four times
+                over, in the pill beside this line, the intro under it, and both
+                betting panels below. */}
             <span className={styles.eyebrow}>Private analysis · administrators only</span>
             <h1 className={styles.title}>AI Lab</h1>
             <p className={styles.intro}>
-              Model accuracy, live predictions, value evidence and the health of the full
-              fixture-to-CLV pipeline. This laboratory cannot alter player predictions or official
-              football results.
+              What the model thinks will happen, what the price makes worth considering, and the
+              evidence for whether either deserves trust.
             </p>
           </div>
-          <div className={styles.heroStatus}>
-            <span className={styles.privatePill}>Paper betting only</span>
-            <span className={styles.asOf}>
-              {snapshot ? `Read ${when(snapshot.asOf)}` : 'Reading the lab…'}
-            </span>
+          <div className={styles.heroMeta}>
+            <span className={styles.privatePill}>Nothing places a bet</span>
+            <span>{snapshot ? `Snapshot ${when(snapshot.asOf)}` : 'Reading live evidence…'}</span>
           </div>
         </header>
 
         <section className={styles.toolbar} aria-label="AI Lab controls">
-          <label className={styles.selectLabel}>
-            League
-            <select
-              value={league ?? ''}
-              onChange={(event) => setLeague(event.target.value || null)}
-            >
+          <label>
+            Competition
+            <select value={league ?? ''} onChange={(event) => setLeague(event.target.value || null)}>
               <option value="">All nine leagues</option>
               {AI_LAB_LEAGUES.map((item) => (
-                <option value={item.key} key={item.key}>{item.name}</option>
+                <option key={item.key} value={item.key}>{item.name}</option>
               ))}
             </select>
           </label>
-          <span className={styles.scope}>{filteredLeagueName}</span>
+          <p>{leagueName}</p>
           <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
-            Refresh data
+            Refresh evidence
           </Button>
         </section>
 
+        {state.kind === 'failed' ? (
+          <Alert variant="warning" title="AI Lab unavailable">{state.message}</Alert>
+        ) : null}
+        {context.kind === 'failed' ? (
+          <Alert variant="warning" title="Live evidence incomplete">{context.message}</Alert>
+        ) : null}
+
+        {snapshot && currentContext ? (
+          <LabPulse snapshot={snapshot} review={currentContext.review} coverage={currentContext.coverage} />
+        ) : (
+          <div className={styles.pulseLoading} role="status" aria-label="Loading AI Lab headline evidence">
+            <Skeleton height={92} radius="card" />
+            <Skeleton height={92} radius="card" />
+            <Skeleton height={92} radius="card" />
+          </div>
+        )}
+
         <nav className={styles.tabs} aria-label="AI Lab sections">
-          {VIEW_LABELS.map((item) => (
+          {VIEWS.map((item) => (
             <button
               type="button"
               key={item.key}
               aria-pressed={view === item.key}
               onClick={() => setView(item.key)}
             >
-              {item.label}
+              <strong>{item.label}</strong>
+              <span>{item.description}</span>
             </button>
           ))}
         </nav>
 
-        {notice ? <Alert variant="info">{notice}</Alert> : null}
-        {state.kind === 'loading' ? <LoadingDashboard /> : null}
-        {state.kind === 'failed' ? (
-          <Alert variant="warning" title="AI Lab unavailable">
-            {state.message}
-            <div className={styles.retry}>
-              <Button variant="secondary" onClick={() => setReload((value) => value + 1)}>
-                Try again
-              </Button>
-            </div>
-          </Alert>
-        ) : null}
-        {view === 'overview' && context.kind === 'ready' ? (
-          <OperationalHealth health={context.health} />
-        ) : null}
-        {view === 'overview' && context.kind === 'failed' && !previewSnapshot ? (
-          <Alert variant="warning" title="Pipeline health unavailable">{context.message}</Alert>
-        ) : null}
-        {snapshot && view === 'overview' ? (
-          <Overview
-            snapshot={snapshot}
-            modelTarget={league ? 1 : AI_LAB_LEAGUES.length}
-            onPromote={setPromotion}
-            versusMarket={
-              context.kind === 'ready' && context.review.totals.meanMarketLogLoss !== null
-                ? {
-                    model: context.review.totals.meanLogLoss,
-                    market: context.review.totals.meanMarketLogLoss,
-                    comparisons: context.review.totals.marketComparisons,
-                  }
-                : null
-            }
-          />
-        ) : null}
-        {view === 'coverage' ? (
-          context.kind === 'ready' ? (
-            <div className={styles.stack}>
-              <CoverageSummary coverage={context.coverage} />
-              <CoverageFixtures coverage={context.coverage} />
-            </div>
-          ) : context.kind === 'failed' ? (
-            <Alert variant="warning" title="Coverage unavailable">{context.message}</Alert>
-          ) : (
-            <LoadingDashboard />
-          )
-        ) : null}
-        {view === 'results' ? (
-          context.kind === 'ready' ? (
-            <ResultsReview review={context.review} />
-          ) : context.kind === 'failed' ? (
-            <Alert variant="warning" title="Results review unavailable">{context.message}</Alert>
-          ) : (
-            <LoadingDashboard />
-          )
-        ) : null}
-        {snapshot && view === 'predictions' ? <Predictions snapshot={snapshot} /> : null}
-        {snapshot && view === 'betting' ? <Betting snapshot={snapshot} /> : null}
-        {view === 'betBuilder' ? (
-          <div className={styles.stack}>
-            {context.kind === 'ready' ? (
-              <CoverageSummary coverage={context.coverage} />
-            ) : null}
-            <BetBuilderPanel />
+        {state.kind === 'loading' || context.kind === 'loading' ? (
+          <div className={styles.loading} role="status" aria-label="Loading AI Lab">
+            <Skeleton height={160} radius="card" />
+            <Skeleton height={320} radius="card" />
           </div>
         ) : null}
-        {snapshot && view === 'operations' ? <Operations snapshot={snapshot} /> : null}
 
-        <Modal
-          open={promotion !== null}
-          onClose={() => {
-            if (!promotionBusy) {
-              setPromotion(null)
-              setPromotionReason('')
-            }
-          }}
-          title="Promote model"
-          footer={
-            <>
-              <Button
-                variant="secondary"
-                disabled={promotionBusy}
-                onClick={() => { setPromotion(null); setPromotionReason('') }}
-              >
-                Cancel
-              </Button>
-              <Button
-                loading={promotionBusy}
-                disabled={promotionReason.trim().length < 10}
-                onClick={confirmPromotion}
-              >
-                Make current
-              </Button>
-            </>
-          }
-        >
-          <p className={styles.modalCopy}>
-            {promotion
-              ? `${promotion.league} ${promotion.version} will replace the current model for that league.`
-              : ''}{' '}
-            Promotion is an audited human decision and does not publish betting selections.
-          </p>
-          <label className={styles.reasonLabel}>
-            Reason for promotion
-            <textarea
-              value={promotionReason}
-              onChange={(event) => setPromotionReason(event.target.value)}
-              rows={4}
-              minLength={10}
-              placeholder="Summarise the validation evidence and why this model should become current."
-            />
-          </label>
-        </Modal>
+        {snapshot && currentContext && view === 'today' ? (
+          <TodayView coverage={currentContext.coverage} exactHealth={exactHealth} />
+        ) : null}
+        {snapshot && currentContext && view === 'performance' ? (
+          <PerformanceView snapshot={snapshot} review={currentContext.review} comparison={comparison} />
+        ) : null}
+        {snapshot && currentContext && view === 'builder' ? <BetBuilderPanel /> : null}
+        {snapshot && currentContext && view === 'models' ? (
+          <ModelLabView snapshot={snapshot} health={currentContext.health} />
+        ) : null}
       </div>
     </Workspace>
   )
 }
 
-function LoadingDashboard() {
-  return (
-    <div className={styles.loading} role="status" aria-label="Loading AI Lab">
-      <Skeleton height={116} radius="card" />
-      <Skeleton height={280} radius="card" />
-      <Skeleton height={220} radius="card" />
-    </div>
-  )
-}
-
-function Overview({
+function LabPulse({
   snapshot,
-  modelTarget,
-  onPromote,
-  versusMarket = null,
+  review,
+  coverage,
 }: {
   snapshot: AiLabSnapshot
-  modelTarget: number
-  onPromote: (model: AiModel) => void
-  versusMarket?: { model: number | null; market: number; comparisons: number } | null
+  review: AiResultsReview
+  coverage: AiCoverage
 }) {
-  const currentModels = snapshot.models.filter((model) => model.status === 'current').length
+  const comparison = marketComparison(review)
+  return (
+    <section className={styles.pulse} aria-label="AI Lab at a glance">
+      <article>
+        <span>Forecasting · last 7 days</span>
+        <strong>{comparison ? (comparison.ahead ? 'Ahead of market' : 'Behind market') : 'Building comparison'}</strong>
+        <small>
+          {comparison
+            ? `${Math.abs(comparison.gap).toFixed(4)} log loss · ${comparison.comparisons} comparable fixtures`
+            : `${review.totals.gradedFixtures} graded fixtures`}
+        </small>
+      </article>
+      <article>
+        <span>Paper betting</span>
+        <strong>{signedPercent(snapshot.betting.profit.roi)}</strong>
+        <small>
+          {snapshot.betting.profit.settledBets} settled · {sampleLabel(snapshot.betting.profit.settledBets).toLowerCase()}
+        </small>
+      </article>
+      <article>
+        <span>Current value window</span>
+        <strong>{coverage.totals.actionableBets} BET · {coverage.totals.passed} PASS</strong>
+        <small>{coverage.totals.fixtures} fixtures checked · no forced selections</small>
+      </article>
+    </section>
+  )
+}
 
-  // A log loss on its own is unreadable. 1.021 is neither good nor bad until it
-  // sits beside something, and the only comparator that means anything is the
-  // de-vigged closing line: it is what a well-informed market thought, priced
-  // on the same matches. Reported here because it is the single most important
-  // thing this page knows and it was previously visible nowhere -- the number
-  // was shown with the hint "Lower is better", which tells a reader the
-  // direction and not the verdict.
-  const marketGap =
-    versusMarket && versusMarket.model !== null
-      ? versusMarket.model - versusMarket.market
-      : null
+function TodayView({
+  coverage,
+  exactHealth,
+}: {
+  coverage: AiCoverage
+  exactHealth: ReturnType<typeof scorelineHealth>
+}) {
+  const fixtures = [...coverage.fixtures].sort(
+    (a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime(),
+  )
+
   return (
     <div className={styles.stack}>
-      <section className={styles.metricGrid} aria-label="AI performance summary">
-        <Metric label="Graded predictions" value={String(snapshot.performance.graded)} hint="Evidence sample" />
-        <Metric label="Result accuracy" value={percent(snapshot.performance.accuracy)} hint={`${snapshot.performance.resultCorrect} correct`} />
-        <Metric
-          label="Mean log loss"
-          value={decimal(snapshot.performance.meanLogLoss)}
-          hint={
-            marketGap === null
-              ? 'Lower is better · no closing comparison yet'
-              : `${marketGap > 0 ? 'Behind' : 'Ahead of'} the closing line by ${Math.abs(marketGap).toFixed(4)} · market ${versusMarket?.market.toFixed(4)} over ${versusMarket?.comparisons}`
-          }
-          tone={marketGap === null ? 'neutral' : marketGap > 0 ? 'negative' : 'positive'}
-        />
-        <Metric
-          label="Current models"
-          value={`${currentModels} / ${modelTarget}`}
-          hint={modelTarget === 1 ? 'Selected league' : 'Across all leagues'}
-        />
-        <Metric label="Mean CLV" value={percent(snapshot.betting.clv.mean, 2)} hint={`${snapshot.betting.clv.observations} closing lines`} tone={snapshot.betting.clv.significant ? 'positive' : 'neutral'} />
-        <Metric label="Odds budget" value={`${snapshot.odds.monthToDateCredits} / ${snapshot.odds.softCap}`} hint="Credits this month" />
+      <section className={styles.explainer}>
+        <div>
+          <span>01 · Forecast</span>
+          <strong>What is most likely?</strong>
+          <p>The highest H/D/A probability. It is not automatically the best bet.</p>
+        </div>
+        <div>
+          <span>02 · Value</span>
+          <strong>Is anything mispriced?</strong>
+          <p>A different result can be the value call if its odds compensate for being less likely.</p>
+        </div>
+        <div>
+          <span>03 · Decision</span>
+          <strong>BET or PASS</strong>
+          <p>PASS is a successful answer when price, data or uncertainty is not good enough.</p>
+        </div>
       </section>
 
-      {!snapshot.publicationPublicEnabled && !snapshot.bettingGate.currentlyPublic ? (
-        <Alert variant="info" title="The laboratory remains private">
-          Model outputs and betting evidence are visible only here. Nothing is published to players,
-          and the evidence gates remain separate from this dashboard.
+      {exactHealth.concerning ? (
+        <Alert variant="warning" title="Exact-score output is not discriminating enough">
+          {exactHealth.topCount} of {exactHealth.sample} current forecasts share the same top exact
+          score ({exactHealth.topScore}). The Lab therefore treats exact score as a diagnostic and
+          leads with result probabilities and expected goals instead.
         </Alert>
+      ) : null}
+
+      <section className={styles.sectionHeading}>
+        <div>
+          <span className={styles.eyebrow}>Next seven days</span>
+          <h2>Forecast + value together</h2>
+        </div>
+        <p>{coverage.totals.fixtures} fixtures · {coverage.totals.withForecast} forecast</p>
+      </section>
+
+      {fixtures.length ? (
+        <div className={styles.fixtureList}>
+          {fixtures.map((fixture) => <FixtureCard key={fixture.fixtureId} fixture={fixture} />)}
+        </div>
       ) : (
-        <Alert variant="warning" title="A publication gate is enabled">
-          Review the model and betting publication settings before relying on a public output.
-        </Alert>
+        <EmptyState title="No fixtures in this window" copy="There is nothing to forecast for the selected competition yet." />
       )}
+    </div>
+  )
+}
 
-      <div className={styles.twoColumn}>
-        <section className={styles.panel}>
-          <PanelHeading title="Models" meta={`${snapshot.models.length} trained`} />
-          {snapshot.models.length === 0 ? (
-            <Empty title="No models trained yet" copy="The first training run will appear here with its validation record. Nothing is inferred from an empty model table." />
+function FixtureCard({ fixture }: { fixture: CoverageFixture }) {
+  const forecast = forecastVerdict(fixture)
+  const value = valueVerdict(fixture)
+  const p = fixture.prediction
+  const decision = fixture.decision
+
+  return (
+    <article className={styles.fixtureCard}>
+      <header className={styles.fixtureHeader}>
+        <div>
+          <span className={styles.leagueCode}>{fixture.league}</span>
+          <span>{formatKickoffWithDay(fixture.kickoffAt) ?? 'Not recorded'}</span>
+        </div>
+        <span className={styles.decisionPill} data-kind={value.kind}>{value.headline}</span>
+      </header>
+
+      <div className={styles.fixtureMain}>
+        <div className={styles.matchForecast}>
+          <p className={styles.teams}><strong>{fixture.home}</strong><span>v</span><strong>{fixture.away}</strong></p>
+          {p && forecast ? (
+            <>
+              <div className={styles.forecastLead}>
+                <span>Most likely result</span>
+                <strong>{forecast.label} · {percent(forecast.probability, 0)}</strong>
+              </div>
+              <div className={styles.probabilities} role="group" aria-label="Match result probabilities">
+                {([
+                  ['H', fixture.home, p.pHome],
+                  ['D', 'Draw', p.pDraw],
+                  ['A', fixture.away, p.pAway],
+                ] as const).map(([key, label, probability]) => (
+                  <div key={key} data-peak={forecast.key === key}>
+                    <span>{label}</span>
+                    <strong>{percent(probability, 0)}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className={styles.expectedGoals}>
+                <span>Expected goals</span>
+                <strong>{p.expHomeGoals?.toFixed(2) ?? '—'} – {p.expAwayGoals?.toFixed(2) ?? '—'}</strong>
+                {p.predictedScore ? <small>Top exact score: {p.predictedScore} · diagnostic</small> : null}
+              </div>
+            </>
           ) : (
-            <div className={styles.tableScroll}>
-              <table className={styles.table}>
-                <thead><tr><th>League / model</th><th>Matches</th><th>Accuracy</th><th>Log loss</th><th>Status</th><th><span className={styles.srOnly}>Action</span></th></tr></thead>
-                <tbody>
-                  {snapshot.models.map((model) => (
-                    <tr key={model.id}>
-                      <td><strong>{model.league} · {model.version}</strong><span>{model.family} · {when(model.trainedAt)}</span></td>
-                      <td>{model.trainingMatches}</td>
-                      <td>{percent(model.validationAccuracy)}</td>
-                      <td>{decimal(model.validationLogLoss)}</td>
-                      <td><StatePill state={model.status} /></td>
-                      <td>{model.status === 'challenger' ? <button className={styles.textAction} type="button" onClick={() => onPromote(model)}>Promote</button> : null}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <p className={styles.unavailable}>No current forecast has cleared the prediction integrity boundary.</p>
           )}
-        </section>
+        </div>
 
-        <section className={styles.panel}>
-          <PanelHeading title="Calibration" meta={`${snapshot.calibration.reduce((sum, item) => sum + item.observations, 0)} observations`} />
-          {snapshot.calibration.length === 0 ? (
-            <Empty title="Awaiting graded predictions" copy="Calibration needs predictions with known outcomes. The chart will compare stated confidence with the rate achieved." />
-          ) : (
-            <div className={styles.calibration}>
-              {snapshot.calibration.map((point) => (
-                <div className={styles.calibrationRow} key={point.bucket}>
-                  <span>{percent(point.meanPredicted, 0)} confidence</span>
-                  <div className={styles.track}><span style={{ width: `${Math.min(100, point.actualRate * 100)}%` }} /></div>
-                  <strong>{percent(point.actualRate, 0)}</strong>
-                  <small>{point.observations} matches</small>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+        <div className={styles.valueCall} data-kind={value.kind}>
+          <span className={styles.valueLabel}>{value.kind === 'bet' ? 'Value decision' : 'Gate decision'}</span>
+          {value.kind === 'bet' && decision ? (
+            <>
+              <div className={styles.valueHeadline}>
+                <strong>{value.selectionLabel}</strong>
+                <span>{decision.oddsOffered?.toFixed(2) ?? '—'} @ {decision.bookmaker ?? 'book'}</span>
+              </div>
+              <div className={styles.valueNumbers}>
+                <div><span>Model chance</span><strong>{percent(decision.modelProbability, 0)}</strong></div>
+                <div><span>Market fair</span><strong>{percent(decision.marketFairProbability, 0)}</strong></div>
+                <div><span>Model fair odds</span><strong>{decision.modelFairOdds?.toFixed(2) ?? '—'}</strong></div>
+                <div><span>Est. EV</span><strong>{signedPercent(decision.modelEdge)}</strong></div>
+              </div>
+            </>
+          ) : null}
+          <p>{value.explanation}</p>
+        </div>
       </div>
 
-      <Breakdown title="Performance by league" values={snapshot.breakdown.byLeague} />
-    </div>
-  )
-}
-
-function Predictions({ snapshot }: { snapshot: AiLabSnapshot }) {
-  return (
-    <div className={styles.twoColumn}>
-      <section className={styles.panel}>
-        <PanelHeading title="Upcoming predictions" meta={`${snapshot.upcoming.length} fixtures`} />
-        {snapshot.upcoming.length === 0 ? (
-          <Empty title="No upcoming predictions" copy="A prediction appears only after a verified current model has scored a resolved AI Lab fixture." />
-        ) : <ul className={styles.matchList}>{snapshot.upcoming.map((item) => <UpcomingRow key={item.id} item={item} />)}</ul>}
-      </section>
-      <section className={styles.panel}>
-        <PanelHeading title="Recent graded results" meta={`${snapshot.recent.length} fixtures`} />
-        {snapshot.recent.length === 0 ? (
-          <Empty title="No graded predictions" copy="Results appear after the fixture is played and the prediction has been graded against the recorded score." />
-        ) : <ul className={styles.matchList}>{snapshot.recent.map((item) => <ResultRow key={item.id} item={item} />)}</ul>}
-      </section>
-    </div>
-  )
-}
-
-function UpcomingRow({ item }: { item: AiPrediction }) {
-  const values = [item.pHome, item.pDraw, item.pAway]
-  const peak = Math.max(...values)
-  return (
-    <li className={styles.matchRow}>
-      <div className={styles.matchTop}><span className={styles.leagueCode}>{item.league}</span><time>{when(item.kickoffAt)}</time></div>
-      <strong className={styles.fixture}>{item.home} <span>v</span> {item.away}</strong>
-      <div className={styles.probabilities}>
-        {([['H', item.pHome], ['D', item.pDraw], ['A', item.pAway]] as const).map(([label, value]) => (
-          <span data-peak={value === peak} key={label}>{label} <strong>{percent(value, 0)}</strong></span>
-        ))}
-      </div>
-      <p className={styles.rowMeta}>Pick: {pickLabel(item.predictedResult)}{item.predictedScore ? ` · ${item.predictedScore}` : ''} · model {item.modelVersion}</p>
-    </li>
-  )
-}
-
-function ResultRow({ item }: { item: AiRecentResult }) {
-  return (
-    <li className={styles.matchRow}>
-      <div className={styles.matchTop}><span className={styles.leagueCode}>{item.league}</span><StatePill state={item.resultCorrect ? 'correct' : 'missed'} /></div>
-      <strong className={styles.fixture}>{item.home} <span>{item.actualHomeGoals ?? '—'}–{item.actualAwayGoals ?? '—'}</span> {item.away}</strong>
-      <p className={styles.rowMeta}>Predicted {pickLabel(item.predictedResult)}{item.predictedScore ? ` · ${item.predictedScore}` : ''} · log loss {decimal(item.logLoss)}</p>
-    </li>
-  )
-}
-
-function Betting({ snapshot }: { snapshot: AiLabSnapshot }) {
-  const checks = [
-    ['Settled evidence', snapshot.bettingGate.settledBets],
-    ['Mean CLV', snapshot.bettingGate.meanClv],
-    ['CLV interval above zero', snapshot.bettingGate.clvCiAboveZero],
-    ['Bookmaker licences', snapshot.bettingGate.bookmakerLicences],
-    ['18+ gate', snapshot.bettingGate.ageGate],
-    ['Safer gambling signpost', snapshot.bettingGate.saferGamblingSignpost],
-    ['Full record', snapshot.bettingGate.fullRecordPublished],
-  ] as const
-  return (
-    <div className={styles.stack}>
-      <section className={styles.metricGrid}>
-        <Metric label="CLV observations" value={String(snapshot.betting.clv.observations)} hint={`${snapshot.betting.profit.settledBets} settled bets`} />
-        <Metric label="Mean CLV" value={percent(snapshot.betting.clv.mean, 2)} hint={snapshot.betting.clv.ciLow === null ? 'Interval needs more data' : `${percent(snapshot.betting.clv.ciLow, 2)} to ${percent(snapshot.betting.clv.ciHigh, 2)}`} tone={snapshot.betting.clv.significant ? 'positive' : 'neutral'} />
-        <Metric label="Beat the close" value={percent(snapshot.betting.clv.beatCloseRate)} hint="Valid closing prices" />
-        <Metric label="Flat-unit ROI" value={percent(snapshot.betting.profit.roi, 2)} hint={`${snapshot.betting.profit.settledBets} settled`} />
-        <Metric label="Open bets" value={String(snapshot.betting.open.bets)} hint={`${snapshot.betting.open.exposure.toFixed(2)}u exposure`} />
-        <Metric label="Paper P&L" value={signed(snapshot.betting.profit.pnl, 'u')} hint={`${snapshot.betting.profit.staked.toFixed(2)}u staked`} tone={snapshot.betting.profit.pnl > 0 ? 'positive' : snapshot.betting.profit.pnl < 0 ? 'negative' : 'neutral'} />
-      </section>
-      <div className={styles.twoColumn}>
-        <section className={styles.panel}>
-          <PanelHeading title="Evidence by market" meta={`${snapshot.markets.length} markets`} />
-          {snapshot.markets.length === 0 ? <Empty title="No markets configured" copy="The market registry returned no evidence rows." /> : (
-            <div className={styles.marketGrid}>{snapshot.markets.map((market) => <MarketCard key={market.code} market={market} />)}</div>
-          )}
-        </section>
-        <section className={styles.panel}>
-          <PanelHeading title="Public evidence gate" meta={snapshot.bettingGate.currentlyPublic ? 'Enabled' : 'Closed'} />
-          <p className={styles.panelCopy}>Every requirement is server-owned. This screen reports the gate and cannot weaken it.</p>
-          <ul className={styles.checkList}>
-            {checks.map(([label, check]) => <li key={label} data-met={check.met}><span>{label}</span><strong>{check.met ? 'Met' : 'Not met'}</strong></li>)}
-          </ul>
-        </section>
-      </div>
-    </div>
-  )
-}
-
-function MarketCard({ market }: { market: AiMarketEvidence }) {
-  return (
-    <article className={styles.marketCard} data-ready={market.meetsEvidenceBar}>
-      <div className={styles.marketHeader}><div><span>{market.code}</span><strong>{market.name}</strong></div><StatePill state={market.meetsEvidenceBar ? 'trusted' : 'learning'} /></div>
-      <dl><div><dt>CLV</dt><dd>{percent(market.meanClv, 2)}</dd></div><div><dt>Observations</dt><dd>{market.clvObservations} / {market.requiredBets}</dd></div><div><dt>Flat ROI</dt><dd>{percent(market.flatUnitRoi, 2)}</dd></div></dl>
-      <p>{market.settledBets} settled bets · {market.freeHistoricalOdds ? 'free historical odds' : market.derivedFromScoreline ? 'derived from scoreline model' : 'live evidence only'}</p>
+      {p ? (
+        <details className={styles.fixtureDetails}>
+          <summary>Evidence details</summary>
+          <dl>
+            <div><dt>Forecast</dt><dd>{p.modelVersion ?? '—'} · {p.horizon ?? '—'}</dd></div>
+            <div><dt>Forecast made</dt><dd>{when(p.forecastMadeAt)}</dd></div>
+            <div><dt>Data confidence</dt><dd>{fixture.quality?.dataConfidenceState ?? '—'} {percent(fixture.quality?.dataConfidence ?? null, 0)}</dd></div>
+            <div><dt>Model agreement</dt><dd>{percent(fixture.quality?.agreement ?? null, 0)}</dd></div>
+            <div><dt>Real books seen</dt><dd>{fixture.market.realBookCount}</dd></div>
+            <div><dt>Value checked</dt><dd>{when(decision?.decidedAt ?? null)}</dd></div>
+          </dl>
+        </details>
+      ) : null}
     </article>
   )
 }
 
-function Operations({ snapshot }: { snapshot: AiLabSnapshot }) {
-  const budgetPct = snapshot.odds.softCap > 0
-    ? Math.min(100, snapshot.odds.monthToDateCredits / snapshot.odds.softCap * 100)
-    : 0
+function PerformanceView({
+  snapshot,
+  review,
+  comparison,
+}: {
+  snapshot: AiLabSnapshot
+  review: AiResultsReview
+  comparison: ReturnType<typeof marketComparison>
+}) {
+  const exactRate = snapshot.performance.graded
+    ? snapshot.performance.exactScores / snapshot.performance.graded
+    : null
+  const currentModels = snapshot.models.filter((model) => model.status === 'current')
+  const validationComparable = currentModels.filter(
+    (model) => model.validationLogLoss !== null && model.marketLogLoss !== null,
+  )
+  const validationAhead = validationComparable.filter(
+    (model) => (model.validationLogLoss ?? Number.POSITIVE_INFINITY) < (model.marketLogLoss ?? Number.NEGATIVE_INFINITY),
+  ).length
+
   return (
     <div className={styles.stack}>
-      <div className={styles.twoColumn}>
-        <section className={styles.panel}>
-          <PanelHeading title="Odds API budget" meta={`${snapshot.odds.remainingToSoftCap} credits available`} />
-          <div className={styles.budgetFigure}><strong>{snapshot.odds.monthToDateCredits}</strong><span>of {snapshot.odds.softCap} soft cap · {snapshot.odds.monthlyCredits} plan</span></div>
-          <div className={styles.budgetTrack} role="progressbar" aria-valuemin={0} aria-valuemax={snapshot.odds.softCap} aria-valuenow={snapshot.odds.monthToDateCredits}><span style={{ width: `${budgetPct}%` }} /></div>
-          <p className={styles.panelCopy}>Reported-versus-estimated cost drift: {signed(snapshot.odds.costModelDrift)} credits. The database refuses a call that would exceed the soft cap.</p>
+      <section className={styles.sectionHeading}>
+        <div>
+          <span className={styles.eyebrow}>Evidence, not a victory lap</span>
+          <h2>Is it actually any good?</h2>
+        </div>
+        <p>{review.sampleNote}</p>
+      </section>
+
+      <div className={styles.performanceColumns}>
+        <section className={styles.performancePanel}>
+          <header><span>Forecasting · all graded evidence</span><strong>{snapshot.performance.graded}</strong></header>
+          <div className={styles.bigMetric}>
+            <strong>{percent(snapshot.performance.accuracy, 1)}</strong>
+            <span>result accuracy</span>
+          </div>
+          <dl className={styles.metricList}>
+            <div><dt>Log loss</dt><dd>{decimal(snapshot.performance.meanLogLoss)}</dd></div>
+            <div><dt>Exact score</dt><dd>{percent(exactRate, 1)}</dd></div>
+            <div><dt>RPS</dt><dd>{decimal(snapshot.performance.meanRps)}</dd></div>
+            <div><dt>Sample</dt><dd>{sampleLabel(snapshot.performance.graded)}</dd></div>
+          </dl>
         </section>
-        <section className={styles.panel}>
-          <PanelHeading title="Fixture matching" meta={`${snapshot.odds.eventMatching.eventsSeen} events`} />
-          <dl className={styles.inlineStats}><div><dt>Matched</dt><dd>{snapshot.odds.eventMatching.matchedToFixture}</dd></div><div><dt>Unmatched</dt><dd>{snapshot.odds.eventMatching.eventsSeen - snapshot.odds.eventMatching.matchedToFixture}</dd></div></dl>
-          {snapshot.odds.eventMatching.unmatched.length > 0 ? <p className={styles.panelCopy}>Unmatched: {snapshot.odds.eventMatching.unmatched.slice(0, 8).join(', ')}</p> : <p className={styles.panelCopy}>No unresolved team names are recorded.</p>}
+
+        <section className={styles.performancePanel}>
+          <header><span>Paper betting · settled advice</span><strong>{snapshot.betting.profit.settledBets}</strong></header>
+          <div className={styles.bigMetric}>
+            <strong>{signedPercent(snapshot.betting.profit.roi)}</strong>
+            <span>stake-weighted ROI</span>
+          </div>
+          <dl className={styles.metricList}>
+            <div><dt>P/L</dt><dd>{snapshot.betting.profit.pnl > 0 ? '+' : ''}{snapshot.betting.profit.pnl.toFixed(2)}u</dd></div>
+            <div><dt>Hit rate</dt><dd>{percent(snapshot.betting.profit.hitRate, 1)}</dd></div>
+            <div><dt>Mean CLV</dt><dd>{signedPercent(snapshot.betting.clv.mean)}</dd></div>
+            <div><dt>Beat close</dt><dd>{percent(snapshot.betting.clv.beatCloseRate, 1)}</dd></div>
+          </dl>
+          <p className={styles.caveat}>{sampleLabel(snapshot.betting.profit.settledBets)} — do not treat current ROI as a stable expectation.</p>
         </section>
       </div>
-      <section className={styles.panel}>
-        <PanelHeading title="Pipeline jobs" meta={`${snapshot.jobs.length} recorded jobs`} />
-        {snapshot.jobs.length === 0 ? <Empty title="No job run has been recorded" copy="The schedules may be installed, but this ledger does not claim a job succeeded until it has written a run." /> : <div className={styles.jobGrid}>{snapshot.jobs.map((job) => <JobCard key={job.name} job={job} />)}</div>}
+
+      <section className={styles.marketPanel}>
+        <div>
+          <span className={styles.eyebrow}>Comparable window · last 7 days</span>
+          <h3>{comparison ? (comparison.ahead ? 'Live probabilities beat the closing comparator' : 'Closing market still leads') : 'Closing comparison still building'}</h3>
+          {comparison ? (
+            <p>
+              Model log loss {comparison.model.toFixed(4)} vs market {comparison.market.toFixed(4)} over {comparison.comparisons} fixtures. Lower is better; the gap is {Math.abs(comparison.gap).toFixed(4)}.
+            </p>
+          ) : (
+            <p>No like-for-like market comparator is available for this review window yet.</p>
+          )}
+        </div>
+        <div className={styles.validationVerdict}>
+          <span>Held-out model validation</span>
+          <strong>{validationAhead}/{validationComparable.length}</strong>
+          <small>current models ahead of their stored market benchmark</small>
+        </div>
       </section>
+
+      <section className={styles.measurementGap}>
+        <div>
+          <span className={styles.eyebrow}>Bet Builder evidence</span>
+          <h3>Combination performance is not measured yet</h3>
+          <p>
+            Individual value legs are persisted and settled. Browser-generated doubles, trebles and
+            other combinations do not yet have an immutable slip-level history, so the Lab will not
+            invent a Builder win rate or ROI.
+          </p>
+        </div>
+        <span className={styles.pendingPill}>Measurement gap</span>
+      </section>
+
       <section className={styles.panel}>
-        <PanelHeading title="Recent paid-provider calls" meta={`${snapshot.odds.recentCalls.length} calls`} />
-        {snapshot.odds.recentCalls.length === 0 ? <Empty title="No provider credits used" copy="No paid-provider call has been recorded. The first scheduled Production collection will appear here with its exact database-accounted cost." /> : (
-          <div className={styles.tableScroll}><table className={styles.table}><thead><tr><th>When</th><th>League</th><th>Endpoint</th><th>Cost</th><th>Rows</th><th>Remaining</th></tr></thead><tbody>{snapshot.odds.recentCalls.map((call, index) => <tr key={`${call.calledAt}-${index}`}><td>{when(call.calledAt)}</td><td>{call.sportKey ?? '—'}</td><td>{call.endpoint}</td><td>{call.reportedCost ?? call.estimatedCost}</td><td>{call.rowsReturned}</td><td>{call.reportedRemaining ?? '—'}</td></tr>)}</tbody></table></div>
-        )}
+        <header className={styles.panelHeading}>
+          <div><span className={styles.eyebrow}>Last 7 days</span><h3>By league</h3></div>
+          <span>{review.totals.gradedFixtures} canonical fixtures</span>
+        </header>
+        <div className={styles.tableScroll}>
+          <table className={styles.table}>
+            <thead><tr><th>League</th><th>Graded</th><th>Accuracy</th><th>Log loss</th><th>Exact</th></tr></thead>
+            <tbody>
+              {review.byLeague.map((row) => (
+                <tr key={row.label}>
+                  <td><strong>{AI_LAB_LEAGUES.find((item) => item.key === row.label)?.name ?? row.label}</strong></td>
+                  <td>{row.gradedFixtures}</td>
+                  <td>{row.gradedFixtures ? percent(row.resultCorrect / row.gradedFixtures, 1) : '—'}</td>
+                  <td>{decimal(row.meanLogLoss)}</td>
+                  <td>{row.exactScores === null ? '—' : row.exactScores}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   )
 }
 
-function JobCard({ job }: { job: AiJob }) {
-  return <article className={styles.jobCard}><div><strong>{job.name}</strong><StatePill state={job.status} /></div><span>{job.rowsWritten} rows · {when(job.finishedAt ?? job.startedAt)}</span>{job.message ? <p>{job.message}</p> : null}</article>
+function ModelLabView({ snapshot, health }: { snapshot: AiLabSnapshot; health: AiHealth }) {
+  const current = snapshot.models.filter((model) => model.status === 'current')
+  const challengers = snapshot.models.filter((model) => model.status === 'challenger' || model.status === 'candidate')
+
+  return (
+    <div className={styles.stack}>
+      <section className={styles.lifecycleNote}>
+        <div>
+          <span className={styles.eyebrow}>Selected-model lifecycle</span>
+          <h2>Verified activation is automatic</h2>
+          <p>
+            The Lab reports current and challenger evidence here. Routine model activation is owned
+            by the verified selected-model lifecycle, not an admin “Promote” button, so the UI cannot
+            become a second model-selection authority.
+          </p>
+        </div>
+        <span>{current.length}/{health.models.expected} current</span>
+      </section>
+
+      <section className={styles.panel}>
+        <header className={styles.panelHeading}>
+          <div><span className={styles.eyebrow}>Current selected set</span><h3>Model validation</h3></div>
+          <span>{challengers.length} challenger{challengers.length === 1 ? '' : 's'} observed</span>
+        </header>
+        <div className={styles.modelGrid}>
+          {current.map((model) => <ModelCard key={model.id} model={model} />)}
+        </div>
+      </section>
+
+      <section className={styles.panel}>
+        <header className={styles.panelHeading}>
+          <div><span className={styles.eyebrow}>Pipeline</span><h3>Can today's evidence be trusted?</h3></div>
+          <span>Generated {when(health.generatedAt)}</span>
+        </header>
+        <div className={styles.healthGrid}>
+          <HealthItem label="Fixtures" value={`${health.fixtures.upcoming7d} upcoming`} note={`sync ${when(health.fixtures.lastSyncAt)}`} />
+          <HealthItem label="Forecasts" value={`${health.predictions.withCurrentForecast}/${health.predictions.upcomingFixtures}`} note={`predict ${when(health.predictions.lastPredictAt)}`} />
+          <HealthItem label="Prices" value={`${health.prices.realBooksSeen7d.length} real books`} note={`latest ${when(health.prices.lastRealCaptureAt)}`} />
+          <HealthItem label="Value" value={`${health.valueLoop.currentBets} BET · ${health.valueLoop.currentPasses} PASS`} note={`run ${when(health.valueLoop.lastRunAt)}`} />
+          <HealthItem label="Settlement" value={`${health.settlement.settled}/${health.settlement.advised}`} note={`${health.settlement.playedAndUnsettled} played unsettled`} />
+          <HealthItem label="Models" value={`${health.models.current}/${health.models.expected} current`} note={`train ${when(health.models.lastTrainAt)}`} />
+        </div>
+      </section>
+
+      <section className={styles.twoColumn}>
+        <article className={styles.panel}>
+          <header className={styles.panelHeading}><div><span className={styles.eyebrow}>Odds API</span><h3>Budget</h3></div></header>
+          <div className={styles.budgetFigure}>
+            <strong>{snapshot.odds.monthToDateCredits}</strong>
+            <span>of {snapshot.odds.softCap} soft-cap credits</span>
+          </div>
+          <p className={styles.caveat}>{snapshot.odds.remainingToSoftCap} credits remain before the configured soft cap.</p>
+        </article>
+        <article className={styles.panel}>
+          <header className={styles.panelHeading}><div><span className={styles.eyebrow}>Training range</span><h3>Freshness</h3></div></header>
+          <dl className={styles.metricList}>
+            <div><dt>Newest trained through</dt><dd>{shortDate(health.models.newestTrainedThrough)}</dd></div>
+            <div><dt>Oldest trained through</dt><dd>{shortDate(health.models.oldestTrainedThrough)}</dd></div>
+            <div><dt>Current versions</dt><dd>{health.models.versions.length}</dd></div>
+            <div><dt>Last train</dt><dd>{when(health.models.lastTrainAt)}</dd></div>
+          </dl>
+        </article>
+      </section>
+    </div>
+  )
 }
 
-function Breakdown({ title, values }: { title: string; values: Readonly<Record<string, AiMetricSlice>> }) {
-  const entries = Object.entries(values)
-  return <section className={styles.panel}><PanelHeading title={title} meta={`${entries.length} groups`} />{entries.length === 0 ? <Empty title="No performance breakdown yet" copy="This report needs graded predictions with their model features intact." /> : <div className={styles.breakdownGrid}>{entries.map(([key, value]) => <article key={key}><strong>{key}</strong><span>{value.observations} graded</span><dl><div><dt>Accuracy</dt><dd>{percent(value.accuracy)}</dd></div><div><dt>Log loss</dt><dd>{decimal(value.logLoss)}</dd></div></dl></article>)}</div>}</section>
+function ModelCard({ model }: { model: AiModel }) {
+  const marketGap = model.validationLogLoss !== null && model.marketLogLoss !== null
+    ? model.validationLogLoss - model.marketLogLoss
+    : null
+  const baselineGap = model.validationLogLoss !== null && model.baselineLogLoss !== null
+    ? model.validationLogLoss - model.baselineLogLoss
+    : null
+  return (
+    <article className={styles.modelCard}>
+      <header>
+        <div><span className={styles.leagueCode}>{model.league}</span><strong>{model.version}</strong></div>
+        <span>{model.family}</span>
+      </header>
+      <dl>
+        <div><dt>Validation accuracy</dt><dd>{percent(model.validationAccuracy, 1)}</dd></div>
+        <div><dt>Validation log loss</dt><dd>{decimal(model.validationLogLoss)}</dd></div>
+        <div><dt>vs baseline</dt><dd data-good={baselineGap !== null && baselineGap < 0}>{baselineGap === null ? '—' : `${baselineGap > 0 ? '+' : ''}${baselineGap.toFixed(3)}`}</dd></div>
+        <div><dt>vs market</dt><dd data-good={marketGap !== null && marketGap < 0}>{marketGap === null ? '—' : `${marketGap > 0 ? '+' : ''}${marketGap.toFixed(3)}`}</dd></div>
+      </dl>
+      <small>{model.trainingMatches.toLocaleString()} training matches · trained {when(model.trainedAt)}</small>
+    </article>
+  )
 }
 
-function Metric({ label, value, hint, tone = 'neutral' }: { label: string; value: string; hint: string; tone?: 'neutral' | 'positive' | 'negative' }) {
-  return <article className={styles.metric} data-tone={tone}><span>{label}</span><strong>{value}</strong><small>{hint}</small></article>
+function HealthItem({ label, value, note }: { label: string; value: string; note: string }) {
+  return <article><span>{label}</span><strong>{value}</strong><small>{note}</small></article>
 }
 
-function PanelHeading({ title, meta }: { title: string; meta: string }) {
-  return <div className={styles.panelHeading}><h2>{title}</h2><span>{meta}</span></div>
-}
-
-function Empty({ title, copy }: { title: string; copy: string }) {
-  return <div className={styles.empty}><span className={styles.emptyMark} aria-hidden="true" /><strong>{title}</strong><p>{copy}</p></div>
-}
-
-function StatePill({ state }: { state: string }) {
-  const positive = ['current', 'correct', 'trusted', 'succeeded', 'success', 'complete', 'completed'].includes(state.toLowerCase())
-  const negative = ['failed', 'missed', 'error'].includes(state.toLowerCase())
-  return <span className={styles.statePill} data-tone={positive ? 'positive' : negative ? 'negative' : 'neutral'}>{state || 'unknown'}</span>
+function EmptyState({ title, copy }: { title: string; copy: string }) {
+  return <section className={styles.empty}><strong>{title}</strong><p>{copy}</p></section>
 }

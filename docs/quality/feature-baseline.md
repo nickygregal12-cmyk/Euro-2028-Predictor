@@ -375,7 +375,12 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 ### Contract 214 — season card confirmation baseline
 
 Season matchweek confirmation now describes the current card rather than an earlier edit state. Successful material prediction/Joker changes clear the confirmation back to provisional; no-op and rejected writes do not. Confirmation time/reference are server-derived display evidence, not a second receipt ledger or cryptographic proof.
-### Contract 215 — reminder dispatch baseline
+
+### Contract 215 review — private AI Lab evidence currency
+
+Contract 215 hardens an existing private administrative research capability rather than creating a new compact user feature or safeguard identifier. Historical forecasts remain inspectable, but only the canonical newest forecast may produce the current value decision and stale recommendation evidence fails closed across a forecast-version change. No public betting surface, scoring rule, competition state, player data boundary or hosted classification changes here, so the compact `FEAT-*` / `SAFE-*` rows above are unchanged.
+
+### Contract 216 — reminder dispatch baseline
 
 The reminder path now has all four of its jobs: generate, schedule, reclaim and
 dispatch. Classification is unchanged for the player-facing surface — reminders
@@ -383,4 +388,3 @@ are still **implemented and switched off** — but the safeguard inventory gains
 one that previously existed only on paper. The per-row `dry_run` flag is now
 capable of refusing a send; before this contract the claim overwrote it and the
 gate could not fire.
-

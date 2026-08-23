@@ -49,10 +49,6 @@ const Z_INDEX_EXCLUSIONS: ReadonlyArray<readonly [file: string, reason: string]>
     'local stacking of a step chip against the connector line it sits on',
   ],
   [
-    'src/features/admin/AiLabPage.module.css',
-    'local stacking of hero copy and status above the hero decorative orb',
-  ],
-  [
     'src/vnext/components/football/TeamCrest.module.css',
     'local 0/1 pair between the shirt collar drawn by ::after and the club code painted over it',
   ],

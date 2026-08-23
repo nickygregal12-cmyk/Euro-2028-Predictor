@@ -7,30 +7,13 @@
   "contractRunway": {
     "authority": "config/deployment-contract.json",
     "note": "The repository's own position is deliberately absent; it is read from the authority named above, which on any branch already carries that branch's own claim. What is recorded here is every OTHER open branch that holds a number, so the next free one is this branch's position plus one plus the claims below. Two branches holding one number is the known failure this record exists to prevent, so a claim names an exact pull-request head and is invalid the moment the repository reaches it.",
-    "claimedByOpenPullRequests": [
-      {
-        "pr": 997,
-        "branch": "codex/ai-lab-vnext-rebuild",
-        "headSha": "32969de6086e091e7719b80bc75f6781d63dd0f5",
-        "contract": 216,
-        "migration": "supabase/migrations/20260823001000_ai_canonical_value_currency.sql",
-        "reconciliation": "Renumbered from the number it originally held. A contract number is the migration COUNT, so a branch adding one migration to main is necessarily the next number and cannot reserve a later one while it stays unmerged. Only one of the two open migration branches can be that number, and readiness decides: this one is a draft, and the branch holding the earlier number is ready. When this branch rebases it takes the number after whatever main has reached. Nothing was pushed to it — renumbering someone else's branch is its author's to do."
-      }
-    ]
+    "claimedByOpenPullRequests": []
   },
   "openPullRequestClassification": [
     {
-      "pr": 997,
-      "branch": "codex/ai-lab-vnext-rebuild",
-      "headSha": "32969de6086e091e7719b80bc75f6781d63dd0f5",
-      "draft": true,
-      "classification": "unrelated",
-      "rationale": "Rebuilds AI Lab around forecast, value and evidence. It shares no surface with any stage of this programme. It matters here only as the other open branch carrying a migration, which is why the runway above records the number it must take."
-    },
-    {
       "pr": 971,
       "branch": "codex/vnext-release-blockers-shipping-journeys",
-      "headSha": "af61b35ae4afba5c9fc97a27661ec7643b04c85a",
+      "headSha": "3d8f9d73b196d551636efc8c12523970c58916bd",
       "draft": true,
       "classification": "unrelated",
       "rationale": "vNext shipping journeys and release blockers, owned by the separate vNext programme controller. It carries no migration. Re-anchoring it onto current main is that programme's work, not this one's, and no file it touches is shared with any stage here."

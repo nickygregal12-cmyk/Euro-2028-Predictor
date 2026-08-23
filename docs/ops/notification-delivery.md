@@ -4,7 +4,7 @@ How the platform tells a player something happened. Provider-neutral by
 construction, with Novu as the first adapter behind it.
 
 This document describes a **capability that is implemented, scheduled, and not
-switched on**. Contract 215 gave the send loop its first caller; no Novu account
+switched on**. Contract 216 gave the send loop its first caller; no Novu account
 is configured, no credential exists in this repository or in any hosted
 environment, and nothing sends. That is the intended state until an owner
 provisions the service deliberately.
@@ -189,7 +189,7 @@ The three layers stay separate and none of them stands in for another:
 
 ### The dispatch run ledger, and why it is not a second delivery ledger
 
-Contract 215 adds `predictor_internal.reminder_dispatch_runs`. It records
+Contract 216 adds `predictor_internal.reminder_dispatch_runs`. It records
 INVOCATIONS, not deliveries, and the distinction is the reason it exists.
 
 `reminder_deliveries` answers "what happened to this reminder". It cannot answer
@@ -228,7 +228,7 @@ returned that NEW value. The dispatch loop claims with `p_dry_run: false` and
 then asks `sendingIsPermitted(row)` whether the row allows sending — about a
 value the same statement had just overwritten. The answer was always yes.
 
-Contract 215 makes the claim **tighten only**: a sender may force a dry run on a
+Contract 216 makes the claim **tighten only**: a sender may force a dry run on a
 live row and may never talk a dry row into being live. The ledger keeps the last
 word about a row it scheduled, and the two switches are two switches again.
 
@@ -268,7 +268,7 @@ Nothing here is a hosted action, and none of it is done.
    underscored, because Supabase rejects a hyphen in a secret name),
    `NOVU_API_KEY`, `NOTIFICATIONS_DELIVERY` and optionally
    `NOVU_API_ORIGIN` / `NOTIFICATIONS_ENVIRONMENT`.
-5. **Scheduling is done.** Contract 215 installs `player-reminder-dispatch`,
+5. **Scheduling is done.** Contract 216 installs `player-reminder-dispatch`,
    which runs `select public.dispatch_due_reminders();` every five minutes. It
    needs two vault secrets to reach anything, created the same way contract 155
    creates the provider-poll pair:

@@ -22,7 +22,7 @@
      Do not edit between these markers — run `npm run generate:now`.
      `npm run check:now` fails in CI when this region disagrees with those records. -->
 
-The repository is at **contract 215**, through `20260823120000_reminder_dispatch_wiring.sql`.
+The repository is at **contract 216**, through `20260823120000_reminder_dispatch_wiring.sql`.
 Development Supabase is hosted at **213**, verified `2026-08-21T09:22:18.620Z`.
 Production Supabase is hosted at **211**, verified `2026-08-20T10:32:54.145Z`; further promotion is **not authorised**.
 
@@ -709,9 +709,9 @@ Contract 132 adds a tested initial provider-calendar approval boundary. New prov
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Development and Production were directly reverified at Contract 132 during the 03:00 session; Contract 133 remains repository-only until its guarded Development rollout completes.
 
-### Contract 215 repository status
+### Contract 216 repository status
 
-Contract 215 is the repository contract for the reminder dispatch wiring. It
+Contract 216 is the repository contract for the reminder dispatch wiring. It
 gives `supabase/functions/notification-dispatch` its first caller — a `pg_cron`
 job posting a run id every five minutes — and adds a run ledger recording what
 each invocation was asked to do and what came back.
@@ -727,9 +727,13 @@ and returned the new value, so `sendingIsPermitted` was reading what the claim
 had just written. The claim now tightens and never clears; the ledger keeps the
 last word about a row it scheduled.
 
-This is repository state only. No hosted Contract 215 application is asserted
+This is repository state only. No hosted Contract 216 application is asserted
 here, no provider credential exists in any environment, and nothing sends.
 
 ### Contract 214 repository status
 
 Contract 214 is the repository contract for current-card confirmation integrity. It adds server-held `confirmed_at`/confirmation-reference read evidence and invalidates that evidence only after successful material prediction or Joker changes. This is repository state only; no hosted Contract 214 application is asserted here.
+
+### Contract 215 repository status
+
+**Contract 215 — current value follows the current forecast (23 August 2026), repository only.** A fixture deliberately accumulates immutable forecast horizons as evidence improves. `find_value.py` previously allowed every valid historical horizon to compete for today's betting decision, while the Lab's fixture read displayed only the canonical newest forecast; separately, `ai.current_fixture_recommendations` could continue exposing an older recommendation after a fresher forecast arrived but before value was recalculated. Contract 215 keeps all historical forecasts and recommendations as audit evidence, marks the canonical row in the value candidate read and assesses only that row, and redefines the current recommendation view so a recommendation is current only when it belongs to the canonical forecast. The gap between a fresh forecast and its value run therefore reads as no current decision rather than stale advice. No hosted environment is changed by this repository contract; Development remains at its machine-recorded boundary and Production remains at its own separately authorised boundary.
