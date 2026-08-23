@@ -134,13 +134,33 @@ export type ShellSource = {
    */
   readonly playerName: string | null
   /**
-   * How many predictions are still outstanding in this competition's Match
-   * Predictor, where the page happens to know. It rides on `Games`, which is
-   * where the Match Predictor lives under the selected architecture.
+   * HOW MANY OF THIS COMPETITION'S GAMES ARE ASKING THE PLAYER FOR SOMETHING.
    *
-   * `null` is "this page cannot say" and is never zero.
+   * A COUNT OF GAMES, NOT OF FIXTURES — and the change of unit is the whole
+   * point. This used to carry the number of scorelines still missing from the
+   * Match Predictor card, which rode on a destination named `Games` and so read
+   * as a count of games. Seven missing predictions in one game rendered as "7"
+   * beside the word `Games`, which is a sentence the product never meant.
+   *
+   * THE THREE STATES ARE NOT COMMENSURABLE, WHICH IS WHY IT COUNTS GAMES.
+   * "two fixtures left", "no pick made yet" and "a fixture riding on points you
+   * are already earning" cannot be added up — `ShellGameSummary` is three
+   * non-interchangeable variants precisely to prevent that. What CAN be counted
+   * is how many games are asking, and 0, 1 or 2 is a number a player can act on.
+   *
+   * IT COMES FROM THE SAME AUTHORITY HOME USES, so the badge and Home's own
+   * action list cannot disagree. The Championship is never counted, because
+   * `championshipAction` is never `outstanding` — it is won by points the
+   * player is already being told to earn, and counting it would count one task
+   * twice.
+   *
+   * `null` IS "THIS PAGE CANNOT SAY", AND NEVER ZERO. Only the surfaces that
+   * hold the week — Home and Games — can answer; every other page passes null
+   * and the badge is absent rather than confidently empty. Making it universal
+   * would mean the shell itself reading each game on every navigation, which is
+   * a cost the shell deliberately does not pay.
    */
-  readonly outstandingPredictions: number | null
+  readonly outstandingGames: number | null
   /**
    * Whether this host can act on a `discover` or `account` intent.
    *

@@ -28,7 +28,7 @@ export function VNextPublicDocumentScreen(props: VNextPublicDocumentScreenProps)
       buildShellModel({
         competition: null,
         playerName: props.playerName ?? null,
-        outstandingPredictions: null,
+        outstandingGames: null,
         canNavigateAway: props.onShellIntent !== undefined,
         elsewhere,
       }),

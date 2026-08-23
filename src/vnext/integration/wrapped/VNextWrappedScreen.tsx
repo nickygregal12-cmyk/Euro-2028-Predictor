@@ -75,7 +75,7 @@ export function VNextWrappedScreen(props: VNextWrappedScreenProps) {
         playerName: props.playerName,
         // A finished season carries no prediction, so it cannot count what is
         // outstanding. `null` is "this page cannot say", never zero.
-        outstandingPredictions: null,
+        outstandingGames: null,
         canNavigateAway: props.onShellIntent !== undefined,
         elsewhere,
       }),

@@ -71,7 +71,7 @@ export function VNextInviteScreen(props: VNextInviteScreenProps) {
         // gets into one.
         competition: null,
         playerName: null,
-        outstandingPredictions: null,
+        outstandingGames: null,
         canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
       }),

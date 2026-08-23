@@ -81,7 +81,7 @@ export function VNextWelcomeDestination() {
           model={buildShellModel({
             competition: null,
             playerName: host.displayName,
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: false,
             elsewhere: null,
           })}

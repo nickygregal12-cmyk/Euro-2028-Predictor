@@ -68,7 +68,7 @@ function shell(over: Partial<ShellSource> = {}): ShellSource {
       colours: { primary: '#0b2a4a', accent: '#7fc7ff' },
     },
     playerName: 'Rowan Adeyemi',
-    outstandingPredictions: null,
+    outstandingGames: null,
     canNavigateAway: true,
     elsewhere: null,
     ...over,

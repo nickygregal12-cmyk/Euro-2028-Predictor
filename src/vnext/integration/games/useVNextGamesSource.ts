@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { GamesSource } from './gamesSource'
+import {
+  isActiveMembership,
+  type CompetitionGame,
+  type SeasonGames,
+} from '../../../services/supabase/competitionGamesModel'
+import type { CompetitionWeek } from '../../../features/hub/competitionWeekModel'
+import type { SeasonPlayContext } from '../../../features/season/seasonPlayContextModel'
 
 /**
  * ACQUIRE WHAT vNEXT GAMES NEEDS.
@@ -137,6 +144,23 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
         const games = await fetchSeasonGames(context.tournamentId).catch(() => null)
         if (!active) return
 
+        // THE WEEK, FROM EACH GAME'S OWN READ.
+        //
+        // WHY IT COSTS NO EXTRA WAVE. The catalogue is what says which games
+        // this player is actually in, so these three cannot be issued before it
+        // answers — but they can all be issued together once it has, and they
+        // are. A row that asks "pick your club" has to know whether a pick is
+        // in, and only the round read knows that; the catalogue answers
+        // membership and registration and nothing about the week.
+        //
+        // EACH FAILS ALONE, and a failure is indistinguishable from "not in
+        // this game" on purpose: both leave the row with no action, which draws
+        // it as a destination. `DFA-006`'s rule is that a card must not dress a
+        // passive state as a task, and a read that did not answer is the most
+        // passive state there is.
+        const week = games === null ? null : await loadWeekFor(context, games)
+        if (!active) return
+
         loadedIdentity.current = identity
         setRefreshing(false)
         setState({
@@ -151,6 +175,7 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
               seasonLabel: context.seasonLabel,
             },
             games: games === null ? { kind: 'failed' } : { kind: 'ok', games },
+            week,
           },
         })
       } catch {
@@ -208,4 +233,83 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
     }
     return { status: 'loading' }
   }, [authLoading, userId, competitionSlug, seasonSlug, state, retry, refreshing, join, write])
+}
+
+/**
+ * THE PLAYER'S WEEK IN THIS COMPETITION, FROM EACH GAME'S OWN READ.
+ *
+ * THE PLAY CONTEXT IS PASSED IN, NEVER RE-READ. Wave one already loaded it to
+ * get the tournament id, and it carries the matchweek, the competition name,
+ * the season label and the calendar zone that the Match Predictor gateway needs
+ * to resolve its own deadline. Fetching it again here would be a second read of
+ * an answer already in hand.
+ *
+ * ONLY THE GAMES THEY ARE ACTUALLY IN. `isActiveMembership` is the same gate
+ * `loadCompetitionWeek` applies, for the same stated reason: both season reads
+ * refuse or report-empty for a non-entrant, so asking spends a request to be
+ * told what the catalogue in hand already said.
+ *
+ * CONCURRENT, AND EACH ALLOWED TO FAIL ALONE. `Promise.allSettled` rather than
+ * `all`, so an unreadable Championship costs its own row's wording and nothing
+ * else on the page. `loadCompetitionWeek` deliberately does the opposite — it
+ * throws, because Overview refuses to render a partial panel — and this surface
+ * has a different rule: a games CATALOGUE is still worth showing when one
+ * game's week could not be read.
+ *
+ * IT COMPUTES NOTHING. Ordering, outstanding-ness and every sentence come from
+ * `presentCompetitionWeek`, which is why a card here and Home cannot disagree.
+ */
+async function loadWeekFor(
+  context: SeasonPlayContext,
+  games: SeasonGames,
+): Promise<CompetitionWeek | null> {
+  const joined = (key: CompetitionGame['gameKey']) =>
+    games.games.some((game) => game.gameKey === key && isActiveMembership(game))
+
+  const championshipId =
+    games.games.find((game) => game.gameKey === 'predictor_cup' && isActiveMembership(game))?.id ??
+    null
+
+  const wantsCard = joined('main_predictor') && context.matchweek !== null
+  const wantsLms = joined('last_man_standing')
+  if (!wantsCard && !wantsLms && championshipId === null) return null
+
+  const [card, lms, championship] = await Promise.allSettled([
+    wantsCard && context.matchweek !== null
+      ? import('../../../services/supabase/seasonMatchPredictor').then((module) =>
+          module
+            .createSeasonMatchPredictorRpcGateway({
+              tournamentId: context.tournamentId,
+              competitionName: context.competitionName,
+              seasonLabel: context.seasonLabel,
+              timeZone: context.timeZone,
+              now: () => new Date(),
+            })
+            .load(context.matchweek as number),
+        )
+      : Promise.resolve(null),
+    wantsLms
+      ? import('../../../services/supabase/seasonLms').then((module) =>
+          module.createSeasonLmsRpcGateway({ tournamentId: context.tournamentId }).load(),
+        )
+      : Promise.resolve(null),
+    championshipId === null
+      ? Promise.resolve(null)
+      : import('../../../services/supabase/seasonCupPlayer').then((module) =>
+          module.createSeasonCupPlayerViewRpcGateway({ competitionId: championshipId }).load(),
+        ),
+  ])
+
+  const cardPage = card.status === 'fulfilled' ? card.value : null
+  const lmsPage = lms.status === 'fulfilled' ? lms.value : null
+  const championshipView = championship.status === 'fulfilled' ? championship.value : null
+  if (cardPage === null && lmsPage === null && championshipView === null) return null
+
+  const { presentCompetitionWeek } = await import('../../../features/hub/competitionWeekModel')
+  return presentCompetitionWeek({
+    matchPredictor: cardPage ? { page: cardPage, href: null } : null,
+    lms: lmsPage ? { page: lmsPage, href: null } : null,
+    championship: championshipView ? { view: championshipView, href: null } : null,
+    now: new Date(),
+  })
 }

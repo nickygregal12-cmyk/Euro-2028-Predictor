@@ -54,7 +54,7 @@ describe('the shell a host with several competitions builds', () => {
     const model = buildShellModel({
       competition: ACTIVE,
       playerName: 'Sam',
-      outstandingPredictions: null,
+      outstandingGames: null,
       canNavigateAway: true,
       elsewhere: null,
     })
@@ -67,7 +67,7 @@ describe('the shell a host with several competitions builds', () => {
     const model = buildShellModel({
       competition: ACTIVE,
       playerName: 'Sam',
-      outstandingPredictions: null,
+      outstandingGames: null,
       canNavigateAway: true,
       elsewhere: elsewhereWith({
         competitions: [
@@ -94,7 +94,7 @@ describe('the shell a host with several competitions builds', () => {
     const model = buildShellModel({
       competition: ACTIVE,
       playerName: 'Sam',
-      outstandingPredictions: null,
+      outstandingGames: null,
       canNavigateAway: true,
       elsewhere: elsewhereWith({
         competitions: [{ id: 'season-scottish', name: 'Scottish Premiership', season: '2027/28' }],
@@ -112,7 +112,7 @@ describe('the shell a host with several competitions builds', () => {
     const model = buildShellModel({
       competition: ACTIVE,
       playerName: 'Sam',
-      outstandingPredictions: null,
+      outstandingGames: null,
       canNavigateAway: true,
       elsewhere: elsewhereWith({
         competitions: [{ id: 'season-scottish', name: 'Scottish Premiership', season: '2027/28' }],

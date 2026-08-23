@@ -103,6 +103,39 @@ export type GameEntry = {
   /** The catalogue's own flag. A game switched off is not a game missing. */
   readonly active: boolean
   readonly standing: GameStanding
+  /**
+   * WHAT THIS GAME IS ASKING OF THE PLAYER THIS WEEK, or null.
+   *
+   * IT IS NOT THE CATALOGUE'S ANSWER AND MUST NEVER BE DERIVED FROM ONE.
+   * `get_competition_games` knows membership and registration; it does not know
+   * whether a pick is in or how many scorelines are missing. This field comes
+   * from `competitionWeekModel` over each GAME'S OWN read — the same
+   * computation Home uses — so a card and Home can never disagree about a
+   * deadline. `DFA-006` requires exactly that, in those words.
+   *
+   * NULL IS THE ORDINARY CASE. A game the player has not joined, one whose read
+   * did not answer, and one with nothing to say all arrive here as null, and a
+   * row without an action is a destination rather than a task.
+   */
+  readonly weekAction: GameWeekAction | null
+}
+
+/**
+ * A game's own state this week, as the Games surface needs it.
+ *
+ * `outstanding` IS THE WHOLE POINT. It is what separates "Pick your club" from
+ * "Look inside", and it is the week model's field rather than anything computed
+ * here. A settled, locked or eliminated game has `outstanding: false` and must
+ * be drawn as somewhere to go, never as a job — the failure `DFA-006` names.
+ */
+export type GameWeekAction = {
+  /** The week model's own sentence for this game. Never composed here. */
+  readonly title: string
+  readonly outstanding: boolean
+  /** ISO 8601, or null where that game's read supplied no instant. */
+  readonly deadline: string | null
+  /** The verb, where the game is asking. Null where it is not. */
+  readonly call: string | null
 }
 
 /**
