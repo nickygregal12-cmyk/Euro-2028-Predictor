@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { at } from '../support/indexed'
 
 const root = resolve(import.meta.dirname, '../..')
 const workflow = readFileSync(resolve(root, '.github/workflows/browser-e2e.yml'), 'utf8')
@@ -28,6 +29,7 @@ const bonusGamesFixture = readFileSync(
   resolve(root, 'e2e/bonus-games-fixture.sql'),
   'utf8',
 )
+const browserSeed = readFileSync(resolve(root, 'e2e/seed-browser-database.sh'), 'utf8')
 const bonusGamesSpec = readFileSync(resolve(root, 'e2e/bonus-games.spec.ts'), 'utf8')
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>
@@ -57,11 +59,11 @@ const shippingHubFlags = [
   'VITE_UI_FOOTBALL_HUB_WRAPPED',
 ] as const
 
-const [authenticatedWorkflow, previewWorkflow = ''] = workflow.split(
-  '\n  deploy-preview-smoke:',
-)
+const workflowJobs = workflow.split('\n  deploy-preview-smoke:')
+const authenticatedWorkflow = at(workflowJobs, 0)
+const [, previewWorkflow = ''] = workflowJobs
 const authenticatedBrowserHarness =
-  `${authenticatedWorkflow}\n${globalSetup}\n${localFixtures}\n${bonusGamesFixture}\n${bonusGamesSpec}`
+  `${authenticatedWorkflow}\n${globalSetup}\n${localFixtures}\n${bonusGamesFixture}\n${bonusGamesSpec}\n${browserSeed}`
 
 describe('authenticated browser E2E workflow', () => {
   it('uses a disposable local Supabase rebuild and Playwright Chromium', () => {
@@ -73,17 +75,42 @@ describe('authenticated browser E2E workflow', () => {
     expect(authenticatedWorkflow).toContain('playwright-report')
   })
 
-  it('runs a dedicated shipping-vNext player suite in the same disposable database', () => {
+  // What the shipping configuration itself declares is asserted once, in
+  // tests/scripts/shippingVNextE2E.test.ts. This guard owns only how the
+  // workflow runs it.
+  it('gives the shipping-vNext player suite its own rebuilt disposable database', () => {
     expect(authenticatedWorkflow).toContain('Run shipping vNext player journeys')
     expect(authenticatedWorkflow).toContain('npm run test:e2e:shipping-vnext')
     expect(authenticatedWorkflow).toContain('playwright-report-shipping-vnext')
     expect(packageJson.scripts['test:e2e:shipping-vnext']).toBe(
       'playwright test --config=playwright.shipping-vnext.config.ts',
     )
-    expect(shippingVNextConfig).toContain("testMatch: ['shipping-vnext-journeys.spec.ts']")
-    expect(shippingVNextConfig).toContain("devices['Desktop Chrome']")
-    expect(shippingVNextConfig).toContain("devices['Pixel 7']")
-    expect(shippingVNextConfig).toContain("globalSetup: './e2e/global-setup.ts'")
+
+    // `e2e/global-setup.ts` provisions by hard-deleting the seeded identities,
+    // and leagues.owner_id and bonus_competitions.owner_id both RESTRICT that
+    // delete. A second Playwright configuration running the same setup over the
+    // first suite's leftovers therefore fails on a GoTrue 500 before any test
+    // starts, so each one that runs it must be handed a rebuilt database.
+    expect(globalSetup).toContain('admin.auth.admin.deleteUser')
+    const setupRuns = [
+      authenticatedWorkflow.indexOf('npm run test:e2e\n'),
+      authenticatedWorkflow.indexOf('npm run test:e2e:shipping-vnext'),
+    ]
+    expect(setupRuns.every((index) => index > 0)).toBe(true)
+    const rebuilds = [...authenticatedWorkflow.matchAll(/supabase db reset --local/g)].map(
+      (match) => match.index ?? -1,
+    )
+    expect(rebuilds).toHaveLength(setupRuns.length)
+    for (const run of setupRuns) {
+      const rebuild = rebuilds.filter((index) => index < run).pop() ?? -1
+      const preceding = setupRuns.filter((index) => index < run).pop() ?? -1
+      expect(rebuild, 'a suite reuses an already-provisioned database').toBeGreaterThan(
+        preceding,
+      )
+    }
+    expect(
+      [...authenticatedWorkflow.matchAll(/e2e\/seed-browser-database\.sh/g)],
+    ).toHaveLength(rebuilds.length)
   })
 
   it('takes every Football Hub cutover switch from the committed shipping template', () => {
@@ -97,13 +124,15 @@ describe('authenticated browser E2E workflow', () => {
   })
 
   it('publishes the canonical Bonus Games catalogue only inside disposable browser E2E', () => {
-    expect(authenticatedWorkflow).toContain('scripts/bonus-games/publish-catalogue.sql')
-    expect(authenticatedWorkflow).toContain('e2e/bonus-games-fixture.sql')
-    expect(authenticatedWorkflow).toContain(
+    expect(authenticatedWorkflow).toContain('e2e/seed-browser-database.sh')
+    expect(browserSeed).toContain('scripts/bonus-games/publish-catalogue.sql')
+    expect(browserSeed).toContain('e2e/bonus-games-fixture.sql')
+    expect(browserSeed).toContain('e2e/league-season-fixture.sql')
+    expect(browserSeed).toContain(
       "DB_CONTAINER='supabase_db_euro-2028-predictor-local'",
     )
-    expect(authenticatedWorkflow).toContain('--set=ON_ERROR_STOP=1')
-    expect(authenticatedWorkflow).toContain(
+    expect(browserSeed).toContain('--set=ON_ERROR_STOP=1')
+    expect(browserSeed).toContain(
       'grant select on table public.bonus_competitions to service_role',
     )
     expect(bonusGamesFixture).toContain('It must never run against a hosted DB.')

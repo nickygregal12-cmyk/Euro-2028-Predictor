@@ -61,11 +61,9 @@ const baseURL = `http://127.0.0.1:${port}`
 
 export default defineConfig({
   testDir: './e2e',
-  // This gate began as one player matrix:
-  // testMatch: ['shipping-vnext-journeys.spec.ts']
-  // It is now intentionally a family: the matrix, private-LMS multi-account
-  // lifecycle and cross-width/hover release acceptance all have to run under
-  // the same exact shipping flags.
+  // This gate began as the one player matrix and is now intentionally a family:
+  // the matrix, private-LMS multi-account lifecycle and cross-width/hover
+  // release acceptance all have to run under the same exact shipping flags.
   testMatch: ['shipping-vnext-*.spec.ts'],
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
@@ -74,11 +72,12 @@ export default defineConfig({
   reporter: process.env.CI
     ? [['line'], ['html', { open: 'never', outputFolder: 'playwright-report-shipping-vnext' }]]
     : [['list']],
-  // The shipping wrapper delegates first to the canonical
-  // globalSetup: './e2e/global-setup.ts' and then adds only the Football Hub
-  // player context this suite needs. Keeping that relationship explicit here
-  // makes it clear this is additive test state rather than a second identity
-  // bootstrap.
+  // The shipping wrapper delegates first to the canonical e2e/global-setup and
+  // then adds only the Football Hub player context this suite needs: additive
+  // test state rather than a second identity bootstrap. That canonical setup
+  // hard-deletes and recreates the seeded identities, which only succeeds on a
+  // freshly rebuilt database, so browser-e2e.yml gives this configuration its
+  // own rebuild rather than the ordinary suite's leftovers.
   globalSetup: './e2e/shipping-vnext-global-setup.ts',
   use: {
     baseURL,
