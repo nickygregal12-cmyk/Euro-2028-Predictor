@@ -20,10 +20,17 @@ printf 'Predictor developer toolchain\n'
 printf '=============================\n'
 check_command graphify Graphify
 check_command omniroute OmniRoute
+check_command opencode OpenCode
 check_command serena Serena
 check_command specify 'Spec Kit'
 check_command ast-grep ast-grep
 check_command bd Beads
+
+if [ -n "${OPENROUTER_API_KEY:-}" ]; then
+  printf 'READY    %-18s GitHub Codespaces secret is present\n' 'Ox Alpha key'
+else
+  printf 'OPTIONAL %-18s add OPENROUTER_API_KEY as a Codespaces secret to enable Ox Alpha\n' 'Ox Alpha key'
+fi
 
 printf '\nOn-demand tools (pinned in config/agent-tools.json; npx installs only when invoked):\n'
 node - <<'NODE'

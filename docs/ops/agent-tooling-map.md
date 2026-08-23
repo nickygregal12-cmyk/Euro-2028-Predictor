@@ -21,6 +21,7 @@ This file **routes only**. The architecture and authority model lives in [`../ar
 | Does the source dependency direction still obey repository architecture? | **dependency-cruiser** | blocking architecture CI |
 | Can a difficult source conflict be syntax-merged? | **Weave** preferred / **Mergiraf** alternative | optional clone-local merge aid |
 | Which configured model/provider should a compatible coding CLI use? | **OmniRoute** | optional developer infrastructure |
+| How do I run Ox Alpha as a separate cloud coding/review worker? | **OpenCode** via `scripts/agent-tools/ox-alpha.sh` | optional external-model agent |
 
 Do not chain all of these automatically. Start with authority, then use only the specialist that answers the missing question.
 
@@ -62,6 +63,7 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | Install/run/activate developer tools | [`developer-toolchain.md`](developer-toolchain.md) |
 | Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |
 | Coding-model/provider routing | [`omniroute-agent-routing.md`](omniroute-agent-routing.md) |
+| Ox Alpha cloud development | [`ox-alpha-cloud-development.md`](ox-alpha-cloud-development.md) |
 | Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
 | Notification delivery | [`notification-delivery.md`](notification-delivery.md) |
 | Internal BI | [`metabase-analytics.md`](metabase-analytics.md) |
@@ -77,6 +79,7 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | Context7 | pinned on-demand MCP; optional key is user-owned |
 | Repomix | pinned on-demand MCP + bounded pack scripts; outputs ignored |
 | OmniRoute | CLI provisioned; **no provider, endpoint key or gateway process created automatically** |
+| OpenCode / Ox Alpha | OpenCode CLI provisioned; **no OpenRouter key is committed and no model request is made until the operator supplies the Codespaces secret and launches it** |
 | Spec Kit | CLI provisioned as adapter; no generic project initializer/constitution applied |
 | ast-grep | CLI provisioned; no automatic repository-wide rewrite |
 | Beads | CLI provisioned; database is absent until an operator explicitly initialises stealth mode |
@@ -107,5 +110,6 @@ Neither browser tool should be pointed at Production as an accidental default. D
 - Developer-tool output is navigation/evidence, not product, database or hosted authority.
 - Developer packages belong outside application dependencies unless a separate product decision genuinely needs one at runtime.
 - Generated local state—context packs, Serena index state, Beads stealth DB, screenshots/reports—does not become durable documentation by existing.
+- External coding-model providers must not receive repository secrets, Production credentials or exported player data merely because a coding CLI can access the working tree.
 - No tool is permission to weaken Production/Supabase/provider safety rules.
 - Concurrent-agent coordination supplements Git branches/PRs; it never bypasses review or merge evidence.
