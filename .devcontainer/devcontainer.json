@@ -18,6 +18,12 @@
     "BD_DISABLE_METRICS": "1",
     "DOLT_DISABLE_EVENT_FLUSH": "1"
   },
+  "secrets": {
+    "OPENROUTER_API_KEY": {
+      "description": "Personal OpenRouter key for optional OpenCode/Ox Alpha cloud development. Never commit this value.",
+      "documentationUrl": "https://openrouter.ai/settings/keys"
+    }
+  },
   "forwardPorts": [5173, 6006, 20128, 8765],
   "portsAttributes": {
     "5173": {
