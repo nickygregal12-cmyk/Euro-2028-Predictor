@@ -15,7 +15,7 @@
 
 begin;
 
-select plan(39);
+select plan(40);
 
 -- ---------------------------------------------------------------------------
 -- THE DRY-RUN GATE
@@ -267,10 +267,19 @@ select is(
   'and posts exactly once to the endpoint the vault named'
 );
 
+-- pg_net stores the pending body as `bytea`, so it is decoded rather than cast.
+-- Suite 166 established the idiom; a plain `::jsonb` raises.
 select is(
-  (select (body::jsonb)->>'runId' from net.http_request_queue),
+  (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue),
   current_setting('test.c216_run'),
   'carrying the id of the run it just opened, which is how the sender closes the right one'
+);
+
+select is(
+  (select count(*)::integer from net.http_request_queue
+    where headers->>'apikey' = 'a-caller-key'),
+  1,
+  'the caller key travelled as the apikey HEADER — as a query parameter it would be written into proxy access logs, and the Edge Function would reject it anyway'
 );
 
 select is(
