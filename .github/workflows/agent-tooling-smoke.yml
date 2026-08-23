@@ -32,6 +32,7 @@ on:
       - 'docs/ops/developer-toolchain.md'
       - 'docs/ops/graphify-navigation.md'
       - 'docs/ops/omniroute-agent-routing.md'
+      - 'docs/ops/ox-alpha-cloud-development.md'
       - '.github/workflows/agent-tooling-smoke.yml'
   push:
     branches: [main]
@@ -51,6 +52,7 @@ on:
       - 'scripts/agent-tools/**'
       - 'tests/scripts/agentContextBenchmarks.test.ts'
       - 'docs/ops/agent-task-routing.md'
+      - 'docs/ops/ox-alpha-cloud-development.md'
       - '.github/workflows/agent-tooling-smoke.yml'
 
 permissions:
@@ -149,6 +151,7 @@ jobs:
           export PATH="${HOME}/.local/bin:${PATH}"
           graphify --help >/dev/null
           omniroute --version
+          opencode --version
           serena --help >/dev/null
           serena print-system-prompt . --context=ide --only-instructions >/dev/null
           serena project is_ignored_path docs/history/README.md
@@ -244,7 +247,8 @@ jobs:
             echo '- Baseline bootstrap executed from the canonical registry.'
             echo '- Representative simple task packets passed the bounded agent-context acceptance benchmark.'
             echo '- A live Graphify-backed task packet was exercised through agent:route and stayed inside the same path/authority/skill ceilings.'
-            echo '- Graphify, OmniRoute, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
+            echo '- Graphify, OmniRoute, OpenCode, Serena, Spec Kit, ast-grep and checksum-verified Beads CLIs were invoked.'
+            echo '- OpenCode was version-checked only; CI received no OpenRouter credential and made no Ox Alpha model request.'
             echo '- Beads command metrics and Dolt event flushing were disabled for the whole smoke job.'
             echo '- Serena loaded the shared IDE context, tracked project configuration and passed its language-server health check.'
             echo '- Context7, dependency-cruiser, Repomix, Lost Pixel OSS and React Scan exact npm pins were resolved.'
