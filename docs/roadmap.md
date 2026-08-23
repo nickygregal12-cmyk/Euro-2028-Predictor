@@ -537,3 +537,13 @@ The repository now keeps matchweek confirmation tied to the card that was actual
 ### Contract 215 review — AI Lab forecast/value currency
 
 Contract 215 is a repository-only consistency correction for the private AI Lab. The value loop keeps historical forecast horizons for audit but assesses only `ai.canonical_fixture_predictions`, and the current-recommendation read fails closed when a fresher canonical forecast has not yet been evaluated. This does not reorder the product roadmap, widen betting exposure, change model-selection policy or close #854: generated Bet Builder slips still need immutable slip-level settlement/performance evidence, and hosted rollout remains a separate guarded milestone.
+
+### Contract 216 — the reminder sender gets a caller
+
+Wires `notification-dispatch` to a scheduled caller, adds the dispatch run ledger
+that records a refusal the delivery ledger cannot, and repairs the per-row
+dry-run gate. Applying it sends nothing: no credential exists, delivery is
+unset, and every scheduled row is still written dry.
+
+The next executable step is a Development fast-lane rollout. Making delivery
+live is a separate owner decision, not a step in this sequence.

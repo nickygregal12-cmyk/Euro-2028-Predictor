@@ -311,3 +311,16 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 ## Contract 215 AI Lab value-currency review
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
+
+## Contract 216 reminder-dispatch review
+
+No phase of this plan changes. The work is the last connection in a subsystem
+three earlier contracts had already built and left unconnected — the scheduler,
+the ledger and the send loop each existed and nothing called the last of them.
+
+For the plan's purposes the significant part is what it revealed rather than
+what it added. A fail-closed gate that had never been exercised turned out not
+to close: the claim overwrote the flag it was later asked about. That is the
+failure mode of any safeguard shipped ahead of the thing it guards, and this
+plan carries several. Where a later phase installs a caller for an existing
+guarded component, the guard is worth re-proving rather than assuming.

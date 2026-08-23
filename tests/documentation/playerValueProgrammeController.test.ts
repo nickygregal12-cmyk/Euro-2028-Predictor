@@ -268,6 +268,13 @@ function bend(mutate: (draft: Programme) => void): Programme {
 }
 const stageIn = (draft: Programme, id: string) => draft.stages.find((stage) => stage.id === id)!
 
+/** A stage that has not started yet, whichever one that is as the programme moves. */
+function notStartedStageId(): string {
+  const waiting = state.stages.find((stage) => stage.status === 'not_started')
+  if (!waiting) throw new Error('every stage has started, so this case needs rewriting')
+  return waiting.id
+}
+
 /**
  * A draft guaranteed to carry one runway claim and its classification.
  *
@@ -323,6 +330,9 @@ describe('player-value programme controller', () => {
       stage.status = 'complete'
       stage.pr = 1000
       stage.headSha = 'a'.repeat(40)
+      // Explicitly taken away: once stage 0 really has merged, leaving this
+      // alone would test nothing.
+      stage.mergedSha = null
       stage.acceptanceEvidence = ['proved']
     })
     expect(validateProgramme(noMerge, repositoryContract)).toContain(
@@ -335,6 +345,8 @@ describe('player-value programme controller', () => {
       stage.pr = 1000
       stage.headSha = 'a'.repeat(40)
       stage.mergedSha = 'b'.repeat(40)
+      // Likewise taken away rather than assumed absent.
+      stage.acceptanceEvidence = []
     })
     expect(validateProgramme(noEvidence, repositoryContract)).toContain(
       'stage 0: complete without acceptance evidence',
@@ -356,24 +368,40 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses a blocked stage that does not name its blocker, and a blocker on a stage that is not blocked', () => {
+    // Whichever stage is waiting today. Naming one would make this case fail as
+    // the programme advanced past it, which is a property of the calendar
+    // rather than of the rule being tested.
+    const waiting = notStartedStageId()
+
     const unnamed = bend((draft) => {
-      stageIn(draft, '1').status = 'blocked'
+      stageIn(draft, waiting).status = 'blocked'
     })
     expect(validateProgramme(unnamed, repositoryContract)).toContain(
-      'stage 1: blocked without a named blocker',
+      `stage ${waiting}: blocked without a named blocker`,
     )
 
     const stray = bend((draft) => {
-      stageIn(draft, '1').blocker = 'waiting on the owner'
+      stageIn(draft, waiting).blocker = 'waiting on the owner'
     })
     expect(validateProgramme(stray, repositoryContract)).toContain(
-      'stage 1: carries a blocker while not_started',
+      `stage ${waiting}: carries a blocker while not_started`,
     )
   })
 
   it('refuses more than one stage in flight', () => {
     const parallel = bend((draft) => {
-      stageIn(draft, '3').status = 'in_progress'
+      for (const stage of draft.stages) {
+        if (stage.status === 'in_progress') continue
+        stage.status = 'in_progress'
+        stage.blocker = null
+        break
+      }
+      // If nothing was in flight, put a second one there too, so the case is
+      // about two stages rather than about how many there happened to be.
+      if (draft.stages.filter((stage) => stage.status === 'in_progress').length < 2) {
+        const spare = draft.stages.find((stage) => stage.status === 'not_started')
+        if (spare) spare.status = 'in_progress'
+      }
     })
     expect(validateProgramme(parallel, repositoryContract)).toContain(
       'more than one stage in_progress; the programme runs one bounded pull request at a time',

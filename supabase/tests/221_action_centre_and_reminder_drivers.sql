@@ -30,7 +30,7 @@ select is(
                       'player-reminder-reclaim-stalled')
       and active),
   3,
-  'all three jobs are scheduled and active');
+  'all three of this contract''s jobs are scheduled and active');
 
 select is(
   (select command from cron.job where jobname = 'player-action-centre-generate'),
@@ -52,10 +52,14 @@ select is(
   0,
   'no scheduled command turns the reminder dry run off');
 
+-- Contract 216 gave the sender a caller, which makes this property STRONGER
+-- rather than obsolete. Claiming from a scheduled command would take rows out
+-- of the ledger without passing any of the three gates the Edge Function holds,
+-- so the dispatch job posts to the sender and never claims on its behalf.
 select is(
   (select count(*)::integer from cron.job where command ~* 'claim_due_reminders'),
   0,
-  'and no scheduled command claims a batch for sending — claiming is what a sender does, and there is none');
+  'and no scheduled command claims a batch for sending — a sender exists now, and claiming from SQL would route around every gate it has');
 
 select is(
   (select count(*)::integer from cron.job where command ~* 'record_reminder_result'),
@@ -158,6 +162,10 @@ select is(
   '0',
   'the administrator sees the sweep''s own health figure');
 
+-- Still false here, and now for a REASON rather than by literal: contract 216
+-- derives this from the vault and the job, and a fresh test database has
+-- neither secret. The value is the same; what changed is that it can become
+-- true without anybody editing a function.
 select is(
   current_setting('test.c172_health')::jsonb ->> 'sender_configured',
   'false',

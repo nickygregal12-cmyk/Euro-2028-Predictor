@@ -141,6 +141,12 @@ describe('deployment contract and database privilege allow-list parity', () => {
       'reclaim_stalled_reminders(interval)',
       'record_ai_odds_snapshot(text,integer,jsonb,text,jsonb,integer,integer,integer,integer,text,text)',
       'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',
+      // Contract 216's callback, on exactly the same terms as the four above:
+      // the sender closes the run the dispatcher opened, and a browser role
+      // that could close one could report a delivery that never happened. The
+      // dispatcher itself is owner/pg_cron-only and deliberately absent, as
+      // contract 155's provider-poll dispatcher is.
+      'record_reminder_dispatch_run(uuid,text,integer,integer,integer,integer,text)',
       'record_reminder_result(uuid,boolean,text,text,text)',
       // Contract 178's verification run. A job rather than an action: it
       // writes integrity evidence, and a browser session that could start one

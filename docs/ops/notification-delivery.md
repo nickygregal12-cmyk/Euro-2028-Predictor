@@ -3,10 +3,11 @@
 How the platform tells a player something happened. Provider-neutral by
 construction, with Novu as the first adapter behind it.
 
-This document describes a **capability that is implemented and not switched
-on**. No Novu account is configured, no credential exists in this repository,
-and nothing sends. That is the intended state until an owner provisions the
-service deliberately.
+This document describes a **capability that is implemented, scheduled, and not
+switched on**. Contract 216 gave the send loop its first caller; no Novu account
+is configured, no credential exists in this repository or in any hosted
+environment, and nothing sends. That is the intended state until an owner
+provisions the service deliberately.
 
 ## The boundary
 
@@ -186,6 +187,53 @@ The three layers stay separate and none of them stands in for another:
 | Email reminders | `reminder_deliveries` → this boundary → Novu | implemented end to end, **switched off** |
 | Browser/device push | — | **does not exist.** No service worker, no push subscription, no VAPID key, no storage for one. It is not offered, because offering it would be the interface inventing a channel. |
 
+### The dispatch run ledger, and why it is not a second delivery ledger
+
+Contract 216 adds `predictor_internal.reminder_dispatch_runs`. It records
+INVOCATIONS, not deliveries, and the distinction is the reason it exists.
+
+`reminder_deliveries` answers "what happened to this reminder". It cannot answer
+"did the sender run at all", and for the deployment gate it cannot answer at
+all: when `NOTIFICATIONS_DELIVERY` is unset the Edge Function refuses **before**
+it claims anything — deliberately, so an unauthorised deployment cannot move
+rows into `sending` and then decline to send them. Correct, and it leaves the
+delivery ledger with nothing to show. A silent correct refusal and a dead cron
+job are the same picture without a run row.
+
+Each firing opens a row and the sender closes it, on every path it can reach
+including both of its own refusals. Three properties are worth knowing:
+
+- **An unclosed run is evidence, not a bug.** It means the request went and the
+  answer did not come back: an unreachable endpoint, a rejected caller key, or a
+  sender that died mid-batch. `unreported_over_ten_minutes` is the number to
+  watch, and the delivery ledger can never show it.
+- **The 401 path stays silent on purpose.** An unauthorised caller must not be
+  able to write to the run ledger, so a run posted with a wrong key is left open
+  rather than closed with an explanation the database cannot trust.
+- **A closed run cannot be reopened.** A replayed callback is refused, for the
+  same reason `record_reminder_result` refuses a row that is not in flight.
+
+It stores counts and an outcome token. Never a user, an action key, an address,
+or a provider's message about a person — the same line contract 172 drew.
+
+### The dry-run gate could not refuse, and now can
+
+Stated here because this document asserted the opposite. Above:
+"`dry_run` defaults to true on the ledger, and `NOTIFICATIONS_DELIVERY` defaults
+to off here. Both must be turned off deliberately. That is two switches on
+purpose." One of the two was being cleared by the other's caller.
+
+`claim_due_reminders` set `dry_run = p_dry_run` on the row it claimed and
+returned that NEW value. The dispatch loop claims with `p_dry_run: false` and
+then asks `sendingIsPermitted(row)` whether the row allows sending — about a
+value the same statement had just overwritten. The answer was always yes.
+
+Contract 216 makes the claim **tighten only**: a sender may force a dry run on a
+live row and may never talk a dry row into being live. The ledger keeps the last
+word about a row it scheduled, and the two switches are two switches again.
+
+This cost nothing until now only because nothing had ever invoked the sender.
+
 ## Switching it on
 
 Nothing here is a hosted action, and none of it is done.
@@ -216,12 +264,37 @@ Nothing here is a hosted action, and none of it is done.
    unset everywhere else — previews and CI included.
 4. Deploy `supabase/functions/notification-dispatch` and set its secrets. This
    is the send loop: it claims due reminders, maps them, delivers them and
-   records the result. **It is written and tested but has never been
-   deployed.** Its secrets are `notification_dispatch` (the caller key —
+   records the result. Its secrets are `notification_dispatch` (the caller key —
    underscored, because Supabase rejects a hyphen in a secret name),
    `NOVU_API_KEY`, `NOTIFICATIONS_DELIVERY` and optionally
    `NOVU_API_ORIGIN` / `NOTIFICATIONS_ENVIRONMENT`.
-5. Schedule it, the same way contract 172 schedules the reminder scheduler.
+5. **Scheduling is done.** Contract 216 installs `player-reminder-dispatch`,
+   which runs `select public.dispatch_due_reminders();` every five minutes. It
+   needs two vault secrets to reach anything, created the same way contract 155
+   creates the provider-poll pair:
+
+   ```sql
+   select vault.create_secret(
+     'https://<project-ref>.supabase.co/functions/v1/notification-dispatch',
+     'notification_dispatch_function_url');
+   select vault.create_secret('<the caller key>', 'notification_dispatch_caller_key');
+   ```
+
+   The URL must be `https://`; an `http://` one is refused rather than used, so
+   the caller key cannot go out in clear text. Until both exist the job records a
+   `not-configured` refusal every five minutes and posts nothing.
+6. **Reminders will still not send after all of the above**, and that is the
+   design rather than a missed step. Every row is scheduled with `dry_run` true,
+   because `player-reminder-schedule` is deliberately scheduled with no
+   arguments so its default applies, and contract 172's pgTAP suite **fails the
+   build** if any scheduled command turns it off. Making delivery live is a
+   deliberate change to that contract and its assertion — an owner decision,
+   recorded as such, not a configuration flip.
+
+   The consequence of leaving it dry with a live sender is worth stating: each
+   reminder is claimed, refused as `ledger-dry-run`, retried under the existing
+   backoff and finally recorded `abandoned`. That is a dry run exercising the
+   whole machine, and it is what the run ledger and the health panel will show.
 
 ### What the dispatch loop will and will not send
 

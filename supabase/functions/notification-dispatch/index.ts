@@ -13,8 +13,16 @@
 // All three must pass. A credential in scope is not consent, and neither is a
 // scheduled row.
 //
-// NOT DEPLOYED. Nothing has invoked this and no environment carries the
-// secrets. See docs/ops/notification-delivery.md.
+// IT HAS A CALLER NOW. Contract 216 schedules `player-reminder-dispatch`, which
+// posts a run id here every five minutes. What has NOT changed is that no
+// environment carries a provider credential, so the third gate below refuses
+// every run until an owner provisions one deliberately.
+//
+// A run id arrives in the body and MUST be closed on every path this function
+// can reach, including the refusals. That is the half the delivery ledger
+// cannot record: the deployment gate refuses before anything is claimed, so
+// `reminder_deliveries` is left with nothing to show for it. See
+// docs/ops/notification-delivery.md.
 
 import { authorized } from '../_shared/callerAuthorization.ts'
 import {
@@ -41,6 +49,11 @@ interface DispatchSummary {
   delivered: number
   refused: number
   skipped: number
+}
+
+/** The dispatcher's whole body: the run this invocation belongs to. */
+interface DispatchRequest {
+  runId?: unknown
 }
 
 function json(body: unknown, status: number): Response {
@@ -104,6 +117,42 @@ async function readActionItem(
   return rows[0] ?? null
 }
 
+/**
+ * Close the run the dispatcher opened.
+ *
+ * Optional on purpose. A `curl` during an investigation has no run to close and
+ * refusing it would make this function untestable by hand; a scheduled call
+ * always carries one.
+ *
+ * A failure to close is logged and swallowed. An unreported run is ALREADY the
+ * signal for "the sender did not come back", so failing the dispatch because
+ * the bookkeeping failed would turn an observability problem into a delivery
+ * one.
+ */
+async function closeRun(
+  supabaseUrl: string,
+  serviceKey: string,
+  runId: string | null,
+  outcome: 'completed' | 'delivery-disabled',
+  summary: DispatchSummary | null,
+  detail: string | null,
+): Promise<void> {
+  if (!runId) return
+  try {
+    await rpc(supabaseUrl, serviceKey, 'record_reminder_dispatch_run', {
+      p_run_id: runId,
+      p_outcome: outcome,
+      p_claimed: summary?.claimed ?? 0,
+      p_delivered: summary?.delivered ?? 0,
+      p_refused: summary?.refused ?? 0,
+      p_skipped: summary?.skipped ?? 0,
+      p_detail: detail,
+    })
+  } catch (error) {
+    console.error('could not close dispatch run:', (error as Error).message)
+  }
+}
+
 Deno.serve(async (request: Request) => {
   let callerKey: string
   try {
@@ -130,10 +179,27 @@ Deno.serve(async (request: Request) => {
   // The deployment-level switch. Checked BEFORE anything is claimed, so an
   // unauthorised deployment does not move rows into `sending` and then decline
   // to send them.
+  // Read AFTER the caller key check, deliberately. An unauthorised caller must
+  // not be able to write to the run ledger, so a run posted with a wrong key
+  // stays open and shows up as unreported — which is the honest picture: the
+  // database asked, and nothing it trusts answered.
+  const requested = (await request.json().catch(() => ({}))) as DispatchRequest
+  const runId = typeof requested.runId === 'string' ? requested.runId : null
+
   const deliveryEnabled =
     Deno.env.get('NOTIFICATIONS_DELIVERY')?.trim().toLowerCase() === 'enabled'
   const novuApiKey = Deno.env.get('NOVU_API_KEY')?.trim()
   if (!deliveryEnabled || !novuApiKey) {
+    // WHICH of the two is missing, never what either contains. Whether a
+    // credential is present is an operations fact; its value is not.
+    await closeRun(
+      supabaseUrl,
+      serviceKey,
+      runId,
+      'delivery-disabled',
+      null,
+      `deliveryEnabled=${deliveryEnabled} credentialPresent=${Boolean(novuApiKey)}`,
+    )
     return json(
       {
         error: 'delivery is not authorised for this deployment',
@@ -154,6 +220,11 @@ Deno.serve(async (request: Request) => {
     skipped: 0,
   }
 
+  // `false` means "this sender imposes no dry run of its own". Before contract
+  // 216 it CLEARED the ledger's own flag and handed back its own answer, which
+  // is why `sendingIsPermitted` below could never refuse. The claim tightens
+  // and never clears now, so the row's own value survives and this argument
+  // finally reads as it always looked.
   const claimed = (await rpc(supabaseUrl, serviceKey, 'claim_due_reminders', {
     p_limit: DEFAULT_BATCH,
     p_dry_run: false,
@@ -227,6 +298,8 @@ Deno.serve(async (request: Request) => {
       p_error: outcome.delivered ? null : outcome.reason,
     })
   }
+
+  await closeRun(supabaseUrl, serviceKey, runId, 'completed', summary, null)
 
   return json(summary, 200)
 })

@@ -201,7 +201,11 @@ insert into expected_service_functions (signature) values
   ('process_reminder_schedule(interval,boolean)'),
   ('claim_due_reminders(integer,boolean)'),
   ('record_reminder_result(uuid,boolean,text,text,text)'),
-  ('reclaim_stalled_reminders(interval)');
+  ('reclaim_stalled_reminders(interval)'),
+  -- Contract 216's callback. The sender closes the run the dispatcher opened,
+  -- so service_role needs it and no browser role may have it: a caller that
+  -- could close a run could report a delivery that never happened.
+  ('record_reminder_dispatch_run(uuid,text,integer,integer,integer,integer,text)');
 
 -- Contract 165: an organiser's own private container. Contract 166: the
 -- multi-group Championship draw. Contract 167: its group stage. Contract 168:

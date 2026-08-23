@@ -248,8 +248,26 @@
  * fail. This paragraph is the claim: if Contract 215 ever grows a `public`
  * relation or an authenticated grant, it is wrong and this number comes back
  * down until a seeded user has actually been re-verified against it.
+ *
+ * **CONTRACT 216 IS RE-VERIFIED, NOT ASSUMED**, because unlike 215 it does
+ * touch an authenticated grant. The audit is narrow enough to state exactly:
+ * of everything the migration adds, `dispatch_due_reminders` is owner/pg_cron
+ * only, `record_reminder_dispatch_run` is service_role, the two
+ * `predictor_internal` reads are revoked from every browser role, and
+ * `predictor_internal.reminder_dispatch_runs` has row level security on and no
+ * policy at all. `claim_due_reminders` is redefined but has always been
+ * service_role. That leaves ONE authenticated-reachable change:
+ * `admin_reminder_delivery_health()`, redefined at its existing signature,
+ * still gated on `require_competition_admin()`, with two sections added whose
+ * definer functions catch and return null rather than raising.
+ *
+ * One reachable function is still one, so the marker is raised only after the
+ * exact Contract-216 head `2298c54b` passed Database parity run 32653162805
+ * and Browser E2E run 32653162738. Both rebuild the migration chain through
+ * 216; the browser job also reseeds and exercises authenticated journeys —
+ * including the administrator's — against that rebuilt database.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 215
+export const SEED_REVIEWED_AT_CONTRACT = 216
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
