@@ -19,7 +19,7 @@
 
 begin;
 
-select plan(33);
+select plan(38);
 
 set local session_replication_role = replica;
 insert into auth.users (id, email, aud, role, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -148,40 +148,75 @@ select is(
 );
 
 -- ---------------------------------------------------------------------------
--- THE FALLBACK NOBODY WROTE
+-- THE FALLBACK NOBODY WROTE, AND THE ONE CASE IT MUST NOT COVER
 --
 -- A push service answers 410 for a subscription that no longer exists. Prune
 -- it, fail the attempt, let the retry come due — and the next claim finds no
 -- device and chooses email. That is a consequence of recomputing the channel
--- per attempt, not a branch.
+-- per attempt, not a branch anybody wrote.
+--
+-- BUT IT MAY NOT REACH SOMEBODY WHO SWITCHED EMAIL OFF, which is exactly what
+-- this contract's first draft did: `c217-push` has `reminder_emails` FALSE, and
+-- losing their last device made the claim fall through to the one thing they
+-- had said no to. The withdrawal sweep could not catch it either, because by
+-- then the row is `failed` and retrying rather than `pending`.
+--
+-- Both players lose their only device here, and the difference between them is
+-- the whole point: one accepts email and one does not.
 -- ---------------------------------------------------------------------------
 
 select is(
-  public.prune_push_subscription('https://push.example.test/c217-push') ->> 'endpoint_removed',
+  public.prune_push_subscription('https://push.example.test/c217-both') ->> 'endpoint_removed',
   '1',
   'a push service that answered 410 gets its endpoint removed'
 );
 
+select is(
+  public.prune_push_subscription('https://push.example.test/c217-push') ->> 'endpoint_removed',
+  '1',
+  'and so does the other player''s, so neither has a device left'
+);
+
 select set_config('test.c217_failed',
   (public.record_reminder_result(
-     (select id from public.reminder_deliveries where user_id = md5('c217-push')::uuid),
+     (select id from public.reminder_deliveries where user_id = md5('c217-both')::uuid),
      false, 'web-push', null, '410 gone') ->> 'status'), true);
 
 select is(
   current_setting('test.c217_failed'), 'failed',
-  'and the attempt is recorded as failed, so contract 163''s retry policy schedules another'
+  'the attempt is recorded as failed, so contract 163''s retry policy schedules another'
 );
+
+select set_config('test.c217_failed_push',
+  (public.record_reminder_result(
+     (select id from public.reminder_deliveries where user_id = md5('c217-push')::uuid),
+     false, 'web-push', null, '410 gone') ->> 'status'), true);
 
 update public.reminder_deliveries
    set next_attempt_at = now() - interval '1 minute'
- where user_id = md5('c217-push')::uuid;
+ where user_id in (md5('c217-both')::uuid, md5('c217-push')::uuid);
+
+-- ONE CLAIM, BOTH PLAYERS. Taking a single snapshot rather than claiming twice
+-- is what makes this a comparison: the same call, at the same instant, under
+-- the same conditions, answering differently for the two of them.
+select set_config('test.c217_guard',
+  (select coalesce(
+            jsonb_object_agg(claimed.user_id::text, claimed.channel), '{}'::jsonb)::text
+     from public.claim_due_reminders(50, false) claimed), true);
 
 select is(
-  (select claimed.channel from public.claim_due_reminders(50, false) claimed
-    where claimed.user_id = md5('c217-push')::uuid),
+  current_setting('test.c217_guard')::jsonb ->> md5('c217-both')::uuid::text,
   'email',
-  'THE RETRY FALLS BACK TO EMAIL BY ITSELF. Stamp the channel at scheduling instead and a '
-  'player whose browser was reinstalled is silently never reminded again'
+  'THE RETRY FALLS BACK TO EMAIL BY ITSELF for the player who accepts email. Stamp the '
+  'channel at scheduling instead and somebody whose browser was reinstalled is silently '
+  'never reminded again'
+);
+
+select is(
+  current_setting('test.c217_guard')::jsonb ? md5('c217-push')::uuid::text,
+  false,
+  'AND THE PLAYER WHO TURNED EMAIL OFF IS NOT CLAIMED AT ALL. The same fallback that '
+  'rescues one of them would have sent the other the one thing they refused'
 );
 
 -- ---------------------------------------------------------------------------
@@ -245,6 +280,43 @@ select throws_ok(
   '23514',
   null,
   'and a malformed key is refused by the schema, not accepted and encrypted to'
+);
+
+-- ---------------------------------------------------------------------------
+-- AN ENDPOINT IS A URL A BROWSER CHOSE AND A SERVICE ROLE WILL POST TO
+--
+-- Blind, POST-only and once per reminder, so the ceiling is low — but a
+-- signed-in player must not be able to aim this platform's sender at an
+-- internal address, and the cheap half of that belongs in the schema where no
+-- caller can forget it.
+-- ---------------------------------------------------------------------------
+
+select throws_ok(
+  $$select public.save_push_subscription('https://169.254.169.254/latest/meta-data',
+      'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
+      'AAECAwQFBgcICQoLDA0ODw')$$,
+  '22023',
+  'A push endpoint must name a public push service',
+  'an address literal is refused rather than stored and posted to by the sender'
+);
+
+select throws_ok(
+  $$select public.save_push_subscription('https://metadata.internal/push',
+      'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
+      'AAECAwQFBgcICQoLDA0ODw')$$,
+  '22023',
+  'A push endpoint must name a public push service',
+  'and so is a private suffix'
+);
+
+select lives_ok(
+  $$select public.save_push_subscription(
+      'https://updates.push.services.mozilla.com/wpush/v2/gAAAAABc217',
+      'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
+      'AAECAwQFBgcICQoLDA0ODw')$$,
+  'A REAL PUSH SERVICE IS STILL ACCEPTED. This is not an origin allow-list — one would '
+  'silently stop working for a browser nobody anticipated — so what it must never do is '
+  'refuse the addresses browsers actually hand over'
 );
 
 select throws_ok(
@@ -319,7 +391,7 @@ select is(
 
 with attempted as (
   delete from public.push_subscriptions
-   where endpoint = 'https://push.example.test/c217-both'
+   where endpoint = 'https://updates.push.services.mozilla.com/wpush/v2/gAAAAABc217'
   returning 1)
 select is(
   (select count(*)::integer from attempted),
@@ -331,7 +403,7 @@ reset role;
 
 select is(
   (select count(*)::integer from public.push_subscriptions
-    where endpoint = 'https://push.example.test/c217-both'),
+    where endpoint = 'https://updates.push.services.mozilla.com/wpush/v2/gAAAAABc217'),
   1,
   'the other player''s subscription is still there when the policy is not in the way'
 );

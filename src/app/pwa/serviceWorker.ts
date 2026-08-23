@@ -206,7 +206,7 @@ scope.addEventListener('notificationclick', (event: NotificationEventLike) => {
   // Closed first and unconditionally. A notification left open after a tap sits
   // in the tray looking like a reminder that is still outstanding.
   event.notification.close()
-  event.waitUntil(openApplication(notificationTarget(event.notification.data)))
+  event.waitUntil(openApplication(targetOf(event.notification.data)))
 })
 
 /** What the Edge Function sends, and the only fields this worker reads. */
@@ -274,6 +274,23 @@ function showPushNotification(message: PushMessage): Promise<void> {
     // click time, so what a tap opens is fixed when it is shown.
     data: { url: message.url },
   })
+}
+
+/**
+ * The path a notification was shown with, read back off its `data`.
+ *
+ * SEPARATE FROM `notificationTarget` BECAUSE THE SHAPES DIFFER, and conflating
+ * them was a real defect: `showNotification` stores `{ url }`, and passing that
+ * OBJECT to a function that only accepts a string returned the hub for every
+ * tap. It was invisible in tests because every case happened to expect the hub.
+ *
+ * The path is validated AGAIN here rather than trusted because it was validated
+ * once already. A notification can sit in a tray for hours, and what it stored
+ * is the only thing standing between a tampered payload and a navigation.
+ */
+function targetOf(data: unknown): string {
+  if (!data || typeof data !== 'object') return '/'
+  return notificationTarget((data as { url?: unknown }).url)
 }
 
 /**

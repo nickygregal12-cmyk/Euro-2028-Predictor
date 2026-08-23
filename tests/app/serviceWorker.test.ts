@@ -557,6 +557,40 @@ describe('tapping a notification finds the tab the player was already using', ()
     expect(sw.opened).toEqual([])
   })
 
+  it('opens the path the notification was shown with, not just the hub', async () => {
+    // THE CASE THAT WAS MISSING, and its absence hid a real defect: every other
+    // click case here happened to expect `/`, so passing the whole `data` OBJECT
+    // to a validator that only accepts a string looked correct. Every non-root
+    // target was being discarded.
+    const sw = await harness()
+    await sw.install()
+    sw.setWindows([])
+    await sw.tap({ url: '/competitions/premier-league/2026/play' })
+
+    expect(sw.opened).toEqual([`${ORIGIN}/competitions/premier-league/2026/play`])
+  })
+
+  it('still refuses a target that is not a path of this application', async () => {
+    // Validated a SECOND time on the way out. A notification can sit in a tray
+    // for hours, and what it stored is all that stands between a tampered
+    // payload and a navigation.
+    const sw = await harness()
+    await sw.install()
+    sw.setWindows([])
+    await sw.tap({ url: '//elsewhere.example/steal' })
+
+    expect(sw.opened).toEqual([`${ORIGIN}/`])
+  })
+
+  it('opens the hub when a notification carries no data at all', async () => {
+    const sw = await harness()
+    await sw.install()
+    sw.setWindows([])
+    await sw.tap(undefined)
+
+    expect(sw.opened).toEqual([`${ORIGIN}/`])
+  })
+
   it('opens one when the application is not running', async () => {
     const sw = await harness()
     await sw.install()

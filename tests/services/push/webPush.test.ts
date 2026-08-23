@@ -50,6 +50,7 @@ import {
   encryptPushPayload,
   generateLocalKeyPair,
   importLocalKeyPair,
+  isPublicPushEndpoint,
   sendWebPush,
   vapidAuthorization,
 } from '../../../supabase/functions/_shared/push/webPush'
@@ -231,15 +232,40 @@ describe('RFC 8292 says who is sending, and to which service', () => {
     ).resolves.toBe(true)
   })
 
-  it('refuses a subject a push service could not contact', async () => {
+  it.each([
+    ['Predictor', 'no scheme at all'],
+    ['mailto:', 'the bare scheme a half-filled environment variable produces'],
+    ['mailto:operations', 'no domain'],
+    ['mailto:@example.test', 'no mailbox'],
+    ['https://', 'no host'],
+    ['https://localhost', 'a host with no dot'],
+    ['', 'nothing'],
+  ])('refuses %s as a subject — %s', async (subject) => {
+    // A PREFIX CHECK IS NOT ENOUGH. `mailto:` on its own passes one, and would
+    // be signed into every JWT — turning a one-line configuration error into
+    // every push being refused, with the reason visible only in a push
+    // service's logs.
     await expect(
       vapidAuthorization({
         endpoint: 'https://push.example.test/one',
-        keys: { ...KEYS, subject: 'Predictor' },
+        keys: { ...KEYS, subject },
         issuedAtSeconds: 1_800_000_000,
       }),
     ).rejects.toThrow(/mailto:/)
   })
+
+  it.each(['mailto:operations@example.test', 'https://predictor.example/contact'])(
+    'accepts %s',
+    async (subject) => {
+      await expect(
+        vapidAuthorization({
+          endpoint: 'https://push.example.test/one',
+          keys: { ...KEYS, subject },
+          issuedAtSeconds: 1_800_000_000,
+        }),
+      ).resolves.toContain('vapid t=')
+    },
+  )
 })
 
 describe('what the push service answered, and what it means', () => {
@@ -388,5 +414,94 @@ describe('one answer for a player with several browsers', () => {
       delivered: false,
       reason: 'push-no-subscription',
     })
+  })
+})
+
+describe('the sender will not be aimed at something that is not a push service', () => {
+  // THE THREAT IS SMALL BUT REAL. The endpoint column is written from a browser
+  // and read by a service-role function that POSTs to it. Blind, POST-only and
+  // once per reminder, so the ceiling is low — low is not none, and the check
+  // costs nothing.
+  //
+  // The schema refuses the same shapes on the way in. Both exist because they
+  // fail differently: a constraint cannot be bypassed but only sees rows written
+  // through it, and this sees every request but is one refactor from being
+  // skipped.
+  it.each([
+    'https://127.0.0.1/push',
+    'https://10.0.0.5/push',
+    'https://192.168.1.9/push',
+    'https://169.254.169.254/latest/meta-data',
+    'https://[::1]/push',
+    'https://localhost/push',
+    'https://localhost:8443/push',
+    'https://metadata.internal/push',
+    'https://printer.local/push',
+    'https://intranet.corp/push',
+    'http://fcm.googleapis.com/fcm/send/abc',
+    'not a url at all',
+  ])('refuses %s', (endpoint) => {
+    expect(isPublicPushEndpoint(endpoint)).toBe(false)
+  })
+
+  it.each([
+    // Every real push service, because a rule that broke one of these would be
+    // worse than the risk it removed.
+    'https://fcm.googleapis.com/fcm/send/abc123',
+    'https://updates.push.services.mozilla.com/wpush/v2/gAAAA',
+    'https://wns2-by3p.notify.windows.com/w/?token=xyz',
+    'https://web.push.apple.com/QF1a',
+    'https://push.example.test/one',
+  ])('accepts %s', (endpoint) => {
+    expect(isPublicPushEndpoint(endpoint)).toBe(true)
+  })
+
+  it('does not even attempt the request for a refused endpoint', async () => {
+    let attempted = false
+    const outcome = await sendWebPush({
+      subscription: { ...SUBSCRIPTION, endpoint: 'https://169.254.169.254/latest' },
+      payload: '{}',
+      keys: {
+        publicKey: VECTOR.asPublic,
+        privateKey: VECTOR.asPrivate,
+        subject: 'mailto:operations@example.test',
+      },
+      ttlSeconds: 60,
+      nowSeconds: 1_800_000_000,
+      fetchImpl: (async () => {
+        attempted = true
+        return new Response(null, { status: 201 })
+      }) as typeof fetch,
+    })
+
+    expect(attempted).toBe(false)
+    expect(outcome).toEqual({
+      kind: 'refused',
+      status: null,
+      reason: 'endpoint is not a public push service',
+    })
+  })
+
+  it('refuses to follow a redirect away from the address it checked', async () => {
+    // A push service does not redirect. Following one would take a request that
+    // passed the check to an address that never did.
+    let seen: RequestInit | undefined
+    await sendWebPush({
+      subscription: SUBSCRIPTION,
+      payload: '{}',
+      keys: {
+        publicKey: VECTOR.asPublic,
+        privateKey: VECTOR.asPrivate,
+        subject: 'mailto:operations@example.test',
+      },
+      ttlSeconds: 60,
+      nowSeconds: 1_800_000_000,
+      fetchImpl: (async (_input: RequestInfo | URL, init?: RequestInit) => {
+        seen = init
+        return new Response(null, { status: 201 })
+      }) as typeof fetch,
+    })
+
+    expect(seen?.redirect).toBe('error')
   })
 })

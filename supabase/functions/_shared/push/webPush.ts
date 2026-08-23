@@ -69,6 +69,64 @@ export interface LocalKeyPair {
 
 const encoder = new TextEncoder()
 
+/**
+ * Whether a VAPID subject is a contact somebody could actually use.
+ *
+ * A PREFIX CHECK IS NOT ENOUGH, and the difference is not academic: the bare
+ * string `mailto:` starts with `mailto:` and is what an operator gets from a
+ * half-filled environment variable. It would be signed into every JWT and turn
+ * a one-line configuration error into every push being refused by the service,
+ * with the reason visible only in a provider's logs.
+ */
+function contactable(subject: string): boolean {
+  if (subject.startsWith('mailto:')) {
+    // Not RFC 5322 — deliberately. This is a smoke test for "somebody typed an
+    // address", and a full grammar here would reject valid addresses for a
+    // field whose only job is to give a push service someone to contact.
+    return /^mailto:[^\s@]+@[^\s@.]+\.[^\s@]+$/.test(subject)
+  }
+  try {
+    const url = new URL(subject)
+    return url.protocol === 'https:' && url.hostname.includes('.')
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Whether an endpoint is a plausible PUBLIC push service.
+ *
+ * DEFENCE IN DEPTH BEHIND THE SCHEMA, which refuses the same shapes on the way
+ * in. Both, because they fail differently: the constraint cannot be bypassed
+ * but only sees rows written through it, and this sees every request but is one
+ * refactor away from being skipped. A row that predates the constraint, or one
+ * written by a future service-role path, still cannot make this function POST
+ * to an internal address.
+ *
+ * NOT AN ORIGIN ALLOW-LIST. Push endpoints live on Google's, Mozilla's,
+ * Microsoft's and Apple's services and on self-hosted ones; a hostname list
+ * would silently stop working for a browser nobody anticipated. What is refused
+ * is the shape that can never be a public push service.
+ */
+export function isPublicPushEndpoint(endpoint: string): boolean {
+  let url: URL
+  try {
+    url = new URL(endpoint)
+  } catch {
+    return false
+  }
+  if (url.protocol !== 'https:') return false
+
+  const host = url.hostname.toLowerCase()
+  // An IPv6 literal arrives with the brackets stripped, so it is recognised by
+  // its colons rather than by the brackets the URL had.
+  if (host.includes(':')) return false
+  if (/^[0-9.]+$/.test(host)) return false
+  if (!host.includes('.')) return false
+  if (/\.(local|internal|localhost|lan|home|corp)$/.test(host)) return false
+  return true
+}
+
 /** RFC 8188 §2.1. One record, so the padding delimiter is the last-record one. */
 const LAST_RECORD_DELIMITER = 0x02
 /** Fixed. Every payload this product sends is two short sentences. */
@@ -274,7 +332,7 @@ export async function vapidAuthorization(params: {
   const { endpoint, keys, issuedAtSeconds } = params
   const audience = new URL(endpoint).origin
 
-  if (!/^(mailto:|https:\/\/)/.test(keys.subject)) {
+  if (!contactable(keys.subject)) {
     throw new Error('A VAPID subject must be a mailto: or https:// contact')
   }
 
@@ -350,10 +408,23 @@ export async function sendWebPush(params: {
     return { kind: 'refused', status: null, reason: `encrypt: ${(error as Error).message}` }
   }
 
+  if (!isPublicPushEndpoint(subscription.endpoint)) {
+    // Refused BEFORE the request, and reported as this deployment's fault
+    // rather than the push service's: nothing was asked, so nothing answered.
+    return {
+      kind: 'refused',
+      status: null,
+      reason: 'endpoint is not a public push service',
+    }
+  }
+
   let response: Response
   try {
     response = await performRequest(subscription.endpoint, {
       method: 'POST',
+      // A push service does not redirect. Following one would take a request
+      // that passed the check above to an address that never did.
+      redirect: 'error',
       headers: {
         authorization,
         'content-encoding': 'aes128gcm',

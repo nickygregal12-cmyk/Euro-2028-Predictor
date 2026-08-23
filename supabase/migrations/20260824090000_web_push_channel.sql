@@ -133,10 +133,34 @@ create table if not exists public.push_subscriptions (
 
   constraint push_subscriptions_endpoint_unique unique (endpoint),
 
-  -- HTTPS ONLY. An endpoint the sender would POST to over plain http is not a
-  -- push service, and refusing it in the schema means no code path has to.
+  -- HTTPS AND A PUBLIC NAME. An endpoint the sender would POST to over plain
+  -- http is not a push service, and refusing it in the schema means no code
+  -- path has to.
+  --
+  -- THE HOST RULE IS AN SSRF CONTROL, not tidiness. The sender is a service-role
+  -- Edge Function, and this column is written from a browser: without a rule,
+  -- any signed-in player could point it at an internal https service and have
+  -- the platform POST to it on their behalf. It is a blind, POST-only, one-per-
+  -- reminder request that returns them nothing, so the ceiling is low — but low
+  -- is not none, and the cheap half of the fix belongs in the schema where no
+  -- caller can forget it.
+  --
+  -- IT IS NOT AN ORIGIN ALLOW-LIST. Real push endpoints live on Google's,
+  -- Mozilla's, Microsoft's and Apple's services and on self-hosted ones, and a
+  -- list of hostnames here would silently stop working for a browser nobody
+  -- anticipated. What is refused is the shape that can never be a public push
+  -- service: an address literal, a name with no dot in it, and the private
+  -- suffixes.
   constraint push_subscriptions_endpoint_https
-    check (endpoint ~ '^https://' and char_length(endpoint) between 12 and 2048),
+    check (
+      char_length(endpoint) between 12 and 2048
+      -- A dotted DNS name, optional port, then the path. `[` is not permitted,
+      -- so an IPv6 literal cannot match, and `localhost` has no dot.
+      and endpoint ~ '^https://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+(:[0-9]{1,5})?(/|$)'
+      -- ...and a dotted quad is a dotted name, so it is refused by name.
+      and endpoint !~ '^https://([0-9]{1,3}\.){3}[0-9]{1,3}([:/]|$)'
+      and endpoint !~* '^https://[^/]*\.(local|internal|localhost|lan|home|corp)(:[0-9]+)?(/|$)'
+    ),
 
   -- 65 raw bytes of uncompressed P-256 point, base64url: 87 characters, or 88
   -- if the client padded. Structural, not cryptographic — it rejects the
@@ -218,6 +242,17 @@ begin
   -- name, and the two cannot drift because the patterns are the same ones.
   if p_endpoint is null or p_endpoint !~ '^https://' then
     raise exception 'A push endpoint must be an https URL' using errcode = '22023';
+  end if;
+
+  -- Said in its own sentence rather than left to the constraint, because
+  -- "that is not a push service" and "that key is malformed" are different
+  -- things for whoever is reading a browser console.
+  if p_endpoint ~ '^https://([0-9]{1,3}\.){3}[0-9]{1,3}([:/]|$)'
+     or p_endpoint !~ '^https://[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+(:[0-9]{1,5})?(/|$)'
+     or p_endpoint ~* '^https://[^/]*\.(local|internal|localhost|lan|home|corp)(:[0-9]+)?(/|$)'
+  then
+    raise exception 'A push endpoint must name a public push service'
+      using errcode = '22023';
   end if;
 
   insert into public.push_subscriptions (user_id, endpoint, p256dh, auth)
@@ -448,6 +483,20 @@ begin
      where delivery.status in ('pending', 'failed')
        and coalesce(delivery.next_attempt_at, delivery.scheduled_for) <= v_now
        and delivery.deadline_at > v_now
+       -- THERE MUST STILL BE A CHANNEL. Without this, a player who turned
+       -- emails off and later lost their last device would be claimed anyway,
+       -- and the `else 'email'` below would send them the very thing they
+       -- switched off. The withdrawal sweep cannot cover it: the sweep only
+       -- touches `pending` rows and this one may already be `failed` and
+       -- retrying. A row with neither channel is simply not claimed, and the
+       -- sweep marks it `skipped` on its own cadence.
+       and (
+         exists (
+           select 1 from public.push_subscriptions device
+            where device.user_id = delivery.user_id)
+         or exists (
+           select 1 from public.profiles player
+            where player.id = delivery.user_id and player.reminder_emails))
      order by delivery.scheduled_for
      limit v_limit
      -- THE CONTROL. Not `for update` alone, which would make a second sender
@@ -462,7 +511,9 @@ begin
            -- TIGHTEN ONLY. Contract 216 owns this line and asserts on it.
            dry_run = delivery.dry_run or v_requested_dry_run,
            -- DECIDED PER ATTEMPT, not once per row. That is what makes a
-           -- pruned endpoint fall back to email on the retry.
+           -- pruned endpoint fall back to email on the retry — and `else` is
+           -- only reachable because the claim above has already established
+           -- that this player accepts email.
            channel = case
              when exists (
                select 1 from public.push_subscriptions device
@@ -648,6 +699,14 @@ begin
     raise exception 'The claim must choose the channel from the live subscriptions';
   end if;
 
+  -- AND THE FALLBACK MAY NOT REACH SOMEBODY WHO SWITCHED EMAIL OFF. The claim
+  -- has to read the preference as well as the subscriptions, or a push-only
+  -- player who loses their last device is sent the one thing they refused.
+  if v_claim !~ 'reminder_emails' then
+    raise exception
+      'The claim must not fall back to email for a player who turned email off';
+  end if;
+
   -- BOTH HALVES OF THE PREFERENCE MOVED. A gate that admits push-only players
   -- and a sweep that withdraws them would cancel every reminder it schedules.
   if (select count(*) from regexp_matches(v_schedule, 'push_subscriptions', 'g')) < 2 then
@@ -715,6 +774,18 @@ begin
 
   if v_save !~ 'auth\.uid' then
     raise exception 'save_push_subscription must read the player from the session';
+  end if;
+
+  -- THE ENDPOINT IS A URL A BROWSER CHOSE AND A SERVICE ROLE WILL POST TO. An
+  -- https check alone would let a signed-in player aim the sender at an
+  -- internal address.
+  if not exists (
+    select 1 from pg_constraint
+     where conname = 'push_subscriptions_endpoint_https'
+       and conrelid = 'public.push_subscriptions'::regclass
+       and pg_get_constraintdef(oid) ~ '0-9\]\{1,3\}'
+  ) then
+    raise exception 'The endpoint constraint must refuse an address literal, not only plain http';
   end if;
 end;
 $assertions$;
