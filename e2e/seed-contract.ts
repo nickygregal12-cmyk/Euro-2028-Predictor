@@ -231,8 +231,15 @@
  * Every one of those is dispatch configuration or an internal function; the seed
  * creates no poll target, and no browser journey queries that table. No relation
  * a seeded user reads is touched, so again there is no new gate to fail.
+ *
+ * **CONTRACT 214 IS RE-VERIFIED, NOT ASSUMED.** The confirmation-integrity
+ * migration redefines authenticated season-card reads and writes, so the seed
+ * marker is raised only after the exact Contract-214 head `c81ee258` passed
+ * Database parity run 32629534014 and Browser E2E run 32629533989. Both rebuild
+ * the migration chain through 214; the browser job also reseeds and exercises
+ * authenticated journeys against that rebuilt database.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 213
+export const SEED_REVIEWED_AT_CONTRACT = 214
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'
