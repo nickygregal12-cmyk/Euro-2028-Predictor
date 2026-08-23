@@ -435,6 +435,20 @@ order it happened — the Matches pair first, then the other nine — because th
 sequence is the evidence that the switch works in both positions, and a reader
 arriving after a rollback needs the OFF half to still be here.
 
+> **What a route matrix cannot see, found 23 August 2026 and now guarded.**
+> This document owns route fate, and route fate is not the whole of a cutover.
+> `vNextOwnsFrame` makes `AppShell` render no `AppBar` on a Hub destination, and
+> the AppBar was the only way into the legacy Action Centre — so
+> `get_my_actions` went unreachable from the production frame for a whole stage
+> while its generators and its `pg_cron` caller kept filling the table, and
+> `MIG-UI-14` stayed marked *Implemented* because the claim had been true when
+> it was written. **No row here could have caught it: the Action Centre was
+> never a route.** `tests/app/vnextChromeParity.test.ts` is the guard that can —
+> it reads `AppBarProps` out of the source and requires every affordance the
+> legacy chrome offers to be answered in the vNext frame or dropped on purpose.
+> **Stage 15 is the same cutover shape against the Euro frame**, which is why
+> this is recorded here rather than left in a pull request.
+
 ### What landed first, and why this pair
 
 `/competitions/:c/:s/matches` and `/competitions/:c/:s/matches/:fixtureId` are
