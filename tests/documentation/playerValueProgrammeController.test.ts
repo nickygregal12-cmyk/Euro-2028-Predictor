@@ -149,6 +149,14 @@ export function validateProgramme(state: Programme, repositoryContract: number):
       say(`${at}: carries a blocker while ${stage.status}`)
     }
 
+    // An empty string is not evidence, and `length > 0` cannot tell the
+    // difference. A stage marked complete on [''] would satisfy the one check
+    // this record exists to make unfakeable.
+    const evidence = stage.acceptanceEvidence.filter((line) => line.trim().length > 0)
+    if (evidence.length !== stage.acceptanceEvidence.length) {
+      say(`${at}: acceptance evidence with nothing written in it`)
+    }
+
     if (stage.status === 'not_started') {
       if (stage.pr !== null) say(`${at}: not_started with a pull request`)
       if (stage.headSha !== null) say(`${at}: not_started with a head`)
@@ -158,7 +166,7 @@ export function validateProgramme(state: Programme, repositoryContract: number):
     if (stage.status === 'ready') {
       if (!isPositiveInteger(stage.pr)) say(`${at}: ready without a pull request`)
       if (!stage.headSha || !SHA.test(stage.headSha)) say(`${at}: ready without an exact head`)
-      if (stage.acceptanceEvidence.length === 0) say(`${at}: ready without acceptance evidence`)
+      if (evidence.length === 0) say(`${at}: ready without acceptance evidence`)
     }
 
     if (stage.status !== 'complete' && stage.mergedSha !== null) {
@@ -169,7 +177,7 @@ export function validateProgramme(state: Programme, repositoryContract: number):
       if (!isPositiveInteger(stage.pr)) say(`${at}: complete without a pull request`)
       if (!stage.headSha || !SHA.test(stage.headSha)) say(`${at}: complete without an exact head`)
       if (!stage.mergedSha || !SHA.test(stage.mergedSha)) say(`${at}: complete without a merge commit`)
-      if (stage.acceptanceEvidence.length === 0) say(`${at}: complete without acceptance evidence`)
+      if (evidence.length === 0) say(`${at}: complete without acceptance evidence`)
       for (const dependency of stage.dependencies) {
         if (byId.get(dependency)?.status !== 'complete') {
           say(`${at}: complete before dependency ${dependency}`)
@@ -214,8 +222,22 @@ export function validateProgramme(state: Programme, repositoryContract: number):
 
   const classifiedPrs = state.openPullRequestClassification.map((entry) => entry.pr)
   if (new Set(classifiedPrs).size !== classifiedPrs.length) say('a pull request is classified twice')
+  for (const pattern of DUPLICATED_FACT) {
+    if (pattern.test(state.contractRunway.note)) {
+      say('the runway note copies a fact this record does not own')
+    }
+  }
+
   for (const entry of state.openPullRequestClassification) {
     const at = `pull request ${entry.pr}`
+    // A rationale is prose like any other. A hash pasted into one is the same
+    // stale copy it would be in a stage's evidence, and the exact-head field
+    // beside it is where a hash belongs.
+    for (const pattern of DUPLICATED_FACT) {
+      if (pattern.test(entry.rationale)) {
+        say(`${at}: rationale copies a fact this record does not own`)
+      }
+    }
     if (!isPositiveInteger(entry.pr)) say(`${at}: needs a number`)
     if (!SHA.test(entry.headSha)) say(`${at}: classified without an exact head`)
     if (!CLASSIFICATIONS.has(entry.classification)) say(`${at}: unknown classification ${entry.classification}`)
@@ -246,16 +268,48 @@ function bend(mutate: (draft: Programme) => void): Programme {
 }
 const stageIn = (draft: Programme, id: string) => draft.stages.find((stage) => stage.id === id)!
 
-function firstClaim(draft: Programme): ContractClaim {
-  const [claim] = draft.contractRunway.claimedByOpenPullRequests
-  if (!claim) throw new Error('the runway records no claim, so the duplicate case cannot be built')
-  return claim
-}
+/**
+ * A draft guaranteed to carry one runway claim and its classification.
+ *
+ * The cases below are about the RULES, not about which pull requests happen to
+ * be open today. Both lists are legitimately empty when nothing is in flight —
+ * the moment the last open migration branch merges, this record's claim list
+ * empties — and a harness that threw at that moment would fail the gate for a
+ * state the validator accepts, on a day when nothing was wrong. So a baseline
+ * is seeded when the real state has none, and used as-is when it has one.
+ */
+function withOneClaim(
+  mutate: (draft: Programme, claim: ContractClaim, entry: PullRequestClassification) => void,
+): Programme {
+  return bend((draft) => {
+    let claim = draft.contractRunway.claimedByOpenPullRequests[0]
+    if (!claim) {
+      claim = {
+        pr: 999_999,
+        branch: 'seeded/no-open-claim',
+        headSha: 'd'.repeat(40),
+        contract: repositoryContract + 1,
+        migration: 'supabase/migrations/29990101000000_seeded_by_the_gate.sql',
+      }
+      draft.contractRunway.claimedByOpenPullRequests.push(claim)
+    }
 
-function firstClassification(draft: Programme): PullRequestClassification {
-  const [entry] = draft.openPullRequestClassification
-  if (!entry) throw new Error('no open pull request is classified, so this case cannot be built')
-  return entry
+    let entry = draft.openPullRequestClassification.find((candidate) => candidate.pr === claim.pr)
+    if (!entry) {
+      entry = {
+        pr: claim.pr,
+        branch: claim.branch,
+        headSha: claim.headSha,
+        draft: true,
+        classification: 'unrelated',
+        rationale:
+          'Seeded by the gate so the runway cases can be built when no open pull request happens to claim a number.',
+      }
+      draft.openPullRequestClassification.push(entry)
+    }
+
+    mutate(draft, claim, entry)
+  })
 }
 
 describe('player-value programme controller', () => {
@@ -327,16 +381,15 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses two open branches claiming one contract number', () => {
-    const duplicate = bend((draft) => {
-      const first = firstClaim(draft)
+    const duplicate = withOneClaim((draft, claim, entry) => {
       draft.contractRunway.claimedByOpenPullRequests.push({
-        ...first,
-        pr: first.pr + 1,
+        ...claim,
+        pr: claim.pr + 1,
         branch: 'some/other-branch',
       })
       draft.openPullRequestClassification.push({
-        ...firstClassification(draft),
-        pr: first.pr + 1,
+        ...entry,
+        pr: claim.pr + 1,
         branch: 'some/other-branch',
       })
     })
@@ -346,7 +399,7 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses a claim the repository has already reached', () => {
-    const overtaken = bend((draft) => {
+    const overtaken = withOneClaim((draft) => {
       for (const claim of draft.contractRunway.claimedByOpenPullRequests) {
         claim.contract = repositoryContract
       }
@@ -356,7 +409,7 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses a claim that leaves a hole in the runway', () => {
-    const gap = bend((draft) => {
+    const gap = withOneClaim((draft) => {
       for (const claim of draft.contractRunway.claimedByOpenPullRequests) {
         claim.contract = repositoryContract + 3
       }
@@ -365,25 +418,53 @@ describe('player-value programme controller', () => {
     expect(problems.some((problem) => problem.includes('contiguously'))).toBe(true)
   })
 
-  it('refuses an unclassified open pull request that claims a number, and a draft called ready', () => {
-    const claimingPr = firstClaim(state).pr
-    const unclassified = bend((draft) => {
+  it('refuses an unclassified open pull request that claims a number', () => {
+    let claimingPr = 0
+    const unclassified = withOneClaim((draft, claim) => {
+      claimingPr = claim.pr
       draft.openPullRequestClassification = draft.openPullRequestClassification.filter(
-        (entry) => entry.pr !== claimingPr,
+        (entry) => entry.pr !== claim.pr,
       )
     })
     expect(validateProgramme(unclassified, repositoryContract)).toContain(
       `pull request ${claimingPr} claims a number but is unclassified`,
     )
+  })
 
-    const draftReady = bend((draft) => {
-      const entry = firstClassification(draft)
+  it('refuses a draft called ready to merge', () => {
+    let classifiedPr = 0
+    const draftReady = withOneClaim((_draft, _claim, entry) => {
+      classifiedPr = entry.pr
       entry.draft = true
       entry.classification = 'ready_to_merge'
     })
     expect(validateProgramme(draftReady, repositoryContract)).toContain(
-      `pull request ${firstClassification(state).pr}: a draft is not ready to merge`,
+      `pull request ${classifiedPr}: a draft is not ready to merge`,
     )
+  })
+
+  it('refuses acceptance evidence with nothing written in it', () => {
+    for (const status of ['ready', 'complete'] as const) {
+      const blank = bend((draft) => {
+        const stage = stageIn(draft, '0')
+        stage.status = status
+        stage.pr = 1000
+        stage.headSha = 'a'.repeat(40)
+        stage.mergedSha = status === 'complete' ? 'b'.repeat(40) : null
+        stage.acceptanceEvidence = ['   ']
+      })
+      const problems = validateProgramme(blank, repositoryContract)
+      expect(problems, status).toContain('stage 0: acceptance evidence with nothing written in it')
+      expect(problems, status).toContain(`stage 0: ${status} without acceptance evidence`)
+    }
+  })
+
+  it('refuses a classification rationale that copies a fact it does not own', () => {
+    const copied = withOneClaim((_draft, _claim, entry) => {
+      entry.rationale = `Checked at ${'e'.repeat(40)}, and it is fine, which is a reason of sorts.`
+    })
+    const problems = validateProgramme(copied, repositoryContract)
+    expect(problems.some((problem) => problem.includes('rationale copies a fact'))).toBe(true)
   })
 
   it('refuses to become a second authority for a fact it does not own', () => {
