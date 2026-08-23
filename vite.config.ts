@@ -257,6 +257,21 @@ export default defineConfig(({ command, mode }) => {
         // promise. The in-memory asset is the same bytes with no such
         // dependency, and the guard below fails loudly if a future version
         // stops providing it rather than emitting an invite page from nothing.
+      },
+      {
+        // ITS OWN PLUGIN, AND THE NAME IS THE POINT.
+        //
+        // This used to be a second hook on `euro28-service-worker`, which made
+        // it invisible to the one mechanism that keeps app-document concerns
+        // out of the component workbench: `.storybook/main.ts` filters the
+        // application's plugins BY NAME through `APP_ONLY_VITE_PLUGINS`, and a
+        // hook hidden inside another plugin's name cannot be filtered.
+        //
+        // Storybook builds `iframe.html` and never an `index.html`, so the
+        // guard below — correct and load-bearing for the application build —
+        // fired on every Storybook build and failed it. The guard is unchanged;
+        // what changed is that the workbench no longer inherits it.
+        name: 'euro28-invite-document',
         writeBundle(options, bundle) {
           const directory = options.dir
           if (!directory) throw new Error('The build has no output directory to write into.')

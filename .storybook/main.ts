@@ -3,6 +3,11 @@ import type { StorybookConfig } from '@storybook/react-vite'
 const APP_ONLY_VITE_PLUGINS = new Set([
   'euro28-site-metadata',
   'euro28-release-metadata',
+  // Derives the `/join/:code` document from the built `index.html`. Storybook
+  // builds `iframe.html` and never an `index.html`, so the plugin's own guard —
+  // which is right to fail loudly for the application — fails every workbench
+  // build instead.
+  'euro28-invite-document',
 ])
 
 const config: StorybookConfig = {
