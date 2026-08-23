@@ -242,6 +242,13 @@ describe('JavaScript under scripts/', () => {
     ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-b.mjs', null],
     ['scripts/og/renderAssets.js', 61],
+    // Measured rather than recorded as an unknown: 18 checkJs errors on
+    // 23 August 2026, every one an implicit `any` on a canvas-drawing parameter
+    // or a destructured layout field. Its sibling `generate-site-icons.mjs` is
+    // CHECKED because it arrived clean under JSDoc annotation; this one does
+    // not, so it is classified here with the count it actually carries instead
+    // of being promoted into the deploy gates it would immediately fail.
+    ['scripts/og/generate-site-open-graph.mjs', 18],
     ['scripts/ops/build-provider-team-profile-backfill.mjs', null],
     ['scripts/ops/create-verified-supabase-backup.mjs', 31],
     ['scripts/ops/run-stage-c1-hosted-postflight.mjs', 5],

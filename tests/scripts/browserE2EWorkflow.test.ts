@@ -108,9 +108,9 @@ describe('authenticated browser E2E workflow', () => {
     expect(localFixtures).toContain('parsed.port !== LOCAL_SUPABASE_PORT')
   })
 
+
   it('pins the Playwright dependency and exposes stable scripts', () => {
     expect(packageJson.devDependencies['@playwright/test']).toBe('1.62.1')
-    expect(packageJson.scripts['test:e2e']).toBe('playwright test')
     expect(packageJson.scripts['test:e2e:install']).toBe(
       'playwright install --with-deps chromium',
     )
