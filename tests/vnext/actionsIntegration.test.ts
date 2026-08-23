@@ -272,6 +272,46 @@ describe('the vNext action feed', () => {
     })
   })
 
+  describe('which game an item is about', () => {
+    function gameFor(actionType: string, context: Record<string, unknown> = {}) {
+      const model = buildActionsModel(
+        source({ feed: { unseen: 0, actions: [action({ actionType, context })] } }),
+      )!
+      return first(model.items).game
+    }
+
+    it('takes the game from the kind where only one game generates it', () => {
+      expect(gameFor('matchweek_predictions_due')).toBe('match-predictor')
+      expect(gameFor('lms_pick_due')).toBe('last-man-standing')
+      expect(gameFor('cup_penalty_number_due')).toBe('championship')
+      // Contract 173 reads `season_matchweek_scores`, which is the Match
+      // Predictor's — so a settled matchweek is that game's news.
+      expect(gameFor('matchweek_settled')).toBe('match-predictor')
+    })
+
+    it('reads the game a consequence names rather than guessing it', () => {
+      // THE ONE KIND THAT SPANS GAMES. It is generated from
+      // `bonus_competitions.game_key`, so it says which and is not inferred
+      // from the competition id or from the outcome word.
+      expect(gameFor('game_consequence', { game_key: 'last_man_standing' })).toBe(
+        'last-man-standing',
+      )
+      expect(gameFor('game_consequence', { game_key: 'predictor_cup' })).toBe('championship')
+    })
+
+    it('answers null for a game_key this build has no surface for', () => {
+      // `ko_predictor` is a real value in the database vocabulary with no vNext
+      // route. Sending a player to the nearest game that DOES have one would be
+      // worse than offering no link, so the row becomes information.
+      expect(gameFor('game_consequence', { game_key: 'ko_predictor' })).toBeNull()
+      expect(gameFor('game_consequence', {})).toBeNull()
+    })
+
+    it('answers null for a kind it cannot interpret', () => {
+      expect(gameFor('something_new')).toBeNull()
+    })
+  })
+
   it('lists exactly the keys whose seen state the server has not recorded', () => {
     const model = buildActionsModel(
       source({

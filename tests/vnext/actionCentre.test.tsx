@@ -40,6 +40,7 @@ function item(over: Partial<VNextActionItem> = {}): VNextActionItem {
     key: 'a',
     kind: 'lms-pick-due',
     actionClass: 'needs-you',
+    game: 'last-man-standing',
     contextId: 'tournament-1',
     competitionId: 'comp-1',
     competitionName: 'Caledonian Premiership',
@@ -259,6 +260,77 @@ describe('the Action Centre', () => {
     const panel = await openPanel(user)
     await user.click(within(panel).getByRole('button', { name: /Pick your club/ }))
     expect(onOpenItem).toHaveBeenCalledWith(expect.objectContaining({ key: 'a' }))
+  })
+
+  it('draws a row with no destination as information even when a host offers to open', async () => {
+    // THE DEFECT THIS GUARDS. A host supplies one `onOpenItem` for the whole
+    // panel, but not every row has somewhere to go — a `game_key` with no vNext
+    // surface, or a kind this build cannot read. Drawing those as buttons gives
+    // the player a control that does nothing when pressed.
+    const onOpenItem = vi.fn()
+    const user = userEvent.setup()
+    renderShell(
+      actions({
+        onOpenItem,
+        model: model([
+          item({ key: 'routable', headline: 'Pick your club' }),
+          item({
+            key: 'unroutable',
+            kind: 'game-consequence',
+            actionClass: 'news',
+            game: null,
+            headline: 'Your game moved on',
+          }),
+        ]),
+      }),
+    )
+
+    const panel = await openPanel(user)
+    expect(within(panel).getByRole('button', { name: /Pick your club/ })).toBeInTheDocument()
+    expect(
+      within(panel).queryAllByRole('button', { name: /Your game moved on/ }),
+    ).toHaveLength(0)
+    // Still shown — the server recorded it for this player.
+    expect(within(panel).getByText('Your game moved on')).toBeInTheDocument()
+  })
+
+  it('draws a row for an unnamed competition as information, because it has no address', async () => {
+    // `competitionName` is null exactly when the membership read did not return
+    // that tournament id — and that list is the only thing that turns the id
+    // into a URL. So a null name and an unresolvable route are one fact.
+    const user = userEvent.setup()
+    renderShell(
+      actions({
+        onOpenItem: vi.fn(),
+        model: model([item({ competitionName: null, headline: 'Pick your club' })]),
+      }),
+    )
+
+    const panel = await openPanel(user)
+    expect(within(panel).queryAllByRole('button', { name: /Pick your club/ })).toHaveLength(0)
+  })
+
+  it('opens a settled matchweek, which is addressable even with no game route', async () => {
+    const onOpenItem = vi.fn()
+    const user = userEvent.setup()
+    renderShell(
+      actions({
+        onOpenItem,
+        model: model([
+          item({
+            key: 's',
+            kind: 'matchweek-settled',
+            actionClass: 'news',
+            game: 'match-predictor',
+            headline: 'Matchweek 11 is settled',
+          }),
+        ]),
+      }),
+    )
+
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole('button', { name: /Matchweek 11 is settled/ }))
+    expect(onOpenItem).toHaveBeenCalledWith(expect.objectContaining({ key: 's' }))
   })
 
   it('names what a dismiss control dismisses', async () => {

@@ -2,6 +2,7 @@ import type { PersistentPlayerAction } from '../../../services/supabase/playerAc
 import {
   actionClassOf,
   actionKindOf,
+  type VNextActionGame,
   type VNextActionItem,
   type VNextActionKind,
   type VNextActionsModel,
@@ -61,6 +62,61 @@ function flagOf(context: Record<string, unknown>, key: string): boolean {
 
 function plural(count: number, noun: string): string {
   return `${count} ${count === 1 ? noun : `${noun}s`}`
+}
+
+/* ==========================================================================
+   WHICH GAME AN ITEM IS ABOUT
+   ========================================================================== */
+
+/**
+ * The database's `bonus_competitions.game_key`, where this build has a surface.
+ *
+ * WRITTEN AS A LOOKUP THAT CAN MISS, not as a total map. `ko_predictor`,
+ * `main_predictor` and `original_predictor` are real values with no vNext
+ * route, and each must answer `null` rather than the nearest thing that does —
+ * a row that took a player to the wrong game would be worse than a row that
+ * takes them nowhere.
+ */
+const GAME_BY_KEY: Readonly<Record<string, VNextActionGame>> = {
+  last_man_standing: 'last-man-standing',
+  predictor_cup: 'championship',
+  main_predictor: 'match-predictor',
+}
+
+/**
+ * WHAT AN ITEM IS ABOUT, FROM THE KIND OR FROM THE CONTEXT.
+ *
+ * Three kinds imply their game unambiguously, because only one game generates
+ * them: a matchweek card is the Match Predictor's, an LMS pick is Last Man
+ * Standing's, a penalty number is the Championship's. A settled matchweek is
+ * the Match Predictor's too — contract 173 reads `season_matchweek_scores`.
+ *
+ * `game_consequence` is the one kind that spans games, and it SAYS WHICH in its
+ * own context, because it is generated from `bonus_competitions.game_key`. So
+ * it is read rather than guessed, and an unroutable key answers `null`.
+ */
+function gameOf(
+  kind: VNextActionKind,
+  context: Record<string, unknown>,
+): VNextActionGame | null {
+  switch (kind) {
+    case 'matchweek-predictions-due':
+    case 'matchweek-settled':
+      return 'match-predictor'
+    case 'lms-pick-due':
+      return 'last-man-standing'
+    case 'cup-penalty-number-due':
+      return 'championship'
+    case 'game-consequence': {
+      const key = textOf(context, 'game_key')
+      return key === null ? null : (GAME_BY_KEY[key] ?? null)
+    }
+    case 'unknown':
+      // A KIND THIS BUILD CANNOT INTERPRET HAS NO DESTINATION. Guessing one
+      // from a competition id would send a player somewhere on the strength of
+      // a row nothing here understands.
+      return null
+  }
 }
 
 /* ==========================================================================
@@ -211,6 +267,7 @@ function item(
     key: action.actionKey,
     kind,
     actionClass: actionClassOf(kind),
+    game: gameOf(kind, action.context),
     contextId: action.tournamentId,
     competitionId: action.competitionId,
     // `null` WHERE THE PLAYER'S LIST DOES NOT COVER IT. Not the tournament id

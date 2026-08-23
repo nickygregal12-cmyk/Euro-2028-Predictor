@@ -34,6 +34,10 @@ function item(over: Partial<VNextActionItem> & { key: string }): VNextActionItem
   return {
     kind: 'lms-pick-due',
     actionClass: 'needs-you',
+    // STATED PER WORLD RATHER THAN DERIVED FROM THE KIND. The mapper derives
+    // it; a fixture that derived it the same way would agree with a mapper that
+    // had started deriving it wrongly.
+    game: 'last-man-standing',
     contextId: 'tournament-caledonian',
     competitionId: 'comp-lms',
     competitionName: 'Caledonian Premiership',
@@ -80,6 +84,7 @@ const busyWeek = actions({
     item({
       key: 'matchweek_predictions_due:comp-mp:round-12',
       kind: 'matchweek-predictions-due',
+      game: 'match-predictor',
       competitionId: 'comp-mp',
       headline: 'Matchweek 12 predictions needed',
       detail: '4 of 10 predicted',
@@ -88,6 +93,7 @@ const busyWeek = actions({
     item({
       key: 'cup_penalty_number_due:comp-cup:tie-3',
       kind: 'cup-penalty-number-due',
+      game: 'championship',
       contextId: 'tournament-highland',
       competitionId: 'comp-cup',
       competitionName: 'Highland Cup',
@@ -98,6 +104,7 @@ const busyWeek = actions({
       key: 'matchweek_settled:comp-mp:round-11',
       kind: 'matchweek-settled',
       actionClass: 'news',
+      game: 'match-predictor',
       competitionId: 'comp-mp',
       headline: 'Matchweek 11 is settled',
       detail: '47 points banked',
@@ -107,6 +114,7 @@ const busyWeek = actions({
       key: 'game_consequence:comp-lms:round-8',
       kind: 'game-consequence',
       actionClass: 'news',
+      game: 'last-man-standing',
       headline: 'You survived the round',
       seen: true,
     }),
@@ -131,6 +139,7 @@ const onlyNews = actions({
       key: 'matchweek_settled:comp-mp:round-11',
       kind: 'matchweek-settled',
       actionClass: 'news',
+      game: 'match-predictor',
       headline: 'Matchweek 11 is settled',
       detail: '62 points banked, Joker applied',
       seen: false,
@@ -139,6 +148,7 @@ const onlyNews = actions({
       key: 'game_consequence:comp-cup:final',
       kind: 'game-consequence',
       actionClass: 'news',
+      game: 'championship',
       contextId: 'tournament-highland',
       competitionName: 'Highland Cup',
       headline: 'You won it',
@@ -194,6 +204,7 @@ const sparseContext = actions({
     item({
       key: 'matchweek_predictions_due:comp-mp:round-13',
       kind: 'matchweek-predictions-due',
+      game: 'match-predictor',
       headline: 'Predictions needed',
       detail: null,
     }),
@@ -201,6 +212,7 @@ const sparseContext = actions({
       key: 'matchweek_settled:comp-mp:round-12',
       kind: 'matchweek-settled',
       actionClass: 'news',
+      game: 'match-predictor',
       headline: 'A matchweek was settled',
       detail: null,
     }),
@@ -208,6 +220,9 @@ const sparseContext = actions({
       key: 'game_consequence:comp-lms:round-9',
       kind: 'game-consequence',
       actionClass: 'news',
+      // THE GENERATOR SENT A `game_key` THIS BUILD HAS NO SURFACE FOR, so the
+      // row is information and not a control. `ko_predictor` is the real one.
+      game: null,
       headline: 'Your game moved on',
       detail: null,
     }),
@@ -246,6 +261,7 @@ const unknownKind = actions({
       key: 'something_new:comp-x:1',
       kind: 'unknown',
       actionClass: 'news',
+      game: null,
       headline: 'Something happened in one of your games',
     }),
   ]),

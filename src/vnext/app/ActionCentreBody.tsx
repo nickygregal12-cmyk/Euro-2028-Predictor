@@ -1,5 +1,6 @@
 import { useId, useState } from 'react'
 import {
+  actionIsOpenable,
   actionsNeedingYou,
   actionsNews,
   type VNextActionItem,
@@ -191,7 +192,13 @@ function ActionRow({
     ? `${where}: ${item.headline}`
     : `${where}: ${item.headline}. ${item.detail}`
 
-  const openable = onOpenItem !== undefined
+  // BOTH HALVES, AND BOTH ARE NECESSARY. A host may offer to open rows without
+  // every row having somewhere to go — an action in a competition the
+  // membership read did not return, or a game this build has no surface for —
+  // and drawing those as buttons would give the player a control that does
+  // nothing. `actionIsOpenable` is the model's answer to whether a destination
+  // exists; the host still owns what the address is.
+  const openable = onOpenItem !== undefined && actionIsOpenable(item)
 
   const content = (
     <span className={styles.rowText}>

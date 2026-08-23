@@ -62,11 +62,33 @@ const NEEDS_YOU: ReadonlySet<VNextActionKind> = new Set<VNextActionKind>([
   'cup-penalty-number-due',
 ])
 
+/**
+ * THE THREE GAMES THIS PLATFORM HAS A vNEXT SURFACE FOR.
+ *
+ * The database's `game_key` vocabulary is wider — `ko_predictor`,
+ * `main_predictor` and `original_predictor` also exist — so this is
+ * deliberately NOT that enum. It is the subset a player can be taken to, and a
+ * `game_key` outside it resolves to `null` rather than to a plausible
+ * neighbour: sending somebody to Last Man Standing because their knockout
+ * predictor had no route is worse than not offering the link.
+ */
+export type VNextActionGame = 'match-predictor' | 'last-man-standing' | 'championship'
+
 export type VNextActionItem = {
   /** The server's `action_key`. The identity, and the argument to every write. */
   readonly key: string
   readonly kind: VNextActionKind
   readonly actionClass: VNextActionClass
+  /**
+   * WHICH GAME THIS IS ABOUT, or `null` where the payload does not say and the
+   * kind does not imply one.
+   *
+   * It is the model's answer to *what*; **the route is not decided here.** A
+   * host turns this plus `contextId` into an address, because which URL a game
+   * lives at is a routing fact and this lane must not hold one — the same split
+   * `useGlobalPlayInbox` used when it resolved destinations outside its model.
+   */
+  readonly game: VNextActionGame | null
   /**
    * THE COMPETITION THIS BELONGS TO, as the tournament id and never a name.
    * Two seasons of one competition legitimately share a display name, so a
@@ -137,6 +159,35 @@ export function actionKindOf(actionType: string): VNextActionKind {
  */
 export function actionClassOf(kind: VNextActionKind): VNextActionClass {
   return NEEDS_YOU.has(kind) ? 'needs-you' : 'news'
+}
+
+/**
+ * WHETHER THIS ROW CAN BE TAKEN ANYWHERE AT ALL.
+ *
+ * ============================ WHY THE MODEL DECIDES THIS =================
+ *
+ * Not the route — the route is a host's answer and this lane holds none. What
+ * this decides is whether a destination EXISTS to resolve, which the surface
+ * needs before it chooses between a button and a paragraph. A row rendered as a
+ * control that does nothing when pressed is the affordance teaching a player
+ * the product is broken, and `ActionCentreBody` would otherwise draw one for
+ * every item the moment a host supplied any `onOpenItem`.
+ *
+ * ============================ THE TWO CONDITIONS =========================
+ *
+ * **It must name a competition the player's own list covers.** `competitionName`
+ * is `null` exactly when the membership read did not return that tournament id,
+ * and that list is the only thing that turns an identity into an address — so a
+ * null name and an unresolvable route are the same fact reaching two places.
+ *
+ * **And it must be addressable within that competition.** A settled matchweek
+ * always is, because the competition's own Home carries the recap. Everything
+ * else needs a `game` this build has a surface for; `null` there is a
+ * `game_key` with no vNext route, or a kind this build cannot interpret.
+ */
+export function actionIsOpenable(item: VNextActionItem): boolean {
+  if (item.competitionName === null) return false
+  return item.kind === 'matchweek-settled' || item.game !== null
 }
 
 /** The items that need the player, in the server's order. */

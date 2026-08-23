@@ -153,6 +153,13 @@ running it enough times to be evidence, not building it.
    a claim, and a read that has not landed has not made it.
 5. Dismissing an item calls `dismiss_action` and the item leaves the list only
    after the server accepts it.
+5a. **Pressing a row takes the player to what it is about.** Work opens its
+   game; a settled matchweek opens the competition, because it names a round no
+   route accepts and the game route would show a different matchweek. A row
+   whose competition the player's list does not cover, or whose `game_key` has
+   no vNext surface, is drawn as information rather than as a control that does
+   nothing. *(Added after the first cut shipped the panel unwired — the feed
+   could say what needed doing and take nobody there.)*
 6. Needs-you items (`matchweek_predictions_due`, `lms_pick_due`,
    `cup_penalty_number_due`) reach the cross-competition attention layer.
    News items (`matchweek_settled`, `game_consequence`) do not — an attention
@@ -222,7 +229,9 @@ suites are green; and the one live authority for each of `MIG-UI-14`,
 
 | Part | Evidence actually observed |
 | --- | --- |
-| Action Centre | `tests/vnext/actionsIntegration.test.ts` (23), `tests/vnext/actionsSource.test.tsx` (13), `tests/vnext/actionCentre.test.tsx` (23) |
+| Action Centre | `tests/vnext/actionsIntegration.test.ts` (27), `tests/vnext/actionsSource.test.tsx` (13), `tests/vnext/actionCentre.test.tsx` (38) |
+| Action Centre destinations | `tests/app/vnextActionNavigation.test.tsx` (8) |
+| Deterministic worlds | 11 Action Centre and 3 chase worlds; Storybook suite 639 passing |
 | Rank neighbourhood | `tests/services/seasonLeaderboardNeighbourhoodModel.test.ts` (13), `tests/vnext/leaguesNeighbourhood.test.ts` (11), `tests/vnext/leaguesChase.test.tsx` (10) |
 | `UX-007` | `e2e/vnext-shell.spec.ts`, three consecutive runs at 375×720 and 1440×900 — six passes, zero obscured stops |
 | Whole suite | `npx vitest run` — 674 files, 8,772 tests |
