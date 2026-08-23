@@ -231,6 +231,18 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 217 push-channel review
+
+Nothing in this document changes. Competition structure, entry, membership and
+settlement are untouched by contract 217, which adds a delivery channel for
+reminders about deadlines this structure already defines. It reads
+`player_action_items` and writes nothing a competition depends on.
+
+Worth one line for the reviewer who arrives here from the notification path: the
+push payload deliberately carries no prediction, pick, score or rank, so the
+pre-lock privacy boundary this document's competitions rely on is not weakened
+by a notification rendered on a locked phone.
+
 ## Contract 216 reminder-dispatch review
 
 Nothing in the competition structure moves. A reminder is addressed to a player

@@ -23,11 +23,13 @@ The second is two branches claiming one migration identity. That has happened in
 | --- | --- |
 | `not_started` | No branch, no pull request, no evidence. |
 | `in_progress` | A branch exists and the work is being built. At most one stage may be here. |
-| `blocked` | Progress needs something outside this session's authority. The blocker must be named. |
+| `blocked` | Progress needs something outside this session's authority. The blocker must be named. A blocked stage MAY also record a merged pull request, for the case a stage ships most of itself and then stops: without that, a stage that delivered two thirds and one that delivered nothing would read the same. A recorded merge has to be as answerable as a complete one, so it needs the pull request, the exact head and the acceptance evidence alongside it. |
 | `ready` | Built and evidenced on an exact head, awaiting merge. |
 | `complete` | Merged, and the merge commit is on `main`. |
 
 Legal transitions are `not_started → in_progress`, `in_progress ⇄ blocked`, `in_progress → ready`, `ready → complete`, and `ready → in_progress` when review sends work back. A stage may not reach `complete` before every stage it depends on is `complete`.
+
+`blocked` is not a weakening of `complete`. A blocked stage records what it merged; it does not thereby claim to be finished, and the completion predicate still counts only stages that are `complete` with a merge behind them. A blocked stage's unblocking work becomes a later bounded pull request, and only then may it move on.
 
 ## Why a stage cannot record its own merge
 

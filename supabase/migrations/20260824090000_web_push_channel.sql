@@ -163,13 +163,16 @@ revoke all on table public.push_subscriptions from public, anon, authenticated;
 -- taken off another account and no own-row policy can express that.
 grant select, delete on table public.push_subscriptions to authenticated;
 
-drop policy if exists "own push subscriptions readable" on public.push_subscriptions;
+-- No `drop policy if exists` guard, following contract C1B's own new-table
+-- policy. The table is created by this migration, so nothing can pre-exist for
+-- a guard to remove — and a needless `drop policy` would put this file in the
+-- destructive class for `check-migration-additive.mjs` on a statement that
+-- cannot destroy anything.
 create policy "own push subscriptions readable"
   on public.push_subscriptions
   for select to authenticated
   using (user_id = (select auth.uid()));
 
-drop policy if exists "own push subscriptions revocable" on public.push_subscriptions;
 create policy "own push subscriptions revocable"
   on public.push_subscriptions
   for delete to authenticated
@@ -403,6 +406,13 @@ grant execute on function public.process_reminder_schedule(interval, boolean) to
 -- check so a future edit here fails at the same place rather than two contracts
 -- later.
 
+-- THIS IS WHY THE MIGRATION IS NOT ADDITIVE, and it is the only reason.
+-- `check-migration-additive.mjs` refuses the file on this one statement, which
+-- is correct: it cannot tell a drop-and-recreate from a deletion. So this
+-- contract goes through `development-migration-rollout.yml`, the guarded lane,
+-- exactly as contract 213 does. The statement is left in plain sight rather
+-- than hidden inside a `do` block to get past the scanner, because a gate
+-- routed around is a gate that stops meaning anything.
 drop function if exists public.claim_due_reminders(integer, boolean);
 
 create function public.claim_due_reminders(

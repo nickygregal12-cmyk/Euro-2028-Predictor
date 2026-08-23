@@ -38,8 +38,18 @@
 
 import type { NotificationEvent } from '../notifications/notificationEvents.ts'
 
-/** Exactly what the service worker's `push` handler reads, and nothing more. */
-export interface PushNotificationPayload {
+/**
+ * Exactly what the service worker's `push` handler reads, and nothing more.
+ *
+ * NOT EXPORTED, on purpose. `src/app/pwa/serviceWorker.ts` cannot import it —
+ * it imports nothing at all, because `buildServiceWorker.ts` transforms that
+ * one file and an import would ship as a broken reference — so exporting this
+ * would suggest a shared definition that does not exist. The two declarations
+ * are kept in step by a test that compares the keys this module actually emits
+ * against the worker's source, which is the only check that could work across
+ * that boundary.
+ */
+interface PushNotificationPayload {
   readonly title: string
   readonly body: string
   /** Where a tap goes. Always same-origin and always a path. */

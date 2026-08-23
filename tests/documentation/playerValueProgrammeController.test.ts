@@ -169,7 +169,21 @@ export function validateProgramme(state: Programme, repositoryContract: number):
       if (evidence.length === 0) say(`${at}: ready without acceptance evidence`)
     }
 
-    if (stage.status !== 'complete' && stage.mergedSha !== null) {
+    // A BLOCKED STAGE MAY HAVE MERGED SOMETHING. Not a weakening of the
+    // completion gate — `complete` below still needs all four — but the gap
+    // this programme actually walked into: a stage can ship most of itself and
+    // then stop at something outside the repository, and a record that could
+    // only say "blocked" would lose the merge that got it that far. It has to
+    // be as answerable as a complete one, so the same three supporting facts
+    // are required alongside it.
+    if (stage.status === 'blocked' && stage.mergedSha !== null) {
+      if (!SHA.test(stage.mergedSha)) say(`${at}: blocked with a merge that is not a commit`)
+      if (!isPositiveInteger(stage.pr)) say(`${at}: blocked with a merge and no pull request`)
+      if (!stage.headSha || !SHA.test(stage.headSha)) {
+        say(`${at}: blocked with a merge and no exact head`)
+      }
+      if (evidence.length === 0) say(`${at}: blocked with a merge and no acceptance evidence`)
+    } else if (stage.status !== 'complete' && stage.mergedSha !== null) {
       say(`${at}: records a merge while ${stage.status}`)
     }
 
@@ -276,6 +290,24 @@ function notStartedStageId(): string {
 }
 
 /**
+ * A stage whose dependency has NOT finished, whichever that is today.
+ *
+ * Naming one would make the out-of-order case pass for a reason that expires:
+ * it used to name stage 2 depending on stage 1, and the moment stage 1 really
+ * completed the case stopped testing the rule and started testing the calendar.
+ * The same trap the negative cases above were rewritten to avoid.
+ */
+function stageAheadOfItsDependency(): { readonly id: string; readonly dependency: string } {
+  const byStatus = new Map(state.stages.map((stage) => [stage.id, stage.status]))
+  for (const stage of state.stages) {
+    for (const dependency of stage.dependencies) {
+      if (byStatus.get(dependency) !== 'complete') return { id: stage.id, dependency }
+    }
+  }
+  throw new Error('every dependency is complete, so this case needs rewriting')
+}
+
+/**
  * A draft guaranteed to carry one runway claim and its classification.
  *
  * The cases below are about the RULES, not about which pull requests happen to
@@ -353,17 +385,80 @@ describe('player-value programme controller', () => {
     )
   })
 
+  it('lets a blocked stage record the merge that got it as far as it did', () => {
+    // THE GAP THIS PROGRAMME WALKED INTO. A stage can ship most of itself and
+    // then stop at something outside the repository — here, a browser surface
+    // that cannot be written until a database contract reaches Development.
+    // A record that could only say "blocked" would lose the merged pull request
+    // behind it, and the next reader would have no way to tell a stage that
+    // shipped two thirds from one that shipped nothing.
+    const waiting = notStartedStageId()
+    const partly = bend((draft) => {
+      const stage = stageIn(draft, waiting)
+      stage.status = 'blocked'
+      stage.blocker = 'waiting on somebody else'
+      stage.pr = 1010
+      stage.headSha = 'a'.repeat(40)
+      stage.mergedSha = 'b'.repeat(40)
+      stage.acceptanceEvidence = ['proved the part that shipped']
+    })
+    expect(validateProgramme(partly, repositoryContract)).toEqual([])
+  })
+
+  it('still refuses a blocked merge nobody can check', () => {
+    // The allowance above is not a hole. A merge claimed with no pull request,
+    // no exact head or no evidence is exactly as unverifiable on a blocked
+    // stage as it would be on a complete one.
+    const waiting = notStartedStageId()
+    for (const [strip, expected] of [
+      ['pr', `stage ${waiting}: blocked with a merge and no pull request`],
+      ['headSha', `stage ${waiting}: blocked with a merge and no exact head`],
+      [
+        'acceptanceEvidence',
+        `stage ${waiting}: blocked with a merge and no acceptance evidence`,
+      ],
+    ] as const) {
+      const missing = bend((draft) => {
+        const stage = stageIn(draft, waiting)
+        stage.status = 'blocked'
+        stage.blocker = 'waiting on somebody else'
+        stage.pr = 1010
+        stage.headSha = 'a'.repeat(40)
+        stage.mergedSha = 'b'.repeat(40)
+        stage.acceptanceEvidence = ['proved the part that shipped']
+        if (strip === 'pr') stage.pr = null
+        if (strip === 'headSha') stage.headSha = null
+        if (strip === 'acceptanceEvidence') stage.acceptanceEvidence = []
+      })
+      expect(validateProgramme(missing, repositoryContract)).toContain(expected)
+    }
+  })
+
+  it('still refuses a merge recorded on a stage that has not been anywhere near one', () => {
+    const waiting = notStartedStageId()
+    const claimed = bend((draft) => {
+      const stage = stageIn(draft, waiting)
+      stage.status = 'in_progress'
+      stage.mergedSha = 'b'.repeat(40)
+    })
+    expect(validateProgramme(claimed, repositoryContract)).toContain(
+      `stage ${waiting}: records a merge while in_progress`,
+    )
+  })
+
   it('refuses a stage completed ahead of what it depends on', () => {
+    const { id, dependency } = stageAheadOfItsDependency()
     const outOfOrder = bend((draft) => {
-      const stage = stageIn(draft, '2')
+      const stage = stageIn(draft, id)
       stage.status = 'complete'
       stage.pr = 1000
       stage.headSha = 'a'.repeat(40)
       stage.mergedSha = 'b'.repeat(40)
       stage.acceptanceEvidence = ['proved']
+      stage.blocker = null
     })
     expect(validateProgramme(outOfOrder, repositoryContract)).toContain(
-      'stage 2: complete before dependency 1',
+      `stage ${id}: complete before dependency ${dependency}`,
     )
   })
 

@@ -266,8 +266,37 @@
  * and Browser E2E run 32653162738. Both rebuild the migration chain through
  * 216; the browser job also reseeds and exercises authenticated journeys —
  * including the administrator's — against that rebuilt database.
+ *
+ * ── CONTRACT 217, AND THE SAME ONE REACHABLE FUNCTION ───────────────────────
+ *
+ * Push as a second delivery channel. Walked the same way:
+ *
+ *   * `public.push_subscriptions` is NEW. `authenticated` gets `select` and
+ *     `delete` under own-row policies, so a seeded user sees an empty list —
+ *     which is not a new gate on an existing read, it is a read that did not
+ *     exist yesterday and returns nothing today;
+ *   * `save_push_subscription` is NEW and browser-callable, and nothing in the
+ *     browser calls it. That is contract 217's own recorded blocker rather than
+ *     an oversight: the generated types are produced from Development and do
+ *     not know it yet, so no seeded journey can reach it;
+ *   * `reminder_deliveries.channel` is a new column with a default, on a table
+ *     no browser role may read at all;
+ *   * `claim_due_reminders` is dropped and recreated to return that column, and
+ *     has always been service_role. `process_reminder_schedule` and
+ *     `prune_push_subscription` likewise.
+ *
+ * That leaves the SAME one authenticated-reachable change as contract 216:
+ * `admin_reminder_delivery_health()`, redefined at its existing signature,
+ * still gated on `require_competition_admin()`, with two counts added — one of
+ * which reads the new table through the definer, so no policy stands between
+ * the administrator and a number.
+ *
+ * The run evidence for this contract is recorded here once this branch's own
+ * Database parity and Browser E2E jobs have completed on an exact head that
+ * contains the migration; until that line names them, the raise rests on the
+ * analysis above and nothing else.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 216
+export const SEED_REVIEWED_AT_CONTRACT = 217
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

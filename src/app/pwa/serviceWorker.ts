@@ -6,7 +6,7 @@
  * connection and it makes a returning visit cheap, and it does NOTHING that
  * could make a competitive action look like it succeeded when it did not.
  *
- * ── THREE REFUSALS, AND THEY ARE THE DESIGN ─────────────────────────────────
+ * ── FOUR REFUSALS, AND THEY ARE THE DESIGN ──────────────────────────────────
  *
  * 1. IT NEVER ANSWERS A NON-`GET` REQUEST. Every prediction, Joker, Last Man
  *    Standing pick, join, league creation, Championship action and account
@@ -28,6 +28,32 @@
  *    it was submitted, and reconciles through `save_season_predictions_batch`
  *    with the server deciding every item. A second mechanism here would be a
  *    competing authority for the same problem.
+ *
+ * 4. IT NEVER TREATS A PUSH PAYLOAD AS INSTRUCTIONS (contract 217). A push
+ *    arrives from the network into code that runs with this origin's full
+ *    authority, on a device nobody is looking at. So the payload is read as
+ *    three strings and one path and NOTHING else: no fetch, no cache write, no
+ *    message to a page, no `importScripts`, and no navigation anywhere but a
+ *    same-origin path of this application. `notificationTarget` refuses an
+ *    absolute URL, another origin and a protocol-relative address, so a
+ *    payload that has been tampered with can make a notification say something
+ *    wrong — which the server could do anyway — but cannot make a tap leave
+ *    this site.
+ *
+ * ── WHAT PUSH ADDS, AND WHAT IT DOES NOT ────────────────────────────────────
+ *
+ * `public.reminder_deliveries` decides WHETHER a player is reminded and the
+ * Edge Function decides WHAT it says. This worker renders what arrived and
+ * opens the application when it is tapped. It does not decide, schedule,
+ * suppress or count anything, and it never shows a notification that no push
+ * delivered — including, and especially, the "you have unsaved predictions"
+ * kind a client-side timer could so easily invent.
+ *
+ * A push with no readable payload STILL SHOWS SOMETHING, because a browser that
+ * is handed a push and shown no notification substitutes its own — "This site
+ * has been updated in the background" on Chrome — and may revoke the
+ * permission for repeat offences. The stand-in says only that there is
+ * something to look at, because at that point that is all this code knows.
  *
  * ── WHAT IT DOES CACHE ──────────────────────────────────────────────────────
  *
@@ -71,10 +97,34 @@ type FetchEventLike = ExtendableEventLike & {
   readonly request: Request
   respondWith: (response: Response | Promise<Response>) => void
 }
+/** The two events push adds, in the same minimum-surface style as the rest. */
+type PushEventLike = ExtendableEventLike & {
+  readonly data: { json: () => unknown } | null
+}
+type NotificationLike = {
+  readonly data: unknown
+  close: () => void
+}
+type NotificationEventLike = ExtendableEventLike & {
+  readonly notification: NotificationLike
+}
+type WindowClientLike = {
+  readonly url: string
+  focus: () => Promise<unknown>
+}
 type ServiceWorkerScope = {
   readonly location: Location
   readonly caches: CacheStorage
-  readonly clients: { claim: () => Promise<void> }
+  readonly clients: {
+    claim: () => Promise<void>
+    matchAll: (options: { type: 'window'; includeUncontrolled: boolean }) => Promise<
+      readonly WindowClientLike[]
+    >
+    openWindow: (url: string) => Promise<unknown>
+  }
+  readonly registration: {
+    showNotification: (title: string, options: Record<string, unknown>) => Promise<void>
+  }
   skipWaiting: () => Promise<void>
   addEventListener: (type: string, listener: (event: never) => void) => void
 }
@@ -144,6 +194,122 @@ scope.addEventListener('fetch', (event: FetchEventLike) => {
   const handled = handleFetch(event.request)
   if (handled) event.respondWith(handled)
 })
+
+scope.addEventListener('push', (event: PushEventLike) => {
+  // `waitUntil` is not optional here. Without it the worker may be terminated
+  // before `showNotification` resolves, and the browser then substitutes its
+  // own "site updated in the background" notice.
+  event.waitUntil(showPushNotification(readPushPayload(event)))
+})
+
+scope.addEventListener('notificationclick', (event: NotificationEventLike) => {
+  // Closed first and unconditionally. A notification left open after a tap sits
+  // in the tray looking like a reminder that is still outstanding.
+  event.notification.close()
+  event.waitUntil(openApplication(notificationTarget(event.notification.data)))
+})
+
+/** What the Edge Function sends, and the only fields this worker reads. */
+type PushMessage = {
+  readonly title: string
+  readonly body: string
+  readonly tag: string
+  readonly url: string
+}
+
+/**
+ * The stand-in for a push this worker cannot read.
+ *
+ * Deliberately vague, because at this point nothing here knows what the push
+ * was about, and a specific guess ("your predictions lock soon") would be the
+ * worker inventing a deadline. Showing nothing is not an option: the browser
+ * substitutes its own notice and counts it against the permission.
+ */
+const UNREADABLE_PUSH: PushMessage = {
+  title: 'Predictor',
+  body: 'Open Predictor to see what needs your attention.',
+  tag: 'predictor',
+  url: '/',
+}
+
+/**
+ * Read the payload as data, never as instructions.
+ *
+ * Every field is checked for being a non-empty string of its own, so a payload
+ * missing one is not rendered with `undefined` in it. Anything unreadable falls
+ * back whole rather than half.
+ */
+function readPushPayload(event: PushEventLike): PushMessage {
+  let parsed: unknown
+  try {
+    parsed = event.data ? event.data.json() : null
+  } catch {
+    return UNREADABLE_PUSH
+  }
+  if (!parsed || typeof parsed !== 'object') return UNREADABLE_PUSH
+
+  const message = parsed as Partial<Record<keyof PushMessage, unknown>>
+  const title = typeof message.title === 'string' ? message.title.trim() : ''
+  const body = typeof message.body === 'string' ? message.body.trim() : ''
+  if (!title || !body) return UNREADABLE_PUSH
+
+  return {
+    title,
+    body,
+    tag: typeof message.tag === 'string' && message.tag ? message.tag : UNREADABLE_PUSH.tag,
+    url: notificationTarget(message.url),
+  }
+}
+
+function showPushNotification(message: PushMessage): Promise<void> {
+  return scope.registration.showNotification(message.title, {
+    body: message.body,
+    // A second reminder about the same matchweek REPLACES the first rather
+    // than stacking beside it. Two live notices read as two deadlines.
+    tag: message.tag,
+    // ...and replacing does not re-buzz the phone. The player already knows.
+    renotify: false,
+    icon: '/icon-192.png',
+    // The path travels on the notification rather than being re-derived at
+    // click time, so what a tap opens is fixed when it is shown.
+    data: { url: message.url },
+  })
+}
+
+/**
+ * The only kind of address a notification may open.
+ *
+ * REFUSES ANYTHING THAT IS NOT A ROOT-RELATIVE PATH OF THIS APPLICATION. An
+ * absolute URL, another origin, a `javascript:` scheme and the protocol-
+ * relative `//elsewhere.example` form are all rejected in favour of the hub.
+ * The check is a whitelist on the first two characters rather than a blacklist
+ * of schemes, because a blacklist is the thing that eventually misses one.
+ */
+function notificationTarget(value: unknown): string {
+  if (typeof value !== 'string') return '/'
+  if (!value.startsWith('/') || value.startsWith('//')) return '/'
+  return value
+}
+
+/**
+ * Focus the application if it is already open, and open it if it is not.
+ *
+ * FOCUSING RATHER THAN OPENING is the difference between a player finding the
+ * tab they were already using and finding a second copy of it beside the first,
+ * having lost whatever they had half-typed into the first.
+ */
+async function openApplication(path: string): Promise<void> {
+  const target = new URL(path, scope.location.origin)
+  const clients = await scope.clients.matchAll({ type: 'window', includeUncontrolled: true })
+
+  for (const client of clients) {
+    if (new URL(client.url).origin === scope.location.origin) {
+      await client.focus()
+      return
+    }
+  }
+  await scope.clients.openWindow(target.href)
+}
 
 /**
  * The whole routing decision, and what it refuses.

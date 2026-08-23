@@ -23,11 +23,23 @@ import { accountScenarios, shellScenarios } from '../../src/vnext/fixtures'
  * account surface offers ONE switch, for the one thing that is scheduled, and
  * this is what stops a second appearing before a second is deliverable.
  *
- * ============================ AND PUSH IS NOT MENTIONED =================
+ * ============================ AND PUSH IS NOT MENTIONED YET =============
  *
- * There is no service worker, no push subscription, no VAPID key and nowhere to
- * store one. Offering a browser-push preference would be the interface
- * inventing a channel, which is the same defect one level up.
+ * THIS PARAGRAPH USED TO SAY there was no service worker, no push subscription,
+ * no VAPID key and nowhere to store one. Contract 217 changed three of those
+ * four: `public.push_subscriptions` exists, the Edge Function signs and
+ * encrypts RFC 8291 payloads, and the worker renders them. The account surface
+ * still offers no push control, and the reason is now a different one that has
+ * to be written down accurately rather than left reading as the old one.
+ *
+ * `TYPE-001` closed the untyped Supabase client: every call from `src/` is
+ * checked against `src/services/supabase/database.types.ts`, which is generated
+ * from hosted Development. Development trails the repository, so
+ * `save_push_subscription` is not in that file, and a switch that called it
+ * would not compile. The repository states that ordering as a feature — an RPC
+ * has to exist on Development before a browser is written against it — and the
+ * gate below is what stops this file's guarantee quietly rotting in the
+ * meantime.
  */
 
 function renderAccount() {
@@ -64,13 +76,13 @@ describe('the account offers only the notification it can actually send', () => 
     expect(within(row).getByText(/before your predictions lock/i)).toBeInTheDocument()
   })
 
-  it('offers no control for a channel that does not exist', () => {
+  it('offers no control for a channel the browser cannot yet reach', () => {
     const { container } = renderAccount()
     const words = container.textContent ?? ''
     for (const absent of ['push', 'notification', 'alerts', 'SMS']) {
       expect(
         words.toLowerCase().includes(absent.toLowerCase()),
-        `the account offers or mentions "${absent}", which no backend can honour`,
+        `the account offers or mentions "${absent}", which this browser build cannot honour`,
       ).toBe(false)
     }
   })
@@ -82,6 +94,40 @@ describe('the account offers only the notification it can actually send', () => 
     // reporting something it cannot know.
     const { container } = renderAccount()
     expect(container.textContent ?? '').not.toMatch(/\b(sent|delivered|we emailed)\b/i)
+  })
+})
+
+describe('the push switch is owed the moment the browser can be written for it', () => {
+  it('fails as soon as the generated types know about save_push_subscription', () => {
+    // AN EXECUTABLE REMINDER, NOT A TODO. Contract 217 built the whole push
+    // channel — the subscription table, the VAPID signing, the aes128gcm
+    // encryption, the service worker's `push` and `notificationclick` handlers
+    // — and every part of it is inert until a player can turn it on. The only
+    // thing in the way is that `database.types.ts` is generated from hosted
+    // Development, which trails the repository, so the two writes the switch
+    // needs would not compile.
+    //
+    // WHEN THIS TEST FAILS, THAT IS THE SIGNAL AND NOT A FAULT. It means
+    // contract 217 reached Development and the types were regenerated, so the
+    // account surface can now offer:
+    //
+    //   * a second switch, drawn ONLY where push genuinely works;
+    //   * an explanation instead of a switch on iOS in a Safari tab, where
+    //     adding to the Home Screen is what makes it work — the one "off" a
+    //     player can do something about and will never guess;
+    //   * an explanation instead of a switch where the permission is denied,
+    //     because the prompt cannot be shown again from a page;
+    //   * a note on the email row saying where the nudge actually goes, since
+    //     contract 217's claim prefers push wherever a device exists.
+    //
+    // Delete this case when that switch exists, and replace it with the states
+    // above. Do not delete it to make a build green.
+    const types = readFileSync('src/services/supabase/database.types.ts', 'utf8')
+    expect(
+      types.includes('save_push_subscription'),
+      'The generated types now know contract 217. Build the account push switch ' +
+        'and replace this case with its states — see the comment above.',
+    ).toBe(false)
   })
 })
 

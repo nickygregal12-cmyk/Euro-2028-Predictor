@@ -152,3 +152,31 @@ describe('an event with no push wording is refused, not guessed at', () => {
     },
   )
 })
+
+describe('the sender and the service worker agree on the payload', () => {
+  it('names every key the worker reads, and no key it would ignore', async () => {
+    // TWO SEPARATE DECLARATIONS, AND THEY CANNOT SHARE ONE. The worker imports
+    // nothing — `buildServiceWorker.ts` transforms that single file, so an
+    // import would ship as a broken reference — so nothing but a test can hold
+    // these two in step.
+    //
+    // The failure this prevents is quiet in the worst way: rename a key here
+    // and the worker reads `undefined`, falls back to its stand-in notice, and
+    // every player gets "Open Predictor to see what needs your attention"
+    // instead of their reminder. Nothing errors and nothing is logged.
+    const { readFileSync } = await import('node:fs')
+    const worker = readFileSync('src/app/pwa/serviceWorker.ts', 'utf8')
+
+    const result = buildPushPayload(closing(3))
+    if (!result.ok) throw new Error('this kind must be supported')
+    const emitted = Object.keys(result.payload).sort()
+
+    expect(emitted).toEqual(['body', 'tag', 'title', 'url'])
+    for (const key of emitted) {
+      expect(
+        new RegExp(`\\b${key}\\b`).test(worker),
+        `the payload carries "${key}" and the service worker never mentions it`,
+      ).toBe(true)
+    }
+  })
+})

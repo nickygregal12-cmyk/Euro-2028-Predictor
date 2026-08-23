@@ -312,6 +312,17 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 217 push-channel review
+
+No programme milestone moves. Contract 217 is a second delivery channel for an
+existing capability, chosen because it is the one that can run without the brand
+decision the transactional email sender is waiting on — so it converts a blocked
+dependency into a deliverable one rather than adding a new dependency.
+
+Its own remaining step is recorded where it belongs rather than here: the
+account switch waits on a Development rollout, which is the hosted index's
+business and not this plan's.
+
 ## Contract 216 reminder-dispatch review
 
 No phase of this plan changes. The work is the last connection in a subsystem
