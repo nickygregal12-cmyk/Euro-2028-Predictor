@@ -533,3 +533,7 @@ same paragraph existed in seven places at once.
 ### Contract 214 — current-card confirmation integrity
 
 The repository now keeps matchweek confirmation tied to the card that was actually confirmed: material prediction/Joker edits return it to provisional, while no-op and rejected writes leave the current confirmation intact. The migration still requires the normal hosted rollout gate before any hosted environment can rely on these fields.
+
+### Contract 215 review — AI Lab forecast/value currency
+
+Contract 215 is a repository-only consistency correction for the private AI Lab. The value loop keeps historical forecast horizons for audit but assesses only `ai.canonical_fixture_predictions`, and the current-recommendation read fails closed when a fresher canonical forecast has not yet been evaluated. This does not reorder the product roadmap, widen betting exposure, change model-selection policy or close #854: generated Bet Builder slips still need immutable slip-level settlement/performance evidence, and hosted rollout remains a separate guarded milestone.

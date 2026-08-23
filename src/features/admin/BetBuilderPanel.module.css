@@ -1,69 +1,76 @@
 .builder { display: grid; gap: var(--sp-4); min-width: 0; }
-.intro { display: grid; gap: var(--sp-2); }
-.intro h2 { margin: 0; color: var(--tx); font-family: var(--font-display); font-size: var(--fs-4); font-weight: 560; }
-.intro p { max-width: 46rem; margin: 0; color: var(--tx2); line-height: 1.55; }
+.intro { display: flex; align-items: end; justify-content: space-between; gap: var(--sp-4); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--card); }
+.intro > div { display: grid; gap: .45rem; max-width: 48rem; }
+.intro h2, .resultsHeading h3 { margin: 0; color: var(--tx); font-family: var(--font-display); font-weight: 560; }
+.intro h2 { font-size: clamp(1.65rem, 3vw, 2.35rem); }
+.intro p, .resultsHeading p { margin: 0; color: var(--tx2); line-height: 1.55; }
+.eyebrow { color: var(--acc); font-size: var(--fs-eyebrow); font-weight: 850; letter-spacing: .06em; text-transform: uppercase; }
 
-.controls { display: grid; gap: var(--sp-3); padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--card); }
+.controls { display: grid; gap: var(--sp-4); padding: var(--sp-4); border: 1px solid color-mix(in srgb, var(--acc) 22%, var(--line)); border-radius: var(--radius-card); background: var(--card); }
+.primaryControls { display: grid; grid-template-columns: repeat(2, minmax(0, 12rem)); gap: var(--sp-3); }
+.primaryControls label, .moreGrid label { display: grid; gap: .4rem; min-width: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 750; }
+.primaryControls input, .primaryControls select, .moreGrid input, .moreGrid select { width: 100%; min-width: 0; min-height: var(--tap-min); padding: .55rem .7rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; font-variant-numeric: tabular-nums; }
+.fieldset { display: grid; gap: .55rem; min-width: 0; margin: 0; padding: 0; border: 0; }
+.fieldset legend { margin-bottom: .45rem; padding: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 800; }
+.chips, .leagueFilters { display: flex; flex-wrap: wrap; gap: .45rem; }
+.chips button, .leagueFilters button { min-height: var(--tap-min); padding: .5rem .8rem; border: 1px solid var(--line); border-radius: 999px; background: var(--input-bg); color: var(--tx2); font: inherit; font-size: var(--fs-1); font-weight: 750; cursor: pointer; }
+.chips button[aria-pressed='true'], .leagueFilters button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--acc) 55%, var(--line)); background: color-mix(in srgb, var(--acc) 13%, var(--card)); color: var(--tx); }
+.chips button:focus-visible, .leagueFilters button:focus-visible, .more summary:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+.explanation, .riskNote { margin: 0; max-width: 52rem; color: var(--tx3); font-size: var(--fs-1); line-height: 1.5; }
+.riskNote { padding: .65rem .75rem; border-left: 3px solid var(--gold-strong); background: color-mix(in srgb, var(--gold-strong) 8%, transparent); color: var(--tx2); }
+.more { border-top: 1px solid var(--line); padding-top: var(--sp-3); }
+.more summary { width: fit-content; color: var(--tx2); font-size: var(--fs-1); font-weight: 800; cursor: pointer; }
+.moreGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
+.leagueFilters { margin-top: var(--sp-3); }
+.loading { display: grid; gap: var(--sp-3); }
 
-/* The three answers the page is actually asking for -- how much, for what
-   return, over how many legs -- sit on one row above everything else. */
-.primary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(9rem, 100%), 1fr)); align-items: end; gap: var(--sp-3); }
-.amount { display: grid; gap: .4rem; min-width: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
-.amount input, .amount select { min-width: 0; width: 100%; min-height: var(--tap-min); padding-inline: .7rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; font-size: var(--fs-2); font-weight: 600; font-variant-numeric: tabular-nums; }
-.amount input::placeholder { color: var(--tx3); font-size: var(--fs-1); font-weight: 500; }
+.coverage { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-2); }
+.coverage > div { display: grid; gap: .2rem; padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); }
+.coverage span { color: var(--tx3); font-size: var(--fs-eyebrow); font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
+.coverage strong { color: var(--tx); font-family: var(--font-display); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 560; font-variant-numeric: tabular-nums; }
 
-/* Says the target back in both currencies -- return and profit -- because one
-   input now stands where a three-way choice used to. */
-.readout { margin: 0 0 var(--sp-1); color: var(--tx2); font-size: var(--fs-1); line-height: 1.5; }
-.field { display: grid; gap: .5rem; min-width: 0; margin: 0; padding: 0; border: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
-.field legend { padding: 0; color: var(--tx2); font-size: var(--fs-1); font-weight: 700; }
-.field select, .field input, .optionalGrid input { min-height: var(--tap-min); padding-inline: .7rem; border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx); font: inherit; font-weight: 500; }
-.field small, .optionalGrid small { color: var(--tx3); font-weight: 500; line-height: 1.45; }
-.field > small { max-width: 46rem; }
+.results { display: grid; gap: var(--sp-3); }
+.resultsHeading { display: flex; align-items: end; justify-content: space-between; gap: var(--sp-3); }
+.resultsHeading > div { display: grid; gap: .25rem; }
+.resultsHeading h3 { font-size: var(--fs-4); }
+.resultsHeading p { font-size: var(--fs-1); }
+.resultGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-3); }
+.combo { display: grid; align-content: start; gap: var(--sp-3); min-width: 0; padding: var(--sp-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--card); }
+.combo:first-child { border-color: color-mix(in srgb, var(--acc) 48%, var(--line)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--acc) 18%, transparent); }
+.combo > header { display: grid; grid-template-columns: auto 1fr 1fr; align-items: center; gap: var(--sp-3); }
+.combo > header > span { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: color-mix(in srgb, var(--acc) 13%, var(--input-bg)); color: var(--acc); font-size: var(--fs-1); font-weight: 850; }
+.combo > header > div { display: grid; gap: .1rem; }
+.combo > header strong { color: var(--tx); font-family: var(--font-display); font-size: clamp(1.45rem, 3vw, 2rem); font-weight: 560; font-variant-numeric: tabular-nums; }
+.combo > header small, .combo footer span { color: var(--tx3); font-size: var(--fs-eyebrow); text-transform: uppercase; }
+.combo ul { display: grid; gap: .45rem; margin: 0; padding: 0; list-style: none; }
+.combo li { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); padding: .7rem .8rem; border-radius: var(--radius-input); background: var(--input-bg); }
+.combo li > div:first-child { display: grid; gap: .15rem; min-width: 0; }
+.combo li strong { color: var(--tx); }
+.combo li span { color: var(--tx3); font-size: var(--fs-1); line-height: 1.4; }
+.legNumbers { display: grid; justify-items: end; flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+.legNumbers strong { font-size: var(--fs-2); }
+.combo footer { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .45rem; }
+.combo footer > div { display: grid; gap: .15rem; padding: .55rem; border-top: 1px solid var(--line); }
+.combo footer strong { color: var(--tx); font-size: var(--fs-1); font-variant-numeric: tabular-nums; }
+.bookNote { margin: 0; color: var(--tx3); font-size: var(--fs-1); line-height: 1.45; }
+.empty { display: grid; justify-items: start; gap: .4rem; padding: clamp(1.25rem, 4vw, 2rem); border: 1px dashed var(--line); border-radius: var(--radius-card); background: var(--card); }
+.empty strong { color: var(--tx); font-size: var(--fs-2); }
+.empty p, .empty small { margin: 0; max-width: 48rem; color: var(--tx2); line-height: 1.5; }
+.empty small { color: var(--tx3); }
 
-.chips { display: flex; flex-wrap: wrap; gap: .35rem; }
-.chips button { min-height: var(--tap-min); padding: .4rem .7rem; border: 1px solid var(--line); border-radius: 999px; background: var(--input-bg); color: var(--tx2); font: inherit; font-size: var(--fs-1); font-weight: 700; cursor: pointer; }
-.chips button[aria-pressed='true'] { border-color: color-mix(in srgb, var(--acc) 55%, var(--line)); background: color-mix(in srgb, var(--acc) 14%, var(--card)); color: var(--acc); }
-.chips button:focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+@container (max-width: 58rem) {
+  .moreGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .coverage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .resultGrid { grid-template-columns: 1fr; }
+  .combo footer { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
-.optional { padding: var(--sp-3); border: 1px solid var(--line); border-radius: var(--radius-input); background: var(--input-bg); color: var(--tx2); }
-.optional summary { font-size: var(--fs-1); font-weight: 750; cursor: pointer; }
-.optionalGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: var(--sp-3); margin-top: var(--sp-3); }
-.optionalGrid label { display: grid; gap: .35rem; font-size: var(--fs-1); font-weight: 700; }
-.wide { grid-column: 1 / -1; }
-
-.summary { margin: 0; color: var(--tx3); font-size: var(--fs-1); }
-.emptyCopy { margin: 0 0 var(--sp-2); line-height: 1.55; }
-.reasons { display: grid; gap: .25rem; margin: 0 0 var(--sp-2); padding-left: 1.1rem; font-size: var(--fs-1); }
-
-.results { display: grid; gap: var(--sp-4); margin: 0; padding: 0; list-style: none; }
-.card { display: grid; gap: var(--sp-3); min-width: 0; padding: var(--sp-4); border: 1px solid color-mix(in srgb, var(--acc) 26%, var(--line)); border-radius: var(--radius-card); background: var(--card); }
-.cardHead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--sp-3); }
-.cardHead > div:first-child { display: flex; align-items: center; gap: var(--sp-2); }
-.cardHead strong { color: var(--tx); font-family: var(--font-display); font-size: var(--fs-4); font-weight: 560; font-variant-numeric: tabular-nums; }
-.bookPill { display: inline-flex; align-items: center; padding: .3rem .55rem; border-radius: 999px; background: color-mix(in srgb, var(--acc) 15%, var(--card)); color: var(--acc); font-size: var(--fs-eyebrow); font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.money { display: flex; flex-wrap: wrap; gap: var(--sp-3); color: var(--tx3); font-size: var(--fs-1); }
-.money span { display: grid; gap: .15rem; }
-.money strong { color: var(--tx); font-size: var(--fs-3); font-variant-numeric: tabular-nums; }
-
-.actionable { margin: 0; color: var(--tx2); font-size: var(--fs-1); line-height: 1.5; }
-.tableScroll { min-width: 0; overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; color: var(--tx); font-size: var(--fs-1); }
-.table th { padding: .6rem .5rem; border-bottom: 1px solid var(--line); color: var(--tx3); font-size: var(--fs-eyebrow); letter-spacing: .04em; text-align: left; text-transform: uppercase; white-space: nowrap; }
-.table td { padding: .7rem .5rem; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; vertical-align: top; white-space: nowrap; }
-.table tbody tr:last-child td { border-bottom: 0; }
-.table td strong, .table td span { display: block; }
-.table td span { margin-top: .15rem; color: var(--tx3); }
-
-.combined { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: var(--sp-3); margin: 0; padding: var(--sp-3); border-radius: var(--radius-input); background: var(--input-bg); }
-.combined div { display: grid; gap: .2rem; min-width: 0; }
-.combined dt { color: var(--tx3); font-size: var(--fs-eyebrow); font-weight: 750; letter-spacing: .04em; text-transform: uppercase; }
-.combined dd { margin: 0; color: var(--tx); font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
-
-.warnings { display: grid; gap: .3rem; margin: 0; padding-left: 1.1rem; color: var(--tx2); font-size: var(--fs-1); }
-.correlation { margin: 0; color: var(--tx3); font-size: var(--fs-1); line-height: 1.5; }
-
-@media (max-width: 48rem) {
-  .controls { padding: var(--sp-3); }
-  .money { width: 100%; justify-content: space-between; }
+@container (max-width: 38rem) {
+  .intro, .resultsHeading { align-items: stretch; flex-direction: column; }
+  .primaryControls { grid-template-columns: 1fr 1fr; }
+  .moreGrid { grid-template-columns: 1fr; }
+  .coverage { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .combo > header { grid-template-columns: auto 1fr; }
+  .combo > header > div:last-child { grid-column: 2; }
+  .combo li { align-items: flex-start; }
 }

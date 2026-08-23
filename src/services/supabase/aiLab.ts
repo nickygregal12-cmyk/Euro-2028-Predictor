@@ -48,10 +48,3 @@ export async function fetchAiLabSnapshot(league: string | null): Promise<AiLabSn
   return mapAiLabSnapshot(raw)
 }
 
-export async function promoteAiModel(modelId: string, reason: string): Promise<void> {
-  const { error } = await db.rpc('admin_ai_promote_model', {
-    p_model_id: modelId,
-    p_reason: reason,
-  })
-  if (error) throw error
-}

@@ -375,3 +375,7 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 ### Contract 214 — season card confirmation baseline
 
 Season matchweek confirmation now describes the current card rather than an earlier edit state. Successful material prediction/Joker changes clear the confirmation back to provisional; no-op and rejected writes do not. Confirmation time/reference are server-derived display evidence, not a second receipt ledger or cryptographic proof.
+
+### Contract 215 review — private AI Lab evidence currency
+
+Contract 215 hardens an existing private administrative research capability rather than creating a new compact user feature or safeguard identifier. Historical forecasts remain inspectable, but only the canonical newest forecast may produce the current value decision and stale recommendation evidence fails closed across a forecast-version change. No public betting surface, scoring rule, competition state, player data boundary or hosted classification changes here, so the compact `FEAT-*` / `SAFE-*` rows above are unchanged.
