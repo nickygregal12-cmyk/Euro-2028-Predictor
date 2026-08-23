@@ -401,6 +401,17 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 217 push-channel review
+
+No hub surface, route or build step changes. The notification a push delivers
+sends a tap to the hub, which is the surface that already lists a player's
+outstanding actions — chosen because the notification event carries a
+competition identifier and not the two slugs a competition route needs, so a
+deep link here would be a guess that opens a 404.
+
+That is the only line this plan owns about contract 217, and it becomes worth
+revisiting only if a notification ever needs to open a specific competition.
+
 ## Contract 216 reminder-dispatch review
 
 No build stage moves and no hub surface changes. Reminders are per-player and

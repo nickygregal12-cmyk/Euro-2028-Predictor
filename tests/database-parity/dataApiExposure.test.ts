@@ -132,6 +132,14 @@ describe('direct table access granted to browser roles', () => {
       'match_predictions:select, insert, update',
       'predicted_group_positions:select',
       'predicted_progression:select',
+      // Contract 217. READ AND REVOKE ONLY, and the absence of `insert` and
+      // `update` is the point: a new subscription may have to be taken off
+      // another account when a device changes hands, which no own-row policy
+      // can express, so writing goes through a `security definer` function.
+      // Deleting your own needs no such privilege, and making it an ordinary
+      // policy-gated delete is the stronger statement — the ability to make
+      // this platform unable to reach you does not depend on a function.
+      'push_subscriptions:select, delete',
     ])
   })
 

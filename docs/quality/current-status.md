@@ -22,7 +22,7 @@
      Do not edit between these markers — run `npm run generate:now`.
      `npm run check:now` fails in CI when this region disagrees with those records. -->
 
-The repository is at **contract 216**, through `20260823120000_reminder_dispatch_wiring.sql`.
+The repository is at **contract 217**, through `20260824090000_web_push_channel.sql`.
 Development Supabase is hosted at **213**, verified `2026-08-21T09:22:18.620Z`.
 Production Supabase is hosted at **211**, verified `2026-08-20T10:32:54.145Z`; further promotion is **not authorised**.
 

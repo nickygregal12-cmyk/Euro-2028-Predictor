@@ -380,6 +380,16 @@ Season matchweek confirmation now describes the current card rather than an earl
 
 Contract 215 hardens an existing private administrative research capability rather than creating a new compact user feature or safeguard identifier. Historical forecasts remain inspectable, but only the canonical newest forecast may produce the current value decision and stale recommendation evidence fails closed across a forecast-version change. No public betting surface, scoring rule, competition state, player data boundary or hosted classification changes here, so the compact `FEAT-*` / `SAFE-*` rows above are unchanged.
 
+### Contract 217 — a second channel, classified honestly
+
+Push moves the reminder feature from one channel to two on the server and leaves
+the player-facing classification exactly where it was: **implemented and
+switched off**. Nothing a player can see changes, because the account surface
+offers no way to subscribe. What the safeguard inventory gains is a fallback
+nobody wrote — a push endpoint the service disowns is pruned, and the retry
+chooses email because the channel is recomputed per attempt rather than fixed
+when the reminder was scheduled.
+
 ### Contract 216 — reminder dispatch baseline
 
 The reminder path now has all four of its jobs: generate, schedule, reclaim and
