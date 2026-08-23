@@ -85,7 +85,10 @@ test('Matches uses the real filter, league-table context and Match Centre journe
 })
 
 test('desktop pointer feedback changes computed styles on representative shipping controls', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes('mobile'), 'Hover is a fine-pointer acceptance check.')
+  test.skip(
+    testInfo.project.name !== 'shipping-vnext-desktop',
+    'Hover is a fine-pointer acceptance check and only a desktop project has a fine pointer.',
+  )
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.goto(SCOTTISH_HOME)
   await expectVNext(page)
@@ -99,7 +102,10 @@ test('desktop pointer feedback changes computed styles on representative shippin
 })
 
 test('changed Matches composition has real-app screenshot evidence across required widths', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name.includes('mobile'), 'One project captures the explicit cross-width visual matrix.')
+  test.skip(
+    testInfo.project.name !== 'shipping-vnext-desktop',
+    'One project captures the explicit cross-width visual matrix, which sets its own widths.',
+  )
 
   for (const width of [360, 390, 430, 768, 1024, 1440, 1920]) {
     await page.setViewportSize({ width, height: width < 768 ? 900 : 1050 })

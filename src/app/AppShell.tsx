@@ -24,6 +24,13 @@ import { useGlobalPlayInbox } from '../features/hub/useGlobalPlayInbox'
 const ActionCentre = lazy(() =>
   import('./ActionCentre').then((module) => ({ default: module.ActionCentre })),
 )
+// Privileged discovery is needed only once a vNext-owned signed-in frame is on
+// screen. Keeping it behind its own chunk prevents the Auth metadata lookup,
+// icon and Control Room utility CSS from becoming entry-chunk tax for every
+// legacy/non-vNext visit. The `/admin` route remains the authorization gate.
+const AdminUtilityEntry = lazy(() =>
+  import('./vnext/AdminUtilityEntry').then((module) => ({ default: module.AdminUtilityEntry })),
+)
 import { globalNavTab, isCompetitionModePath, isTvModePath } from './shellRoutes'
 import { vNextOwnsFrame } from './vnext/frameOwnership'
 
@@ -114,38 +121,36 @@ function SignedInFrame() {
     applyAppBadge(outstanding)
   }, [inboxStatus, outstanding])
 
-  // INNOV-006. The matchday television screen is a competition surface like
-  // every other one — same authentication, same domestic boundary — and the one
-  // thing it must not inherit is this frame. A bar sized for a thumb and a
-  // bottom bar sized for a pocket are wrong on a screen across a room, and the
-  // mode carries no account or admin control by design. The exception lives
-  // HERE rather than as a second route boundary, because a second boundary is
-  // one a future route can be added to the wrong side of in silence.
-  // STAGE 14. A CUT-OVER DESTINATION BRINGS ITS OWN FRAME, and the same
-  // argument applies for the same reason: every vNext surface renders
-  // `VNextShell`, so leaving this one wrapped around it stacks two navigations
-  // — and the outer one draws `Play` and `More`, the two tabs the route matrix
-  // retires. `vNextOwnsFrame` is per destination and per flag, so turning one
-  // destination off restores its page AND this chrome around it together.
-  //
-  // The membership provider above stays mounted either way: `AppShell` supplies
-  // it outside this component, and the vNext seam reads it to turn a shell
-  // intent into a URL.
-  //
-  // A SHARED ADDRESS IS ASKED ABOUT THE BUILD AS WELL AS THE FLAG. `/` is one
-  // of `variantRoutes.ts`'s four shared paths, and on the Euro deployment it is
-  // the tournament's home rather than a vNext surface — so the frame is
-  // surrendered there only where this build serves the domestic tree.
+  // INNOV-006. Matchday television deliberately carries no account/admin
+  // utility. It is a read-across-the-room surface, not signed-in application
+  // chrome, so it must leave this frame before privileged discovery mounts.
+  if (isTvModePath(location.pathname)) {
+    return (
+      <Suspense fallback={<RouteFallback />}>
+        <Outlet />
+      </Suspense>
+    )
+  }
+
+  // STAGE 14. A cut-over destination owns its own vNext frame. The Admin entry
+  // sits beside that frame rather than inside presentation modules: visibility
+  // resolves trusted Auth app_metadata in the application layer and `/admin`
+  // independently re-authorises. The site-aware ownership argument is retained
+  // so shared Euro addresses never inherit domestic-only vNext chrome.
   if (
-    isTvModePath(location.pathname) ||
     vNextOwnsFrame(location.pathname, {
       servesDomesticCompetitions: site.servesDomesticCompetitions,
     })
   ) {
     return (
-      <Suspense fallback={<RouteFallback />}>
-        <Outlet />
-      </Suspense>
+      <>
+        <Suspense fallback={null}>
+          <AdminUtilityEntry />
+        </Suspense>
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
+      </>
     )
   }
 

@@ -13,7 +13,7 @@ One page of current facts, generated from the machine-readable sources. It is
 
 | | Contract | Detail |
 | --- | ---: | --- |
-| Repository | **213** | latest `20260820150000_drop_unmeasured_sportmonks_tokens.sql` |
+| Repository | **214** | latest `20260820170000_confirmation_tracks_current_card.sql` |
 | Development hosted | **213** | at `20260820150000_drop_unmeasured_sportmonks_tokens.sql`, verified `2026-08-21T09:22:18.620Z` |
 | Production | **211** | promotion **not authorised** |
 
@@ -22,9 +22,9 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** None. Hosted development is level with the repository.
+**Pending development migrations:** 1 — `20260820170000_confirmation_tracks_current_card.sql`
 
-**Next free contract number:** 214. Check open pull requests
+**Next free contract number:** 215. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.
 
 ## Journey flags

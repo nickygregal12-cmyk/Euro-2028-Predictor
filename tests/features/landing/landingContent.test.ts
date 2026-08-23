@@ -180,7 +180,7 @@ describe('the landing page content model', () => {
     expect(marketingPhaseAt(-1)).toBe(MARKETING_PHASES[MARKETING_PHASES.length - 1])
   })
 
-  it('never previews another player\u2019s unrevealed prediction', () => {
+  it('never previews another player’s unrevealed prediction', () => {
     // A marketing page must not teach a visitor to expect the product to break a
     // reveal rule. The league phase is a SETTLED matchweek, which is when the
     // real product reveals.
@@ -220,19 +220,18 @@ describe('the landing page content model', () => {
     }
   })
 
-  it('draws no legal link to a document that does not exist', () => {
-    // A footer link that answers Not Found reads as a document that exists and
-    // was withheld, which is worse than an absent one. Privacy and Terms are
-    // DECLARED so the deferral is visible and publishing either is a one-line
-    // change — and they carry no route until there is one.
+  it('links only to legal documents the public app actually serves', () => {
+    // Privacy and Terms now have real public routes in this release-closure
+    // branch. Keep the footer model tied to those routes so a later removal or
+    // rename cannot silently leave acquisition copy pointing at Not Found.
     expect(LEGAL_LINKS.map((link) => link.label)).toEqual([
       'About & Disclaimer',
       'Privacy',
       'Terms',
     ])
     expect(LEGAL_LINKS.find((link) => link.label === 'About & Disclaimer')?.to).toBe('/about')
-    expect(LEGAL_LINKS.find((link) => link.label === 'Privacy')?.to).toBeNull()
-    expect(LEGAL_LINKS.find((link) => link.label === 'Terms')?.to).toBeNull()
+    expect(LEGAL_LINKS.find((link) => link.label === 'Privacy')?.to).toBe('/privacy')
+    expect(LEGAL_LINKS.find((link) => link.label === 'Terms')?.to).toBe('/terms')
   })
 
   it('only offers navigation to sections the page actually renders', () => {

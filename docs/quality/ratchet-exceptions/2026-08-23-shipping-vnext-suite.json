@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "changes": [
+    {
+      "id": "playwright-retries:playwright.shipping-vnext.config.ts",
+      "from": 0,
+      "to": 1,
+      "reason": "A NEW Playwright configuration measured against an absent file, so its baseline is zero by construction rather than by anyone lowering it. One CI retry is the settled house value: playwright.config.ts, playwright.auth.config.ts, playwright.euro.config.ts and playwright.vnext.config.ts each already declare retries: process.env.CI ? 1 : 0, and this file copies that line rather than choosing a weaker one. Matching the existing configurations is the opposite of weakening the gate.",
+      "evidence": "playwright.auth.config.ts"
+    },
+    {
+      "id": "test-suppression:e2e/shipping-vnext-private-match-predictor.spec.ts",
+      "from": 0,
+      "to": 1,
+      "reason": "A NEW spec, so the zero is the absence of the file rather than a suppression anyone removed. The control counted is a PROJECT GATE, not a skipped test: the two-account data lifecycle runs once on shipping-vnext-desktop because it creates real disposable rows, while the owner create corridor it covers still runs on both shipping viewports. e2eProjectGating.test.ts independently requires every such gate to name a project its own configuration declares and to carry a stated reason.",
+      "evidence": "tests/scripts/e2eProjectGating.test.ts"
+    },
+    {
+      "id": "test-suppression:e2e/shipping-vnext-release-acceptance.spec.ts",
+      "from": 0,
+      "to": 2,
+      "reason": "A NEW spec, so the zero is the absence of the file. Both controls are PROJECT GATES rather than skipped tests, and each states a property of the project rather than a defect being avoided: hover feedback is a fine-pointer check that a Pixel 7 project cannot perform, and the cross-width visual matrix sets its own seven viewport widths, so running it a second time under a mobile project would capture the same widths twice.",
+      "evidence": "tests/scripts/e2eProjectGating.test.ts"
+    }
+  ]
+}

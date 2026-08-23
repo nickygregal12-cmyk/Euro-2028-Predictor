@@ -249,6 +249,15 @@ describe('success means the authoritative destination can find the container', (
         await blocked
         return { id: 'lg-1', name, inviteCode: 'MUTATION' }
       }),
+      // The authoritative reread has to AGREE with that write. The default
+      // fixture keeps them in step through a closure the default `createLeague`
+      // writes to, and overriding the creator alone silently skipped it — so the
+      // reread answered the placeholder name and the success copy this case ends
+      // on could never appear, for a reason that has nothing to do with
+      // double-submission.
+      readLeagues: vi.fn(async (id: string) => [
+        { id: 'lg-1', name: 'The Sunday Club', inviteCode: `LEAGUE-${id}`, isOwner: true },
+      ]),
     })
     renderCorridor({ writes: perform })
 
@@ -257,7 +266,12 @@ describe('success means the authoritative destination can find the container', (
     const button = zone.getByRole('button', { name: 'Create it' })
     fireEvent.click(button)
     fireEvent.click(button)
-    expect(perform.createLeague).toHaveBeenCalledTimes(1)
+    // AWAITED, AND NOT AS A COURTESY. The screen resolves its writes before it
+    // calls one, so the create lands a microtask after the click rather than
+    // inside it — asserting synchronously here measured zero calls and would
+    // have reported the guard broken while it was working. Both clicks are
+    // already delivered, so a lost guard still shows up as two.
+    await waitFor(() => expect(perform.createLeague).toHaveBeenCalledTimes(1))
 
     release?.()
     expect(await screen.findByText(/The Sunday Club is ready/)).toBeInTheDocument()

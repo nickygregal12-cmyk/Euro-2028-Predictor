@@ -16,7 +16,7 @@ import styles from './home.module.css'
 export type DecisionHeroProps = {
   match: Match
   now: string
-  onActivate?: (() => void) | undefined
+  onAction?: (() => void) | undefined
 }
 
 /**
@@ -41,7 +41,15 @@ export type DecisionHeroProps = {
  * IT IS STILL THE SAME HOME. Same tokens, same radii, same surfaces, same
  * masthead above it and same ticker under that. Only the emphasis moved.
  */
-export function DecisionHero({ match, now, onActivate }: DecisionHeroProps) {
+export function DecisionHero({ match, now, onAction }: DecisionHeroProps) {
+// `useId` RATHER THAN THE MATCH ID, AND THE REASON IS NOT HYPOTHETICAL. An id
+// built from data is unique only while the data is, and the public landing
+// page's product preview mounts this surface more than once in a document.
+// `duplicate-id-aria` is a CRITICAL axe rule, and the effect is real: two
+// elements with one id make `aria-labelledby` point at whichever the browser
+// finds first, so one of the two headings labels both regions. React's `useId`
+// is unique per instance by construction, which is the property this needed all
+// along.
   const headingId = useId()
   const countdown = match.lockAt ? formatCountdown(match.lockAt, now) : null
   const community = match.consensus?.community ?? null
@@ -79,6 +87,10 @@ export function DecisionHero({ match, now, onActivate }: DecisionHeroProps) {
           <DecisionSide side={match.away} align="end" />
         </div>
 
+        {/* The deadline, as the loudest single fact after the clubs. A
+            countdown that has run out is a different state and the formatter
+            returns null rather than "0 min", so this simply says the fixture
+            is closed instead of counting backwards from nothing. */}
         <p className={styles.decisionDeadline}>
           {countdown ? (
             <>
@@ -139,7 +151,7 @@ export function DecisionHero({ match, now, onActivate }: DecisionHeroProps) {
           <button
             type="button"
             className={styles.decisionPrimary}
-            onClick={onActivate}
+            onClick={onAction}
             data-vnext-control="home-decision"
           >
             {prediction ? 'Change prediction' : 'Make your prediction'}
@@ -171,6 +183,7 @@ function DecisionSide({ side, align }: { side: MatchSide; align: 'start' | 'end'
   )
 }
 
+/** "Last 6 meetings: Glenmore 2, drawn 1, Strathkelvin 3". */
 function headToHeadLine(match: Match): string {
   const h2h = match.headToHead as HeadToHead
   return (

@@ -158,7 +158,7 @@ test('shipping vNext Match Predictor private league completes prerequisite, join
   browser,
 }, testInfo) => {
   test.skip(
-    testInfo.project.name.includes('mobile'),
+    testInfo.project.name !== 'shipping-vnext-desktop',
     'The two-account data lifecycle runs once; the owner create corridor is covered on both shipping viewports.',
   )
   test.setTimeout(210_000)

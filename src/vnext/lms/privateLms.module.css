@@ -1,4 +1,10 @@
 .page {
+  /* Named so this sheet measures ITS OWN width. vNext renders inside device
+     frames in the review lane, where the browser window is not the surface the
+     layout is on -- a viewport query there reports the wrong box. */
+  container-name: vnext-private-lms;
+  container-type: inline-size;
+
   display: grid;
   gap: var(--vnext-space-5);
   width: min(100%, 64rem);
@@ -17,7 +23,7 @@
 .hero {
   display: grid;
   gap: var(--vnext-space-2);
-  padding: clamp(1rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 3cqi, 1.5rem);
 }
 
 .eyebrow,
@@ -47,7 +53,7 @@
 }
 
 .panel {
-  padding: clamp(1rem, 3vw, 1.5rem);
+  padding: clamp(1rem, 3cqi, 1.5rem);
 }
 
 .panelHeading {
@@ -133,7 +139,7 @@
   }
 }
 
-@media (max-width: 430px) {
+@container vnext-private-lms (max-width: 430px) {
   .choiceRow {
     grid-template-columns: 1fr;
   }

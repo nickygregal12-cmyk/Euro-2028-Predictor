@@ -188,6 +188,11 @@ function pathMatches(candidate, pattern) {
 }
 
 function routeMatches(route) {
+  const excluded = (route.excludeKeywords ?? []).some((keyword) =>
+    taskLower.includes(keyword.toLowerCase()),
+  )
+  if (excluded) return false
+
   const pathMatch = (route.paths ?? []).some((pattern) =>
     candidatePaths.some((candidate) => pathMatches(candidate, pattern)),
   )

@@ -173,6 +173,17 @@ describe('the map cannot rot', () => {
       // application route and asserts nothing about a read, which is why the
       // journey map cannot reach it and should not try.
       'vnext-visual-contract.spec.ts',
+      // The shipping-vNext family, which `playwright.shipping-vnext.config.ts`
+      // collects against the committed cutover flags and `playwright.config.ts`
+      // already ignores by pattern. They are separately configured for the same
+      // reason the vNext family above is: the weekly suite runs the shell the
+      // product serves today, and these run the one it is cutting over to.
+      'shipping-vnext-account-affordance.spec.ts',
+      'shipping-vnext-journeys.spec.ts',
+      'shipping-vnext-private-lms.spec.ts',
+      'shipping-vnext-private-match-predictor.spec.ts',
+      'shipping-vnext-release-acceptance.spec.ts',
+      'shipping-vnext-shell-seams.spec.ts',
       ...parkedEuroSpecs,
     ]
     const unreachable = (specsOnDisk() as string[]).filter(

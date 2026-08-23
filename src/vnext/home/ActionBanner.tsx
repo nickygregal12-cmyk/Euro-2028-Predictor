@@ -6,8 +6,7 @@ import styles from './home.module.css'
 export type ActionBannerProps = {
   action: PrimaryAction
   now: string
-  /** Presentation emits intent; the connected screen decides navigation. */
-  onActivate?: (() => void) | undefined
+  onAction?: (() => void) | undefined
 }
 
 /**
@@ -44,7 +43,7 @@ const CALL: Record<PrimaryAction['type'], string> = {
  * the same fact is always written: the title says what is outstanding, the
  * description says which fixture, the clock says how long.
  */
-export function ActionBanner({ action, now, onActivate }: ActionBannerProps) {
+export function ActionBanner({ action, now, onAction }: ActionBannerProps) {
   const countdown = action.deadline ? formatCountdown(action.deadline, now) : null
   const progress = action.progress
 
@@ -75,7 +74,7 @@ export function ActionBanner({ action, now, onActivate }: ActionBannerProps) {
       <button
         type="button"
         className={styles.bannerButton}
-        onClick={onActivate}
+        onClick={onAction}
         data-vnext-control="home-primary-action"
       >
         {CALL[action.type]}

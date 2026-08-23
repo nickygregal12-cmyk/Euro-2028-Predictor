@@ -7,7 +7,8 @@
  * those nulls instead of inventing a public-game answer for a private instance.
  */
 
-export type PrivateCompetitionWorkspaceMember = {
+// Not exported: reaches callers inside `PrivateCompetitionWorkspace`.
+type PrivateCompetitionWorkspaceMember = {
   userId: string
   displayName: string
   isMe: boolean
@@ -17,7 +18,7 @@ export type PrivateCompetitionWorkspaceMember = {
   hasPickedCurrentRound: boolean | null
 }
 
-export type PrivateCompetitionWorkspaceRound = {
+type PrivateCompetitionWorkspaceRound = {
   windowId: string
   sequence: number | null
   label: string | null

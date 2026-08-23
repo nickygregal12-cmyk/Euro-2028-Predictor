@@ -27,6 +27,7 @@ on:
       - 'tests/scripts/authRecoveryE2E.test.ts'
       - 'tests/scripts/e2eProjectGating.test.ts'
       - 'tests/scripts/browserE2EPathFilter.test.ts'
+      - 'tests/scripts/shippingVNextE2E.test.ts'
       - 'tests/scripts/localSupabaseStart.test.ts'
       - 'tests/scripts/productionSmokePerimeter.test.ts'
   workflow_dispatch:

@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PrivateLmsSource } from './privateLmsSource'
 
-export type PrivateLmsPickState =
+// Not exported: the source hands out `picking` inside its own view type.
+type PrivateLmsPickState =
   | { readonly kind: 'idle' }
   | { readonly kind: 'saving' }
   | { readonly kind: 'conflict' }
@@ -74,13 +75,13 @@ async function loadSource(input: {
   seasonSlug: string
   privateCompetitionId: string
 }): Promise<PrivateLmsSource> {
-  const [contextModule, workspaceModule] = await Promise.all([
+  const [contextModule, { fetchPrivateCompetitionWorkspace }] = await Promise.all([
     import('../../../services/supabase/seasonPlayContext'),
     import('../../../services/supabase/privateCompetitionWorkspace'),
   ])
   const [context, workspace] = await Promise.all([
     contextModule.createSeasonPlayContextGateway().load(input.competitionSlug, input.seasonSlug),
-    workspaceModule.fetchPrivateCompetitionWorkspace(input.privateCompetitionId),
+    fetchPrivateCompetitionWorkspace(input.privateCompetitionId),
   ])
 
   if (
@@ -220,7 +221,7 @@ export function useVNextPrivateLmsSource(
       setPicking({ kind: 'saving' })
       void (async () => {
         try {
-          const [{ saveLmsSelection }, workspaceModule] = await Promise.all([
+          const [{ saveLmsSelection }, { fetchPrivateCompetitionWorkspace }] = await Promise.all([
             import('../../../services/supabase/lms'),
             import('../../../services/supabase/privateCompetitionWorkspace'),
           ])
@@ -230,7 +231,7 @@ export function useVNextPrivateLmsSource(
           // workspace does not reveal the club, but it does state whether THIS
           // caller has a stored pick in THIS private round. That is enough to
           // prove the write landed and to prevent a second first-pick write.
-          const verified = await workspaceModule.fetchPrivateCompetitionWorkspace(competitionId)
+          const verified = await fetchPrivateCompetitionWorkspace(competitionId)
           const me = verified.members.find((member) => member.isMe) ?? null
           if (
             verified.currentRound?.windowId !== round.windowId ||

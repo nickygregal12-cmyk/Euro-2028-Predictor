@@ -75,7 +75,11 @@ function offlineGateway(
     scenario: 'save_failure',
     now: BEFORE_LOCK(),
   })
-  return { load: base.load.bind(base), apply: base.apply.bind(base), reconcile }
+  return {
+    load: base.load.bind(base),
+    apply: base.apply.bind(base),
+    ...(reconcile ? { reconcile } : {}),
+  }
 }
 
 const batch = (results: unknown[]) =>

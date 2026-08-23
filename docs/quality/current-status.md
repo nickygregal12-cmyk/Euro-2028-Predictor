@@ -22,7 +22,7 @@
      Do not edit between these markers — run `npm run generate:now`.
      `npm run check:now` fails in CI when this region disagrees with those records. -->
 
-The repository is at **contract 213**, through `20260820150000_drop_unmeasured_sportmonks_tokens.sql`.
+The repository is at **contract 214**, through `20260820170000_confirmation_tracks_current_card.sql`.
 Development Supabase is hosted at **213**, verified `2026-08-21T09:22:18.620Z`.
 Production Supabase is hosted at **211**, verified `2026-08-20T10:32:54.145Z`; further promotion is **not authorised**.
 
@@ -708,3 +708,7 @@ The stable identifier, dependency and acceptance evidence for every accepted-but
 Contract 132 adds a tested initial provider-calendar approval boundary. New provider fixtures can be staged without becoming public, complete Scottish Premiership or Premier League calendars require explicit competition-admin approval, and provider scores cannot become official results through this path. Hosted rollout remains Development first, then Production after parity gates pass.
 
 > **Contract 133 boundary (8 August 2026):** Contract 133 defines authenticated-only private season Predictor Championship discovery and selected-instance player reads. Development and Production were directly reverified at Contract 132 during the 03:00 session; Contract 133 remains repository-only until its guarded Development rollout completes.
+
+### Contract 214 repository status
+
+Contract 214 is the repository contract for current-card confirmation integrity. It adds server-held `confirmed_at`/confirmation-reference read evidence and invalidates that evidence only after successful material prediction or Joker changes. This is repository state only; no hosted Contract 214 application is asserted here.

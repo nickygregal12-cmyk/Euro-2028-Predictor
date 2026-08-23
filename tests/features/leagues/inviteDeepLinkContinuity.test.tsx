@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
     userId: null as string | null,
     loading: false,
     welcomeStatus: 'welcomed' as 'loading' | 'needed' | 'welcomed',
+    displayName: 'Test Player' as string | null,
   },
   resolveInviteCode: vi.fn(),
   joinPrivateCompetition: vi.fn(),
@@ -104,6 +105,7 @@ beforeEach(() => {
   mocks.auth.userId = null
   mocks.auth.loading = false
   mocks.auth.welcomeStatus = 'welcomed'
+  mocks.auth.displayName = 'Test Player'
   mocks.resolveInviteCode.mockReset()
   mocks.joinLeague.mockReset()
   mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)

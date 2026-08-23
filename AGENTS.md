@@ -30,6 +30,25 @@ Do **not** preload the documentation tree. Dated audits, rollout narratives, old
 | Historical archaeology | [`docs/history/README.md`](docs/history/README.md) + the specific dated evidence |
 | Developer/AI tooling | [`docs/ops/agent-tooling-map.md`](docs/ops/agent-tooling-map.md); exact commands live in [`docs/ops/developer-toolchain.md`](docs/ops/developer-toolchain.md) |
 
+## Automatic skill use
+
+Users should be able to describe the outcome in normal language; they should not need to name skills. Treat the `agent:route` packet as the default skill selection. **Specific intent beats broad improvement wording**: if the user names a bug, performance problem, motion issue, state problem, migration, scoring boundary or redesign, route directly to that specialist instead of first inventing product opportunities.
+
+- broad **“improve this / make this better / take this to the next level”** player-facing work → `predictor-product-opportunity-scout` plus the narrow `predictor-football-experience-critic`; inspect the real surface and find the highest-value authorised capability/UX gap before polishing;
+- **finish / complete / release-ready journey** → `predictor-release-journey-closer` to prove entry → action → authoritative read/write → persistence → navigation → responsive/accessibility → acceptance closeout;
+- explicit **loading / empty / error / locked / live / settled / edge-state completeness** → `predictor-player-state-matrix`;
+- **scoring / points / rank / locks / reveal / membership / official results / settlement / progression / prediction visibility** → `predictor-competitive-integrity` review;
+- **migration / hosted contract / environment / rollout / site-variant / Production promotion** → `predictor-environment-contract-guardian` before mutation;
+- unresolved **idea / approach / product-direction** work → bounded `predictor-product-brainstorming`;
+- reproducible **bug / broken journey** → `predictor-systematic-debugging`;
+- deliberate **UI design** → `predictor-frontend-design`; explicit motion work may add the one motion specialist;
+- **React performance / component API / Postgres** pressure → the existing domain specialist;
+- explicit **simplification / cleanup after correctness** → `predictor-code-simplification`;
+- **agent skill changes/evaluation** → `predictor-skill-evaluator`;
+- high-stakes **architecture/release pressure-test** → a separate read-only `predictor-second-opinion` critic when a genuinely independent model is available.
+
+Do not infer that every feature needs brainstorming, every UI task needs opportunity discovery, every PR needs a second model, or every implementation needs a simplifier. These tools add value by being selective. Catalogue-only skills stay dormant unless deliberately justified.
+
 ## Task-packet / Graphify fast path
 
 `npm run agent:route -- "TASK"` is the normal orientation command when the implementation surface is unknown. It runs a small Graphify query, extracts tracked source paths from that result, resolves them through the deterministic routing registry, and applies the skill-role budget from [`config/agent-skills.json`](config/agent-skills.json).
@@ -59,6 +78,12 @@ Routine query output is bounded. **Do not load `graph.json` wholesale into conte
 - Do not consume paid provider APIs unless explicitly required and authorised.
 - Keep unrelated product areas unchanged. Presentation work cannot silently move backend rules.
 - Developer tooling stays outside application/runtime dependencies.
+
+## Closeout intelligence
+
+After a substantial completed change, run a **cheap compound check**: did this work reveal a non-obvious, reusable lesson that future agents could otherwise rediscover incorrectly? If yes, route a separate `capture reusable lesson ...` task to `predictor-compound-learning`. Prefer an executable test/check or the nearest existing authority; do not create a catch-all lessons file. If no durable lesson emerged, record nothing.
+
+For high-risk auth/RLS/permission, cross-layer architecture, or release-critical work, consider a separate independent-model critic after repository-native tests/review are green. This is a second pass, not extra startup context, and it must remain read-only.
 
 ## Documentation-impact closeout
 

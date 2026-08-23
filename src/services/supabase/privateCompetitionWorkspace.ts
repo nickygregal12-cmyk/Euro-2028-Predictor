@@ -4,11 +4,9 @@ import {
   type PrivateCompetitionWorkspace,
 } from './privateCompetitionWorkspaceModel'
 
-export type {
-  PrivateCompetitionWorkspace,
-  PrivateCompetitionWorkspaceMember,
-  PrivateCompetitionWorkspaceRound,
-} from './privateCompetitionWorkspaceModel'
+// Only the aggregate is re-exported. The member and round shapes reach callers
+// inside it, and re-exporting them added two names nothing imported.
+export type { PrivateCompetitionWorkspace } from './privateCompetitionWorkspaceModel'
 
 /**
  * Read one private LMS/Championship container the caller owns or participates in.

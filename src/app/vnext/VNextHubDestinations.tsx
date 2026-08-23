@@ -25,6 +25,7 @@ import {
   competitionRoute,
   competitionSeasonWrappedRoute,
 } from '../weeklyRoutes'
+import { homeIntentRoute } from './homeNavigation'
 import { useShellIntentNavigation, useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
 
@@ -69,6 +70,7 @@ export function VNextHomeDestination() {
   useViewerFormatting()
   const { competitionSlug, seasonSlug } = useParams()
   const { userId, loading, displayName } = useAuth()
+  const navigate = useNavigate()
   const onShellIntent = useShellIntentNavigation()
   const gameCompetitionId = useSeasonGameCompetitionId(
     competitionSlug,
@@ -90,16 +92,23 @@ export function VNextHomeDestination() {
         seasonSlug={seasonSlug}
         gameCompetitionId={gameCompetitionId}
         onShellIntent={onShellIntent}
+        onIntent={(intent) => {
+          if (competitionSlug === undefined || seasonSlug === undefined) return
+          navigate(homeIntentRoute({ competitionSlug, seasonSlug }, intent))
+        }}
       />
     </VNextAppRoot>
   )
 }
 
 /*
- * HOME TAKES NO `onIntent`, AND THAT IS THE SURFACE RATHER THAN AN OVERSIGHT.
- * `VNextHomeScreen` exposes only the shell's intents: Home's own primary action
- * is drawn from the model and its navigation is the shell's. There is no
- * page-level intent to route, so this adapter passes none.
+ * HOME'S PRIMARY ACTION IS PAGE CONTENT, NOT SHELL NAVIGATION.
+ *
+ * The shell still owns Home / Matches / Games / Leagues and competition
+ * switching. Home's own action can promise an exact Match Centre, which needs
+ * a canonical fixture id the shell deliberately does not model. The page emits
+ * one route-agnostic Home intent and this application adapter turns it into the
+ * existing address — the same boundary `VNextMatchesDestination` uses.
  */
 
 /**

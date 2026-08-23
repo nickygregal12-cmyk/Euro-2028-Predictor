@@ -15,6 +15,7 @@ const authConfig = read('playwright.auth.config.ts')
 const visualConfig = read('playwright.visual.config.ts')
 const euroConfig = read('playwright.euro.config.ts')
 const vnextConfig = read('playwright.vnext.config.ts')
+const shippingVNextConfig = read('playwright.shipping-vnext.config.ts')
 
 const specFiles = readdirSync(resolve(root, 'e2e'))
   .filter((entry) => entry.endsWith('.spec.ts'))
@@ -41,11 +42,18 @@ const defaultProjects = projectNames(defaultConfig)
 const authProjects = projectNames(authConfig)
 const euroProjects = projectNames(euroConfig)
 const vnextProjects = projectNames(vnextConfig)
+const shippingVNextProjects = projectNames(shippingVNextConfig)
 
 const authSpecs = specFiles.filter((spec) => authMatch.includes(spec))
 const visualSpecs = specFiles.filter((spec) => visualMatch.includes(spec))
 const euroSpecs = specFiles.filter((spec) => euroMatch.includes(spec))
 const vnextSpecs = specFiles.filter((spec) => vnextMatch.includes(spec))
+// BY PREFIX RATHER THAN BY NAME, because this family declares itself as a glob.
+// `playwright.shipping-vnext.config.ts` collects `shipping-vnext-*.spec.ts` on
+// purpose -- the matrix, the private-LMS lifecycle and the release acceptance
+// pass all have to run under the same committed cutover flags -- so listing
+// them individually here would go stale the moment a seventh is added.
+const shippingVNextSpecs = specFiles.filter((spec) => spec.startsWith('shipping-vnext-'))
 const defaultSpecs = specFiles.filter((spec) => !defaultIgnore.includes(spec))
 
 function projectGates(source: string): string[] {
@@ -245,7 +253,12 @@ describe('browser E2E project gating', () => {
           ? { projects: authProjects, config: 'playwright.auth.config.ts' }
           : vnextSpecs.includes(spec)
             ? { projects: vnextProjects, config: 'playwright.vnext.config.ts' }
-            : { projects: defaultProjects, config: 'playwright.config.ts' }
+            : shippingVNextSpecs.includes(spec)
+              ? {
+                  projects: shippingVNextProjects,
+                  config: 'playwright.shipping-vnext.config.ts',
+                }
+              : { projects: defaultProjects, config: 'playwright.config.ts' }
       const { projects: declared, config } = owner
 
       for (const gate of gates) {

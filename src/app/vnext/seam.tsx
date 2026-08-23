@@ -4,12 +4,10 @@ import type { ReactNode } from 'react'
 import { usePlayerCompetitions } from '../providers/PlayerCompetitionsProvider'
 import { configureVNextTimeZone } from '../../vnext/foundations/format'
 import { VNextShellElsewhereHost } from '../../vnext/integration/shell/VNextShellElsewhereHost'
-import type { ShellGameKey } from '../../vnext/models/shell'
-import type { VNextNavigationIntent } from '../../vnext/integration/shell/navigationIntent'
+import type { ShellGameKey, ShellIntent } from '../../vnext/models/shell'
 import { viewerTimeZone } from '../../shared/time/kickoff'
 import {
   competitionGameRoute,
-  competitionMatchCentreRoute,
   competitionRoute,
   competitionSectionRoute,
   type CompetitionRouteRef,
@@ -54,7 +52,7 @@ const GAME_ROUTES: Readonly<Record<ShellGameKey, 'match-predictor' | 'lms' | 'ch
 }
 
 /**
- * THE SHELL'S INTENTS, PLUS CONNECTED PAGE NAVIGATION, AS ROUTING.
+ * THE SHELL'S INTENTS, AS NAVIGATION.
  *
  * ============================ IT ANSWERS ALL FOUR NOW ====================
  *
@@ -68,12 +66,6 @@ const GAME_ROUTES: Readonly<Record<ShellGameKey, 'match-predictor' | 'lms' | 'ch
  * surfaces at their real addresses, so all four are answered, and the shell
  * finally navigates the product it is chrome for.
  *
- * MATCH CENTRE IS DELIBERATELY NOT A SHELL DESTINATION. Home can emit a
- * fixture-addressed connected-page intent because it already holds the server's
- * fixture id. This seam turns that into the application's existing Match Centre
- * route. Presentation still knows no URL and permanent navigation still has
- * exactly four destinations.
- *
  * ============================ IT INVENTS NO ADDRESS ======================
  *
  * Every route comes from `weeklyRoutes.ts`, which is the application's own
@@ -83,28 +75,14 @@ const GAME_ROUTES: Readonly<Record<ShellGameKey, 'match-predictor' | 'lms' | 'ch
  *
  * ============================ AND NO COMPETITION EITHER ==================
  *
- * A `context`, `game`, `league` or `match-centre` intent names a competition by
- * its `tournamentId`, which is an identity rather than an address. The mapping
- * back to slugs is the player's own competition list — the read the application
+ * A `context`, `game` or `league` intent names a competition by its
+ * `tournamentId`, which is an identity rather than an address. The mapping back
+ * to slugs is the player's own competition list — the read the application
  * already mounts — so an intent naming a competition the player is not in
- * resolves to nothing rather than being pasted into a URL that would 404.
- *
- * A DESTINATION INTENT IS DIFFERENT WHEN THE CURRENT PAGE IS PLATFORM-SCOPED.
- * Account, Discovery and About deliberately have no `:competitionSlug` or
- * `:seasonSlug`, so their shell emits `contextId: null`. The old implementation
- * treated that as "there is nowhere to go" and silently ignored every Home /
- * Matches / Games / Leagues press. That trapped the player on exactly the pages
- * designed to sit outside a competition.
- *
- * The repair reuses the SAME ordinary landing authority as
- * `VNextRootDestination`: `player.mine` is already ordered most-relevant-first,
- * and the first entry is what `/` resolves to. We do not remember a private
- * recency, prefer a favourite, or choose from the catalogue. If that authority
- * has no competition to offer, a destination press goes through `/`, whose own
- * empty/failed behaviour is Discovery. Nothing is fabricated just to make the
- * navigation move.
+ * resolves to nothing and navigates nowhere, rather than being pasted into a
+ * URL that would 404.
  */
-export function useShellIntentNavigation(): (intent: VNextNavigationIntent) => void {
+export function useShellIntentNavigation(): (intent: ShellIntent) => void {
   const navigate = useNavigate()
   const { competitionSlug, seasonSlug } = useParams()
   const { player } = usePlayerCompetitions()
@@ -112,21 +90,9 @@ export function useShellIntentNavigation(): (intent: VNextNavigationIntent) => v
   const refFor = useCallback(
     (contextId: string | null): CompetitionRouteRef | null => {
       if (contextId === null) {
-        if (competitionSlug !== undefined && seasonSlug !== undefined) {
-          return { competitionSlug, seasonSlug }
-        }
-
-        // EXACTLY THE ROOT RESOLVER'S DEFAULT. `mine` is most-relevant-first
-        // by the existing player-competition authority; using index zero here
-        // keeps a platform-scoped page and `/` from taking two different
-        // opinions about the player's ordinary football context.
-        const defaultEntry = player?.mine[0]?.competition
-        return defaultEntry
-          ? {
-              competitionSlug: defaultEntry.competitionSlug,
-              seasonSlug: defaultEntry.seasonSlug,
-            }
-          : null
+        return competitionSlug === undefined || seasonSlug === undefined
+          ? null
+          : { competitionSlug, seasonSlug }
       }
       const entry = player?.mine.find((candidate) => candidate.tournamentId === contextId)
       const found = entry?.competition
@@ -137,7 +103,7 @@ export function useShellIntentNavigation(): (intent: VNextNavigationIntent) => v
   )
 
   return useCallback(
-    (intent: VNextNavigationIntent) => {
+    (intent: ShellIntent) => {
       switch (intent.kind) {
         case 'discover':
           navigate('/competitions')
@@ -150,14 +116,10 @@ export function useShellIntentNavigation(): (intent: VNextNavigationIntent) => v
           return
         case 'destination': {
           const ref = refFor(intent.contextId)
-          if (ref === null) {
-            // No active/relevant competition is a real state. `/` owns its
-            // ordinary resolution and will send an empty/failed player to
-            // Discovery; silently doing nothing here is the trap this seam must
-            // never recreate.
-            navigate('/')
-            return
-          }
+          if (ref === null) return
+          // Home is the competition's own address rather than a section of it,
+          // which is the whole of the Competition Deck's merge: `/` and
+          // `/competitions/:c/:s` are one visible destination.
           navigate(
             intent.destination === 'home'
               ? competitionRoute(ref)
@@ -177,11 +139,6 @@ export function useShellIntentNavigation(): (intent: VNextNavigationIntent) => v
         case 'game': {
           const ref = refFor(intent.contextId)
           if (ref !== null) navigate(competitionGameRoute(ref, GAME_ROUTES[intent.game]))
-          return
-        }
-        case 'match-centre': {
-          const ref = refFor(intent.contextId)
-          if (ref !== null) navigate(competitionMatchCentreRoute(ref, intent.fixtureId))
           return
         }
         case 'league': {

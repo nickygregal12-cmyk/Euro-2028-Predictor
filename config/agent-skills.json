@@ -4,7 +4,9 @@
     "navigation": 1,
     "process": 1,
     "domain": 1,
-    "review": 1
+    "specialist": 1,
+    "review": 1,
+    "critic": 1
   },
   "skills": {
     "predictor-context": {
@@ -25,11 +27,48 @@
       "mode": "installed",
       "purpose": "Non-trivial multi-file delivery from outcome through executable evidence."
     },
+    "predictor-product-brainstorming": {
+      "path": ".agents/skills/predictor-product-brainstorming/SKILL.md",
+      "role": "process",
+      "mode": "pinned-adapter",
+      "source": "brainstorming",
+      "purpose": "Bounded option exploration for genuinely unresolved product or architecture choices before implementation."
+    },
+    "predictor-product-opportunity-scout": {
+      "path": ".agents/skills/predictor-product-opportunity-scout/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Find the highest-value authorised player-facing improvement when the user gives a broad outcome prompt instead of a named implementation technique."
+    },
+    "predictor-release-journey-closer": {
+      "path": ".agents/skills/predictor-release-journey-closer/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Prove and close an end-to-end player journey across entry, write/read seams, persistence, navigation, responsive/accessibility evidence and requirement closeout."
+    },
+    "predictor-environment-contract-guardian": {
+      "path": ".agents/skills/predictor-environment-contract-guardian/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Keep repository, Development, Production, site, migration and hosted-contract identity explicit during environment-sensitive work."
+    },
+    "predictor-compound-learning": {
+      "path": ".agents/skills/predictor-compound-learning/SKILL.md",
+      "role": "process",
+      "mode": "installed",
+      "purpose": "Capture only durable, evidence-backed lessons from completed work into an existing authoritative home."
+    },
     "predictor-ui-review": {
       "path": ".agents/skills/predictor-ui-review/SKILL.md",
       "role": "review",
       "mode": "installed",
       "purpose": "Predictor-specific UI, responsive, interaction and accessibility review."
+    },
+    "predictor-competitive-integrity": {
+      "path": ".agents/skills/predictor-competitive-integrity/SKILL.md",
+      "role": "review",
+      "mode": "installed",
+      "purpose": "Guard scoring, lock, reveal, result, membership, progression, settlement and prediction-visibility invariants."
     },
     "predictor-ai-lab-verifier": {
       "path": ".agents/skills/predictor-ai-lab-verifier/SKILL.md",
@@ -48,7 +87,33 @@
       "role": "domain",
       "mode": "pinned-adapter",
       "source": "frontend-design",
-      "purpose": "Distinctive visual direction for new or materially reshaped Predictor UI."
+      "purpose": "Impeccable-backed visual and interaction craft for new or materially reshaped Predictor UI."
+    },
+    "predictor-motion-craft": {
+      "path": ".agents/skills/predictor-motion-craft/SKILL.md",
+      "role": "specialist",
+      "mode": "pinned-adapter",
+      "source": "motion-craft",
+      "purpose": "Narrow motion craft for animation, transitions, easing, gestures and reduced-motion behaviour."
+    },
+    "predictor-player-state-matrix": {
+      "path": ".agents/skills/predictor-player-state-matrix/SKILL.md",
+      "role": "specialist",
+      "mode": "installed",
+      "purpose": "Derive and prove the meaningful player-state matrix for loading, empty, error, permission, game-phase, responsive and content-extreme states."
+    },
+    "predictor-football-experience-critic": {
+      "path": ".agents/skills/predictor-football-experience-critic/SKILL.md",
+      "role": "specialist",
+      "mode": "installed",
+      "purpose": "Critique player-facing surfaces for football context, prediction clarity, consequence, rivalry and next-action value rather than generic dashboard polish."
+    },
+    "predictor-code-simplification": {
+      "path": ".agents/skills/predictor-code-simplification/SKILL.md",
+      "role": "specialist",
+      "mode": "pinned-adapter",
+      "source": "code-simplifier",
+      "purpose": "Behaviour-preserving simplification of recently changed code after correctness is established."
     },
     "predictor-systematic-debugging": {
       "path": ".agents/skills/predictor-systematic-debugging/SKILL.md",
@@ -78,12 +143,26 @@
       "source": "supabase-postgres-best-practices",
       "purpose": "Postgres/Supabase query, schema, RLS, locking and migration implementation guidance."
     },
+    "predictor-skill-evaluator": {
+      "path": ".agents/skills/predictor-skill-evaluator/SKILL.md",
+      "role": "domain",
+      "mode": "pinned-adapter",
+      "source": "skill-creator",
+      "purpose": "Measure whether a routed skill improves real repository outcomes and triggering without auto-promoting unproven skills."
+    },
     "predictor-differential-review": {
       "path": ".agents/skills/predictor-differential-review/SKILL.md",
       "role": "review",
       "mode": "conditional-adapter",
       "source": "differential-review",
       "purpose": "Extra blast-radius and adversarial diff review for sensitive changes only."
+    },
+    "predictor-second-opinion": {
+      "path": ".agents/skills/predictor-second-opinion/SKILL.md",
+      "role": "critic",
+      "mode": "conditional-adapter",
+      "source": "second-opinion",
+      "purpose": "Read-only independent-model review for high-stakes architecture or release decisions."
     }
   }
 }

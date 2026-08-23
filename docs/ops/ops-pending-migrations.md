@@ -2,9 +2,9 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 213, Production 211, Development 213 (21 August 2026)
+## Current state — repository 214, Production 211, Development 213 (23 August 2026)
 
-**Development has completed the 211→213 boundary and is independently verified at 213.** Production remains at **211**. Contracts 212 and 213 are therefore pending on Production only; the next sequence is the reviewed Production backup → disposable-copy rehearsal → guarded rollout → independent postflight. PR #969 remains held back until Production is also 213; its migration number is not part of the current repository contract yet.
+**Development is independently verified at 213; the repository is at 214 and Production remains at 211.** Contract 214 is pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.
 
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
@@ -234,8 +234,8 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 | Netlify `euro28predictor` non-production contexts | **178 hosted declaration** |
 | Netlify `euro28predictor` production | **178 hosted declaration** |
 
-- Development has no pending repository migration at Contract **213**. Production remains at **211** and has Contracts **212–213** pending through the reviewed Production promotion lane.
-- Production is intentionally behind Development during this promotion window. It must reach **213** through its own authority, fresh encrypted backup and exact-head disposable-copy rehearsal before the next migration PR is allowed to proceed.
+- Development is hosted at **213** and has Contract **214** pending. Production remains at **211** and has Contracts **212–214** pending through its reviewed Production promotion lane.
+- Production is intentionally behind Development during this promotion window. Repository contracts may continue to advance under their own reviewed migrations; each hosted promotion remains a separate authorised operation and must preserve the Development-first rule for the boundary it applies.
 - **A level migration chain is not the same as a fresh feed, but the shape of the staleness has changed and the old sentence here was wrong after contract 211.** Both environments still poll SportMonks on a **1440-minute idle cadence**, so a fixture with no deadline near it can be up to roughly a day stale. What is no longer true is that the staleness spans a prediction lock: the deadline watch opens **720 minutes** before an unresolved kickoff and polls every **60**, closing at the kickoff, so the hours before a lock are covered hourly rather than not at all. `ING-006` is closed on both environments by this boundary; the residual idle staleness away from a deadline is deliberate, is what keeps the matchweek at 77 polls rather than 252, and lives in `provider_poll_targets` rather than in the migration chain.
 - Repository, Development and Production remain separate closure states. Never infer hosted state from the repository count.
 - The historic Netlify project `euro28-predictor-dev` is out of scope for the current Development/Production migration lane.
@@ -248,3 +248,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 4. For why a historical contract existed, use the archived narrative or the migration/PR itself — do not reconstruct history from this live index.
 
 The old “Repository candidate … applied to no hosted environment by this record” blocks are **historical contract records**, not a current pending queue; that wording is intentionally kept only in the archive.
+
+### Contract 214 — pending hosted rollout
+
+`20260820170000_confirmation_tracks_current_card.sql` is repository-ready but not claimed as applied to a hosted environment. It must follow the existing guarded migration sequence and parity/acceptance checks before hosted clients may depend on the new current-confirmation evidence.
