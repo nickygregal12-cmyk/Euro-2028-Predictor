@@ -146,12 +146,18 @@ export function useVNextGamesSource(input: VNextGamesSourceInput): VNextGamesSou
 
         // THE WEEK, FROM EACH GAME'S OWN READ.
         //
-        // WHY IT COSTS NO EXTRA WAVE. The catalogue is what says which games
-        // this player is actually in, so these three cannot be issued before it
-        // answers — but they can all be issued together once it has, and they
-        // are. A row that asks "pick your club" has to know whether a pick is
-        // in, and only the round read knows that; the catalogue answers
-        // membership and registration and nothing about the week.
+        // WHAT IT COSTS, STATED PLAINLY. This is a THIRD wave, and the page
+        // had two. The catalogue is what says which games this player is
+        // actually in, so these reads cannot be issued before it answers — but
+        // they are all issued together once it has, so the cost is one round
+        // trip rather than three. A row that asks "pick your club" has to know
+        // whether a pick is in, and only the round read knows that; the
+        // catalogue answers membership and registration and nothing about the
+        // week, so there is no cheaper place to get this.
+        //
+        // A PLAYER WHO HAS JOINED NOTHING PAYS NOTHING. `loadWeekFor` returns
+        // before issuing anything when no membership is active, which is the
+        // ordinary state on a catalogue a player is browsing.
         //
         // EACH FAILS ALONE, and a failure is indistinguishable from "not in
         // this game" on purpose: both leave the row with no action, which draws
