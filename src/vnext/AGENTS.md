@@ -1,348 +1,75 @@
-# vNext frontend instructions
+# vNext frontend router
 
-These instructions apply to work under `src/vnext/`.
+These instructions apply to `src/vnext/`. They contain only the **universal vNext boundaries** and pointers to the surface authority that owns the detailed rules. Do not turn this file back into a combined history/specification for every page.
 
-It holds the vNext design workshop: a Storybook-reviewed presentation lane running on deterministic fixtures, plus **integration adapters** under `integration/` that connect Home, the Match Predictor, Matches, Leagues, player profiles Last Man Standing and the Predictor Championship to real application reads. The presentation lane still has no Supabase, provider or routing dependency; the adapters are the only place that does, and vNext is still not wired into the running product — the connected surfaces are reachable only from the dev-only `/dev/vnext-home`, `/dev/vnext-match-predictor`, `/dev/vnext-matches`, `/dev/vnext-leagues`, `/dev/vnext-player`, `/dev/vnext-lms` and `/dev/vnext-championship` harnesses. **`/dev/vnext-lms` is the first one that WRITES: pressing a club there really spends it.**
+## Start with the task, not the whole vNext programme
 
-**`home/` is the Gold Standard surface.** It is the approved vNext Home and the quality bar every later vNext page inherits from. Treat it as the reference for composition, density, motion, team colour and accessibility — and do not propagate it to another page without that page's own brief.
+1. Follow root [`../../AGENTS.md`](../../AGENTS.md) and current [`../../NOW.md`](../../NOW.md).
+2. When the exact implementation surface is not already known, run `npm run agent:route -- "THE TASK"`. The task packet should normally identify the relevant vNext surface, source/tests and one surface authority before you open files broadly.
+3. Read [`../../docs/product/ui.md`](../../docs/product/ui.md) plus **only the matching surface authority below**. Read workshop/history/audit material only when the task genuinely needs it.
+4. Inspect the exact source/tests returned by Graphify or bounded search. Use Serena after the area is known when exact symbols/callers matter.
+5. For non-trivial delivery or review, load only the skills selected by the task packet within its navigation/process/domain/review role budget.
 
-## Read first
+## Surface authority routing
 
-1. [`../../docs/product/ui.md`](../../docs/product/ui.md) — vNext product/presentation direction.
-2. [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) — current workshop hypotheses and the questions left open.
-2b. [`../../docs/product/vnext-shell-ia.md`](../../docs/product/vnext-shell-ia.md) — **THE SELECTED INFORMATION ARCHITECTURE (Stage 7.6). Concept A, the Competition Deck, is the accepted vNext IA and the contract `app/VNextShell` implements. Read this before touching navigation, the shell or any destination.**
-2c. [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) — Stage 7.5's three concepts and the capability audits, now the EVIDENCE for that decision. Concepts B and C are kept and are not primary architectures; do not build on either as though it had won.
-2d. [`../../docs/product/vnext-matches.md`](../../docs/product/vnext-matches.md) — **THE MATCHES SYSTEM (Stage 8). The match-state contract, the live-data honesty rules, the combined-scope decision, which Match Centre modules may exist, and the TV Mode relationship. Read this before touching anything that draws a fixture.**
-2e. [`../../docs/product/vnext-leagues.md`](../../docs/product/vnext-leagues.md) — **THE LEAGUES SYSTEM (Stage 9). The social identity rule — a row is openable because the SERVER said so, never because a display name matched — the two-tables-two-rank-authorities decision, and what a standings surface may never compute. Read this before touching anything that draws a player.**
-2f. [`../../docs/product/vnext-player-profiles.md`](../../docs/product/vnext-player-profiles.md) — **THE PLAYER SYSTEM (Stage 10). Three reads with THREE DIFFERENT permission boundaries and therefore no page-level permission; the page is named by the server because nothing can pass it a display name; the chart plots a POSITION and its axis is inverted once, in one function; the head-to-head states its denominator because its window is truncated; and the reveal boundary is enforced by ABSENCE, so nothing may be inferred from a gap. Read this before touching anything that draws a person's season.**
-2g. [`../../docs/product/vnext-lms.md`](../../docs/product/vnext-lms.md) — **THE SURVIVAL GAME (Stage 11), and the first vNext surface that WRITES. A club winning is not a player surviving — `LmsClubResult` and `LmsStanding` are different types with no conversion, because whether a draw eliminates is a stored rule only the settlement job runs. An ineligible club has NOTHING TO PICK WITH: `pick` is the only union case carrying a team id, so a used or shut club cannot be submitted by a component that decides to try. The lock is the SERVER'S answer (contract 164's `revealed`) and the instants are only the fallback — and it may only speak for the window it is actually about. Read this before touching anything that spends something a player cannot get back.**
-2h. [`../../docs/product/vnext-championship.md`](../../docs/product/vnext-championship.md) — **THE CHAMPIONSHIP (Stage 12), and the first consumer contract 193 has ever had. The bracket is READ, never rebuilt: no pairing, no round arithmetic, no sorting, and NO CONNECTOR LINES — the read gives a slot per seat and no edge between them, so a line would be inventing the progression. An unfilled seat arrives called 'Player' because the read coalesces, so a seat is identified by ID and never by name. A walkover carries no reason and no score, because neither is in the payload. ELIMINATION IS THE SETTLEMENT AUTHORITY'S COLUMN AND NOTHING ELSE — contract 208 put `bonus_competition_entrants.outcome` on the read, so the standing is that value verbatim and is never inferred from a lost tie, an absent fixture, a missing seed, or somebody else's name on the final; where the read carries none the surface still says nothing. And `you_qualified` is a fact about the DRAW, kept in its own field, because it never retracts when a player is knocked out. Read this before drawing anything shaped like a tournament.**
-3. [`../../AGENTS.md`](../../AGENTS.md) — repository-wide invariants and task routing.
-4. The exact domain/service contract for the data the component actually needs.
-
-**Known open findings against this lane** are recorded at
-[`../../docs/quality/audits/2026-08-19-vnext-programme-review.md`](../../docs/quality/audits/2026-08-19-vnext-programme-review.md),
-with their live status in
-[`../../docs/quality/risk-register.md`](../../docs/quality/risk-register.md) and
-[`../../docs/quality/deferred-decisions.md`](../../docs/quality/deferred-decisions.md):
-`TEST-002` — the surface conformance checklist is duplicated across the eight
-browser specs and has drifted between them; `UX-006` — this lane's palette has no
-contrast matrix while the legacy one does; `TEST-003` — nothing states how drawn
-geometry is verified; `DEC-016` and `DEC-017` — the light theme and the icon
-system are undecided. They are **evidence and known defects, not authority.**
-They add no scope to an ordinary task, and current code and tests outrank them.
-
-## What is here
-
-| Directory | Holds |
+| Surface / path | Detailed authority |
 | --- | --- |
-| `app/` | **the application shell** — `VNextShell`, `VNextPageHeader` |
-| `foundations/` | tokens, typography, surfaces, layout primitives, motion, formatting |
-| `components/` | `football/`, `game/`, `social/`, `navigation/` |
-| `models/` | the typed presentation model (`football.ts`, `home.ts`, `predictor.ts`, **`shell.ts`**, **`matches.ts`**, **`leagues.ts`**, **`playerProfile.ts`**, **`lms.ts`**, **`championship.ts`**) |
-| `fixtures/` | one deterministic fictional matchday, the Home model, one designed matchweek, ten deterministic shell worlds, **twelve Matches worlds plus twelve Match Centre worlds**, **twenty-one Leagues worlds**, **twenty-seven player-profile worlds** **twenty-five Last Man Standing worlds** and **twenty-five Predictor Championship worlds** |
-| `home/` | **the approved Home** — zones, emphasis selector, stylesheet |
-| `predictor/` | **the Match Predictor** — the brief, the decision row, score entry, the deadline clock |
-| `matches/` | **Matches and the Match Centre** — the fixture list, the row, the state marks, the Match Centre composition |
-| `leagues/` | **Leagues** — the page, the two standings tables, and the one component that decides whether a player row may be opened |
-| `player/` | **the player profile** — the page, the rank chart, the comparison table and the reveal-safe matchweek history |
-| `lms/` | **Last Man Standing** — the page, the pick list, the pool counts and the organiser's rules. A club is pressable iff its action carries an id |
-| `championship/` | **the Predictor Championship** — the bracket as rounds-as-sections rather than a tree, with no connector line the read cannot justify |
-| `integration/` | **the only application-facing code** — one adapter per connected page (`home/`, `predictor/`, `matches/`, `leagues/`, `playerProfile/`, `lms/`, `championship/`). **`lms/` is the only one that writes.** |
-| `ia/` | **Stage 7.5's information-architecture lab** — three navigation concepts and the interaction-feedback prototype. **Historical evidence for why the selected IA exists.** Nothing here is accepted, nothing under `app/` may import it, and it is not deleted |
-| `workshop/` | `WorkshopCanvas`, the container-framed device board reviews run in |
-| `stories/` | the `vNext/*` Storybook groups, which are the review surface |
+| `app/`, `integration/shell/`, competition switching/navigation | [`../../docs/product/vnext-shell-ia.md`](../../docs/product/vnext-shell-ia.md) |
+| `home/`, `integration/home/` | [`../../docs/product/ui.md`](../../docs/product/ui.md); [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) only where the Home/workshop design hypothesis matters |
+| `predictor/`, `integration/predictor/` | [`../../docs/product/ui.md`](../../docs/product/ui.md) + [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) + the exact application prediction contract used by the adapter |
+| `matches/`, `integration/matches/` | [`../../docs/product/vnext-matches.md`](../../docs/product/vnext-matches.md) |
+| `leagues/`, `integration/leagues/` | [`../../docs/product/vnext-leagues.md`](../../docs/product/vnext-leagues.md) |
+| `player/`, `integration/playerProfile/` | [`../../docs/product/vnext-player-profiles.md`](../../docs/product/vnext-player-profiles.md) |
+| `lms/`, `integration/lms/` | [`../../docs/product/vnext-lms.md`](../../docs/product/vnext-lms.md) |
+| `championship/`, `integration/championship/` | [`../../docs/product/vnext-championship.md`](../../docs/product/vnext-championship.md) |
+| `create/`, `discovery/`, `games/`, `account/`, `about/`, `publicDocument/` and their adapters | [`../../docs/product/ui.md`](../../docs/product/ui.md) + shell IA where navigation/chrome is involved + the exact feature/spec/source contract returned by the task packet |
+| `foundations/`, `components/`, `models/`, `fixtures/`, `stories/`, `workshop/` | [`../../docs/product/ui.md`](../../docs/product/ui.md); use [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) for workshop-only design mechanics |
+| `ia/` | [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) is historical decision evidence; accepted shell behaviour lives in `vnext-shell-ia.md` |
 
-## The shell contract
+A task that touches several surfaces may need more than one row, but that is the exception. Do not preload Matches, Leagues, Profiles, LMS and Championship authorities for a Home-only change.
 
-Start a vNext page with `app/VNextShell`. Do not copy Home.
+## Universal architecture boundaries
 
-**THE SHELL IS THE COMPETITION DECK, AND THAT IS SETTLED (Stage 7.6).** Stage
-7.5 asked whether `Home · Fixtures · Leagues · Season` was the right permanent
-navigation at all. It was not. The human selection is **Concept A, the
-Competition Deck** — competition-context-first — with cross-competition
-attention retained from Concept B as a SECONDARY layer and Jump retained from
-Concept C as an OPTIONAL accelerator. `docs/product/vnext-shell-ia.md` records
-the decision and the rationale; do not re-open it in a component.
+- **Product truth stays outside presentation.** Presentation may not invent scoring, locks, reveal, settlement, progression, membership, permissions, provider truth or tournament structure. If a field is unavailable, design the unavailable state rather than manufacturing a value.
+- **The presentation lane consumes typed models.** Visual components do not reach Supabase, generated database types, provider clients or application feature state directly.
+- **`integration/` is the application-facing boundary.** Acquisition/hooks/services live there; model mapping stays pure where the existing adapter contract says it is pure. Do not make reusable presentation components network-aware.
+- **Commands use the application's existing command/service path.** Do not create a second save/write mechanism inside vNext. Success feedback follows the server/application success state, not the click or keystroke.
+- **The shell owns application chrome and the single `<main>`.** Pages own their content and `<h1>`. Page-specific content must not leak into `app/`, and a host must not wrap a page in a second shell/main.
+- **Home is the visual quality reference, not a page template.** Reuse foundations and proven interaction language; each surface still follows its own information hierarchy and product authority.
+- **Keep football context, game and person identity separate.** Do not derive one identity/boundary from another or use display-name matching as identity/permission evidence.
 
-> **I am inside a football competition. Everything beneath the shell belongs to
-> that competition until I deliberately change it.**
+## Responsive, motion and accessibility boundaries
 
-```tsx
-// A page, on its own. Renderable with no application behind it — Storybook,
-// the visual matrix and every render test do exactly this.
-<VNextShell destination="games" header={<VNextPageHeader … />}>
-  <YourPage />
-</VNextShell>
+- Layout responds to its **container**, not the browser viewport. Do not use viewport queries/units to make a workshop frame pretend to be the device being reviewed.
+- Desktop may be a materially different composition from mobile; do not stretch a phone stack across a wide workspace.
+- Dense rows/components measure the container that actually owns their width. Prefer wrapping/real layout over truncating football names to make a breakpoint pass.
+- Every motion primitive ships with reduced-motion behaviour. Motion may explain hierarchy/state or add deliberate delight; it must not delay a navigation/application command.
+- Keyboard/focus behaviour, semantic landmarks, text scaling and accessibility are part of acceptance, not cleanup.
+- Anything positioned by computed coordinates (chart, bracket, connector, meter, track) needs browser evidence that reads rendered coordinates/relationships back from the document. A jsdom render proving elements exist is not geometry proof.
 
-// A page inside a real world. The HOST wraps; the page never sees the model.
-<VNextShellProvider model={shellModel} onIntent={…}>
-  <VNextHome model={homeModel} />
-</VNextShellProvider>
-```
+## Deterministic review boundaries
 
-- **THE SHELL OWNS THE APPLICATION AND THE PAGE OWNS `<main>`.** The shell owns
-  the active football context, competition switching, the discovery entry, the
-  four destinations, the attention indicator, Jump, the account entry, the
-  canvas and its atmosphere, the page bounds, the sticky masthead, the single
-  `<main>`, the skip link, mobile safe-area clearance and the width at which the
-  bar becomes a rail. **A PAGE OWNS NONE OF THAT.** Stage 5 let Home pass a
-  `navItems` array with an open-prediction count on it; that prop is gone, and
-  the count now arrives on the shell model from the host that knows it.
-- **Global navigation is `Home · Matches · Games · Leagues`,** and they belong
-  to the ACTIVE COMPETITION rather than to the platform. There is no global
-  Matches, no global Games and no global Leagues. Four is still the most that
-  clears a 44px target across a 375px bar, which is why the attention layer and
-  Jump are not a fifth and a sixth.
-- **`Games`, NOT `Play`.** This product already uses both words and they already
-  mean different things: a *game* is a joinable format
-  (`get_competition_games`, `CompetitionGameKey`, onboarding's "Choose your
-  games"), and `/play` is the action inbox whose job the Competition Deck moves
-  into Home. The full comparison is `docs/product/vnext-shell-ia.md` §3. The
-  label is a field on the shell model, so revisiting it is a copy change.
-- **A bottom bar below 1120px, a competition RAIL at and above it, and exactly
-  one of them is ever real.** `display: none` takes the other out of the
-  accessibility tree as well as off the page.
-- **THE MODEL IS `models/shell.ts` AND THE SHELL REACHES NOTHING ELSE.** No
-  Supabase type, no generated database type, no RPC shape and no route. Every
-  control emits a `ShellIntent`; the host decides what it means, which is what
-  makes the same shell work under `useState` in Storybook, a state hook in the
-  dev harness and a router after cutover.
-- **THREE DIMENSIONS, KEPT APART:** football context, game, people. No field
-  derived from another, the same discipline
-  `features/hub/playerCompetitions.ts` applies to Follow/Join/Favourite. A game
-  drawn with a competition's furniture is a game masquerading as football
-  context, which is how Last Man Standing became "another little tab".
-- **THE PLATFORM MAY BE LARGE; THE PLAYER'S PRODUCT MUST FEEL SMALL.**
-  `contexts` is the PLAYER's list and never the platform's. At one competition
-  the switcher is a LABEL and not a control, there is no shortcut group, and no
-  other competition's name appears in the permanent chrome — but Explore is
-  still one press away, because the catalogue is not the player's competitions.
-  At twenty published the rail still shows six and a count.
-  `e2e/vnext-shell.spec.ts` MEASURES the chrome at one, four, twelve and twenty.
-- **ATTENTION IS SECONDARY AND QUIET.** It renders nothing at all when nothing
-  is waiting elsewhere — not a zero and not a greyed bell — it names the
-  competition and the game separately, and it never reports work in the
-  competition the player is already in, because Home answers that. It reads no
-  clock: `urgency` is the application's decision and `detail` is its copy.
-- **JUMP IS OPTIONAL AND GROUPED.** Offered only where the rail has stopped
-  being complete (`shellJumpAvailable`), desktop only, three separate groups —
-  competitions, games, leagues — and never a flat list. It searches the
-  player's own world and never the catalogue. `Ctrl/⌘+K` is an accelerator, is
-  guarded out of text fields, and is never the route.
-- **`<main>` is the shell's and `<h1>` is the page's.** The shell hands the
-  header an id through context and points `aria-labelledby` at it. A page that
-  renders its own `<main>` has two — and so does a HOST that wraps a page in a
-  second `VNextShell`. Use `VNextShellProvider`.
-- **The page bounds arrive as `--vnext-page-inset`** (16/24/32px by band).
-  `<main>` itself carries no inline padding and no maximum width: a standings
-  table at 1920 is meant to use the workspace.
-- **`<main>` declares the container `vnext-page`.** Every page sizes itself
-  against that, never against the viewport. The shell's own bands are 760 and
-  1120; a page's thresholds are its own.
-- **`data-vnext-shell-zone` is the SHELL's structural marker and
-  `data-vnext-zone` is a PAGE's.** The rail is `display: none` below 1120, and
-  putting it in the page vocabulary hung every phone-width measurement in
-  `e2e/vnext-home.spec.ts` on a selector that waits for the first zone to be
-  visible.
-- **Shell motion is the masthead entrance, the navigation indicator and the
-  overlays' entrance.** Content entrance belongs to the page — two entrances
-  competing is a page arriving twice. **A competition switch is never delayed by
-  an animation:** the intent goes out and the sheet closes in the same tick.
-- **`VNextPageHeader.trailing` SURVIVED THE SECOND PAGE UNCHANGED.** Home puts a
-  standing block there; the Match Predictor puts a deadline chip. The two have
-  nothing in common but their position, which is exactly what the slot's own
-  comment predicted. **Treat the slot as settled and keep it a slot.**
+- Fixtures and Storybook worlds are deterministic review inputs. They do not become game rules and do not read the current clock/provider/network.
+- Time-dependent presentation takes an explicit/current display instant through the sanctioned page mechanism. A presentation clock can make a label/countdown current; it cannot create permissions, results, settlement or reveal state.
+- Storybook proves component/world composition. Real application journeys and route/interaction behaviour need the relevant browser tests.
+- Use the repository's existing Playwright visual contracts for curated visual regression; optional screenshot tools are critics, not visual authority.
 
-`vNext/Shell` stories are the review surface for the ARCHITECTURE — ten
-deterministic worlds from one competition to twenty published, plus the two real
-pages inside it. **The `Games` and `Leagues` destination bodies are still stubs and
-are NOT designs**; `Matches` is now a real surface and `vNext/Matches` is its review
-group. Where a stub and `vNext/Home` disagree about type, colour, density or motion,
-Home is right.
+## Dependency boundary
 
-Tokens are declared on `[data-vnext]` by `VNextRoot` and nowhere else, so no vNext value can reach a legacy screen. Layout responds to its **container**, never the viewport, so a 375px frame inside a wide monitor is an honest review.
+Use the dependencies already in the repository. Do not add a router, state library, CSS framework, component library, icon set, animation library or data-fetching layer to vNext merely to solve a local presentation task. Application/runtime dependency changes require their own justification and review.
 
-**Home is state-adaptive.** One shell, three emphases — live, decision, competition — chosen by `home/selectHomeEmphasis.ts` from state the model already supplied. That function answers "what should Home make biggest?" and nothing else: it is not an authority for locks, scoring, settlement, reveal, official match status or progression, and it must never become one.
-
-`AppFrame`, `Rail` and the `AppFrameProbe` rig were removed in Stage 4. Four out of four real compositions wrote their own shell rather than bending to the frame, and a layout primitive nothing chooses is dead architecture. `app/VNextShell` is not that primitive returning: it was extracted from a shipped page rather than designed ahead of one, it takes a page as children rather than a composition as slots, and Home was migrated onto it without moving a pixel.
-
-Do not load database, provider, AI Lab or deployment history for ordinary component/layout work unless the surface genuinely crosses one of those boundaries.
-
-## The integration contract
-
-`integration/` is the ONE place vNext knows the application exists. There is one
-adapter per connected page — `home/` and `predictor/` — and each has the same four
-parts, because the split is the point:
-
-| File | Job |
-| --- | --- |
-| `*Source.ts` | what the application hands over — existing read models, nothing reshaped |
-| `useVNext*Source.ts` / `useVNextPredictorContext.ts` | acquisition only, through existing services; no mapping |
-| `build*Model.ts` | **pure** `Source → Model`; no network, storage, clock or React |
-| `VNext*Screen.tsx` | loading/signed-out/no-competition/failed, then the surface |
-
-- **`VNextHome({ model })` stays usable without any of it.** Storybook, the
-  deterministic visual matrix and every render test hand Home a model directly.
-  The approved surface did not become network-dependent; it gained a caller.
-- **The direction is `components → models` and `integration → services`,** never
-  `components → services`. `tests/vnext/vnextProductionBoundary.test.ts` holds
-  all of it: the presentation lane cannot reach `src/features/`,
-  `src/services/` or the legacy design system, no visual component can reach
-  Supabase or the generated database types, and `VNextHome` cannot reach
-  `integration/`.
-- **The adapter consumes truth; it never computes it.** Live is
-  `live.kind === 'in_play'` (contract 135), editability is
-  `presentCard(...).editable`, rank is contracts 151 and 128, and whether a point
-  value is awarded or provisional is contract 175's per-fixture `basis`. The
-  mapper does no arithmetic beyond subtracting two numbers already on the same
-  screen — a gap, a points difference, an accuracy split over one denominator.
-- **Unavailable is `null`, and `null` is never zero.** `pointsToday`,
-  `provisionalPoints`, season `rankMovement`, `venue`, `headToHead`, `broadcast`,
-  `clock`, `leaguePosition`, `officialBadge`, prediction `outcome` and friends
-  consensus are all absent from current reads. `fixtures/home/scenarios.ts`'s
-  `reduced` scenario is the deterministic visual authority for that state; the
-  four approved scenarios were not edited to make room for it.
-- **Storybook stays deterministic.** Real-data review happens at `/dev/vnext-home`
-  and `/dev/vnext-match-predictor`, both behind `import.meta.env.DEV`. A story must
-  never change because somebody scored.
-- **A COMMAND GOES OUT THROUGH THE APPLICATION'S OWN HOOK.** The predictor writes
-  through `useSeasonMatchPredictor`, which already owns optimistic saving, save
-  ordering, conflict classification and reload. vNext supplies an `actions` object
-  over it and nothing more; a second save path here would be a weaker duplicate of
-  a hook that has already been got right. `PredictorActions`' five members are the
-  three `MatchPredictorCommand` cases plus that hook's two recovery controls, and
-  `clearPrediction` is `setPrediction(id, null)` because that is how the RPC
-  clears.
-- **A PAYLOAD BELONGS TO THE IDENTITY THAT ASKED FOR IT** — Stage 6's rule, kept by
-  whichever means the code allows. The predictor's own reads store the request
-  identity with the payload; the card cannot, because the shared hook holds it, so
-  the component that calls that hook is given a `key` of the identity and remounts
-  instead. Either way, `old payload + new user` has no expression.
-- **`partial` is the one presentation-owned prediction state,** and it exists
-  because `save_season_prediction` refuses one score without the other. It lives in
-  `predictor/ScoreEntry.tsx`, reaches no server, survives no reload, and
-  `buildPredictorModel` cannot produce it. Do not grow it into a draft store —
-  there is already a real one, `INNOV-020`'s, behind the same hook.
-
-## vNext rules
-
-- vNext is a parallel frontend lane, not a gradual reskin of the legacy production UI.
-- Home is the first gold-standard screen and should establish the quality bar before broad propagation.
-- Early workshop/concept work uses realistic mocked data. Do not create a Supabase dependency just to make a concept feel real.
-- Preserve existing backend/domain/scoring/auth/service infrastructure. Integration should use bounded read models/services when the real-data phase begins.
-- Desktop may use substantially more information and a different composition from mobile; do not simply stretch a phone stack across a wide screen.
-- Prioritise football state, prediction action, social/rival comparison and useful context over decorative dashboard furniture.
-- Motion should explain hierarchy/state or add deliberate delight, with reduced-motion behaviour designed at the same time.
-- Storybook/browser review, responsive states, keyboard/focus behaviour, text scaling and accessibility are part of frontend acceptance.
-- Presentation may not invent scoring, locks, reveal, settlement, progression, membership or provider authority.
-- Do not broadly restyle legacy components as a shortcut. If shared infrastructure is worth reusing, separate infrastructure reuse from visual inheritance.
-- Use the dependencies the repository already has. Do not add a router, a state library, a CSS framework, a component library, an icon set, an animation library or a data-fetching layer to vNext.
-- Fixtures are deterministic. Nothing under `fixtures/` or `foundations/format.ts` may read the clock; components take `now` as an input.
-- Mocked values are presentation inputs, never game rules. Provisional points are labelled provisional, and optional fields stay optional honestly.
-- Every motion primitive ships its reduced-motion pair in the same change. Resolve motion through `useVNextMotion`, never by reading variants directly.
-- **Confirmation follows the server, never the keystroke.** A surface may not
-  animate or vibrate a success until the write came back: the settle and the
-  haptic on a saved prediction are driven by the save coordinator's transition
-  into `saved`, and a refusal runs neither. A confirmation that arrives early
-  has told the player something untrue in the one place they were watching.
-- **There is one celebration and it is for something the server says was
-  won.** `achievementArrive` is the whole vocabulary — the Last Man Standing
-  trophy, once, on the edge into `champion`. Do not add a second celebration
-  primitive to mark something that is merely pleasant; a vocabulary that
-  celebrates a saved prediction has nothing left for winning a season. Any
-  achievement moment is edge-triggered through `useFeedbackOnLatch`, so a
-  player who reloads the page is not congratulated again.
-- **Shared-element continuity is for one mounted surface, not across routes.**
-  Every destination is a separate lazy chunk, so a cross-route `layoutId` has
-  nothing to travel from; making it work means rebuilding the shell's routing.
-  Inside a surface it is cheap and correct — see `ScopeMarker`, which reuses
-  `vnextTransition.navIndicator` rather than adding a second travel.
-- A dense zone sizes itself against its OWN container, never against the shell. The same column is 690px wide at one composition and 440px at another, so a shell-width rule is right in one place and starving club names in the other.
-- Home is ONE surface with three emphases, not three pages. The stable frame — masthead, score bar, navigation, type, spacing, surfaces, team colour, motion — does not change between them; only the dominant zone and the order beneath it do.
-- The application shell may not learn anything about a page. Nothing under `app/` may import from `home/` or `fixtures/`, and a prop named after Home's content — a hero, a ticker, a rank — is the shell becoming Home under a general name. `tests/vnext/shell.test.tsx` holds the import direction.
-- Presentation-selection logic may read the model's own partitions and flags. It may never re-derive them: read `liveMatches`, not `kickoff` against `now`; read `urgency`, not a deadline against a clock.
-- **A LIVE COUNTDOWN IS PRESENTATION; A PERMISSION FROM ONE IS NOT.** A model's
-  `generatedAt` is the instant the application answered at, and it moves only when
-  the model is rebuilt — so a page that draws a countdown straight against it goes
-  stale the moment the player stops interacting. The one sanctioned mechanism is
-  `predictor/useDeadlineClock.ts`: a DISPLAY instant anchored to `generatedAt` and
-  advanced by observed elapsed time, produced once per page and passed down, so
-  every deadline and every kickoff label on that page is measured against the same
-  moment. It may do exactly two things — make a countdown current, and decide it is
-  time to call the application's own `reload` (once per distinct `lock.at`, on a
-  card the application already says is `open`). It may not produce `locked`,
-  `closed`, non-editability, a Joker refusal, a settlement or a reveal, and
-  `urgency` stays the mapper's because it is a decision rather than a format. Do
-  not put an interval in a visual component, and do not rebuild a model on a timer
-  to fake a fresh answer.
-- A dense zone sizes itself against its own column — and where a name can still be cut, let it wrap rather than adding another threshold. `e2e/vnext-home.spec.ts` measures clipped text at every width and emphasis.
-- **A ROW MEASURES ITSELF, not the column that placed it.** Stage 7 is where this stopped being a slogan: at 1920 the predictor's working column takes two fixtures across, so a row has ~730px of a ~1480px column, and a row that had queried the column would compose as though it had all of it. A container query is answered by an ANCESTOR, so the row declares `container-name` and its own body asks the question. `e2e/vnext-predictor.spec.ts` measures the outcome per row.
-- **A MATCH CLOCK IS PROVIDER DATA OR IT DOES NOT EXIST.** Nothing in this lane may
-  derive a live minute, a half, injury time, a full-time whistle, a postponement or
-  an abandonment from `Date.now() - kickoff`. The platform's live projection
-  (contract 135) carries a status, two optional scores and an observation instant,
-  and **no minute at all** — so `LIVE` with no minute is a DESIGNED state and not a
-  degradation. `models/matches.ts` puts a clock only inside `MatchObservation`, which
-  exists only on the two states a provider has actually reported on, so a scheduled
-  match has no field that could hold one. `docs/product/vnext-matches.md` §7.
-- **A PROVIDER MAY REFINE A FIXTURE; IT MAY NOT POSTPONE ONE.** `season_fixtures.
-  status` is the platform's administrative state and wins. `live.kind` may only turn
-  a `scheduled` fixture into `live` or `awaitingResult`. A feed's `postponed`,
-  `abandoned` or `cancelled` is discarded, because letting one through would empty a
-  fixture list on a provider's say-so.
-- **A PROVIDER SCORE IS NEVER A RESULT.** `matchScoreClaim()` is the ONE function
-  that answers "is there a score, and what kind of claim is it", so the
-  provisional/official distinction cannot be lost by a component reaching into an
-  observation itself. `awaitingResult` exists precisely because a feed may say a
-  match is over while the platform has not settled it.
-- **A STAGE LABEL IS THE COMPETITION'S OWN WORD.** "Matchweek 7",
-  "Quarter-finals", "Group A · Matchday 2" — printed verbatim from
-  `competition_rounds.label`. Nothing builds a label from an ordinal and nothing
-  reads a date to decide what stage a competition is at. Lists group by the DAY a
-  match is played and label by stage, because a fixture postponed out of matchweek 5
-  keeps its round on purpose.
-- **A FIXTURE LIST MAY NOT CARRY A HEAD-TO-HEAD, A TABLE, A FORM RUN OR A
-  PREDICTION.** `MatchListItem` has a field for none of them, which is how the N+1
-  is prevented by the type rather than by discipline: a list of ten fixtures costs
-  two round trips. Those belong to ONE fixture — `MatchCentreModel` — and the
-  head-to-head read is pair-at-a-time by construction.
-- **A MATCH CENTRE MODULE APPEARS ONLY WHERE ITS DATA EXISTS.** `matchCentreModules()`
-  is the single answer, so no section decides for itself. There are no lineups, no
-  event timeline, no match statistics, no injuries, no venue, no broadcast and no
-  referee anywhere in this platform: every one of those fields is `null` from every
-  mapper, and drawing an empty module or a row of zeroes would make the page look
-  finished and make the product a liar.
-- **Do not truncate a club name.** Home stopped at two lines then ellipsised; the browser suite caught that clipping "Strathallan Caledonian Thistle" in a ~150px scoreboard column. The predictor has no line clamp on a club name at all — the row grows, `overflow-wrap: anywhere` stops a long word widening it, and with nothing hiding overflow the defect cannot reopen.
-- **A DRAWING IS MEASURED IN A BROWSER, AND THE MEASUREMENT READS THE
-  COORDINATES BACK.** A picture is the one thing here that can be completely
-  wrong and completely green: jsdom gives an `<svg>` no geometry, a render test
-  sees the elements and not where they went, and a unit test of the scaling
-  function proves the function rather than the screen. A rank chart drawn upside
-  down throws nothing. So anything positioned by a computed coordinate — a
-  chart, a bracket, a connector, a track, a meter — obeys three rules together:
-  - **the geometry comes from the model, in ONE calculation.** `rankPlot`
-    returns the fractions and `rankBounds` returns the numbers the axis is
-    labelled with, from the same place, because a chart scaled by one rule and
-    captioned by another is upside down in exactly the way nobody notices.
-    `RankChart` turns fractions into a viewBox and does no min, max, sort or
-    scale of its own;
-  - **a browser spec reads the rendered coordinates out of the document** and
-    asserts the RELATIONSHIPS against what the page itself states — a climb is a
-    decreasing `cy`, the series advances in `cx`, the extremes sit where the
-    table beside the chart says. `min(cy) < max(cy)` is not that assertion: it
-    is true of a chart drawn upside down, which is how an earlier version of
-    this measurement passed;
-  - **the drawing is the illustration and something semantic is the
-    authority.** The SVG is `aria-hidden` and a real `<table>` carries the same
-    series, rendered from the same array so they cannot drift.
-
-  `tests/vnext/vnextDrawnGeometry.test.ts` holds the registry: a component that
-  draws by computed coordinate names the spec that measures it, checked in both
-  directions so neither an unmeasured drawing nor a stale entry survives. A
-  drawing whose coordinates are all literals — a static icon — is not a
-  calculation and is deliberately outside the rule.
+The executable dependency direction is enforced by repository tests and dependency-cruiser. In particular, vNext presentation cannot reach application services/features except through the intended integration boundary, and source cycles remain blocking.
 
 ## Context budget
 
-For a local component change, the expected context is normally this file + `docs/product/ui.md` + `docs/product/vnext-workshop.md` + the component/test/read-model involved. Escalate to broader authorities only when the task itself requires them.
+A normal vNext task should usually reach useful source with roughly:
+
+- root `NOW.md` / `AGENTS.md` routing;
+- this compact file;
+- `docs/product/ui.md`;
+- **one** surface authority;
+- the small Graphify/Serena source-and-test shortlist.
+
+Do not read all vNext product documents, dated audits, programme history or the whole `src/vnext/` tree before starting a local task. If the task packet identifies no useful source, use bounded repository search and expand deliberately.
+
+For a UI review, use [`.agents/skills/predictor-ui-review/SKILL.md`](../../.agents/skills/predictor-ui-review/SKILL.md). For the controlled multi-stage vNext programme, use [`.agents/skills/vnext-programme-runner/SKILL.md`](../../.agents/skills/vnext-programme-runner/SKILL.md) and its programme controller instead of reconstructing programme state from this file.

@@ -1,0 +1,260 @@
+{
+  "$comment": "Deterministic task/path routing only. Product and hosted truth remain in canonical repository authorities. More-specific routes have higher priority; the task router merges only the small set that matches the Graphify/source shortlist.",
+  "version": 6,
+  "graphifyBudget": 900,
+  "maxCandidatePaths": 8,
+  "maxAuthorities": 3,
+  "routes": [
+    {
+      "id": "vnext-programme",
+      "priority": 200,
+      "taskKeywords": ["vnext programme", "resume vnext", "continue vnext stages", "programme controller"],
+      "authorities": ["docs/product/vnext-programme-controller.md", "config/vnext-programme.json"],
+      "skills": ["vnext-programme-runner"]
+    },
+    {
+      "id": "broad-investigation",
+      "priority": 190,
+      "taskKeywords": ["repo audit", "repository audit", "broad audit", "handoff", "get context from the repo", "whole repo"],
+      "authorities": [],
+      "skills": ["predictor-context"]
+    },
+    {
+      "id": "security-investigation",
+      "priority": 188,
+      "taskKeywords": ["security audit", "security concern", "security investigation", "security review"],
+      "authorities": [],
+      "skills": ["predictor-context"]
+    },
+    {
+      "id": "independent-second-opinion",
+      "priority": 186,
+      "taskKeywords": ["second opinion", "pressure-test", "pressure test", "stress-test", "stress test", "cross-model review", "independent model review", "adversarial architecture review", "critical shipping review", "release-critical review"],
+      "authorities": [],
+      "skills": ["predictor-second-opinion"]
+    },
+    {
+      "id": "systematic-defect",
+      "priority": 185,
+      "taskKeywords": ["release blocker", "root cause", "does not work", "doesn't work", "does nothing", "not working", "broken journey", "failing journey", "regression", "flaky", "reproducible bug", "bug"],
+      "authorities": [],
+      "skills": ["predictor-systematic-debugging"]
+    },
+    {
+      "id": "release-journey-closure",
+      "priority": 184,
+      "taskKeywords": ["finish this journey", "finish the journey", "finish this feature", "finish the feature", "complete this journey", "complete the journey", "make this release ready", "make it release ready", "release ready", "close the remaining blockers", "close remaining blockers", "finish it properly", "finish this properly", "complete it properly", "end-to-end complete", "end to end complete", "get this finished"],
+      "authorities": [],
+      "skills": ["predictor-release-journey-closer"]
+    },
+    {
+      "id": "skill-evaluation",
+      "priority": 183,
+      "taskKeywords": ["skill evaluation", "evaluate this skill", "evaluate agent skill", "benchmark this skill", "skill benchmark", "skill efficacy", "skill performance", "skill triggering", "trigger accuracy", "optimize skill", "optimise skill", "improve agent skill"],
+      "authorities": ["docs/ops/agent-skills-architecture.md"],
+      "skills": ["predictor-skill-evaluator"]
+    },
+    {
+      "id": "product-brainstorming",
+      "priority": 182,
+      "taskKeywords": ["feature idea", "new idea", "explore approaches", "compare approaches", "product direction", "what should we build", "work out the approach", "work out an approach", "decide between", "brainstorm"],
+      "authorities": [],
+      "skills": ["predictor-product-brainstorming"]
+    },
+    {
+      "id": "product-opportunity",
+      "priority": 181,
+      "taskKeywords": ["improve", "make this better", "make it better", "take this to the next level", "what is missing", "what's missing", "make this more useful", "make it more useful", "make this genuinely better", "review this feature", "improve this feature", "improve the site", "improve the website", "make the site better", "make the website better"],
+      "excludeKeywords": ["performance", "rendering", "rerender", "re-render", "bundle", "spacing", "animation", "motion", "transition", "easing", "spring", "redesign", "visual direction", "visual polish", "bug", "broken", "does not work", "doesn't work", "fix", "simplify", "refactor", "security", "migration", "database", "postgres", "rls", "rpc", "scoring", "settlement", "lock rule", "reveal rule", "loading", "empty state", "error state", "state completeness", "edge state", "release ready", "finish", "complete", "benchmark", "agent skill"],
+      "authorities": [],
+      "skills": ["predictor-product-opportunity-scout", "predictor-football-experience-critic"]
+    },
+    {
+      "id": "ai-lab",
+      "priority": 180,
+      "paths": ["ai/", "src/features/admin/ai"],
+      "taskKeywords": ["ai lab", "model evidence", "model promotion"],
+      "authorities": ["ai/README.md"],
+      "skills": ["predictor-ai-lab-verifier"]
+    },
+    {
+      "id": "environment-contract",
+      "priority": 179,
+      "taskKeywords": ["hosted contract", "development contract", "production contract", "contract number", "next contract", "apply migration", "rollout migration", "migration rollout", "deploy to development", "deploy to production", "production promotion", "promote to production", "netlify environment", "supabase environment", "environment variable", "site variant", "hosted state"],
+      "authorities": ["docs/quality/current-status.md", "docs/ops/ops-pending-migrations.md"],
+      "skills": ["predictor-environment-contract-guardian"]
+    },
+    {
+      "id": "motion-craft",
+      "priority": 178,
+      "taskKeywords": ["animation", "animate", "transition", "easing", "spring", "microinteraction", "micro-interaction", "gesture", "motion polish", "animation polish", "entrance motion", "exit motion", "page transition", "route transition", "reduced motion", "reduced-motion"],
+      "authorities": [],
+      "skills": ["predictor-motion-craft"]
+    },
+    {
+      "id": "player-state-matrix",
+      "priority": 177,
+      "taskKeywords": ["state completeness", "state matrix", "edge states", "edge state", "loading state", "empty state", "error state", "permission state", "locked state", "live state", "settled state", "first-use state", "first use state", "loading, empty", "loading empty", "locked, live", "locked live"],
+      "authorities": [],
+      "skills": ["predictor-player-state-matrix"]
+    },
+    {
+      "id": "competitive-integrity",
+      "priority": 176,
+      "taskKeywords": ["competitive integrity", "scoring", "points calculation", "rank calculation", "lock rule", "reveal rule", "prediction reveal", "prediction visibility", "official result", "membership rule", "settlement", "progression rule", "game rule"],
+      "authorities": ["docs/adr/README.md"],
+      "skills": ["predictor-competitive-integrity"]
+    },
+    {
+      "id": "intentional-ui-design",
+      "priority": 175,
+      "taskKeywords": ["redesign", "design new ui", "new vnext page", "reshape the ui", "visual direction", "visual directions", "premium ui", "visual polish"],
+      "authorities": ["docs/product/ui.md"],
+      "skills": ["predictor-frontend-design"]
+    },
+    {
+      "id": "football-experience",
+      "priority": 174,
+      "taskKeywords": ["football experience", "football usefulness", "prediction experience", "rivalry experience", "feel more like football", "feel like a football product", "feel more like a football product"],
+      "authorities": [],
+      "skills": ["predictor-football-experience-critic"]
+    },
+    {
+      "id": "vnext-shell",
+      "priority": 170,
+      "paths": ["src/vnext/app/", "src/vnext/integration/shell/", "src/vnext/models/shell.ts"],
+      "taskKeywords": ["vnext shell", "competition deck", "vnext competition switcher"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-shell-ia.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-matches",
+      "priority": 165,
+      "paths": ["src/vnext/matches/", "src/vnext/integration/matches/", "src/vnext/models/matches.ts"],
+      "taskKeywords": ["vnext matches", "match centre", "matches table"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-matches.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-leagues",
+      "priority": 165,
+      "paths": ["src/vnext/leagues/", "src/vnext/integration/leagues/", "src/vnext/models/leagues.ts"],
+      "taskKeywords": ["vnext leagues"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-leagues.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-player",
+      "priority": 165,
+      "paths": ["src/vnext/player/", "src/vnext/integration/playerProfile/", "src/vnext/models/playerProfile.ts"],
+      "taskKeywords": ["vnext player profile", "vnext rival profile"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-player-profiles.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-lms",
+      "priority": 165,
+      "paths": ["src/vnext/lms/", "src/vnext/integration/lms/", "src/vnext/models/lms.ts"],
+      "taskKeywords": ["vnext lms", "vnext last man standing", "lms pick", "last man standing"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-lms.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-championship",
+      "priority": 165,
+      "paths": ["src/vnext/championship/", "src/vnext/integration/championship/", "src/vnext/models/championship.ts"],
+      "taskKeywords": ["vnext championship", "predictor championship bracket"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-championship.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-home",
+      "priority": 160,
+      "paths": ["src/vnext/home/", "src/vnext/integration/home/", "src/vnext/models/home.ts"],
+      "taskKeywords": ["vnext home", "find a league", "around the grounds"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "vnext-predictor",
+      "priority": 160,
+      "paths": ["src/vnext/predictor/", "src/vnext/integration/predictor/", "src/vnext/models/predictor.ts"],
+      "taskKeywords": ["vnext match predictor"],
+      "authorities": ["docs/product/ui.md", "docs/product/vnext-workshop.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "react-performance",
+      "priority": 155,
+      "taskKeywords": ["react performance", "rendering performance", "render performance", "rerender", "re-render", "bundle size", "async waterfall", "react scan", "performance regression"],
+      "authorities": [],
+      "skills": ["predictor-react-best-practices"]
+    },
+    {
+      "id": "code-simplification",
+      "priority": 154,
+      "taskKeywords": ["simplify recent", "simplify the recent", "simplification pass", "behaviour-preserving simplification", "behavior-preserving simplification", "reduce accidental complexity", "maintainability pass", "generated code cleanup", "post-green cleanup", "refactor recent changes", "refactor the recent changes"],
+      "authorities": [],
+      "skills": ["predictor-code-simplification"]
+    },
+    {
+      "id": "component-composition",
+      "priority": 150,
+      "taskKeywords": ["component api", "boolean prop", "prop-heavy", "compound component", "composition pattern", "prop drilling", "reusable component architecture"],
+      "authorities": [],
+      "skills": ["predictor-composition-patterns"]
+    },
+    {
+      "id": "sensitive-diff-review",
+      "priority": 145,
+      "paths": ["supabase/migrations/", "supabase/functions/", "src/services/supabase/", "src/features/admin/", "src/services/providers/"],
+      "taskKeywords": ["auth change", "rls change", "rpc change", "supabase rpc", "add rpc", "new rpc", "permission change", "secret handling", "environment handling", "scoring change", "settlement change", "security-sensitive", "cross-layer refactor"],
+      "authorities": ["docs/adr/README.md"],
+      "skills": ["predictor-differential-review"]
+    },
+    {
+      "id": "vnext-general",
+      "priority": 100,
+      "paths": ["src/vnext/"],
+      "authorities": ["docs/product/ui.md", "src/vnext/AGENTS.md"],
+      "skills": ["predictor-ui-review"]
+    },
+    {
+      "id": "database",
+      "priority": 90,
+      "paths": ["supabase/", "src/services/supabase/"],
+      "taskKeywords": ["migration", "rls", "rpc", "database contract", "postgres query", "database index"],
+      "authorities": ["docs/ops/ops-pending-migrations.md", "docs/adr/README.md"],
+      "skills": ["predictor-spec-driven-delivery", "predictor-postgres-best-practices"]
+    },
+    {
+      "id": "provider-enrichment",
+      "priority": 85,
+      "taskKeywords": ["provider enrichment", "football provider", "odds provider", "live provider"],
+      "authorities": ["docs/architecture/provider-enrichment-plan.md"],
+      "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "developer-tooling",
+      "priority": 80,
+      "paths": ["scripts/agent-tools/", ".agents/skills/", "config/agent-", ".mcp.json", ".dependency-cruiser.cjs"],
+      "taskKeywords": ["graphify", "serena", "context7", "repomix", "agent tooling", "agent skill"],
+      "authorities": ["docs/ops/agent-tooling-map.md", "docs/architecture/developer-operating-system.md", "docs/ops/developer-toolchain.md"],
+      "skills": ["predictor-spec-driven-delivery"]
+    },
+    {
+      "id": "compound-learning",
+      "priority": 75,
+      "taskKeywords": ["capture reusable lesson", "compound learning", "what did we learn", "record this lesson", "promote this pattern", "reusable engineering lesson"],
+      "authorities": ["docs/ops/agent-skills-architecture.md"],
+      "skills": ["predictor-compound-learning"]
+    },
+    {
+      "id": "legacy-ui",
+      "priority": 70,
+      "taskKeywords": ["legacy ui", "current production ui"],
+      "authorities": ["docs/design/README.md"],
+      "skills": ["predictor-ui-review"]
+    }
+  ]
+}

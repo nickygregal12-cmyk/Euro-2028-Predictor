@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { VNextHome } from '../../home/VNextHome'
+import { VNextHome, type HomeIntent } from '../../home/VNextHome'
 import { VNextShellProvider } from '../../app/VNextShellProvider'
 import type { HomeModel } from '../../models/home'
 import type { ShellIntent } from '../../models/shell'
@@ -52,6 +52,15 @@ export type VNextHomeScreenProps = VNextHomeSourceInput & {
    */
   readonly onShellIntent?: ((intent: ShellIntent) => void) | undefined
   /**
+   * What the host does with Home's own content action.
+   *
+   * THIS IS DELIBERATELY SEPARATE FROM `onShellIntent`. The shell can say
+   * "Matches" or "Games" without knowing a fixture; Home can promise an exact
+   * "Match centre" and therefore has to carry the fixture id. The application
+   * adapter owns the final URL, exactly as the Matches screen does.
+   */
+  readonly onIntent?: ((intent: HomeIntent) => void) | undefined
+  /**
    * The player's OTHER competitions and what is waiting in them, where the host
    * loads them. `undefined` is the one-competition shape: the shell states this
    * page's competition and says nothing about any other, which is what a
@@ -103,10 +112,10 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
   )
 
   return shell === null ? (
-    <VNextHomeBody state={state} model={model} />
+    <VNextHomeBody state={state} model={model} onIntent={props.onIntent} />
   ) : (
     <VNextShellProvider model={shell} onIntent={props.onShellIntent}>
-      <VNextHomeBody state={state} model={model} />
+      <VNextHomeBody state={state} model={model} onIntent={props.onIntent} />
     </VNextShellProvider>
   )
 }
@@ -115,9 +124,11 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
 function VNextHomeBody({
   state,
   model,
+  onIntent,
 }: {
   readonly state: ReturnType<typeof useVNextHomeSource>
   readonly model: HomeModel | null
+  readonly onIntent?: ((intent: HomeIntent) => void) | undefined
 }) {
   switch (state.status) {
     case 'loading':
@@ -152,6 +163,6 @@ function VNextHomeBody({
       // A ready state with no model is unreachable: the memo builds one for
       // exactly this branch. The guard exists so the type narrows without a
       // non-null assertion, which would be the one place this file could lie.
-      return model ? <VNextHome model={model} /> : <VNextHomeLoading />
+      return model ? <VNextHome model={model} onIntent={onIntent} /> : <VNextHomeLoading />
   }
 }

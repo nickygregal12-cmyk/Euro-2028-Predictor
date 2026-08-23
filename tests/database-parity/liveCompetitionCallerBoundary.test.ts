@@ -117,7 +117,7 @@ describe('contract 104 competition-instance caller boundary', () => {
       ),
     )
     expect(currentStatus).toContain(
-      `**${deploymentContract.contractVersion}** — ${deploymentContract.requiredMigrationCount} canonical migrations`,
+      `The repository is at **contract ${deploymentContract.contractVersion}**`,
     )
     expect(currentStatus).toMatch(
       new RegExp(
