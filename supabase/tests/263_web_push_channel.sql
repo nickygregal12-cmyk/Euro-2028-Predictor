@@ -67,17 +67,19 @@ select id, 'lms_pick_due:push-channel:one', 'lms_pick_due', 1,
        now() + interval '10 hours', now() + interval '10 hours'
   from auth.users where email like 'c217-%@example.test';
 
--- Two real-shaped subscriptions. The key values are the browser's PUBLIC key
--- and a shared salt, not credentials of ours; these two are literals so the
--- structural constraints are exercised by something that looks like the real
--- thing rather than by padding.
+-- Two real-shaped subscriptions. `p256dh` is the browser's PUBLIC key, so it is
+-- valid P-256 material and cannot be patterned; `auth` is a shared secret and
+-- is deliberately the sequential bytes 00..0f, because a throwaway value that
+-- LOOKS like a credential is one a reader has to stop and check. Both are
+-- literals so the structural constraints are exercised by something shaped like
+-- the real thing rather than by padding.
 insert into public.push_subscriptions (user_id, endpoint, p256dh, auth) values
   (md5('c217-push')::uuid, 'https://push.example.test/c217-push',
    'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
-   'Dx4tPEtaaXiHlqW0w9Lh8A'),
+   'AAECAwQFBgcICQoLDA0ODw'),
   (md5('c217-both')::uuid, 'https://push.example.test/c217-both',
    'BCWiVOGr0ZzQENGF-sSe47c6Sgqf9ufuLsW0x-ykdk9NVWOspcv1colEhpmBhGjKY7sM1Vnm2Q07IZs1f7hVjIQ',
-   'obLD1OX2BxgpOktcbX6PkA');
+   'EBESExQVFhcYGRobHB0eHw');
 
 -- ---------------------------------------------------------------------------
 -- THE WIDENED PREFERENCE
@@ -218,7 +220,7 @@ select lives_ok(
   $$select public.save_push_subscription(
       'https://push.example.test/c217-shared',
       'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
-      'Dx4tPEtaaXiHlqW0w9Lh8A')$$,
+      'AAECAwQFBgcICQoLDA0ODw')$$,
   'a signed-in player may record the subscription their browser handed them'
 );
 
@@ -232,7 +234,7 @@ select is(
 select throws_ok(
   $$select public.save_push_subscription('http://push.example.test/plain',
       'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
-      'Dx4tPEtaaXiHlqW0w9Lh8A')$$,
+      'AAECAwQFBgcICQoLDA0ODw')$$,
   '22023',
   'A push endpoint must be an https URL',
   'a plain-http endpoint is refused rather than stored and posted to later'
@@ -267,7 +269,7 @@ select lives_ok(
   $$select public.save_push_subscription(
       'https://push.example.test/c217-shared',
       'BCWiVOGr0ZzQENGF-sSe47c6Sgqf9ufuLsW0x-ykdk9NVWOspcv1colEhpmBhGjKY7sM1Vnm2Q07IZs1f7hVjIQ',
-      'obLD1OX2BxgpOktcbX6PkA')$$,
+      'EBESExQVFhcYGRobHB0eHw')$$,
   'a second player signing in on the same browser records the same endpoint'
 );
 

@@ -18,8 +18,31 @@
 // emits a DER signature, this file fails and the deployed sender does not have
 // to teach us by going quiet.
 //
-// The keys are throwaway values generated for this file. They are not a
-// credential of any environment and reach no push service.
+// ============================ AND WHY THE SECRETS ARE COMPUTED ============
+//
+// The two secret-shaped inputs are BUILT from a stated byte pattern rather than
+// pasted as base64. That is not decoration. `betterleaks` flags any base64-ish
+// literal on a line whose key is `auth`, and it is right to — that is exactly
+// what a real subscription secret looks like, and a scanner cannot know this
+// one is a throwaway. Making the value patterned did not help, because the rule
+// reads the identifier and not the entropy.
+//
+// So the fix is to have no secret literal in the file at all: the bytes are
+// `00 01 02 … 0f`, written as that, which is both unmistakably synthetic and
+// easier to check against the vector than twenty-two base64 characters. The
+// alternative — an inline `betterleaks:allow` — would have been telling the
+// scanner to look away from a line that still looked like a credential.
+//
+// The EC keys below cannot be given a pattern (they have to be valid P-256
+// material) and are equally throwaway: generated for this file, reaching no
+// push service and belonging to no environment.
+
+/** Sixteen bytes counting up from `from`, base64url. Obviously not a secret. */
+function countingBytes(from: number): string {
+  return Buffer.from(Uint8Array.from({ length: 16 }, (_, index) => from + index)).toString(
+    'base64url',
+  )
+}
 import { describe, expect, it } from 'vitest'
 import {
   base64UrlToBytes,
@@ -36,10 +59,11 @@ const VECTOR = {
   uaPublic: 'BJALxoN96LLa2NxsmXagWXK3fzGLZtzl2VqCd1v1yhE-IW0QVtmfC9Qmejh0RJolHh_fK4titymTJRnLqzQBBhw',
   asPublic: 'BCWiVOGr0ZzQENGF-sSe47c6Sgqf9ufuLsW0x-ykdk9NVWOspcv1colEhpmBhGjKY7sM1Vnm2Q07IZs1f7hVjIQ',
   asPrivate: 'Py8KbB1LjpB1ocPlt9nxAjRWeJCrze8BI0VniavN7wE',
-  auth: 'Dx4tPEtaaXiHlqW0w9Lh8A',
-  salt: 'obLD1OX2BxgpOktcbX6PkA',
+  // 00 01 02 … 0f, and 10 11 12 … 1f.
+  auth: countingBytes(0x00),
+  salt: countingBytes(0x10),
   plaintext: 'A nudge before your predictions lock.',
-  body: 'obLD1OX2BxgpOktcbX6PkAAAEABBBCWiVOGr0ZzQENGF-sSe47c6Sgqf9ufuLsW0x-ykdk9NVWOspcv1colEhpmBhGjKY7sM1Vnm2Q07IZs1f7hVjIRnxVWahFW6KPm1FH9sOl9maB7Vt8OIyju5q8VgMNXkZNSHEsJC5B22pR4GvzpjPK1YR48W8yU',
+  body: 'EBESExQVFhcYGRobHB0eHwAAEABBBCWiVOGr0ZzQENGF-sSe47c6Sgqf9ufuLsW0x-ykdk9NVWOspcv1colEhpmBhGjKY7sM1Vnm2Q07IZs1f7hVjIStaUCTkST0h8iYgtpxsXaLaN3dgxkIlZInGHsVA6jtXPgooCICnW4qbF1Y84zYi1df73mmCnY',
 } as const
 
 const SUBSCRIPTION = {
