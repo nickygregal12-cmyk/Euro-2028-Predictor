@@ -7,7 +7,7 @@
 
 begin;
 
-select plan(15);
+select plan(18);
 
 create temporary table contract_214_context (
   tournament_id uuid not null,
@@ -210,6 +210,41 @@ select is(
      from contract_214_context),
   'false',
   'repeating the already-applied Joker state is a no-op');
+
+-- The no-op above passes even against an implementation that writes blindly,
+-- because this player holds one Joker in an open matchweek: no guard on
+-- season_matchweek_jokers has any reason to fire. The no-op only has to survive
+-- a WRITE ATTEMPT when a guard would refuse that write, so lock the matchweek
+-- and repeat the same command. Both guards on this table are BEFORE INSERT row
+-- triggers, and PostgreSQL runs those before it detects the uniqueness
+-- conflict, so ON CONFLICT DO NOTHING cannot rescue an implementation that
+-- reaches the insert at all.
+update public.season_fixtures
+   set kickoff_at = now() - interval '1 hour'
+ where id = (select fixture_id from contract_214_context);
+
+select lives_ok(
+  format(
+    $$select public.set_season_matchweek_joker('%s', 1, true)$$,
+    (select tournament_id from contract_214_context)
+  ),
+  'repeating the stored Joker state after the lock stays a no-op instead of raising');
+
+select is(
+  (select public.set_season_matchweek_joker(tournament_id, 1, true)->>'changed'
+     from contract_214_context),
+  'false',
+  'that locked repeat still answers changed: false');
+
+-- The inverse, so the no-op above cannot be bought by weakening the lock:
+-- REMOVING the Joker after the lock is a material change and must still refuse.
+select throws_ok(
+  format(
+    $$select public.set_season_matchweek_joker('%s', 1, false)$$,
+    (select tournament_id from contract_214_context)
+  ),
+  '55000', 'This matchweek is locked',
+  'removing the Joker after the lock is still refused');
 
 select * from finish();
 

@@ -72,4 +72,33 @@ describe('createSeasonMatchPredictorRpcGateway — Contract 214 server-owned con
     expect(page.confirmedAt).toBeNull()
     expect(page.confirmationReference).toBeNull()
   })
+
+  // The confirm RPC is the only place that knows the instant it just stored.
+  // Answering void here is what left a confirmed card with no evidence line
+  // until an unrelated reload, so the write itself has to carry it back.
+  it('answers the confirmation evidence the confirm RPC returned', async () => {
+    mocks.rpc.mockResolvedValueOnce({
+      data: {
+        card_status: 'confirmed',
+        confirmed_at: '2027-01-15T12:00:00Z',
+        confirmation_reference: 'MW10-9F8E7D6C',
+      },
+      error: null,
+    })
+
+    const outcome = await gateway().apply(10, { kind: 'confirmCard' })
+
+    expect(outcome).toEqual({
+      confirmedAt: '2027-01-15T12:00:00Z',
+      confirmationReference: 'MW10-9F8E7D6C',
+    })
+  })
+
+  it('answers null evidence when the confirm RPC predates Contract 214', async () => {
+    mocks.rpc.mockResolvedValueOnce({ data: null, error: null })
+
+    const outcome = await gateway().apply(10, { kind: 'confirmCard' })
+
+    expect(outcome).toEqual({ confirmedAt: null, confirmationReference: null })
+  })
 })

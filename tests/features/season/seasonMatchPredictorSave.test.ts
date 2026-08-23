@@ -234,4 +234,53 @@ describe('load failure and lock states', () => {
     // closed and the surface says unavailable rather than "open with no games".
     expect(result.current.presentation!.state).toBe('unavailable')
   })
+
+  // Contract 214. The confirm write is the only moment the server's instant and
+  // reference are known. Until the settled write carried them back, the card
+  // read "confirmed" with no evidence line for the rest of the session.
+  it('shows the confirmation evidence the settled confirm write answered', async () => {
+    const base = createSeasonMatchPredictorGateway({ scenario: 'healthy', now: BEFORE_LOCK() })
+    const gateway: MatchPredictorGateway = {
+      load: (matchweek) => base.load(matchweek),
+      async apply(matchweek, command) {
+        await base.apply(matchweek, command)
+        if (command.kind !== 'confirmCard') return
+        return { confirmedAt: '2026-08-20T12:34:00Z', confirmationReference: 'MW1-5E6F7A8B' }
+      },
+    }
+    const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    act(() => {
+      result.current.setPrediction(at(result.current.page!.fixtures, 0).fixtureId, { home: 2, away: 0 })
+    })
+    act(() => {
+      result.current.confirmCard()
+    })
+
+    expect(result.current.page!.cardStatus).toBe('confirmed')
+    await waitFor(() => {
+      expect(result.current.page!.confirmedAt).toBe('2026-08-20T12:34:00Z')
+      expect(result.current.page!.confirmationReference).toBe('MW1-5E6F7A8B')
+    })
+  })
+
+  // The inverse: a gateway that answers nothing must leave the receipt with no
+  // evidence rather than the browser inventing an instant to fill the gap.
+  it('leaves confirmation evidence absent when the gateway answers none', async () => {
+    const gateway = createSeasonMatchPredictorGateway({ scenario: 'healthy', now: BEFORE_LOCK() })
+    const { result } = renderHook(() => useSeasonMatchPredictor(gateway, 1))
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    act(() => {
+      result.current.setPrediction(at(result.current.page!.fixtures, 0).fixtureId, { home: 2, away: 0 })
+    })
+    act(() => {
+      result.current.confirmCard()
+    })
+
+    await waitFor(() => expect(result.current.page!.cardStatus).toBe('confirmed'))
+    expect(result.current.page!.confirmedAt).toBeNull()
+    expect(result.current.page!.confirmationReference).toBeNull()
+  })
 })

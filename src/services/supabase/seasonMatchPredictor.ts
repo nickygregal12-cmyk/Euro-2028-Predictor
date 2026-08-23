@@ -7,6 +7,7 @@ import { resolveClubIdentity } from '../../domain/clubIdentity/clubIdentityToken
 import { clubDisplayName } from '../../domain/clubIdentity/clubName'
 import type {
   MatchPredictorCommand,
+  MatchPredictorConfirmationEvidence,
   MatchPredictorGateway,
   MatchPredictorPage,
 } from '../../features/season/matchPredictorModel'
@@ -215,7 +216,10 @@ export function createSeasonMatchPredictorRpcGateway(options: {
       }
     },
 
-    async apply(matchweek: number, command: MatchPredictorCommand): Promise<void> {
+    async apply(
+      matchweek: number,
+      command: MatchPredictorCommand,
+    ): Promise<MatchPredictorConfirmationEvidence | void> {
       switch (command.kind) {
         case 'setPrediction': {
           const { data, error } = await db.rpc(
@@ -251,12 +255,25 @@ export function createSeasonMatchPredictorRpcGateway(options: {
           return
         }
         case 'confirmCard': {
-          const { error } = await db.rpc('confirm_season_matchweek_card', {
+          const { data, error } = await db.rpc('confirm_season_matchweek_card', {
             p_tournament_id: options.tournamentId,
             p_matchweek: matchweek,
           })
           if (error) throw error
-          return
+          // Contract 214. The RPC answers with the confirmation instant and the
+          // derived reference it just stored. Discarding them left a confirmed
+          // card with no evidence line until some unrelated reload happened to
+          // re-read the card, which is the one thing this contract exists to
+          // put on screen. A pre-214 database answers neither key, and mapping
+          // that to null keeps the receipt honest rather than inventing one.
+          const confirmed = data as {
+            confirmed_at?: string | null
+            confirmation_reference?: string | null
+          } | null
+          return {
+            confirmedAt: confirmed?.confirmed_at ?? null,
+            confirmationReference: confirmed?.confirmation_reference ?? null,
+          }
         }
       }
     },

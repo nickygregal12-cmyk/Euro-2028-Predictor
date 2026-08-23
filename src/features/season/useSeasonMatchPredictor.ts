@@ -287,7 +287,24 @@ export function useSeasonMatchPredictor(
   if (controllerRef.current === null) {
     controllerRef.current = createSaveController({
       performSave: async (key, payload) => {
-        await gatewayRef.current.apply(matchweekRef.current, payload as MatchPredictorCommand)
+        const command = payload as MatchPredictorCommand
+        const outcome = await gatewayRef.current.apply(matchweekRef.current, command)
+        // Contract 214. The confirm RPC answers with the evidence it stored.
+        // Apply it here, on the settled write, so the receipt stops waiting for
+        // an unrelated reload to discover what the server already told us. A
+        // gateway that answers nothing leaves the evidence null, and the
+        // receipt renders no evidence line rather than an invented one.
+        if (command.kind === 'confirmCard' && outcome) {
+          setPage((current) =>
+            current === null || current.cardStatus !== 'confirmed'
+              ? current
+              : {
+                  ...current,
+                  confirmedAt: outcome.confirmedAt,
+                  confirmationReference: outcome.confirmationReference,
+                },
+          )
+        }
         void key
       },
       onStatus: (key, next) => {
@@ -469,7 +486,8 @@ export function useSeasonMatchPredictor(
               cardStatus: 'confirmed',
               // The server has not answered yet. A browser clock/reference here
               // would be invented evidence, so the receipt appears without an
-              // evidence line until the next authoritative read.
+              // evidence line until the write settles and `performSave` applies
+              // the instant and reference the server actually stored.
               confirmedAt: null,
               confirmationReference: null,
             },

@@ -178,10 +178,32 @@ begin
   perform predictor_internal.require_season_entry(v_ctx.o_entry_id);
 
   if p_played then
-    insert into public.season_matchweek_jokers (tournament_id, entry_id, competition_round_id)
-    values (p_tournament_id, v_ctx.o_entry_id, v_ctx.o_round_id)
-    on conflict (entry_id, competition_round_id) do nothing;
-    get diagnostics v_affected = row_count;
+    -- The stored state must be read BEFORE any write is attempted. Two BEFORE
+    -- INSERT triggers guard this table -- assert_season_joker_allowance and
+    -- enforce_season_matchweek_lock -- and PostgreSQL fires a BEFORE INSERT row
+    -- trigger before it detects the uniqueness conflict, so ON CONFLICT DO
+    -- NOTHING cannot suppress an exception either of them raises. The allowance
+    -- trigger also counts rows `id is distinct from new.id`, and a fresh INSERT
+    -- generates a new id, so it counts the row ALREADY stored for this
+    -- matchweek. Re-sending the stored state at the allowance boundary (the
+    -- fifth Joker of a half, the tenth of a season) therefore raised "A season
+    -- half allows five Jokers" instead of answering `changed: false`, and the
+    -- same shape raised a lock violation once the matchweek closed. Reading
+    -- first keeps the promised no-op a no-op; ON CONFLICT stays as the
+    -- concurrency backstop for two callers racing the same first write.
+    if exists (
+      select 1
+        from public.season_matchweek_jokers
+       where entry_id = v_ctx.o_entry_id
+         and competition_round_id = v_ctx.o_round_id
+    ) then
+      v_affected := 0;
+    else
+      insert into public.season_matchweek_jokers (tournament_id, entry_id, competition_round_id)
+      values (p_tournament_id, v_ctx.o_entry_id, v_ctx.o_round_id)
+      on conflict (entry_id, competition_round_id) do nothing;
+      get diagnostics v_affected = row_count;
+    end if;
   else
     delete from public.season_matchweek_jokers
      where entry_id = v_ctx.o_entry_id
