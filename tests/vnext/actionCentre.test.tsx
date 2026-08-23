@@ -6,7 +6,12 @@ import { VNextShell } from '../../src/vnext/app/VNextShell'
 import type { VNextShellActions } from '../../src/vnext/app/VNextActionsProvider'
 import { VNextRoot } from '../../src/vnext/foundations/VNextRoot'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
-import { shellScenarios } from '../../src/vnext/fixtures'
+import {
+  actionsScenarioNames,
+  actionsScenarioPremises,
+  actionsScenarios,
+  shellScenarios,
+} from '../../src/vnext/fixtures'
 import type { VNextActionItem, VNextActionsModel } from '../../src/vnext/models/actions'
 
 /**
@@ -276,6 +281,53 @@ describe('the Action Centre', () => {
 
     expect(await within(panel).findByText(/could not be dismissed/i)).toBeInTheDocument()
     expect(within(panel).getByText('Pick your club for Round 9')).toBeInTheDocument()
+  })
+
+  describe('every deterministic world', () => {
+    // ITERATED RATHER THAN LISTED, so a world added to the registry is covered
+    // the moment it exists. A fixture nothing renders is a fixture that drifts.
+    it.each(actionsScenarioNames)('opens and renders: %s', async (name) => {
+      const user = userEvent.setup()
+      const { unmount } = renderShell(actionsScenarios[name])
+
+      try {
+        const panel = await openPanel(user)
+        expect(panel).toBeInTheDocument()
+
+        // NO WORLD MAY RENDER A BARE ZERO WHERE THE SERVER SENT NOTHING. This
+        // is the sparse-context defect stated as a rule over every world rather
+        // than checked in the one place it was expected: "0 points banked" and
+        // "0 fixtures" are sentences no payload here supports.
+        expect(panel.textContent ?? '').not.toMatch(/\b0 (points banked|fixtures? to predict)\b/)
+
+        // Every world has a stated premise, so a reviewer reading the story and
+        // a developer reading the test see the same reason it exists.
+        expect(actionsScenarioPremises[name]).toBeTruthy()
+      } finally {
+        unmount()
+      }
+    })
+
+    it('never claims an empty inbox before the read has answered', async () => {
+      // The pair, asserted against the registry rather than against a literal:
+      // exactly the worlds whose model is null must withhold the claim, and the
+      // one that has a model and no items must make it.
+      for (const name of actionsScenarioNames) {
+        const world = actionsScenarios[name]
+        const user = userEvent.setup()
+        const { unmount } = renderShell(world)
+
+        try {
+          const panel = await openPanel(user)
+          const claimsEmpty = /up to date/i.test(panel.textContent ?? '')
+          expect(claimsEmpty, `${name} made the wrong claim`).toBe(
+            world.model !== null && world.model.items.length === 0,
+          )
+        } finally {
+          unmount()
+        }
+      }
+    })
   })
 
   it('meets the accessibility floor with the panel open', async () => {

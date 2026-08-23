@@ -70,6 +70,17 @@ export {
 } from './shell/scenarios'
 export type { ShellScenarioName } from './shell/scenarios'
 /**
+ * The ACTION CENTRE's worlds — the durable server feed, not the shell's live
+ * attention layer. The two answer different questions and have separate
+ * registries for that reason.
+ */
+export {
+  actionsScenarioNames,
+  actionsScenarioPremises,
+  actionsScenarios,
+} from './actions/scenarios'
+export type { ActionsScenarioName } from './actions/scenarios'
+/**
  * Stage 8's MATCH worlds.
  *
  * Two registries and their premises, and nothing else. A review surface renders
