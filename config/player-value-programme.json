@@ -54,7 +54,7 @@
         "1"
       ],
       "status": "blocked",
-      "pr": null,
+      "pr": 1003,
       "headSha": null,
       "mergedSha": null,
       "acceptanceEvidence": [
