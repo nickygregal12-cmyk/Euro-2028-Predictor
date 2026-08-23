@@ -14,6 +14,36 @@ nothing in this file amends either.
 recommendation only. **No production-facing IA implementation was performed.**
 No shell, route flag, navigation, ADR, visual baseline or cutover was touched.
 
+> ## Correction log — 23 August 2026
+>
+> Four factual errors were found on re-verification against `main` and corrected
+> **in place**, because a dated investigation carrying known-false statements is
+> worse than one carrying a visible correction log. The *conclusion is
+> unchanged*; each correction either strengthened it or narrowed a supporting
+> argument.
+>
+> 1. **LMS lock (§4).** The report said LMS and the Match Predictor share "one
+>    lock instant", quoting ADR 0013 § Round cadence. That sentence is
+>    contradicted by ADR 0013's own amendment: the thirty-minute buffer belongs
+>    to the LMS *game*, and the Main Predictor locks at first kickoff.
+>    **Corrected to: LMS recurs every matchweek and ordinarily locks earlier.**
+>    This strengthens the argument against burying it.
+> 2. **Home measurement (§6, §7).** The report claimed the first control is
+>    "Predict now" in all six Home worlds. Re-measured: five of six lead with a
+>    Match Predictor action, and `new-season` honestly offers "Find a league".
+>    **Corrected to the recurring-prediction-state claim.**
+> 3. **Games CTA (§1, §12).** The report quoted the visible label as `Open Last
+>    Man Standing`. The visible label is `Open` / `Look inside`; the game name
+>    lives in an `srOnly` span. **The defect is restated as destination-led
+>    rather than action-led wording** — which is the same defect, described
+>    accurately.
+> 4. **Authority framing (§1a).** The report called this an "unresolved
+>    authority conflict where neither document supersedes the other". Routing
+>    precedence does exist — `docs/product/ui.md` selects
+>    `vnext-shell-ia.md`. **Narrowed to: older accepted documentation carried
+>    navigation wording contradicting the shipping product.** That wording has
+>    since been reconciled at source.
+
 ---
 
 # 1. Executive conclusion
@@ -41,9 +71,11 @@ The single most important finding is this:
 > "Last Man Standing becomes harder to reach" — is real and unmitigated.**
 
 Measured in a real browser across every Home world in the repository, the first
-control on Home is **"Predict now"** (§7). Match Predictor is already one press
-from the front door at 375px and 1440px. A `Predict` tab would save **zero**
-presses on the core journey.
+first control on Home is a Match Predictor action in every *recurring
+prediction* world measured — "Predict now" in four of six and "Make your
+prediction" in a fifth (§7). Match Predictor is already one press from the front
+door at 375px and 1440px whenever there is a prediction to make. A `Predict` tab
+would save **zero** presses on the core journey.
 
 Meanwhile the two things that genuinely feel wrong today are:
 
@@ -53,9 +85,12 @@ Meanwhile the two things that genuinely feel wrong today are:
    Match Predictor into the week model and then filters the result to
    `'main_predictor'`. The model it is calling already computes all three games.
 2. **The Games destination reads as a catalogue, not a set of live games** — its
-   controls are `Open Last Man Standing`, where the repository's own accepted
-   requirement `DFA-006` says the primary control must be *"'Pick your club'
-   rather than 'Open game'"*.
+   visible primary control is `Open` (or `Look inside`), with the game name
+   carried only in an `srOnly` span for the accessible name
+   (`VNextGames.tsx:354-360`). The defect is that the visible CTA is
+   **destination-led rather than action-led**, where the repository's own
+   accepted requirement `DFA-006` says the primary control must be *"'Pick your
+   club' rather than 'Open game'"*.
 
 Those two defects produce exactly the symptom that motivates Candidate B — "the
 product feels like a directory of three peer games rather than a football
@@ -66,32 +101,40 @@ The burden of proof belongs to the proposed change. It is not met.
 
 ---
 
-# 1a. An unresolved authority conflict — and it partly vindicates the owner
+# 1a. Stale navigation wording in older accepted documentation
 
-This was surfaced by the independent critic (§17) and is confirmed. It is
-reported here rather than buried, because it is the strongest thing found in
-favour of the owner's instinct.
+Surfaced by the independent critic (§17), and **narrowed after re-verification
+on 23 August 2026.** An earlier draft of this section called it an "unresolved
+authority conflict in which neither document supersedes the other". That was
+overstated: routing precedence does exist. `docs/product/ui.md` — the authority
+the root router sends UI work to — explicitly names the selected architecture
+and links it:
 
-**Two live documents specify different navigation, and neither supersedes the
-other.**
+> *"The vNext navigation and information architecture is **SELECTED** as of
+> Stage 7.6: **the Competition Deck**… selected vNext information architecture:
+> `vnext-shell-ia.md`"*
 
-| Authority | Class | Status | Global nav it specifies | Competition-mode nav |
-| --- | --- | --- | --- | --- |
-| `docs/adr/0023-hub-information-architecture.md` | **ADR** | "Accepted direction — partially implemented" | `Home · Play · Matches · Leagues · More` | `Overview · Play · Matches · Games · Leagues` |
-| `docs/product/vnext-shell-ia.md` | product doc | "DECIDED" | — | `Home · Matches · Games · Leagues` |
+So an agent following the repository's own routing reaches the right answer.
+**The real problem is narrower and still worth fixing:** older accepted
+documentation contains navigation wording that contradicts the shipping
+architecture, which is how this question keeps reopening.
 
-`vnext-shell-ia.md`'s supersession line names only *"the 'no winner is selected'
-framing of `vnext-ia-lab.md`"*. **It does not claim to supersede ADR 0023**, and
-ADR 0023 carries no "superseded by" marker for its navigation clause.
+| Document | Navigation wording it carried | Contradicts shipping product? |
+| --- | --- | --- |
+| `docs/adr/0023-hub-information-architecture.md` | `Home · Play · Matches · Leagues · More` and `Overview · Play · Matches · Games · Leagues` | **Yes** — no `Play` or `More` destination ships |
+| `docs/product/ui.md` | *"It is not a production cutover… no route was repointed"* | **Yes** — the cutover happened |
+| `docs/product/vnext-shell-ia.md` §9 | *"vNext is still not the production application"* | **Yes** — same |
+| `docs/adr/0013-…` § Round cadence | *"one lock instant… covers both"* | **Yes** — contradicted by its own amendment |
+
+None of these carried a supersession marker on the contradicting clause.
 
 The consequences are worth stating plainly:
 
-1. **An accepted ADR of this repository does specify a `Play` destination** —
+1. **An accepted ADR of this repository did specify a `Play` destination** —
    in both the global and the competition-scoped bar. The owner's instinct that
-   something like `Predict` belongs in the navigation is **not** a departure
-   from the accepted record; it is closer to the ADR than the shipped product
-   is.
-2. **The shipped product follows the product doc, not the ADR.** Measured: four
+   something like `Predict` belongs in the navigation was **not** invented from
+   nowhere; it echoed wording still sitting in the ADR.
+2. **The shipped product follows the selected authority.** Measured: four
    destinations, no `Play`, no `More` (§6).
 3. **ADR 0023's `Play` is not Candidate B's `Predict`.** ADR 0023 defines
    Competition Play as *"the cross-game answer to 'What do I need to do this
@@ -108,10 +151,11 @@ completely that **one must exist and must cover all three games**. Neither
 authority sanctions a navigation in which Last Man Standing is reachable only
 behind `More` and appears on no action surface at all.
 
-**Recommended, and not done here** (this task may not amend an IA authority):
-settle the conflict explicitly — either mark ADR 0023's navigation clause
-superseded by `vnext-shell-ia.md`, or amend the ADR. Leaving two accepted
-navigations in the tree is how this question gets re-opened again in six weeks.
+**Recommended, and done in the follow-up work rather than here** (the
+investigation itself was not authorised to amend an authority): scope ADR 0023's
+navigation clause as superseded while preserving every other decision in it, and
+correct the stale cutover claims. Leaving obsolete navigation wording in the tree
+is how this question gets re-opened in six weeks.
 
 ---
 
@@ -125,7 +169,7 @@ Everything beneath the shell belongs to that competition
 until I deliberately change it.
 
 Premier League · 2026/27
-  Home      what matters here          ← front door, carries "Predict now"
+  Home      what matters here          ← front door, carries the prediction action
   Matches   this competition's football
   Games     Match Predictor · Last Man Standing · Predictor Championship
   Leagues   the people I play against, here
@@ -369,14 +413,24 @@ bodies are the same fixtures.
 
 Home worlds, separately (`.artifacts/ia-audit/measure-home-worlds.mjs`):
 
-| Home world | First control | mentions LMS | mentions Championship |
-| --- | --- | --- | --- |
-| decision-1440 | "Make your prediction for …" | **no** | **no** |
-| competition-1440 | **"Predict now"** | **no** | **no** |
-| new-season-1440 | "Find a league" | **no** | **no** |
-| returning-1440 | **"Predict now"** | **no** | **no** |
-| live-matchday-1440 | **"Predict now"** | **no** | **no** |
-| live-matchday-375 | **"Predict now"** | **no** | **no** |
+*Re-measured 23 August 2026 distinguishing the **visible** label from the
+accessible name, after an earlier run reported `innerText` (which includes
+`srOnly` text) as if it were the visible label.*
+
+| Home world | Visible first control | Accessible name | mentions LMS | mentions Championship |
+| --- | --- | --- | --- | --- |
+| decision-1440 | "Make your prediction" | "Make your prediction for Glenmore Athletic versus Strathkelvin United" | **no** | **no** |
+| competition-1440 | **"Predict now"** | "Predict now" | **no** | **no** |
+| new-season-1440 | "Find a league" | "Find a league" | **no** | **no** |
+| returning-1440 | **"Predict now"** | "Predict now" | **no** | **no** |
+| live-matchday-1440 | **"Predict now"** | "Predict now" | **no** | **no** |
+| live-matchday-375 | **"Predict now"** | "Predict now" | **no** | **no** |
+
+**Read this precisely.** Five of six worlds lead with a Match Predictor action;
+the sixth (`new-season`) has no prediction to make and honestly offers "Find a
+league" instead. The defensible claim is therefore **"in normal recurring
+prediction states, Match Predictor is already directly reachable from Home in
+one obvious action"** — not "every Home world leads with Predict now".
 
 ### What these tables prove
 
@@ -525,7 +579,8 @@ Tested against repository evidence, not taste.
 - **Four destinations fit and clear 44px at 375px** — measured, 17 worlds, and
   held by `e2e/vnext-shell.spec.ts`.
 - **`Predict` is not needed to make predicting visible.** Home's first control
-  is `Predict now` at 375px in every world.
+  is a Match Predictor action at 375px in every world that has a prediction to
+  make.
 - **LMS/Championship are discoverable but not *surfaced*.** Two presses, behind
   a word onboarding taught. That is acceptable for a *catalogue*; it is not
   acceptable for an **urgent weekly pick**, which is what LMS is.
@@ -723,9 +778,9 @@ Pick Team and Transfers above "Leagues & Cups".
 
 | Industry convention | Predictor-specific requirement |
 | --- | --- |
-| Recurring action is top-level and primary | **Already satisfied** — Home's `Predict now` |
+| Recurring action is top-level and primary | **Already satisfied** — Home's prediction action |
 | A derived cup belongs with the social/standings layer, not as a peer tab | **Supports moving the Championship's emphasis away from peer status** |
-| A truly separate game is separated, not demoted to a sub-tab | **LMS is not this** — it shares the Match Predictor's own lock |
+| A truly separate game is separated, not demoted to a sub-tab | **LMS is not this** — it recurs every matchweek and ordinarily locks before the Match Predictor |
 | Competition-first rooting | Predictor is multi-competition; A already does this |
 
 **What the benchmark does *not* support:** it gives no support to putting a
@@ -751,7 +806,7 @@ Scores are 0–10. Every score cites its evidence class:
 
 | Criterion | Weight | A (current) | B (Predictor-primary) | C (refined A) | Evidence |
 | --- | ---: | ---: | ---: | ---: | --- |
-| Core product clarity | 20% | 6 | 7 | **9** | `[browser]` Home leads "Predict now" in 6/6 worlds → B's gain is small; `[src]` Home names no side game → A's loss; C fixes it |
+| Core product clarity | 20% | 6 | 7 | **9** | `[browser]` Home leads with a Match Predictor action in every recurring-prediction world → B's gain is small; `[src]` Home names no side game → A's loss; C fixes it |
 | Navigation predictability | 15% | 8 | 5 | **8** | `[repo]` `Games` matches onboarding "Choose your games"; `[repo]` `Play`/`More` just retired → B re-opens closed language |
 | Core task directness | 15% | 8 | 8 | **9** | `[browser]` T1 = 1 press under both; C adds side-game action to Home |
 | Football context / sense of place | 10% | 9 | 7 | **9** | `[browser]` competition named in loudest permanent control, 17/17 worlds; B keeps root but weakens it with a global-feeling `More` |
@@ -1152,7 +1207,7 @@ the decision.
 - **Dependencies:** Stage B's per-game action truth.
 - **Evidence:** component coverage per game per state; browser check that a
   settled game is **not** dressed as a task.
-- **Rollback:** revert to `Open …` labels.
+- **Rollback:** revert to the `Open` / `Look inside` labels.
 
 ### Stage D2 — decide what the `Games` badge means
 - **Goal:** stop the badge being a Match Predictor count wearing the `Games`
@@ -1254,23 +1309,25 @@ the truth.**
 Here is the whole thing without jargon.
 
 You already built the important part. When someone opens the app, the first
-button says **"Predict now"**. That is the game. Moving that same button behind a
+button is the prediction itself — "Predict now" in most weeks. That is the game.
+Moving that same button behind a
 tab called *Predict* would not save anyone a single tap — I measured it in a real
 browser across every version of the home screen in the repository, and it is one
 tap either way.
 
 What is actually wrong is smaller and more annoying than a navigation problem.
 Your home screen currently only knows how to talk about one of your three games.
-If a player has a Last Man Standing pick due in an hour — on the *same deadline*
-as their predictions — the home screen says nothing about it. Not because you
+If a player has a Last Man Standing pick due in an hour — ordinarily *before*
+their prediction deadline — the home screen says nothing about it. Not because you
 designed it that way; you did not. Your own design document says the home screen
 should show one main thing to do plus up to two smaller ones, and the code that
 works out those three things already exists and already understands all three
 games. The new home screen just asks it about the predictor and throws the rest
 away. Two files.
 
-The second annoyance: the Games screen says *"Open Last Man Standing"* when it
-should say *"Pick your club"*. Your own requirements already say that, in those
+The second annoyance: the Games screen's buttons say *"Open"* and *"Look
+inside"* when the one for a game that wants something should say *"Pick your
+club"*. Your own requirements already say that, in those
 words. Right now the games screen reads like a menu instead of like something
 that is happening.
 
