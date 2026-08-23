@@ -321,13 +321,27 @@ not coupled.
 
 ---
 
-## 9. Production isolation
+## 9. Production isolation — *as it stood at Stage 7.6, and superseded by Stage 14*
 
-**No production route was repointed, replaced, redirected or deleted.** The
-legacy Hub navigation is untouched, Netlify route behaviour is unchanged, and
-vNext is still not the production application. The review surface is Storybook;
-the connected surfaces are the existing `import.meta.env.DEV` harnesses at
-`/dev/vnext-home` and `/dev/vnext-match-predictor`.
+> **Current status, 23 August 2026: this architecture is SHIPPING.** Stage 14
+> cut the destinations over. `src/App.tsx` registers vNext elements behind the
+> `VITE_UI_FOOTBALL_HUB_*` journey flags, `src/app/vnext/frameOwnership.ts`
+> surrenders the legacy frame at each cut-over address, and
+> `src/app/vnext/absorbedAddresses.tsx` resolves the addresses vNext absorbed —
+> `/play`, `/matches`, `/leagues`, `/more`, `/more/scoring` and `/profile` —
+> to the surfaces that took their job. Each destination's flag is still the
+> rollback seam. Which flags are set is build/hosted state and is not restated
+> here.
+>
+> The paragraph below records what was true **of Stage 7.6**, and is kept
+> because a stage contract is evidence at its own commit. It is no longer a
+> statement about the product today.
+
+**No production route was repointed, replaced, redirected or deleted** *(at
+Stage 7.6)*. The legacy Hub navigation was untouched, Netlify route behaviour
+was unchanged, and vNext was not yet the production application. The review
+surface was Storybook; the connected surfaces were the `import.meta.env.DEV`
+harnesses at `/dev/vnext-home` and `/dev/vnext-match-predictor`.
 
 The shell is *incapable* of repointing a route: it holds no URL, imports no
 router and names no page component. Every control emits a `ShellIntent` and the

@@ -56,8 +56,17 @@ the binding one-competition and scale contracts are in
 [`vnext-shell-ia.md`](vnext-shell-ia.md). The lab that produced the options is
 [`vnext-ia-lab.md`](vnext-ia-lab.md) and remains the evidence for it.
 
-**It is not a production cutover.** vNext is still a parallel lane; no route was
-repointed and the legacy Hub navigation is untouched.
+**The Competition Deck is the selected and shipping domestic Hub information
+architecture**, and remains so unless a later explicit decision replaces it. It
+is not a proposal and not a parallel lane: Stage 14 cut the destinations over,
+`src/App.tsx` serves vNext elements behind the `VITE_UI_FOOTBALL_HUB_*`
+journey flags, `src/app/vnext/frameOwnership.ts` surrenders the legacy frame at
+those addresses, and `src/app/vnext/absorbedAddresses.tsx` resolves the
+addresses vNext absorbed. Which flags are set, and where, is build and hosted
+state — read it from the environment and `NOW.md` rather than from this page.
+
+Each destination's flag remains the rollback seam: unsetting one restores that
+journey **and** its legacy chrome together.
 
 ## Where to go next
 
