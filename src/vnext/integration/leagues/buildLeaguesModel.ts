@@ -1,5 +1,4 @@
 import type {
-  SeasonLeaderboardPage,
   SeasonLeaderboardRow,
   SeasonLeaderboardYou,
   SeasonPlayerReach,
@@ -238,56 +237,58 @@ function globalTableOf(source: LeaguesSource): LeaguesGlobalTable | null {
             isYou: true,
           },
     hasMore: page.hasMore,
-    neighbourhood: neighbourhoodOf(source, page),
+    neighbourhood: neighbourhoodOf(source),
   }
 }
 
 /**
  * THE ENTRANTS EITHER SIDE OF THE CALLER — contract 183, `MIG-UI-18`.
  *
- * ============================ IT JOINS ON AN ORDINAL, NEVER ON A NAME ====
+ * ============================ NO NEIGHBOUR IS OPENABLE, AND HERE IS WHY ==
  *
  * The neighbourhood payload predates contract 191 and carries no `playerRef`,
- * no `reach` and no `playerId`, so on its own every neighbour would be a name
- * with nowhere to go. The paged leaderboard DOES carry all three, and pgTAP
+ * no `reach` and no `playerId`. Every row is therefore a name, a rank and a
+ * gap — real football information — with nowhere to go, and that is the honest
+ * shape rather than a degraded one.
+ *
+ * **AN EARLIER VERSION OF THIS FUNCTION JOINED THE WINDOW TO THE PAGED
+ * LEADERBOARD ON `position` AND THAT WAS WRONG.** The reasoning was that pgTAP
  * `232_season_clubs_and_neighbourhood.sql` requires the two reads to agree on
- * `position` — that agreement is asserted server-side rather than assumed here,
- * which is the whole reason this join is legitimate.
+ * the ordinal, so the ordinal was a safe key. It is not, and the test does not
+ * say it is: it runs both reads inside ONE transaction and proves they agree on
+ * a single snapshot. `useVNextLeaguesSource` fires them as two independent
+ * concurrent RPCs, so they are two snapshots — and a matchweek settling between
+ * them re-ranks the table. Position 316 in the page and position 316 in the
+ * window are then DIFFERENT ENTRANTS, and the row would have shown one player's
+ * name and points while opening the other player's profile.
  *
- * SO A NEIGHBOUR OPENS ONLY WHERE THE PAGE ALREADY HELD THE DOOR. A player on
- * page one — the leaders, and the caller's own row — is joined and keeps
- * whatever destination `globalPlayer` gave them. Everyone else is `closed` with
- * reason `not-stated`, which is the honest sentence: the server did not state a
- * reach for this row in this payload, and that is a different fact from having
- * refused one.
+ * That is exactly the class of defect contract 191's reference exists to make
+ * impossible, arrived at by a different route than a display-name match. An
+ * ordinal is unique within a snapshot and identifies nobody across two.
  *
- * MATCHING BY DISPLAY NAME WOULD BE THE DEFECT. Two entrants may legitimately
- * share a display name, and contract 191's reference exists precisely so that
- * nothing in this codebase has to guess between them. `position` is unique in
- * the total order; `rank` is NOT, because tied entrants share it, which is why
- * the key here is the ordinal and never the rank.
+ * ============================ WHAT WOULD MAKE THEM OPENABLE ==============
+ *
+ * Either the neighbourhood contract returning contract 191's identity itself,
+ * or one server read answering both the page and the window from a single
+ * snapshot. Both are migrations. Neither is presentation's to invent, and until
+ * one exists a neighbour is `closed` with reason `not-stated` — the server did
+ * not state a reach for this row, which is a different fact from having refused
+ * one, and `LeaguePlayerCell` draws it as plain text rather than as a disabled
+ * control.
  */
-function neighbourhoodOf(
-  source: LeaguesSource,
-  page: SeasonLeaderboardPage,
-): LeaguesNeighbourhood | null {
+function neighbourhoodOf(source: LeaguesSource): LeaguesNeighbourhood | null {
   const window = source.neighbourhood
   if (window === null) return null
 
-  // The identities the OTHER read already stated, keyed by the ordinal the two
-  // reads are required to agree on. The caller's own row is included: it
-  // arrives separately from the page and is frequently the only row of the
-  // window that page one can identify.
-  const identified = new Map<number, LeaguePlayer>()
-  for (const row of page.rows) identified.set(row.position, globalPlayer(row, row.isYou))
-  if (page.you !== null) identified.set(page.you.position, globalPlayer(page.you, true))
-
   return {
     rows: window.rows.map((row) => ({
-      player: identified.get(row.position) ?? {
-        // NO REF, BECAUSE THIS PAYLOAD HAS NONE and one may not be invented.
+      player: {
+        // NO REF, BECAUSE THIS PAYLOAD HAS NONE and one may not be invented —
+        // not from the other read's ordinal, and not from a display name.
         ref: null,
         displayName: row.displayName,
+        // The caller is still drawn as themselves: `isYou` is the SERVER's mark
+        // on this row rather than an identity recovered from anywhere else.
         destination: row.isYou ? { kind: 'you' } : { kind: 'closed', reason: 'not-stated' },
       },
       rank: row.rank,

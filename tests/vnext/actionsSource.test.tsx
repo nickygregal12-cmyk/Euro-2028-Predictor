@@ -207,6 +207,75 @@ describe('the action feed hook', () => {
     expect(result.current.feed?.unseen).toBe(0)
   })
 
+  it('asks for the fifty-row window rather than the service default of twenty', async () => {
+    // The panel's badge reports the server's TABLE-WIDE unseen count, so a
+    // twenty-row read let a player see a count for work the list could not
+    // show them. Asserted on the real default gateway rather than a fake,
+    // because the defect was entirely in which argument that gateway sends.
+    const fetchMyActions = vi.fn(async () => ({ unseen: 0, actions: [] }))
+    vi.doMock('../../src/services/supabase/playerActions', () => ({
+      fetchMyActions,
+      markMyActionsSeen: vi.fn(async () => {}),
+      dismissMyAction: vi.fn(async () => {}),
+    }))
+
+    const { useVNextActionsSource: hook } = await import(
+      '../../src/vnext/integration/actions/useVNextActionsSource'
+    )
+    const { result } = renderHook(() => hook(true))
+
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+    expect(fetchMyActions).toHaveBeenCalledWith(50)
+    vi.doUnmock('../../src/services/supabase/playerActions')
+  })
+
+  it('counts an unread row once when it is dismissed while marking is in flight', async () => {
+    // THE DOUBLE-DECREMENT. `markSeen` captured three keys; a dismissal of one
+    // of them landed first and took its own one off `unseen`; then the write
+    // returned and subtracted all three. The badge undercounted the server
+    // total — invisibly, because `Math.max(0, …)` clamps it whenever the
+    // server's count is no larger than the loaded page.
+    let releaseSeen: (() => void) | null = null
+    const gateway = gatewayOf(
+      {
+        // Nine unread on the server, three on this page: the shape that makes
+        // the clamp stop hiding the arithmetic.
+        unseen: 9,
+        actions: [
+          action({ actionKey: 'a', seen: false }),
+          action({ actionKey: 'b', seen: false }),
+          action({ actionKey: 'c', seen: false }),
+        ],
+      },
+      {
+        markSeen: vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              releaseSeen = resolve
+            }),
+        ),
+      },
+    )
+    const { result } = renderHook(() => useVNextActionsSource(true, gateway))
+    await waitFor(() => expect(result.current.status).toBe('ready'))
+
+    act(() => result.current.markSeen())
+    await waitFor(() => expect(gateway.markSeen).toHaveBeenCalled())
+
+    // One of the three leaves while the seen write is still out.
+    await act(async () => {
+      await result.current.dismiss('a')
+    })
+    expect(result.current.feed?.unseen).toBe(8)
+
+    await act(async () => {
+      releaseSeen?.()
+    })
+
+    // Two rows remained to be marked, so two more come off — not three.
+    await waitFor(() => expect(result.current.feed?.unseen).toBe(6))
+  })
+
   it('reports a failed read without claiming the inbox is empty', async () => {
     const gateway = gatewayOf(
       { unseen: 0, actions: [] },

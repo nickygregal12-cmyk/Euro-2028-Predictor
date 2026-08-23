@@ -195,23 +195,28 @@ export type LeaguesGlobalTable = {
  * IT IS A SECOND READ AND NEVER A SECOND RANKING. Every figure here — rank,
  * points, position, the signed gap and the field size — comes from
  * `predictor_internal.season_standings` through contract 95's ordering, which
- * is the same total order the paged table is built from. pgTAP
- * `232_season_clubs_and_neighbourhood.sql` requires the two reads to agree on
- * `position`, and that guarantee is what makes the join below legitimate.
+ * is the same total order the paged table is built from.
+ *
+ * **BUT IT IS ALSO A SECOND SNAPSHOT, AND THAT IS WHY NO ROW HERE OPENS.** The
+ * page and the window are two independent concurrent RPCs. pgTAP
+ * `232_season_clubs_and_neighbourhood.sql` proves they agree on `position`
+ * within ONE transaction; it says nothing about two calls with a settlement
+ * between them, and a re-ranked table makes the same ordinal a different
+ * entrant. `buildLeaguesModel` records the defect that reasoning produced.
  */
 export type LeaguesNeighbourRow = {
   /**
-   * THE PERSON, WITH WHATEVER DOOR THE OTHER READ ALREADY OPENED.
+   * THE PERSON, AND NOBODY HERE IS OPENABLE.
    *
    * The neighbourhood payload predates contract 191 and carries no `playerRef`,
-   * no `reach` and no `playerId`. So a neighbour is openable ONLY where the
-   * loaded leaderboard page holds contract 191's identity for the same
-   * server-issued `position`; everywhere else this is `closed` with reason
-   * `not-stated`, which is the honest answer rather than a disabled control.
+   * no `reach` and no `playerId`, so every row is `closed` with reason
+   * `not-stated` — except the caller, whom the server marks with `isYou`.
    *
-   * The join is on `position` and never on `displayName`. Two entrants may
-   * share a display name, and matching on one is the precise defect contract
-   * 191's reference exists to make impossible.
+   * NO IDENTITY MAY BE RECOVERED FROM ANYWHERE ELSE. Not from a display name,
+   * which two entrants may share, and not from the paged leaderboard's
+   * `position`, which identifies a row only within the snapshot that produced
+   * it. Making these rows openable needs the identity in this contract, or one
+   * read answering both payloads from one snapshot — a migration either way.
    */
   readonly player: LeaguePlayer
   readonly rank: number

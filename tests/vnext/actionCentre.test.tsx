@@ -333,6 +333,35 @@ describe('the Action Centre', () => {
     expect(onOpenItem).toHaveBeenCalledWith(expect.objectContaining({ key: 's' }))
   })
 
+  it('closes the panel when a row is opened', async () => {
+    // WITHOUT THIS THE SHEET SITS OVER THE DESTINATION. `navigate` is a no-op
+    // for the route the player is already on, so opening a Match Predictor
+    // action from the Match Predictor did nothing visible at all — the panel
+    // stayed exactly where it was and the press looked broken.
+    const onOpenItem = vi.fn()
+    const user = userEvent.setup()
+    renderShell(actions({ onOpenItem }))
+
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole('button', { name: /Pick your club/ }))
+
+    expect(onOpenItem).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('leaves the panel open when a row is dismissed', async () => {
+    // THE OPPOSITE RULE, AND BOTH MATTER. Dismissing is housekeeping done
+    // inside the panel; closing it would throw the player out of the list they
+    // are still working through.
+    const user = userEvent.setup()
+    renderShell(actions({ onDismiss: vi.fn(async () => {}) }))
+
+    const panel = await openPanel(user)
+    await user.click(within(panel).getByRole('button', { name: /^Dismiss:/ }))
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+  })
+
   it('names what a dismiss control dismisses', async () => {
     const user = userEvent.setup()
     renderShell(actions({ onDismiss: vi.fn(async () => {}) }))

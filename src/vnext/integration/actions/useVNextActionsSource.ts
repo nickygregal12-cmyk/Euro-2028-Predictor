@@ -45,10 +45,21 @@ export type ActionsGateway = {
  * Keep Supabase behind an async boundary, so importing this hook — or rendering
  * the shell that mounts it — does not initialise a client.
  */
+/**
+ * The window this integration is written against, stated rather than inherited.
+ *
+ * `fetchMyActions` defaults to 20 and `get_my_actions` clamps to 50. Every
+ * comment in this directory describes the read as the fifty-row one, so taking
+ * the service default silently gave the panel twenty rows while its badge kept
+ * reporting the server's table-wide `unseen` — a player with work at rank 21
+ * could see the count and never the item.
+ */
+const FEED_LIMIT = 50
+
 const gateway: ActionsGateway = {
   load: async () => {
     const service = await import('../../../services/supabase/playerActions')
-    return service.fetchMyActions()
+    return service.fetchMyActions(FEED_LIMIT)
   },
   markSeen: async (actionKeys) => {
     const service = await import('../../../services/supabase/playerActions')
@@ -138,19 +149,29 @@ export function useVNextActionsSource(
         return
       }
       if (current !== generation.current) return
-      setFeed((existing) =>
-        existing === null
-          ? existing
-          : {
-              // THE COUNT COMES DOWN WITH THEM. Leaving `unseen` at its old
-              // value would leave a badge contradicting a panel the player is
-              // looking at.
-              unseen: Math.max(0, existing.unseen - unseen.length),
-              actions: existing.actions.map((action) =>
-                unseen.includes(action.actionKey) ? { ...action, seen: true } : action,
-              ),
-            },
-      )
+      setFeed((existing) => {
+        if (existing === null) return existing
+
+        // THE DECREMENT IS COUNTED OFF THE CURRENT STATE, NOT OFF THE KEYS THIS
+        // WRITE CAPTURED. A row dismissed while the write was in flight has
+        // ALREADY taken its own one off `unseen`, so subtracting the captured
+        // length here would take it off twice — and `Math.max(0, …)` hides that
+        // only while the server's count is no larger than the loaded page.
+        // Counting the rows still present and still unread cannot double-count,
+        // because a dismissed row is no longer among them.
+        const marking = existing.actions.filter(
+          (action) => !action.seen && unseen.includes(action.actionKey),
+        )
+
+        return {
+          unseen: Math.max(0, existing.unseen - marking.length),
+          actions: existing.actions.map((action) =>
+            marking.some((entry) => entry.actionKey === action.actionKey)
+              ? { ...action, seen: true }
+              : action,
+          ),
+        }
+      })
     })()
   }, [feed, source])
 

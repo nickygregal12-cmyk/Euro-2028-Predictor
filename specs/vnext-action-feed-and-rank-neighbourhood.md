@@ -147,8 +147,20 @@ running it enough times to be evidence, not building it.
    when the panel opens, through `mark_actions_seen`, and a subsequent read on
    a different device returns them already seen. **A failed seen-write leaves
    the items unread rather than showing them as read.**
-3. An action whose `tournament_id` matches no competition the shell knows is
-   dropped, not rendered with a placeholder.
+3. ~~An action whose `tournament_id` matches no competition the shell knows is
+   dropped, not rendered with a placeholder.~~ **Corrected 23 August 2026 — this
+   scenario was wrong and the implementation is right.** It was written by
+   carrying over `attentionElsewhere`'s rule, which drops an item naming a
+   competition the shell has no context for. That rule is correct *there*: the
+   attention layer routes a player into a competition, so an item it cannot
+   address is a control that goes nowhere. The Action Centre is not a router —
+   it is the record of what the server has for this player — and a deadline the
+   product cannot name the competition of **is still a deadline**. Dropping it
+   would hide real work from the player to keep a caption tidy. So the row is
+   **shown**, named "A competition you play in" rather than labelled with a
+   tournament id, and `actionIsOpenable` already keeps it from becoming a
+   control that goes nowhere. Raised as a bug by review on #1006; the spec is
+   what changed.
 4. `null` renders as nothing, and is not an empty feed. "Nothing is waiting" is
    a claim, and a read that has not landed has not made it.
 5. Dismissing an item calls `dismiss_action` and the item leaves the list only
@@ -175,12 +187,23 @@ running it enough times to be evidence, not building it.
    itself.
 9. `atTop` renders as the top of the table rather than as missing rows;
    `atBottom` likewise. Neither is inferred from the row count.
-10. A neighbour is openable only where the already-loaded leaderboard page
-    supplies that player's server-issued identity for the same `position`.
-    `position` is the join key because pgTAP
+10. ~~A neighbour is openable only where the already-loaded leaderboard page
+    supplies that player's server-issued identity for the same `position`.~~
+    **Withdrawn 23 August 2026: no neighbour is openable at all, and the
+    original reasoning was unsound.** It argued that pgTAP
     `232_season_clubs_and_neighbourhood.sql` requires the two reads to agree on
-    it. **Display names are never matched, and no identity, reach or ref is
-    derived in the browser.**
+    `position`, so the ordinal was a safe key. The test proves that agreement
+    **inside one transaction**; `useVNextLeaguesSource` fires the page and the
+    window as two independent concurrent RPCs, which is two snapshots. A
+    matchweek settling between them re-ranks the table, and the same ordinal is
+    then a different entrant — so the row would have shown one player's name and
+    points while opening another player's profile. That is the defect contract
+    191's reference exists to prevent, reached by a different route than a
+    display-name match. **Every neighbour is now closed with reason
+    `not-stated`**, except the caller, whom the server marks with `isYou`.
+    Making them openable needs the identity in contract 183's own payload, or
+    one read answering both from a single snapshot — a migration either way, and
+    out of scope here. Found by review on #1006.
 11. A failed neighbourhood read leaves the existing table intact and reports
     itself; it never empties the table and never renders as "no neighbours".
 

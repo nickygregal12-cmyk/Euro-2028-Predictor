@@ -185,7 +185,13 @@ describe('the chase, built from contract 183 beside contract 191', () => {
     expect(chase?.atBottom).toBe(false)
   })
 
-  it('recovers identity for a neighbour the page holds, keyed on position', () => {
+  it('opens no neighbour, even one the page appears to hold at the same position', () => {
+    // THE CASE THAT USED TO ASSERT THE OPPOSITE, and the assertion was wrong.
+    // The two payloads are separate concurrent RPCs, so they are two snapshots:
+    // pgTAP 232 proves they agree on `position` inside ONE transaction and
+    // says nothing about two calls with a settlement between them. A re-ranked
+    // table makes the same ordinal a different entrant, and the row would have
+    // shown one player while opening another's profile.
     const chase = chaseOf({
       global: leaderboard({
         rows: [
@@ -204,8 +210,44 @@ describe('the chase, built from contract 183 beside contract 191', () => {
     })
 
     const row = at(chase?.rows ?? [], 0)
-    expect(row.player.ref).toBe('ref-rhona')
-    expect(leaguePlayerIsOpen(row.player)).toBe(true)
+    expect(row.player.ref).toBeNull()
+    expect(leaguePlayerIsOpen(row.player)).toBe(false)
+    // The information survives; only the door is gone.
+    expect(row.player.displayName).toBe('Rhona Buchanan')
+    expect(row.points).toBe(101)
+  })
+
+  it('borrows no identity from the page at all, whatever it holds', () => {
+    // A page whose every row carries a reference, and a window whose positions
+    // all coincide with it. Nothing may be recovered from any of them.
+    const chase = chaseOf({
+      global: leaderboard({
+        rows: [
+          globalRow({ displayName: 'A', position: 1, rank: 1, playerRef: 'ref-a' }),
+          globalRow({ displayName: 'B', position: 2, rank: 2, playerRef: 'ref-b' }),
+        ],
+        you: {
+          displayName: 'You',
+          points: 96,
+          rank: 3,
+          matchweeksPlayed: 9,
+          tied: false,
+          position: 3,
+          playerRef: 'ref-you',
+          reach: 'self',
+          playerId: 'player-you',
+        },
+      }),
+      neighbourhood: window({
+        rows: [
+          neighbourRow({ displayName: 'A', position: 1, rank: 1 }),
+          neighbourRow({ displayName: 'B', position: 2, rank: 2 }),
+        ],
+      }),
+    })
+
+    expect(chase?.rows.every((row) => row.player.ref === null)).toBe(true)
+    expect(chase?.rows.every((row) => !leaguePlayerIsOpen(row.player))).toBe(true)
   })
 
   it('closes a neighbour the page cannot identify rather than inventing a door', () => {
@@ -225,11 +267,10 @@ describe('the chase, built from contract 183 beside contract 191', () => {
     expect(row.player.displayName).toBe('Isla McNair')
   })
 
-  it('joins on position and never on display name', () => {
-    // THE BINDING CASE. Two entrants legitimately share a display name. The one
-    // on page one is openable; the one in the window at another position is
-    // not. A name join hands the second the first one's reference and opens a
-    // profile belonging to somebody else.
+  it('keeps two entrants who share a display name as two rows, neither openable', () => {
+    // Two entrants legitimately share a display name. Neither may borrow an
+    // identity — not from the name, which is the defect contract 191 exists to
+    // remove, and not from the ordinal, which names nobody across snapshots.
     const chase = chaseOf({
       global: leaderboard({
         rows: [
@@ -250,14 +291,14 @@ describe('the chase, built from contract 183 beside contract 191', () => {
       }),
     })
 
-    const stranger = at(chase?.rows ?? [], 0)
-    const known = at(chase?.rows ?? [], 1)
-
-    expect(stranger.player.ref).toBeNull()
-    expect(leaguePlayerIsOpen(stranger.player)).toBe(false)
-
-    expect(known.player.ref).toBe('ref-sam-the-second')
-    expect(leaguePlayerIsOpen(known.player)).toBe(true)
+    expect(chase?.rows).toHaveLength(2)
+    for (const row of chase?.rows ?? []) {
+      expect(row.player.ref).toBeNull()
+      expect(leaguePlayerIsOpen(row.player)).toBe(false)
+    }
+    // They remain distinguishable to the reader by rank and gap, which is what
+    // the chase is for — the two Sams are 314 places apart.
+    expect(chase?.rows.map((row) => row.rank)).toEqual([316, 2])
   })
 
   it('identifies the caller from the pinned row, which is usually off the page', () => {

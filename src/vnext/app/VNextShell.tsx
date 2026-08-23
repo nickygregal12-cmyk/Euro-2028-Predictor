@@ -686,7 +686,25 @@ export function VNextShell({
           <ActionCentreBody
             model={actions.model}
             status={actions.status}
-            onOpenItem={actions.onOpenItem}
+            // THE SHEET CLOSES FIRST, THEN THE HOST NAVIGATES — the same order
+            // `leave` uses for the attention rows, and for the same reason.
+            // Passing the host's callback straight through left the panel open
+            // over the destination whenever `navigate` was a no-op, which is
+            // every row that targets the route the player is already on:
+            // opening a Match Predictor action from the Match Predictor did
+            // nothing visible at all.
+            //
+            // Focus is NOT returned to the opener here. The player asked to go
+            // somewhere, so focus follows the content — the rule `leave`
+            // records for a deliberate destination.
+            onOpenItem={
+              actions.onOpenItem === undefined
+                ? undefined
+                : (item) => {
+                    setOverlay('none')
+                    actions.onOpenItem?.(item)
+                  }
+            }
             onDismiss={actions.onDismiss}
             onRetry={actions.onRetry}
           />
