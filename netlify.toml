@@ -261,9 +261,25 @@
   to = "/index.html"
   status = 200
 
+# THE ONE ROUTE THAT DOES NOT SERVE `index.html`.
+#
+# An invite is the only link players routinely paste somewhere a crawler will
+# unfurl it, and `index.html` carries the site's own card — so today WhatsApp
+# shows "Predictor Hub, predict every matchweek" for what is actually a personal
+# invitation, and the recipient has no idea what tapping it does.
+#
+# `join.html` is the SAME document, re-headed at build time by
+# `applyDocumentHead(..., inviteShareCard(site))`. It is derived from the built
+# `index.html` rather than authored, so its script and stylesheet tags cannot
+# fall behind — see the `writeBundle` hook in vite.config.ts.
+#
+# THE CARD NAMES NO LEAGUE, and that is deliberate. A crawler is unauthenticated
+# and unrate-limited, so anything per-code here would be a confirmation oracle
+# for a guessed invite — the disclosure contracts 152, 158 and 159 spent three
+# passes closing. `inviteShareCard` carries the full reasoning.
 [[redirects]]
   from = "/join/:code"
-  to = "/index.html"
+  to = "/join.html"
   status = 200
 
 # Public platform documents. They are direct-entry pages for visitors, players,

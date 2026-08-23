@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type {} from 'vitest/config'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
@@ -7,6 +8,8 @@ import react from '@vitejs/plugin-react'
 import { configDefaults } from 'vitest/config'
 import {
   applyDocumentHead,
+  inviteShareCard,
+  INVITE_DOCUMENT_PATH,
   robotsTxt,
   sitemapXml,
 } from './src/app/site/documentMetadata.js'
@@ -224,6 +227,38 @@ export default defineConfig(({ command, mode }) => {
               version: serviceWorkerVersion(releaseMetadata.commit, precache),
             }),
           })
+        },
+        // THE INVITE DOCUMENT, BUILT FROM THE BUILT ONE.
+        //
+        // `/join/:code` is the one address whose social card must differ, and
+        // `index.html` cannot carry two heads. So the emitted document is
+        // re-headed into a second file, and Netlify rewrites `/join/*` onto it.
+        //
+        // IT IS DERIVED, NOT AUTHORED. A hand-written second template would
+        // need every script and stylesheet tag Vite injected, and the first
+        // hash it missed would be an invite page that loads nothing — the exact
+        // failure the person following the link cannot report, because to them
+        // the site is simply blank. Taking the finished bytes and swapping only
+        // the managed block makes the two impossible to drift apart.
+        //
+        // `writeBundle` RATHER THAN `generateBundle`, and that is not a style
+        // choice: under Vite 8 the bundle holds only `assets/*` while
+        // `generateBundle` runs, and the document is produced afterwards. An
+        // `emitFile` there silently had nothing to copy.
+        writeBundle(options) {
+          const directory = options.dir
+          if (!directory) throw new Error('The build has no output directory to write into.')
+          const built = resolve(directory, 'index.html')
+          if (!existsSync(built)) {
+            throw new Error(
+              `${built} was not written, so the invite document cannot be derived ` +
+                'from it. An authored copy would drift on the next hashed asset.',
+            )
+          }
+          writeFileSync(
+            resolve(directory, INVITE_DOCUMENT_PATH.slice(1)),
+            applyDocumentHead(readFileSync(built, 'utf8'), site, inviteShareCard(site)),
+          )
         },
       },
       {

@@ -225,7 +225,14 @@ describe('generated public metadata', () => {
   })
 
   it('drops the robots Sitemap line rather than pointing it at another domain', () => {
-    expect(robotsTxt(sitePublicMetadata('hub'))).toBe('User-agent: *\nAllow: /\n')
+    // Still an EXACT body rather than a `toContain`, deliberately: this is the
+    // file that decides what crawlers may reach, and a line arriving by
+    // accident should have to be typed here too. `Disallow: /join/` is the one
+    // addition — an invite address is the credential, so a search engine
+    // listing one would publish a working invitation (`SEC-001`).
+    expect(robotsTxt(sitePublicMetadata('hub'))).toBe(
+      'User-agent: *\nDisallow: /join/\nAllow: /\n',
+    )
     expect(robotsTxt(sitePublicMetadata('euro', { publicOrigin: EURO_ORIGIN }))).toContain(
       `Sitemap: ${EURO_ORIGIN}/sitemap.xml`,
     )

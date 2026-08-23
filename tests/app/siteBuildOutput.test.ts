@@ -3,10 +3,15 @@ import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import {
   applyDocumentHead,
+  documentHeadTags,
+  INVITE_OPEN_GRAPH_IMAGE_PATH,
+  inviteShareCard,
   robotsTxt,
   sitemapXml,
 } from '../../src/app/site/documentMetadata'
+import { SITE_ICON_FILES } from '../../src/app/site/siteIcons'
 import { sitePublicMetadata } from '../../src/app/site/sitePublicMetadata'
+import { SITE_VARIANTS } from '../../src/app/site/siteVariant'
 
 /**
  * What the two Netlify sites actually ship.
@@ -140,5 +145,108 @@ describe('netlify.toml', () => {
     expect(environmentBlocks).not.toMatch(/^\s*VITE_SITE_VARIANT\s*=/m)
     expect(environmentBlocks).not.toMatch(/^\s*VITE_PUBLIC_SITE_ORIGIN\s*=/m)
     expect(environmentBlocks).not.toMatch(/^\s*VITE_SIBLING_SITE_ORIGIN\s*=/m)
+  })
+})
+
+describe('an invite link unfurls as an invitation, and discloses nothing', () => {
+  /**
+   * ============================ THE FAILURE THIS PREVENTS ===================
+   *
+   * The obvious invite card names the league. It must not, and the reason is
+   * three contracts deep rather than cautious.
+   *
+   * An invite code is a guessable bearer token. Contract 152 cut the preview to
+   * `name` and `is_member` and charged a 20-a-minute limiter BEFORE the lookup,
+   * so a wrong guess costs what a right one does. Contract 158 removed the
+   * member count and the owner name, because those "identify WHICH private
+   * group a guessed code belongs to". Contract 159 found `resolve_invite_code`
+   * was a second, UNLIMITED door still returning `id` and `members`, and put it
+   * on the same budget.
+   *
+   * A social card is fetched by an unauthenticated, unrate-limited crawler. Per-
+   * code content here would be a fourth door and the worst of them — and not
+   * only the name: a card that merely DIFFERED between a real code and a
+   * guessed one is a free validity oracle, which is what the limiter prices.
+   *
+   * So the card must be a pure function of the SITE, with no code in its inputs
+   * at all. These cases assert that shape, because a future edit that adds a
+   * parameter is the one that reopens it.
+   */
+  const variants = SITE_VARIANTS.map((variant) => sitePublicMetadata(variant))
+
+  it('takes the site and nothing else — there is no code to pass it', () => {
+    // The signature IS the control. A card built from an invite cannot leak one
+    // if it never receives one, and this is cheaper to keep true than any
+    // assertion about the words.
+    expect(inviteShareCard.length).toBe(1)
+  })
+
+  it.each(SITE_VARIANTS)('says what the link is for on %s', (variant) => {
+    const card = inviteShareCard(sitePublicMetadata(variant))
+    expect(card.title).toMatch(/invitation/i)
+    expect(card.description).toMatch(/private competition/i)
+    // NOT "see who invited you": contract 158 removed the owner name, so the
+    // join screen cannot show it and a card promising it would be a cheque the
+    // product refuses to cash.
+    expect(card.description).not.toMatch(/who invited/i)
+  })
+
+  it.each(SITE_VARIANTS)('claims no membership, size or standing on %s', (variant) => {
+    const card = inviteShareCard(sitePublicMetadata(variant))
+    const words = `${card.title} ${card.description} ${card.imageAlt}`.toLowerCase()
+    for (const forbidden of ['member', 'players', 'owner', 'admin', 'points', 'rank']) {
+      expect(words, `the invite card says "${forbidden}"`).not.toContain(forbidden)
+    }
+  })
+
+  it.each(SITE_VARIANTS)('is never indexed, and names no canonical address on %s', (variant) => {
+    // An invite ADDRESS is the credential. A search engine that lists one
+    // publishes a working invitation to everybody, and a canonical tag would
+    // either publish a code or claim the invite page is the home page.
+    const site = sitePublicMetadata(variant)
+    const head = documentHeadTags(site, inviteShareCard(site)).join('\n')
+
+    expect(head).toContain('name="robots" content="noindex, nofollow"')
+    expect(head).not.toContain('rel="canonical"')
+    expect(head).not.toContain('property="og:url"')
+  })
+
+  it.each(SITE_VARIANTS)('the ordinary site document is still indexable on %s', (variant) => {
+    // The negative control. If `noindex` leaked onto every document, these
+    // cases would still pass while the whole site fell out of every index.
+    const head = documentHeadTags(sitePublicMetadata(variant)).join('\n')
+    expect(head).not.toContain('noindex')
+  })
+
+  it.each(SITE_VARIANTS)('keeps crawlers out of the invite space on %s', (variant) => {
+    const robots = robotsTxt(sitePublicMetadata(variant))
+    expect(robots).toContain('Disallow: /join/')
+    // Everything else stays open — discovery is the point of the rest.
+    expect(robots).toContain('Allow: /')
+  })
+
+  it('carries its own artwork, in the per-variant lane', () => {
+    // In `SITE_ICON_FILES` so a Hub build is physically unable to emit the Euro
+    // card, which is the same rule the installed icons follow.
+    expect(SITE_ICON_FILES).toContain(INVITE_OPEN_GRAPH_IMAGE_PATH.slice(1))
+    for (const site of variants) {
+      expect(inviteShareCard(site).imagePath).toBe(INVITE_OPEN_GRAPH_IMAGE_PATH)
+      expect(inviteShareCard(site).imagePath).not.toBe(site.openGraphImagePath)
+    }
+  })
+
+  it('is the same document as the site one, re-headed', () => {
+    // The invite page must BOOT. It is derived from the built `index.html`, so
+    // what this proves is that the transform only touches the managed block —
+    // if it dropped the application's own markup, every invitation would open a
+    // blank page and the person following it could not tell anybody why.
+    const site = sitePublicMetadata('euro')
+    const template = readFileSync(resolve(repositoryRoot, 'index.html'), 'utf8')
+    const ordinary = applyDocumentHead(template, site)
+    const invite = applyDocumentHead(template, site, inviteShareCard(site))
+
+    const outsideHead = (html: string) => html.slice(html.indexOf('</head>'))
+    expect(outsideHead(invite)).toBe(outsideHead(ordinary))
+    expect(invite).not.toBe(ordinary)
   })
 })
