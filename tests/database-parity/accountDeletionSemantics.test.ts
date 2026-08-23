@@ -132,6 +132,10 @@ describe('account deletion — declared foreign-key semantics', () => {
       // Contract 174, on contract 138's terms: the decision and the calendar
       // change it caused outlive the account that took it.
       '20260811234000_provider_calendar_change_proposals.sql provider_calendar_change_proposals.decided_by → set null',
+      // Contract 217. A push subscription is a way to reach a person, so it
+      // cascades — the strongest possible reading of "delete my account" is
+      // that nothing is left anywhere that could make their phone buzz.
+      '20260824090000_web_push_channel.sql push_subscriptions.user_id → cascade',
     ])
   })
 
@@ -183,6 +187,7 @@ describe('account deletion — consequences', () => {
       'player_action_items.user_id',
       'player_action_state.user_id',
       'profiles.id',
+      'push_subscriptions.user_id',
       'rank_history.user_id',
       'rate_limit_events.user_id',
       'reminder_deliveries.user_id',

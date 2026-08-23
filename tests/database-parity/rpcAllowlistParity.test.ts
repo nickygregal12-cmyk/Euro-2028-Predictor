@@ -138,6 +138,11 @@ describe('deployment contract and database privilege allow-list parity', () => {
       // completion verdict, so generating one is a server act by definition.
       'process_player_action_items()',
       'process_reminder_schedule(interval,boolean)',
+      // Contract 217's pruning of a push subscription a push service answered
+      // 410 for. It deletes by endpoint regardless of owner, so a browser role
+      // holding it could switch off somebody else's notifications; a player
+      // revokes their own with an ordinary delete under row-level security.
+      'prune_push_subscription(text)',
       'reclaim_stalled_reminders(interval)',
       'record_ai_odds_snapshot(text,integer,jsonb,text,jsonb,integer,integer,integer,integer,text,text)',
       'record_provider_response_processing(uuid,text,boolean,integer,jsonb,text,text)',

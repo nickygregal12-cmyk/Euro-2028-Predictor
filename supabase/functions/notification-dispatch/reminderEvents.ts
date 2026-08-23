@@ -30,6 +30,12 @@ export interface ClaimedReminder {
   readonly deadline_at: string
   readonly attempts: number
   readonly dry_run: boolean
+  /**
+   * Contract 217. Which channel the claim chose for THIS attempt, decided from
+   * the player's live push subscriptions rather than fixed when the reminder
+   * was scheduled. The dispatcher performs it and does not decide again.
+   */
+  readonly channel: 'email' | 'push'
 }
 
 /** The `public.player_action_items` row the reminder's `action_key` names. */

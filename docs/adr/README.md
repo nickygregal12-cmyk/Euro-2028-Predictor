@@ -156,6 +156,19 @@ Contract 214 refines the existing season-card implementation so a confirmation b
 
 Contract 215 requires no new ADR. It is a consistency fix inside the already-private AI Lab: the betting decision shown as current must be derived from the same canonical forecast the Lab shows as current, while historical forecasts/recommendations remain evidence. It changes neither the accepted model-selection/publication authority nor the boundary that this is paper research with no public bet placement. Hosted rollout remains separately authorised.
 
+### Contract 217 implementation note
+
+Contract 217 needs no architecture decision record of its own. ADR 0016 already
+names the service worker, and this extends it with two handlers and a fourth
+stated refusal rather than changing what it is for. The delivery ledger, the
+claim/dispatch split and the retry policy are all contract 163's and are reused
+rather than paralleled — which is the test an ADR would have applied anyway.
+
+The one judgement worth recording here is the shape: the channel is a column on
+an existing row, not a row per channel. Putting it in the once-per-action unique
+key would have made "remind me about matchweek 4" two rows and told a player
+with both channels the same thing twice.
+
 ### Contract 216 implementation note
 
 Contract 216 wires an existing, decided capability to a scheduler. It introduces

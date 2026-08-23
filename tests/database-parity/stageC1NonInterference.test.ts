@@ -112,6 +112,10 @@ const EXPECTED_AUTH_USER_REFERENCES = [
   'player_action_items.user_id -> cascade',
   'player_action_state.user_id -> cascade',
   'reminder_deliveries.user_id -> cascade',
+  // Contract 217, on exactly those terms. A push subscription is a way to
+  // reach a person, so a closed account keeps none: the strongest reading of
+  // "delete my account" is that nothing is left that could make a phone buzz.
+  'push_subscriptions.user_id -> cascade',
   'bonus_cup_fixtures.winner_user_id -> restrict',
   'bonus_knockout_predictions.user_id -> cascade',
   'entries.user_id -> cascade',
@@ -224,6 +228,12 @@ const EXPECTED_OWNERSHIP_POLICIES = [
   'predicted_progression.own predicted_progression select:select',
   'predicted_tie_resolutions.own predicted_tie_resolutions:all',
   'profiles.own profile:all',
+  // Contract 217. TWO policies rather than one `all`, because the two verbs
+  // are different rights: a player may read and revoke what this platform
+  // holds about their devices, and may not write it — a new subscription can
+  // have to be taken off another account, which only a definer can do.
+  'push_subscriptions.own push subscriptions readable:select',
+  'push_subscriptions.own push subscriptions revocable:delete',
   'rank_history.own rank_history readable:select',
   'score_events.own score_events readable:select',
 ].sort()
@@ -239,6 +249,7 @@ const OWNERSHIP_ANCHOR_BY_TABLE: Record<string, string> = {
   predicted_progression: 'e.user_id=(select auth.uid())',
   predicted_tie_resolutions: 'e.user_id=(select auth.uid())',
   profiles: 'id=(select auth.uid())',
+  push_subscriptions: 'user_id=(select auth.uid())',
   rank_history: 'user_id=(select auth.uid())',
   score_events: 'e.user_id=(select auth.uid())',
 }

@@ -190,7 +190,11 @@ insert into expected_authenticated_functions (signature) values
   ('get_my_actions(integer,boolean)'),
   ('mark_actions_seen(text[])'),
   ('dismiss_action(text)'),
-  ('get_season_lms_field(uuid,integer)');
+  ('get_season_lms_field(uuid,integer)'),
+  -- Contract 217. It takes an endpoint and two public key values and reads the
+  -- player from the session, never from an argument: a p_user_id here would let
+  -- any signed-in player point somebody else's account at a browser they hold.
+  ('save_push_subscription(text,text,text)');
 
 -- Contract 162's driver and all four of contract 163's delivery jobs are
 -- SERVICE-ROLE ONLY and deliberately not listed above. An action item carries a
@@ -205,7 +209,12 @@ insert into expected_service_functions (signature) values
   -- Contract 216's callback. The sender closes the run the dispatcher opened,
   -- so service_role needs it and no browser role may have it: a caller that
   -- could close a run could report a delivery that never happened.
-  ('record_reminder_dispatch_run(uuid,text,integer,integer,integer,integer,text)');
+  ('record_reminder_dispatch_run(uuid,text,integer,integer,integer,integer,text)'),
+  -- Contract 217. Pruning deletes a push subscription by endpoint without
+  -- regard to owner, which is correct for one a push service answered 410 for
+  -- and is exactly why no browser role may reach it. A player revokes their own
+  -- with an ordinary delete under row-level security.
+  ('prune_push_subscription(text)');
 
 -- Contract 165: an organiser's own private container. Contract 166: the
 -- multi-group Championship draw. Contract 167: its group stage. Contract 168:

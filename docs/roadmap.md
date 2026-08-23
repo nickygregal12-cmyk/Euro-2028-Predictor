@@ -552,6 +552,18 @@ The repository now keeps matchweek confirmation tied to the card that was actual
 
 Contract 215 is a repository-only consistency correction for the private AI Lab. The value loop keeps historical forecast horizons for audit but assesses only `ai.canonical_fixture_predictions`, and the current-recommendation read fails closed when a fresher canonical forecast has not yet been evaluated. This does not reorder the product roadmap, widen betting exposure, change model-selection policy or close #854: generated Bet Builder slips still need immutable slip-level settlement/performance evidence, and hosted rollout remains a separate guarded milestone.
 
+### Contract 217 — push, as a second channel rather than a second system
+
+Adds `public.push_subscriptions`, a `channel` column on the delivery ledger, and
+RFC 8291 encryption with VAPID signing in the dispatch function. Deliberately
+additive: no second scheduler, no second retry policy, and no `reminder_push`
+boolean — the subscription row is the opt-in, and deleting it is the opt-out.
+
+Applying it still sends nothing, for a different reason from contract 216: this
+channel needs no provider, but no browser can subscribe yet. The next executable
+step is the same Development rollout the previous contracts are waiting on,
+after which the account surface gains its switch.
+
 ### Contract 216 — the reminder sender gets a caller
 
 Wires `notification-dispatch` to a scheduled caller, adds the dispatch run ledger
