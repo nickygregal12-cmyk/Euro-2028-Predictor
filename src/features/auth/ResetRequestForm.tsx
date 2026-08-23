@@ -31,6 +31,7 @@ export function ResetRequestForm({
 }: ResetRequestFormProps) {
   const [email, setEmail] = useState('')
   const [fieldError, setFieldError] = useState<string | undefined>(undefined)
+  const [captchaValidation, setCaptchaValidation] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaKey, setCaptchaKey] = useState(0)
 
@@ -38,9 +39,15 @@ export function ResetRequestForm({
   useEffect(() => {
     if (error && turnstileEnabled) {
       setCaptchaToken(null)
+      setCaptchaValidation(null)
       setCaptchaKey((k) => k + 1)
     }
   }, [error])
+
+  function handleCaptchaToken(token: string | null) {
+    setCaptchaToken(token)
+    if (token) setCaptchaValidation(null)
+  }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -48,7 +55,13 @@ export function ResetRequestForm({
     const err = emailError(email)
     setFieldError(err)
     if (err) return
-    if (turnstileEnabled && !captchaToken) return
+    if (turnstileEnabled && !captchaToken) {
+      setCaptchaValidation(
+        'Complete the security check before requesting a reset link. If it did not load, use the retry option above.',
+      )
+      return
+    }
+    setCaptchaValidation(null)
     onSubmit(email.trim(), captchaToken ?? undefined)
   }
 
@@ -86,19 +99,20 @@ export function ResetRequestForm({
           required
         />
         {/* Renders nothing when Turnstile is off, and — when it is on but
-            cannot load — explains that and offers a retry rather than
-            leaving submit disabled with nothing on screen. */}
+            cannot load — explains that and offers a retry rather than leaving
+            the visitor with an inert form. */}
         <TurnstileField
           resetKey={captchaKey}
-          onToken={setCaptchaToken}
+          onToken={handleCaptchaToken}
           className={s.turnstile}
         />
+        {captchaValidation ? <Alert variant="error">{captchaValidation}</Alert> : null}
         <Button
           type="submit"
           variant="primary"
           fullWidth
           loading={submitting}
-          disabled={!email.trim() || (turnstileEnabled && !captchaToken)}
+          disabled={submitting}
         >
           Send reset link
         </Button>
