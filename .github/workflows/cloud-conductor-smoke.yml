@@ -43,7 +43,10 @@ jobs:
       - name: Read repository Node version
         id: versions
         shell: bash
-        run: echo "node=$(node -p \"require('./package.json').engines.node\")" >> "${GITHUB_OUTPUT}"
+        run: |
+          set -euo pipefail
+          node_version=$(node -p 'require("./package.json").engines.node')
+          printf 'node=%s\n' "$node_version" >> "$GITHUB_OUTPUT"
 
       - name: Set up repository Node version
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -64,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="$(node -p \"require('./config/agent-tools.json').opencode.version\")"
+          version=$(node -p 'require("./config/agent-tools.json").opencode.version')
           npm install --global --prefix "${HOME}/.local" --no-fund --no-audit "opencode-ai@${version}"
           export PATH="${HOME}/.local/bin:${PATH}"
           opencode --version
