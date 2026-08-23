@@ -187,7 +187,14 @@ export function AiLabPage({
       <div className={styles.page}>
         <header className={styles.hero}>
           <div className={styles.heroCopy}>
-            <span className={styles.eyebrow}>Private model research · paper betting only</span>
+            {/* WHO MAY SEE THIS, and the wording is a merged browser contract
+                rather than a preference: weekly-admin-access.spec.ts asserts
+                this exact line on /admin/ai. The rebuild had replaced it with a
+                paper-betting boundary, which is true but answers a different
+                question — and this page already answers that one four times
+                over, in the pill beside this line, the intro under it, and both
+                betting panels below. */}
+            <span className={styles.eyebrow}>Private analysis · administrators only</span>
             <h1 className={styles.title}>AI Lab</h1>
             <p className={styles.intro}>
               What the model thinks will happen, what the price makes worth considering, and the
