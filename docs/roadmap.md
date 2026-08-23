@@ -533,3 +533,13 @@ same paragraph existed in seven places at once.
 ### Contract 214 — current-card confirmation integrity
 
 The repository now keeps matchweek confirmation tied to the card that was actually confirmed: material prediction/Joker edits return it to provisional, while no-op and rejected writes leave the current confirmation intact. The migration still requires the normal hosted rollout gate before any hosted environment can rely on these fields.
+### Contract 215 — the reminder sender gets a caller
+
+Wires `notification-dispatch` to a scheduled caller, adds the dispatch run ledger
+that records a refusal the delivery ledger cannot, and repairs the per-row
+dry-run gate. Applying it sends nothing: no credential exists, delivery is
+unset, and every scheduled row is still written dry.
+
+The next executable step is a Development fast-lane rollout. Making delivery
+live is a separate owner decision, not a step in this sequence.
+

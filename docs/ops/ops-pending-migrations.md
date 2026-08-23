@@ -2,9 +2,9 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 214, Production 211, Development 213 (23 August 2026)
+## Current state — repository 215, Production 211, Development 213 (23 August 2026)
 
-**Development is independently verified at 213; the repository is at 214 and Production remains at 211.** Contract 214 is pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.
+**Development is independently verified at 213; the repository is at 215 and Production remains at 211.** Contracts 214 and 215 are pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, guarded rollout and independent postflight; repository progress is not rollout authority.
 
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
@@ -234,7 +234,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 | Netlify `euro28predictor` non-production contexts | **178 hosted declaration** |
 | Netlify `euro28predictor` production | **178 hosted declaration** |
 
-- Development is hosted at **213** and has Contract **214** pending. Production remains at **211** and has Contracts **212–214** pending through its reviewed Production promotion lane.
+- Development is hosted at **213** and has Contracts **214–215** pending. Production remains at **211** and has Contracts **212–215** pending through its reviewed Production promotion lane.
 - Production is intentionally behind Development during this promotion window. Repository contracts may continue to advance under their own reviewed migrations; each hosted promotion remains a separate authorised operation and must preserve the Development-first rule for the boundary it applies.
 - **A level migration chain is not the same as a fresh feed, but the shape of the staleness has changed and the old sentence here was wrong after contract 211.** Both environments still poll SportMonks on a **1440-minute idle cadence**, so a fixture with no deadline near it can be up to roughly a day stale. What is no longer true is that the staleness spans a prediction lock: the deadline watch opens **720 minutes** before an unresolved kickoff and polls every **60**, closing at the kickoff, so the hours before a lock are covered hourly rather than not at all. `ING-006` is closed on both environments by this boundary; the residual idle staleness away from a deadline is deliberate, is what keeps the matchweek at 77 polls rather than 252, and lives in `provider_poll_targets` rather than in the migration chain.
 - Repository, Development and Production remain separate closure states. Never infer hosted state from the repository count.
@@ -248,6 +248,32 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 4. For why a historical contract existed, use the archived narrative or the migration/PR itself — do not reconstruct history from this live index.
 
 The old “Repository candidate … applied to no hosted environment by this record” blocks are **historical contract records**, not a current pending queue; that wording is intentionally kept only in the archive.
+
+### Contract 215 — pending hosted rollout
+
+`20260823120000_reminder_dispatch_wiring.sql` gives the reminder sender a caller.
+It is **additive** and therefore eligible for the ADR 0024 development fast lane:
+one table in `predictor_internal`, four new functions, one new `pg_cron` job, and
+two existing functions redefined at their existing signatures
+(`public.claim_due_reminders`, `public.admin_reminder_delivery_health`). No
+relation is dropped, renamed or narrowed, and no player-owned row is touched.
+
+It repairs a gate that has never been able to refuse. `claim_due_reminders` set
+`dry_run = p_dry_run` on the row it claimed and returned that new value, so the
+Edge Function — which claims with `false` and then asks the returned row whether
+sending is permitted — was reading a value the same statement had just
+overwritten. The claim now tightens and never clears. Nothing had ever invoked
+the sender, so nothing had ever paid for it; this contract invokes the sender.
+
+**Applying it does not send anything.** Three independent gates remain shut: no
+`notification_dispatch_function_url` or `notification_dispatch_caller_key` exists
+in either vault, so the job records a `not-configured` refusal and posts nothing;
+`NOTIFICATIONS_DELIVERY` is unset everywhere; and every scheduled row is still
+written with `dry_run` true, which contract 172's own pgTAP assertion continues
+to require.
+
+Development rollout is the intended next step for this contract. Production is
+**not** authorised by this record.
 
 ### Contract 214 — pending hosted rollout
 

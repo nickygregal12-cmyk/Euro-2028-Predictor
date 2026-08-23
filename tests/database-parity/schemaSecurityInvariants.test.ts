@@ -211,6 +211,11 @@ describe('row-level security', () => {
       // Contract 209. Append-only evidence of every fixture status the
       // platform moved on a provider's word.
       { schema: 'predictor_internal', name: 'season_fixture_lifecycle_transitions' },
+      // Contract 216. The same shape one contract later, for the reminder
+      // sender: what the dispatch job asked for, and what came back. Internal
+      // for the same reason — nothing outside the job reads it, and every look
+      // an administrator gets goes through a definer function returning counts.
+      { schema: 'predictor_internal', name: 'reminder_dispatch_runs' },
     ])
     for (const table of internal) {
       expect(publicTables.has(table.name)).toBe(false)

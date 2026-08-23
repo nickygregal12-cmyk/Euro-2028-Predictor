@@ -6,14 +6,15 @@
   "controller": "docs/product/player-value-programme-controller.md",
   "contractRunway": {
     "authority": "config/deployment-contract.json",
-    "note": "The repository contract number is deliberately absent. It is read from the authority named above, and the next free number is derived: repository requiredMigrationCount + 1 + the number of distinct contracts claimed below. Two branches claiming one number is the known failure this record exists to prevent, so a claim is recorded against an exact pull-request head and is invalid the moment the repository reaches it.",
+    "note": "The repository's own position is deliberately absent; it is read from the authority named above, which on any branch already carries that branch's own claim. What is recorded here is every OTHER open branch that holds a number, so the next free one is this branch's position plus one plus the claims below. Two branches holding one number is the known failure this record exists to prevent, so a claim names an exact pull-request head and is invalid the moment the repository reaches it.",
     "claimedByOpenPullRequests": [
       {
         "pr": 997,
         "branch": "codex/ai-lab-vnext-rebuild",
-        "headSha": "c449a3e11d999654c522cae2fdf8ffe57e80329e",
-        "contract": 215,
-        "migration": "supabase/migrations/20260823001000_ai_canonical_value_currency.sql"
+        "headSha": "32969de6086e091e7719b80bc75f6781d63dd0f5",
+        "contract": 216,
+        "migration": "supabase/migrations/20260823001000_ai_canonical_value_currency.sql",
+        "reconciliation": "Renumbered from the number it originally held. A contract number is the migration COUNT, so a branch adding one migration to main is necessarily the next number and cannot reserve a later one while it stays unmerged. Only one of the two open migration branches can be that number, and readiness decides: this one is a draft, and the branch holding the earlier number is ready. When this branch rebases it takes the number after whatever main has reached. Nothing was pushed to it — renumbering someone else's branch is its author's to do."
       }
     ]
   },
@@ -21,10 +22,10 @@
     {
       "pr": 997,
       "branch": "codex/ai-lab-vnext-rebuild",
-      "headSha": "c449a3e11d999654c522cae2fdf8ffe57e80329e",
+      "headSha": "32969de6086e091e7719b80bc75f6781d63dd0f5",
       "draft": true,
       "classification": "unrelated",
-      "rationale": "Rebuilds AI Lab around forecast, value and evidence. It shares no surface with any stage of this programme. It matters here only because it is the single open branch carrying a migration, so it owns the next contract number and every migration-bearing stage of this programme must take the one after it."
+      "rationale": "Rebuilds AI Lab around forecast, value and evidence. It shares no surface with any stage of this programme. It matters here only as the other open branch carrying a migration, which is why the runway above records the number it must take."
     },
     {
       "pr": 971,
@@ -40,18 +41,24 @@
       "id": "0",
       "title": "Reconcile the contract runway",
       "dependencies": [],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1000,
+      "headSha": "a0a3e54b78e774a6387468a56d59536892bf4600",
+      "mergedSha": "2b186e8a8ead931ee0fc525a741d624a5f18ea2e",
+      "acceptanceEvidence": [
+        "Migration numbering is unambiguous: no two branches hold one number, and the runway records the number the other open migration branch must take.",
+        "Every open pull request is classified on its exact head, in this record.",
+        "The programme controller, its orchestration contract and its executable gate are on main, reachable from the root agent router.",
+        "The gate refuses a completion with no merge behind it, a completion ahead of its dependency, blank evidence, an unnamed blocker, two stages in flight, two branches on one number, an overtaken claim, a hole in the runway, an unclassified claimant, a draft called ready to merge, and copied prose — proven against deliberately broken states and against an empty runway.",
+        "main was green on the exact head before merge."
+      ],
       "blocker": null
     },
     {
       "id": "1",
       "title": "Deploy the reminder delivery path",
       "dependencies": ["0"],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

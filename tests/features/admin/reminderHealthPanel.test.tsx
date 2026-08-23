@@ -103,7 +103,9 @@ describe('ReminderHealthPanel', () => {
     await waitFor(() =>
       expect(screen.getByText(/No sender is configured/)).toBeInTheDocument(),
     )
-    expect(screen.getByText(/blocked on the brand decision/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/A queue here is the expected state rather than a backlog/),
+    ).toBeInTheDocument()
   })
 
   it('offers no control at all', async () => {
@@ -129,7 +131,7 @@ describe('ReminderHealthPanel', () => {
 describe('presentReminderJobs', () => {
   it('keeps "could not look" and "looked and found none" apart', () => {
     expect(presentReminderJobs(health({ jobs: null })).missing).toBeNull()
-    expect(presentReminderJobs(health({ jobs: [] })).missing).toHaveLength(3)
+    expect(presentReminderJobs(health({ jobs: [] })).missing).toHaveLength(4)
   })
 
   it('reports every expected job whether or not the server returned it', () => {
@@ -138,6 +140,7 @@ describe('presentReminderJobs', () => {
       'player-action-centre-generate',
       'player-reminder-schedule',
       'player-reminder-reclaim-stalled',
+      'player-reminder-dispatch',
     ])
     expect(answer.jobs.every((job) => job.active === false)).toBe(true)
   })
@@ -157,6 +160,53 @@ describe('presentReminderJobs', () => {
 describe('mapReminderDeliveryHealth', () => {
   it('decodes an absent sender flag as false rather than assuming one exists', () => {
     expect(mapReminderDeliveryHealth({}).senderConfigured).toBe(false)
+  })
+
+  it('keeps a sender that cannot start apart from a sender that was never set up', () => {
+    const missing = mapReminderDeliveryHealth({
+      sender: { configured: false, secrets_present: false, job_active: true, error: null },
+    })
+    expect(missing.sender?.configured).toBe(false)
+    expect(missing.sender?.error).toBeNull()
+    expect(missing.sender?.secretsPresent).toBe(false)
+
+    const broken = mapReminderDeliveryHealth({
+      sender: { configured: false, error: 'must be an https URL' },
+    })
+    expect(broken.sender?.configured).toBe(false)
+    // The difference between the two: one has nothing to fix, the other does.
+    expect(broken.sender?.error).toBe('must be an https URL')
+  })
+
+  it('reports an unreadable job flag as unknown rather than as off', () => {
+    const answer = mapReminderDeliveryHealth({
+      sender: { configured: false, secrets_present: true, job_active: null, error: null },
+    })
+    expect(answer.sender?.jobActive).toBeNull()
+  })
+
+  it('decodes the dispatch runs, and an absent section as "could not look"', () => {
+    expect(mapReminderDeliveryHealth({}).dispatch).toBeNull()
+
+    const answer = mapReminderDeliveryHealth({
+      dispatch: {
+        runs_total: 12,
+        runs_last_hour: 3,
+        unreported_over_ten_minutes: 1,
+        last_outcome: 'delivery-disabled',
+        last_configured: true,
+        last_due_at_request: 4,
+        last_claimed: null,
+        delivery_disabled_last_hour: 3,
+        not_configured_last_hour: 0,
+      },
+    })
+    expect(answer.dispatch?.runsTotal).toBe(12)
+    expect(answer.dispatch?.unreportedOverTenMinutes).toBe(1)
+    expect(answer.dispatch?.lastOutcome).toBe('delivery-disabled')
+    // Null, not zero: a run that reported nothing has not claimed nothing.
+    expect(answer.dispatch?.lastClaimed).toBeNull()
+    expect(answer.dispatch?.lastDueAtRequest).toBe(4)
   })
 
   it('refuses a non-integer count rather than rendering NaN', () => {

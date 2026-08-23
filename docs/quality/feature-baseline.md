@@ -375,3 +375,12 @@ Twelve further rows did not ship, each for a stated reason, and the reasons are 
 ### Contract 214 — season card confirmation baseline
 
 Season matchweek confirmation now describes the current card rather than an earlier edit state. Successful material prediction/Joker changes clear the confirmation back to provisional; no-op and rejected writes do not. Confirmation time/reference are server-derived display evidence, not a second receipt ledger or cryptographic proof.
+### Contract 215 — reminder dispatch baseline
+
+The reminder path now has all four of its jobs: generate, schedule, reclaim and
+dispatch. Classification is unchanged for the player-facing surface — reminders
+are still **implemented and switched off** — but the safeguard inventory gains
+one that previously existed only on paper. The per-row `dry_run` flag is now
+capable of refusing a send; before this contract the claim overwrote it and the
+gate could not fire.
+

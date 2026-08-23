@@ -151,3 +151,11 @@ same paragraph existed in seven places at once.
 ### Contract 214 implementation note
 
 Contract 214 refines the existing season-card implementation so a confirmation belongs to the current material card state. It introduces no replacement ADR and no second settlement/receipt authority; the existing card row remains authoritative.
+### Contract 215 implementation note
+
+Contract 215 wires an existing, decided capability to a scheduler. It introduces
+no replacement ADR and no second notification, scheduling or delivery authority:
+`reminder_deliveries` remains the delivery ledger and the only writer of delivery
+state, and the new run ledger records invocations rather than deliveries. The
+provider choice recorded as blocked stays blocked; nothing here selects one.
+

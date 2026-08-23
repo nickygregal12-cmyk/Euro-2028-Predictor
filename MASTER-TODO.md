@@ -99,3 +99,16 @@ The goal is simple: **if an AI sees an unchecked item in this file, it should be
 ## Contract 214 sweep — current-card confirmation integrity
 
 Contract 214 is implemented in the repository: a successful material season prediction or Joker change invalidates the previous matchweek confirmation, no-op or rejected writes preserve it, and the card read exposes the server-held confirmation instant plus a compact reference. Hosted rollout remains pending; this repository change does not claim a hosted schema update.
+## Contract 215 sweep — the reminder sender gets a caller
+
+Contract 215 is implemented in the repository: a `pg_cron` job posts a run id to
+`notification-dispatch` every five minutes, a run ledger records what each
+invocation was asked to do and what came back, and the per-row dry-run gate can
+refuse for the first time — the claim now tightens it and never clears it.
+
+**Outstanding and owned elsewhere.** No provider credential exists in any
+environment, so nothing sends and no end-to-end delivery is claimed. Development
+rollout of this contract, and the separate owner decision that would make
+delivery live, are tracked in
+[`docs/ops/notification-delivery.md`](docs/ops/notification-delivery.md).
+

@@ -396,3 +396,14 @@ blockquotes could never show without being read end to end.
 ## Contract 214 confirmation-integrity review
 
 Contract 214 changes only season matchweek confirmation integrity and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
+## Contract 215 reminder-dispatch review
+
+No build stage moves and no hub surface changes. Reminders are per-player and
+per-action; they are indifferent to which competition or site variant produced
+the action item, and the dispatch path reads no hub concept at all.
+
+The only surface touched is the operator one: the reminder health panel gains
+the fourth scheduled job and the dispatch runs beside it. That panel is admin
+scoped and carries counts and instants, so no hub journey, player-facing route
+or site variant is affected.
+
