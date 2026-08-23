@@ -2,18 +2,33 @@
 
 > **Live index only.** The machine records are authoritative; this page exists so a human or AI can see the current rollout boundary without reading the historical contract chronology. The previous full narrative is preserved at [`docs/history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt`](../history/context-reset-2026-08-19/ops-pending-migrations.pre-reconciliation.txt).
 
-## Current state — repository 217, Production 211, Development 213 (24 August 2026)
+## Current state — repository 217, Production 211, Development 217 (23 August 2026)
 
-**Development is independently verified at 213; the repository is now 217 and Production remains at 211.** Contracts 214, 215, 216 and 217 are therefore pending on both hosted environments. Contracts 212 and 213 remain pending on Production only. Every hosted mutation still requires its own reviewed boundary, backup/rehearsal where applicable, guarded rollout and independent postflight; repository progress is not rollout authority.
+**Development is independently verified at 217 and is level with the repository; Production remains at 211.** Contracts 212 through 217 are therefore pending on Production alone, as one boundary. Nothing is pending on Development. Every hosted mutation still requires its own reviewed boundary, backup/rehearsal where applicable, guarded rollout and independent postflight; repository progress is not rollout authority.
 
-> **Contract 217 is the one with a browser waiting behind it.** Every other pending contract is server-side and costs nothing while it waits. This one blocks a player-facing surface: `src/services/supabase/database.types.ts` is generated from Development, `TYPE-001` checks every call from `src/` against it, and the account push switch therefore cannot be written until 217 is on Development and `npm run generate:types` has run. That is the repository's stated ordering rather than an obstacle to route around — an RPC exists on Development before a browser is written against it — and `tests/vnext/notificationPreferences.test.tsx` fails the moment the types catch up, which is the signal to build the switch.
+> **Contract 217's browser is no longer waiting, and what it was waiting for is now the next task rather than this one.** This block previously recorded contract 217 as the one pending migration with a player-facing surface behind it: `src/services/supabase/database.types.ts` is generated from Development, `TYPE-001` checks every call from `src/` against it, and the account push switch could not be written until 217 was on Development. **217 is on Development as of 23 August 2026**, so that ordering is satisfied and the block is discharged. `npm run generate:types` has NOT been run against the new contract by this record, so the types file still describes contract 216 and the switch still cannot be written — that is a repository task with its own workflow (`regenerate-database-types.yml`), not a hosted one, and it is deliberately not claimed here.
 
 
-> **Contract 217 repository candidate — push as a second delivery channel (24 August 2026):** `20260824090000_web_push_channel.sql` is **not hosted**. It is additive: one table (`public.push_subscriptions`, row-level security on, own-row select and delete for the player, writes through a `security definer` save), one column (`reminder_deliveries.channel`, defaulting to the existing behaviour), two new functions and two redefined ones. The once-per-action unique key is deliberately untouched, so a player with both channels available is still told once. No existing policy or grant is relaxed, no player row is written, and no provider account or paid credit is involved — web push needs neither. pgTAP suite **263** carries 33 assertions, and each of the migration's own in-transaction assertions was proved non-vacuous by restoring the defect it guards.
+> **Development crossed contracts 214 to 217 on 23 August 2026, in two guarded runs, after the fast lane refused the batch.** The refusal is the first thing to read here, because it is the lane working rather than failing. Fast-lane run
+> [32673045113](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/32673045113)
+> from exact `main` `6859374` read the live ledger, listed all four as pending, proved 214, 215 and 216 additive and **REFUSED** 217 on `drop function`. It refuses before it snapshots, so it wrote nothing.
+>
+> **What the refusal actually tells you is about the shape of the lane, not about contract 217 alone.** `supabase db push` is all-or-nothing: it applies everything pending or nothing. One destructive migration at the top of the queue therefore blocks every additive migration underneath it, and contracts 214 to 216 — each individually fast-lane eligible, and each recorded on this page as such — could not use the fast lane while 217 sat behind them. That is worth writing down because the obvious reading of "214 to 216 are additive and therefore eligible" is that they would go through the cheap lane, and on this boundary they could not.
+>
+> **So both halves went through `development-migration-rollout.yml`, the guarded lane, which can name a boundary.** Contracts 214 to 216 through run
+> [32673177186](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/32673177186),
+> target `20260823120000_reminder_dispatch_wiring.sql`, stated source 213. Contract 217 alone through run
+> [32673320652](https://github.com/nickygregal12-cmyk/Euro-2028-Predictor/actions/runs/32673320652),
+> target `20260824090000_web_push_channel.sql`, stated source 216, destructive acknowledgement quoted back. **Splitting them was deliberate rather than incidental:** it keeps the destructive contract its own acknowledged event, and it would have left Development at a clean 216 had 217 failed.
+>
+> The measured read-back is in
+> [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json), which is the authority; this page states only that the boundary was crossed and where to read the evidence. **The one thing worth repeating here** is the risk contract 217's `drop function` introduces and the ledger cannot answer: a dropped function takes its grants with it. `claim_due_reminders(integer, boolean)` came back executable by `service_role` and by neither `authenticated` nor `anon`, and the once-per-action key is untouched. **The sender arrived inert and stayed inert** — `secrets_present` false, and `not-configured` the only outcome the newly scheduled job has recorded. Nothing was sent and no provider credit was spent.
+
+> **Contract 217 repository candidate — push as a second delivery channel (24 August 2026):** `20260824090000_web_push_channel.sql` is **hosted on Development and not on Production** — see the Development 213-to-217 record below. It is additive: one table (`public.push_subscriptions`, row-level security on, own-row select and delete for the player, writes through a `security definer` save), one column (`reminder_deliveries.channel`, defaulting to the existing behaviour), two new functions and two redefined ones. The once-per-action unique key is deliberately untouched, so a player with both channels available is still told once. No existing policy or grant is relaxed, no player row is written, and no provider account or paid credit is involved — web push needs neither. pgTAP suite **263** carries 33 assertions, and each of the migration's own in-transaction assertions was proved non-vacuous by restoring the defect it guards.
 >
 > **It does NOT use the development fast lane.** `check-migration-additive.mjs` refuses it on one statement — `drop function if exists public.claim_due_reminders(integer, boolean)` — and the refusal is correct, because the scanner cannot tell a drop-and-recreate from a deletion. The function's return type gains a column and PostgreSQL will not replace a function whose output shape changes, so there is no additive way to write it; the argument signature is unchanged, so no grant, caller or contract signature moves. It goes through `development-migration-rollout.yml`, the guarded lane, as contract 213 does. The statement is deliberately left in plain sight rather than wrapped in a `do` block to slip past the scanner.
 
-> **Contract 214 repository candidate — current value follows the canonical forecast (23 August 2026):** `20260823001000_ai_canonical_value_currency.sql` is **not hosted**. It redefines only the private `ai.current_fixture_recommendations` view: a decision is current only if its prediction is the fixture's canonical newest non-quarantined forecast. Historical recommendations remain append-only evidence. The companion Python change keeps historical candidate horizons inspectable but evaluates only the canonical-marked row, so an older horizon cannot create today's immutable paper advice while the Lab shows a newer probability. pgTAP suite **261** proves both fail-closed currency and preservation of the old audit row. No provider call, paid odds credit, public betting exposure or player-owned row is involved.
+> **Contract 215 repository candidate — current value follows the canonical forecast (23 August 2026):** `20260823001000_ai_canonical_value_currency.sql` is **hosted on Development and not on Production**. It redefines only the private `ai.current_fixture_recommendations` view: a decision is current only if its prediction is the fixture's canonical newest non-quarantined forecast. Historical recommendations remain append-only evidence. The companion Python change keeps historical candidate horizons inspectable but evaluates only the canonical-marked row, so an older horizon cannot create today's immutable paper advice while the Lab shows a newer probability. pgTAP suite **261** proves both fail-closed currency and preservation of the old audit row. No provider call, paid odds credit, public betting exposure or player-owned row is involved.
 > **Contract 213 is DESTRUCTIVE and therefore does not use the development fast
 > lane.** `check-migration-additive.mjs` refuses it, correctly: it deletes seven
 > rows from `predictor_internal.provider_status_kinds`. It goes through
@@ -83,7 +98,7 @@
 
 | Environment | Recorded contract | Authority |
 | --- | ---: | --- |
-| Development Supabase `iouzoutneyjpugbbtdem` | **213** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
+| Development Supabase `iouzoutneyjpugbbtdem` | **217** | [`config/development-hosted-contract.json`](../../config/development-hosted-contract.json) |
 | Production Supabase `vkfnsqdyhvtwyqkisxhk` | **211** | [`config/production-hosted-contract.json`](../../config/production-hosted-contract.json) |
 
 > **Contract 210 — the live poll window covers the deadline — reached both
@@ -242,7 +257,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 | Netlify `euro28predictor` non-production contexts | **178 hosted declaration** |
 | Netlify `euro28predictor` production | **178 hosted declaration** |
 
-- Development is hosted at **213** and has Contracts **214–216** pending. Production remains at **211** and has Contracts **212–216** pending through its reviewed Production promotion lane.
+- Development is hosted at **217** and has nothing pending. Production remains at **211** and has Contracts **212–217** pending through its reviewed Production promotion lane, which is the pinned pair `production-211-to-217-rehearsal.yml` and `production-211-to-217-rollout.yml`. **The earlier `production-211-to-213` pair is not stale, it is unrunnable**, and deliberately so: it proves the repository holds exactly 213 migrations before it does anything, and `main` holds 217. A pinned lane going out of date is the pin working — the alternative is a lane that silently applies whatever has landed since it was reviewed — so the boundary was re-reviewed and re-pinned at its real width rather than the old pair being widened in place.
 - Production is intentionally behind Development during this promotion window. Repository contracts may continue to advance under their own reviewed migrations; each hosted promotion remains a separate authorised operation and must preserve the Development-first rule for the boundary it applies.
 - **A level migration chain is not the same as a fresh feed, but the shape of the staleness has changed and the old sentence here was wrong after contract 211.** Both environments still poll SportMonks on a **1440-minute idle cadence**, so a fixture with no deadline near it can be up to roughly a day stale. What is no longer true is that the staleness spans a prediction lock: the deadline watch opens **720 minutes** before an unresolved kickoff and polls every **60**, closing at the kickoff, so the hours before a lock are covered hourly rather than not at all. `ING-006` is closed on both environments by this boundary; the residual idle staleness away from a deadline is deliberate, is what keeps the matchweek at 77 polls rather than 252, and lives in `provider_poll_targets` rather than in the migration chain.
 - Repository, Development and Production remain separate closure states. Never infer hosted state from the repository count.
@@ -257,7 +272,7 @@ These rows deliberately mirror the current declaration table in [`netlify-deploy
 
 The old “Repository candidate … applied to no hosted environment by this record” blocks are **historical contract records**, not a current pending queue; that wording is intentionally kept only in the archive.
 
-### Contract 216 — pending hosted rollout
+### Contract 216 — applied to Development, pending on Production
 
 `20260823120000_reminder_dispatch_wiring.sql` gives the reminder sender a caller.
 It is **additive** and therefore eligible for the ADR 0024 development fast lane:
@@ -280,9 +295,10 @@ in either vault, so the job records a `not-configured` refusal and posts nothing
 written with `dry_run` true, which contract 172's own pgTAP assertion continues
 to require.
 
-Development rollout is the intended next step for this contract. Production is
-**not** authorised by this record.
+Development rollout is complete for this contract as of 23 August 2026; see the
+Development 214-to-217 record at the top of this page. Production is **not**
+authorised by this record.
 
-### Contract 214 — pending hosted rollout
+### Contract 214 — applied to Development, pending on Production
 
-`20260820170000_confirmation_tracks_current_card.sql` is repository-ready but not claimed as applied to a hosted environment. It must follow the existing guarded migration sequence and parity/acceptance checks before hosted clients may depend on the new current-confirmation evidence.
+`20260820170000_confirmation_tracks_current_card.sql` reached Development on 23 August 2026 through the guarded lane; see the record at the top of this page. It remains pending on Production, and must cross through the reviewed Production promotion lane with its own backup, rehearsal and independent postflight before Production clients may depend on the new current-confirmation evidence.

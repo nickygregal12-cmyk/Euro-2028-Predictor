@@ -1,0 +1,310 @@
+name: Production 211 to 217 rollout
+
+# One-shot guarded Production promotion for Contracts 212 through 217.
+# Requires a fresh encrypted backup and a successful exact-head 211-to-217
+# rehearsal, and refuses unless BOTH destructive filenames in the boundary are
+# explicitly acknowledged.
+#
+# Development is moved first and Production second. That order is not a
+# convention here: the step below reads the Development machine record and
+# refuses to make Production the first hosted environment to see Contract 217.
+#
+# It applies and then measures. The measurement it runs is the same file the
+# rehearsal ran, for the same reason the rehearsal exists: a rehearsal that asks
+# a different question from the rollout has rehearsed nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type APPLY-PRODUCTION-211-TO-217 to proceed
+        required: true
+      destructive_acknowledgement_213:
+        description: Type ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql
+        required: true
+      destructive_acknowledgement_217:
+        description: Type ACKNOWLEDGE-DESTRUCTIVE-20260824090000_web_push_channel.sql
+        required: true
+      backup_run_id:
+        description: Run id of the successful fresh Production backup
+        required: true
+      rehearsal_run_id:
+        description: Run id of the successful 211-to-217 rehearsal
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-migration-rollout
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-211-TO-217
+  DESTRUCTIVE_ACK_213: ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql
+  DESTRUCTIVE_ACK_217: ACKNOWLEDGE-DESTRUCTIVE-20260824090000_web_push_channel.sql
+  SOURCE_CONTRACT: '211'
+  SOURCE_VERSION: '20260820090000'
+  SOURCE_NAME: provider_deadline_watch_tier
+  TARGET_CONTRACT: '217'
+  TARGET_VERSION: '20260824090000'
+  TARGET_NAME: web_push_channel
+  CONTRACT_212: 20260820130000_matchweek_card_publishes_the_fixture_lock.sql
+  CONTRACT_213: 20260820150000_drop_unmeasured_sportmonks_tokens.sql
+  CONTRACT_214: 20260820170000_confirmation_tracks_current_card.sql
+  CONTRACT_215: 20260823001000_ai_canonical_value_currency.sql
+  CONTRACT_216: 20260823120000_reminder_dispatch_wiring.sql
+  CONTRACT_217: 20260824090000_web_push_channel.sql
+  WORK_DIR: /tmp/production-211-to-217-rollout
+
+jobs:
+  rollout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+          INPUT_ACK_213: ${{ inputs.destructive_acknowledgement_213 }}
+          INPUT_ACK_217: ${{ inputs.destructive_acknowledgement_217 }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || { echo 'ERROR: confirmation phrase mismatch.'; exit 1; }
+          # Two acknowledgements rather than one, because there are two
+          # destructive contracts in this boundary and a single tick-box would
+          # let the second one through on the strength of having read the first.
+          [ "${INPUT_ACK_213}" = "${DESTRUCTIVE_ACK_213}" ] || { echo 'ERROR: Contract 213 acknowledgement mismatch.'; exit 1; }
+          [ "${INPUT_ACK_217}" = "${DESTRUCTIVE_ACK_217}" ] || { echo 'ERROR: Contract 217 acknowledgement mismatch.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: that is Development.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || { echo 'ERROR: project ref is not Production.'; exit 1; }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rollout runs only from main.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact main.'; exit 1; }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is dirty.'; exit 1; }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove fresh backup then exact-head rehearsal succeeded
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+          REHEARSAL_RUN_ID: ${{ inputs.rehearsal_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_run() {
+            local id="$1" path="$2" label="$3" json
+            json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${id}")"
+            [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo "ERROR: ${label} ${id} did not succeed."; exit 1; }
+            [ "$(jq -r '.path' <<<"${json}")" = "${path}" ] || { echo "ERROR: ${label} ${id} has wrong workflow path."; exit 1; }
+            printf '%s' "${json}"
+          }
+          backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-211-to-217-rehearsal.yml' Rehearsal)"
+          # EXACT head, not an ancestor: a rehearsal of a different tree has
+          # rehearsed a different migration set.
+          rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
+          [ "${rehearsal_sha}" = "$(git rev-parse HEAD)" ] || { echo "ERROR: rehearsal head ${rehearsal_sha} is not rollout head."; exit 1; }
+          backup_sha="$(jq -r '.head_sha' <<<"${backup}")"
+          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rollout head.'; exit 1; }
+          backup_at="$(jq -r '.created_at' <<<"${backup}")"
+          rehearsal_at="$(jq -r '.created_at' <<<"${rehearsal}")"
+          [ "${backup_at}" \< "${rehearsal_at}" ] || { echo 'ERROR: backup does not precede rehearsal.'; exit 1; }
+          artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}/artifacts")"
+          [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || {
+            echo 'ERROR: encrypted backup artifact missing.'
+            exit 1
+          }
+
+      - name: Refuse to make Production the first hosted environment to see Contract 217
+        shell: bash
+        run: |
+          set -euo pipefail
+          dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
+          dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: Development record names the wrong project.'; exit 1; }
+          [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development record is ${dev_contract}, below ${TARGET_CONTRACT}."
+            exit 1
+          }
+
+      - name: Prove the repository boundary is exactly 211 to 217
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository has ${committed} migrations."; exit 1; }
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: deployment contract is ${declared}."; exit 1; }
+          [ "${newest}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+
+          : > "${WORK_DIR}/boundary.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"; version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              basename "${file}" >> "${WORK_DIR}/boundary.txt"
+            fi
+          done
+
+          printf '%s\n' "${CONTRACT_212}" "${CONTRACT_213}" "${CONTRACT_214}" \
+                        "${CONTRACT_215}" "${CONTRACT_216}" "${CONTRACT_217}" \
+            > "${WORK_DIR}/expected-boundary.txt"
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || {
+            echo 'ERROR: boundary is not exactly Contracts 212 through 217.'
+            exit 1
+          }
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.2
+
+      - name: Prove which of the six are additive and which are destructive
+        shell: bash
+        run: |
+          set -euo pipefail
+          for additive in "${CONTRACT_212}" "${CONTRACT_214}" "${CONTRACT_215}" "${CONTRACT_216}"; do
+            node scripts/check-migration-additive.mjs "supabase/migrations/${additive}"
+          done
+
+          : > "${WORK_DIR}/destructive-guard.txt"
+          for destructive in "${CONTRACT_213}" "${CONTRACT_217}"; do
+            set +e
+            node scripts/check-migration-additive.mjs "supabase/migrations/${destructive}" >> "${WORK_DIR}/destructive-guard.txt" 2>&1
+            status=$?
+            set -e
+            [ "${status}" -ne 0 ] || {
+              cat "${WORK_DIR}/destructive-guard.txt"
+              echo "ERROR: ${destructive} unexpectedly passed the additive guard."
+              exit 1
+            }
+          done
+          cat "${WORK_DIR}/destructive-guard.txt"
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Capture exact pre-apply Production state
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: SUPABASE_PROD_DB_URL missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
+          esac
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f scripts/database-rollout/production-211-to-217-preserved-state.sql \
+            > "${WORK_DIR}/before.json"
+          cat "${WORK_DIR}/before.json"
+
+          BEFORE_FILE="${WORK_DIR}/before.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const x = JSON.parse(fs.readFileSync(process.env.BEFORE_FILE, 'utf8'))
+          const want = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [k, v] of Object.entries(want)) {
+            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
+          }
+          NODE
+
+      - name: Dry run and apply exactly Contracts 212 through 217 to Production
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' > "${WORK_DIR}/pending.txt"
+          # The dry run is the last word, not the resolved boundary: it is what
+          # the CLI will actually push. Disagreement is the finding.
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/pending.txt" || {
+            echo 'ERROR: Production dry run is not exactly Contracts 212 through 217.'
+            exit 1
+          }
+          supabase db push --db-url "${SUPABASE_PROD_DB_URL}"
+
+      - name: Verify Production is at Contract 217 and protected state is unchanged
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f scripts/database-rollout/production-211-to-217-preserved-state.sql \
+            > "${WORK_DIR}/after.json"
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f scripts/database-rollout/production-211-to-217-boundary-state.sql \
+            > "${WORK_DIR}/boundary-state.json"
+          cat "${WORK_DIR}/after.json"
+          cat "${WORK_DIR}/boundary-state.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" \
+          AFTER_FILE="${WORK_DIR}/after.json" \
+          BOUNDARY_FILE="${WORK_DIR}/boundary-state.json" \
+            node scripts/database-rollout/verify-production-211-to-217.mjs
+
+      - name: Say what to record, rather than claiming it here
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Production applied Contracts 212 through 217'
+            echo
+            echo 'This job applied the boundary and ran its own postflight. That postflight'
+            echo 'is NOT the evidence this repository records: a job reporting on its own'
+            echo 'write is not independent. Before updating any machine record, take a'
+            echo 'SEPARATE read-only query against the Production project and read:'
+            echo
+            echo '- the ledger holds 217 rows ending `20260824090000_web_push_channel`;'
+            echo '- every player-owned count is unchanged from `before.json` in this run''s artifact;'
+            echo '- `predictor_internal.reminder_sender_configuration()` reports `secrets_present` false,'
+            echo '  so the newly scheduled dispatch job refuses and posts nothing;'
+            echo '- both publication gates are still false and Euro publication is still hidden.'
+            echo
+            echo 'Then write `config/production-hosted-contract.json` BY HAND from that query.'
+            echo '`promotionAuthorised` stays `false`: it is a property of the record, pinned'
+            echo 'there by `check-hosted-migration-inventory.mjs` and'
+            echo '`production-hosted-contract-expectations.mjs`, and not a statement about'
+            echo 'whether this promotion happened.'
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload rollout evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-211-to-217-rollout-evidence
+          path: |
+            /tmp/production-211-to-217-rollout/before.json
+            /tmp/production-211-to-217-rollout/after.json
+            /tmp/production-211-to-217-rollout/boundary-state.json
+            /tmp/production-211-to-217-rollout/boundary.txt
+            /tmp/production-211-to-217-rollout/dry-run.txt
+            /tmp/production-211-to-217-rollout/destructive-guard.txt
+          retention-days: 7
+          if-no-files-found: error
