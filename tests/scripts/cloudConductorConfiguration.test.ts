@@ -6,23 +6,25 @@ const root = process.cwd()
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 
 describe('persistent private cloud Conductor', () => {
-  it('keeps one write-capable Claude builder behind a read-only GPT conductor and Ox critic', () => {
+  it('keeps subscription-backed OpenAI work behind a read-only Conductor and free Ox critic', () => {
     const conductor = read('.opencode/agents/predictor-conductor.md')
     const builder = read('.opencode/agents/predictor-builder.md')
     const critic = read('.opencode/agents/predictor-critic.md')
 
     expect(conductor).toContain('mode: primary')
-    expect(conductor).toContain('model: openrouter/openai/gpt-5.6-sol')
+    expect(conductor).toContain('model: openai/gpt-5.6-sol')
     expect(conductor).toContain('edit: deny')
     expect(conductor).toContain('"predictor-builder": allow')
     expect(conductor).toContain('"predictor-critic": allow')
     expect(conductor).toContain('Do not treat agreement as evidence')
+    expect(conductor).toContain('Do not call paid OpenRouter GPT/Claude models by default')
 
     expect(builder).toContain('mode: subagent')
-    expect(builder).toContain('model: openrouter/anthropic/claude-sonnet-5')
+    expect(builder).toContain('model: openai/gpt-5.6-sol')
     expect(builder).toContain('edit: allow')
     expect(builder).toContain('"git push*": ask')
     expect(builder).toContain('"gh pr create*": ask')
+    expect(builder).toContain('stop and report it rather than silently creating spend')
 
     expect(critic).toContain('mode: subagent')
     expect(critic).toContain('model: openrouter/stealth/ox-alpha')
@@ -42,6 +44,7 @@ describe('persistent private cloud Conductor', () => {
     const doctor = read('scripts/agent-tools/cloud-conductor-doctor.sh')
 
     expect(installer).toContain('Ubuntu 24.04 LTS')
+    expect(installer).toContain('aarch64|arm64')
     expect(installer).toContain('https://nodejs.org/dist/v${node_version}/SHASUMS256.txt')
     expect(installer).toContain('sha256sum --check --strict')
     expect(installer).toContain('https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg')
