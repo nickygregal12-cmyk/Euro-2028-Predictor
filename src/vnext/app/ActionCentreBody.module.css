@@ -1,0 +1,184 @@
+/* THE ACTION CENTRE, INSIDE A SHELL OVERLAY.
+ *
+ * It borrows the attention layer's row vocabulary deliberately — the two are
+ * different questions but they are the same KIND of object, and a player who
+ * has learned to read one should not have to learn the other. What it adds is
+ * the group heading, the unread mark and the dismiss control, none of which the
+ * attention layer has because none of them is meaningful there.
+ *
+ * Every value below is an existing token. This lane's contrast matrix measures
+ * token against token, so a literal colour here would be a pairing nothing
+ * checks.
+ */
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-5);
+}
+
+/* ---- the two groups ------------------------------------------------------ */
+
+.groupTitle {
+  margin-block-end: var(--vnext-space-2);
+  color: var(--vnext-text-muted);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-1);
+}
+
+/* ---- one row ------------------------------------------------------------- */
+
+.row {
+  display: flex;
+  gap: var(--vnext-space-2);
+  align-items: flex-start;
+  inline-size: 100%;
+  padding-inline-end: var(--vnext-space-2);
+  border-inline-start: 3px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: var(--vnext-surface);
+}
+
+/* UNREAD IS A LEFT EDGE AS WELL AS A MARK AND A WORD. Three carriers, because
+ * this is the one state in the panel a player scans for rather than reads. */
+.row[data-vnext-action-seen='new'] {
+  border-inline-start-color: var(--vnext-accent);
+}
+
+.rowButton,
+.rowStatic {
+  display: flex;
+  flex: 1 1 auto;
+  gap: var(--vnext-space-3);
+  align-items: flex-start;
+  min-inline-size: 0;
+  min-block-size: var(--vnext-tap-target);
+  padding: var(--vnext-space-3) var(--vnext-space-2);
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+}
+
+.rowButton {
+  cursor: pointer;
+  border-radius: var(--vnext-radius-sm);
+}
+
+.rowButton:hover {
+  background: var(--vnext-surface-interactive-hover);
+}
+
+.rowText {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.rowContext {
+  font-size: var(--vnext-size-micro);
+  letter-spacing: var(--vnext-tracking-label);
+  text-transform: uppercase;
+  color: var(--vnext-text-muted);
+}
+
+.rowHeadline {
+  font-size: var(--vnext-size-body);
+  line-height: var(--vnext-leading-snug);
+  color: var(--vnext-text);
+}
+
+.rowDetail {
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+}
+
+.newMark {
+  flex: 0 0 auto;
+  padding-block-start: var(--vnext-space-3);
+  padding-inline-start: var(--vnext-space-2);
+  color: var(--vnext-accent);
+}
+
+.rowError {
+  padding-inline-start: var(--vnext-space-2);
+  color: var(--vnext-warn);
+}
+
+/* ---- dismiss ------------------------------------------------------------- */
+
+.dismiss {
+  flex: 0 0 auto;
+  align-self: center;
+  min-block-size: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-3);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  cursor: pointer;
+}
+
+.dismiss:hover:not(:disabled) {
+  background: var(--vnext-surface-interactive-hover);
+  color: var(--vnext-text);
+}
+
+.dismiss:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+/* ---- the three whole-panel states ---------------------------------------- */
+
+.state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--vnext-space-2);
+  align-items: flex-start;
+  padding-block: var(--vnext-space-5);
+}
+
+.stateDetail {
+  color: var(--vnext-text-muted);
+}
+
+.staleNote {
+  color: var(--vnext-warn);
+}
+
+.retry {
+  min-block-size: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-4);
+  border: 1px solid var(--vnext-hairline-strong);
+  border-radius: var(--vnext-radius-sm);
+  background: none;
+  font: inherit;
+  color: var(--vnext-text);
+  cursor: pointer;
+}
+
+.retry:hover {
+  background: var(--vnext-surface-interactive-hover);
+}

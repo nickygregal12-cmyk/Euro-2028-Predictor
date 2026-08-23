@@ -1,4 +1,5 @@
 import type {
+  SeasonLeaderboardPage,
   SeasonLeaderboardRow,
   SeasonLeaderboardYou,
   SeasonPlayerReach,
@@ -15,6 +16,7 @@ import type {
   LeaguesGlobalRow,
   LeaguesGlobalTable,
   LeaguesModel,
+  LeaguesNeighbourhood,
   LeaguesPrivateRow,
   LeaguesPrivateTable,
   LeaguesScope,
@@ -236,6 +238,74 @@ function globalTableOf(source: LeaguesSource): LeaguesGlobalTable | null {
             isYou: true,
           },
     hasMore: page.hasMore,
+    neighbourhood: neighbourhoodOf(source, page),
+  }
+}
+
+/**
+ * THE ENTRANTS EITHER SIDE OF THE CALLER — contract 183, `MIG-UI-18`.
+ *
+ * ============================ IT JOINS ON AN ORDINAL, NEVER ON A NAME ====
+ *
+ * The neighbourhood payload predates contract 191 and carries no `playerRef`,
+ * no `reach` and no `playerId`, so on its own every neighbour would be a name
+ * with nowhere to go. The paged leaderboard DOES carry all three, and pgTAP
+ * `232_season_clubs_and_neighbourhood.sql` requires the two reads to agree on
+ * `position` — that agreement is asserted server-side rather than assumed here,
+ * which is the whole reason this join is legitimate.
+ *
+ * SO A NEIGHBOUR OPENS ONLY WHERE THE PAGE ALREADY HELD THE DOOR. A player on
+ * page one — the leaders, and the caller's own row — is joined and keeps
+ * whatever destination `globalPlayer` gave them. Everyone else is `closed` with
+ * reason `not-stated`, which is the honest sentence: the server did not state a
+ * reach for this row in this payload, and that is a different fact from having
+ * refused one.
+ *
+ * MATCHING BY DISPLAY NAME WOULD BE THE DEFECT. Two entrants may legitimately
+ * share a display name, and contract 191's reference exists precisely so that
+ * nothing in this codebase has to guess between them. `position` is unique in
+ * the total order; `rank` is NOT, because tied entrants share it, which is why
+ * the key here is the ordinal and never the rank.
+ */
+function neighbourhoodOf(
+  source: LeaguesSource,
+  page: SeasonLeaderboardPage,
+): LeaguesNeighbourhood | null {
+  const window = source.neighbourhood
+  if (window === null) return null
+
+  // The identities the OTHER read already stated, keyed by the ordinal the two
+  // reads are required to agree on. The caller's own row is included: it
+  // arrives separately from the page and is frequently the only row of the
+  // window that page one can identify.
+  const identified = new Map<number, LeaguePlayer>()
+  for (const row of page.rows) identified.set(row.position, globalPlayer(row, row.isYou))
+  if (page.you !== null) identified.set(page.you.position, globalPlayer(page.you, true))
+
+  return {
+    rows: window.rows.map((row) => ({
+      player: identified.get(row.position) ?? {
+        // NO REF, BECAUSE THIS PAYLOAD HAS NONE and one may not be invented.
+        ref: null,
+        displayName: row.displayName,
+        destination: row.isYou ? { kind: 'you' } : { kind: 'closed', reason: 'not-stated' },
+      },
+      rank: row.rank,
+      tied: row.tied,
+      position: row.position,
+      points: row.points,
+      matchweeksPlayed: row.matchweeksPlayed,
+      isYou: row.isYou,
+      // THE SERVER'S SIGNED GAP, CARRIED. Recomputing it from two points totals
+      // would put a second opinion about the chase in the browser.
+      pointsFromYou: row.pointsFromYou,
+    })),
+    totalCount: window.totalCount,
+    // Both flags are the server's. See the model's own note: a caller at rank 2
+    // receives fewer rows above than the window asked for, so inferring either
+    // from the row count draws the top of the table as missing data.
+    atTop: window.atTop,
+    atBottom: window.atBottom,
   }
 }
 

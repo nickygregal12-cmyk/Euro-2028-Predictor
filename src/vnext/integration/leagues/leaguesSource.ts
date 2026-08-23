@@ -1,4 +1,5 @@
 import type { SeasonLeaderboardPage } from '../../../services/supabase/seasonLeaderboardModel'
+import type { SeasonLeaderboardNeighbourhood } from '../../../services/supabase/seasonLeaderboardNeighbourhoodModel'
 import type { SeasonLeagueStandingsPage } from '../../../services/supabase/seasonLeagueStandingsModel'
 import type { SeasonLeagueMovement } from '../../../services/supabase/seasonLeagueMovementModel'
 import type { GameLeague } from '../../../services/supabase/gameLeagues'
@@ -78,6 +79,20 @@ export type LeaguesSource = {
    * second is reported to the reader.
    */
   readonly global: SeasonLeaderboardPage | null
+  /**
+   * Contract 183's window of entrants around the caller, for the season table.
+   *
+   * A SECOND READ AND NOT A SECOND RANKING. Both this and `global` are built
+   * from `predictor_internal.season_standings` through contract 95's ordering,
+   * and pgTAP `232_season_clubs_and_neighbourhood.sql` requires them to agree
+   * on `position` — which is what lets the mapper join the two on that ordinal
+   * to recover contract 191's identity for a neighbour.
+   *
+   * NULL IS "not asked for, not landed, or failed" and is NOT an empty
+   * neighbourhood. The paged table renders with or without it: a failed window
+   * costs the reader the strip and never the table.
+   */
+  readonly neighbourhood: SeasonLeaderboardNeighbourhood | null
   /** The caller's private leagues. Empty is ordinary; null is unread. */
   readonly leagues: readonly GameLeague[] | null
   /**

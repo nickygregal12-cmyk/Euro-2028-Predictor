@@ -1,0 +1,73 @@
+/* THE ACTION CENTRE'S CONTROL, IN BOTH FRAMES.
+ *
+ * It is a utility and it must read as one. The competition is the loudest thing
+ * in the masthead and the destinations are the loudest thing in the rail; this
+ * sits beside the avatar in one and among the rail's actions in the other, at
+ * the same weight as its neighbours in each.
+ */
+
+.control {
+  position: relative;
+  display: inline-flex;
+  gap: var(--vnext-space-2);
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--vnext-tap-target);
+  min-inline-size: var(--vnext-tap-target);
+  padding-inline: var(--vnext-space-2);
+  border: 1px solid transparent;
+  border-radius: var(--vnext-radius-md);
+  background: none;
+  font: inherit;
+  font-size: var(--vnext-size-small);
+  color: var(--vnext-text-secondary);
+  cursor: pointer;
+}
+
+.control:hover {
+  background: var(--vnext-surface-interactive-hover);
+  color: var(--vnext-text);
+}
+
+/* In the rail it is a full-width row like the rail's other actions. */
+.rail {
+  inline-size: 100%;
+  justify-content: flex-start;
+  padding-inline: var(--vnext-space-3);
+}
+
+/* In the phone's context bar it is icon-only and the narrowest thing there. */
+.bar {
+  flex: 0 0 auto;
+}
+
+.label {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---- the count ----------------------------------------------------------- */
+
+/* IT IS A NUMBER ON A SHAPE, NOT A COLOURED DOT. The figure is the information;
+ * the accent is emphasis on top of it. `aria-hidden` in the component, because
+ * the exact count is already in the control's accessible name and announcing it
+ * twice reads as two different facts. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;
+  min-block-size: 20px;
+  padding-inline: 5px;
+  border-radius: var(--vnext-radius-pill);
+  background: var(--vnext-accent);
+  font-size: var(--vnext-size-micro);
+  line-height: 1;
+  color: var(--vnext-text-on-accent);
+}
+
+/* In the rail the badge sits at the end of the row rather than beside the icon,
+ * which is where a count belongs when the row has a name. */
+.rail .badge {
+  margin-inline-start: auto;
+}

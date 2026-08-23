@@ -203,13 +203,25 @@ export function useVNextLeaguesSource(
         // WAVE THREE. The one table the player asked for, and — for a league —
         // its movement beside it rather than after it.
         let global: LeaguesSource['global'] = null
+        let neighbourhood: LeaguesSource['neighbourhood'] = null
         let league: LeaguesSource['league'] = null
         let movement: LeaguesSource['movement'] = null
 
         if (selectedLeagueId === null) {
-          global = await import('../../../services/supabase/seasonLeaderboard')
-            .then((module) => module.fetchSeasonLeaderboardPage(context.tournamentId))
-            .catch(() => null)
+          // TWO READS, CONCURRENT AND SETTLED INDEPENDENTLY. The window is
+          // secondary to the table: a player must get the standings whether or
+          // not contract 183 answers, so a failed neighbourhood costs the strip
+          // and never the page. `allSettled` rather than `all` is that rule.
+          const [page, around] = await Promise.allSettled([
+            import('../../../services/supabase/seasonLeaderboard').then((module) =>
+              module.fetchSeasonLeaderboardPage(context.tournamentId),
+            ),
+            import('../../../services/supabase/seasonLeaderboardNeighbourhood').then((module) =>
+              module.fetchSeasonLeaderboardNeighbourhood(context.tournamentId),
+            ),
+          ])
+          global = settled(page)
+          neighbourhood = settled(around)
         } else {
           const [standings, moved] = await Promise.allSettled([
             import('../../../services/supabase/seasonLeagueStandings').then((module) =>
@@ -240,6 +252,7 @@ export function useVNextLeaguesSource(
             },
             selectedLeagueId,
             global,
+            neighbourhood,
             leagues,
             league,
             movement,

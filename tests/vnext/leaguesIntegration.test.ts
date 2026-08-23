@@ -140,6 +140,10 @@ function source(overrides: Partial<LeaguesSource> = {}): LeaguesSource {
     },
     selectedLeagueId: null,
     global: leaderboard(),
+    // ABSENT BY DEFAULT. `null` is the honest default for a second read that
+    // may not have landed, so every case below keeps asserting exactly what it
+    // asserted before and only the chase cases supply a window.
+    neighbourhood: null,
     leagues: [],
     league: null,
     movement: null,

@@ -10,6 +10,7 @@ import { serverCodeOf } from './operationFailure'
 export type ReadOperationName =
   | 'leaderboard.page'
   | 'season-leaderboard.page'
+  | 'season-leaderboard.neighbourhood'
   | 'match-centre.league-picks'
   | 'match-centre.distribution'
 
