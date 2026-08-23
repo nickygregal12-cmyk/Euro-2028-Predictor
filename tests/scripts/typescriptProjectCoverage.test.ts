@@ -238,6 +238,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/agent-tools/route-task.mjs', null],
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
+    ['scripts/check-quality-integrity.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-a.mjs', null],
     ['scripts/database-rollout/rehearse-production-batch-b.mjs', null],
     ['scripts/og/renderAssets.js', 61],
