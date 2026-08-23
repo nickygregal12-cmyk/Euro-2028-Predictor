@@ -177,11 +177,20 @@ set search_path = ''
 as $endpoint$
 begin
   begin
-    select secret.decrypted_secret into endpoint_url
+    -- BLANK IS ABSENT. A vault row holding an empty string is not a
+    -- configuration, and treating it as one is worse than treating it as
+    -- missing: the dispatcher would post every five minutes with an empty
+    -- `apikey`, the sender would refuse each one at the caller-key check
+    -- without a run id it is willing to write against, and the health read
+    -- would report a configured sender the whole time. Every run would sit
+    -- unanswered and the operator would be looking for a network fault.
+    select nullif(pg_catalog.btrim(secret.decrypted_secret), '')
+      into endpoint_url
       from vault.decrypted_secrets secret
      where secret.name = 'notification_dispatch_function_url';
 
-    select secret.decrypted_secret into caller_key
+    select nullif(pg_catalog.btrim(secret.decrypted_secret), '')
+      into caller_key
       from vault.decrypted_secrets secret
      where secret.name = 'notification_dispatch_caller_key';
   exception

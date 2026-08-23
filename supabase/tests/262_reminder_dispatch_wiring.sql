@@ -15,7 +15,7 @@
 
 begin;
 
-select plan(35);
+select plan(39);
 
 -- ---------------------------------------------------------------------------
 -- THE DRY-RUN GATE
@@ -166,6 +166,35 @@ select is(
   0,
   'having sent nothing at all'
 );
+
+-- A vault row holding whitespace is not a configuration. Left as one, the
+-- dispatcher would post every five minutes with an empty `apikey`, the sender
+-- would refuse each request at its caller-key check, every run would sit
+-- unanswered, and the health read would report a configured sender throughout.
+select lives_ok(
+  $$select vault.create_secret('   ', 'notification_dispatch_caller_key')$$,
+  'a blank caller key can be recorded by mistake'
+);
+
+select is(
+  (select caller_key is null from predictor_internal.reminder_dispatch_endpoint()),
+  true,
+  'and it reads as ABSENT rather than as a key made of spaces'
+);
+
+select is(
+  public.dispatch_due_reminders(now())->>'configured',
+  'false',
+  'so the job refuses rather than posting a request the sender can never authorise'
+);
+
+select is(
+  (select count(*)::integer from net.http_request_queue),
+  0,
+  'and nothing is queued'
+);
+
+delete from vault.secrets where name = 'notification_dispatch_caller_key';
 
 select lives_ok(
   $$select vault.create_secret('a-caller-key', 'notification_dispatch_caller_key')$$,

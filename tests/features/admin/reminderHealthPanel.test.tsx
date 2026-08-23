@@ -128,6 +128,144 @@ describe('ReminderHealthPanel', () => {
   })
 })
 
+describe('the sender and dispatch sections', () => {
+  it('keeps "the scheduler could not be read" apart from "no secrets"', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            sender: { configured: false, secrets_present: true, job_active: null, error: null },
+          })
+        }
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByText(/Whether the sender runs is unknown/)).toBeInTheDocument(),
+    )
+    // The wrong answer is the reassuring-sounding one: sending an operator to
+    // re-enter secrets the server just confirmed are present.
+    expect(screen.queryByText(/no endpoint or caller key is recorded/)).not.toBeInTheDocument()
+  })
+
+  it('says which half is missing when the job is measured as off', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            sender: { configured: false, secrets_present: true, job_active: false, error: null },
+          })
+        }
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByText(/the dispatch job is not active/)).toBeInTheDocument(),
+    )
+  })
+
+  it('reports a sender that cannot start, with the reason', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            sender: {
+              configured: false,
+              secrets_present: true,
+              job_active: true,
+              error: 'notification_dispatch_function_url must be an https URL',
+            },
+          })
+        }
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByText(/configured but cannot start/)).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/must be an https URL/)).toBeInTheDocument()
+  })
+
+  it('warns about a run the sender never answered, and says why the other ledger cannot show it', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            dispatch: {
+              runs_total: 5,
+              runs_last_hour: 5,
+              unreported_over_ten_minutes: 2,
+              last_requested_at: '2026-08-12T19:34:00Z',
+              last_outcome: null,
+              delivery_disabled_last_hour: 0,
+              not_configured_last_hour: 0,
+            },
+          })
+        }
+      />,
+    )
+    await waitFor(() =>
+      expect(screen.getByText(/never reported back/)).toBeInTheDocument(),
+    )
+    expect(screen.getByText(/those runs never claimed anything/)).toBeInTheDocument()
+  })
+
+  it('renders a refusal as a refusal rather than as a failure', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            dispatch: {
+              runs_total: 12,
+              runs_last_hour: 12,
+              unreported_over_ten_minutes: 0,
+              last_requested_at: '2026-08-12T19:34:00Z',
+              last_outcome: 'delivery-disabled',
+              delivery_disabled_last_hour: 12,
+              not_configured_last_hour: 0,
+            },
+          })
+        }
+      />,
+    )
+    await waitFor(() =>
+      expect(
+        screen.getByText(/delivery is not enabled on that deployment/),
+      ).toBeInTheDocument(),
+    )
+    expect(screen.queryByText(/never reported back/)).not.toBeInTheDocument()
+  })
+
+  it('says the dispatch state is unknown when the read returned no section', async () => {
+    render(<ReminderHealthPanel load={async () => health()} />)
+    await waitFor(() =>
+      expect(
+        screen.getByText(/what the sender has been asked to do is unknown/),
+      ).toBeInTheDocument(),
+    )
+  })
+
+  it('still offers no control on any of the new sections', async () => {
+    render(
+      <ReminderHealthPanel
+        load={async () =>
+          health({
+            dispatch: {
+              runs_total: 1,
+              runs_last_hour: 1,
+              unreported_over_ten_minutes: 1,
+              last_requested_at: '2026-08-12T19:34:00Z',
+              last_outcome: 'dispatch-failed',
+              delivery_disabled_last_hour: 0,
+              not_configured_last_hour: 0,
+            },
+          })
+        }
+      />,
+    )
+    await waitFor(() => expect(screen.getByText(/Dispatch runs/)).toBeInTheDocument())
+    expect(screen.queryAllByRole('button')).toHaveLength(0)
+    expect(screen.queryAllByRole('link')).toHaveLength(0)
+  })
+})
+
 describe('presentReminderJobs', () => {
   it('keeps "could not look" and "looked and found none" apart', () => {
     expect(presentReminderJobs(health({ jobs: null })).missing).toBeNull()

@@ -276,13 +276,26 @@ function SenderState({ health }: { health: ReminderDeliveryHealth }) {
   if (health.senderConfigured) return null
 
   // Which half is missing, when the server told us. An operator who has already
-  // put the secrets in should not be told to put the secrets in.
+  // put the secrets in must not be told to put the secrets in.
   const secretsIn = sender?.secretsPresent === true
-  const jobOff = sender?.jobActive === false
+
+  // `jobActive: null` is "could not read cron.job" and is kept apart from
+  // `false` all the way through the server and the decoder. Collapsing it here
+  // would waste that: with the secrets confirmed present, the honest answer is
+  // that the scheduler could not be inspected, not that the secrets are absent.
+  if (secretsIn && sender?.jobActive === null) {
+    return (
+      <Alert variant="warning" title="Whether the sender runs is unknown">
+        The endpoint and caller key are recorded, but the job table could not be read, so whether
+        the dispatch job is active is unknown. This is not a report that it is off, and the
+        dispatch figures below may be stale for the same reason.
+      </Alert>
+    )
+  }
 
   return (
     <Alert variant="info" title="No sender is configured">
-      {secretsIn && jobOff
+      {secretsIn && sender?.jobActive === false
         ? 'The endpoint and caller key are recorded, but the dispatch job is not active, so nothing asks the sender to run.'
         : 'Reminders are scheduled and never sent: no endpoint or caller key is recorded, and nothing in the platform claims a delivery.'}{' '}
       A queue here is the expected state rather than a backlog.
