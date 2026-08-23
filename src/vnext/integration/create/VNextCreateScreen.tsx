@@ -398,7 +398,7 @@ export function VNextCreateScreen(props: VNextCreateScreenProps) {
       buildShellModel({
         competition: null,
         playerName: null,
-        outstandingPredictions: null,
+        outstandingGames: null,
         canNavigateAway: props.onShellIntent !== undefined,
         elsewhere,
       }),

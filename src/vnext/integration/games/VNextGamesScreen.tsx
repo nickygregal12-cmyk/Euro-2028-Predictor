@@ -86,9 +86,13 @@ export function VNextGamesScreen(props: VNextGamesScreenProps) {
               colours: null,
             },
             playerName: null,
-            // The hub does not count outstanding predictions — that is the Main
-            // Predictor's own fact. `null` is "this page cannot say".
-            outstandingPredictions: null,
+            // Games holds the week too, so the badge stays truthful while the
+            // player is standing on the destination it names. Same count, same
+            // authority, same exclusion of the Championship as Home's.
+            outstandingGames:
+              state.source.week === null
+                ? null
+                : state.source.week.actions.filter((action) => action.outstanding).length,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

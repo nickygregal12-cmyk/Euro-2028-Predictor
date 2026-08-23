@@ -132,7 +132,7 @@ export function VNextPlayerProfileScreen(props: VNextPlayerProfileScreenProps) {
             playerName: null,
             // A profile carries no prediction of the reader's, so it cannot
             // count what is outstanding. `null` is "this page cannot say".
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

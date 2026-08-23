@@ -34,7 +34,7 @@ const COMPETITION = {
 const SOURCE: ShellSource = {
   competition: COMPETITION,
   playerName: 'Rowan Adeyemi',
-  outstandingPredictions: 3,
+  outstandingGames: 3,
   canNavigateAway: true,
   elsewhere: null,
 }
@@ -129,7 +129,7 @@ describe('the outstanding count rides on Games', () => {
 
   it('renders no badge at all for zero, and none for cannot say', () => {
     for (const outstanding of [0, null]) {
-      const model = buildShellModel({ ...SOURCE, outstandingPredictions: outstanding })
+      const model = buildShellModel({ ...SOURCE, outstandingGames: outstanding })
       expect(model.destinations.every((entry) => entry.badge === undefined)).toBe(true)
     }
   })

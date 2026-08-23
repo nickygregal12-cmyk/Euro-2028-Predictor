@@ -23,6 +23,8 @@ function entry(over: Partial<GameEntry> = {}): GameEntry {
     displayName: 'Match Predictor',
     active: true,
     standing: { kind: 'never-joined', registration: 'open' },
+    // Most worlds are catalogue worlds: nothing joined, so no game is asking.
+    weekAction: null,
     ...over,
   }
 }

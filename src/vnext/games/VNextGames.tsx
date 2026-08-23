@@ -336,6 +336,22 @@ function GameRow({
           {standingLine(entry)}
         </p>
 
+        {/* THE GAME'S OWN SENTENCE, where its read supplied one. It is the same
+            string Home prints for the same game, from the same computation, so
+            a card and the front door can never disagree about a deadline. It
+            sits BESIDE the standing line rather than replacing it: "you are in
+            this one" and "pick a club for Round 12" answer different
+            questions. */}
+        {entry.weekAction === null ? null : (
+          <p
+            className={`${text.micro} ${styles.rowWeek}`}
+            data-vnext-zone="week"
+            data-outstanding={entry.weekAction.outstanding}
+          >
+            {entry.weekAction.title}
+          </p>
+        )}
+
         {entry.active ? null : (
           // A GAME SWITCHED OFF IS NOT A GAME MISSING, and the catalogue says
           // which it is.
@@ -346,12 +362,24 @@ function GameRow({
       </div>
 
       <div className={styles.rowActions}>
+        {/* ACTION-LED WHERE THE GAME IS ASKING, AND A DESTINATION WHERE IT IS
+            NOT — `DFA-006`'s rule, in its own words: the primary control is
+            "'Pick your club' rather than 'Open game'" where there is something
+            to do, and stays a destination where there is not, "so a complete
+            game is not dressed as a task".
+
+            THE VERB IS NOT CHOSEN HERE. `call` is `weekActionCallToAction`'s
+            answer, which is null for anything not outstanding and always null
+            for the Championship — so this surface cannot invent a task that the
+            week model says does not exist. */}
         <button
           type="button"
           className={styles.rowAction}
+          data-asking={entry.weekAction?.outstanding === true}
           onClick={() => onIntent?.({ kind: 'open-game', gameId: entry.id, gameKey: entry.gameKey })}
         >
-          {entry.standing.kind === 'playing' ? 'Open' : 'Look inside'}
+          {entry.weekAction?.call ??
+            (entry.standing.kind === 'playing' ? 'Open' : 'Look inside')}
           <span className={text.srOnly}>
             {' '}
             {entry.displayName ?? 'this game'}

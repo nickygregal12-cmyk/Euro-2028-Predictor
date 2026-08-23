@@ -1,5 +1,7 @@
+import { weekActionCallToAction, weekActionForGame } from '../../../features/hub/competitionWeekModel'
 import type {
   GameEntry,
+  GameWeekAction,
   GameStanding,
   GamesPageModel,
   GamesPanel,
@@ -70,6 +72,32 @@ function standingOf(game: CompetitionGame, serverNow: string): GameStanding {
   }
 }
 
+/**
+ * WHAT ONE GAME IS ASKING, FROM THAT GAME'S OWN READ.
+ *
+ * `weekActionForGame` is `competitionWeekModel`'s own catalogue-key lookup —
+ * the one place the week model's kinds and the catalogue's keys are allowed to
+ * meet. Matching here on a key this lane invented would be a second mapping,
+ * and the first one to drift would be the one a player pressed.
+ *
+ * THE VERB COMES FROM `weekActionCallToAction`, NOT FROM THIS FILE. It returns
+ * null for anything not outstanding — and always for the Championship, which is
+ * won by Match Predictor points and asks for nothing. A null `call` is what
+ * makes a row a destination, so the "is this a task?" decision is taken once,
+ * in the model, for every surface.
+ */
+function weekActionOf(source: GamesSource, gameKey: string): GameWeekAction | null {
+  const action = weekActionForGame(source.week, gameKey)
+  if (action === null) return null
+
+  return {
+    title: action.title,
+    outstanding: action.outstanding,
+    deadline: action.locksAt,
+    call: weekActionCallToAction(action),
+  }
+}
+
 function gamesPanelOf(source: GamesSource): GamesPanel {
   if (source.games.kind !== 'ok') return { kind: 'unavailable' }
 
@@ -89,6 +117,7 @@ function gamesPanelOf(source: GamesSource): GamesPanel {
     displayName: game.displayName,
     active: game.active,
     standing: standingOf(game, serverNow),
+    weekAction: weekActionOf(source, game.gameKey),
   }))
 
   return { kind: 'games', entries }
