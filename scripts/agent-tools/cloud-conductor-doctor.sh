@@ -6,12 +6,12 @@ cd "$repo_root"
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
 
 ok=0
-warn=0
-fail=0
+warn_count=0
+fail_count=0
 
 ready() { printf 'READY    %-24s %s\n' "$1" "$2"; ok=$((ok + 1)); }
-optional() { printf 'OPTIONAL %-24s %s\n' "$1" "$2"; warn=$((warn + 1)); }
-missing() { printf 'MISSING  %-24s %s\n' "$1" "$2"; fail=$((fail + 1)); }
+optional() { printf 'OPTIONAL %-24s %s\n' "$1" "$2"; warn_count=$((warn_count + 1)); }
+missing() { printf 'MISSING  %-24s %s\n' "$1" "$2"; fail_count=$((fail_count + 1)); }
 
 printf 'Predictor persistent cloud workspace\n'
 printf '====================================\n'
@@ -31,28 +31,45 @@ fi
 
 if command -v opencode >/dev/null 2>&1; then
   ready 'OpenCode' "$(opencode --version 2>/dev/null | head -n 1)"
+  agents="$(opencode agent list 2>/dev/null || true)"
+  for agent in predictor-conductor predictor-builder predictor-critic; do
+    if grep -q "$agent" <<<"$agents"; then
+      ready "Agent ${agent}" 'tracked project agent is visible'
+    else
+      missing "Agent ${agent}" 'not visible to OpenCode from repository root'
+    fi
+  done
 else
   missing 'OpenCode' 'run scripts/agent-tools/cloud-conductor-install.sh'
 fi
 
-for agent in predictor-conductor predictor-builder predictor-critic; do
-  if [ -f ".opencode/agents/${agent}.md" ]; then
-    ready "Agent ${agent}" '.opencode/agents'
-  else
-    missing "Agent ${agent}" 'tracked agent definition is absent'
-  fi
-done
+if command -v opencode >/dev/null 2>&1 && opencode auth list 2>/dev/null | grep -qi 'openai'; then
+  ready 'ChatGPT/OpenAI auth' 'direct OpenAI provider authenticated'
+else
+  missing 'ChatGPT/OpenAI auth' 'connect OpenAI in OpenCode using ChatGPT Plus/Pro; do not silently substitute paid API billing'
+fi
 
 env_file="${HOME}/.config/predictor-cloud/opencode.env"
-if [ -f "$env_file" ] && grep -q '^OPENROUTER_API_KEY=.' "$env_file"; then
-  ready 'OpenRouter key' 'stored in private service env file'
+if [ -f "$env_file" ] && [ "$(stat -c '%a' "$env_file" 2>/dev/null || true)" = '600' ]; then
+  ready 'Cloud env file' 'present with mode 0600'
 else
-  missing 'OpenRouter key' 'service credential is not configured'
+  missing 'Cloud env file' 'missing or not mode 0600'
+fi
+if [ -f "$env_file" ] && grep -q '^OPENROUTER_API_KEY=.' "$env_file"; then
+  ready 'Ox/OpenRouter auth' 'scoped key present (value hidden)'
+else
+  missing 'Ox/OpenRouter auth' 'OPENROUTER_API_KEY is required for the free Ox critic lane'
 fi
 if [ -f "$env_file" ] && grep -q '^OPENCODE_SERVER_PASSWORD=.' "$env_file"; then
   ready 'Web auth' 'server password configured'
 else
   missing 'Web auth' 'OPENCODE_SERVER_PASSWORD is not configured'
+fi
+
+if command -v claude >/dev/null 2>&1; then
+  optional 'Claude Code' 'installed; authenticate a Claude subscription only if you want the optional escalation lane'
+else
+  optional 'Claude Code' 'not installed; optional only, not required for the free-first workflow'
 fi
 
 if systemctl --user is-active --quiet predictor-conductor.service; then
@@ -62,8 +79,6 @@ else
 fi
 
 if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:4096/ >/dev/null 2>&1; then
-  # A password-protected OpenCode server should normally return 401 to an unauthenticated request,
-  # so reaching this branch means the service answered without auth. Treat that as unsafe.
   missing 'Local auth boundary' 'localhost:4096 answered without HTTP auth; inspect service environment'
 else
   status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 3 http://127.0.0.1:4096/ || true)"
@@ -78,7 +93,7 @@ fi
 
 if command -v tailscale >/dev/null 2>&1; then
   if tailscale status >/dev/null 2>&1; then
-    ready 'Tailscale' 'VM is joined to a tailnet'
+    ready 'Tailscale' 'host is joined to a tailnet'
   else
     missing 'Tailscale' 'run: sudo tailscale up'
   fi
@@ -98,7 +113,8 @@ else
   optional 'GitHub CLI' 'run gh auth login if the Builder should push/create PRs'
 fi
 
-printf '\nSummary: %s ready, %s optional, %s missing\n' "$ok" "$warn" "$fail"
-if [ "$fail" -gt 0 ]; then
+printf '\nCost posture: direct ChatGPT subscription + free Ox are the default lanes; paid APIs are not automatic fallbacks.\n'
+printf 'Summary: %s ready, %s optional, %s missing\n' "$ok" "$warn_count" "$fail_count"
+if [ "$fail_count" -gt 0 ]; then
   exit 1
 fi
