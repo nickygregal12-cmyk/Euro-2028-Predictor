@@ -36,6 +36,28 @@ export async function signInWithPassword(
 }
 
 /**
+ * Start the supported Supabase Google OAuth flow.
+ *
+ * GOOGLE AUTHENTICATES; IT DOES NOT CHOOSE THE PUBLIC FOOTBALL NAME. The
+ * on-auth-user trigger deliberately ignores Google full-name/avatar metadata and
+ * creates the neutral `Player` fallback when no app-owned display_name exists.
+ * `/welcome` then requires the player to choose their public name before the
+ * rest of onboarding can be completed.
+ *
+ * The callback returns to this deployment's origin. Supabase must allow-list the
+ * origin and the Google provider must be enabled in the hosted project before a
+ * build enables the Google CTA; those are hosted configuration gates, not a
+ * reason to put provider credentials in browser code.
+ */
+export async function signInWithGoogle(): Promise<void> {
+  const { error } = await db.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  })
+  if (error) throw error
+}
+
+/**
  * Sign up with email + password. The matching `profiles` row is created
  * SERVER-SIDE by the `on_auth_user_created` trigger (20260720190000), reading
  * the display name from the sign-up metadata below — so it works whether or not
