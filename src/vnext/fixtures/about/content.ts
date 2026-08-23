@@ -42,11 +42,11 @@ import { NON_AFFILIATION_SHORT, type AboutModel } from '../../models/about'
  *     the images it serves. Saying a provider "grants" anything would assert a
  *     licence that does not exist.
  *
- * ============================ AND IT IS NOT A TERMS PAGE =================
+ * ============================ POLICY LINKS ARE REAL =======================
  *
- * It links to Privacy and Terms where those exist and says nothing in their
- * place. `null` links draw nothing at all, because a legal link that answers
- * Not Found reads as a document that exists and was withheld.
+ * Privacy and Terms are now public routes. They are linked here rather than
+ * copied into this page: About owns the non-affiliation position, while each
+ * policy owns its own current-service wording.
  */
 
 /** The product's operational umbrella identity — ADR 0031 § 6, owner-decided. */
@@ -118,12 +118,8 @@ export function aboutModel(options: { readonly supportEmail: string | null } = {
       },
     ],
     links: [
-      // NULL UNTIL THEY EXIST. Neither document is published yet, and a page
-      // that linked to them anyway would be claiming a policy it has not
-      // written. When they ship, one value changes here and the surface, the
-      // footer and the tests all follow.
-      { label: 'Privacy', href: null },
-      { label: 'Terms', href: null },
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Terms', href: '/terms' },
       {
         label: 'Rights and branding enquiries',
         href: options.supportEmail ? `mailto:${options.supportEmail}` : null,

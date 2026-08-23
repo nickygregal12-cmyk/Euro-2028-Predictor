@@ -1,20 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { Alert, Button } from '../../design-system'
-import { signUpWithPassword } from '../../services/supabase/auth'
+import { signInWithGoogle, signUpWithPassword } from '../../services/supabase/auth'
 import { fetchPublicCapacity } from '../../services/supabase/publicCapacity'
 import { AuthScreen } from './AuthScreen'
 import { SignUpForm } from './SignUpForm'
 import { friendlyAuthError } from './authErrors'
+import { googleAuthEnabled } from './googleAuthConfig'
 
 type CapacityState = 'unknown' | 'available' | 'full'
 
-/**
- * Sign-up screen. Wires the presentational SignUpForm to the auth service,
- * which creates the auth user and the matching profiles row. On success the
- * AuthProvider picks up the new session and the route gate lands the user on
- * Home.
- */
 export function SignUpPage() {
   const navigate = useNavigate()
   const [submitting, setSubmitting] = useState(false)
@@ -28,11 +23,7 @@ export function SignUpPage() {
       .then((capacity) => {
         if (active) setCapacityState(capacity.signupAvailable ? 'available' : 'full')
       })
-      .catch(() => {
-        // The preflight is a convenience, not the security boundary. Leave the
-        // form available and let the authoritative Auth trigger decide.
-      })
-
+      .catch(() => {})
     return () => {
       active = false
     }
@@ -54,19 +45,34 @@ export function SignUpPage() {
           setSubmitting(false)
           return
         }
-      } catch {
-        // Continue to Auth. The database trigger still fails closed if the final
-        // slot was taken or the capacity read was temporarily unavailable.
-      }
+      } catch {}
 
       const { needsConfirmation } = await signUpWithPassword(values)
       if (needsConfirmation) {
-        // With confirmation enabled there is no session yet, so the route gate
-        // cannot move. Show the email-confirmation state explicitly.
         setConfirmEmail(values.email)
         setSubmitting(false)
       }
-      // Otherwise the session listener + route gate take over from here.
+    } catch (err) {
+      setError(friendlyAuthError(err, 'signup'))
+      setSubmitting(false)
+    }
+  }
+
+  async function handleGoogle() {
+    setSubmitting(true)
+    setError(null)
+    try {
+      // Capacity remains authoritative in the database trigger. The preflight is
+      // useful feedback only; OAuth must not become a route around the cap.
+      try {
+        const capacity = await fetchPublicCapacity()
+        if (!capacity.signupAvailable) {
+          setCapacityState('full')
+          setSubmitting(false)
+          return
+        }
+      } catch {}
+      await signInWithGoogle()
     } catch (err) {
       setError(friendlyAuthError(err, 'signup'))
       setSubmitting(false)
@@ -111,6 +117,7 @@ export function SignUpPage() {
         onSubmit={handleSubmit}
         submitting={submitting}
         error={error}
+        {...(googleAuthEnabled ? { onGoogle: () => void handleGoogle() } : {})}
         onSwitch={() => navigate('/auth/login')}
       />
     </AuthScreen>

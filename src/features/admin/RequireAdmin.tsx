@@ -1,28 +1,61 @@
 import { useEffect, useState } from 'react'
-import { Navigate, Outlet } from 'react-router'
+import { Navigate, Outlet, useLocation } from 'react-router'
 import { AuthSplash } from '../auth/AuthSplash'
-import { hasTournamentAdminAccess } from '../../services/supabase/adminAccess'
+import {
+  fetchAdminAccessSnapshot,
+  snapshotAllowsCapability,
+  snapshotHasAnyAdminAccess,
+  type AdminAccessSnapshot,
+} from '../../services/supabase/adminAccess'
 import type { AdminCapability } from '../../services/supabase/adminCapabilities'
+import { AdminAccessProvider } from './AdminAccessContext'
+import { AdminLayout } from './AdminLayout'
 
-export function RequireAdmin({ capability = 'results' }: { capability?: AdminCapability } = {}) {
-  const [allowed, setAllowed] = useState<boolean | null>(null)
+type RequireAdminProps = {
+  readonly capability?: AdminCapability
+  readonly anyCapability?: boolean
+}
+
+export function RequireAdmin({ capability, anyCapability = false }: RequireAdminProps = {}) {
+  const [access, setAccess] = useState<AdminAccessSnapshot | null | undefined>(undefined)
+  const location = useLocation()
 
   useEffect(() => {
     let active = true
-    hasTournamentAdminAccess(capability)
+    fetchAdminAccessSnapshot()
       .then((value) => {
-        if (active) setAllowed(value)
+        if (active) setAccess(value)
       })
       .catch(() => {
-        if (active) setAllowed(false)
+        if (active) setAccess(null)
       })
+    return () => { active = false }
+  }, [])
 
-    return () => {
-      active = false
-    }
-  }, [capability])
+  if (access === undefined) return <AuthSplash />
+  if (access === null) return <Navigate to="/" replace />
 
-  if (allowed === null) return <AuthSplash />
+  const allowed = capability !== undefined && !anyCapability
+    ? snapshotAllowsCapability(access, capability)
+    : snapshotHasAnyAdminAccess(access)
+
   if (!allowed) return <Navigate to="/" replace />
-  return <Outlet />
+
+  const rootControlRoom = capability === undefined
+    && (location.pathname === '/admin' || location.pathname === '/admin/')
+  const workspace = new URLSearchParams(location.search).get('workspace')
+
+  return (
+    <AdminAccessProvider value={access}>
+      {rootControlRoom ? (
+        // The historical child route still redirects bare `/admin` to Results.
+        // The trusted gate owns the Control Room root instead: no workspace is
+        // Overview, while a named workspace is resolved by AdminLayout. This
+        // keeps Users/Leagues/Audit independent of the Results capability.
+        <AdminLayout forceOverview={workspace === null} />
+      ) : (
+        <Outlet />
+      )}
+    </AdminAccessProvider>
+  )
 }

@@ -176,8 +176,8 @@ export type GameSummary = {
  * two add-ons, and then the Hub shows them three games and disagrees with the
  * page that sold it.
  *
- * So each entry now says the same KIND of thing â what you do, how often, and
- * what you are chasing â and none of them is described relative to another. The
+ * So each entry now says the same KIND of thing — what you do, how often, and
+ * what you are chasing — and none of them is described relative to another. The
  * one genuine relationship that remains is the Championship's, which really is
  * decided by Match Predictor points; that is a fact about the format and is
  * stated as one rather than as a hierarchy.
@@ -228,27 +228,20 @@ export const GAMES: readonly GameSummary[] = [
  */
 
 /**
- * THE LEGAL ROW IN THE FOOTER, AND THE ROUTES IT IS ONLY AS REAL AS.
+ * THE LEGAL ROW IN THE FOOTER.
  *
- * ADR 0017 asks for an unambiguous non-affiliation statement reachable from the
- * footer, and `/about` is where the full position lives. Privacy and Terms
- * belong beside it and are declared here with `null` routes, because THEY DO NOT
- * EXIST YET — no route, no redirect, no document.
- *
- * A `null` DRAWS NOTHING RATHER THAN A DEAD LINK. A legal link that answers Not
- * Found reads as a document that exists and was withheld, which is worse than an
- * absent one; it is the same rule the About page's own link list follows, stated
- * once in each place because neither may import the other. Declaring them here
- * rather than omitting them is what keeps the deferral visible: publishing
- * either is a one-line change to this array, not a change to the footer.
+ * These are real public routes now, so the landing page publishes all three
+ * destinations rather than suppressing policy names behind `null`. Keeping the
+ * addresses in this one array means the footer cannot quietly drift away from
+ * the documents it says exist.
  */
 export const LEGAL_LINKS: readonly {
   readonly label: string
-  readonly to: string | null
+  readonly to: string
 }[] = [
   { label: 'About & Disclaimer', to: '/about' },
-  { label: 'Privacy', to: null },
-  { label: 'Terms', to: null },
+  { label: 'Privacy', to: '/privacy' },
+  { label: 'Terms', to: '/terms' },
 ] as const
 
 /**

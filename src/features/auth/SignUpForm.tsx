@@ -13,8 +13,6 @@ import { pwnedCount, type PwnedPasswordCheck } from '../../services/auth/pwnedPa
 import s from './auth.module.css'
 
 export type SignUpFormProps = {
-  // Fired with trimmed display name + email, the raw password, and the Turnstile
-  // token (undefined when off), once the client-side field checks pass.
   onSubmit: (values: {
     displayName: string
     email: string
@@ -22,26 +20,18 @@ export type SignUpFormProps = {
     captchaToken?: string | undefined
   }) => void
   submitting?: boolean
-  // A friendly, already-mapped server error (e.g. email already in use).
   error?: string | null
   onSwitch?: () => void
-  // Breach-corpus check (`AUTH-002`). Injectable so tests and the component
-  // gallery can supply one without reaching the network; the default is the
-  // real k-anonymous lookup and fails open, so a form rendered without this
-  // prop still behaves correctly offline.
+  onGoogle?: () => void
   checkPwnedPassword?: PwnedPasswordCheck
 }
 
-/**
- * Presentational sign-up form: display name (required, length-limited), email
- * and password with per-field validation. The parent owns the sign-up call and
- * navigation. No Supabase logic, so it previews in /dev/components.
- */
 export function SignUpForm({
   onSubmit,
   submitting = false,
   error,
   onSwitch,
+  onGoogle,
   checkPwnedPassword = pwnedCount,
 }: SignUpFormProps) {
   const [displayName, setDisplayName] = useState('')
@@ -51,12 +41,8 @@ export function SignUpForm({
   const [captchaValidation, setCaptchaValidation] = useState<string | null>(null)
   const [captchaToken, setCaptchaToken] = useState<string | null>(null)
   const [captchaKey, setCaptchaKey] = useState(0)
-  // The breach lookup is a network round trip, so the button has to show it is
-  // working. Tracked separately from `submitting`, which the parent owns for the
-  // sign-up call itself.
   const [checkingPassword, setCheckingPassword] = useState(false)
 
-  // A Turnstile token is single-use; after a failed submit, reset the widget.
   useEffect(() => {
     if (error && turnstileEnabled) {
       setCaptchaToken(null)
@@ -86,9 +72,6 @@ export function SignUpForm({
     }
     setCaptchaValidation(null)
 
-    // The breach check runs LAST, after the cheap local checks and the Turnstile
-    // gate. A password that is too short is rejected without spending a request,
-    // and the corpus is never asked about a submission that was going nowhere.
     setCheckingPassword(true)
     let breachCount = 0
     try {
@@ -108,6 +91,15 @@ export function SignUpForm({
     <div className={s.card}>
       <h2 className={s.heading}>Create your account</h2>
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {onGoogle ? (
+        <div className={s.form}>
+          <Button type="button" variant="secondary" fullWidth disabled={submitting} onClick={onGoogle}>
+            Continue with Google
+          </Button>
+          <p className={s.switch}>You’ll choose your public football name next.</p>
+          <p className={s.switch}>or create an account with email</p>
+        </div>
+      ) : null}
       <form className={s.form} onSubmit={handleSubmit} noValidate>
         <TextInput
           label="Display name"

@@ -17,6 +17,8 @@ export type LoginFormProps = {
   onSwitch?: () => void
   // Navigate to the password-reset request screen.
   onForgotPassword?: () => void
+  // Hosted-only capability. Omitted until Google is configured for this build.
+  onGoogle?: () => void
 }
 
 /**
@@ -30,6 +32,7 @@ export function LoginForm({
   error,
   onSwitch,
   onForgotPassword,
+  onGoogle,
 }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -77,6 +80,14 @@ export function LoginForm({
     <div className={s.card}>
       <h2 className={s.heading}>Log in</h2>
       {error ? <Alert variant="error">{error}</Alert> : null}
+      {onGoogle ? (
+        <div className={s.form}>
+          <Button type="button" variant="secondary" fullWidth disabled={submitting} onClick={onGoogle}>
+            Continue with Google
+          </Button>
+          <p className={s.switch}>or use your email</p>
+        </div>
+      ) : null}
       <form className={s.form} onSubmit={handleSubmit} noValidate>
         <TextInput
           label="Email"

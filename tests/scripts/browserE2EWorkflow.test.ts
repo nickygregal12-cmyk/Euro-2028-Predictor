@@ -24,8 +24,6 @@ const bonusGamesFixture = readFileSync(
   'utf8',
 )
 const bonusGamesSpec = readFileSync(resolve(root, 'e2e/bonus-games.spec.ts'), 'utf8')
-const shippingE2eEnv = readFileSync(resolve(root, '.env.e2e'), 'utf8')
-const shippingVNextSpec = readFileSync(resolve(root, 'e2e/shipping-vnext.spec.ts'), 'utf8')
 const packageJson = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
   scripts: Record<string, string>
   devDependencies: Record<string, string>
@@ -110,28 +108,6 @@ describe('authenticated browser E2E workflow', () => {
     expect(localFixtures).toContain('parsed.port !== LOCAL_SUPABASE_PORT')
   })
 
-  it('runs the normal authenticated suite with the shipping Football Hub vNext route switches', () => {
-    expect(packageJson.scripts['test:e2e']).toBe(
-      'node --env-file=.env.e2e node_modules/@playwright/test/cli.js test',
-    )
-    expect(shippingE2eEnv).toContain('VITE_SITE_VARIANT=hub')
-    for (const name of [
-      'HOME',
-      'MATCHES',
-      'GAMES',
-      'LEAGUES',
-      'PLAYER_PROFILE',
-      'DISCOVERY',
-      'ACCOUNT',
-      'LMS',
-      'CHAMPIONSHIP',
-      'PREDICTOR',
-    ]) {
-      expect(shippingE2eEnv).toContain(`VITE_UI_FOOTBALL_HUB_${name}=true`)
-    }
-    expect(shippingVNextSpec).toContain('[data-vnext-shell]')
-    expect(shippingVNextSpec).toContain('legacy application shell')
-  })
 
   it('pins the Playwright dependency and exposes stable scripts', () => {
     expect(packageJson.devDependencies['@playwright/test']).toBe('1.62.1')

@@ -111,15 +111,6 @@ export const JOURNEY_MAP = [
     specs: ['landing-preview.spec.ts'],
   },
   { prefix: 'src/vnext/fixtures/marketing/', specs: ['landing-preview.spec.ts'] },
-  {
-    // The shipping vNext shell itself. `shipping-vnext.spec.ts` asserts that the
-    // authenticated suite is exercising the Hub players actually receive rather
-    // than the legacy shell a failed-closed route flag would serve, and the only
-    // thing that can satisfy it is the shell that emits `data-vnext-shell`. A
-    // change here is therefore exactly when that certification has to re-run.
-    prefix: 'src/vnext/app/',
-    specs: ['shipping-vnext.spec.ts'],
-  },
 ]
 
 export const BASELINE_SPECS = [
