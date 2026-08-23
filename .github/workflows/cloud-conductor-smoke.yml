@@ -83,10 +83,11 @@ jobs:
           {
             echo '## Persistent cloud Conductor smoke'
             echo
-            echo '- Cloud installer/doctor shell syntax validated.'
+            echo '- Cloud installer/doctor shell syntax validated for Ubuntu x86-64/ARM64 hosts.'
             echo '- Repository guard tests passed.'
             echo '- The centrally pinned OpenCode CLI loaded all three tracked agent definitions.'
             echo '- Default GPT agents target the direct OpenAI provider rather than paid OpenRouter GPT.'
             echo '- The Ox critic remains the OpenRouter model lane; CI received no OpenRouter credential and made no model request.'
+            echo '- No paid host is assumed by repository configuration; Oracle Always Free/home-hosted/Codespaces-on-demand remain valid paths.'
             echo '- No VM, Tailscale device, hosted environment or Production resource was mutated.'
           } >> "${GITHUB_STEP_SUMMARY}"
