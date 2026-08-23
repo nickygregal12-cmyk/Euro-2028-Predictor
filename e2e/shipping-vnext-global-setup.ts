@@ -18,16 +18,18 @@ function required(name: string): string {
  * suite asks: can a real Football Hub player leave Account/Explore and get back
  * into their active/relevant competition, and can they switch between two?
  *
- * This shipping-only layer therefore does four local-only things after the
+ * This shipping-only layer therefore does five local-only things after the
  * canonical identities exist:
  *
  *  1. keep Scottish Premiership as the playable season from the shared fixture;
  *  2. publish the otherwise-draft Premier League ONLY in disposable local DB,
  *     giving the switcher a second real catalogue entry without changing a
  *     repository or hosted lifecycle;
- *  3. follow both through the authenticated `set_competition_follow` RPC and
+ *  3. open the Scottish season's own public Match Predictor, which the
+ *     repository seeds deliberately unpublished;
+ *  4. follow both through the authenticated `set_competition_follow` RPC and
  *     join the public Scottish Match Predictor through `join_competition_game`;
- *  4. save the three current-matchweek predictions through the real
+ *  5. save the three current-matchweek predictions through the real
  *     `save_season_prediction` RPC.
  *
  * The membership makes Scottish Premiership deterministically the first item in
@@ -92,6 +94,33 @@ export default async function shippingVNextGlobalSetup() {
     .eq('visibility_kind', 'public')
     .single()
   if (mainGameError) throw mainGameError
+
+  // A domestic season's games are seeded deliberately unpublished:
+  // 20260803070000_c1b_game_catalogue_memberships.sql writes them
+  // `published = false, availability_status = 'inactive'` so that "catalogue
+  // rows are still stable and can be referenced by membership, routes and
+  // administration" before the season vertical slice existed. Nothing in the
+  // repository or in e2e/league-season-fixture.sql has ever published one, so
+  // `join_competition_game` refuses the seeded Scottish Match Predictor with
+  // `Game not found` and the player can never reach the card this suite is
+  // about.
+  //
+  // Opening it is the same disposable, local-only operator act as publishing
+  // the draft Premier League above, and it is written the way
+  // scripts/bonus-games/publish-catalogue.sql opens the Euro games: set
+  // `published` and an already-open registration instant, and let the
+  // availability trigger derive `active`. `registration_opens_at` is seeded
+  // null on these rows, and a null instant is its own refusal -- "Registration
+  // has not opened" -- so publishing alone would not be enough.
+  const { error: openGameError } = await admin
+    .from('bonus_competitions')
+    .update({
+      published: true,
+      registration_opens_at: new Date(Date.now() - 60_000).toISOString(),
+      registration_closes_at: null,
+    })
+    .eq('id', mainGame.id)
+  if (openGameError) throw openGameError
 
   const player = createClient(url, anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
