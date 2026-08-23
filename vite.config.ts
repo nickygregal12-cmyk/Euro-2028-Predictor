@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type {} from 'vitest/config'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
@@ -7,6 +8,8 @@ import react from '@vitejs/plugin-react'
 import { configDefaults } from 'vitest/config'
 import {
   applyDocumentHead,
+  inviteShareCard,
+  INVITE_DOCUMENT_PATH,
   robotsTxt,
   sitemapXml,
 } from './src/app/site/documentMetadata.js'
@@ -224,6 +227,53 @@ export default defineConfig(({ command, mode }) => {
               version: serviceWorkerVersion(releaseMetadata.commit, precache),
             }),
           })
+        },
+        // THE INVITE DOCUMENT, BUILT FROM THE BUILT ONE.
+        //
+        // `/join/:code` is the one address whose social card must differ, and
+        // `index.html` cannot carry two heads. So the emitted document is
+        // re-headed into a second file, and Netlify rewrites `/join/*` onto it.
+        //
+        // IT IS DERIVED, NOT AUTHORED. A hand-written second template would
+        // need every script and stylesheet tag Vite injected, and the first
+        // hash it missed would be an invite page that loads nothing — the exact
+        // failure the person following the link cannot report, because to them
+        // the site is simply blank. Taking the finished bytes and swapping only
+        // the managed block makes the two impossible to drift apart.
+        //
+        // WHICH HOOK, AND WHY IT READS THE BUNDLE RATHER THAN THE DISK.
+        // Measured rather than assumed, because both plausible answers are
+        // wrong in different ways:
+        //
+        //   * at `generateBundle` the bundle holds only `assets/*` — the
+        //     document does not exist yet, and an `emitFile` there silently has
+        //     nothing to copy;
+        //   * at `writeBundle` the document is present BOTH in the bundle and
+        //     on disk.
+        //
+        // So this takes it from the bundle. Reading `dist/index.html` back off
+        // the filesystem would work today and would make the build depend on
+        // when Vite happens to flush it, which is an internal detail and not a
+        // promise. The in-memory asset is the same bytes with no such
+        // dependency, and the guard below fails loudly if a future version
+        // stops providing it rather than emitting an invite page from nothing.
+        writeBundle(options, bundle) {
+          const directory = options.dir
+          if (!directory) throw new Error('The build has no output directory to write into.')
+
+          const document = bundle['index.html']
+          if (!document || document.type !== 'asset') {
+            throw new Error(
+              'index.html is not among the written bundle assets, so the invite ' +
+                'document cannot be derived from it. An authored copy would drift ' +
+                'from the built one on the next hashed asset.',
+            )
+          }
+
+          writeFileSync(
+            resolve(directory, INVITE_DOCUMENT_PATH.slice(1)),
+            applyDocumentHead(String(document.source), site, inviteShareCard(site)),
+          )
         },
       },
       {

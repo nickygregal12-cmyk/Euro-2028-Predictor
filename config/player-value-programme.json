@@ -55,8 +55,8 @@
       ],
       "status": "blocked",
       "pr": 1003,
-      "headSha": null,
-      "mergedSha": null,
+      "headSha": "931bc87464d6ef222830b4868077bfffd452d9a9",
+      "mergedSha": "5998ff9584a7d6690a9a8c06da77b2f244de5a86",
       "acceptanceEvidence": [
         "Push is a second channel through the existing ledger: one column on the existing row, so the once-per-action key is untouched and a player with both channels is told once.",
         "The subscription row is the opt-in; there is no second boolean beside the email preference, and turning push off deletes the endpoint and the keys.",
@@ -77,8 +77,8 @@
       "dependencies": [
         "0"
       ],
-      "status": "not_started",
-      "pr": null,
+      "status": "in_progress",
+      "pr": 1007,
       "headSha": null,
       "mergedSha": null,
       "acceptanceEvidence": [],

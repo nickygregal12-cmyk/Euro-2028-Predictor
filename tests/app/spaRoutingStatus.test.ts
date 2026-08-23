@@ -24,7 +24,10 @@ const netlifyConfig = readRepositoryFile('netlify.toml')
  */
 const appRoutes = declaredRoutes
 
-type Redirect = { from: string; status: number }
+// `to` was always captured by the pattern below and never declared, because
+// until now every rule pointed at the same document and the field said nothing.
+// `/join/:code` makes it load-bearing.
+type Redirect = { from: string; to: string; status: number }
 
 const redirects: Redirect[] = [
   ...netlifyConfig.matchAll(
@@ -60,10 +63,32 @@ describe('SPA routing answers a real status per path', () => {
     expect(redirects.at(-1)?.from).toBe('/*')
   })
 
-  it('rewrites every path to the SPA entry point', () => {
+  it('rewrites every path to a document this build actually emits', () => {
+    // NARROWED FROM "everything goes to /index.html", and narrowed rather than
+    // deleted. The old form was the right invariant while one document existed;
+    // `/join/:code` now has its own, because an invite is the one link players
+    // paste where a crawler unfurls it and the site's own card is the wrong
+    // answer for it. What must not happen is a SECOND route quietly diverging,
+    // so the exception is named rather than allowed by class.
     for (const rule of redirects) {
-      expect(rule).toMatchObject({ to: '/index.html' })
+      expect(['/index.html', '/join.html']).toContain(rule.to)
     }
+
+    const diverging = redirects.filter((rule) => rule.to !== '/index.html')
+    expect(diverging.map((rule) => rule.from)).toEqual(['/join/:code'])
+  })
+
+  it('sends the invite route to the invite document, which the build emits', () => {
+    // Both halves, because either alone passes while the pair is broken: a
+    // redirect to a document Vite does not write is a blank page for everyone
+    // who follows an invitation, and it fails in production only.
+    const invite = redirects.find((rule) => rule.from === '/join/:code')
+    expect(invite?.to).toBe('/join.html')
+    expect(invite?.status).toBe(200)
+
+    const viteConfig = readFileSync(resolve(repositoryRoot, 'vite.config.ts'), 'utf8')
+    expect(viteConfig).toContain('INVITE_DOCUMENT_PATH')
+    expect(viteConfig).toContain('inviteShareCard')
   })
 
   it('never forces a rule over a real file', () => {

@@ -81,21 +81,50 @@ async function main() {
   const written = []
   for (const variant of authority.SITE_VARIANTS) {
     const metadata = authority.sitePublicMetadata(variant)
-    const dataUrl = await page.evaluate(drawOpenGraphCard, {
-      width: WIDTH,
-      height: HEIGHT,
-      productName: metadata.productName,
-      tagline: metadata.brand.tagline,
-      mark: authority.siteIconMark(variant),
-      geometry: { ...authority.PITCH_MARK },
-      background: authority.THEME_COLOUR.dark,
-      accent: authority.ICON_ACCENT,
-    })
+
+    // TWO CARDS, ONE DRAWING. The site card and the invite card differ only in
+    // their words, so they share the routine — an invite image drawn by a
+    // second one would drift in colour and geometry the first time either was
+    // touched, and a share card that looks like a different product is worse
+    // than the generic one it replaced.
+    //
+    // THE INVITE CARD NAMES NO LEAGUE, and that is the design rather than an
+    // omission: it is served to an unauthenticated crawler, so anything
+    // per-code would be a free confirmation oracle for a guessed invite. See
+    // `inviteShareCard` in src/app/site/documentMetadata.ts for the three
+    // contracts that reasoning comes from.
+    const cards = [
+      {
+        file: 'og-image.png',
+        eyebrow: 'FOOTBALL PREDICTION',
+        headline: metadata.productName,
+        subtitle: metadata.brand.tagline,
+      },
+      {
+        file: 'og-invite.png',
+        eyebrow: 'YOU HAVE BEEN INVITED',
+        headline: 'Your invitation',
+        subtitle: `Join a private competition on ${metadata.productName}.`,
+      },
+    ]
+
     const directory = new URL(`${authority.siteIconDirectory(variant)}/`, repositoryRoot)
     mkdirSync(fileURLToPath(directory), { recursive: true })
-    written.push(
-      writeIfChanged(new URL('og-image.png', directory), decodeDataUrl(dataUrl)),
-    )
+
+    for (const card of cards) {
+      const dataUrl = await page.evaluate(drawOpenGraphCard, {
+        width: WIDTH,
+        height: HEIGHT,
+        eyebrow: card.eyebrow,
+        headline: card.headline,
+        subtitle: card.subtitle,
+        mark: authority.siteIconMark(variant),
+        geometry: { ...authority.PITCH_MARK },
+        background: authority.THEME_COLOUR.dark,
+        accent: authority.ICON_ACCENT,
+      })
+      written.push(writeIfChanged(new URL(card.file, directory), decodeDataUrl(dataUrl)))
+    }
   }
 
   await browser.close()
@@ -114,8 +143,9 @@ async function main() {
 function drawOpenGraphCard({
   width,
   height,
-  productName,
-  tagline,
+  eyebrow,
+  headline,
+  subtitle,
   mark,
   geometry,
   background,
@@ -146,16 +176,16 @@ function drawOpenGraphCard({
   context.fillStyle = accent
   context.font = "500 24px 'Space Grotesk', system-ui, sans-serif"
   context.letterSpacing = '4px'
-  context.fillText('FOOTBALL PREDICTION', 78, 96)
+  context.fillText(eyebrow, 78, 96)
   context.letterSpacing = '0px'
 
   context.fillStyle = '#FFFFFF'
   context.font = "500 78px 'Space Grotesk', system-ui, sans-serif"
-  drawWrappedText(context, productName, 78, 196, 620, 88, 2)
+  drawWrappedText(context, headline, 78, 196, 620, 88, 2)
 
   context.fillStyle = 'rgba(255,255,255,0.72)'
   context.font = "500 31px 'Space Grotesk', system-ui, sans-serif"
-  drawWrappedText(context, tagline, 80, 392, 600, 43, 3)
+  drawWrappedText(context, subtitle, 80, 392, 600, 43, 3)
 
   context.fillStyle = accent
   context.strokeStyle = accent

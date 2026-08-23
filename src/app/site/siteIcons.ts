@@ -33,6 +33,10 @@ export const SITE_ICON_FILES: readonly string[] = [
   ...SITE_ICON_SIZES.map((icon) => icon.file),
   'favicon.ico',
   'og-image.png',
+  // Contract-free, but the same lane and for the same reason: an invite card is
+  // per-variant artwork, so a Hub build must be physically unable to emit the
+  // Euro one.
+  'og-invite.png',
 ]
 
 /** Where one variant's generated site-identity bytes live. */
