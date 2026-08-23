@@ -6,6 +6,7 @@ import {
   isScenarioName,
   readScenario,
   SCENARIOS,
+  submittedOnly,
   SCENARIO_NAMES,
 } from '../../scripts/seed-dev/scenarios'
 import { rankScored, scoreEntries } from '../../scripts/seed-dev/scoreEntries'
@@ -153,6 +154,34 @@ describe('seed scenarios', () => {
     it('refuses a name that is merely an Object property', () => {
       expect(() => readScenario(['--scenario=constructor'])).toThrow(/Unknown seed scenario/)
       expect(() => readScenario(['--scenario=toString'])).toThrow(/Unknown seed scenario/)
+    })
+  })
+
+  describe('the entries a leaderboard will actually show', () => {
+    it('drops non-submitters, because the database leaderboard does', () => {
+      const sparseData = applyScenario(fixture, generateSeedData(fixture), 'sparse')
+      const shown = submittedOnly(sparseData)
+
+      expect(shown.entries.length).toBeLessThan(sparseData.entries.length)
+      expect(shown.entries.every((entry) => entry.submitted)).toBe(true)
+      // The results are the tournament's, not a player's — they must survive.
+      expect(shown.results).toEqual(sparseData.results)
+    })
+
+    it('changes nothing when everybody submitted', () => {
+      for (const name of ['standard', 'contested'] as const) {
+        const data = applyScenario(fixture, generateSeedData(fixture), name)
+        expect(submittedOnly(data)).toEqual(data)
+      }
+    })
+
+    it('keeps the contested tie visible, since a hidden tie resolves nothing', () => {
+      const contestedData = applyScenario(fixture, generateSeedData(fixture), 'contested')
+      const shown = submittedOnly(contestedData)
+      const ranked = rankScored(scoreEntries(fixture, shown))
+      const best = ranked[0]
+      if (best === undefined) throw new Error('no entries survived the submitted filter')
+      expect(ranked.filter((entry) => entry.total === best.total).length).toBeGreaterThanOrEqual(2)
     })
   })
 })

@@ -23,7 +23,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { buildFixture } from './fixture'
 import { generateSeedData, SEED_EMAIL_DOMAIN, type GeneratedEntry } from './generate'
 import { rankScored, scoreEntries } from './scoreEntries'
-import { applyScenario, readScenario, SCENARIOS, type ScenarioName } from './scenarios'
+import {
+  applyScenario,
+  readScenario,
+  SCENARIOS,
+  submittedOnly,
+  type ScenarioName,
+} from './scenarios'
 import { evaluateSeedPolicy } from './seedPolicy'
 
 // A loosely-typed admin client (default generics). The seed writes to a handful
@@ -36,7 +42,10 @@ const SEED_USER_PASSWORD = 'seed-user-euro28!'
 function printDryRun(scenario: ScenarioName): void {
   const fixture = buildFixture()
   const data = applyScenario(fixture, generateSeedData(fixture), scenario)
-  const scored = rankScored(scoreEntries(fixture, data))
+  // Ranked from the SUBMITTED entries only, because that is what the database
+  // ranks from. A dry run that disagrees with the seeded app is worse than no
+  // dry run — it is a confident wrong answer.
+  const scored = rankScored(scoreEntries(fixture, submittedOnly(data)))
 
   console.log('\nDEV SEED — DRY RUN (nothing written)\n')
   console.log(`Scenario: ${scenario} — ${SCENARIOS[scenario].summary}\n`)
@@ -45,7 +54,7 @@ function printDryRun(scenario: ScenarioName): void {
       `${fixture.matches.length} group matches in the fixture\n`,
   )
 
-  console.log('Overall standings (group-match points so far):')
+  console.log('Overall standings — submitted entries (group-match points so far):')
   for (const e of scored) {
     const rank = String(e.rank).padStart(2, ' ')
     const total = String(e.total).padStart(4, ' ')
@@ -308,8 +317,10 @@ async function commit(scenario: ScenarioName): Promise<void> {
     console.log('Recomputed scores (score_events + entry_totals now reflect the results).')
   }
 
+  const submittedCount = data.entries.filter((entry) => entry.submitted).length
   console.log(
-    `Seeded ${data.entries.length} users with submitted entries and ${data.results.length} results.`,
+    `Seeded ${data.entries.length} users (${submittedCount} submitted, ` +
+      `${data.entries.length - submittedCount} not) and ${data.results.length} results.`,
   )
 
   // --- a populated test league (so the League detail page has real members) --

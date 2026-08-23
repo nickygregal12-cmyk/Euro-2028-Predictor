@@ -69,6 +69,11 @@ An unrecognised name **refuses** rather than falling back to `standard`: a typo
 that silently seeded the ordinary world would be found only by a reviewer
 wondering why the state they asked for is not on the page.
 
+The dry run ranks **submitted entries only**, because that is what the database
+ranks from (`submitted_at is not null`, in `get_leaderboard`, scoring, rank
+history and the match centre). A dry run that disagreed with the seeded app
+would be a confident wrong answer.
+
 The tie is created by construction — the best entry's predictions are copied
 onto the worst, which must then score identically — so nothing here re-implements
 or second-guesses scoring. `scripts/seed-dev/scenarios.ts` holds them, and

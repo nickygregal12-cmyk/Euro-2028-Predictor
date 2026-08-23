@@ -157,3 +157,16 @@ export function readScenario(argv: readonly string[]): ScenarioName {
   }
   return value
 }
+
+/**
+ * The entries a leaderboard will actually show.
+ *
+ * The database ranks from `entries` where `submitted_at is not null` — in
+ * `get_leaderboard`, in scoring, in rank history and in the match centre. So a
+ * dry run that ranked EVERY generated entry would promise the operator a table
+ * the seeded app then refuses to render, which defeats the point of a dry run
+ * that exists to prove the seed consistent before anything is written.
+ */
+export function submittedOnly(data: SeedData): SeedData {
+  return { ...data, entries: data.entries.filter((entry) => entry.submitted) }
+}
