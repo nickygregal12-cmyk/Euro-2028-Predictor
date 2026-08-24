@@ -95,6 +95,7 @@ beads_version="$(read_tool_value 'c.beads.version')"
 
 tool_home="${HOME}/.local/share/predictor-agent-tools"
 bin_home="${HOME}/.local/bin"
+uv_venv="${tool_home}/uv"
 graphify_venv="${tool_home}/graphify"
 
 mkdir -p "$tool_home" "$bin_home"
@@ -103,11 +104,14 @@ export PATH="${bin_home}:${PATH}"
 printf 'Preparing Predictor dependencies...\n'
 npm ci
 
-printf 'Installing uv %s as the isolated Python-tool manager...\n' "$uv_version"
-python -m pip install --disable-pip-version-check --quiet --user "uv==${uv_version}"
+printf 'Installing uv %s in an isolated Python environment...\n' "$uv_version"
+python3 -m venv "$uv_venv"
+"${uv_venv}/bin/python" -m pip install --disable-pip-version-check --quiet \
+  "uv==${uv_version}"
+ln -sfn "${uv_venv}/bin/uv" "${bin_home}/uv"
 
 printf 'Installing Graphify %s in an isolated Python environment...\n' "$graphify_version"
-python -m venv "$graphify_venv"
+python3 -m venv "$graphify_venv"
 "${graphify_venv}/bin/python" -m pip install --disable-pip-version-check --quiet \
   "graphifyy[sql,openai]==${graphify_version}"
 ln -sfn "${graphify_venv}/bin/graphify" "${bin_home}/graphify"
