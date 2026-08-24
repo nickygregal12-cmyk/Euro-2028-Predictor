@@ -231,6 +231,37 @@ Configuration is clone-local (`.git/config` / `.git/info/attributes`) and is not
 
 ## UI and output quality
 
+### What to run before pushing a vNext presentation change
+
+A directory-scoped test run is not the gate. `npx vitest run tests/vnext` looks
+like thorough local coverage and silently skips the design-system ratchets in
+`tests/design-system/` — `foundationAdoption.test.ts` reads every stylesheet in
+the repository and fails a `font-size` set from a literal rather than the
+`--fs-*` scale. A new vNext component stylesheet is exactly the change that trips
+it, and exactly the change whose author is least likely to be running that
+directory.
+
+Storybook is a separate gate again, in its own workflow
+(`.github/workflows/storybook.yml`), and `npm test` does not cover it. Its build
+runs the application's Vite config, so an application-only plugin that is not
+filtered in `.storybook/main.ts` fails the workbench build without touching a
+single test.
+
+So the local gate for a vNext UI change is:
+
+```bash
+npm test                      # the WHOLE suite, not one directory
+npm run build:storybook       # the workbench build, separate workflow
+npm run test:storybook        # Storybook render + a11y
+npm run lint && npm run lint:css
+npx tsc -b
+bash scripts/agent-tools/architecture-check.sh
+npm run check:dead-code
+```
+
+Add `npm run check:documentation-authorities` and `npm run check:now` when a
+contract record or an accepted-requirement status moved.
+
 ### Authoritative visual regression — Playwright
 
 The repository's blocking visual contract remains the Playwright screenshot workflow:
