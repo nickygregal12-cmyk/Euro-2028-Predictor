@@ -7,11 +7,12 @@
     "allowJs": true,
     "checkJs": true
   },
-  // The deploy gates only. Each of these decides whether a build reaches
-  // production, so a future edit to one should be checked. The remaining
-  // JavaScript under scripts/ is deferred, with counts recorded in
+  // Deploy gates and security-sensitive settings/credential helpers. The
+  // remaining JavaScript under scripts/ is deferred, with counts recorded in
   // tests/scripts/typescriptProjectCoverage.test.ts.
   "files": [
+    "scripts/agent-tools/configure-claude-settings.mjs",
+    "scripts/agent-tools/merge-cloud-env.mjs",
     "scripts/check-bundle-budget.mjs",
     "scripts/check-hosted-migration-inventory.mjs",
     "scripts/check-documentation-authorities.mjs",

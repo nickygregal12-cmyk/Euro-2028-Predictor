@@ -184,6 +184,10 @@ describe('JavaScript under scripts/', () => {
    * has zero errors would record a debt that does not exist.
    */
   const CHECKED = [
+    // Security-sensitive settings and credential-file helpers are checked on
+    // arrival rather than joining the deferred operational-script backlog.
+    'scripts/agent-tools/configure-claude-settings.mjs',
+    'scripts/agent-tools/merge-cloud-env.mjs',
     'scripts/check-documentation-authorities.mjs',
     'scripts/check-knip-baseline.mjs',
     'scripts/check-migration-additive.mjs',

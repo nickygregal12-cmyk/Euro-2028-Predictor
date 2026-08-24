@@ -15,17 +15,19 @@ const existing = (() => {
   try {
     return readFileSync(target, 'utf8').split(/\r?\n/).filter(Boolean)
   } catch (error) {
-    if (error?.code === 'ENOENT') return []
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') return []
     throw error
   }
 })()
-const replacements = new Map(
-  managed.filter((key) => process.env[key] !== undefined).map((key) => {
-    const value = process.env[key]
-    if (value.includes('\n') || value.includes('\r')) throw new Error(`${key} contains a newline`)
-    return [key, `${key}=${value}`]
-  }),
-)
+/** @type {Map<string, string>} */
+const replacements = new Map()
+for (const key of managed) {
+  const value = process.env[key]
+  if (value === undefined) continue
+  if (value.includes('\n') || value.includes('\r')) throw new Error(`${key} contains a newline`)
+  replacements.set(key, `${key}=${value}`)
+}
+/** @type {string[]} */
 const output = []
 const managedKeys = new Set(managed)
 const seenManaged = new Set()
@@ -37,8 +39,9 @@ for (const line of existing) {
   }
   if (seenManaged.has(key)) continue
   seenManaged.add(key)
-  if (replacements.has(key)) {
-    output.push(replacements.get(key))
+  const replacement = replacements.get(key)
+  if (replacement !== undefined) {
+    output.push(replacement)
     replacements.delete(key)
   } else if (process.env[key] === undefined) output.push(line)
 }

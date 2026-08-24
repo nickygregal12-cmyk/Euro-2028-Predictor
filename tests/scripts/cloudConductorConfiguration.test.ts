@@ -71,6 +71,7 @@ describe('persistent private cloud Conductor', () => {
     expect(ox).toContain('--agent predictor-critic')
     expect(ox).toContain('--model openrouter/stealth/ox-alpha')
     expect(ox).toContain('--attach "$attach_url"')
+    expect(ox).toContain('--format json')
     expect(ox).toContain('OPENROUTER_API_KEY')
     expect(ox).not.toContain('echo "$OPENROUTER_API_KEY"')
 
@@ -95,12 +96,14 @@ describe('persistent private cloud Conductor', () => {
     expect(claudeInstall).not.toContain('claude auth login')
   })
 
-  it('fails the Ox bridge closed when OpenCode emits only its banner', () => {
+  it('fails the Ox bridge closed when OpenCode emits only tool and error events', () => {
     const home = mkdtempSync(resolve(tmpdir(), 'predictor-ox-empty-'))
     const bin = resolve(home, '.local/bin')
     mkdirSync(bin, { recursive: true })
     writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
-printf '> predictor-critic · ox-alpha\\n'
+printf '%s\\n' \\
+  '{"type":"tool_use","part":{"type":"tool","state":{"status":"error","error":"permission rejected"}}}' \\
+  '{"type":"error","error":{"name":"UnknownError"}}'
 `, { mode: 0o755 })
 
     const result = spawnSync('bash', ['scripts/agent-tools/ox-review.sh', 'Review this diff.'], {
@@ -115,6 +118,33 @@ printf '> predictor-critic · ox-alpha\\n'
     })
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('OpenCode returned no substantive critic text')
+    expect(`${result.stdout}${result.stderr}`).not.toContain('test-placeholder-not-a-real-key')
+  })
+
+  it('returns only assistant text from OpenCode JSON events', () => {
+    const home = mkdtempSync(resolve(tmpdir(), 'predictor-ox-text-'))
+    const bin = resolve(home, '.local/bin')
+    mkdirSync(bin, { recursive: true })
+    writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
+printf '%s\\n' \\
+  '{"type":"step_start","part":{"type":"step-start"}}' \\
+  '{"type":"text","part":{"type":"text","text":"Independent critic finding.","time":{"end":1}}}' \\
+  '{"type":"step_finish","part":{"type":"step-finish"}}'
+`, { mode: 0o755 })
+
+    const result = spawnSync('bash', ['scripts/agent-tools/ox-review.sh', 'Review this diff.'], {
+      cwd: root,
+      env: {
+        ...process.env,
+        HOME: home,
+        OPENROUTER_API_KEY: 'test-placeholder-not-a-real-key',
+      },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    })
+    expect(result.status).toBe(0)
+    expect(result.stdout).toBe('Independent critic finding.\n')
+    expect(result.stderr).toBe('')
     expect(`${result.stdout}${result.stderr}`).not.toContain('test-placeholder-not-a-real-key')
   })
 
@@ -149,6 +179,18 @@ printf '> predictor-critic · ox-alpha\\n'
     expect(doctor).toContain('--mcp')
     expect(doctor).toContain('MCP capability state')
     expect(doctor).not.toContain('claude auth status')
+  })
+
+  it('runs the cloud smoke when any directly tested helper changes', () => {
+    const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
+    for (const helper of [
+      'scripts/agent-tools/configure-claude-settings.mjs',
+      'scripts/agent-tools/merge-cloud-env.mjs',
+      'scripts/agent-tools/mcp-readiness.sh',
+      'scripts/agent-tools/netlify-mcp-fallback.sh',
+    ]) {
+      expect(workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`)).toHaveLength(2)
+    }
   })
 
   it('preserves unknown protected env keys while rotating managed values', () => {
