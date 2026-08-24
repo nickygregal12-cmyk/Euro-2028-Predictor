@@ -1,5 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
@@ -283,5 +285,164 @@ describe('the verifier checks what the ledger cannot answer', () => {
 
   it('reports every problem it found rather than the first', () => {
     expect(verifier).toContain('problems.join')
+  })
+})
+
+/**
+ * A verifier is only worth the run it gates if it FAILS when the thing it
+ * guards is broken. These drive it with a synthetic 211-to-217 promotion and
+ * then reintroduce, one at a time, the defect each assertion exists to catch.
+ *
+ * This is the same discipline the migrations themselves are held to — contract
+ * 217's own in-transaction assertions were each proved non-vacuous by restoring
+ * the defect they guard — applied to the postflight rather than to the apply.
+ */
+describe('the verifier fails when the promotion is wrong', () => {
+  const VERIFIER = resolve(root, VERIFIER_PATH)
+
+  const BEFORE = {
+    migration_count: 211,
+    latest_version: '20260820090000',
+    latest_name: 'provider_deadline_watch_tier',
+    auth_users: 1,
+    profiles: 1,
+    entries: 3,
+    season_predictions: 16,
+    match_predictions: 36,
+    league_members: 1,
+    season_fixtures: 578,
+    reminder_deliveries: 0,
+    ai_bets: 230,
+    cron_jobs: 11,
+    public_enabled: false,
+    betting_public_enabled: false,
+    fixture_status_histogram: { played: 12, scheduled: 566 },
+    lifecycle_transition_count: 0,
+    provider_status_observation_count: 0,
+    poll_dials: { t1: [1440, 10, 15, 60, 720] },
+    protected_function_fingerprint: 'abc123',
+  }
+
+  const AFTER = {
+    ...BEFORE,
+    migration_count: 217,
+    latest_version: '20260824090000',
+    latest_name: 'web_push_channel',
+    // Contract 216 schedules exactly one job.
+    cron_jobs: 12,
+  }
+
+  const BOUNDARY = {
+    card_calls_lock_authority: true,
+    card_publishes_lock_fields: true,
+    buffer_authority_present: 1,
+    dropped_tokens_remaining: 0,
+    dropped_tokens_not_unknown: 0,
+    measured_postponed_kind: 'postponed',
+    cancelled_or_abandoned_mappings: 0,
+    confirmation_reference_present: 1,
+    confirm_calls_confirmation_reference: true,
+    canonical_view_uses_canonical: true,
+    dispatch_runs_rls: true,
+    dispatch_job_schedule: '*/5 * * * *',
+    dispatch_job_active: true,
+    sender_configuration: { configured: false, secrets_present: false, job_active: true, error: null },
+    push_subscriptions_rls: true,
+    push_subscriptions_rows: 0,
+    push_subscriptions_policies: 2,
+    push_subscriptions_anon_grants: 0,
+    push_subscriptions_authenticated_grants: 'delete,select',
+    reminder_deliveries_channel_default: "'email'::text",
+    reminder_deliveries_non_email: 0,
+    claim_returns_channel: true,
+    claim_service_role_execute: true,
+    claim_authenticated_execute: false,
+    claim_anon_execute: false,
+    save_push_authenticated_execute: true,
+    save_push_anon_execute: false,
+    once_per_action_key: 'UNIQUE (user_id, action_key, reminder_kind)',
+  }
+
+  function runVerifier(
+    before: Record<string, unknown>,
+    after: Record<string, unknown>,
+    boundary: Record<string, unknown>,
+  ): { ok: boolean; output: string } {
+    const dir = mkdtempSync(join(tmpdir(), 'verify-211-217-'))
+    try {
+      const paths = { BEFORE_FILE: 'before', AFTER_FILE: 'after', BOUNDARY_FILE: 'boundary' }
+      const env: NodeJS.ProcessEnv = { ...process.env }
+      for (const [variable, name] of Object.entries(paths)) {
+        const file = join(dir, `${name}.json`)
+        writeFileSync(file, JSON.stringify({ before, after, boundary }[name]))
+        env[variable] = file
+      }
+      try {
+        const output = execFileSync('node', [VERIFIER], { env, encoding: 'utf8', stdio: 'pipe' })
+        return { ok: true, output }
+      } catch (error) {
+        const failure = error as { stdout?: string; stderr?: string }
+        return { ok: false, output: `${failure.stdout ?? ''}${failure.stderr ?? ''}` }
+      }
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }
+
+  it('passes a promotion that did exactly what the six contracts claim', () => {
+    // Without this the failure cases below would prove nothing: a verifier that
+    // rejects everything also rejects every defect.
+    const { ok, output } = runVerifier(BEFORE, AFTER, BOUNDARY)
+    expect(output).toContain('verification passed')
+    expect(ok).toBe(true)
+  })
+
+  const BOUNDARY_DEFECTS: [string, Record<string, unknown>, string][] = [
+    // The specific risk contract 217's `drop function` introduces.
+    ['the recreated claim_due_reminders lost its service_role grant', { claim_service_role_execute: false }, 'claim_service_role_execute'],
+    ['a browser role gained execute on claim_due_reminders', { claim_authenticated_execute: true }, 'claim_authenticated_execute'],
+    ['anon gained execute on save_push_subscription', { save_push_anon_execute: true }, 'save_push_anon_execute'],
+    // The reason this boundary is safe to apply before a sender exists.
+    ['the sender arrived configured, so it would send and spend', { sender_configuration: { configured: true, secrets_present: true, job_active: true, error: null } }, 'sender_secrets_present'],
+    ['push_subscriptions was exposed to anon', { push_subscriptions_anon_grants: 1 }, 'push_subscriptions_anon_grants'],
+    ['a dropped SportMonks token still resolves to something', { dropped_tokens_not_unknown: 1 }, 'dropped_tokens_not_unknown'],
+    ['the matchweek card stopped reading the lock authority', { card_calls_lock_authority: false }, 'card_calls_lock_authority'],
+    ['the canonical currency guard is missing from the view', { canonical_view_uses_canonical: false }, 'canonical_view_uses_canonical'],
+    // A missing constraint comes back as SQL null, not as a wrong string.
+    ['the once-per-action key was widened away', { once_per_action_key: null }, 'once_per_action_key'],
+  ]
+
+  it.each(BOUNDARY_DEFECTS)('catches: %s', (_label, override, expectedKey) => {
+    const { ok, output } = runVerifier(BEFORE, AFTER, { ...BOUNDARY, ...override })
+    expect(ok).toBe(false)
+    expect(output).toContain(expectedKey)
+  })
+
+  const PRESERVATION_DEFECTS: [string, Record<string, unknown>, string][] = [
+    ['a fixture silently moved between statuses', { fixture_status_histogram: { played: 12, postponed: 1, scheduled: 565 } }, 'fixture_status_histogram'],
+    ['a player-owned row disappeared', { match_predictions: 35 }, 'match_predictions'],
+    ['an unrelated function was redefined', { protected_function_fingerprint: 'deadbeef' }, 'protected_function_fingerprint'],
+    ['provider polling cadence was touched', { poll_dials: { t1: [360, 10, 15, 60, 720] } }, 'poll_dials'],
+    ['two cron jobs appeared instead of one', { cron_jobs: 13 }, 'cron_jobs'],
+    ['no cron job appeared at all', { cron_jobs: 11 }, 'cron_jobs'],
+    ['the ledger stopped short of 217', { migration_count: 216 }, 'migration_count'],
+    ['a publication gate opened during the promotion', { public_enabled: true }, 'public_enabled'],
+  ]
+
+  it.each(PRESERVATION_DEFECTS)('catches: %s', (_label, override, expectedKey) => {
+    const { ok, output } = runVerifier(BEFORE, { ...AFTER, ...override }, BOUNDARY)
+    expect(ok).toBe(false)
+    expect(output).toContain(expectedKey)
+  })
+
+  it('reports every problem in one run rather than stopping at the first', () => {
+    const { ok, output } = runVerifier(
+      BEFORE,
+      { ...AFTER, match_predictions: 35 },
+      { ...BOUNDARY, claim_anon_execute: true },
+    )
+    expect(ok).toBe(false)
+    expect(output).toContain('match_predictions')
+    expect(output).toContain('claim_anon_execute')
   })
 })

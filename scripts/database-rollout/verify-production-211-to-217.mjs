@@ -13,6 +13,10 @@
 // Exits non-zero naming every problem it found, rather than the first.
 import fs from 'node:fs'
 
+/**
+ * @param {string} variable
+ * @returns {Record<string, unknown>}
+ */
 const load = (variable) => {
   const path = process.env[variable]
   if (!path) throw new Error(`${variable} is not set`)
@@ -23,13 +27,31 @@ const before = load('BEFORE_FILE')
 const after = load('AFTER_FILE')
 const boundary = load('BOUNDARY_FILE')
 
+/** @type {string[]} */
 const problems = []
+
+/**
+ * Compared as strings on purpose. These values arrive from `psql`'s JSON output
+ * and a count can be either a number or its decimal string depending on the
+ * type Postgres chose; comparing loosely here would be worse, and comparing
+ * strictly would fail on a difference that is not one.
+ *
+ * @param {string} label
+ * @param {unknown} actual
+ * @param {unknown} expected
+ */
 const eq = (label, actual, expected) => {
   if (String(actual) !== String(expected)) problems.push(`${label} = ${actual}, expected ${expected}`)
 }
+
+/**
+ * @param {string} label
+ * @param {unknown} actual
+ * @param {unknown} expected
+ */
 const same = (label, actual, expected) => {
   if (JSON.stringify(actual ?? null) !== JSON.stringify(expected ?? null)) {
-    problems.push(`${label} moved: ${JSON.stringify(before[label] ?? null)} -> ${JSON.stringify(after[label] ?? null)}`)
+    problems.push(`${label} moved: ${JSON.stringify(expected ?? null)} -> ${JSON.stringify(actual ?? null)}`)
   }
 }
 
@@ -96,9 +118,12 @@ eq('dispatch_job_active', boundary.dispatch_job_active, true)
 // dispatch URL and no caller key, so every firing records a refusal and posts
 // nothing. `secrets_present` false is the whole reason this promotion is safe to
 // run before a sender is configured.
-eq('sender_secrets_present', boundary.sender_configuration?.secrets_present, false)
-eq('sender_configured', boundary.sender_configuration?.configured, false)
-eq('sender_error', boundary.sender_configuration?.error, null)
+const senderConfiguration = /** @type {Record<string, unknown>} */ (
+  boundary.sender_configuration ?? {}
+)
+eq('sender_secrets_present', senderConfiguration.secrets_present, false)
+eq('sender_configured', senderConfiguration.configured, false)
+eq('sender_error', senderConfiguration.error, null)
 
 // ---------------------------------------------------------------------------
 // Contract 217 — push as a second channel, arriving with nobody subscribed.
@@ -124,11 +149,18 @@ eq('claim_anon_execute', boundary.claim_anon_execute, false)
 eq('save_push_authenticated_execute', boundary.save_push_authenticated_execute, true)
 eq('save_push_anon_execute', boundary.save_push_anon_execute, false)
 
-// A player with both channels available is still told once.
-if (!/user_id/.test(boundary.once_per_action_key ?? '') ||
-    !/action_key/.test(boundary.once_per_action_key ?? '') ||
-    !/reminder_kind/.test(boundary.once_per_action_key ?? '')) {
-  problems.push(`once_per_action_key = ${boundary.once_per_action_key}, expected UNIQUE (user_id, action_key, reminder_kind)`)
+// A player with both channels available is still told once. Contract 217 widens
+// the channel, never the key.
+//
+// Read as a string rather than trusted to be one: a missing constraint comes
+// back as SQL null, and `null` would satisfy a regex test against the coerced
+// string 'null' for none of these three columns but would throw on a bare
+// `.test(null)`.
+const oncePerActionKey = String(boundary.once_per_action_key ?? '')
+if (!/user_id/.test(oncePerActionKey) ||
+    !/action_key/.test(oncePerActionKey) ||
+    !/reminder_kind/.test(oncePerActionKey)) {
+  problems.push(`once_per_action_key = ${oncePerActionKey}, expected UNIQUE (user_id, action_key, reminder_kind)`)
 }
 
 if (problems.length) {
