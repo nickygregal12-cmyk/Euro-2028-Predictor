@@ -4,8 +4,13 @@ import { VNextAccount } from '../account/VNextAccount'
 import { VNextShellProvider } from '../app/VNextShellProvider'
 import { WorkshopCanvas } from '../workshop/WorkshopCanvas'
 import type { VNextMotionSetting } from '../foundations/VNextRoot'
-import { accountScenarioPremises, accountScenarios, shellScenarios } from '../fixtures'
-import type { AccountScenarioName } from '../fixtures'
+import {
+  accountPushNotificationStates,
+  accountScenarioPremises,
+  accountScenarios,
+  shellScenarios,
+} from '../fixtures'
+import type { AccountPushNotificationScenario, AccountScenarioName } from '../fixtures'
 
 /**
  * vNEXT ACCOUNT / YOU — STAGE 13'S FIRST REVIEW SURFACE.
@@ -73,13 +78,20 @@ const ALL_WIDTHS = [
  * observe the EMISSION rather than following a link — the shape Stage 9
  * settled. Nothing navigates: these worlds have no router behind them.
  */
-function AccountHarness({ scenario }: { readonly scenario: AccountScenarioName }) {
+function AccountHarness({
+  scenario,
+  push = 'promptable',
+}: {
+  readonly scenario: AccountScenarioName
+  readonly push?: AccountPushNotificationScenario
+}) {
   const [lastIntent, setLastIntent] = useState('')
   return (
     <VNextShellProvider model={shellScenarios.oneCompetition}>
       <div data-vnext-account-host="" data-vnext-last-intent={lastIntent}>
         <VNextAccount
           model={accountScenarios[scenario]}
+          pushNotifications={accountPushNotificationStates[push]}
           onRetry={() => {}}
           // EVERY WRITE ACCEPTS AND NOTHING HAPPENS. A story must stay
           // deterministic, so these resolve `ok` without touching an account —
@@ -91,6 +103,7 @@ function AccountHarness({ scenario }: { readonly scenario: AccountScenarioName }
             setPassword: async () => ({ ok: true }),
             setEmail: async () => ({ ok: true }),
             setReminderEmails: async () => ({ ok: true }),
+            setPushNotifications: async () => ({ ok: true }),
           }}
           onIntent={(intent) =>
             setLastIntent(
@@ -144,6 +157,24 @@ export const NoSupportAddress: Story = board('noSupportAddress', ALL_WIDTHS, 0.4
 export const EmailUnknown: Story = board('emailUnknown', ALL_WIDTHS, 0.42)
 export const NewAccount: Story = board('newAccount', ALL_WIDTHS, 0.42)
 export const ManyFollows: Story = board('manyFollows', ALL_WIDTHS, 0.42)
+
+function pushState(state: AccountPushNotificationScenario): Story {
+  return {
+    render: (args) => (
+      <WorkshopCanvas {...args} viewports={['phone-375', 'laptop-1024']} scale={0.7}>
+        <AccountHarness scenario="ordinary" push={state} />
+      </WorkshopCanvas>
+    ),
+  }
+}
+
+export const PushUnconfigured: Story = pushState('unconfigured')
+export const PushUnsupported: Story = pushState('unsupported')
+export const PushIosTab: Story = pushState('iosTab')
+export const PushDenied: Story = pushState('denied')
+export const PushPromptable: Story = pushState('promptable')
+export const PushSubscribed: Story = pushState('subscribed')
+export const PushUnavailable: Story = pushState('unavailable')
 
 /* ========================================================================== *
  * B. THE THINGS THE PAGE WILL NOT SAY

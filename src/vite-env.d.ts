@@ -27,6 +27,8 @@ interface ImportMetaEnv {
    * closed until a deployment proves the publication and socket work there.
    */
   readonly VITE_LIVE_UPDATES_ENABLED?: string
+  /** Public half of the deployment VAPID key pair. Empty means push is unavailable. */
+  readonly VITE_VAPID_PUBLIC_KEY?: string
   readonly VITE_UI_FOOTBALL_HUB_LEAGUES?: string
   readonly VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE?: string
   readonly VITE_UI_FOOTBALL_HUB_DISCOVERY?: string

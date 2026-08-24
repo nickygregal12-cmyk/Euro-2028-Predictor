@@ -136,7 +136,17 @@ export type AccountActions = {
   readonly setPassword?: ((password: string) => Promise<AccountWriteResult>) | undefined
   readonly setEmail?: ((email: string) => Promise<AccountWriteResult>) | undefined
   readonly setReminderEmails?: ((on: boolean) => Promise<AccountWriteResult>) | undefined
+  readonly setPushNotifications?: ((on: boolean) => Promise<AccountWriteResult>) | undefined
 }
+
+export type AccountPushNotifications =
+  | { readonly kind: 'unconfigured' }
+  | { readonly kind: 'unsupported' }
+  | { readonly kind: 'ios-tab' }
+  | { readonly kind: 'denied' }
+  | { readonly kind: 'promptable' }
+  | { readonly kind: 'subscribed' }
+  | { readonly kind: 'unavailable' }
 
 export type VNextAccountProps = {
   readonly model: AccountPageModel
@@ -144,6 +154,7 @@ export type VNextAccountProps = {
   readonly theme?: 'system' | 'dark' | 'light'
   /** The player's haptic choice, held by the host that persists it. */
   readonly haptics?: 'system' | 'on' | 'off'
+  readonly pushNotifications?: AccountPushNotifications
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
   readonly onIntent?: ((intent: AccountIntent) => void) | undefined
@@ -157,6 +168,7 @@ export function VNextAccount({
   refreshing = false,
   theme = 'system',
   haptics = 'system',
+  pushNotifications = { kind: 'unconfigured' },
   onIntent,
   actions,
 }: VNextAccountProps) {
@@ -183,6 +195,7 @@ export function VNextAccount({
             panel={model.settings}
             displayName={context.displayName}
             actions={actions}
+            pushNotifications={pushNotifications}
             onRetry={onRetry}
           />
           <Follows panel={model.follows} onRetry={onRetry} refreshing={refreshing} onIntent={onIntent} />
@@ -366,11 +379,13 @@ function Settings({
   panel,
   displayName,
   actions,
+  pushNotifications,
   onRetry,
 }: {
   readonly panel: AccountSettingsPanel
   readonly displayName: string | null
   readonly actions?: AccountActions | undefined
+  readonly pushNotifications: AccountPushNotifications
   readonly onRetry?: (() => void) | undefined
 }) {
   const [job, setJob] = useState<SettingsJob | null>(null)
@@ -390,6 +405,12 @@ function Settings({
             </button>
           )}
         </div>
+        {actions?.setPushNotifications ? (
+          <PushNotificationPreference
+            state={pushNotifications}
+            save={actions.setPushNotifications}
+          />
+        ) : null}
       </section>
     )
   }
@@ -419,7 +440,7 @@ function Settings({
   // NO HEADING OVER NOTHING. A host that supplied no writes gets no "Your
   // details" section at all rather than an empty one — Stage 13's rule that the
   // page must not head a section it cannot fill, kept now that it can fill one.
-  if (rows.length === 0 && !actions?.setReminderEmails) return null
+  if (rows.length === 0 && !actions?.setReminderEmails && !actions?.setPushNotifications) return null
 
   return (
     <section className={styles.panel} data-vnext-zone="settings">
@@ -471,6 +492,13 @@ function Settings({
         <ReminderSwitch
           on={panel.reminderEmails}
           save={actions.setReminderEmails}
+        />
+      ) : null}
+
+      {actions?.setPushNotifications ? (
+        <PushNotificationPreference
+          state={pushNotifications}
+          save={actions.setPushNotifications}
         />
       ) : null}
 
@@ -553,8 +581,137 @@ function ReminderSwitch({
           <span className={`${text.micro} ${styles.rowLabel}`}>
             A nudge before your predictions lock.
           </span>
+          <span className={`${text.micro} ${styles.rowLabel}`}>
+            Where this browser has push on, the nudge goes there first.
+          </span>
         </span>
       </button>
+      {error === null ? null : (
+        <p className={`${text.micro} ${styles.error}`} role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  )
+}
+
+function PushNotificationPreference({
+  state,
+  save,
+}: {
+  readonly state: AccountPushNotifications
+  readonly save: (next: boolean) => Promise<AccountWriteResult>
+}) {
+  if (state.kind === 'unconfigured') {
+    return <PushExplanation>Push notifications are not configured on this deployment.</PushExplanation>
+  }
+  if (state.kind === 'unsupported') {
+    return <PushExplanation>This browser does not support push notifications.</PushExplanation>
+  }
+  if (state.kind === 'ios-tab') {
+    return <PushExplanation>Add this site to your Home Screen to turn on push notifications.</PushExplanation>
+  }
+  if (state.kind === 'denied') {
+    return (
+      <PushExplanation>
+        This browser blocked notifications. This page cannot ask for permission again.
+      </PushExplanation>
+    )
+  }
+  if (state.kind === 'unavailable') {
+    return <PushExplanation>We could not check push notifications for this browser just now.</PushExplanation>
+  }
+
+  return (
+    <PreferenceSwitch
+      label="Push notifications"
+      description="A nudge on this browser before your predictions lock."
+      on={state.kind === 'subscribed'}
+      save={save}
+      zone="push-notifications"
+    />
+  )
+}
+
+function PushExplanation({ children }: { readonly children: string }) {
+  return (
+    <div className={styles.switchRow} data-vnext-zone="push-notifications">
+      <p className={`${text.body} ${styles.rowValue}`}>Push notifications</p>
+      <p className={`${text.micro} ${styles.rowLabel}`}>{children}</p>
+    </div>
+  )
+}
+
+function PreferenceSwitch({
+  label,
+  description,
+  on,
+  save,
+  zone,
+}: {
+  readonly label: string
+  readonly description: string
+  readonly on: boolean
+  readonly save: (next: boolean) => Promise<AccountWriteResult>
+  readonly zone: string
+}) {
+  const [shown, setShown] = useState(on)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [status, setStatus] = useState<'saving' | 'saved' | null>(null)
+  const [seen, setSeen] = useState(on)
+  if (seen !== on) {
+    setSeen(on)
+    setShown(on)
+    setStatus(null)
+  }
+
+  return (
+    <div className={styles.switchRow} data-vnext-zone={zone}>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={shown}
+        aria-busy={busy}
+        className={styles.switch}
+        onClick={() => {
+          if (busy) return
+          const next = !shown
+          setShown(next)
+          setError(null)
+          setStatus('saving')
+          setBusy(true)
+          void save(next)
+            .then((result) => {
+              if (result.ok) {
+                setStatus('saved')
+                return
+              }
+              setShown(!next)
+              setStatus(null)
+              setError(result.message)
+            })
+            .catch(() => {
+              setShown(!next)
+              setStatus(null)
+              setError('We could not save that just now.')
+            })
+            .finally(() => setBusy(false))
+        }}
+      >
+        <span className={styles.switchTrack} aria-hidden="true">
+          <span className={styles.switchThumb} />
+        </span>
+        <span className={styles.switchText}>
+          <span className={`${text.body} ${styles.rowValue}`}>{label}</span>
+          <span className={`${text.micro} ${styles.rowLabel}`}>{description}</span>
+        </span>
+      </button>
+      {status === null ? null : (
+        <p className={`${text.micro} ${styles.note}`} role="status">
+          {status === 'saving' ? 'Saving push preference…' : 'Push preference saved.'}
+        </p>
+      )}
       {error === null ? null : (
         <p className={`${text.micro} ${styles.error}`} role="alert">
           {error}

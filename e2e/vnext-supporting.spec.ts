@@ -208,6 +208,17 @@ test.describe('every Stage 13 frame holds the same baseline', () => {
   }
 })
 
+test('the Account push switch reports persistence without claiming delivery', async ({ page }) => {
+  await open(page, 'vnext-account--frame-ordinary-phone')
+  const control = page.getByRole('switch', { name: /Push notifications/ })
+
+  await expect(control).not.toBeChecked()
+  await control.click()
+  await expect(control).toBeChecked()
+  await expect(page.getByRole('status')).toHaveText('Push preference saved.')
+  await expect(page.locator('body')).not.toContainText(/\b(sent|delivered|we emailed)\b/i)
+})
+
 /**
  * THE RULE THE GAMES HUB EXISTS FOR.
  *

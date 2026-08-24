@@ -80,6 +80,7 @@ function source(over: Partial<AccountSource> = {}): AccountSource {
       displayNameMaxLength: 40,
       passwordMinLength: 6,
     },
+    pushNotifications: { kind: 'promptable' },
     supportHref: 'mailto:help@example.test?subject=Support',
     ...over,
   }

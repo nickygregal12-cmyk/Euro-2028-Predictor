@@ -177,8 +177,19 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
           (error) => userFacingError(error, 'We could not save that preference.'),
         )
       },
+      setPushNotifications: async (on) => {
+        const [{ setPushNotifications }, { userFacingError }] = await Promise.all([
+          import('../../../services/pushNotifications'),
+          import('../../../shared/errors/userFacingError'),
+        ])
+        return run(
+          () => setPushNotifications(on),
+          (error) => userFacingError(error, 'We could not change push notifications.'),
+          state.status === 'ready' ? state.retry : undefined,
+        )
+      },
     }
-  }, [userId, onSaved])
+  }, [userId, onSaved, state])
 
   const model = useMemo(
     () => (state.status === 'ready' ? buildAccountModel(state.source) : null),
@@ -225,6 +236,9 @@ export function VNextAccountScreen(props: VNextAccountScreenProps) {
         haptics={props.haptics ?? 'system'}
         onIntent={props.onIntent}
         actions={actions}
+        pushNotifications={
+          state.status === 'ready' ? state.source.pushNotifications : { kind: 'unavailable' }
+        }
       />
     )
 

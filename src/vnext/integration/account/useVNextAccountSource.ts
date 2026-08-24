@@ -131,7 +131,7 @@ export function useVNextAccountSource(
     setRefreshing(kept)
 
     void (async () => {
-      const [preferencesModule, historyModule, catalogueModule, profileModule, authModule, policy] =
+      const [preferencesModule, historyModule, catalogueModule, profileModule, authModule, policy, pushModule] =
         await Promise.all([
           import('../../../services/supabase/playerPreferences'),
           import('../../../services/supabase/seasonHistory'),
@@ -139,6 +139,7 @@ export function useVNextAccountSource(
           import('../../../services/supabase/profile'),
           import('../../../services/supabase/auth'),
           import('../../../features/auth/authValidation'),
+          import('../../../services/pushNotifications'),
         ])
       if (!active) return
 
@@ -149,7 +150,7 @@ export function useVNextAccountSource(
       // caught together, because the settings panel cannot draw itself from
       // half of them: an email row with no address and a switch in an unknown
       // position are not two independently useful halves.
-      const [preferences, history, catalogue, settings] = await Promise.all([
+      const [preferences, history, catalogue, settings, pushNotifications] = await Promise.all([
         preferencesModule.fetchPlayerPreferences().catch(() => null),
         historyModule.fetchMySeasonHistory().catch(() => null),
         catalogueModule.fetchPublishedWeeklySeasons().catch(() => null),
@@ -161,6 +162,7 @@ export function useVNextAccountSource(
             account === null ? null : { account, emails },
           )
           .catch(() => null),
+        pushModule.getPushNotificationState().catch(() => null),
       ])
       if (!active) return
 
@@ -192,6 +194,7 @@ export function useVNextAccountSource(
                   displayNameMaxLength: policy.DISPLAY_NAME_MAX,
                   passwordMinLength: policy.PASSWORD_MIN,
                 },
+          pushNotifications: pushNotifications ?? { kind: 'unavailable' },
           supportHref,
         },
       })

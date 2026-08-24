@@ -324,23 +324,26 @@ The public half is public by design — every subscribing browser receives it, a
 a push service uses it to check a signature. The private half is a credential and
 belongs only in the Edge Function's secret store.
 
-### What is not built yet, and what unblocks it
+### Account push preference
 
-**No player can turn push on.** Everything behind the switch exists — the table,
-the RPCs, the signing, the encryption, the service worker's `push` and
-`notificationclick` handlers — and the account surface offers no control,
-because `TYPE-001` checks every call from `src/` against
-`src/services/supabase/database.types.ts`, which is generated from hosted
-Development. Development trails the repository, so `save_push_subscription` is
-not in that file and a switch calling it would not compile. The repository
-states that ordering as a feature: an RPC exists on Development before a browser
-is written against it.
+The vNext Account surface offers push for the one reminder the delivery ledger
+actually schedules. The subscription row remains the opt-in: turning the switch
+on stores this browser's endpoint and encryption keys through
+`save_push_subscription`, while turning it off deletes that own row before
+releasing the browser subscription. No second preference boolean exists.
 
-One action unblocks it — roll contract 217 out to hosted Development through the
-existing lane and run `npm run generate:types`. The reminder is executable, not
-prose: `tests/vnext/notificationPreferences.test.tsx` fails the moment the
-generated types know `save_push_subscription`, and its comment says what to
-build.
+The switch appears only when the deployment supplies `VITE_VAPID_PUBLIC_KEY`,
+the browser implements the Push API, the page is not an iOS browser tab that
+must first be added to the Home Screen, and permission has not been denied. The
+Account surface explains each unavailable state, including a failed capability
+read, rather than drawing a switch that cannot work. Saving confirms only that
+the preference persisted; it never claims a reminder was sent or delivered.
+
+`src/services/supabase/database.types.ts` and its metadata are the unchanged
+generated Development contract-218 artefacts. They include contract 217's
+`push_subscriptions` table and `save_push_subscription` RPC, which is why the
+browser integration remains typed rather than bypassing the application
+Supabase boundary.
 
 ## Switching it on
 
