@@ -47,6 +47,11 @@ if node -e "const c=require('./opencode.json'); process.exit(c.default_agent ===
 else
   missing 'Default web agent' 'opencode.json must default to predictor-conductor'
 fi
+if node -e "const c=require('./opencode.json'); process.exit(c.share === 'disabled' && c.autoupdate === false ? 0 : 1)" 2>/dev/null; then
+  ready 'Private project defaults' 'session sharing disabled; OpenCode updates stay repository-pinned'
+else
+  missing 'Private project defaults' 'opencode.json must disable sharing and automatic client updates'
+fi
 
 if command -v opencode >/dev/null 2>&1; then
   ready 'OpenCode' "$(opencode --version 2>/dev/null | head -n 1)"
@@ -92,13 +97,13 @@ if command -v claude >/dev/null 2>&1; then
   if [ -n "$supported_claude" ] && [ "$installed_version" = "$supported_claude" ]; then
     ready 'Claude Code' "$installed_line"
   else
-    optional 'Claude Code version' "installed ${installed_line:-unknown}; repository supports ${supported_claude:-unknown}"
+    optional 'Claude Code version' "installed ${installed_line:-unknown}; repository supports ${supported_claude:-unknown}; the review bridge will refuse version drift"
   fi
 
-  if [ -n "${ANTHROPIC_API_KEY:-}${ANTHROPIC_AUTH_TOKEN:-}${CLAUDE_CODE_USE_BEDROCK:-}${CLAUDE_CODE_USE_VERTEX:-}${CLAUDE_CODE_USE_FOUNDRY:-}" ]; then
-    optional 'Claude billing boundary' 'a provider/API override is set; the subscription-only bridge will refuse to run'
+  if [ -n "${ANTHROPIC_API_KEY:-}${ANTHROPIC_AUTH_TOKEN:-}${ANTHROPIC_BASE_URL:-}${CLAUDE_CODE_USE_BEDROCK:-}${CLAUDE_CODE_USE_VERTEX:-}${CLAUDE_CODE_USE_FOUNDRY:-}" ]; then
+    optional 'Claude billing boundary' 'a provider/API/endpoint override is set; the subscription-only bridge will refuse to run'
   else
-    ready 'Claude billing boundary' 'no environment provider/API override is active'
+    ready 'Claude billing boundary' 'no environment provider/API/endpoint override is active'
   fi
   optional 'Claude login verification' 'run `claude`, then /status, and confirm the Login method is the intended Claude.ai subscription'
 else
