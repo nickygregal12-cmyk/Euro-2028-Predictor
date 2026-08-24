@@ -303,6 +303,41 @@ jobs:
           restored="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from supabase_migrations.schema_migrations')"
           [ "${restored}" = "${SOURCE_CONTRACT}" ] || { echo "ERROR: restored contract ${restored}."; exit 1; }
 
+      - name: Quiet the restored cron jobs on the disposable copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          # THE DISPOSABLE COPY ONLY. `LOCAL_DB_URL` is the restored throwaway;
+          # Production keeps every job it has and this step does not exist in the
+          # rollout.
+          #
+          # WHY A REHEARSAL HAS TO DO THIS. A restore brings `cron.job` with it,
+          # so the copy comes up executing Production's schedule — eleven active
+          # jobs, several of them writing to the very tables the behavioural
+          # suites assert over. The suites then measure what the boundary did
+          # PLUS whatever the schedule did while they ran, and the second part is
+          # not reproducible: it depends on which minute the runner started.
+          #
+          # Suite 262 carries two comments that are this bug, found twice and
+          # fixed narrowly each time: a count that "passed once and failed once"
+          # until it was scoped to `now()`, and an `order by requested_at desc
+          # limit 1` that a concurrent cron row could win outright. Scoping each
+          # assertion as it is discovered treats the symptom; the rehearsal
+          # environment is the cause, because a rehearsal exists to isolate what
+          # the BOUNDARY does.
+          #
+          # This does not weaken what is rehearsed. The jobs are restored data,
+          # not part of contracts 212 to 218, and whether they exist is asserted
+          # separately: the preservation verifier still compares `cron.job` before
+          # and after the apply and still requires contract 216 to add exactly
+          # one. Both readings are taken after this step, so they agree.
+          before="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from cron.job')"
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -c 'select cron.unschedule(job.jobid) from cron.job job' > /dev/null
+          after="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from cron.job')"
+          echo "Unscheduled ${before} restored cron jobs on the disposable copy; ${after} remain."
+          [ "${after}" = '0' ] || { echo "ERROR: ${after} cron jobs still scheduled on the copy."; exit 1; }
+
       - name: Measure protected state before applying
         shell: bash
         run: |
