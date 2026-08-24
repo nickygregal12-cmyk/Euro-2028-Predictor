@@ -180,10 +180,20 @@ select is(
 --
 -- The claim is unchanged: this contract can only ever post to the endpoint the
 -- vault names it, so "sent nothing at all" IS "queued nothing for that
--- endpoint". Both the http and https forms the suite tries share the path.
+-- endpoint".
+--
+-- ANCHORED ON SCHEME, HOST AND PATH, and not on the path alone. A trailing match
+-- would have been right only by accident of the URL this suite happens to
+-- choose: `reminder_dispatch_endpoint` requires `^https://` and nothing more, so
+-- a configured endpoint carrying a query string is legal and is handed to
+-- `net.http_post` unchanged — and a path-suffix match would silently stop seeing
+-- it. Pinning the host also stops an unrelated caller on the same path being
+-- mistaken for this one. `https?` because the suite deliberately tries the http
+-- form too, and a contract that posted to THAT is a failure this must still
+-- catch rather than filter out.
 select is(
   (select count(*)::integer from net.http_request_queue
-    where url like '%/functions/v1/notification-dispatch'),
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   0,
   'having sent nothing at all'
 );
@@ -211,7 +221,7 @@ select is(
 
 select is(
   (select count(*)::integer from net.http_request_queue
-    where url like '%/functions/v1/notification-dispatch'),
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   0,
   'and nothing is queued'
 );
@@ -293,7 +303,7 @@ select is(
 -- Suite 166 established the idiom; a plain `::jsonb` raises.
 select is(
   (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue
-    where url like '%/functions/v1/notification-dispatch'),
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   current_setting('test.c216_run'),
   'carrying the id of the run it just opened, which is how the sender closes the right one'
 );
