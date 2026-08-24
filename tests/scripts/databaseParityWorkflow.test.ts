@@ -9,10 +9,22 @@ const workflow = readFileSync(workflowPath, 'utf8')
 const paritySuiteDir = resolve(repositoryRoot, 'tests/database-parity')
 const transitionSuiteDir = resolve(repositoryRoot, 'tests/migration-transition')
 
-/** The `paths:` entries the pull-request trigger actually declares. */
+/**
+ * The path entries the workflow actually declares.
+ *
+ * These moved out of the trigger's `paths:` into the `changes` job's
+ * `PARITY_PATHS` block, so the workflow runs on every pull request and can
+ * publish a required context. A `paths:`-filtered workflow does not run on a
+ * pull request it does not match, so its check never posts, and a required
+ * context that never posts blocks that pull request for ever.
+ *
+ * The list stayed a parseable block precisely so this stays readable. Comment
+ * lines travelled with it and are skipped here, exactly as the job's own reader
+ * skips them.
+ */
 function declaredFilters(): string[] {
-  const block = /^ {4}paths:\n((?: {6}(?:-|#).*\n)+)/m.exec(workflow)?.[1] ?? ''
-  return [...block.matchAll(/^ {6}- '([^']+)'$/gm)].map((match) => at(match, 1))
+  const block = /^ {6}PARITY_PATHS: \|\n((?: {8}.*\n)+)/m.exec(workflow)?.[1] ?? ''
+  return [...block.matchAll(/^ {8}(?!#)(\S+)\s*$/gm)].map((match) => at(match, 1))
 }
 
 /**
@@ -102,7 +114,7 @@ describe('database parity trigger covers what the suites consume', () => {
       'The parity suites read these paths, but a change to them would not run ' +
         'the parity workflow — so the suite asserting against them would not ' +
         'be re-run on the pull request that changed them. Add each to the ' +
-        '`paths:` filter in .github/workflows/database-parity.yml.',
+        '`PARITY_PATHS` list in .github/workflows/database-parity.yml.',
     ).toEqual([])
   })
 
@@ -117,35 +129,78 @@ describe('database parity trigger covers what the suites consume', () => {
 
 describe('database parity workflow trigger contract', () => {
   it('watches the production rollout SQL directory', () => {
-    expect(workflow).toContain("- 'scripts/database-rollout/**'")
-    expect(workflow).not.toContain("- 'scripts/database-parity/**'")
+    expect(declaredFilters()).toContain('scripts/database-rollout/**')
+    expect(declaredFilters()).not.toContain('scripts/database-parity/**')
   })
 
   it('watches the Stage C1 hosted execution scripts and development workflow', () => {
-    expect(workflow).toContain("- 'scripts/ops/**'")
-    expect(workflow).toContain(
-      "- '.github/workflows/stage-c1-development-rollout.yml'",
+    expect(declaredFilters()).toContain('scripts/ops/**')
+    expect(declaredFilters()).toContain(
+      '.github/workflows/stage-c1-development-rollout.yml',
     )
-    expect(workflow).toContain(
-      "- 'tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts'",
+    expect(declaredFilters()).toContain(
+      'tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts',
     )
   })
 
   it('watches the application/database deployment contract', () => {
-    expect(workflow).toContain("- 'config/deployment-contract.json'")
+    expect(declaredFilters()).toContain('config/deployment-contract.json')
   })
 
   it('watches this regression test and supports manual verification', () => {
-    expect(workflow).toContain("- 'tests/scripts/databaseParityWorkflow.test.ts'")
+    expect(declaredFilters()).toContain('tests/scripts/databaseParityWorkflow.test.ts')
     expect(workflow).toContain('workflow_dispatch:')
   })
 
   it('watches the whole parity suite directory', () => {
-    expect(workflow).toContain("- 'tests/database-parity/**'")
+    expect(declaredFilters()).toContain('tests/database-parity/**')
   })
 
   it('watches the migration-transition suite directory', () => {
-    expect(workflow).toContain("- 'tests/migration-transition/**'")
+    expect(declaredFilters()).toContain('tests/migration-transition/**')
+  })
+})
+
+describe('the parity gate can be required without blocking anything', () => {
+  const trigger = workflow.slice(workflow.indexOf('on:'), workflow.indexOf('permissions:'))
+
+  it('runs on every pull request rather than only on the paths it measures', () => {
+    expect(trigger).toContain('pull_request:')
+    // The filter that made this unrequirable. Its absence here is the change.
+    expect(trigger).not.toContain('paths:')
+  })
+
+  it('publishes a stable context named the way a ruleset asks for it', () => {
+    expect(workflow).toContain('name: Database parity / Required parity gate')
+  })
+
+  it('reports a conclusion whatever the suites did, including not running', () => {
+    // `always()` rather than `!cancelled()`: a gate that vanished when a suite
+    // failed would be indistinguishable, to a ruleset, from one that passed.
+    const gate = workflow.slice(workflow.indexOf('  gate:'))
+    expect(gate).toContain('if: ${{ always() }}')
+    expect(gate).toContain('needs: [changes, local-supabase, migration-transition]')
+  })
+
+  it('fails unless the suites actually succeeded where they were owed', () => {
+    // The propagation is the whole point. Without it the gate would be an
+    // always-green context, which is worse than no context at all: it would
+    // satisfy a merge rule while the evidence was red, cancelled or absent.
+    const gate = workflow.slice(workflow.indexOf('  gate:'))
+    expect(gate).toContain("needs.changes.outputs.parity == 'true'")
+    expect(gate).toContain("needs.local-supabase.result != 'success'")
+    expect(gate).toContain("needs.migration-transition.result != 'success'")
+    // And an unanswered decision is not "nothing to measure": an empty output
+    // is not 'true', so without this the gate would pass a pull request nobody
+    // had classified.
+    expect(gate).toContain("needs.changes.result != 'success'")
+  })
+
+  it('still keeps the expensive suites off unrelated pull requests', () => {
+    // Removing the trigger filter must not mean spinning Supabase on every
+    // pull request. The decision moved; it did not widen.
+    expect(workflow).toContain("if: ${{ needs.changes.outputs.parity == 'true' }}")
+    expect(workflow).toContain('needs: changes')
   })
 })
 

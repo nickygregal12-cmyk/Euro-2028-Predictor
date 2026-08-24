@@ -1,38 +1,131 @@
 name: Database parity
 
+# THE PATH LIST MOVED INSIDE, AND THAT IS WHAT MAKES THIS REQUIRABLE.
+#
+# A `paths:`-filtered workflow does not run on a pull request it does not match,
+# so its check never posts, and a required context that never posts blocks that
+# pull request for ever — `DOC-001`, then `OPS-012`. The cost of leaving the
+# filter on the trigger is the quieter half: the context cannot be required at
+# all, so a change that breaks database parity merges on a green core CI that
+# never ran these suites. Measured on 24 August 2026 from merge history: #1028
+# published `local-supabase` and `migration-transition`; #1034 published neither
+# and merged, which it could not have done had either been required.
+#
+# `vnext-workshop.yml` is the shape this follows: the filter becomes a cheap
+# `changes` job, the expensive suites stay gated on its answer so an unrelated
+# pull request still does not spin Supabase, and one always-reporting gate
+# publishes the stable context.
 on:
   pull_request:
-    paths:
-      - '.github/workflows/database-parity.yml'
-      - '.github/workflows/stage-c1-development-rollout.yml'
-      - 'config/deployment-contract.json'
-      # `liveCompetitionCallerBoundary` asserts against the development hosted
-      # record, so a change to it must re-run the suite that reads it.
-      - 'config/development-hosted-contract.json'
-      - 'fixtures/predicted-group-order.json'
-      # `liveCompetitionConflictTargets` names the published catalogue SQL.
-      - 'scripts/bonus-games/**'
-      - 'scripts/database-rollout/**'
-      - 'scripts/ops/**'
-      # Cover every shared domain sibling, including competition and future season modules.
-      - 'src/domain/**'
-      # `enumUnionParity` and `seasonComparisonReadsParity` read these reads to
-      # compare their TypeScript unions against the database enums. Scoped to the
-      # Supabase service directory rather than all of `src/services`, because that
-      # is the whole of what the suites consume.
-      - 'src/services/supabase/**'
-      - 'supabase/**'
-      - 'tests/database-parity/**'
-      - 'tests/migration-transition/**'
-      - 'tests/scripts/databaseParityWorkflow.test.ts'
-      - 'tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Database parity paths changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      parity: ${{ steps.decide.outputs.parity }}
+    env:
+      # THE ONE COPY OF THE PATH LIST, moved here from the trigger's `paths:`.
+      # Kept as a parseable block rather than dissolved into grep patterns, so
+      # `tests/scripts/databaseParityWorkflow.test.ts` can still check it against
+      # what the suites actually read. That test derives its expectations from
+      # the suites' own imports, because an adversarial pass on 17 August 2026
+      # showed a list of literals only ever guards the literals someone
+      # remembered — `src/domain/**` and `supabase/**`, the two things parity
+      # exists to compare, were the ones missing.
+      #
+      # An entry is an exact file, or `dir/**` for a directory. Comment lines are
+      # carried over with their entries and skipped when reading.
+      PARITY_PATHS: |
+        .github/workflows/database-parity.yml
+        .github/workflows/stage-c1-development-rollout.yml
+        config/deployment-contract.json
+        # `liveCompetitionCallerBoundary` asserts against the development hosted
+        # record, so a change to it must re-run the suite that reads it.
+        config/development-hosted-contract.json
+        fixtures/predicted-group-order.json
+        # `liveCompetitionConflictTargets` names the published catalogue SQL.
+        scripts/bonus-games/**
+        scripts/database-rollout/**
+        scripts/ops/**
+        # Cover every shared domain sibling, including competition and future season modules.
+        src/domain/**
+        # `enumUnionParity` and `seasonComparisonReadsParity` read these reads to
+        # compare their TypeScript unions against the database enums. Scoped to the
+        # Supabase service directory rather than all of `src/services`, because that
+        # is the whole of what the suites consume.
+        src/services/supabase/**
+        supabase/**
+        tests/database-parity/**
+        tests/migration-transition/**
+        tests/scripts/databaseParityWorkflow.test.ts
+        tests/scripts/stageC1DevelopmentRolloutWorkflow.test.ts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # The base commit is what `git diff` needs, and full history is the
+          # dependable way to have it. This job is seconds either way.
+          fetch-depth: 0
+
+      - name: Decide whether the parity evidence is owed
+        id: decide
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BASE_SHA:-}" ]; then
+            # A manual dispatch has no base to compare against. Measure.
+            printf 'parity=true\n' >> "$GITHUB_OUTPUT"
+            echo 'No pull-request base: running the full parity suite.'
+            exit 0
+          fi
+
+          changed_file="$(mktemp)"
+          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$changed_file"
+
+          matched=''
+          while IFS= read -r entry; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            case "$entry" in '' | '#'*) continue ;; esac
+            case "$entry" in
+              */'**')
+                dir="${entry%/**}"
+                while IFS= read -r file; do
+                  case "$file" in
+                    "$dir" | "$dir"/*) matched="$entry" ;;
+                  esac
+                done < "$changed_file"
+                ;;
+              *)
+                while IFS= read -r file; do
+                  [ "$file" = "$entry" ] && matched="$entry"
+                done < "$changed_file"
+                ;;
+            esac
+          done <<PARITY_ENTRIES
+          $PARITY_PATHS
+          PARITY_ENTRIES
+
+          if [ -n "$matched" ]; then
+            printf 'parity=true\n' >> "$GITHUB_OUTPUT"
+            printf 'Parity evidence is owed: %s changed.\n' "$matched"
+          else
+            printf 'parity=false\n' >> "$GITHUB_OUTPUT"
+            echo 'No path the parity suites read was changed.'
+          fi
+
   local-supabase:
+    needs: changes
+    if: ${{ needs.changes.outputs.parity == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -121,6 +214,8 @@ jobs:
   # they run explicitly after a reset to that baseline rather than as one mixed
   # directory whose tests could silently exercise the wrong schema version.
   migration-transition:
+    needs: changes
+    if: ${{ needs.changes.outputs.parity == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 35
 
@@ -166,3 +261,52 @@ jobs:
       - name: Stop and delete disposable local data
         if: always()
         run: supabase stop --no-backup
+
+  gate:
+    # THE NAME IS THE RULESET'S CONTEXT STRING. A ruleset matches a status check
+    # on the check-run name, which for an Actions job is the job's `name:` alone,
+    # so it is written in the `Workflow / Job` form the rule asks for. `CI /
+    # Required merge gate` was renamed for exactly this reason after every pull
+    # request sat waiting on a context nothing emitted.
+    name: Database parity / Required parity gate
+    # ALWAYS. This context has to exist on every pull request — including the
+    # ones with nothing to measure, and including the ones where a suite failed,
+    # because a gate that vanished on failure would be indistinguishable from one
+    # that passed.
+    if: ${{ always() }}
+    needs: [changes, local-supabase, migration-transition]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # AN UNANSWERED DECISION IS NOT "NOTHING TO MEASURE". Its output would be
+      # empty, and an empty output is not 'true' — so without this the gate would
+      # report success for a pull request nobody had classified.
+      - name: Refuse an unanswered decision
+        if: ${{ needs.changes.result != 'success' }}
+        run: |
+          echo "ERROR: the paths decision concluded '${{ needs.changes.result }}'."
+          echo 'Whether this change owes database-parity evidence is unknown,'
+          echo 'which is not a pass.'
+          exit 1
+
+      - name: Refuse a parity suite that did not succeed where it was owed
+        if: >-
+          ${{ needs.changes.result == 'success'
+          && needs.changes.outputs.parity == 'true'
+          && (needs.local-supabase.result != 'success'
+          || needs.migration-transition.result != 'success') }}
+        run: |
+          echo 'ERROR: parity evidence was owed on this pull request.'
+          echo "local-supabase concluded '${{ needs.local-supabase.result }}'."
+          echo "migration-transition concluded '${{ needs.migration-transition.result }}'."
+          echo 'Red, cancelled and absent are all "not proven", and none of them'
+          echo 'is a pass.'
+          exit 1
+
+      - name: Report success where no parity path changed
+        if: ${{ needs.changes.result == 'success' && needs.changes.outputs.parity != 'true' }}
+        run: |
+          echo 'No path the parity suites read was changed on this pull request.'
+          echo 'These suites compare TypeScript against the database, and nothing'
+          echo 'this change touches can move either. Reporting success so the gate'
+          echo 'stays a stable required context.'
