@@ -63,6 +63,22 @@ export const WAITING_STATES = Object.freeze([
 ])
 
 /**
+ * Waiting on an external system, as distinct from waiting on the owner.
+ *
+ * A programme parked on a thirty-minute CI run is healthy, not stalled, and the
+ * difference has to be mechanical: the stall detector counts *idleness*, and
+ * without this distinction a run that was doing exactly the right thing —
+ * checkpointing a push and standing down — escalated itself to BLOCKED while CI
+ * was still legitimately running.
+ */
+export const EXTERNAL_WAITING_STATES = Object.freeze([
+  'WAITING_CI',
+  'WAITING_REVIEW',
+  'WAITING_EXTERNAL',
+  'WAITING_PROVIDER',
+])
+
+/**
  * Run modes.
  * OBSERVE_ONLY - reconcile, classify and record, but never dispatch a mutation.
  * ACTIVE       - full dispatch, still inside the safety envelope.
@@ -134,7 +150,40 @@ export function ineligibilityReason(task, tasksById, limits = DEFAULT_LIMITS) {
 }
 
 /**
- * Pick the next task to run. Deterministic: lowest `order`, then task id.
+ * How many still-open tasks are waiting, directly or transitively, on this one.
+ * Used to prefer work that unblocks the most other work.
+ *
+ * @param {string} taskId
+ * @param {Task[]} tasks
+ * @returns {number}
+ */
+export function countDownstream(taskId, tasks) {
+  const open = tasks.filter((t) => !['COMPLETED', 'CANCELLED'].includes(t.status ?? 'QUEUED'))
+  const seen = new Set()
+  let frontier = [taskId]
+  while (frontier.length > 0) {
+    const next = []
+    for (const task of open) {
+      if (seen.has(task.id)) continue
+      if ((task.dependencies ?? []).some((dep) => frontier.includes(dep))) {
+        seen.add(task.id)
+        next.push(task.id)
+      }
+    }
+    frontier = next
+  }
+  return seen.size
+}
+
+/**
+ * Pick the next task to run.
+ *
+ * Deterministic, and ordered by what most improves programme throughput: an
+ * explicit priority first, then how much work this task unblocks, then the
+ * declared order, then the id as a final tie-break. Preferring the task that
+ * frees the most downstream work is what stops a long external wait on one
+ * branch from deciding the pace of everything behind it.
+ *
  * Never picks a mutating task while mutation dispatch is closed.
  *
  * @param {Run} run
@@ -149,7 +198,13 @@ export function selectEligibleTask(run, tasks, limits = DEFAULT_LIMITS) {
   const runnable = tasks
     .filter((task) => ineligibilityReason(task, tasksById, limits) === null)
     .filter((task) => (task.mutating ? mutationAllowed : true))
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id))
+    .sort(
+      (a, b) =>
+        (b.priority ?? 0) - (a.priority ?? 0) ||
+        countDownstream(b.id, tasks) - countDownstream(a.id, tasks) ||
+        (a.order ?? 0) - (b.order ?? 0) ||
+        a.id.localeCompare(b.id),
+    )
 
   return runnable[0] ?? null
 }

@@ -59,6 +59,26 @@ Progress is evidence — a transition, a result, a classified diagnosis — not
 elapsed time, so re-reading unchanged GitHub state does not reset the stall
 detector.
 
+## External waiting is not programme latency
+
+A task entering `WAITING_CI`, `WAITING_REVIEW`, `WAITING_EXTERNAL` or
+`WAITING_PROVIDER` checkpoints, records what it awaits, releases its worker, and
+the queue is rescanned immediately. Independent, dependency-valid work runs
+during the wait; a dependant of the parked task stays blocked, because waiting is
+not completion.
+
+Selection prefers what most improves throughput: an explicit `priority`, then how
+many open tasks this one unblocks (transitively), then `order`, then id. That is
+what stops one branch's thirty-minute CI run from setting the pace of everything
+behind it.
+
+`IDLE` and external waiting are deliberately different outcomes, and only `IDLE`
+feeds the stall detector. A programme parked on CI with nothing else runnable is
+healthy; counting it as no-progress escalated a correct thirty-minute wait to
+`BLOCKED` in forty minutes, which is the opposite of what the brake is for. The
+loop reports `WAITING_EXTERNAL` there instead, and `IDLE` only when nothing is
+runnable *and* nothing is awaited.
+
 ## What the loop decides, and what it will not accept
 
 `scripts/control-plane/policy.mjs` holds every verdict as a pure function. A
@@ -92,6 +112,12 @@ three dependent tasks sequencing with no instruction to continue, Emergency
 Stop preventing a further mutating dispatch, restart recovery from the
 persisted checkpoint, attempt limits reaching `BLOCKED`, and `OBSERVE_ONLY`
 holding a mutating task while read-only work still advances.
+
+It also carries the external-wait canary: a task parks on CI and is never
+dispatched again, independent work proceeds unprompted, its dependant stays
+blocked, a long wait reports `WAITING_EXTERNAL` rather than accruing no-progress
+cycles, a true stall still escalates, and the parked task resumes only when a
+watcher supplies fresh external evidence.
 
 A product task must never modify the running loop engine or its safety policy.
 Fix the loop through its own change, with these tests re-run, before restarting

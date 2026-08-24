@@ -8,6 +8,7 @@ import {
   DEFAULT_LIMITS,
   assessLiveness,
   classifyFailure,
+  countDownstream,
   dependenciesSatisfied,
   evaluateMergeEligibility,
   mutationDispatchAllowed,
@@ -333,6 +334,146 @@ describe('store durability', () => {
     expect(store.loadTasks().t?.repeatedFailures).toBe(1)
     store.recordAttempt('t', { at: T0, failureClass: 'CI_INFRA_FAILURE' })
     expect(store.loadTasks().t?.repeatedFailures).toBe(0)
+  })
+})
+
+describe('external waiting must not become programme latency', () => {
+  const clock = (from = T0) => {
+    let tick = 0
+    return () => new Date(Date.parse(from) + tick++ * 1000).toISOString()
+  }
+
+  it('releases the worker, runs independent work, and keeps dependants blocked', async () => {
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'A', handler: 'push', order: 0 })
+    store.upsertTask({ id: 'B', handler: 'work', order: 1 })
+    store.upsertTask({ id: 'C', handler: 'work', order: 2, dependencies: ['A'] })
+
+    const ran: string[] = []
+    const engine = new LoopEngine({
+      store,
+      now: clock(),
+      handlers: {
+        push: async ({ task }: HandlerContext) => {
+          ran.push(task.id)
+          return { ok: true, status: 'WAITING_CI', nextAction: 'WATCH_CI', evidence: 'pushed' }
+        },
+        work: async ({ task }: HandlerContext) => {
+          ran.push(task.id)
+          return { ok: true, evidence: 'done' }
+        },
+      },
+    })
+
+    const decisions = await engine.run()
+
+    // A parks on CI and is never dispatched again — no model polls it.
+    expect(store.loadTasks().A?.status).toBe('WAITING_CI')
+    expect(ran.filter((id) => id === 'A')).toHaveLength(1)
+    // B runs anyway, with nobody saying continue.
+    expect(ran).toContain('B')
+    // C genuinely depends on A, so it stays put. Waiting is not completion.
+    expect(store.loadTasks().C?.status).toBe('QUEUED')
+    expect(ran).not.toContain('C')
+    // And the programme reports the wait, not emptiness.
+    expect(decisions.at(-1)?.outcome).toBe('WAITING_EXTERNAL')
+  })
+
+  it('does not count a healthy external wait as a stall', async () => {
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'A', handler: 'push', order: 0 })
+    store.transition('A', 'WAITING_CI', { at: T0, nextAction: 'WATCH_CI' })
+
+    // Twenty and forty minutes on, with nothing else runnable. Before the
+    // external/idle split this reported STALLED then BLOCKED, condemning a run
+    // for correctly standing down during a thirty-minute CI cycle.
+    let at = '2026-08-24T22:20:00.000Z'
+    const engine = new LoopEngine({ store, now: () => at, handlers: {} })
+    expect((await engine.tick()).outcome).toBe('WAITING_EXTERNAL')
+    at = '2026-08-24T22:40:00.000Z'
+    expect((await engine.tick()).outcome).toBe('WAITING_EXTERNAL')
+    expect(store.loadRun()?.noProgressCycles).toBe(0)
+    expect(store.loadTasks().A?.status).toBe('WAITING_CI')
+  })
+
+  it('still reports a true stall when nothing is awaited and nothing runs', async () => {
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'A', handler: 'missing', order: 0 })
+    store.transition('A', 'QUEUED', { at: T0 })
+
+    // No handler, so nothing can advance and nothing is legitimately awaited.
+    const engine = new LoopEngine({ store, now: () => '2026-08-24T22:20:00.000Z', handlers: {} })
+    await engine.tick()
+    const outcome = (await engine.tick()).outcome
+    expect(['STALLED', 'BLOCKED', 'NO_HANDLER']).toContain(outcome)
+  })
+
+  it('resumes the parked task once external evidence makes it actionable', async () => {
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'A', handler: 'work', order: 0 })
+    store.upsertTask({ id: 'C', handler: 'work', order: 1, dependencies: ['A'] })
+    store.transition('A', 'WAITING_CI', { at: T0, nextAction: 'WATCH_CI' })
+
+    const ran: string[] = []
+    const engine = new LoopEngine({
+      store,
+      now: clock(),
+      handlers: {
+        work: async ({ task }: HandlerContext) => {
+          ran.push(task.id)
+          return { ok: true, evidence: 'done' }
+        },
+      },
+    })
+
+    expect((await engine.tick()).outcome).toBe('WAITING_EXTERNAL')
+    expect(ran).toEqual([])
+
+    // A watcher observes CI going green and returns A to the queue. That is the
+    // only thing that wakes it: the loop never decided to look again by itself.
+    store.transition('A', 'ELIGIBLE', { at: T0, evidence: 'ci success observed', nextAction: 'MERGE' })
+    await engine.run()
+
+    expect(ran).toEqual(['A', 'C'])
+    expect(store.loadTasks().C?.status).toBe('COMPLETED')
+  })
+})
+
+describe('critical-path scheduling', () => {
+  it('counts the work a task unblocks, transitively', () => {
+    const tasks: Task[] = [
+      { id: 'root', status: 'QUEUED' },
+      { id: 'mid', status: 'QUEUED', dependencies: ['root'] },
+      { id: 'leaf', status: 'QUEUED', dependencies: ['mid'] },
+      { id: 'lonely', status: 'QUEUED' },
+      { id: 'done', status: 'COMPLETED', dependencies: ['root'] },
+    ]
+    expect(countDownstream('root', tasks)).toBe(2)
+    expect(countDownstream('mid', tasks)).toBe(1)
+    expect(countDownstream('lonely', tasks)).toBe(0)
+  })
+
+  it('prefers the task that unblocks the most, over a lower declared order', () => {
+    const tasks: Task[] = [
+      { id: 'quick', status: 'QUEUED', order: 0 },
+      { id: 'unblocker', status: 'QUEUED', order: 5 },
+      { id: 'x', status: 'QUEUED', dependencies: ['unblocker'] },
+      { id: 'y', status: 'QUEUED', dependencies: ['unblocker'] },
+    ]
+    expect(selectEligibleTask(freshRun(), tasks)?.id).toBe('unblocker')
+  })
+
+  it('lets an explicit priority outrank the downstream count', () => {
+    const tasks: Task[] = [
+      { id: 'urgent-repair', status: 'QUEUED', order: 9, priority: 10 },
+      { id: 'unblocker', status: 'QUEUED', order: 0 },
+      { id: 'x', status: 'QUEUED', dependencies: ['unblocker'] },
+    ]
+    expect(selectEligibleTask(freshRun(), tasks)?.id).toBe('urgent-repair')
   })
 })
 

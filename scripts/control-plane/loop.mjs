@@ -20,6 +20,7 @@
 
 import {
   DEFAULT_LIMITS,
+  EXTERNAL_WAITING_STATES,
   selectEligibleTask,
   mutationDispatchAllowed,
   assessLiveness,
@@ -73,6 +74,10 @@ export class LoopEngine {
       // so IDLE never gets mistaken for completion.
       const outcome = this.#idleOutcome(tasks)
       const liveness = assessLiveness(run, at, this.limits)
+      // Only genuine idleness counts toward the stall. A programme parked on an
+      // external system with nothing else runnable is doing the right thing, and
+      // counting that as no-progress escalated a healthy thirty-minute CI wait
+      // to BLOCKED in forty minutes.
       if (outcome === 'IDLE' && liveness.verdict !== 'LIVE') {
         run.noProgressCycles = liveness.nextNoProgressCycles
         this.store.saveRun(run)
@@ -180,6 +185,11 @@ export class LoopEngine {
     if (waitingOwner && open.every((t) => t.status !== 'QUEUED' && t.status !== 'ELIGIBLE')) {
       return 'WAITING_OWNER'
     }
+    // Nothing runnable, but something is genuinely awaited: report the wait, so
+    // it reads as a live programme rather than an empty one.
+    if (open.some((t) => EXTERNAL_WAITING_STATES.includes(t.status ?? 'QUEUED'))) {
+      return 'WAITING_EXTERNAL'
+    }
     return 'IDLE'
   }
 
@@ -196,6 +206,7 @@ export class LoopEngine {
         'ALL_COMPLETE',
         'IDLE',
         'WAITING_OWNER',
+        'WAITING_EXTERNAL',
         'MUTATION_BLOCKED',
         'BLOCKED',
         'STALLED',
