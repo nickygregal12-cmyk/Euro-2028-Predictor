@@ -184,10 +184,12 @@ printf '%s\\n' \\
   it('runs the cloud smoke when any directly tested helper changes', () => {
     const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
     for (const helper of [
+      'scripts/agent-tools/cloud-browser-install.sh',
       'scripts/agent-tools/configure-claude-settings.mjs',
       'scripts/agent-tools/merge-cloud-env.mjs',
       'scripts/agent-tools/mcp-readiness.sh',
       'scripts/agent-tools/netlify-mcp-fallback.sh',
+      'scripts/agent-tools/stage0-live-acceptance.sh',
     ]) {
       expect(workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`)).toHaveLength(2)
     }
@@ -250,7 +252,20 @@ printf '%s\\n' \\
 case "\${1:-}" in
   --version) printf '1.18.19\\n' ;;
   debug) exit 0 ;;
-  mcp) printf '  sentry  Failed to connect: server not ready\\n' ;;
+  mcp) cat <<'MCP'
+  playwright  Connected
+  chrome-devtools  Connected
+  serena  Connected
+  context7  Connected
+  repomix  Connected
+  supabase-dev  Connected (OAuth)
+  supabase-prod  Connected (OAuth)
+  netlify  Connected (OAuth)
+  github  Connected
+  sentry  Failed to connect: server not ready
+  posthog  Connected (OAuth)
+MCP
+    ;;
   *) exit 2 ;;
 esac
 `, { mode: 0o755 })
