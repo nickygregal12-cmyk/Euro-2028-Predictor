@@ -169,8 +169,31 @@ select is(
   'and it RECORDS the refusal, closed, which is the fact the delivery ledger cannot carry because nothing was ever claimed'
 );
 
+-- SCOPED TO THIS CONTRACT'S OWN ENDPOINT, for the same reason the assertion
+-- above is scoped to `now()`, and learned the same way. `net.http_request_queue`
+-- is shared, and a database restored from a real environment brings its
+-- `cron.job` rows with it: those jobs fire on the disposable copy while this
+-- suite runs and queue their own requests. A global count therefore passes on a
+-- freshly migrated chain, where the same jobs exist but have no poll target or
+-- due fixture to act on, and fails against restored data — which is exactly what
+-- it did, in the Contract 211-to-217 Production rehearsal.
+--
+-- The claim is unchanged: this contract can only ever post to the endpoint the
+-- vault names it, so "sent nothing at all" IS "queued nothing for that
+-- endpoint".
+--
+-- ANCHORED ON SCHEME, HOST AND PATH, and not on the path alone. A trailing match
+-- would have been right only by accident of the URL this suite happens to
+-- choose: `reminder_dispatch_endpoint` requires `^https://` and nothing more, so
+-- a configured endpoint carrying a query string is legal and is handed to
+-- `net.http_post` unchanged — and a path-suffix match would silently stop seeing
+-- it. Pinning the host also stops an unrelated caller on the same path being
+-- mistaken for this one. `https?` because the suite deliberately tries the http
+-- form too, and a contract that posted to THAT is a failure this must still
+-- catch rather than filter out.
 select is(
-  (select count(*)::integer from net.http_request_queue),
+  (select count(*)::integer from net.http_request_queue
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   0,
   'having sent nothing at all'
 );
@@ -197,7 +220,8 @@ select is(
 );
 
 select is(
-  (select count(*)::integer from net.http_request_queue),
+  (select count(*)::integer from net.http_request_queue
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   0,
   'and nothing is queued'
 );
@@ -278,7 +302,8 @@ select is(
 -- pg_net stores the pending body as `bytea`, so it is decoded rather than cast.
 -- Suite 166 established the idiom; a plain `::jsonb` raises.
 select is(
-  (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue),
+  (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue
+    where url ~ '^https?://127\.0\.0\.1:1/functions/v1/notification-dispatch([?#]|$)'),
   current_setting('test.c216_run'),
   'carrying the id of the run it just opened, which is how the sender closes the right one'
 );
