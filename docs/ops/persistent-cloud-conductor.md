@@ -2,105 +2,81 @@
 
 ## Status
 
-Optional **developer infrastructure only**. The goal is one private web front door for Predictor development without paying for a permanently large VM or routing every model through paid APIs.
+Optional **developer infrastructure only**. This is the single private front door for AI-assisted Predictor development from a laptop, phone or tablet. It is not part of the Predictor application, Netlify deployment, Supabase runtime, AI Lab runtime or Production dependency graph.
 
-The cost-first order is:
-
-1. **£0 host:** Oracle Cloud Always Free Ampere A1 when capacity is available;
-2. **effectively £0 host:** an existing spare computer kept on at home, reached through Tailscale;
-3. **£0 on-demand:** the personal GitHub Codespaces monthly allowance when an always-on box is unnecessary;
-4. **paid fallback only:** a small ordinary Ubuntu VM if the free choices prove unreliable.
-
-Nothing here is part of the Predictor application, Netlify deployment, Supabase runtime, AI Lab runtime or production dependency graph.
-
-## Cost policy
-
-The tracked model team is deliberately subscription/free-first:
-
-| Agent | Default provider/model | Incremental cost intent | Role |
-| --- | --- | --- | --- |
-| `predictor-conductor` | OpenAI GPT-5.6 Sol via direct OpenCode OpenAI login | use existing ChatGPT allowance first | read-only coordinator |
-| `predictor-builder` | OpenAI GPT-5.6 Sol via direct OpenCode OpenAI login | use existing ChatGPT allowance first | sole write-capable worker |
-| `predictor-critic` | Ox Alpha via OpenRouter | currently free | independent read-only critic |
-
-Do **not** route GPT through OpenRouter by default. OpenCode supports signing into OpenAI with a ChatGPT account; use that path so ordinary Conductor/Builder work uses the user's existing ChatGPT/Codex allowance. Included usage is still rate-limited by the ChatGPT plan; if it is exhausted, stop or wait for reset rather than silently switching to paid API usage.
-
-Ox Alpha remains behind a separately scoped `OPENROUTER_API_KEY`; the model is currently free, but availability/pricing is external and may change.
-
-Claude is optional rather than a mandatory per-task charge. If the operator already has Claude Pro/Max, use the **official Claude Code client** for selected escalations/reviews. Anthropic supports Claude Code with those subscriptions. Scripted `claude -p` work can draw from Claude's separate Agent SDK allowance/credits, so it is not assumed to be unlimited or permanently zero-cost. Do not reuse Claude subscription credentials through OpenCode or third-party plugins. If no Claude subscription exists, leave that lane disabled rather than creating API spend.
-
-## Free host choice A — Oracle Cloud Always Free
-
-Oracle currently offers Always Free Ampere A1 compute equivalent to **2 OCPUs and 12 GB RAM** plus Always Free block storage in the account's home region. That is enough to trial the Conductor because model inference is remote; the host mainly runs Git, Node/TypeScript, OpenCode and repository tools.
-
-Important limitations:
-
-- the free A1 shape is ARM64;
-- capacity can be unavailable in a region;
-- the repository installer supports both x86-64 and ARM64 Node binaries;
-- very heavy Playwright/build workloads will be slower than a paid development VM.
-
-Use Ubuntu 24.04 LTS and allocate the free A1 allowance to one VM where possible.
-
-## Free host choice B — spare home computer
-
-If an old desktop, mini PC or laptop is available, this is the most dependable £0-hosting option. Install Ubuntu 24.04 LTS, keep it plugged in, disable sleep while serving the workspace, and use the same installer below.
-
-Tailscale means no router port-forwarding is required. From the user's perspective it behaves like a private cloud box even though the hardware is at home.
-
-Electricity is the only incremental infrastructure cost.
-
-## Free host choice C — Codespaces on demand
-
-Personal GitHub accounts include a monthly Codespaces quota. Current GitHub documentation lists 120 core-hours/month for personal Free accounts and 180 for GitHub Pro, plus included storage. Use this when persistent 24/7 availability is not necessary. Codespaces automatically stops when idle, so it is not the always-on architecture, but it is a good zero-cost fallback and the repository already bootstraps OpenCode there.
-
-Do not keep Codespaces running simply to imitate an always-on server; that wastes the included core-hours.
-
-## Paid fallback
-
-If Oracle capacity is unavailable and there is no spare machine, use the smallest Ubuntu VM that comfortably runs the current workload, then resize only if tests/builds prove it necessary. Do not start with a 16 GB server merely because one was used as an earlier reference design.
-
-The remote models do not become smarter when the VM is larger. More CPU/RAM only speeds local repository operations.
-
-## Security shape
+The finished user experience is deliberately simple:
 
 ```text
-phone / tablet / laptop
+phone / laptop / tablet
         |
    Tailscale app
         |
- encrypted private tailnet
-        |
-  Tailscale Serve HTTPS
-        |
-  127.0.0.1:4096
+ private HTTPS .ts.net URL
         |
  OpenCode Web + HTTP Basic auth
         |
- Predictor repository
+ predictor-conductor (default agent)
+        |
+        +-- GPT Builder when code must change
+        +-- direct Ox critic when an independent challenge helps
+        +-- Visual QA after player-facing work when evidence is needed
+        +-- Release Verifier for release-critical evidence
+        +-- optional official Claude Code review for selected hard cases
+        |
+ repository tests / GitHub PR / CI remain final authority
 ```
 
-OpenCode binds **only to `127.0.0.1:4096`**. Never expose 4096 publicly and never use Tailscale Funnel for this workspace.
+The user should normally remain in **`predictor-conductor`** and describe one outcome in normal language. `opencode.json` makes it the project default, so a new session does not require selecting Build/Plan/Conductor every time.
 
-Tailscale Personal is sufficient for an individual non-commercial workspace and is currently free. There are two access layers:
+## Model and cost policy
+
+| Lane | Provider/model | Default cost intent | Capability |
+| --- | --- | --- | --- |
+| `predictor-conductor` | OpenAI GPT-5.6 Sol via direct OpenCode OpenAI login | existing ChatGPT allowance | read-only coordinator |
+| `predictor-builder` | OpenAI GPT-5.6 Sol via direct OpenCode OpenAI login | existing ChatGPT allowance | sole write-capable worker |
+| `predictor-critic` | Ox Alpha via OpenRouter | external free/low-cost lane; re-check pricing | independent read-only critic |
+| `predictor-visual-qa` | OpenAI GPT-5.6 Sol | existing ChatGPT allowance | read-only browser/journey evidence |
+| `predictor-release-verifier` | OpenAI GPT-5.6 Sol | existing ChatGPT allowance | read-only deterministic release evidence |
+| Claude review bridge | official Claude Code client | existing Claude subscription/allowance only | optional different-model read-only specialist |
+
+Do **not** route GPT through OpenRouter by default. Authenticate OpenCode directly to OpenAI with the ChatGPT account so ordinary Conductor/Builder/verification work uses the existing subscription allowance. If that allowance is exhausted, stop or wait for reset rather than silently switching to paid API usage.
+
+Ox Alpha remains behind a separately scoped `OPENROUTER_API_KEY`. Pricing/availability is external and can change.
+
+Claude is optional. The repository-supported path uses the **official Claude Code client** and a Claude.ai OAuth login. The tracked review bridge refuses API-token and Bedrock/Vertex/Foundry environment overrides, and also refuses an `apiKeyHelper`, so a subscription review cannot silently become another billing route. Do not route Claude Pro/Max credentials through OpenCode or a third-party provider.
+
+## Security boundary
+
+```text
+Tailscale member device
+        |
+ encrypted private tailnet
+        |
+ Tailscale Serve HTTPS
+        |
+ 127.0.0.1:4096
+        |
+ OpenCode Web
+```
+
+OpenCode binds **only to `127.0.0.1:4096`**. Never expose port 4096 publicly and never use Tailscale Funnel for this workspace.
+
+Access has two independent layers:
 
 1. membership in the private Tailscale tailnet;
-2. OpenCode `OPENCODE_SERVER_PASSWORD` HTTP Basic authentication.
+2. OpenCode HTTP Basic authentication using username `predictor` and the generated `OPENCODE_SERVER_PASSWORD`.
 
-## 1. Prepare an Ubuntu 24.04 host
+No external model may receive `.env` contents, credentials, exported player data or Production secrets merely because it can read repository code.
 
-Create the Oracle A1 VM, prepare the spare computer, or provision the paid fallback. Create a non-root development user:
+## Host requirement
 
-```bash
-adduser predictor
-usermod -aG sudo predictor
-su - predictor
-sudo -v
-```
+Ubuntu **24.04 LTS (noble)** is the supported persistent host. Remote model inference does not need a large VM, but local Node, Graphify, builds and browsers do.
 
-The OpenCode service runs as this account, never root.
+A 2 GiB host is sufficient for basic orchestration/authentication. For regular Playwright, builds and multi-agent verification, use approximately **4 vCPU / 8 GiB RAM**. The doctor reports smaller hosts as usable for orchestration but not ideal for heavy browser/build work.
 
-## 2. Clone and install
+## Initial install
+
+Create/use a normal non-root account, clone the repository, then run:
 
 ```bash
 git clone https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git
@@ -111,62 +87,104 @@ bash scripts/agent-tools/cloud-conductor-install.sh
 The installer:
 
 - verifies Ubuntu 24.04;
-- handles x86-64 or ARM64;
-- installs/checksum-verifies the exact repository Node version;
+- supports x86-64 and ARM64;
+- checksum-verifies the exact repository Node version;
 - installs Tailscale from its signed Ubuntu repository;
-- runs the repository-pinned developer bootstrap;
-- asks for the OpenRouter key used by free Ox Alpha;
+- runs the pinned developer bootstrap;
+- asks for the scoped OpenRouter key used by Ox;
 - generates a separate OpenCode web password;
-- installs an always-on user `systemd` service;
-- binds OpenCode to localhost only.
+- creates an always-on user `systemd` service;
+- binds OpenCode to localhost only;
+- makes no model request during installation.
 
-It makes no model request during installation.
+The environment file is:
 
-## 3. Authenticate the free/subscription model paths
+```text
+~/.config/predictor-cloud/opencode.env
+```
 
-### Ox Alpha
+It must remain mode `0600` and must never be committed or pasted into chat.
 
-Create a separately scoped OpenRouter key for the workspace and provide it to the installer. Do not add a positive spend budget merely because the key exists; Ox Alpha is the intended OpenRouter model for the default critic lane. Re-check its price before relying on it long term.
+## Authenticate OpenAI / ChatGPT
 
-### ChatGPT / OpenAI
+From OpenCode, connect **OpenAI** and choose the ChatGPT subscription login. On a remote server, if the OAuth browser redirects to a localhost port on the laptop, tunnel that port over SSH for the duration of login.
 
-From the OpenCode UI/TUI, connect **OpenAI** and choose the ChatGPT Plus/Pro authentication option. Complete the browser login with the same ChatGPT account you already use.
+The tracked GPT agents use provider `openai`, not paid OpenRouter GPT.
 
-This is intentionally separate from `OPENROUTER_API_KEY`. The tracked GPT agents use provider `openai`, not `openrouter/openai`.
+Verify from the server:
 
-If the ChatGPT/Codex allowance is exhausted, wait for reset or explicitly decide whether extra credits are worthwhile. Never make API spending an automatic fallback.
+```bash
+opencode auth list
+opencode models openai
+```
 
-### Claude — optional escalation
+Use a sensible reasoning level for routine work rather than maximum effort for every prompt.
 
-If you already pay for Claude Pro/Max, install/authenticate the official Claude Code client on the same host and use the Claude account subscription route. Keep `ANTHROPIC_API_KEY` unset if the goal is to avoid API billing.
+## Ox Alpha
 
-Claude is not required for every task. A good cost policy is:
+The installer stores the scoped OpenRouter key for the service. The Conductor does **not** depend on OpenCode child-session result handoff for Ox because that path can complete while returning empty text to the parent.
 
-- GPT subscription: ordinary coordination/build work;
-- Ox Alpha free: independent challenge/review;
-- Claude Code subscription: selected tasks where a genuinely different implementation/review pass is worth consuming its allowance.
+Instead the tracked bridge invokes the read-only primary critic directly:
 
-If you do not have a Claude subscription, skip Claude initially.
+```bash
+bash scripts/agent-tools/ox-review.sh \
+  "Review this diff for correctness and missing edge states."
+```
 
-## 4. Join Tailscale
+The user normally does not run this manually. `predictor-conductor` calls it when an independent review is justified.
+
+A live transport smoke is available through the doctor:
+
+```bash
+bash scripts/agent-tools/cloud-conductor-doctor.sh --live
+```
+
+`--live` makes one tiny Ox request. The default doctor makes **no model request**.
+
+## Optional Claude subscription lane
+
+Install the centrally supported official Claude Code version with:
+
+```bash
+bash scripts/agent-tools/cloud-conductor-claude-install.sh
+```
+
+Authenticate using Anthropic's documented interactive flow:
+
+```bash
+claude
+```
+
+On first launch, follow the browser login and choose the Claude.ai account that carries the intended Pro/Max subscription. On an SSH host the browser may display a login code instead of redirecting to the server's localhost; paste that code back into the terminal when Claude asks for it. Once signed in, run `/status` inside Claude and confirm the **Login method** is the intended Claude.ai subscription, then exit.
+
+The subscription-only bridge fails closed when provider/API environment overrides are active. Do not set `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX` or `CLAUDE_CODE_USE_FOUNDRY` for this lane. It also refuses configured `apiKeyHelper` settings. On Linux, the normal Claude OAuth credential remains managed by Claude Code under `~/.claude/.credentials.json` with mode `0600`; do not copy or expose that file.
+
+The tracked read-only bridge is:
+
+```bash
+bash scripts/agent-tools/claude-review.sh \
+  "Independently challenge the architecture of this proposed change."
+```
+
+It runs the official client non-interactively in **plan mode**, so it can inspect and reason but cannot edit source. The Conductor should call Claude selectively, not on every task.
+
+## Join Tailscale and publish privately
+
+On the server:
 
 ```bash
 sudo tailscale up
-```
-
-Approve the host in the same Tailscale tailnet used on your phone/tablet/computer, then privately publish OpenCode:
-
-```bash
 sudo tailscale serve --bg 4096
 sudo tailscale serve status
 ```
 
-Do not use `tailscale funnel`.
+Approve the server in the same Tailscale account used by the phone/laptop. Do not use `tailscale funnel`.
 
-## 5. Save the web password
+Retrieve the OpenCode password once and save it in a password manager:
 
 ```bash
-grep '^OPENCODE_SERVER_PASSWORD=' ~/.config/predictor-cloud/opencode.env | cut -d= -f2-
+grep '^OPENCODE_SERVER_PASSWORD=' \
+  ~/.config/predictor-cloud/opencode.env | cut -d= -f2-
 ```
 
 Username:
@@ -175,82 +193,172 @@ Username:
 predictor
 ```
 
-Save the password in a password manager.
+## GitHub access
 
-## 6. Optional GitHub write access
+For Builder branch/PR workflows:
 
 ```bash
 gh auth login
+gh auth setup-git
+gh auth status
 ```
 
-Use the browser/device flow. `git push` and `gh pr create` remain explicit approval boundaries in the tracked Builder configuration.
+Use the browser/device flow. The tracked Builder still keeps `git push` and `gh pr create` as approval boundaries unless the operator explicitly grants them.
 
-## 7. Verify
+## Verify the finished workspace
+
+Run the local-only doctor first:
 
 ```bash
 bash scripts/agent-tools/cloud-conductor-doctor.sh
 ```
 
-Healthy state includes the exact Node version, OpenCode, tracked agents, direct OpenAI/ChatGPT auth, the Ox/OpenRouter key, localhost-only service, Tailscale/Serve and optional GitHub CLI auth.
+Healthy state includes:
 
-## Normal use
+- exact Node and OpenCode versions;
+- `predictor-conductor` as the default web agent;
+- all tracked agents visible;
+- direct OpenAI/ChatGPT auth;
+- scoped Ox credential without exposing its value;
+- optional Claude installation plus a clean subscription-only billing boundary; use `/status` in Claude for the one-time interactive login-method confirmation;
+- mode-0600 cloud environment file;
+- localhost HTTP Basic auth;
+- active `systemd` service;
+- Tailscale membership and private Serve route;
+- optional GitHub CLI auth;
+- a host-capacity warning if the machine is too small for comfortable browser/build verification.
 
-Open the private `https://...ts.net` URL from any Tailscale-connected device and select `predictor-conductor`.
+Then prove the Ox bridge once:
 
-A normal task should look like one user prompt. The Conductor decides whether an independent Ox pass adds value. It should not create a committee for trivial changes and should not spend money to manufacture model diversity.
+```bash
+bash scripts/agent-tools/cloud-conductor-doctor.sh --live
+```
+
+The target is **0 missing**. Optional warnings are acceptable when they describe deliberately manual/unused capabilities such as the Claude `/status` confirmation or GitHub writes.
+
+## Normal use from a laptop
+
+1. Connect the Tailscale desktop app.
+2. Open the private `https://<host>.<tailnet>.ts.net` URL.
+3. Sign in with username `predictor` and the saved web password.
+4. Open `/home/predictor/Euro-2028-Predictor` if the project list is shown.
+5. Start/resume a session. `predictor-conductor` is the default agent.
+6. Describe the outcome in normal language.
+
+Bookmark the `.ts.net` page. Sessions and the repository live on the server, so switching laptop or browser does not require cloning the project again.
+
+## Normal use from iPhone/iPad
+
+1. Install Tailscale and sign into the same tailnet.
+2. Switch Tailscale on.
+3. Open the same private `.ts.net` URL in Safari.
+4. Sign in with the same OpenCode credentials.
+5. Open the Predictor project/session and use the Conductor exactly as on the laptop.
+
+For a one-tap launcher, in Safari choose **Share → Add to Home Screen** after opening the private OpenCode page. This creates a home-screen shortcut; it does not make the site public and Tailscale still has to be connected.
+
+Do not save API keys in mobile notes or prompts. The only credential normally entered in the browser is the OpenCode Basic-auth password from the password manager.
+
+## How the Conductor should route work
 
 ```text
-one user prompt
-    |
-GPT Conductor (existing ChatGPT allowance)
-    |
-    +-- trivial/proven -> handle directly
-    |
-    +-- implementation -> GPT Builder -> optional free Ox diff review
-    |
-    +-- high-risk/ambiguous -> free Ox preflight -> GPT Builder -> fresh Ox review
-    |
-    +-- selected hard case -> optional official Claude Code subscription pass
-    |
-reconcile against source/tests
-    |
-branch / PR / CI
+simple/proven question
+    -> Conductor only
+
+normal implementation
+    -> Builder
+    -> focused tests
+    -> Ox review when missed-defect cost justifies it
+
+player-facing UI change
+    -> Builder
+    -> Visual QA when responsive/interaction/accessibility evidence matters
+    -> Ox review when useful
+
+security / database / architecture uncertainty
+    -> Ox preflight
+    -> Builder
+    -> fresh Ox diff review
+    -> deterministic repository gates
+
+selected hard case needing different model perspective
+    -> optional Claude read-only review
+    -> reconcile against source/tests
+
+release-critical change
+    -> Builder
+    -> Visual QA where applicable
+    -> Release Verifier
+    -> CI / repository authority final
 ```
 
-## Updating
+Do not call GPT + Ox + Claude on every prompt. Diversity is useful only when it changes confidence enough to justify the extra allowance/context.
+
+## First safe end-to-end prompt
+
+Use this once after setup:
+
+> Perform a read-only health check of this Predictor development workspace. Read AGENTS.md and NOW.md first and follow the repository's deterministic routing/context rules. Confirm current main and relevant open PR state, verify the expected developer tooling, and run one bounded independent Ox check through the tracked direct review bridge. Do not edit files, create branches, commit, push, create a PR or mutate any hosted environment. Report which agent/model performed each part and any setup issue found.
+
+Then verify:
 
 ```bash
+git status
+```
+
+The working tree should remain clean.
+
+## Updating the server checkout
+
+Before starting new work after repository changes:
+
+```bash
+cd ~/Euro-2028-Predictor
 git switch main
 git pull --ff-only
-bash scripts/agent-tools/cloud-conductor-install.sh
+systemctl --user restart predictor-conductor.service
 bash scripts/agent-tools/cloud-conductor-doctor.sh
 ```
+
+If `config/agent-tools.json`, the cloud installer, Node version or bootstrap changed, rerun:
+
+```bash
+bash scripts/agent-tools/cloud-conductor-install.sh
+```
+
+The installer reuses the existing protected OpenRouter/web credentials rather than requiring them to be pasted again.
+
+## Browser tooling
+
+After resizing to a comfortable browser/build host if necessary:
+
+```bash
+npm run test:e2e:install
+```
+
+The Visual QA lane uses repository Playwright/browser evidence; it does not make screenshots a substitute for working interaction or authoritative state.
 
 ## Recovery
 
 ```bash
-systemctl --user status predictor-conductor.service
+systemctl --user status predictor-conductor.service --no-pager
 journalctl --user -u predictor-conductor.service -n 100 --no-pager
 systemctl --user restart predictor-conductor.service
 tailscale status
 sudo tailscale serve status
+bash scripts/agent-tools/cloud-conductor-doctor.sh
 ```
 
-## Cost guardrails
+After a server reboot, the user service is expected to return because linger is enabled, and Tailscale/Serve should persist. Verify with the doctor before assuming remote access is healthy.
 
-- Prefer free host before paid VM.
-- Do not expose a public web service just to avoid Tailscale; Tailscale Personal is free for this personal use case.
-- Keep Ox on its free model unless pricing changes.
-- Use the direct ChatGPT login rather than OpenRouter GPT billing.
-- Never configure automatic paid fallback when subscription allowance is exhausted.
-- Claude is an optional official-client escalation, not a mandatory API bill.
-- Re-evaluate model/provider pricing before increasing any API budget.
+## Cost and safety guardrails
 
-## What this does not do
-
-- It does not make model consensus repository authority.
-- It does not expose OpenCode publicly.
-- It does not grant Supabase/Netlify/Production access.
-- It does not let multiple write agents race on one checkout.
-- It does not make every task a multi-model debate.
-- It does not require a paid server or paid model API to get started.
+- Direct ChatGPT/OpenAI subscription is the ordinary GPT lane.
+- Ox is the independent OpenRouter lane; re-check external pricing before assuming it remains free.
+- Claude is optional, official-client and subscription-only by policy.
+- No automatic paid model/API fallback.
+- No Tailscale Funnel and no public OpenCode port.
+- One write-capable Builder at a time.
+- Visual QA and Release Verifier are read-only.
+- Model consensus never becomes repository/product/hosted authority.
+- Production, Supabase Production, Netlify Production, paid provider state and real player data remain behind their existing explicit authority boundaries.

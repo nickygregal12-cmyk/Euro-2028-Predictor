@@ -41,6 +41,16 @@
       "versioning": "npm"
     }
   },
+  "claudeCode": {
+    "package": "@anthropic-ai/claude-code",
+    "version": "2.1.220",
+    "mode": "optional-subscription-agent",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "@anthropic-ai/claude-code",
+      "versioning": "npm"
+    }
+  },
   "serena": {
     "package": "serena-agent",
     "version": "1.6.1",

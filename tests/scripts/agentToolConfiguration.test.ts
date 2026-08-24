@@ -64,6 +64,7 @@ describe('Predictor developer operating system', () => {
         'agentMail',
         'astGrep',
         'beads',
+        'claudeCode',
         'context7',
         'dependencyCruiser',
         'graphify',
@@ -129,6 +130,8 @@ describe('Predictor developer operating system', () => {
     expect(tools.omniroute?.port).toBe(20128)
     expect(tools.opencode?.package).toBe('opencode-ai')
     expect(tools.opencode?.mode).toBe('bootstrap-cloud-agent')
+    expect(tools.claudeCode?.package).toBe('@anthropic-ai/claude-code')
+    expect(tools.claudeCode?.mode).toBe('optional-subscription-agent')
     expect(tools.agentMail?.port).toBe(8765)
     expect(tools.beads?.repository).toBe('gastownhall/beads')
   })
