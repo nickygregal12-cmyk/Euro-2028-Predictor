@@ -67,7 +67,7 @@ These are the only findings this baseline is willing to call dead. Removal was d
 Two other reported classes were **false positives with concrete causes**, silenced in the configuration rather than argued with:
 
 - `@fontsource/inter` and `@fontsource/space-grotesk` are referenced by `url()` in `src/styles/fonts.css`, which Knip does not parse. The guard test asserts that reference still exists, so the ignore cannot outlive its reason;
-- the `supabase` and `awk` binaries are external tools invoked by scripts and a workflow guard, not npm packages.
+- the `supabase`, `awk` and pinned `opencode` binaries are external tools invoked by scripts, workflow guards or resolver tests, not npm packages.
 
 ## What this baseline deliberately does not do
 

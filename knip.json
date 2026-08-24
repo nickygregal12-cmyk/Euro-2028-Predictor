@@ -34,7 +34,8 @@
   ],
   "ignoreBinaries": [
     "supabase",
-    "awk"
+    "awk",
+    "opencode"
   ],
   "vite": {
     "config": ["vite.config.ts"]
