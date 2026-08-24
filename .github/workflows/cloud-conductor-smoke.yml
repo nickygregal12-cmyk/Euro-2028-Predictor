@@ -4,8 +4,11 @@ on:
   pull_request:
     paths:
       - 'opencode.json'
+      - '.mcp.json'
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'scripts/agent-tools/cloud-browser-install.sh'
+      - 'scripts/agent-tools/stage0-live-acceptance.sh'
       - 'scripts/agent-tools/ox-review.sh'
       - 'scripts/agent-tools/claude-review.sh'
       - 'scripts/agent-tools/configure-claude-settings.mjs'
@@ -14,14 +17,23 @@ on:
       - 'scripts/agent-tools/netlify-mcp-fallback.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'tests/scripts/cloudBrowserRuntime.test.ts'
+      - 'tests/scripts/mcpReadinessClassification.test.ts'
+      - 'tests/scripts/hostedVerifierIdentity.test.ts'
       - 'config/agent-tools.json'
+      - 'config/browser-runtime.json'
+      - 'config/netlify-sites.json'
+      - 'config/production-hosted-contract.json'
       - '.github/workflows/cloud-conductor-smoke.yml'
   push:
     branches: [main]
     paths:
       - 'opencode.json'
+      - '.mcp.json'
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'scripts/agent-tools/cloud-browser-install.sh'
+      - 'scripts/agent-tools/stage0-live-acceptance.sh'
       - 'scripts/agent-tools/ox-review.sh'
       - 'scripts/agent-tools/claude-review.sh'
       - 'scripts/agent-tools/configure-claude-settings.mjs'
@@ -30,7 +42,13 @@ on:
       - 'scripts/agent-tools/netlify-mcp-fallback.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'tests/scripts/cloudBrowserRuntime.test.ts'
+      - 'tests/scripts/mcpReadinessClassification.test.ts'
+      - 'tests/scripts/hostedVerifierIdentity.test.ts'
       - 'config/agent-tools.json'
+      - 'config/browser-runtime.json'
+      - 'config/netlify-sites.json'
+      - 'config/production-hosted-contract.json'
       - '.github/workflows/cloud-conductor-smoke.yml'
   workflow_dispatch:
 
@@ -71,14 +89,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          bash -n scripts/agent-tools/cloud-browser-install.sh
           bash -n scripts/agent-tools/cloud-conductor-install.sh
           bash -n scripts/agent-tools/cloud-conductor-doctor.sh
           bash -n scripts/agent-tools/cloud-conductor-claude-install.sh
+          bash -n scripts/agent-tools/mcp-readiness.sh
+          bash -n scripts/agent-tools/stage0-live-acceptance.sh
           bash -n scripts/agent-tools/ox-review.sh
           bash -n scripts/agent-tools/claude-review.sh
           node -e "const c=require('./opencode.json'); if (c.default_agent !== 'predictor-conductor') process.exit(1)"
           npm ci
-          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts
+          npx vitest run \
+            tests/scripts/cloudConductorConfiguration.test.ts \
+            tests/scripts/cloudBrowserRuntime.test.ts \
+            tests/scripts/mcpReadinessClassification.test.ts \
+            tests/scripts/hostedVerifierIdentity.test.ts
 
       - name: Validate OpenCode loads all tracked agents
         shell: bash
@@ -90,13 +115,19 @@ jobs:
           opencode --version
           opencode debug config >/dev/null
           bash scripts/agent-tools/mcp-readiness.sh --config-only
-          agents="$(opencode agent list)"
-          printf '%s\n' "$agents"
-          grep -q 'predictor-conductor' <<<"$agents"
-          grep -q 'predictor-builder' <<<"$agents"
-          grep -q 'predictor-critic' <<<"$agents"
-          grep -q 'predictor-visual-qa' <<<"$agents"
-          grep -q 'predictor-release-verifier' <<<"$agents"
+          agents_file="$(mktemp)"
+          trap 'rm -f "$agents_file"' EXIT
+          opencode agent list >"$agents_file"
+          while read -r agent mode; do
+            grep -F -x -- "${agent} (${mode})" "$agents_file" >/dev/null
+            printf 'PASS %s\n' "$agent"
+          done <<'AGENTS'
+          predictor-conductor primary
+          predictor-builder subagent
+          predictor-critic primary
+          predictor-visual-qa subagent
+          predictor-release-verifier subagent
+          AGENTS
 
       - name: Summary
         if: ${{ always() }}
@@ -105,7 +136,10 @@ jobs:
           {
             echo '## Persistent cloud Conductor smoke'
             echo
-            echo '- Cloud installer/doctor shell syntax validated for Ubuntu x86-64/ARM64 hosts.'
+            echo '- Cloud installer/doctor, browser bootstrap, and Stage 0 live-acceptance shell syntax validated.'
+            echo '- Pinned shared browser runtime configuration and both MCP executable paths validated without downloading a browser in CI.'
+            echo '- MCP readiness auth/unavailable/unknown-state parser fixtures passed.'
+            echo '- Canonical Netlify and Supabase verifier identity configuration passed.'
             echo '- Repository guard tests passed and predictor-conductor is the default web agent.'
             echo '- The centrally pinned OpenCode CLI loaded all five tracked agent definitions.'
             echo '- GPT lanes target the direct OpenAI provider rather than paid OpenRouter GPT.'

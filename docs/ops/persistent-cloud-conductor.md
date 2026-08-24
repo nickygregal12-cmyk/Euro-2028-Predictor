@@ -144,6 +144,14 @@ instruction to rotate credentials or fail over. Configured, authenticated and
 connected are separate facts; do not claim connection until the live probe says
 so.
 
+The OpenCode CLI currently proves Sentry/PostHog server initialization only; it
+does not expose a role-scoped effective tool inventory without entering a model
+session. Until the Hetzner acceptance pass captures the exact live inventories
+and mechanically classifies safe read tools, Release Verifier keeps both prefixes
+root-denied and has no role grant for either service. URL read-only flags and tool
+annotations are not sufficient evidence, wildcard grants are forbidden, and this
+open inventory/allowlist step prevents Stage 0 acceptance.
+
 ## Ox Alpha
 
 The installer stores the scoped OpenRouter key for the service. The Conductor does **not** depend on OpenCode child-session result handoff for Ox because that path can complete while returning empty text to the parent.
