@@ -37,17 +37,38 @@ const designSystem = readFileSync(resolve(root, 'docs/design-system.md'), 'utf8'
  * the implementation read the same number. This file exists to close that.
  */
 
-/** The threshold as the product authority states it. */
+/**
+ * The threshold as the product authority states it.
+ *
+ * EXACTLY ONE MATCH IS REQUIRED, and that is the point rather than fussiness.
+ * Taking the first of several would let a second, unrelated "at least N
+ * players" sentence added later bind this guard to the wrong number — the guard
+ * would still pass, and would have quietly stopped protecting anything. That is
+ * the same silent-uselessness this whole file exists to prevent, so it fails
+ * loudly and asks to be narrowed instead.
+ */
 function statedThreshold(): number {
-  const match = /at least (\d+) players/.exec(designSystem)
-  if (match?.[1] === undefined) {
+  const matches = [...designSystem.matchAll(/at least (\d+) players/g)]
+
+  if (matches.length === 0) {
     throw new Error(
       'The small-numbers honesty rule no longer states a player threshold in ' +
         'docs/design-system.md. If the rule was deliberately removed, delete this ' +
         'guard in the same change; do not let it pass by finding nothing.',
     )
   }
-  return Number(match[1])
+  if (matches.length > 1) {
+    throw new Error(
+      `docs/design-system.md now states "at least N players" ${matches.length} times, so ` +
+        'this guard can no longer tell which one is the small-numbers honesty rule. ' +
+        'Narrow the extraction to that rule rather than letting it bind to whichever ' +
+        'comes first.',
+    )
+  }
+
+  const stated = matches[0]?.[1]
+  if (stated === undefined) throw new Error('The threshold matched but captured nothing.')
+  return Number(stated)
 }
 
 describe('the small-numbers honesty rule', () => {
