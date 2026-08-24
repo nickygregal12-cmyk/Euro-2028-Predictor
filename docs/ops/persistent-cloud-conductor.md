@@ -43,7 +43,7 @@ Do **not** route GPT through OpenRouter by default. Authenticate OpenCode direct
 
 Ox Alpha remains behind a separately scoped `OPENROUTER_API_KEY`. Pricing/availability is external and can change.
 
-Claude is optional. The repository-supported path uses the **official Claude Code client** and refuses the tracked review bridge when `ANTHROPIC_API_KEY` is set. This prevents a subscription review from silently becoming API billing. Do not route Claude Pro/Max credentials through OpenCode or a third-party provider.
+Claude is optional. The repository-supported path uses the **official Claude Code client** and a Claude.ai OAuth login. The tracked review bridge refuses API-token and Bedrock/Vertex/Foundry environment overrides, and also refuses an `apiKeyHelper`, so a subscription review cannot silently become another billing route. Do not route Claude Pro/Max credentials through OpenCode or a third-party provider.
 
 ## Security boundary
 
@@ -149,18 +149,15 @@ Install the centrally supported official Claude Code version with:
 bash scripts/agent-tools/cloud-conductor-claude-install.sh
 ```
 
-Then authenticate:
+Authenticate using Anthropic's documented interactive flow:
 
 ```bash
-claude auth login
-claude auth status --text
+claude
 ```
 
-Use the Claude subscription account. Do **not** use Console/API billing for this lane, and keep this empty:
+On first launch, follow the browser login and choose the Claude.ai account that carries the intended Pro/Max subscription. On an SSH host the browser may display a login code instead of redirecting to the server's localhost; paste that code back into the terminal when Claude asks for it. Once signed in, run `/status` inside Claude and confirm the **Login method** is the intended Claude.ai subscription, then exit.
 
-```bash
-printenv ANTHROPIC_API_KEY
-```
+The subscription-only bridge fails closed when provider/API environment overrides are active. Do not set `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX` or `CLAUDE_CODE_USE_FOUNDRY` for this lane. It also refuses configured `apiKeyHelper` settings. On Linux, the normal Claude OAuth credential remains managed by Claude Code under `~/.claude/.credentials.json` with mode `0600`; do not copy or expose that file.
 
 The tracked read-only bridge is:
 
@@ -169,7 +166,7 @@ bash scripts/agent-tools/claude-review.sh \
   "Independently challenge the architecture of this proposed change."
 ```
 
-It runs the official client in **plan mode**, so it can inspect and reason but cannot edit source. It refuses to run when `ANTHROPIC_API_KEY` is present. The Conductor should call Claude selectively, not on every task.
+It runs the official client non-interactively in **plan mode**, so it can inspect and reason but cannot edit source. The Conductor should call Claude selectively, not on every task.
 
 ## Join Tailscale and publish privately
 
@@ -223,7 +220,7 @@ Healthy state includes:
 - all tracked agents visible;
 - direct OpenAI/ChatGPT auth;
 - scoped Ox credential without exposing its value;
-- optional Claude installation/auth state;
+- optional Claude installation plus a clean subscription-only billing boundary; use `/status` in Claude for the one-time interactive login-method confirmation;
 - mode-0600 cloud environment file;
 - localhost HTTP Basic auth;
 - active `systemd` service;
@@ -237,7 +234,7 @@ Then prove the Ox bridge once:
 bash scripts/agent-tools/cloud-conductor-doctor.sh --live
 ```
 
-The target is **0 missing**. Optional warnings are acceptable when they describe deliberately unused capabilities such as Claude or GitHub writes.
+The target is **0 missing**. Optional warnings are acceptable when they describe deliberately manual/unused capabilities such as the Claude `/status` confirmation or GitHub writes.
 
 ## Normal use from a laptop
 
