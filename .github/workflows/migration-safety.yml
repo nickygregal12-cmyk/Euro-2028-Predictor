@@ -1,15 +1,32 @@
 name: Migration safety
 
+# THE PATH FILTER IS INSIDE THE JOB, NOT ON THE TRIGGER, AND THAT IS THE POINT.
+#
+# A `paths:`-filtered workflow does not run at all on a pull request it does not
+# match, so its check never posts — and a required context that never posts
+# blocks that pull request for ever. `DOC-001` and `OPS-012` are both that
+# failure. The consequence of leaving the filter on the trigger is the opposite
+# and quieter: the context cannot safely be required, so a pull request whose
+# migrations are unsafe merges on a green core CI that never looked at them.
+#
+# The job therefore runs on every pull request and decides for itself whether
+# there is anything to lint, reporting success when there is not. That makes it
+# a stable context a ruleset can require. Squawk itself still only runs when a
+# migration actually changed, so the cost on an unrelated pull request is one
+# checkout and a diff.
 on:
   pull_request:
-    paths:
-      - 'supabase/migrations/*.sql'
 
 permissions:
   contents: read
 
 jobs:
   squawk:
+    # The check-run name is this string, with no workflow prefix supplied for
+    # it, so it is written in the `Workflow / Job` form a ruleset asks for.
+    # `CI / Required merge gate` was renamed for exactly this reason after every
+    # pull request sat waiting on a context nothing emitted.
+    name: Migration safety / Required migration gate
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,6 +56,14 @@ jobs:
           else
             printf 'Squawk will lint: %s\n' "$files"
           fi
+      - name: Report success where no migration changed
+        if: steps.changed.outputs.files == ''
+        run: |
+          echo 'No added or modified migration on this pull request.'
+          echo 'Squawk lints migration SQL, and nothing this change touches is'
+          echo 'migration SQL. Reporting success so the gate stays a stable'
+          echo 'required context rather than a check that never posts.'
+
       - name: Squawk changed migrations
         if: steps.changed.outputs.files != ''
         uses: sbdchd/squawk-action@8d113898e16c6cfd417ceba848b0edad97882be3 # v2.1.0
