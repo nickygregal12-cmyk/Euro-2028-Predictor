@@ -17,6 +17,7 @@ permission:
     ".env.example": allow
     "*.env.example": allow
   edit: deny
+  doom_loop: deny
   external_directory:
     "*": deny
     "~/Euro-2028-Predictor/.artifacts/worktrees/*": allow

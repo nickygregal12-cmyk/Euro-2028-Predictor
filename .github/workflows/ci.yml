@@ -46,6 +46,14 @@ jobs:
         run: node scripts/check-quality-integrity.mjs "$BASE_SHA" "$HEAD_SHA"
       - name: Install dependencies
         run: npm ci
+      - name: Install pinned OpenCode resolver
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(node -p "require('./config/agent-tools.json').opencode.version")"
+          npm install --global --prefix "${HOME}/.local" --no-fund --no-audit "opencode-ai@${version}"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          "${HOME}/.local/bin/opencode" --version
       - name: Enforce dependency boundaries
         # This used to live in a path-scoped workflow. A required path-scoped
         # check sometimes never exists, so it cannot protect every merge. The

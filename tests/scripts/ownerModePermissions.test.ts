@@ -41,7 +41,7 @@ function decision(agent: EffectiveAgent, permission: string, value = '*') {
   )
 }
 
-function effectiveAgents(): Record<string, EffectiveAgent> {
+function effectiveAgents(): { effective: Record<string, EffectiveAgent>; home: string } {
   const home = mkdtempSync(resolve(tmpdir(), 'predictor-owner-config-'))
   const configHome = resolve(home, 'config')
   mkdirSync(configHome, { recursive: true })
@@ -53,7 +53,7 @@ function effectiveAgents(): Record<string, EffectiveAgent> {
     OPENCODE_DISABLE_CLAUDE_CODE_SKILLS: '1',
     OPENCODE_DISABLE_DEFAULT_PLUGINS: '1',
   }
-  return Object.fromEntries(agents.map((name) => {
+  const effective = Object.fromEntries(agents.map((name) => {
     const output = execFileSync('opencode', ['debug', 'agent', name], {
       cwd: root,
       env,
@@ -62,10 +62,11 @@ function effectiveAgents(): Record<string, EffectiveAgent> {
     })
     return [name, JSON.parse(output) as EffectiveAgent]
   }))
+  return { effective, home }
 }
 
 describe('PRE_LIVE_OWNER effective OpenCode policy', () => {
-  const effective = effectiveAgents()
+  const { effective, home: effectiveHome } = effectiveAgents()
 
   it('loads the worktree config with Conductor as the default without credentials', () => {
     const home = mkdtempSync(resolve(tmpdir(), 'predictor-owner-resolved-'))
@@ -97,6 +98,8 @@ describe('PRE_LIVE_OWNER effective OpenCode policy', () => {
       ['predictor-builder', 'bash', 'npm run build'],
       ['predictor-builder', 'bash', 'npm run lint'],
       ['predictor-builder', 'bash', 'git commit -m safe'],
+      ['predictor-builder', 'bash', 'git switch -c feat/owner-safe'],
+      ['predictor-builder', 'bash', 'git worktree add .artifacts/worktrees/owner-safe feat/owner-safe'],
       ['predictor-builder', 'bash', 'bash scripts/agent-tools/owner-task-push.sh'],
       ['predictor-builder', 'bash', 'bash scripts/agent-tools/owner-pr.sh create --title title --body body'],
       ['predictor-builder', 'bash', 'bash scripts/agent-tools/owner-pr.sh update --title title'],
@@ -111,6 +114,15 @@ describe('PRE_LIVE_OWNER effective OpenCode policy', () => {
     expect(decision(effective['predictor-conductor']!, 'task', 'predictor-builder')).toBe('allow')
     expect(decision(effective['predictor-conductor']!, 'task', 'predictor-visual-qa')).toBe('allow')
     expect(decision(effective['predictor-conductor']!, 'task', 'predictor-release-verifier')).toBe('allow')
+    for (const name of agents) {
+      expect(decision(effective[name]!, 'doom_loop')).toBe('deny')
+      for (const inheritedAsk of effective[name]!.permission.filter((rule) => rule.action === 'ask')) {
+        expect(
+          decision(effective[name]!, inheritedAsk.permission, inheritedAsk.pattern),
+          `${name}: ${inheritedAsk.permission} ${inheritedAsk.pattern}`,
+        ).not.toBe('ask')
+      }
+    }
   })
 
   it('fails closed for direct push, history danger, secrets, Production, and unknown shell', () => {
@@ -121,6 +133,14 @@ describe('PRE_LIVE_OWNER effective OpenCode policy', () => {
       'git reset --hard HEAD~1',
       'git rebase -i HEAD~3',
       'git branch -D main',
+      'git checkout -B main',
+      'git checkout -f main',
+      'git switch -C main',
+      'git switch -f main',
+      'git switch -c feat/rewrite --force',
+      'git worktree add .artifacts/worktrees/main -B main',
+      'git checkout main',
+      'git switch main',
       'cat .env',
       'supabase db push --linked',
       'supabase db reset --linked',
@@ -154,7 +174,11 @@ describe('PRE_LIVE_OWNER effective OpenCode policy', () => {
     const allowedRule = [...builder.permission].reverse().find((rule) =>
       rule.permission === 'external_directory' && rule.action === 'allow' && rule.pattern.includes('.artifacts/worktrees/'))
     expect(allowedRule).toBeDefined()
-    expect(decision(builder, 'external_directory', allowedRule!.pattern.replace('*', 'task/file.ts'))).toBe('allow')
+    const managedTaskFile = resolve(
+      effectiveHome,
+      'Euro-2028-Predictor/.artifacts/worktrees/task/file.ts',
+    )
+    expect(decision(builder, 'external_directory', managedTaskFile)).toBe('allow')
     expect(decision(builder, 'external_directory', '/tmp/opencode/unmanaged/file.ts')).toBe('deny')
   })
 })

@@ -23,6 +23,14 @@ describe('always-present merge gate', () => {
     )
   })
 
+  it('installs the centrally pinned OpenCode resolver before the isolated test loop', () => {
+    const install = ci.indexOf('"opencode-ai@${version}"')
+    const tests = ci.indexOf('npx vitest list --filesOnly --static-parse')
+    expect(ci).toContain("require('./config/agent-tools.json').opencode.version")
+    expect(install).toBeGreaterThan(-1)
+    expect(tests).toBeGreaterThan(install)
+  })
+
   it('publishes one stable aggregate result that fails unless CI succeeded', () => {
     expect(ci).toContain('merge-gate:')
     expect(ci).toContain('needs: ci')

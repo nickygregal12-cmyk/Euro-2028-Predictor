@@ -17,6 +17,7 @@ permission:
     ".env.example": allow
     "*.env.example": allow
   edit: allow
+  doom_loop: deny
   external_directory:
     "*": deny
     "~/Euro-2028-Predictor/.artifacts/worktrees/*": allow
@@ -30,8 +31,20 @@ permission:
     "git rev-parse*": allow
     "git merge-base*": allow
     "git fetch*": allow
-    "git switch*": allow
-    "git checkout*": allow
+    "git switch feat/*": allow
+    "git switch fix/*": allow
+    "git switch chore/*": allow
+    "git switch docs/*": allow
+    "git switch test/*": allow
+    "git switch refactor/*": allow
+    "git switch perf/*": allow
+    "git switch ci/*": allow
+    "git switch -c feat/*": allow
+    "git switch -c fix/*": allow
+    "git switch -c chore/*": allow
+    "git switch --create feat/*": allow
+    "git switch --create fix/*": allow
+    "git switch --create chore/*": allow
     "git branch --show-current*": allow
     "git branch --list*": allow
     "git branch --all*": allow
@@ -79,6 +92,17 @@ permission:
     "git branch -d main*": deny
     "git checkout --force*": deny
     "git switch --discard-changes*": deny
+    "git checkout -B main*": deny
+    "git checkout -f main*": deny
+    "git switch -C main*": deny
+    "git switch -f main*": deny
+    "git switch *--discard-changes*": deny
+    "git switch *--force*": deny
+    "git switch * -f*": deny
+    "git switch * -C*": deny
+    "git worktree add *--force*": deny
+    "git worktree add * -B main*": deny
+    "git worktree add * -b main*": deny
     "cat *.env*": deny
     "cat .env*": deny
     "supabase *": deny
