@@ -223,7 +223,7 @@ describe('JavaScript under scripts/', () => {
     // the SQL null a MISSING constraint returns — which is exactly the case the
     // assertion exists to catch. It also decides whether a Production promotion
     // is recorded as sound, which is the last place to leave unexamined.
-    'scripts/database-rollout/verify-production-211-to-217.mjs',
+    'scripts/database-rollout/verify-production-211-to-218.mjs',
     // Arrived clean under JSDoc annotation rather than as a deferred count. The
     // probe decides whether a deployment is reported as walkable, so a type
     // error here would surface as a status page confidently saying the wrong

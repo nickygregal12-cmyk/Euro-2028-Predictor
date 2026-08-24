@@ -1,8 +1,8 @@
--- Contract 211 to 217 boundary: what each of the six contracts must have DONE.
+-- Contract 211 to 218 boundary: what each of the six contracts must have DONE.
 --
 -- Valid only at contract 217. It is read once, after the apply, on the rehearsal
 -- copy and again on Production. Everything that must be readable at 211 as well
--- lives in `production-211-to-217-preserved-state.sql`.
+-- lives in `production-211-to-218-preserved-state.sql`.
 --
 -- Each key names one contract's claim, and the claim is driven rather than
 -- asserted from the ledger: the ledger only proves a file ran.
@@ -89,6 +89,19 @@ select jsonb_build_object(
   'claim_anon_execute',has_function_privilege('anon','public.claim_due_reminders(integer, boolean)','execute'),
   'save_push_authenticated_execute',has_function_privilege('authenticated','public.save_push_subscription(text, text, text)','execute'),
   'save_push_anon_execute',has_function_privilege('anon','public.save_push_subscription(text, text, text)','execute'),
+
+  -- Contract 218 — public.matches publishes on the realtime channel.
+  'matches_published',(
+    select exists (select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'matches')),
+  -- Listed rather than counted, so a publication that grew a second table names
+  -- the table it grew. ADR 0008 rejected broad user-owned or scoring tables.
+  'realtime_published_tables',(
+    select coalesce(string_agg(t.schemaname || '.' || t.tablename, ',' order by t.schemaname, t.tablename), '')
+    from pg_publication_tables t where t.pubname = 'supabase_realtime'),
+  'matches_replica_identity',(
+    select c.relreplident from pg_class c join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and c.relname = 'matches'),
 
   -- Untouched on purpose: a player with both channels available is still told
   -- ONCE. Contract 217 widens the channel, never the key.
