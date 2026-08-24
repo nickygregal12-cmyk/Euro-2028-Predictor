@@ -62,6 +62,36 @@
       "versioning": "pep440"
     }
   },
+  "playwrightMcp": {
+    "package": "@playwright/mcp",
+    "version": "0.0.79",
+    "mode": "on-demand-browser-mcp",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "@playwright/mcp",
+      "versioning": "npm"
+    }
+  },
+  "chromeDevtoolsMcp": {
+    "package": "chrome-devtools-mcp",
+    "version": "1.7.0",
+    "mode": "on-demand-browser-mcp",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "chrome-devtools-mcp",
+      "versioning": "npm"
+    }
+  },
+  "netlifyMcp": {
+    "package": "@netlify/mcp",
+    "version": "1.15.1",
+    "mode": "manual-read-only-fallback-mcp",
+    "renovate": {
+      "datasource": "npm",
+      "depName": "@netlify/mcp",
+      "versioning": "npm"
+    }
+  },
   "context7": {
     "package": "@upstash/context7-mcp",
     "version": "2.0.2",

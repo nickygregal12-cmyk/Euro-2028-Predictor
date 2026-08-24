@@ -119,6 +119,59 @@ Outputs go to `.artifacts/context/` and are ignored. The config uses Git ignores
 
 Repomix is also available as an on-demand MCP server through `.mcp.json`.
 
+### OpenCode MCP capability setup
+
+`opencode.json` is OpenCode's MCP authority; OpenCode does not consume
+`.mcp.json`. The latter stays local-only for Claude-compatible clients. All MCP
+prefixes are denied at project scope and only the tracked specialist agents
+enable their bounded surfaces.
+
+Validate the deterministic configuration without network access:
+
+```bash
+bash scripts/agent-tools/mcp-readiness.sh --config-only
+```
+
+After quitting/restarting OpenCode, authenticate each OAuth server explicitly:
+
+```bash
+opencode mcp auth supabase-dev
+opencode mcp auth supabase-prod
+opencode mcp auth netlify
+opencode mcp auth sentry
+opencode mcp auth posthog
+opencode mcp list
+```
+
+On a remote host, forward the localhost callback port printed by OpenCode over
+SSH for the browser flow, then restart OpenCode. GitHub is different: rerun the
+cloud installer after `gh auth login`; it captures `gh auth token` without
+printing it and preserves unknown protected env keys. Never paste a token into a
+prompt.
+
+The explicit connectivity smoke performs MCP initialization/tool listing only:
+
+```bash
+bash scripts/agent-tools/mcp-readiness.sh --connectivity
+# or
+bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
+```
+
+It invokes zero provider tools. `AUTH=REQUIRED` means complete OAuth;
+`UNAVAILABLE=YES` (including provider 5xx) is not evidence of bad credentials.
+CI runs config-only mode and requires no OAuth browser flow.
+
+The Netlify remote is primary. For a transient 5xx, inspect the prepared manual
+fallback without starting it:
+
+```bash
+bash scripts/agent-tools/netlify-mcp-fallback.sh
+```
+
+There is no automatic failover. If explicitly started, the client must continue
+to allowlist only `netlify-deploy-services-reader`; never expose environment,
+secret or deploy-trigger tools.
+
 ## Planning and execution memory
 
 ### Predictor spec-driven workflow + GitHub Spec Kit
@@ -357,6 +410,7 @@ The bootstrap does **not**:
 - make a Codespaces port public;
 - change Supabase/Netlify/Production;
 - consume football/odds provider quota.
+- authenticate MCP OAuth providers or invoke any hosted MCP tool.
 
 That keeps a fresh Codespace useful without turning it into a collection of hidden daemons or state stores.
 

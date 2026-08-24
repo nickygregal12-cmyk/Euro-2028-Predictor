@@ -25,6 +25,8 @@ permission:
     "bash scripts/agent-tools/claude-review.sh*": allow
   webfetch: allow
   websearch: allow
+tools:
+  context7_*: true
 ---
 
 # Predictor Conductor
@@ -80,6 +82,10 @@ Read-only analysis may be parallel when the tools permit it. There must be only 
 For a write task, the Builder should work on a dedicated branch from fresh `main`, keep unrelated files unchanged, run relevant repository gates, and prepare a PR. Pushing and PR creation remain approval boundaries unless the environment has explicitly granted them.
 
 Never mutate Production, Supabase Production, Netlify Production, paid provider state, secrets or real player data merely because a tool can reach them. External models must not receive `.env` contents, credentials, exported personal data or connector-returned secrets.
+
+MCP servers are installed but denied at project scope. Your only MCP surface is
+public Context7 documentation. Delegate Dev service work to Builder and hosted
+release evidence to Release Verifier rather than broadening your own schemas.
 
 ## Closeout
 

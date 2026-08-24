@@ -169,6 +169,7 @@ The canonical versions and lifecycle classifications live in [`../../config/agen
 | on-demand | exact pinned package is invoked only when needed | Context7 MCP, Repomix, dependency-cruiser |
 | manual diagnostic | launched for an investigation, never bundled into the app | React Scan |
 | optional adapter/service | heavier/stateful capability installed or started only deliberately | Lost Pixel OSS, MCP Agent Mail, Weave, Mergiraf |
+| role-gated remote MCP | configured connection whose schemas are root-denied and selectively enabled per agent | Supabase, GitHub, Netlify, Sentry, PostHog |
 
 The distinction is load-bearing. “Supported by the repo” does not mean “every process starts in every Codespace.”
 
@@ -188,6 +189,13 @@ This matters for AI/developer infrastructure because a newly published tool can 
 ## Credentials and data movement
 
 - No developer tool receives Production, Supabase or paid-provider credentials by default.
+- OpenCode owns its MCP inventory in `opencode.json`; `.mcp.json` remains a
+  local-only Claude-compatible inventory. Every MCP prefix is disabled at root,
+  with the smallest required per-agent grants. Connection is not authority to
+  invoke a tool.
+- Hosted OAuth remains in OpenCode's user auth store. The one header-backed
+  GitHub token is obtained host-side from `gh`, stored in the mode-0600 cloud
+  environment file, and used only against GitHub's read-only endpoint/toolsets.
 - Keep `.env`, credential exports, backups and secret material outside Graphify, Serena and Repomix indexes/packs.
 - Context7 needs no key for basic public-doc use; any optional key remains a user/Codespaces secret.
 - OmniRoute provider credentials and Endpoint keys remain outside Git.

@@ -90,6 +90,10 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | MCP Agent Mail | optional installer/launcher; absent and stopped by default |
 | Weave / Mergiraf | optional installer; neither merge driver is enabled by default |
 | Playwright / Chrome DevTools MCP | configured, development-only |
+| OpenCode MCP capability foundation | all server prefixes denied by default; role grants are tracked in agent frontmatter; OAuth remains operator-owned |
+| Supabase Development MCP | project-scoped; potentially mutating and Builder-only; task authority still required |
+| Supabase Production MCP | project-scoped, server-side read-only and Release-Verifier-only |
+| GitHub / Netlify / Sentry / PostHog MCP | server-side constrained read evidence for Release Verifier; Netlify exposes only its deploy reader |
 | Playwright visual contracts | blocking curated baseline workflow |
 | Lost Pixel OSS | optional generate-only adapter; managed service is not a repository dependency |
 | React Scan | manual URL-based diagnosis; not in the product bundle |
@@ -102,7 +106,9 @@ The exact supported developer-tool versions live in [`../../config/agent-tools.j
 
 ## Browser MCP privacy boundary
 
-Both browser MCP servers are development-only and live in `.mcp.json`, outside application dependencies.
+Both browser MCP servers are development-only and live in `.mcp.json` for
+Claude-compatible clients and in `opencode.json` for OpenCode. Their commands
+share the central pins; `.mcp.json` deliberately contains no hosted server.
 
 Chrome DevTools telemetry is disabled in the checked-in configuration because profiling a URL can expose route values such as invite codes or player identifiers to an external telemetry endpoint. When a container has Playwright Chromium but no normal Google Chrome installation, point Chrome DevTools MCP at the available browser explicitly for that environment rather than hard-coding a container path into the repository config.
 

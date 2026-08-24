@@ -25,6 +25,18 @@ permission:
     "npm run agent:route*": allow
   webfetch: allow
   websearch: allow
+tools:
+  playwright_*: false
+  chrome-devtools_*: false
+  serena_*: false
+  context7_*: false
+  repomix_*: false
+  supabase-dev_*: false
+  supabase-prod_*: false
+  netlify_*: false
+  github_*: false
+  sentry_*: false
+  posthog_*: false
 ---
 
 # Predictor Critic

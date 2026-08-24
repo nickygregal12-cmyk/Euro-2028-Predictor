@@ -54,9 +54,60 @@ fi
 attach_url="${OPENCODE_ATTACH_URL:-http://127.0.0.1:4096}"
 prompt="$*"
 
-exec opencode run \
+output_file="$(mktemp)"
+error_file="$(mktemp)"
+cleanup() {
+  rm -f "$output_file" "$error_file"
+}
+trap cleanup EXIT
+
+set +e
+opencode run \
   --attach "$attach_url" \
   --dir "$repo_root" \
   --agent predictor-critic \
   --model openrouter/stealth/ox-alpha \
-  "$prompt"
+  --format json \
+  "$prompt" >"$output_file" 2>"$error_file"
+status=$?
+set -e
+
+if [ "$status" -ne 0 ]; then
+  printf 'Ox review is unavailable: OpenCode exited with status %s.\n' "$status" >&2
+  exit "$status"
+fi
+
+# OpenCode 1.18.19 emits newline-delimited events in JSON mode. Only completed
+# assistant text events are a critic response; tool/error/step events are not.
+set +e
+critic_text="$(node - "$output_file" <<'NODE'
+const { readFileSync } = require('node:fs')
+const lines = readFileSync(process.argv[2], 'utf8').split(/\r?\n/).filter(Boolean)
+const texts = []
+try {
+  for (const line of lines) {
+    const event = JSON.parse(line)
+    if (
+      event?.type === 'text' &&
+      event?.part?.type === 'text' &&
+      typeof event.part.text === 'string' &&
+      event.part.text.trim()
+    ) {
+      texts.push(event.part.text.trim())
+    }
+  }
+} catch {
+  process.exit(2)
+}
+if (texts.length === 0) process.exit(1)
+process.stdout.write(texts.join('\n'))
+NODE
+)"
+parse_status=$?
+set -e
+if [ "$parse_status" -ne 0 ] || [ -z "$critic_text" ]; then
+  printf 'Ox review is unavailable: OpenCode returned no substantive critic text.\n' >&2
+  exit 1
+fi
+
+printf '%s\n' "$critic_text"

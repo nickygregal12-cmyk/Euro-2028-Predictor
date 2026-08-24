@@ -13,9 +13,22 @@ interface McpConfiguration {
 }
 
 interface ToolRegistry {
+  playwrightMcp: { package: string; version: string }
+  chromeDevtoolsMcp: { package: string; version: string }
   serena: { package: string; version: string }
   context7: { package: string; version: string }
   repomix: { package: string; version: string }
+}
+
+interface OpenCodeConfiguration {
+  readonly mcp: Record<string, {
+    readonly type: 'local' | 'remote'
+    readonly command?: readonly string[]
+    readonly url?: string
+    readonly headers?: Record<string, string>
+    readonly oauth?: boolean | Record<string, unknown>
+  }>
+  readonly tools: Record<string, boolean>
 }
 
 function json<T>(path: string): T {
@@ -77,7 +90,85 @@ describe('MCP server configuration', () => {
       const { name, version } = splitSpecifier(npxSpecifier(servers[key]?.args ?? []))
       expect(name).toBe(packageName)
       expect(version).toMatch(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/)
+      const registry = key === 'playwright' ? tools.playwrightMcp : tools.chromeDevtoolsMcp
+      expect({ name, version }).toEqual({ name: registry.package, version: registry.version })
     }
+  })
+
+  it('gives OpenCode the exact local and hosted inventory with local pin parity', () => {
+    const config = json<OpenCodeConfiguration>('opencode.json')
+    expect(Object.keys(config.mcp).sort()).toEqual([
+      ...EXPECTED_SERVER_NAMES,
+      'supabase-dev', 'supabase-prod', 'netlify', 'github', 'sentry', 'posthog',
+    ].sort())
+    for (const name of EXPECTED_SERVER_NAMES) {
+      expect(config.mcp[name]?.type).toBe('local')
+      const claude = mcpConfiguration().mcpServers[name]!
+      expect(config.mcp[name]?.command).toEqual([claude.command, ...claude.args])
+    }
+  })
+
+  it('server-side constrains every hosted MCP contract', () => {
+    const { mcp } = json<OpenCodeConfiguration>('opencode.json')
+    const dev = new URL(mcp['supabase-dev']!.url as string)
+    const prod = new URL(mcp['supabase-prod']!.url as string)
+    expect(dev.origin + dev.pathname).toBe('https://mcp.supabase.com/mcp')
+    expect(dev.searchParams.get('project_ref')).toBe('iouzoutneyjpugbbtdem')
+    expect(dev.searchParams.get('features')).toBe('database,debugging,development,functions,docs')
+    expect(prod.searchParams.get('project_ref')).toBe('vkfnsqdyhvtwyqkisxhk')
+    expect(prod.searchParams.get('read_only')).toBe('true')
+    expect(prod.searchParams.get('features')).toBe('database,debugging,docs')
+    expect(mcp.netlify!.url).toBe('https://netlify-mcp.netlify.app/mcp')
+
+    expect(mcp.github!.url).toBe('https://api.githubcopilot.com/mcp/readonly')
+    expect(mcp.github!.oauth).toBe(false)
+    expect(mcp.github!.headers).toEqual({
+      Authorization: 'Bearer {env:GITHUB_MCP_TOKEN}',
+      'X-MCP-Toolsets': 'context,repos,pull_requests,issues,actions,code_security',
+      'X-MCP-Readonly': 'true',
+    })
+    const sentry = new URL(mcp.sentry!.url as string)
+    expect(sentry.origin + sentry.pathname).toBe('https://mcp.sentry.dev/mcp')
+    expect(sentry.searchParams.get('skills')).toBe('inspect')
+    expect(sentry.searchParams.get('skills')?.split(',')).not.toContain('triage')
+    expect(sentry.searchParams.get('disable-skills')).toBe('seer')
+    for (const name of ['supabase-dev', 'supabase-prod', 'netlify', 'sentry', 'posthog']) {
+      expect(mcp[name]!.oauth).toEqual({})
+    }
+
+    const posthog = new URL(mcp.posthog!.url as string)
+    expect(posthog.origin + posthog.pathname).toBe('https://mcp.posthog.com/mcp')
+    expect(posthog.searchParams.get('readonly')).toBe('true')
+    expect(posthog.searchParams.get('mode')).toBe('cli')
+    const features = posthog.searchParams.get('features')?.split(',') ?? []
+    expect(features).toEqual(['data_schema', 'events', 'insights', 'sql', 'web_analytics', 'error_tracking', 'replay', 'sdk_doctor', 'search'])
+    expect(features).not.toEqual(expect.arrayContaining(['ai_observability', 'replay_vision']))
+  })
+
+  it('denies all MCP prefixes at root and grants only bounded role surfaces', () => {
+    const config = json<OpenCodeConfiguration>('opencode.json')
+    expect(Object.keys(config.tools)).toEqual(Object.keys(config.mcp).map((name) => `${name}_*`))
+    expect(Object.values(config.tools)).toEqual(expect.arrayContaining([false]))
+    expect(Object.values(config.tools).every((value) => value === false)).toBe(true)
+    const agent = (name: string) => readFileSync(resolve(repositoryRoot, `.opencode/agents/${name}.md`), 'utf8')
+    expect(agent('predictor-builder')).toContain('supabase-dev_*: true')
+    expect(agent('predictor-builder')).not.toContain('supabase-prod_*: true')
+    expect(agent('predictor-visual-qa')).toContain('playwright_*: true')
+    expect(agent('predictor-visual-qa')).toContain('chrome-devtools_*: true')
+    expect(agent('predictor-release-verifier')).toContain('supabase-prod_*: true')
+    expect(agent('predictor-release-verifier')).toContain('netlify_netlify-deploy-services-reader: true')
+    expect(agent('predictor-release-verifier')).not.toContain('netlify_*: true')
+    expect(agent('predictor-critic')).not.toMatch(/^\s+\S+_\*: true$/m)
+  })
+
+  it('contains no committed credential or literal bearer token', () => {
+    const files = ['opencode.json', '.mcp.json', ...[
+      'predictor-conductor', 'predictor-builder', 'predictor-critic',
+      'predictor-visual-qa', 'predictor-release-verifier',
+    ].map((name) => `.opencode/agents/${name}.md`)]
+    const text = files.map((file) => readFileSync(resolve(repositoryRoot, file), 'utf8')).join('\n')
+    expect(text).not.toMatch(/Bearer (?!\{env:GITHUB_MCP_TOKEN\})[A-Za-z0-9_-]{10,}/)
+    expect(text).not.toMatch(/(?:phx_|sk-or-|gh[opsu]_|sbp_)[A-Za-z0-9_-]+/)
   })
 
   it('pins Context7 and Repomix to the central registry', () => {

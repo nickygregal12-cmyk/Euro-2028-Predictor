@@ -6,15 +6,19 @@ cd "$repo_root"
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
 
 live_checks='false'
+mcp_checks='false'
 case "${1:-}" in
   --live) live_checks='true'; shift ;;
+  --mcp) mcp_checks='true'; shift ;;
   -h|--help)
     cat <<'EOF'
-Usage: bash scripts/agent-tools/cloud-conductor-doctor.sh [--live]
+Usage: bash scripts/agent-tools/cloud-conductor-doctor.sh [--live|--mcp]
 
 Default checks are local and make no model request.
 --live additionally performs one tiny Ox Alpha transport request through the
 tracked read-only bridge. It does not call Claude or a paid API.
+--mcp performs bounded MCP initialize/tools-list connectivity only and invokes
+zero external MCP tools. Provider 5xx responses are reported as UNAVAILABLE.
 EOF
     exit 0
     ;;
@@ -54,7 +58,13 @@ else
 fi
 
 if command -v opencode >/dev/null 2>&1; then
-  ready 'OpenCode' "$(opencode --version 2>/dev/null | head -n 1)"
+  supported_opencode="$(node -p "require('./config/agent-tools.json').opencode.version" 2>/dev/null || true)"
+  installed_opencode="$(opencode --version 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+  if [ "$installed_opencode" = "$supported_opencode" ]; then
+    ready 'OpenCode' "$installed_opencode"
+  else
+    missing 'OpenCode version' "expected ${supported_opencode:-unknown}, got ${installed_opencode:-none}"
+  fi
   agents="$(opencode agent list 2>/dev/null || true)"
   for agent in predictor-conductor predictor-builder predictor-critic predictor-visual-qa predictor-release-verifier; do
     if grep -q "$agent" <<<"$agents"; then
@@ -106,8 +116,25 @@ if command -v claude >/dev/null 2>&1; then
     ready 'Claude billing boundary' 'no environment provider/API/endpoint override is active'
   fi
   optional 'Claude login verification' 'run `claude`, then /status, and confirm the Login method is the intended Claude.ai subscription'
+  claude_settings="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/settings.json"
+  if [ -f "$claude_settings" ] && node -e "const s=require(process.argv[1]); process.exit(s.env?.DISABLE_AUTOUPDATER === '1' ? 0 : 1)" "$claude_settings" 2>/dev/null; then
+    ready 'Claude update boundary' 'DISABLE_AUTOUPDATER=1; reviewed central installer updates remain possible'
+  else
+    optional 'Claude update boundary' 'rerun cloud-conductor-claude-install.sh to merge DISABLE_AUTOUPDATER=1'
+  fi
 else
   optional 'Claude Code' 'install with scripts/agent-tools/cloud-conductor-claude-install.sh for the optional Claude lane'
+fi
+
+printf '\nMCP capability state\n--------------------\n'
+if command -v opencode >/dev/null 2>&1; then
+  if [ "$mcp_checks" = 'true' ]; then
+    bash scripts/agent-tools/mcp-readiness.sh --connectivity
+  else
+    bash scripts/agent-tools/mcp-readiness.sh --config-only
+  fi
+else
+  missing 'MCP inventory' 'OpenCode is required to validate configured MCP servers'
 fi
 
 if systemctl --user is-active --quiet predictor-conductor.service; then
@@ -166,6 +193,9 @@ if [ "$live_checks" = 'false' ]; then
   printf 'Provider requests: none. Re-run with --live for one tiny Ox transport smoke.\n'
 else
   printf 'Provider requests: one Ox transport smoke; Claude was not called.\n'
+fi
+if [ "$mcp_checks" = 'false' ]; then
+  printf 'MCP network: not checked. Re-run with --mcp for initialize/tools-list only.\n'
 fi
 printf 'Summary: %s ready, %s optional, %s missing\n' "$ready_count" "$optional_count" "$missing_count"
 if [ "$missing_count" -gt 0 ]; then

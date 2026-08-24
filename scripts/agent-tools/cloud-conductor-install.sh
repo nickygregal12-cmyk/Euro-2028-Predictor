@@ -139,13 +139,22 @@ if [ -z "$server_password" ]; then
   server_password="$(openssl rand -hex 24)"
 fi
 
+github_mcp_token="${GITHUB_MCP_TOKEN:-}"
+if [ -z "$github_mcp_token" ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+  # Capture the existing host credential without printing it or putting it in a
+  # prompt/command argument. GitHub MCP remains server-side read-only.
+  github_mcp_token="$(gh auth token 2>/dev/null || true)"
+fi
+
 umask 077
-cat > "$env_file" <<EOF
-OPENROUTER_API_KEY=${openrouter_key}
-OPENCODE_SERVER_USERNAME=predictor
-OPENCODE_SERVER_PASSWORD=${server_password}
-EOF
-chmod 600 "$env_file"
+export OPENROUTER_API_KEY="$openrouter_key"
+export OPENCODE_SERVER_USERNAME='predictor'
+export OPENCODE_SERVER_PASSWORD="$server_password"
+if [ -n "$github_mcp_token" ]; then
+  export GITHUB_MCP_TOKEN="$github_mcp_token"
+fi
+node scripts/agent-tools/merge-cloud-env.mjs "$env_file"
+unset openrouter_key server_password github_mcp_token GITHUB_MCP_TOKEN
 
 cat > "$service_file" <<EOF
 [Unit]
@@ -158,6 +167,7 @@ Type=simple
 WorkingDirectory=${repo_root}
 EnvironmentFile=${env_file}
 Environment=PATH=${HOME}/.local/bin:/usr/local/bin:/usr/bin:/bin
+Environment=DISABLE_AUTOUPDATER=1
 ExecStart=${HOME}/.local/bin/opencode web --hostname 127.0.0.1 --port 4096
 Restart=on-failure
 RestartSec=5
@@ -189,3 +199,6 @@ printf 'The generated browser password is stored at: %s\n' "$env_file"
 printf 'Read only the OPENCODE_SERVER_PASSWORD line and save it in your password manager. Never commit this file.\n'
 printf '\nGitHub write access is separate. Run `gh auth login` once on this host if you want the Builder to push branches/create PRs.\n'
 printf 'Claude Code is optional: install/authenticate the official client only if an existing Claude subscription should be used for selected escalations.\n'
+printf '\nRestart OpenCode after config/auth changes. Authenticate OAuth MCPs explicitly with `opencode mcp auth NAME`, then inspect `opencode mcp list`.\n'
+printf 'For an SSH host, forward the callback localhost port shown by OpenCode for the duration of browser OAuth.\n'
+printf 'GitHub MCP token provisioning reuses `gh auth token` only inside this protected installer and never prints it.\n'

@@ -104,6 +104,10 @@ The environment file is:
 ```
 
 It must remain mode `0600` and must never be committed or pasted into chat.
+Installer reruns merge managed values and preserve unknown protected keys. When
+`gh` is already authenticated, the installer captures `gh auth token` internally
+as `GITHUB_MCP_TOKEN` without printing it; GitHub MCP uses the official read-only
+endpoint and bounded toolsets.
 
 ## Authenticate OpenAI / ChatGPT
 
@@ -119,6 +123,26 @@ opencode models openai
 ```
 
 Use a sensible reasoning level for routine work rather than maximum effort for every prompt.
+
+## Authenticate role-gated MCP servers
+
+MCP configuration is reproducible, but authentication is deliberately manual.
+Quit/restart OpenCode after pulling configuration changes, then run the OAuth
+commands in [`developer-toolchain.md`](developer-toolchain.md). On SSH, tunnel
+the callback localhost port OpenCode prints for the duration of browser login.
+OAuth tokens stay in OpenCode's outside-Git auth store.
+
+Check local configuration with the default doctor. Use `--mcp` only when a
+bounded network initialize/tools-list probe is intended:
+
+```bash
+bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
+```
+
+This invokes no external MCP tool. A provider 5xx is `UNAVAILABLE`, not an
+instruction to rotate credentials or fail over. Configured, authenticated and
+connected are separate facts; do not claim connection until the live probe says
+so.
 
 ## Ox Alpha
 
@@ -167,6 +191,10 @@ bash scripts/agent-tools/claude-review.sh \
 ```
 
 It runs the official client non-interactively in **plan mode**, so it can inspect and reason but cannot edit source. The Conductor should call Claude selectively, not on every task.
+The optional installer merges `DISABLE_AUTOUPDATER=1` into user settings without
+overwriting unrelated settings, and the bridge/service export it in depth.
+Reviewed updates remain possible by raising the central pin and rerunning the
+installer; doctor and bridge report/refuse unreviewed version drift.
 
 ## Join Tailscale and publish privately
 
