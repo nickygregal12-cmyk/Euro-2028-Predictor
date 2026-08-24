@@ -74,7 +74,7 @@ jobs:
               echo
               echo 'No origin is configured, so there was nothing to walk.'
               echo
-              echo 'Set the repository variable `EURO28_JOURNEY_PROBE_ORIGIN` to an origin'
+              echo 'Set the repository variable EURO28_JOURNEY_PROBE_ORIGIN to an origin'
               echo 'where the journey is reachable — a deploy preview, or production once'
               echo 'its password perimeter is lifted. Production currently answers 401 to'
               echo 'every anonymous request, which this probe deliberately does not carry a'
@@ -120,6 +120,11 @@ jobs:
             exit 0
           fi
 
+          # NO SINGLE-BACKTICK PAIRS in these strings. shellcheck reads a matched
+          # pair inside a single-quoted echo as command substitution, and
+          # actionlint promotes that to a failure — the same trap
+          # ai-odds-scheduler-reconcile.yml already carries a note about. Triple
+          # fences are fine; a matched pair around an identifier is not.
           {
             echo '## Synthetic journey probe'
             echo
@@ -129,8 +134,8 @@ jobs:
             echo
             echo 'PUBLISHING IS DELIBERATE, NOT AUTOMATIC. This job holds read-only'
             echo 'permissions and no push credential, so it cannot move this record'
-            echo 'into the repository — and `/status` renders the COMMITTED record.'
-            echo 'To publish a result, commit it to `config/journey-probe-record.json`'
+            echo 'into the repository, and /status renders the COMMITTED record.'
+            echo 'To publish a result, commit it to config/journey-probe-record.json'
             echo 'in a pull request. Granting a scheduled job write access to the'
             echo 'repository is an operator decision, not one this workflow makes for'
             echo 'itself.'
