@@ -19,6 +19,7 @@ fi
 for variable in \
   ANTHROPIC_API_KEY \
   ANTHROPIC_AUTH_TOKEN \
+  ANTHROPIC_BASE_URL \
   CLAUDE_CODE_USE_BEDROCK \
   CLAUDE_CODE_USE_VERTEX \
   CLAUDE_CODE_USE_FOUNDRY; do
@@ -63,9 +64,9 @@ login code instead of redirecting to localhost; paste that code back into the
 terminal when prompted. Inside Claude, run `/status` once and confirm the Login
 method is the intended Claude.ai subscription, then exit.
 
-Keep ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN and the Bedrock/Vertex/Foundry
-provider switches unset for this lane. The tracked bridge fails closed if any of
-those overrides are present.
+Keep ANTHROPIC_API_KEY, ANTHROPIC_AUTH_TOKEN, ANTHROPIC_BASE_URL and the
+Bedrock/Vertex/Foundry provider switches unset for this lane. The tracked bridge
+fails closed if any of those overrides are present.
 
 After login, run:
   bash scripts/agent-tools/cloud-conductor-doctor.sh
