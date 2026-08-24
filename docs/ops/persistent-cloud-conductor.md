@@ -152,9 +152,11 @@ surface is the unsafe `posthog_exec` multiplexer, whose nested catalog includes
 write-shaped `agent-feedback`. Both provider prefixes therefore remain root-denied.
 Release Verifier overrides only `sentry_find_organizations` and the expected
 tools-mode name `posthog_read-data-schema`. PostHog is server-constrained with
-`readonly=true`, `mode=tools` and exact `tools=read-data-schema`; it has no broad
-`features` parameter. Wildcard, catalog, multiplexer, write/triage, Seer and
-agent-feedback grants remain forbidden.
+`readonly=true`, `mode=tools` and exact `tools=read-data-schema`. Our configured
+URL deliberately omits the broad `features` parameter the previous `mode=cli` URL
+carried: PostHog supports it, and it unions with `tools`, so including it would
+widen the exposed set back out. Wildcard, catalog, multiplexer, write/triage,
+Seer and agent-feedback grants remain forbidden.
 
 This repository policy is not live acceptance. After merge, restart/reload
 OpenCode on Hetzner and run `stage0-live-acceptance.sh --live` to prove the exact
