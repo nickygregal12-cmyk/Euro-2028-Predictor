@@ -8,8 +8,13 @@ const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 describe('release verifier hosted identities', () => {
   it('pins the two live Netlify site IDs and keeps the retired development site separate', () => {
     const sites = JSON.parse(read('config/netlify-sites.json')) as {
-      production: Record<string, { name: string; siteId: string; variant: string }>
-      retired: Record<string, { name: string; siteId: string }>
+      production: {
+        hub: { name: string; siteId: string; variant: string }
+        euro: { name: string; siteId: string; variant: string }
+      }
+      retired: {
+        euroDevelopment: { name: string; siteId: string }
+      }
     }
 
     expect(sites.production.hub).toEqual(expect.objectContaining({
