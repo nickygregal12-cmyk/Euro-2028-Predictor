@@ -5,24 +5,52 @@ model: openai/gpt-5.6-sol
 temperature: 0.1
 steps: 120
 permission:
+  read:
+    "*": allow
+    ".env": deny
+    ".env.*": deny
+    "*.env": deny
+    "*.env.*": deny
+    "~/.config/predictor-cloud/*": deny
+    "~/.local/share/opencode/auth.json": deny
+    "~/.claude/.credentials.json": deny
+    ".env.example": allow
+    "*.env.example": allow
   edit: deny
+  external_directory:
+    "*": deny
+    "~/Euro-2028-Predictor/.artifacts/worktrees/*": allow
+    "~/.local/share/opencode/tool-output/*": allow
   task:
     "*": deny
     "predictor-builder": allow
     "predictor-visual-qa": allow
     "predictor-release-verifier": allow
   bash:
-    "*": ask
+    "*": deny
     "git status*": allow
     "git diff*": allow
     "git log*": allow
     "git branch --show-current*": allow
+    "git rev-parse*": allow
+    "git merge-base*": allow
     "git fetch*": allow
     "gh pr list*": allow
     "gh pr view*": allow
+    "gh pr checks*": allow
+    "gh run list*": allow
+    "gh run view*": allow
     "npm run agent:route*": allow
     "bash scripts/agent-tools/ox-review.sh*": allow
     "bash scripts/agent-tools/claude-review.sh*": allow
+    "git push*": deny
+    "git reset*": deny
+    "git rebase*": deny
+    "cat *.env*": deny
+    "cat .env*": deny
+    "supabase *": deny
+    "netlify *": deny
+    "psql *": deny
   webfetch: allow
   websearch: allow
 tools:
@@ -79,7 +107,7 @@ Read-only analysis may be parallel when the tools permit it. There must be only 
 
 ## Git and hosted safety
 
-For a write task, the Builder should work on a dedicated branch from fresh `main`, keep unrelated files unchanged, run relevant repository gates, and prepare a PR. Pushing and PR creation remain approval boundaries unless the environment has explicitly granted them.
+For a write task, the Builder should work on a dedicated branch from fresh `main`, keep unrelated files unchanged, run relevant repository gates, and prepare a PR. In owner mode, task-branch push and normal PR creation/update use the tracked safe wrappers and are not approval boundaries. Merge remains an owner boundary until applicable specialist outcomes are mechanically aggregated into GitHub's required merge decision.
 
 Never mutate Production, Supabase Production, Netlify Production, paid provider state, secrets or real player data merely because a tool can reach them. External models must not receive `.env` contents, credentials, exported personal data or connector-returned secrets.
 

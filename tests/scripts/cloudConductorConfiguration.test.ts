@@ -33,8 +33,9 @@ describe('persistent private cloud Conductor', () => {
     expect(builder).toContain('mode: subagent')
     expect(builder).toContain('model: openai/gpt-5.6-sol')
     expect(builder).toContain('edit: allow')
-    expect(builder).toContain('"git push*": ask')
-    expect(builder).toContain('"gh pr create*": ask')
+    expect(builder).toContain('"git push*": deny')
+    expect(builder).toContain('"bash scripts/agent-tools/owner-task-push.sh": allow')
+    expect(builder).toContain('"bash scripts/agent-tools/owner-pr.sh*": allow')
     expect(builder).toContain('stop and report it rather than silently creating spend')
 
     expect(critic).toContain('mode: primary')
@@ -55,6 +56,7 @@ describe('persistent private cloud Conductor', () => {
     for (const config of [conductor, builder, critic, visualQa, releaseVerifier]) {
       expect(config).not.toContain('sk-or-')
       expect(config).not.toContain('--auto')
+      expect(config).not.toContain('"*": ask')
       expect(config).toContain('AGENTS.md')
       expect(config).toContain('NOW.md')
     }
@@ -171,6 +173,12 @@ printf '%s\\n' \\
     expect(doctor).toContain('Default web agent')
     expect(doctor).toContain('Local auth boundary')
     expect(doctor).toContain('tailscale serve status')
+    expect(doctor).toContain('tailscale funnel status')
+    expect(doctor).toContain('UnitFileState')
+    expect(doctor).toContain('loginctl show-user')
+    expect(doctor).toContain('no SSH service dependency')
+    expect(doctor).toContain('opencode session list --format json')
+    expect(doctor).toContain("ss -ltnH 'sport = :4096'")
     expect(doctor).toContain('gh auth status')
     expect(doctor).toContain('Claude billing boundary')
     expect(doctor).toContain('Claude login verification')
@@ -188,6 +196,8 @@ printf '%s\\n' \\
       'scripts/agent-tools/merge-cloud-env.mjs',
       'scripts/agent-tools/mcp-readiness.sh',
       'scripts/agent-tools/netlify-mcp-fallback.sh',
+      'scripts/agent-tools/owner-task-push.sh',
+      'scripts/agent-tools/owner-pr.sh',
     ]) {
       expect(workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`)).toHaveLength(2)
     }

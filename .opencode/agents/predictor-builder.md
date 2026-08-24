@@ -10,32 +10,80 @@ permission:
     ".env": deny
     ".env.*": deny
     "*.env": deny
+    "*.env.*": deny
+    "~/.config/predictor-cloud/*": deny
+    "~/.local/share/opencode/auth.json": deny
+    "~/.claude/.credentials.json": deny
+    ".env.example": allow
+    "*.env.example": allow
   edit: allow
-  external_directory: deny
+  external_directory:
+    "*": deny
+    "~/Euro-2028-Predictor/.artifacts/worktrees/*": allow
+    "~/.local/share/opencode/tool-output/*": allow
   bash:
-    "*": ask
+    "*": deny
     "git status*": allow
     "git diff*": allow
     "git log*": allow
+    "git show*": allow
+    "git rev-parse*": allow
+    "git merge-base*": allow
     "git fetch*": allow
     "git switch*": allow
     "git checkout*": allow
-    "git branch*": allow
+    "git branch --show-current*": allow
+    "git branch --list*": allow
+    "git branch --all*": allow
+    "git branch feat/*": allow
+    "git branch fix/*": allow
+    "git branch chore/*": allow
+    "git worktree list*": allow
+    "git worktree add*": allow
     "git add*": allow
     "git commit*": allow
     "npm run agent:route*": allow
+    "npm ci*": allow
+    "npm install*": allow
     "npm test*": allow
     "npm run test*": allow
     "npm run build*": allow
     "npm run lint*": allow
     "npm run check:*": allow
+    "npm run format*": allow
+    "npm run dev*": allow
+    "npm run preview*": allow
     "npx vitest*": allow
     "npx tsc*": allow
     "npx oxlint*": allow
     "npx stylelint*": allow
-    "bash scripts/agent-tools/*": allow
-    "git push*": ask
-    "gh pr create*": ask
+    "npx playwright*": allow
+    "bash scripts/agent-tools/architecture-check.sh*": allow
+    "bash scripts/agent-tools/cloud-conductor-doctor.sh*": allow
+    "bash scripts/agent-tools/mcp-readiness.sh*": allow
+    "bash scripts/agent-tools/owner-task-push.sh": allow
+    "bash scripts/agent-tools/owner-pr.sh*": allow
+    "gh pr list*": allow
+    "gh pr view*": allow
+    "gh pr checks*": allow
+    "gh run list*": allow
+    "gh run view*": allow
+    "gh run watch*": allow
+    "git push*": deny
+    "git commit --amend*": deny
+    "git reset*": deny
+    "git rebase*": deny
+    "git filter-branch*": deny
+    "git reflog expire*": deny
+    "git branch -D*": deny
+    "git branch -d main*": deny
+    "git checkout --force*": deny
+    "git switch --discard-changes*": deny
+    "cat *.env*": deny
+    "cat .env*": deny
+    "supabase *": deny
+    "netlify *": deny
+    "psql *": deny
   webfetch: allow
   websearch: allow
 tools:
@@ -71,6 +119,11 @@ Implementation rules:
 - `supabase-dev_*` is the only potentially mutating hosted MCP surface available
   to this role. Its availability is not permission to mutate: obey the exact
   task's Development/Production/provider authority and review every call.
+- Owner-mode branch push and PR create/update must use
+  `bash scripts/agent-tools/owner-task-push.sh` and
+  `bash scripts/agent-tools/owner-pr.sh`; direct push/PR mutation is denied. Merge
+  remains an owner boundary until applicable specialist evidence is mechanically
+  aggregated into the required GitHub decision.
 
 Run the relevant repository-native tests/checks. Do not claim a check passed unless it actually ran successfully. If a check is unavailable, say so.
 

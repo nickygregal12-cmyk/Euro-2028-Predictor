@@ -143,6 +143,30 @@ else
   missing 'Conductor service' 'systemctl --user status predictor-conductor.service'
 fi
 
+service_properties="$(systemctl --user show predictor-conductor.service --property=UnitFileState,Restart,ExecStart,WorkingDirectory,After --no-pager 2>/dev/null || true)"
+if grep -q '^UnitFileState=enabled$' <<<"$service_properties" &&
+   grep -q '^Restart=on-failure$' <<<"$service_properties" &&
+   grep -q 'opencode web --hostname 127.0.0.1 --port 4096' <<<"$service_properties" &&
+   ! grep -Eq '^After=.*(ssh|sshd)\.service' <<<"$service_properties"; then
+  ready 'Service persistence' 'enabled with restart-on-failure, localhost ExecStart and no SSH service dependency'
+else
+  missing 'Service persistence' 'service must be enabled, restart on failure, and bind OpenCode to 127.0.0.1:4096'
+fi
+
+if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)" = yes ]; then
+  ready 'Login persistence' 'linger is enabled for restart after logout/reboot'
+else
+  missing 'Login persistence' 'enable user linger for unattended restart'
+fi
+
+listeners="$(ss -ltnH 'sport = :4096' 2>/dev/null || true)"
+if [ -n "$listeners" ] && ! grep -Eq '(^|[[:space:]])(0\.0\.0\.0|\[::\]|\*):4096([[:space:]]|$)' <<<"$listeners" &&
+   grep -q '127.0.0.1:4096' <<<"$listeners"; then
+  ready 'Socket boundary' 'port 4096 listens on IPv4 localhost only'
+else
+  missing 'Socket boundary' 'port 4096 must listen only on 127.0.0.1'
+fi
+
 status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 3 http://127.0.0.1:4096/ || true)"
 case "$status" in
   401) ready 'Local auth boundary' 'localhost:4096 requires HTTP Basic auth' ;;
@@ -160,6 +184,20 @@ if command -v tailscale >/dev/null 2>&1 && tailscale serve status 2>/dev/null | 
   ready 'Private web route' 'Tailscale Serve points to OpenCode'
 else
   optional 'Private web route' 'run: sudo tailscale serve --bg 4096'
+fi
+
+funnel_status="$(tailscale funnel status 2>&1 || true)"
+if grep -q '(tailnet only)' <<<"$funnel_status" && ! grep -qi 'Funnel on' <<<"$funnel_status"; then
+  ready 'Public Funnel boundary' 'Funnel is disabled; route is tailnet only'
+else
+  missing 'Public Funnel boundary' 'tailscale funnel status must prove the route is tailnet only'
+fi
+
+if command -v opencode >/dev/null 2>&1 &&
+   opencode session list --format json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const x=JSON.parse(s);process.exit(Array.isArray(x)&&x.length>0?0:1)}catch{process.exit(1)}})"; then
+  ready 'Resumable sessions' 'persisted OpenCode sessions are available'
+else
+  missing 'Resumable sessions' 'no persisted OpenCode session was listed'
 fi
 
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then

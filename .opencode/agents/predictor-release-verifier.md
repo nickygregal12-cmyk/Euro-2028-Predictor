@@ -10,17 +10,30 @@ permission:
     ".env": deny
     ".env.*": deny
     "*.env": deny
+    "*.env.*": deny
+    "~/.config/predictor-cloud/*": deny
+    "~/.local/share/opencode/auth.json": deny
+    "~/.claude/.credentials.json": deny
+    ".env.example": allow
+    "*.env.example": allow
   edit: deny
-  external_directory: deny
+  external_directory:
+    "*": deny
+    "~/Euro-2028-Predictor/.artifacts/worktrees/*": allow
+    "~/.local/share/opencode/tool-output/*": allow
   task: deny
   bash:
-    "*": ask
+    "*": deny
     "git status*": allow
     "git diff*": allow
     "git log*": allow
     "git show*": allow
     "gh pr list*": allow
     "gh pr view*": allow
+    "gh pr checks*": allow
+    "gh run list*": allow
+    "gh run view*": allow
+    "gh run watch*": allow
     "npm run agent:route*": allow
     "npm test*": allow
     "npm run test*": allow
@@ -31,6 +44,17 @@ permission:
     "npx tsc*": allow
     "npx oxlint*": allow
     "npx stylelint*": allow
+    "bash scripts/agent-tools/architecture-check.sh*": allow
+    "bash scripts/agent-tools/cloud-conductor-doctor.sh*": allow
+    "bash scripts/agent-tools/mcp-readiness.sh*": allow
+    "git push*": deny
+    "git reset*": deny
+    "git rebase*": deny
+    "cat *.env*": deny
+    "cat .env*": deny
+    "supabase *": deny
+    "netlify *": deny
+    "psql *": deny
   webfetch: allow
   websearch: allow
 tools:

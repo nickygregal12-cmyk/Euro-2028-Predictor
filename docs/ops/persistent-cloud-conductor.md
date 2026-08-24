@@ -231,7 +231,20 @@ gh auth setup-git
 gh auth status
 ```
 
-Use the browser/device flow. The tracked Builder still keeps `git push` and `gh pr create` as approval boundaries unless the operator explicitly grants them.
+Use the browser/device flow. In owner mode, the Builder uses
+`scripts/agent-tools/owner-task-push.sh` and `scripts/agent-tools/owner-pr.sh`;
+task-branch push and normal PR create/update are zero-prompt operations. The wrappers
+derive the current branch, reject `main`, detached/non-task branches, mismatched
+upstreams, force/target overrides, and fix the PR base to `main`. Direct `git push`
+and direct PR mutation remain denied.
+
+**Merge remains an owner boundary in this increment.** Live ruleset `20508177`
+mechanically requires only `CI / Required merge gate` (with deletion and
+non-fast-forward protection and no bypass actors). That aggregate does not yet prove
+that every applicable Visual QA, Release Verifier, or Ox result is present and green.
+The direct next phase is to aggregate applicable specialist gates into the required
+GitHub merge decision; only then can owner-mode merge become zero-tap because GitHub
+itself refuses red or missing applicable evidence.
 
 ## Verify the finished workspace
 
@@ -252,7 +265,10 @@ Healthy state includes:
 - mode-0600 cloud environment file;
 - localhost HTTP Basic auth;
 - active `systemd` service;
+- enabled restart-on-failure service, user linger and localhost-only listening socket;
 - Tailscale membership and private Serve route;
+- explicit proof that Tailscale Funnel is disabled;
+- at least one persisted/resumable OpenCode session;
 - optional GitHub CLI auth;
 - a host-capacity warning if the machine is too small for comfortable browser/build verification.
 
@@ -277,13 +293,13 @@ Bookmark the `.ts.net` page. Sessions and the repository live on the server, so 
 
 ## Normal use from iPhone/iPad
 
-1. Install Tailscale and sign into the same tailnet.
-2. Switch Tailscale on.
-3. Open the same private `.ts.net` URL in Safari.
-4. Sign in with the same OpenCode credentials.
-5. Open the Predictor project/session and use the Conductor exactly as on the laptop.
+1. Install Tailscale, sign into the same tailnet, and leave it connected.
+2. Open the private `.ts.net` URL in Safari; it is not a public URL.
+3. Sign in with username `predictor` and save the Basic-auth password to iCloud Keychain. Never put it in notes or prompts.
+4. Open the Predictor project/session and use the default Conductor exactly as on the laptop; normal web operation requires no SSH session.
+5. In Safari choose **Share → Add to Home Screen** for a one-tap launcher.
 
-For a one-tap launcher, in Safari choose **Share → Add to Home Screen** after opening the private OpenCode page. This creates a home-screen shortcut; it does not make the site public and Tailscale still has to be connected.
+The home-screen shortcut does not make the site public and Tailscale still has to be connected.
 
 Do not save API keys in mobile notes or prompts. The only credential normally entered in the browser is the OpenCode Basic-auth password from the password manager.
 

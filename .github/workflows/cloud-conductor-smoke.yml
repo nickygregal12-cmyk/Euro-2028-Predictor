@@ -12,8 +12,11 @@ on:
       - 'scripts/agent-tools/merge-cloud-env.mjs'
       - 'scripts/agent-tools/mcp-readiness.sh'
       - 'scripts/agent-tools/netlify-mcp-fallback.sh'
+      - 'scripts/agent-tools/owner-task-push.sh'
+      - 'scripts/agent-tools/owner-pr.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'tests/scripts/ownerModePermissions.test.ts'
       - 'config/agent-tools.json'
       - '.github/workflows/cloud-conductor-smoke.yml'
   push:
@@ -28,8 +31,11 @@ on:
       - 'scripts/agent-tools/merge-cloud-env.mjs'
       - 'scripts/agent-tools/mcp-readiness.sh'
       - 'scripts/agent-tools/netlify-mcp-fallback.sh'
+      - 'scripts/agent-tools/owner-task-push.sh'
+      - 'scripts/agent-tools/owner-pr.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
+      - 'tests/scripts/ownerModePermissions.test.ts'
       - 'config/agent-tools.json'
       - '.github/workflows/cloud-conductor-smoke.yml'
   workflow_dispatch:
@@ -76,9 +82,11 @@ jobs:
           bash -n scripts/agent-tools/cloud-conductor-claude-install.sh
           bash -n scripts/agent-tools/ox-review.sh
           bash -n scripts/agent-tools/claude-review.sh
+          bash -n scripts/agent-tools/owner-task-push.sh
+          bash -n scripts/agent-tools/owner-pr.sh
           node -e "const c=require('./opencode.json'); if (c.default_agent !== 'predictor-conductor') process.exit(1)"
           npm ci
-          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts
+          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts tests/scripts/ownerModePermissions.test.ts
 
       - name: Validate OpenCode loads all tracked agents
         shell: bash
@@ -89,6 +97,9 @@ jobs:
           export PATH="${HOME}/.local/bin:${PATH}"
           opencode --version
           opencode debug config >/dev/null
+          for agent in predictor-conductor predictor-builder predictor-critic predictor-visual-qa predictor-release-verifier; do
+            opencode debug agent "$agent" >/dev/null
+          done
           bash scripts/agent-tools/mcp-readiness.sh --config-only
           agents="$(opencode agent list)"
           printf '%s\n' "$agents"
