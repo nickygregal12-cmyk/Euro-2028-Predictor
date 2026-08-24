@@ -401,6 +401,18 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 218 live-standings review
+
+The hub gains nothing and loses nothing. Contract 218 publishes one Euro-side
+table on the realtime channel and wires two Euro surfaces to refetch when it
+changes; no hub route, competition adapter or shared surface is involved.
+
+The line this plan owns is the boundary: a live channel is a new
+direct-subscription surface, and it must not become a way for one competition's
+data to arrive anywhere by a second route. It cannot here, because the
+subscription carries no data at all -- it carries a signal, and every number
+still comes back through the existing bounded read.
+
 ## Contract 217 push-channel review
 
 No hub surface, route or build step changes. The notification a push delivers

@@ -380,6 +380,22 @@ Season matchweek confirmation now describes the current card rather than an earl
 
 Contract 215 hardens an existing private administrative research capability rather than creating a new compact user feature or safeguard identifier. Historical forecasts remain inspectable, but only the canonical newest forecast may produce the current value decision and stale recommendation evidence fails closed across a forecast-version change. No public betting surface, scoring rule, competition state, player data boundary or hosted classification changes here, so the compact `FEAT-*` / `SAFE-*` rows above are unchanged.
 
+### Contract 218 — a live refresh, classified honestly
+
+**Present, and switched off.** The channel, the provider, the migration and the
+two consuming surfaces are built and tested. No deployment has enabled the flag,
+so in every environment today the product still refreshes exactly as it did.
+
+What is genuinely closed: `REL-005` / `SAFE-023` recorded no realtime, polling
+or invalidation strategy anywhere in the codebase. There is now one, in one
+module, subscribed to one table.
+
+What is NOT closed and should not be read as closed: ADR 0008 also permits a
+bounded polling fallback while matches are live, and `AUD-25` names a circuit
+breaker to go with it. Neither is built. Until the flag is on somewhere, there
+is also no hosted operational evidence -- which is the ADR's own condition for
+ungating this.
+
 ### Contract 217 — a second channel, classified honestly
 
 Push moves the reminder feature from one channel to two on the server and leaves

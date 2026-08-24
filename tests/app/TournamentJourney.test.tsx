@@ -14,6 +14,12 @@ vi.mock('../../src/app/providers/PredictionsProvider', () => ({
   ),
 }))
 
+vi.mock('../../src/app/providers/LiveResultsProvider', () => ({
+  LiveResultsProvider: ({ children }: { children: React.ReactNode }) => (
+    <div data-testid="live-results">{children}</div>
+  ),
+}))
+
 // TournamentJourney has a default production reader, but every assertion below
 // injects the read explicitly. Mock the module so importing the component does
 // not initialise the real Supabase client in this credential-free unit test.

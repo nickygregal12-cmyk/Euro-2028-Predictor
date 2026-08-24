@@ -143,11 +143,19 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1018,
+      "headSha": "d27bee0b3bebd89d8ac05dbf36102abbcabf310f",
+      "mergedSha": "b8375ce64ed4c6cd5e618407d2619b9019411267",
+      "acceptanceEvidence": [
+        "A synthetic probe walks the acquisition journey a new player takes and records the outcome of each step, so a broken journey is discovered by something other than a player hitting it.",
+        "The walking job touches the network and holds no write access or persisted credential; the publishing job holds write access and makes no network request of its own. Neither job can both fetch a remote document and push to the default branch.",
+        "The publisher runs even when the journey failed, because a publisher that only ran on success would hold the status page green straight through an outage.",
+        "Whether to publish is a pure tested function: publish when the answer changes, including a recovery and the same failure for a different reason, otherwise at most once a day. Timings are excluded so a stable result does not churn the branch.",
+        "A guard refuses to commit when anything other than the record file is modified, proved by smuggling an unrelated edit into the workspace and watching it refuse.",
+        "The workflow credential allowlist moved from per-file to per-job, because a per-file rule could only describe this workflow by granting its network-facing job a token, which would have destroyed the boundary the two-job split exists to create.",
+        "The probe is dormant until a deployment names an origin where the journey can actually be walked; production answers 401 to every anonymous request and the probe deliberately carries no credential past it."
+      ],
       "blocker": null
     },
     {
@@ -156,7 +164,7 @@
       "dependencies": [
         "4"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

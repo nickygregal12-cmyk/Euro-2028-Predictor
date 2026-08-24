@@ -552,6 +552,19 @@ The repository now keeps matchweek confirmation tied to the card that was actual
 
 Contract 215 is a repository-only consistency correction for the private AI Lab. The value loop keeps historical forecast horizons for audit but assesses only `ai.canonical_fixture_predictions`, and the current-recommendation read fails closed when a fresher canonical forecast has not yet been evaluated. This does not reorder the product roadmap, widen betting exposure, change model-selection policy or close #854: generated Bet Builder slips still need immutable slip-level settlement/performance evidence, and hosted rollout remains a separate guarded milestone.
 
+### Contract 218 — live standings, as an invalidation rather than a feed
+
+No roadmap item moves. Contract 218 delivers ADR 0008's accepted direction: a
+narrow live-results channel that tells the browser to refetch, and a leaderboard
+that therefore changes without a manual refresh.
+
+The distinction the ADR insisted on is kept: this is invalidation, not
+streaming. Nothing is computed in the browser, no payload is read, and the
+standings still arrive from the same server RPC that already ranked them. What
+changes is when they are asked for.
+
+Guarded by a fail-closed flag until a deployment proves the publication.
+
 ### Contract 217 — push, as a second channel rather than a second system
 
 Adds `public.push_subscriptions`, a `channel` column on the delivery ledger, and

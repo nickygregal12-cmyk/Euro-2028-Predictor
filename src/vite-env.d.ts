@@ -22,6 +22,11 @@ interface ImportMetaEnv {
   readonly VITE_UI_FOOTBALL_HUB_MATCHES?: string
   readonly VITE_UI_FOOTBALL_HUB_HOME?: string
   readonly VITE_UI_FOOTBALL_HUB_GAMES?: string
+  /**
+   * Hosted capability flag for ADR 0008 live updates. The realtime channel stays
+   * closed until a deployment proves the publication and socket work there.
+   */
+  readonly VITE_LIVE_UPDATES_ENABLED?: string
   readonly VITE_UI_FOOTBALL_HUB_LEAGUES?: string
   readonly VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE?: string
   readonly VITE_UI_FOOTBALL_HUB_DISCOVERY?: string

@@ -1,6 +1,6 @@
 {
-  "contractVersion": 217,
-  "requiredMigrationCount": 217,
+  "contractVersion": 218,
+  "requiredMigrationCount": 218,
   "requiredRpcSignatures": [
     "public.acknowledge_provider_review_items(text,uuid[],text)",
     "public.admin_actual_third_place_tie_revisions(uuid)",

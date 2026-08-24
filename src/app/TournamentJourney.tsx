@@ -6,6 +6,7 @@ import {
   type EuroPublicationSnapshot,
 } from '../services/supabase/euroPublication'
 import { TournamentDataProvider } from './providers/TournamentDataProvider'
+import { LiveResultsProvider } from './providers/LiveResultsProvider'
 import { PredictionsProvider } from './providers/PredictionsProvider'
 import { useSite } from './site/SiteProvider'
 
@@ -115,7 +116,11 @@ export function TournamentJourney({
   return (
     <TournamentDataProvider>
       <PredictionsProvider>
-        <Outlet />
+        {/* Inside the auth gate, so the channel only ever opens for a session
+            that is entitled to read `matches`. */}
+        <LiveResultsProvider>
+          <Outlet />
+        </LiveResultsProvider>
       </PredictionsProvider>
     </TournamentDataProvider>
   )
