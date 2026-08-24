@@ -1,0 +1,340 @@
+name: Production 211 to 217 rehearsal
+
+# Read-only exact-boundary rehearsal for Contracts 212 through 217.
+# Production is dumped and restored into a disposable local Supabase; Production
+# itself is never written by this workflow.
+#
+# WHY A NEW PAIR RATHER THAN THE 211-TO-213 ONE. That pair is not stale, it is
+# unrunnable: it proves the repository holds exactly 213 migrations before it
+# does anything, and `main` holds 217. A pinned lane going out of date is the
+# pin working, not failing — the alternative is a lane that silently applies
+# whatever has landed since it was reviewed. So the boundary is re-reviewed and
+# re-pinned, at its real width.
+#
+# TWO of the six are destructive and the boundary proves BOTH are refused by the
+# additive guard rather than assuming one of them is the only one:
+#   - 213 deletes seven seeded provider-status rows;
+#   - 217 drops and recreates `claim_due_reminders` because its return type
+#     gains a column and PostgreSQL will not replace a function whose output
+#     shape changes. The argument signature is unchanged, so no grant or caller
+#     moves.
+on:
+  workflow_dispatch:
+    inputs:
+      project_ref:
+        description: Exact Production project ref confirmation
+        required: true
+      confirmation:
+        description: Type REHEARSE-PRODUCTION-211-TO-217 to proceed
+        required: true
+      backup_run_id:
+        description: Run id of the successful fresh Production backup
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: production-211-to-217-rehearsal
+  cancel-in-progress: false
+
+env:
+  EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
+  FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
+  CONFIRMATION_PHRASE: REHEARSE-PRODUCTION-211-TO-217
+  SOURCE_CONTRACT: '211'
+  SOURCE_VERSION: '20260820090000'
+  SOURCE_NAME: provider_deadline_watch_tier
+  TARGET_CONTRACT: '217'
+  TARGET_VERSION: '20260824090000'
+  TARGET_NAME: web_push_channel
+  CONTRACT_212: 20260820130000_matchweek_card_publishes_the_fixture_lock.sql
+  CONTRACT_213: 20260820150000_drop_unmeasured_sportmonks_tokens.sql
+  CONTRACT_214: 20260820170000_confirmation_tracks_current_card.sql
+  CONTRACT_215: 20260823001000_ai_canonical_value_currency.sql
+  CONTRACT_216: 20260823120000_reminder_dispatch_wiring.sql
+  CONTRACT_217: 20260824090000_web_push_channel.sql
+  WORK_DIR: /tmp/production-211-to-217-rehearsal
+  LOCAL_DB_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+jobs:
+  rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Harden runner
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse an unsafe dispatch or repository state
+        env:
+          INPUT_PROJECT_REF: ${{ inputs.project_ref }}
+          INPUT_CONFIRMATION: ${{ inputs.confirmation }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ "${INPUT_CONFIRMATION}" = "${CONFIRMATION_PHRASE}" ] || { echo 'ERROR: confirmation phrase mismatch.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" != "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: that is Development.'; exit 1; }
+          [ "${INPUT_PROJECT_REF}" = "${EXPECTED_PROJECT_REF}" ] || { echo 'ERROR: project ref is not Production.'; exit 1; }
+          [ "${GITHUB_REF}" = 'refs/heads/main' ] || { echo 'ERROR: rehearsal runs only from main.'; exit 1; }
+          git fetch --no-tags origin main
+          [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo 'ERROR: HEAD is not exact main.'; exit 1; }
+          [ -z "$(git status --porcelain=v1 --untracked-files=all)" ] || { echo 'ERROR: checkout is dirty.'; exit 1; }
+          mkdir -p "${WORK_DIR}"
+
+      - name: Prove a fresh encrypted backup succeeded first
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BACKUP_RUN_ID: ${{ inputs.backup_run_id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}")"
+          [ "$(jq -r '.conclusion' <<<"${json}")" = success ] || { echo 'ERROR: backup did not succeed.'; exit 1; }
+          [ "$(jq -r '.path' <<<"${json}")" = '.github/workflows/production-backup.yml' ] || { echo 'ERROR: not the Production backup workflow.'; exit 1; }
+          backup_sha="$(jq -r '.head_sha' <<<"${json}")"
+          git merge-base --is-ancestor "${backup_sha}" HEAD || { echo 'ERROR: backup head is not an ancestor of rehearsal head.'; exit 1; }
+          artifacts="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${BACKUP_RUN_ID}/artifacts")"
+          [ "$(jq '[.artifacts[] | select(.name == "production-backup-encrypted" and .expired == false)] | length' <<<"${artifacts}")" = 1 ] || {
+            echo 'ERROR: fresh encrypted backup artifact missing.'
+            exit 1
+          }
+
+      - name: Refuse to make Production the first hosted environment to see Contract 217
+        shell: bash
+        run: |
+          set -euo pipefail
+          dev_ref="$(node -p "require('./config/development-hosted-contract.json').projectRef")"
+          dev_contract="$(node -p "require('./config/development-hosted-contract.json').requiredMigrationCount")"
+          [ "${dev_ref}" = "${FORBIDDEN_DEVELOPMENT_REF}" ] || { echo 'ERROR: Development record names the wrong project.'; exit 1; }
+          [ "${dev_contract}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: Development is recorded at contract ${dev_contract}, below ${TARGET_CONTRACT}."
+            exit 1
+          }
+
+      - name: Prove the repository boundary is exactly 211 to 217
+        shell: bash
+        run: |
+          set -euo pipefail
+          committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
+          declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
+          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
+          [ "${committed}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository has ${committed} migrations."; exit 1; }
+          [ "${declared}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: deployment contract is ${declared}."; exit 1; }
+          [ "${newest}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+
+          : > "${WORK_DIR}/boundary.txt"
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            version="$(basename "${file}")"; version="${version:0:14}"
+            if [[ "${version}" > "${SOURCE_VERSION}" && ! "${version}" > "${TARGET_VERSION}" ]]; then
+              basename "${file}" >> "${WORK_DIR}/boundary.txt"
+            fi
+          done
+
+          printf '%s\n' "${CONTRACT_212}" "${CONTRACT_213}" "${CONTRACT_214}" \
+                        "${CONTRACT_215}" "${CONTRACT_216}" "${CONTRACT_217}" \
+            > "${WORK_DIR}/expected-boundary.txt"
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || {
+            echo 'ERROR: boundary is not exactly Contracts 212 through 217.'
+            exit 1
+          }
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.22.2
+
+      - name: Prove which of the six are additive and which are destructive
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Named individually rather than looped, so the expected verdict of
+          # each contract is written down and a change of verdict is a failure
+          # rather than a silently different run.
+          for additive in "${CONTRACT_212}" "${CONTRACT_214}" "${CONTRACT_215}" "${CONTRACT_216}"; do
+            node scripts/check-migration-additive.mjs "supabase/migrations/${additive}"
+          done
+
+          : > "${WORK_DIR}/destructive-guard.txt"
+          for destructive in "${CONTRACT_213}" "${CONTRACT_217}"; do
+            set +e
+            node scripts/check-migration-additive.mjs "supabase/migrations/${destructive}" >> "${WORK_DIR}/destructive-guard.txt" 2>&1
+            status=$?
+            set -e
+            [ "${status}" -ne 0 ] || {
+              cat "${WORK_DIR}/destructive-guard.txt"
+              echo "ERROR: ${destructive} unexpectedly passed the additive guard."
+              exit 1
+            }
+          done
+          cat "${WORK_DIR}/destructive-guard.txt"
+
+      - uses: supabase/setup-cli@3c2f5e2ae34c34e428e8e206e2c4d21fa2d20fbf # v2
+        with:
+          version: 2.109.1
+          github-token: ${{ github.token }}
+
+      - name: Install PostgreSQL 17 client tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Confirm Production is exactly 211 before dumping it
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          [ -n "${SUPABASE_PROD_DB_URL}" ] || { echo 'ERROR: SUPABASE_PROD_DB_URL missing.'; exit 1; }
+          case "${SUPABASE_PROD_DB_URL}" in
+            *"${FORBIDDEN_DEVELOPMENT_REF}"*) echo 'ERROR: Production secret resolves to Development.'; exit 1 ;;
+            *"${EXPECTED_PROJECT_REF}"*) ;;
+            *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
+          esac
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -f - > "${WORK_DIR}/live.json" <<'SQL'
+          select jsonb_build_object(
+            'migration_count',(select count(*) from supabase_migrations.schema_migrations),
+            'latest_version',(select version from supabase_migrations.schema_migrations order by version desc limit 1),
+            'latest_name',(select name from supabase_migrations.schema_migrations order by version desc limit 1));
+          SQL
+          LIVE_FILE="${WORK_DIR}/live.json" node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const x = JSON.parse(fs.readFileSync(process.env.LIVE_FILE, 'utf8'))
+          const want = {
+            migration_count: Number(process.env.SOURCE_CONTRACT),
+            latest_version: process.env.SOURCE_VERSION,
+            latest_name: process.env.SOURCE_NAME,
+          }
+          for (const [k, v] of Object.entries(want)) {
+            if (String(x[k]) !== String(v)) throw new Error(`Production ${k}=${x[k]}, expected ${v}`)
+          }
+          NODE
+
+      - name: Dump Production and restore disposable copy
+        env:
+          SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase init --force --workdir "${WORK_DIR}" >/dev/null 2>&1 || true
+          supabase start --workdir "${WORK_DIR}"
+          BUNDLE="${WORK_DIR}/bundle"
+          ROLLOUT="${GITHUB_WORKSPACE}/scripts/database-rollout"
+          mkdir -p "${BUNDLE}"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/roles.sql" --role-only
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/schema.sql"
+          supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/data.sql" --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes
+          /usr/lib/postgresql/17/bin/pg_dump --dbname "${SUPABASE_PROD_DB_URL}" --schema supabase_migrations --no-owner --no-privileges --file "${BUNDLE}/migration-history.sql"
+          for f in roles.sql schema.sql data.sql migration-history.sql; do
+            [ -s "${BUNDLE}/${f}" ] || { echo "ERROR: missing ${f}"; exit 1; }
+          done
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/roles.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${ROLLOUT}/prepare-disposable-restore-target.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/schema.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file "${BUNDLE}/data.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${ROLLOUT}/managed-schema-customizations.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/migration-history.sql"
+          restored="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from supabase_migrations.schema_migrations')"
+          [ "${restored}" = "${SOURCE_CONTRACT}" ] || { echo "ERROR: restored contract ${restored}."; exit 1; }
+
+      - name: Measure protected state before applying
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f "${GITHUB_WORKSPACE}/scripts/database-rollout/production-211-to-217-preserved-state.sql" \
+            > "${WORK_DIR}/before.json"
+          cat "${WORK_DIR}/before.json"
+
+      - name: Apply exactly Contracts 212 through 217 to the disposable copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          supabase db push --db-url "${LOCAL_DB_URL}" --dry-run > "${WORK_DIR}/dry-run.txt" 2>&1
+          cat "${WORK_DIR}/dry-run.txt"
+          grep -oE '[0-9]{14}_[A-Za-z0-9_-]+\.sql' "${WORK_DIR}/dry-run.txt" | awk '!seen[$0]++' > "${WORK_DIR}/pending.txt"
+          diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/pending.txt" || {
+            echo 'ERROR: dry run is not exactly Contracts 212 through 217.'
+            exit 1
+          }
+          supabase db push --db-url "${LOCAL_DB_URL}"
+
+      - name: Run the boundary pgTAP suites against real Production data
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${WORK_DIR}/supabase/tests"
+          # 255 and 257 are regression rather than boundary: they prove the
+          # contracts Production already holds still stand underneath.
+          suites=(
+            supabase/tests/255_provider_fixture_lifecycle.sql
+            supabase/tests/257_provider_deadline_watch_tier.sql
+            supabase/tests/258_matchweek_card_publishes_the_fixture_lock.sql
+            supabase/tests/259_unmeasured_provider_tokens_fail_closed.sql
+            supabase/tests/260_current_card_confirmation.sql
+            supabase/tests/261_ai_canonical_value_currency.sql
+            supabase/tests/262_reminder_dispatch_wiring.sql
+            supabase/tests/263_web_push_channel.sql
+          )
+          for REL in "${suites[@]}"; do
+            cp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}"
+            cmp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}" || { echo "ERROR: ${REL} copy differs."; exit 1; }
+            safe="${REL//\//-}"
+            PGTAP_LOG="${WORK_DIR}/${safe}.log"
+            set +e
+            ( cd "${WORK_DIR}" && supabase test db "${REL}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+            status=$?
+            set -e
+            cat "${PGTAP_LOG}"
+            [ "${status}" -eq 0 ] || exit "${status}"
+            grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${REL} did not report PASS."; exit 1; }
+          done
+
+      - name: Verify the boundary and preservation on the disposable copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f "${GITHUB_WORKSPACE}/scripts/database-rollout/production-211-to-217-preserved-state.sql" \
+            > "${WORK_DIR}/after.json"
+          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -f "${GITHUB_WORKSPACE}/scripts/database-rollout/production-211-to-217-boundary-state.sql" \
+            > "${WORK_DIR}/boundary-state.json"
+          cat "${WORK_DIR}/after.json"
+          cat "${WORK_DIR}/boundary-state.json"
+          BEFORE_FILE="${WORK_DIR}/before.json" \
+          AFTER_FILE="${WORK_DIR}/after.json" \
+          BOUNDARY_FILE="${WORK_DIR}/boundary-state.json" \
+            node "${GITHUB_WORKSPACE}/scripts/database-rollout/verify-production-211-to-217.mjs"
+
+      - name: Stop disposable Supabase
+        if: always()
+        shell: bash
+        run: supabase stop --workdir "${WORK_DIR}" --no-backup || true
+
+      - name: Upload rehearsal evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: production-211-to-217-rehearsal-evidence
+          path: |
+            /tmp/production-211-to-217-rehearsal/live.json
+            /tmp/production-211-to-217-rehearsal/before.json
+            /tmp/production-211-to-217-rehearsal/after.json
+            /tmp/production-211-to-217-rehearsal/boundary-state.json
+            /tmp/production-211-to-217-rehearsal/boundary.txt
+            /tmp/production-211-to-217-rehearsal/dry-run.txt
+            /tmp/production-211-to-217-rehearsal/destructive-guard.txt
+            /tmp/production-211-to-217-rehearsal/supabase-tests-*.log
+          retention-days: 7
+          if-no-files-found: warn
