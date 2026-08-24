@@ -26,7 +26,13 @@ describe('quality-integrity ratchets', () => {
     expect(extractMutationBreak(read('stryker.config.mjs'))).toBe(90)
     expect(extractBundleBudgets(read('scripts/check-bundle-budget.mjs'))).toEqual({
       entryChunkKb: 92,
-      totalJsKb: 506,
+      // Raised to 573 on 24 August 2026 when first-party product events gave
+      // the PostHog wrapper its first callers and the vendor chunk entered the
+      // build. This assertion follows the authority on purpose: it exists to
+      // prove the extractor reads what is really there, so it has to be updated
+      // whenever a budget legitimately moves -- and a ratchet exception has to
+      // justify the move separately.
+      totalJsKb: 573,
       totalCssKb: 64,
     })
     expect(extractDependencySeverity(read('.github/workflows/dependency-review.yml'))).toBe('high')
