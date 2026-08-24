@@ -214,6 +214,16 @@ describe('JavaScript under scripts/', () => {
     // error there produces an icon nobody looks at until it is on a home
     // screen.
     'scripts/og/generate-site-icons.mjs',
+    // The Contract 211-to-217 postflight verifier. It arrived with seven
+    // implicit anys and three real type errors; all ten were fixed on the spot
+    // rather than recorded as a deferred count, because the deferred set is for
+    // debt that exists and this had none once it was looked at. Two of the ten
+    // were worth the compiler finding: an optional-chain into a value the
+    // verifier only knows as JSON, and a regex test that would have thrown on
+    // the SQL null a MISSING constraint returns — which is exactly the case the
+    // assertion exists to catch. It also decides whether a Production promotion
+    // is recorded as sound, which is the last place to leave unexamined.
+    'scripts/database-rollout/verify-production-211-to-217.mjs',
     // Arrived clean under JSDoc annotation rather than as a deferred count. The
     // probe decides whether a deployment is reported as walkable, so a type
     // error here would surface as a status page confidently saying the wrong

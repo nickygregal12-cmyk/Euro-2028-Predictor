@@ -77,7 +77,7 @@ export function VNextMatchesScreen(props: VNextMatchesScreenProps) {
               colours: model.competition.colours,
             },
             playerName: null,
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

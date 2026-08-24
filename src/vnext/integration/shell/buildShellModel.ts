@@ -27,7 +27,7 @@ import type { ShellSource } from './shellSource'
  */
 export function buildShellModel(source: ShellSource): VNextShellModel {
   const { competition } = source
-  const outstanding = source.outstandingPredictions
+  const outstanding = source.outstandingGames
   const statedPlayerName = source.playerName?.trim() ?? ''
   const playerName = statedPlayerName.length > 0 ? statedPlayerName : 'Your account'
 

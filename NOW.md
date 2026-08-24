@@ -14,7 +14,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | | Contract | Detail |
 | --- | ---: | --- |
 | Repository | **217** | latest `20260824090000_web_push_channel.sql` |
-| Development hosted | **213** | at `20260820150000_drop_unmeasured_sportmonks_tokens.sql`, verified `2026-08-21T09:22:18.620Z` |
+| Development hosted | **217** | at `20260824090000_web_push_channel.sql`, verified `2026-08-23T23:23:48.516Z` |
 | Production | **211** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
@@ -22,7 +22,7 @@ authorisation with it. It is never inferred from how far the repository or
 development has come, and it is never copied into a second file — a copy goes
 stale the moment the other one moves.
 
-**Pending development migrations:** 4 — `20260820170000_confirmation_tracks_current_card.sql`, `20260823001000_ai_canonical_value_currency.sql`, `20260823120000_reminder_dispatch_wiring.sql`, `20260824090000_web_push_channel.sql`
+**Pending development migrations:** None. Hosted development is level with the repository.
 
 **Next free contract number:** 218. Check open pull requests
 before claiming it — two branches claiming one number is a known failure here.

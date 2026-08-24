@@ -83,7 +83,7 @@ function OnboardingHarness() {
         model={buildShellModel({
           competition: null,
           playerName: displayName,
-          outstandingPredictions: null,
+          outstandingGames: null,
           canNavigateAway: true,
           // The onboarding preview is one screen with no competitions behind it.
           elsewhere: null,

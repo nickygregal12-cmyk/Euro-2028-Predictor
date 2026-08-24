@@ -98,12 +98,18 @@ export function VNextHomeScreen(props: VNextHomeScreenProps) {
               colours: model.competition.colours,
             },
             playerName: state.source.user.displayName,
-            // The same number Home's own banner prints, from the model that
-            // already decided it. It rides on Games, which is where the Match
-            // Predictor lives under the selected architecture.
-            outstandingPredictions: model.primaryAction.progress
-              ? model.primaryAction.progress.total - model.primaryAction.progress.completed
-              : null,
+            // HOW MANY GAMES ARE ASKING, from the week Home already holds.
+            //
+            // It used to be the number of scorelines still missing from the
+            // card, which rode on a destination named `Games` and so read as a
+            // count of games. Counting the games that are actually asking is
+            // the same authority Home's own action list uses, so the badge and
+            // the page beneath it cannot disagree — and the Championship is
+            // never among them, because it is never outstanding.
+            outstandingGames:
+              state.source.week === null
+                ? null
+                : state.source.week.actions.filter((action) => action.outstanding).length,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })
