@@ -60,7 +60,8 @@ Do not mutate Production, Supabase, Netlify, provider state or real player data.
 
 Your hosted MCP surfaces are server-side constrained: GitHub is read-only and
 toolset-bounded, Supabase Production is project-scoped/read-only, Netlify exposes
-only its proven deploy reader, Sentry excludes Seer, and PostHog is read-only,
+only its proven deploy reader, Sentry exposes only the read-only inspect skill
+and excludes Seer, and PostHog is read-only,
 CLI-mode and feature-filtered. Use them only for release evidence. Never request
 Netlify environment values, invoke provider writes, include player-derived event
 or replay payloads in prompts, or use PostHog AI/billed features without explicit

@@ -54,9 +54,34 @@ fi
 attach_url="${OPENCODE_ATTACH_URL:-http://127.0.0.1:4096}"
 prompt="$*"
 
-exec opencode run \
+output_file="$(mktemp)"
+cleanup() {
+  rm -f "$output_file"
+}
+trap cleanup EXIT
+
+set +e
+opencode run \
   --attach "$attach_url" \
   --dir "$repo_root" \
   --agent predictor-critic \
   --model openrouter/stealth/ox-alpha \
-  "$prompt"
+  "$prompt" >"$output_file" 2>&1
+status=$?
+set -e
+
+if [ "$status" -ne 0 ]; then
+  cat "$output_file"
+  exit "$status"
+fi
+
+# OpenCode can exit zero after emitting only its agent/model banner. A bridge
+# with no critic body is unavailable, not a successful independent review.
+substantive="$(sed -E $'s/\x1b\\[[0-9;]*m//g; s/\r$//' "$output_file" \
+  | grep -Ev '^[[:space:]]*$|^[[:space:]]*>[[:space:]].*[·•].*$' || true)"
+if [ -z "$substantive" ]; then
+  printf 'Ox review is unavailable: OpenCode returned no substantive critic text.\n' >&2
+  exit 1
+fi
+
+cat "$output_file"

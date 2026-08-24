@@ -127,7 +127,11 @@ describe('MCP server configuration', () => {
       'X-MCP-Toolsets': 'context,repos,pull_requests,issues,actions,code_security',
       'X-MCP-Readonly': 'true',
     })
-    expect(mcp.sentry!.url).toBe('https://mcp.sentry.dev/mcp?skills=inspect,triage&disable-skills=seer')
+    const sentry = new URL(mcp.sentry!.url as string)
+    expect(sentry.origin + sentry.pathname).toBe('https://mcp.sentry.dev/mcp')
+    expect(sentry.searchParams.get('skills')).toBe('inspect')
+    expect(sentry.searchParams.get('skills')?.split(',')).not.toContain('triage')
+    expect(sentry.searchParams.get('disable-skills')).toBe('seer')
     for (const name of ['supabase-dev', 'supabase-prod', 'netlify', 'sentry', 'posthog']) {
       expect(mcp[name]!.oauth).toEqual({})
     }

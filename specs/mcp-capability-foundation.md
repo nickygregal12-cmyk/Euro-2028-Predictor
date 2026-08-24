@@ -65,9 +65,10 @@ the agent role that needs them.
 Production is read-only evidence only and remains separately identified from
 Development. No hosted or player state may change. PostHog is server-side
 read-only, token-optimized, feature-filtered, and excludes AI observability and
-Replay Vision. Sentry excludes Seer. GitHub is server-side read-only and keeps
-writes behind existing `git`/`gh` approvals. Netlify model context never includes
-environment-secret or deploy-trigger tools.
+Replay Vision. Sentry exposes only its read-only inspect skill and excludes Seer;
+triage and its write-capable tools are not enabled. GitHub is server-side read-only
+and keeps writes behind existing `git`/`gh` approvals. Netlify model context never
+includes environment-secret or deploy-trigger tools.
 
 ## Completion predicate
 

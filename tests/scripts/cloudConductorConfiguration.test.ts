@@ -1,5 +1,5 @@
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -95,6 +95,29 @@ describe('persistent private cloud Conductor', () => {
     expect(claudeInstall).not.toContain('claude auth login')
   })
 
+  it('fails the Ox bridge closed when OpenCode emits only its banner', () => {
+    const home = mkdtempSync(resolve(tmpdir(), 'predictor-ox-empty-'))
+    const bin = resolve(home, '.local/bin')
+    mkdirSync(bin, { recursive: true })
+    writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
+printf '> predictor-critic · ox-alpha\\n'
+`, { mode: 0o755 })
+
+    const result = spawnSync('bash', ['scripts/agent-tools/ox-review.sh', 'Review this diff.'], {
+      cwd: root,
+      env: {
+        ...process.env,
+        HOME: home,
+        OPENROUTER_API_KEY: 'test-placeholder-not-a-real-key',
+      },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('OpenCode returned no substantive critic text')
+    expect(`${result.stdout}${result.stderr}`).not.toContain('test-placeholder-not-a-real-key')
+  })
+
   it('keeps the persistent web service localhost-only, password-protected and tailnet-routed', () => {
     const installer = read('scripts/agent-tools/cloud-conductor-install.sh')
     const doctor = read('scripts/agent-tools/cloud-conductor-doctor.sh')
@@ -175,5 +198,27 @@ describe('persistent private cloud Conductor', () => {
     expect(fallback).toContain('No automatic failover')
     expect(fallback).toContain('netlify-deploy-services-reader')
     expect(fallback).toContain("require('./config/agent-tools.json').netlifyMcp")
+  })
+
+  it('classifies failed MCP connections before positive ready text', () => {
+    const home = mkdtempSync(resolve(tmpdir(), 'predictor-mcp-readiness-'))
+    const bin = resolve(home, '.local/bin')
+    mkdirSync(bin, { recursive: true })
+    writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
+case "\${1:-}" in
+  --version) printf '1.18.19\\n' ;;
+  debug) exit 0 ;;
+  mcp) printf '  sentry  Failed to connect: server not ready\\n' ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o755 })
+
+    const output = execFileSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
+      cwd: root,
+      env: { ...process.env, HOME: home },
+      encoding: 'utf8',
+    })
+    expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
+    expect(output).not.toMatch(/CONFIGURED sentry\s+.*CONNECTED=YES/)
   })
 })

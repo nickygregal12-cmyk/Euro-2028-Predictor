@@ -64,7 +64,7 @@
     },
     "sentry": {
       "type": "remote",
-      "url": "https://mcp.sentry.dev/mcp?skills=inspect,triage&disable-skills=seer",
+      "url": "https://mcp.sentry.dev/mcp?skills=inspect&disable-skills=seer",
       "oauth": {},
       "enabled": true,
       "timeout": 10000
