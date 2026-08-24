@@ -115,13 +115,19 @@ jobs:
           opencode --version
           opencode debug config >/dev/null
           bash scripts/agent-tools/mcp-readiness.sh --config-only
-          agents="$(opencode agent list)"
-          printf '%s\n' "$agents"
-          grep -q 'predictor-conductor' <<<"$agents"
-          grep -q 'predictor-builder' <<<"$agents"
-          grep -q 'predictor-critic' <<<"$agents"
-          grep -q 'predictor-visual-qa' <<<"$agents"
-          grep -q 'predictor-release-verifier' <<<"$agents"
+          agents_file="$(mktemp)"
+          trap 'rm -f "$agents_file"' EXIT
+          opencode agent list >"$agents_file"
+          while read -r agent mode; do
+            grep -F -x -- "${agent} (${mode})" "$agents_file" >/dev/null
+            printf 'PASS %s\n' "$agent"
+          done <<'AGENTS'
+          predictor-conductor primary
+          predictor-builder subagent
+          predictor-critic primary
+          predictor-visual-qa subagent
+          predictor-release-verifier subagent
+          AGENTS
 
       - name: Summary
         if: ${{ always() }}
