@@ -44,9 +44,22 @@ export function OverallStandingsPage() {
   const finalStandings =
     data.status === 'ready' && areFinalStandingsActive(data.data.matches)
   const [state, setState] = useState<State>({ status: 'loading' })
-  const stateRef = useRef(state)
-  stateRef.current = state
   const resultsVersion = useLiveResultsVersion()
+
+  // THREE PATHS FETCH THIS LIST -- first load/retry, a live refresh, and
+  // "load more" -- and they can overlap. One shared counter decides which
+  // response is still wanted: whoever starts last wins, and an older response
+  // is dropped rather than merged into a newer snapshot. Without it a paging
+  // response that lands after a refresh splices pre-change rows into the
+  // refreshed head and carries its stale cursor with them.
+  const requestGenerationRef = useRef(0)
+
+  // The live version the displayed rows were fetched at. This is what stops an
+  // invalidation arriving mid-load from being lost: it simply will not match,
+  // and the live effect re-runs the moment the page turns ready.
+  const fetchedAtVersionRef = useRef(0)
+  const versionRef = useRef(resultsVersion)
+  versionRef.current = resultsVersion
   const [reloadKey, setReloadKey] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [moreError, setMoreError] = useState<string | null>(null)
@@ -55,13 +68,18 @@ export function OverallStandingsPage() {
   useEffect(() => {
     if (!tournamentId) return
     let active = true
+    const generation = ++requestGenerationRef.current
+    // Read through a ref: this effect deliberately does not depend on the live
+    // version, but it still needs to know which one its snapshot represents.
+    const startedAtVersion = versionRef.current
     setState({ status: 'loading' })
     setLoadingMore(false)
     setMoreError(null)
 
     fetchLeaderboardPage(tournamentId, { limit: PAGE_SIZE })
       .then((page) => {
-        if (!active) return
+        if (!active || generation !== requestGenerationRef.current) return
+        fetchedAtVersionRef.current = startedAtVersion
         setState({
           status: 'ready',
           data: {
@@ -74,7 +92,7 @@ export function OverallStandingsPage() {
         })
       })
       .catch((error) => {
-        if (active) {
+        if (active && generation === requestGenerationRef.current) {
           setState({
             status: 'error',
             message: userFacingError(error, 'Could not load standings. Please try again.'),
@@ -103,19 +121,30 @@ export function OverallStandingsPage() {
   // The live path. Separate from the mount/retry effect above on purpose: this
   // one must never blank the list, never replace good data with an error, and
   // never widen or narrow how far the player has paged.
+  //
+  // It depends on `state` as well as the version, so an invalidation that
+  // arrives while the first load is still in flight is NOT lost -- the effect
+  // re-runs when the page turns ready and finds the versions still unequal.
   useEffect(() => {
-    if (resultsVersion === 0 || !tournamentId) return
-    const current = stateRef.current
-    if (current.status !== 'ready') return
+    if (!tournamentId || state.status !== 'ready') return
+    if (fetchedAtVersionRef.current === resultsVersion) return
 
-    const shown = current.data.rows.length
-    if (shown > MAX_LIVE_REFRESH_ROWS) return
+    const shown = state.data.rows.length
+    if (shown > MAX_LIVE_REFRESH_ROWS) {
+      // Deliberately not refreshed -- but record the version anyway, or this
+      // re-evaluates on every later state change and never settles.
+      fetchedAtVersionRef.current = resultsVersion
+      return
+    }
     const limit = Math.min(Math.max(shown, PAGE_SIZE), MAX_LIVE_REFRESH_ROWS)
 
     let active = true
+    const generation = ++requestGenerationRef.current
+    const startedAtVersion = resultsVersion
     fetchLeaderboardPage(tournamentId, { limit })
       .then((page) => {
-        if (!active) return
+        if (!active || generation !== requestGenerationRef.current) return
+        fetchedAtVersionRef.current = startedAtVersion
         setState({
           status: 'ready',
           data: {
@@ -129,13 +158,14 @@ export function OverallStandingsPage() {
       })
       .catch(() => {
         // Deliberately silent. A background refresh that fails leaves the
-        // standings the player is already reading exactly where they are.
+        // standings the player is already reading exactly where they are, and
+        // the version stays unapplied so the next signal tries again.
       })
 
     return () => {
       active = false
     }
-  }, [resultsVersion, tournamentId])
+  }, [resultsVersion, tournamentId, state])
 
   async function loadMore() {
     if (
@@ -150,11 +180,17 @@ export function OverallStandingsPage() {
 
     setLoadingMore(true)
     setMoreError(null)
+    // The cursor below was produced by the ranking as it stood a moment ago. If
+    // a live refresh lands first, this page belongs to a snapshot that no longer
+    // exists and merging it would splice stale rows and a stale cursor into the
+    // refreshed list.
+    const generation = ++requestGenerationRef.current
     try {
       const page = await fetchLeaderboardPage(tournamentId, {
         limit: PAGE_SIZE,
         after: state.data.nextCursor,
       })
+      if (generation !== requestGenerationRef.current) return
       setState((current) => {
         if (current.status !== 'ready') return current
         const byPosition = new Map(
@@ -172,10 +208,14 @@ export function OverallStandingsPage() {
         }
       })
     } catch (error: unknown) {
-      setMoreError(
-        userFacingError(error, 'Could not load more standings. Please try again.'),
-      )
+      if (generation === requestGenerationRef.current) {
+        setMoreError(
+          userFacingError(error, 'Could not load more standings. Please try again.'),
+        )
+      }
     } finally {
+      // Always cleared, superseded or not: a spinner left spinning is worse
+      // than a page that quietly refreshed underneath the request.
       setLoadingMore(false)
     }
   }

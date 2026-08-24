@@ -140,8 +140,8 @@ describe('the provider holds one subscription', () => {
 describe('the standings list refreshes in the background', () => {
   const page = source('src/features/league/OverallStandingsPage.tsx')
   const liveEffect = page.slice(
-    page.indexOf('if (resultsVersion === 0'),
-    page.indexOf('}, [resultsVersion, tournamentId])'),
+    page.indexOf('if (fetchedAtVersionRef.current === resultsVersion) return'),
+    page.indexOf('}, [resultsVersion, tournamentId, state])'),
   )
 
   it('has a live effect at all', () => {
@@ -161,7 +161,14 @@ describe('the standings list refreshes in the background', () => {
     // get_leaderboard clamps a page at 100. Refetching 100 while 150 are shown
     // would silently drop 50 rows the player had already loaded.
     expect(page).toContain('MAX_LIVE_REFRESH_ROWS = 100')
-    expect(liveEffect).toContain('if (shown > MAX_LIVE_REFRESH_ROWS) return')
+    expect(liveEffect).toContain('if (shown > MAX_LIVE_REFRESH_ROWS) {')
+  })
+
+  it('records the version even when it declines to refresh a deep list', () => {
+    // Otherwise the effect re-evaluates on every later state change, forever
+    // finding the versions unequal and never settling.
+    const skip = liveEffect.slice(liveEffect.indexOf('if (shown > MAX_LIVE_REFRESH_ROWS) {'))
+    expect(skip.slice(0, skip.indexOf('}'))).toContain('fetchedAtVersionRef.current = resultsVersion')
   })
 
   it('never asks for a zero-row page, which the RPC rejects', () => {
@@ -173,6 +180,60 @@ describe('the standings list refreshes in the background', () => {
     // This ran on every state change, so loading another page -- and now a live
     // refresh -- pulled the viewport back while they were reading elsewhere.
     expect(page).toContain('if (hasScrolledToYou.current) return')
+  })
+
+  it('replays an invalidation that arrived while the page was loading', () => {
+    // The failure this catches: a signal lands mid-load, the effect sees a
+    // non-ready state and drops it, the in-flight request returns a pre-change
+    // snapshot, and the page stays stale until the next goal. Depending on
+    // `state` re-runs the effect on the transition to ready; comparing the
+    // applied version is what makes that re-run do something.
+    expect(page).toContain('}, [resultsVersion, tournamentId, state])')
+    expect(liveEffect).toContain('fetchedAtVersionRef.current = startedAtVersion')
+  })
+})
+
+describe('overlapping standings requests cannot corrupt each other', () => {
+  const page = source('src/features/league/OverallStandingsPage.tsx')
+
+  it('gives all three fetch paths one shared generation', () => {
+    // First load/retry, live refresh and load-more can be in flight together.
+    // Each must claim the counter on the way out and check it on the way back.
+    const claims = page.match(/\+\+requestGenerationRef\.current/g) ?? []
+    expect(claims).toHaveLength(3)
+    const checks = page.match(/generation !== requestGenerationRef\.current/g) ?? []
+    expect(checks.length).toBeGreaterThanOrEqual(3)
+  })
+
+  it('drops a paging response that a refresh has overtaken', () => {
+    // The concrete corruption: load-more's cursor belongs to the ranking as it
+    // stood before the refresh, so merging its rows by position splices
+    // pre-change entries into the refreshed head and carries a stale
+    // nextCursor with them -- duplicates, gaps, and paging that walks nowhere.
+    const loadMore = page.slice(page.indexOf('async function loadMore()'))
+    const guard = loadMore.indexOf('if (generation !== requestGenerationRef.current) return')
+    const merge = loadMore.indexOf('setState((current) => {')
+    expect(guard).toBeGreaterThan(-1)
+    expect(guard).toBeLessThan(merge)
+  })
+
+  it('does not raise a paging error the player can no longer act on', () => {
+    const loadMore = page.slice(page.indexOf('async function loadMore()'))
+    expect(loadMore).toContain('if (generation === requestGenerationRef.current) {')
+  })
+
+  it('always clears the paging spinner, superseded or not', () => {
+    // A stuck spinner is worse than a list that refreshed underneath.
+    const marker = '} finally {'
+    const finallyBlock = page.slice(page.indexOf(marker) + marker.length)
+    expect(finallyBlock.slice(0, finallyBlock.indexOf('}'))).toContain('setLoadingMore(false)')
+  })
+
+  it('reads the live version through a ref in the effect that ignores it', () => {
+    // The first-load effect must not depend on the version (that would blank
+    // the page on every goal) but still has to record which snapshot it got.
+    expect(page).toContain('const startedAtVersion = versionRef.current')
+    expect(page).toContain('}, [tournamentId, reloadKey])')
   })
 })
 
@@ -188,6 +249,14 @@ describe('Home refreshes in the background', () => {
     expect(hook).toContain('const isBackgroundRefresh')
     expect(hook).toContain('if (!isBackgroundRefresh) setState')
     expect(hook).toContain('if (active && !isBackgroundRefresh)')
+  })
+
+  it('will not let a superseded run persist an older points snapshot', () => {
+    // updateLastSeen WRITES. The other guards in this chain protect React
+    // state, which a superseded run simply fails to set -- but an unguarded
+    // write from a slower older run lands last and overwrites a newer total
+    // with a lower one, so the player's next visit shows a wrong catch-up.
+    expect(hook).toContain('if (active) void updateLastSeen(')
   })
 })
 

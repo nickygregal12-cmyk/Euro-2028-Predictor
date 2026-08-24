@@ -263,7 +263,14 @@ export function useHomeData(): HomeState {
             lastSeenPoints: seen.value.lastSeenPoints,
             currentPoints: totalPoints,
           })
-          void updateLastSeen(userId!, totalPoints)
+          // GUARDED BY `active`, because this one WRITES. The checks elsewhere
+          // in this chain protect React state, which a superseded run simply
+          // fails to set; this persists a points snapshot, and a slower older
+          // run finishing last would overwrite a newer total with a lower one
+          // and hand the player a wrong catch-up delta on their next visit.
+          // Cleanup has already cleared `active` by the time a newer run
+          // starts, so the loser skips the write and the winner still makes it.
+          if (active) void updateLastSeen(userId!, totalPoints)
         }
       }
 
