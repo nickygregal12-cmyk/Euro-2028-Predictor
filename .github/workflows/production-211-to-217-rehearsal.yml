@@ -286,6 +286,21 @@ jobs:
             supabase/tests/262_reminder_dispatch_wiring.sql
             supabase/tests/263_web_push_channel.sql
           )
+          # EVERY suite runs, and the step fails at the END rather than at the
+          # first failure. Stopping at the first one costs a whole rehearsal
+          # cycle per failing suite — a dump and restore of Production is four
+          # minutes — and, worse, it hides how many suites are actually
+          # unhappy, so a second failure reads as a regression introduced by
+          # the fix for the first.
+          #
+          # Each verdict is emitted as a workflow ERROR ANNOTATION as well as
+          # to the log, because an annotation is readable from the check-run
+          # API without downloading an artifact. That is not a convenience: the
+          # rehearsal's evidence artifact lives on blob storage, and an operator
+          # or agent whose egress policy denies it can otherwise see THAT the
+          # suites failed without being able to see WHICH.
+          : > "${WORK_DIR}/suite-results.txt"
+          failed=0
           for REL in "${suites[@]}"; do
             cp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}"
             cmp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}" || { echo "ERROR: ${REL} copy differs."; exit 1; }
@@ -295,10 +310,28 @@ jobs:
             ( cd "${WORK_DIR}" && supabase test db "${REL}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
             status=$?
             set -e
+            echo "----- ${REL} -----"
             cat "${PGTAP_LOG}"
-            [ "${status}" -eq 0 ] || exit "${status}"
-            grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${REL} did not report PASS."; exit 1; }
+            # A suite that ERRORS and a suite that reports failing assertions are
+            # different things, and only the first makes the CLI exit non-zero.
+            if [ "${status}" -eq 0 ] && grep -q 'Result: PASS' "${PGTAP_LOG}"; then
+              printf 'PASS %s\n' "${REL}" >> "${WORK_DIR}/suite-results.txt"
+            else
+              failed=1
+              printf 'FAIL %s (exit %s)\n' "${REL}" "${status}" >> "${WORK_DIR}/suite-results.txt"
+              echo "::error file=${REL}::pgTAP suite ${REL} failed against restored Production data (exit ${status}). $(grep -E '^not ok|^# +Failed test|ERROR:' "${PGTAP_LOG}" | head -3 | tr '\n' ' ')"
+            fi
           done
+
+          {
+            echo '## pgTAP suites against restored Production data'
+            echo
+            sed -e 's/^PASS /- **PASS** /' -e 's/^FAIL /- **FAIL** /' "${WORK_DIR}/suite-results.txt"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+          echo 'Suite results:'
+          cat "${WORK_DIR}/suite-results.txt"
+          [ "${failed}" -eq 0 ] || { echo 'ERROR: at least one pgTAP suite failed. See the annotations above.'; exit 1; }
 
       - name: Verify the boundary and preservation on the disposable copy
         shell: bash
@@ -335,6 +368,7 @@ jobs:
             /tmp/production-211-to-217-rehearsal/boundary.txt
             /tmp/production-211-to-217-rehearsal/dry-run.txt
             /tmp/production-211-to-217-rehearsal/destructive-guard.txt
+            /tmp/production-211-to-217-rehearsal/suite-results.txt
             /tmp/production-211-to-217-rehearsal/supabase-tests-*.log
           retention-days: 7
           if-no-files-found: warn

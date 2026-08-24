@@ -160,6 +160,25 @@ describe('the rehearsal rehearses and never writes Production', () => {
     // things, and only one of them makes the CLI exit non-zero.
     expect(rehearsal).toContain("grep -q 'Result: PASS'")
   })
+
+  it('runs every suite and fails at the end, rather than dying at the first', () => {
+    // Stopping at the first failure costs a whole rehearsal cycle per failing
+    // suite — a dump and restore of Production is four minutes — and hides how
+    // many suites are unhappy, so a second failure reads as a regression
+    // introduced by the fix for the first.
+    expect(rehearsal).toContain('failed=1')
+    expect(rehearsal).toContain('[ "${failed}" -eq 0 ]')
+    expect(rehearsal).toContain('suite-results.txt')
+  })
+
+  it('names the failing suite in an annotation, not only in the artifact', () => {
+    // The evidence artifact lives on blob storage. An operator or agent whose
+    // egress policy denies that host could otherwise see THAT the suites failed
+    // without being able to see WHICH — which is how this assertion came to
+    // exist.
+    expect(rehearsal).toContain('::error file=${REL}::')
+    expect(rehearsal).toContain('GITHUB_STEP_SUMMARY')
+  })
 })
 
 describe('the rollout is gated on the rehearsal that actually rehearsed it', () => {
