@@ -8,6 +8,7 @@ on:
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
       - 'scripts/agent-tools/cloud-browser-install.sh'
+      - 'scripts/agent-tools/stage0-live-acceptance.sh'
       - 'scripts/agent-tools/ox-review.sh'
       - 'scripts/agent-tools/claude-review.sh'
       - 'scripts/agent-tools/configure-claude-settings.mjs'
@@ -32,6 +33,7 @@ on:
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
       - 'scripts/agent-tools/cloud-browser-install.sh'
+      - 'scripts/agent-tools/stage0-live-acceptance.sh'
       - 'scripts/agent-tools/ox-review.sh'
       - 'scripts/agent-tools/claude-review.sh'
       - 'scripts/agent-tools/configure-claude-settings.mjs'
@@ -92,6 +94,7 @@ jobs:
           bash -n scripts/agent-tools/cloud-conductor-doctor.sh
           bash -n scripts/agent-tools/cloud-conductor-claude-install.sh
           bash -n scripts/agent-tools/mcp-readiness.sh
+          bash -n scripts/agent-tools/stage0-live-acceptance.sh
           bash -n scripts/agent-tools/ox-review.sh
           bash -n scripts/agent-tools/claude-review.sh
           node -e "const c=require('./opencode.json'); if (c.default_agent !== 'predictor-conductor') process.exit(1)"
@@ -127,7 +130,7 @@ jobs:
           {
             echo '## Persistent cloud Conductor smoke'
             echo
-            echo '- Cloud installer/doctor and browser-bootstrap shell syntax validated.'
+            echo '- Cloud installer/doctor, browser bootstrap, and Stage 0 live-acceptance shell syntax validated.'
             echo '- Pinned shared browser runtime configuration and both MCP executable paths validated without downloading a browser in CI.'
             echo '- MCP readiness auth/unavailable/unknown-state parser fixtures passed.'
             echo '- Canonical Netlify and Supabase verifier identity configuration passed.'
