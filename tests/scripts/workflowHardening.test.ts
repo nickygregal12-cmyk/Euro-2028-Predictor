@@ -45,6 +45,9 @@ const credentialPersistingJobs = new Set([
   // Holds contents:write and makes no network request of its own; the walking
   // job beside it holds neither.
   'journey-probe.yml#publish',
+  // Writes the operator's service message to the default branch. One job, one
+  // file, and a guard that refuses to push if anything else is modified.
+  'operator-announcement.yml#announce',
 ])
 
 describe('workflow supply-chain hardening', () => {

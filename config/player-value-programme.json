@@ -164,11 +164,19 @@
       "dependencies": [
         "4"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1020,
+      "headSha": "0641a51fbf14626b2eafaf69441c5d253ddf1c2f",
+      "mergedSha": "4c5b4e2d83e187eeb77696cc8861a4990205898a",
+      "acceptanceEvidence": [
+        "Standings change while a player is looking at them. The accepted direction for live updates was already recorded years before this stage; it is implemented here almost literally rather than redesigned.",
+        "One table is published on the realtime channel, and the choice is the security argument: it carries the result lifecycle that moves every standing, is owned by nobody, scores nothing, and is already readable by every authenticated player, so a subscriber learns nothing it could not already select.",
+        "The browser reads no payload at all. The subscription hands its callback nothing, so there is no value travelling over the channel to be believed and the numbers still come from the one server read that ranks anything.",
+        "One socket for the whole application. A test enumerates every module that may open a channel, so a second one is a failure rather than a discovery.",
+        "Three overlapping request paths share one generation counter, after review found that making these surfaces live had introduced three races: paging could merge a pre-refresh cursor into a refreshed list, a signal arriving mid-load was dropped and never replayed, and a slower older run could persist an older points total over a newer one.",
+        "A live refresh is a background refresh: it does not blank a list on screen, does not replace good data with an error, and does not move the viewport. A deep list holds still rather than being rewritten from a page the server cannot return in one request.",
+        "It ships switched off. Nothing opens a channel until a deployment sets the flag, which is the accepted condition that this stays guarded until hosted operational evidence exists."
+      ],
       "blocker": null
     },
     {
@@ -177,7 +185,7 @@
       "dependencies": [
         "0"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

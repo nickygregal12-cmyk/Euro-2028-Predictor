@@ -12,6 +12,7 @@ import {
   usePlayerCompetitions,
 } from './providers/PlayerCompetitionsProvider'
 import { useRailCollapsed } from './useRailCollapsed'
+import { OperatorAnnouncement } from './OperatorAnnouncement'
 // THE PANEL IS LAZY, THE COUNT IS NOT, and the split is the point. The badge
 // has to be right on first paint or it is worse than absent, so the inbox and
 // `outstandingCount` stay in the entry chunk; the panel's markup and styles are
@@ -147,6 +148,7 @@ function SignedInFrame() {
         <Suspense fallback={null}>
           <AdminUtilityEntry />
         </Suspense>
+        <OperatorAnnouncement />
         <Suspense fallback={<RouteFallback />}>
           <Outlet />
         </Suspense>
@@ -182,6 +184,10 @@ function SignedInFrame() {
         />
       }
     >
+      {/* Above the route, so a service message is read before the thing it is
+          about. NOT in the television frame above: that surface deliberately
+          carries no application chrome. */}
+      <OperatorAnnouncement />
       <Suspense fallback={<RouteFallback />}>
         <Outlet />
       </Suspense>
