@@ -83,6 +83,12 @@
   margin-inline: calc(var(--vnext-space-4) * -1);
   padding-inline: var(--vnext-space-4);
   padding-block-end: var(--vnext-space-1);
+
+  /* The strip bleeds to the page edge and pads itself back, so its first item
+     snaps to that padding: at rest `scrollLeft` is 16 and not 0. That is the
+     offset `surfaces.scrollEdges` has to measure the leading fade from, or the
+     first fixture is dimmed on the screen where nothing is hidden behind it. */
+  --vnext-scroll-rest: var(--vnext-space-4);
 }
 
 .tickerList {

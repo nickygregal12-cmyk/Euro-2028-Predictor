@@ -409,3 +409,82 @@ test.describe('reduced motion', () => {
     expect(reading.smallTargets).toEqual([])
   })
 })
+
+/**
+ * NO CLUB NAME BREAKS INSIDE A WORD ON A PHONE.
+ *
+ * `.clubName` carries `overflow-wrap: anywhere`, which is what stops one long
+ * word widening the row — and it breaks INSIDE the word when the box is narrower
+ * than the word, which is a different and much uglier failure than the wrapping
+ * it was added for. At 375 the row is `minmax(0, 1fr) auto`, so every pixel the
+ * score control reserves comes out of the name beside it: the control reserved
+ * `3ch` for a third digit that `maxLength={2}` and `MAX_SCORE = 99` make
+ * impossible, the name was left with 101px, "Auchentoshan" needs 104px, and the
+ * list rendered "Auchentosha / n Corinthians".
+ *
+ * THE ASSERTION IS THE WIDEST WORD AGAINST THE BOX, not a screenshot and not the
+ * rendered line count: a name legitimately taking three lines at 375 is the row
+ * growing as it is designed to, while a name whose longest word does not fit its
+ * box is the break this guards. Measuring the word means the guard still holds
+ * when the fixture worlds change their clubs.
+ *
+ * IT MEASURES THE TAP TARGET IN THE SAME PASS, because the cheap way to give the
+ * name its pixels back would be to shrink the control a thumb hits ten times a
+ * matchweek, and that trade must fail here rather than ship.
+ */
+test.describe('club names survive a phone', () => {
+  test('never breaks a club name inside a word at 375', async ({ page }) => {
+    await open(page, 'open-375')
+
+    const reading = await page.evaluate(() => {
+      const probe = document.createElement('span')
+      document.body.append(probe)
+      const tooNarrow: string[] = []
+
+      for (const name of document.querySelectorAll('[class*="clubName"]')) {
+        if (!(name instanceof HTMLElement)) continue
+        const box = name.getBoundingClientRect()
+        if (box.width === 0) continue
+        const style = getComputedStyle(name)
+        probe.style.cssText =
+          `position:absolute;visibility:hidden;white-space:nowrap;` +
+          `font:${style.font};letter-spacing:${style.letterSpacing}`
+        const widest = Math.max(
+          ...(name.textContent ?? '')
+            .split(/\s+/)
+            .filter(Boolean)
+            .map((word) => {
+              probe.textContent = word
+              return probe.getBoundingClientRect().width
+            }),
+        )
+        if (widest > box.width + 0.5) {
+          tooNarrow.push(
+            `${name.textContent?.trim()} needs ${Math.ceil(widest)}px, has ${Math.floor(box.width)}px`,
+          )
+        }
+      }
+
+      probe.remove()
+
+      const controls = [...document.querySelectorAll('[class*="scoreBox"] button, [class*="scoreInput"]')]
+        .map((control) => control.getBoundingClientRect())
+        .filter((box) => box.width > 0)
+
+      return {
+        names: document.querySelectorAll('[class*="clubName"]').length,
+        tooNarrow,
+        undersizedControls: controls
+          .filter((box) => box.width < 44 || box.height < 44)
+          .map((box) => `${Math.round(box.width)}x${Math.round(box.height)}`),
+      }
+    })
+
+    expect(reading.names, 'the story rendered no club names').toBeGreaterThan(4)
+    expect(reading.tooNarrow, 'club names whose longest word cannot fit their box').toEqual([])
+    expect(
+      reading.undersizedControls,
+      'a score control dropped below the 44px target to make room',
+    ).toEqual([])
+  })
+})

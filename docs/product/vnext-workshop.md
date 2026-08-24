@@ -76,6 +76,16 @@ visual authority** — Home is.
   on this canvas.
 - Three text steps. A fourth becomes "slightly greyer" rather than a decision,
   and the muted step already sits at the contrast floor.
+- A scroller states where it continues. `surfaces.scrollEdges` fades whichever
+  inline edge still has content behind it, driven off the scroller's own
+  `scroll()` timeline rather than a listener, so a strip that overflows reads as
+  scrollable instead of being sliced through a glyph at the container edge — and
+  one that fits is not faded at all. It is **not** a motion primitive and has no
+  reduced pair: it has one value per scroll offset, carries information rather
+  than travel, and removing it under `prefers-reduced-motion` would take the
+  signal away from the player rather than the movement. It suits an unbordered
+  rail; a bordered box needs its own inner scroller, because masking the box
+  dissolves its border and corner with the content.
 - Nine motion primitives, each tied to a job: entrance, list order, hover lift,
   press, nav indicator, live pulse, rank movement, points emphasis, disclosure
   and rail travel. Anything that moves without a job is decoration.

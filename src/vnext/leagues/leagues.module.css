@@ -43,14 +43,35 @@
 
 /* ---- the scope chooser --------------------------------------------------- */
 
-/* THE CHOOSER SCROLLS INSIDE ITSELF RATHER THAN WIDENING THE PAGE.
+/* THE CHOOSER IS THE SIZE OF ITS OPTIONS, AND SCROLLS RATHER THAN WIDENING THE
+ * PAGE.
  *
  * Five options, or one sixty-character league name, exceed 375px. `overflow-x:
  * auto` is what keeps that inside the control; the page's own scroll container
  * stays at the column width, which `e2e/vnext-leagues.spec.ts` measures on
- * `main`. */
+ * `main`.
+ *
+ * `width: fit-content` is the other half, and it was missing. As a block-level
+ * flex container the pill took the whole column, which is right on a phone —
+ * the options fill it and it scrolls — and wrong on a desktop, where
+ * `Season · Sunday Club · The Office` occupied 335px of an 1112px pill and left
+ * 777px of empty sunken surface trailing off to the right. A segmented control
+ * with three quarters of itself empty reads as a layout that did not finish
+ * rather than as a chooser.
+ *
+ * It also broke the column's edge: the standings below stop at the 960px
+ * measure `.tableRegion` sets, so the two stacked siblings disagreed by 152px
+ * on the right. `fit-content` removes the disagreement rather than papering
+ * over it with a second matching cap — the pill is visibly a control that hugs
+ * its options, and the panel below is the thing that sets the measure.
+ *
+ * `max-width: 100%` is what keeps the phone behaviour intact: where the options
+ * exceed the column the pill is capped at the column and `overflow-x` scrolls
+ * inside it exactly as before. The spec measures both. */
 .scope {
   display: flex;
+  width: fit-content;
+  max-width: 100%;
   gap: var(--vnext-space-1);
   padding: 3px;
   background-color: var(--vnext-surface-sunken);
