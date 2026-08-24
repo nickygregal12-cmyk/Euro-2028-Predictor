@@ -11,8 +11,8 @@ Usage:
   bash scripts/agent-tools/claude-review.sh "REVIEW TASK"
 
 Runs the official Claude Code client non-interactively in plan mode. The bridge
-is intentionally read-only and refuses to run when ANTHROPIC_API_KEY is set so
-an existing Claude subscription is not silently replaced by API billing.
+is intentionally read-only and refuses provider/API environment overrides so a
+Claude.ai subscription review cannot silently become API or cloud-provider billing.
 EOF
 }
 
@@ -26,15 +26,41 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
-if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
-  printf 'Refusing Claude review because ANTHROPIC_API_KEY is set. Unset it and use Claude subscription authentication instead.\n' >&2
-  exit 1
+for variable in \
+  ANTHROPIC_API_KEY \
+  ANTHROPIC_AUTH_TOKEN \
+  CLAUDE_CODE_USE_BEDROCK \
+  CLAUDE_CODE_USE_VERTEX \
+  CLAUDE_CODE_USE_FOUNDRY; do
+  if [ -n "${!variable:-}" ]; then
+    printf 'Refusing Claude review because %s is set. Unset provider/API overrides and use Claude.ai subscription OAuth instead.\n' "$variable" >&2
+    exit 1
+  fi
+done
+
+claude_config_dir="${CLAUDE_CONFIG_DIR:-${HOME}/.claude}"
+credential_file="${claude_config_dir}/.credentials.json"
+if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+  if [ ! -f "$credential_file" ]; then
+    printf 'Claude Code has no local OAuth credential. Run `claude`, complete the browser login with the Claude.ai subscription account, and use `/status` once to confirm the login method.\n' >&2
+    exit 1
+  fi
+  credential_mode="$(stat -c '%a' "$credential_file" 2>/dev/null || true)"
+  if [ "$credential_mode" != '600' ]; then
+    printf 'Refusing Claude review because %s is not mode 0600. Fix the credential-file permissions before use.\n' "$credential_file" >&2
+    exit 1
+  fi
 fi
 
-if ! claude auth status >/dev/null 2>&1; then
-  printf 'Claude Code is not authenticated. Run `claude auth login` and choose the Claude subscription account, not Console/API billing.\n' >&2
-  exit 1
-fi
+for settings_file in \
+  "${claude_config_dir}/settings.json" \
+  "${repo_root}/.claude/settings.json" \
+  "${repo_root}/.claude/settings.local.json"; do
+  if [ -f "$settings_file" ] && grep -q '"apiKeyHelper"' "$settings_file"; then
+    printf 'Refusing Claude review because apiKeyHelper is configured in %s and can override subscription OAuth.\n' "$settings_file" >&2
+    exit 1
+  fi
+done
 
 review_task="$*"
 prompt="$(cat <<EOF
