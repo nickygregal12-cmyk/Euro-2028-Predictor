@@ -161,25 +161,39 @@ describe('the rehearsal rehearses and never writes Production', () => {
     expect(rehearsal).toContain("grep -q 'Result: PASS'")
   })
 
-  it('runs every suite and fails at the end, rather than dying at the first', () => {
-    // Stopping at the first failure costs a whole rehearsal cycle per failing
-    // suite — a dump and restore of Production is four minutes — and hides how
-    // many suites are unhappy, so a second failure reads as a regression
-    // introduced by the fix for the first.
-    expect(rehearsal).toContain('failed=1')
-    expect(rehearsal).toContain('[ "${failed}" -eq 0 ]')
-    expect(rehearsal).toContain('suite-results.txt')
+  it('gives every suite its own named step, so a failure identifies itself', () => {
+    // A loop is tidier to write and useless to read when it fails. This
+    // workflow's evidence — per-suite logs, the step summary, error annotations
+    // — all live behind hosts an egress policy may deny, and the job log is
+    // dominated by the runner's own audit dump. A step NAME and its conclusion
+    // come back from the plain jobs API. That cost two rehearsal cycles to
+    // learn, so it is pinned here rather than left as a style choice.
+    for (const suite of [
+      '255_provider_fixture_lifecycle',
+      '257_provider_deadline_watch_tier',
+      '258_matchweek_card_publishes_the_fixture_lock',
+      '259_unmeasured_provider_tokens_fail_closed',
+      '260_current_card_confirmation',
+      '261_ai_canonical_value_currency',
+      '262_reminder_dispatch_wiring',
+      '263_web_push_channel',
+    ]) {
+      expect(rehearsal).toContain(`- name: 'pgTAP ${suite}'`)
+    }
   })
 
-  it('names the failing suite in an annotation, not only in the artifact', () => {
-    // The evidence artifact lives on blob storage. An operator or agent whose
-    // egress policy denies that host could otherwise see THAT the suites failed
-    // without being able to see WHICH — which is how this assertion came to
-    // exist.
-    expect(rehearsal).toContain('::error file=${REL}::')
-    expect(rehearsal).toContain('GITHUB_STEP_SUMMARY')
+  it('runs every suite even after one fails, so one rehearsal reports the whole picture', () => {
+    // A dump and restore of Production is five minutes. Finding the second
+    // failing suite should not cost another one.
+    const pgtapSteps = rehearsal.match(/- name: 'pgTAP [^']+'\n\s+if: \$\{\{ !cancelled\(\) \}\}/g) ?? []
+    expect(pgtapSteps).toHaveLength(8)
+    // The preservation verdict must not be hidden by a suite failure either.
+    expect(rehearsal).toMatch(
+      /- name: Verify the boundary and preservation on the disposable copy\n\s+if: \$\{\{ !cancelled\(\) \}\}/,
+    )
   })
-})
+
+  })
 
 describe('the rollout is gated on the rehearsal that actually rehearsed it', () => {
   it('requires both a backup and a rehearsal run id', () => {

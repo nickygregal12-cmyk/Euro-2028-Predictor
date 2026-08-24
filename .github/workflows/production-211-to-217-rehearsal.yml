@@ -269,71 +269,185 @@ jobs:
           }
           supabase db push --db-url "${LOCAL_DB_URL}"
 
-      - name: Run the boundary pgTAP suites against real Production data
+      - name: Stage the pgTAP suites
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "${WORK_DIR}/supabase/tests"
-          # 255 and 257 are regression rather than boundary: they prove the
-          # contracts Production already holds still stand underneath.
-          suites=(
-            supabase/tests/255_provider_fixture_lifecycle.sql
-            supabase/tests/257_provider_deadline_watch_tier.sql
-            supabase/tests/258_matchweek_card_publishes_the_fixture_lock.sql
-            supabase/tests/259_unmeasured_provider_tokens_fail_closed.sql
-            supabase/tests/260_current_card_confirmation.sql
-            supabase/tests/261_ai_canonical_value_currency.sql
-            supabase/tests/262_reminder_dispatch_wiring.sql
-            supabase/tests/263_web_push_channel.sql
-          )
-          # EVERY suite runs, and the step fails at the END rather than at the
-          # first failure. Stopping at the first one costs a whole rehearsal
-          # cycle per failing suite — a dump and restore of Production is four
-          # minutes — and, worse, it hides how many suites are actually
-          # unhappy, so a second failure reads as a regression introduced by
-          # the fix for the first.
-          #
-          # Each verdict is emitted as a workflow ERROR ANNOTATION as well as
-          # to the log, because an annotation is readable from the check-run
-          # API without downloading an artifact. That is not a convenience: the
-          # rehearsal's evidence artifact lives on blob storage, and an operator
-          # or agent whose egress policy denies it can otherwise see THAT the
-          # suites failed without being able to see WHICH.
-          : > "${WORK_DIR}/suite-results.txt"
-          failed=0
-          for REL in "${suites[@]}"; do
+          for REL in supabase/tests/*.sql; do
             cp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}"
             cmp "${GITHUB_WORKSPACE}/${REL}" "${WORK_DIR}/${REL}" || { echo "ERROR: ${REL} copy differs."; exit 1; }
-            safe="${REL//\//-}"
-            PGTAP_LOG="${WORK_DIR}/${safe}.log"
-            set +e
-            ( cd "${WORK_DIR}" && supabase test db "${REL}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
-            status=$?
-            set -e
-            echo "----- ${REL} -----"
-            cat "${PGTAP_LOG}"
-            # A suite that ERRORS and a suite that reports failing assertions are
-            # different things, and only the first makes the CLI exit non-zero.
-            if [ "${status}" -eq 0 ] && grep -q 'Result: PASS' "${PGTAP_LOG}"; then
-              printf 'PASS %s\n' "${REL}" >> "${WORK_DIR}/suite-results.txt"
-            else
-              failed=1
-              printf 'FAIL %s (exit %s)\n' "${REL}" "${status}" >> "${WORK_DIR}/suite-results.txt"
-              echo "::error file=${REL}::pgTAP suite ${REL} failed against restored Production data (exit ${status}). $(grep -E '^not ok|^# +Failed test|ERROR:' "${PGTAP_LOG}" | head -3 | tr '\n' ' ')"
-            fi
           done
 
-          {
-            echo '## pgTAP suites against restored Production data'
-            echo
-            sed -e 's/^PASS /- **PASS** /' -e 's/^FAIL /- **FAIL** /' "${WORK_DIR}/suite-results.txt"
-          } >> "${GITHUB_STEP_SUMMARY}"
+      # ONE STEP PER SUITE, DELIBERATELY, rather than a loop.
+      #
+      # A loop is tidier to write and useless to read when it fails. This
+      # workflow's evidence — the per-suite logs, the step summary, the error
+      # annotations — all live behind hosts an egress policy may deny, and the
+      # job log is dominated by the runner's own audit dump. A step NAME and its
+      # conclusion, by contrast, come back from the plain jobs API, so naming
+      # each suite as a step is what makes a failure legible to whoever has to
+      # act on it. That cost two rehearsal cycles to learn.
+      #
+      # `!cancelled()` on each: every suite runs even after one fails, so one
+      # rehearsal reports the whole picture. A dump and restore of Production is
+      # five minutes, and finding the second failing suite should not cost
+      # another one.
 
-          echo 'Suite results:'
-          cat "${WORK_DIR}/suite-results.txt"
-          [ "${failed}" -eq 0 ] || { echo 'ERROR: at least one pgTAP suite failed. See the annotations above.'; exit 1; }
+      - name: 'pgTAP 255_provider_fixture_lifecycle'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/255_provider_fixture_lifecycle.sql
+        run: |
+          set -euo pipefail
+          # Contract 209 regression: the lifecycle Production already holds
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 257_provider_deadline_watch_tier'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/257_provider_deadline_watch_tier.sql
+        run: |
+          set -euo pipefail
+          # Contract 211 regression: the three polling tiers Production already holds
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 258_matchweek_card_publishes_the_fixture_lock'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/258_matchweek_card_publishes_the_fixture_lock.sql
+        run: |
+          set -euo pipefail
+          # Contract 212
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 259_unmeasured_provider_tokens_fail_closed'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/259_unmeasured_provider_tokens_fail_closed.sql
+        run: |
+          set -euo pipefail
+          # Contract 213
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 260_current_card_confirmation'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/260_current_card_confirmation.sql
+        run: |
+          set -euo pipefail
+          # Contract 214
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 261_ai_canonical_value_currency'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/261_ai_canonical_value_currency.sql
+        run: |
+          set -euo pipefail
+          # Contract 215
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 262_reminder_dispatch_wiring'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/262_reminder_dispatch_wiring.sql
+        run: |
+          set -euo pipefail
+          # Contract 216
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
+
+      - name: 'pgTAP 263_web_push_channel'
+        if: ${{ !cancelled() }}
+        shell: bash
+        env:
+          SUITE: supabase/tests/263_web_push_channel.sql
+        run: |
+          set -euo pipefail
+          # Contract 217
+          PGTAP_LOG="${WORK_DIR}/$(basename "${SUITE}").log"
+          set +e
+          ( cd "${WORK_DIR}" && supabase test db "${SUITE}" --db-url "${LOCAL_DB_URL}" ) >"${PGTAP_LOG}" 2>&1
+          status=$?
+          set -e
+          cat "${PGTAP_LOG}"
+          # A suite that ERRORS and a suite that reports failing assertions are
+          # different things, and only the first makes the CLI exit non-zero.
+          [ "${status}" -eq 0 ] || exit "${status}"
+          grep -q 'Result: PASS' "${PGTAP_LOG}" || { echo "ERROR: ${SUITE} did not report PASS."; exit 1; }
 
       - name: Verify the boundary and preservation on the disposable copy
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           set -euo pipefail
@@ -368,7 +482,6 @@ jobs:
             /tmp/production-211-to-217-rehearsal/boundary.txt
             /tmp/production-211-to-217-rehearsal/dry-run.txt
             /tmp/production-211-to-217-rehearsal/destructive-guard.txt
-            /tmp/production-211-to-217-rehearsal/suite-results.txt
             /tmp/production-211-to-217-rehearsal/supabase-tests-*.log
           retention-days: 7
           if-no-files-found: warn
