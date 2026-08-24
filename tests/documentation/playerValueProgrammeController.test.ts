@@ -280,6 +280,10 @@ function bend(mutate: (draft: Programme) => void): Programme {
   mutate(draft)
   return draft
 }
+function draftStagesInFlight(draft: Programme): number {
+  return draft.stages.filter((stage) => stage.status === 'in_progress').length
+}
+
 const stageIn = (draft: Programme, id: string) => draft.stages.find((stage) => stage.id === id)!
 
 /**
@@ -520,20 +524,28 @@ describe('player-value programme controller', () => {
   })
 
   it('refuses more than one stage in flight', () => {
+    // CONSTRUCTED, not found. This used to flip one stage in flight and then
+    // look for a `not_started` one to be the second -- which worked until the
+    // programme finished and there were none left, at which point the case
+    // quietly tested one stage in flight instead of two. Taking the first two
+    // stages and putting both in flight says what the rule is about regardless
+    // of where the programme has got to.
+    const [first, second] = state.stages
     const parallel = bend((draft) => {
-      for (const stage of draft.stages) {
-        if (stage.status === 'in_progress') continue
+      for (const id of [first!.id, second!.id]) {
+        const stage = stageIn(draft, id)
         stage.status = 'in_progress'
+        // A blocker belongs only to a blocked stage, and a merge only to a
+        // complete or blocked one; leaving either behind would fail this
+        // fixture for a reason that is not the one under test.
         stage.blocker = null
-        break
-      }
-      // If nothing was in flight, put a second one there too, so the case is
-      // about two stages rather than about how many there happened to be.
-      if (draft.stages.filter((stage) => stage.status === 'in_progress').length < 2) {
-        const spare = draft.stages.find((stage) => stage.status === 'not_started')
-        if (spare) spare.status = 'in_progress'
+        stage.mergedSha = null
       }
     })
+    expect(
+      draftStagesInFlight(parallel),
+      'the fixture itself must put two stages in flight',
+    ).toBe(2)
     expect(validateProgramme(parallel, repositoryContract)).toContain(
       'more than one stage in_progress; the programme runs one bounded pull request at a time',
     )

@@ -206,11 +206,19 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1031,
+      "headSha": "92a9498d70a299bb1f9dd9db46eb2f0a240daf6a",
+      "mergedSha": "61d6fdc8f70d1f7e19140e711d96c0113cd4421d",
+      "acceptanceEvidence": [
+        "The wrapper around the product analytics vendor already existed with automatic capture deliberately disabled, and it had no callers at all: the client was never started and the application emitted nothing. This stage supplies the part that makes the events first-party, which is a vocabulary the product defines and the calls that emit it.",
+        "Four moments, each with a question behind it: a submission, an invitation opened, a league joined, and the reminder switch. The first is the act the product exists for and the denominator the rest are read against; the middle two are the only way to see whether an invitation converts.",
+        "No event can carry a free string. Every property is a boolean or a closed set, so there is nowhere to put a display name, an email, a container name, or the invitation credential this repository treats as a bearer token. The join path already refused to report that credential when it failed; the same rule now holds when it succeeds, by making the property impossible rather than forbidden.",
+        "Recording returns nothing and is not asynchronous, so instrumentation cannot become an authority over any result, score, lock, membership or model selection, and no player action can be sequenced behind it.",
+        "Three of the four count themselves inside the service that performs the act rather than at the caller, because two of those functions already have two callers each and a count that misses half its events is worse than none.",
+        "An event recorded before the client finished starting is queued rather than dropped. Review found the first cut doing the opposite while a comment claimed otherwise, and the fix only remembers an attempt that had something to configure, so a key arriving later still takes effect.",
+        "The vendor chunk this makes reachable was measured in isolated worktrees rather than estimated, the entry chunk every player downloads does not move, and the compressed budget was raised with that measurement recorded and an explicit exception rather than quietly."
+      ],
       "blocker": null
     }
   ]
