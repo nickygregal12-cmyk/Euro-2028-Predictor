@@ -22,6 +22,7 @@ This file **routes only**. The architecture and authority model lives in [`../ar
 | Can a difficult source conflict be syntax-merged? | **Weave** preferred / **Mergiraf** alternative | optional clone-local merge aid |
 | Which configured model/provider should a compatible coding CLI use? | **OmniRoute** | optional developer infrastructure |
 | How do I run Ox Alpha as a separate cloud coding/review worker? | **OpenCode** via `scripts/agent-tools/ox-alpha.sh` | optional external-model agent |
+| How do I use one private front door for subscription/free-first multi-model work? | **Predictor Conductor** via OpenCode Web + Tailscale | optional persistent developer infrastructure |
 
 Do not chain all of these automatically. Start with authority, then use only the specialist that answers the missing question.
 
@@ -64,6 +65,7 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |
 | Coding-model/provider routing | [`omniroute-agent-routing.md`](omniroute-agent-routing.md) |
 | Ox Alpha cloud development | [`ox-alpha-cloud-development.md`](ox-alpha-cloud-development.md) |
+| Persistent private Conductor | [`persistent-cloud-conductor.md`](persistent-cloud-conductor.md) |
 | Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
 | Notification delivery | [`notification-delivery.md`](notification-delivery.md) |
 | Internal BI | [`metabase-analytics.md`](metabase-analytics.md) |
@@ -79,7 +81,8 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | Context7 | pinned on-demand MCP; optional key is user-owned |
 | Repomix | pinned on-demand MCP + bounded pack scripts; outputs ignored |
 | OmniRoute | CLI provisioned; **no provider, endpoint key or gateway process created automatically** |
-| OpenCode / Ox Alpha | OpenCode CLI provisioned; **no OpenRouter key is committed and no model request is made until the operator supplies the Codespaces secret and launches it** |
+| OpenCode / Ox Alpha | OpenCode CLI provisioned; **no OpenRouter key is committed and no model request is made until the operator supplies the secret and launches it** |
+| Persistent Conductor | tracked agents/installer only; **host, Tailscale membership and provider authentication remain operator-owned; free/subscription lanes are preferred before paid API use** |
 | Spec Kit | CLI provisioned as adapter; no generic project initializer/constitution applied |
 | ast-grep | CLI provisioned; no automatic repository-wide rewrite |
 | Beads | CLI provisioned; database is absent until an operator explicitly initialises stealth mode |

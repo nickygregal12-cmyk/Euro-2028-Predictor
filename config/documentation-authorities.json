@@ -224,6 +224,11 @@
       "why": "Discoverable task-specific Agent Skills that route to existing authorities."
     },
     {
+      "prefix": ".opencode/agents/",
+      "kind": "reference",
+      "why": "Project-scoped OpenCode agent role and permission instructions. They route work through existing repository authorities and never own moving product or hosted state."
+    },
+    {
       "prefix": "docs/adr/",
       "kind": "reference",
       "why": "Decision records; docs/adr/README.md is listed separately because its index carries live implementation status."
