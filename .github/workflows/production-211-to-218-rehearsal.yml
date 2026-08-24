@@ -291,6 +291,33 @@ jobs:
           supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/schema.sql"
           supabase db dump --db-url "${SUPABASE_PROD_DB_URL}" --file "${BUNDLE}/data.sql" --use-copy --data-only -x storage.buckets_vectors -x storage.vector_indexes
           /usr/lib/postgresql/17/bin/pg_dump --dbname "${SUPABASE_PROD_DB_URL}" --schema supabase_migrations --no-owner --no-privileges --file "${BUNDLE}/migration-history.sql"
+          # THE SCHEDULE IS NOT IN THE DUMP, AND THAT IS WHY THIS EXISTS.
+          # `supabase db dump` carries user schemas; it does not carry `cron`.
+          # A restored copy therefore has NO scheduled jobs at all — measured,
+          # not assumed: the first two 211-to-218 rehearsals both failed suite
+          # 262 on exactly the two assertions that require contract 172's three
+          # reminder jobs to exist, and a step that unscheduled everything on the
+          # copy reported "Unscheduled 0". There was never a schedule to restore.
+          #
+          # ONLY THE REMINDER JOBS, AND THE EXCLUSION IS THE SAFETY ARGUMENT.
+          # Production also schedules `provider-poll-dispatch-due-targets`, which
+          # runs `dispatch_due_provider_polls()` — the PAID provider call path. A
+          # throwaway copy must never spend provider credit, so it is refused by
+          # name here rather than left to chance. The three copied jobs call
+          # internal SQL only. Contract 216 schedules the fourth itself, which is
+          # the point of the assertion that counts four.
+          #
+          # Read from Production rather than written out here, so the copy gets
+          # the real schedule and command instead of this file's idea of them.
+          psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
+            -c "select format('select cron.schedule(%L, %L, %L);', job.jobname, job.schedule, job.command)
+                  from cron.job job
+                 where job.jobname in ('player-action-centre-generate',
+                                       'player-reminder-schedule',
+                                       'player-reminder-reclaim-stalled')
+                   and job.active" \
+            > "${BUNDLE}/reminder-jobs.sql"
+          [ -s "${BUNDLE}/reminder-jobs.sql" ] || { echo 'ERROR: Production has none of the three reminder jobs.'; exit 1; }
           for f in roles.sql schema.sql data.sql migration-history.sql; do
             [ -s "${BUNDLE}/${f}" ] || { echo "ERROR: missing ${f}"; exit 1; }
           done
@@ -300,43 +327,15 @@ jobs:
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --command 'SET session_replication_role = replica' --file "${BUNDLE}/data.sql"
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${ROLLOUT}/managed-schema-customizations.sql"
           psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/migration-history.sql"
+          psql "${LOCAL_DB_URL}" -X --single-transaction -v ON_ERROR_STOP=1 --file "${BUNDLE}/reminder-jobs.sql" > /dev/null
+          scheduled="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from cron.job')"
+          echo "Reminder jobs restored onto the copy: ${scheduled}"
+          [ "${scheduled}" = '3' ] || { echo "ERROR: expected 3 reminder jobs on the copy, found ${scheduled}."; exit 1; }
+          # Named, so a poll job arriving here later is a failure rather than a surprise bill.
+          polls="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c "select count(*) from cron.job where command ~* 'provider_poll|dispatch_due_provider_polls'")"
+          [ "${polls}" = '0' ] || { echo "ERROR: ${polls} provider-poll jobs reached the copy."; exit 1; }
           restored="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from supabase_migrations.schema_migrations')"
           [ "${restored}" = "${SOURCE_CONTRACT}" ] || { echo "ERROR: restored contract ${restored}."; exit 1; }
-
-      - name: Quiet the restored cron jobs on the disposable copy
-        shell: bash
-        run: |
-          set -euo pipefail
-          # THE DISPOSABLE COPY ONLY. `LOCAL_DB_URL` is the restored throwaway;
-          # Production keeps every job it has and this step does not exist in the
-          # rollout.
-          #
-          # WHY A REHEARSAL HAS TO DO THIS. A restore brings `cron.job` with it,
-          # so the copy comes up executing Production's schedule — eleven active
-          # jobs, several of them writing to the very tables the behavioural
-          # suites assert over. The suites then measure what the boundary did
-          # PLUS whatever the schedule did while they ran, and the second part is
-          # not reproducible: it depends on which minute the runner started.
-          #
-          # Suite 262 carries two comments that are this bug, found twice and
-          # fixed narrowly each time: a count that "passed once and failed once"
-          # until it was scoped to `now()`, and an `order by requested_at desc
-          # limit 1` that a concurrent cron row could win outright. Scoping each
-          # assertion as it is discovered treats the symptom; the rehearsal
-          # environment is the cause, because a rehearsal exists to isolate what
-          # the BOUNDARY does.
-          #
-          # This does not weaken what is rehearsed. The jobs are restored data,
-          # not part of contracts 212 to 218, and whether they exist is asserted
-          # separately: the preservation verifier still compares `cron.job` before
-          # and after the apply and still requires contract 216 to add exactly
-          # one. Both readings are taken after this step, so they agree.
-          before="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from cron.job')"
-          psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
-            -c 'select cron.unschedule(job.jobid) from cron.job job' > /dev/null
-          after="$(psql "${LOCAL_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 -c 'select count(*) from cron.job')"
-          echo "Unscheduled ${before} restored cron jobs on the disposable copy; ${after} remain."
-          [ "${after}" = '0' ] || { echo "ERROR: ${after} cron jobs still scheduled on the copy."; exit 1; }
 
       - name: Measure protected state before applying
         shell: bash
