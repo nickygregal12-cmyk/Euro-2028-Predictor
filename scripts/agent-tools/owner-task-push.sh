@@ -21,9 +21,17 @@ esac
 
 remote="$(git config --get "branch.${branch}.remote" 2>/dev/null || true)"
 merge="$(git config --get "branch.${branch}.merge" 2>/dev/null || true)"
-if [ -n "$remote" ] && { [ "$remote" != origin ] || [ "$merge" != "refs/heads/${branch}" ]; }; then
-  printf 'Refusing mismatched upstream for %s. Expected origin/%s.\n' "$branch" "$branch" >&2
-  exit 1
+if [ -n "$remote" ]; then
+  if [ "$remote" != origin ]; then
+    printf 'Refusing non-origin upstream for %s.\n' "$branch" >&2
+    exit 1
+  fi
+  if [ "$merge" != "refs/heads/${branch}" ] &&
+     ! { [ "$merge" = refs/heads/main ] &&
+         ! git ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; }; then
+    printf 'Refusing mismatched upstream for %s. Expected origin/%s.\n' "$branch" "$branch" >&2
+    exit 1
+  fi
 fi
 
 git push --set-upstream origin "$branch"

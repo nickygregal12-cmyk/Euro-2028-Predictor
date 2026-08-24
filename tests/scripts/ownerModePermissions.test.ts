@@ -163,7 +163,7 @@ describe('owner GitHub wrappers', () => {
   function fakeRepository(
     branch: string,
     args: string[],
-    upstream: { remote?: string; merge?: string } = {},
+    upstream: { remote?: string; merge?: string; remoteExists?: boolean } = {},
   ) {
     const home = mkdtempSync(resolve(tmpdir(), 'predictor-owner-wrapper-'))
     const bin = resolve(home, 'bin')
@@ -172,6 +172,7 @@ describe('owner GitHub wrappers', () => {
     writeFileSync(resolve(bin, 'git'), `#!/usr/bin/env bash
 if [[ "$1 $2" == "branch --show-current" ]]; then printf '%s\\n' "$FAKE_BRANCH"; exit 0; fi
 if [[ "$1 $2" == "rev-parse --show-toplevel" ]]; then pwd; exit 0; fi
+if [[ "$1" == "ls-remote" ]]; then [[ "$FAKE_REMOTE_EXISTS" == yes ]]; exit; fi
 if [[ "$1 $2" == "config --get" ]]; then
   case "$3" in
     *.remote) [[ -n "$FAKE_REMOTE" ]] && printf '%s\\n' "$FAKE_REMOTE" ;;
@@ -193,6 +194,7 @@ fi
         FAKE_LOG: log,
         FAKE_REMOTE: upstream.remote ?? '',
         FAKE_MERGE: upstream.merge ?? '',
+        FAKE_REMOTE_EXISTS: upstream.remoteExists ? 'yes' : 'no',
       },
       encoding: 'utf8',
     })
@@ -208,6 +210,12 @@ fi
     expect(fakeRepository('', ['scripts/agent-tools/owner-task-push.sh']).status).not.toBe(0)
     expect(fakeRepository('feat/owner-safe', ['scripts/agent-tools/owner-task-push.sh'], {
       remote: 'upstream', merge: 'refs/heads/feat/owner-safe',
+    }).status).not.toBe(0)
+    expect(fakeRepository('feat/owner-safe', ['scripts/agent-tools/owner-task-push.sh'], {
+      remote: 'origin', merge: 'refs/heads/main',
+    }).status).toBe(0)
+    expect(fakeRepository('feat/owner-safe', ['scripts/agent-tools/owner-task-push.sh'], {
+      remote: 'origin', merge: 'refs/heads/main', remoteExists: true,
     }).status).not.toBe(0)
   })
 
