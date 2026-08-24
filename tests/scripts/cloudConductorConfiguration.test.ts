@@ -211,14 +211,16 @@ printf '%s\\n' \\
     expect(step).not.toContain('grep -q')
   })
 
-  it('fails closed while Sentry and PostHog role inventories remain unproven', () => {
+  it('keeps the proven Sentry and PostHog reads exact pending live reload acceptance', () => {
     const releaseVerifier = read('.opencode/agents/predictor-release-verifier.md')
 
+    expect(releaseVerifier).toContain('sentry_find_organizations: true')
+    expect(releaseVerifier).toContain('posthog_read-data-schema: true')
     expect(releaseVerifier).not.toContain('sentry_*: true')
     expect(releaseVerifier).not.toContain('posthog_*: true')
-    expect(releaseVerifier).not.toMatch(/^\s+sentry_\S*(?:update|create|delete|resolve|feedback)\S*:\s*true$/m)
-    expect(releaseVerifier).not.toMatch(/^\s+posthog_\S*agent[-_]feedback\S*:\s*true$/m)
-    expect(releaseVerifier).toContain('exact live tool inventories remain a Hetzner acceptance blocker')
+    expect(releaseVerifier).not.toMatch(/^\s+sentry_\S*(?:search|execute|update|triage|seer)\S*:\s*true$/mi)
+    expect(releaseVerifier).not.toMatch(/^\s+posthog_(?:exec|\S*agent[-_]feedback\S*):\s*true$/mi)
+    expect(releaseVerifier).toContain('restarted/reloaded Hetzner session and live acceptance')
   })
 
   it('preserves unknown protected env keys while rotating managed values', () => {

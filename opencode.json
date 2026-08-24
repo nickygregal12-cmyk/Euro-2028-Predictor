@@ -71,7 +71,7 @@
     },
     "posthog": {
       "type": "remote",
-      "url": "https://mcp.posthog.com/mcp?readonly=true&mode=cli&features=data_schema,events,insights,sql,web_analytics,error_tracking,replay,sdk_doctor,search",
+      "url": "https://mcp.posthog.com/mcp?readonly=true&mode=tools&tools=read-data-schema",
       "oauth": {},
       "enabled": true,
       "timeout": 10000
