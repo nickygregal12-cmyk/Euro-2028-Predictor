@@ -156,6 +156,20 @@
 
 @supports (animation-timeline: scroll(self inline)) {
   .scrollEdges {
+    /* PREFIXED FIRST, BECAUSE THE TWO FEATURES DID NOT SHIP TOGETHER. Chromium
+     * has driven animations from a `scroll()` timeline since 115 but only
+     * accepted unprefixed `mask-image` from 120, so 115 through 119 pass the
+     * `@supports` test above and would then ignore the mask — the affordance
+     * silently absent on the one engine the gate just admitted. The repository
+     * already pairs the two spellings in `design-system/Masthead.module.css`;
+     * this follows it. */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      rgb(0 0 0 / 0%) 0,
+      rgb(0 0 0 / 100%) calc(var(--vnext-scroll-edge-start) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 100%) calc(100% - var(--vnext-scroll-edge-end) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 0%) 100%
+    );
     mask-image: linear-gradient(
       to right,
       rgb(0 0 0 / 0%) 0,

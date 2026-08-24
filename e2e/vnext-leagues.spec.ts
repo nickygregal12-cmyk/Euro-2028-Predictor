@@ -482,15 +482,21 @@ test.describe('the scope chooser is a control, not a column', () => {
       const last = furthest.getBoundingClientRect()
       const box = scope.getBoundingClientRect()
       const column = scope.parentElement as HTMLElement
-      const siblings = [...column.children]
-        .map((child) => child.getBoundingClientRect())
-        .filter((r) => r.width > 200)
+      // THE CHOOSER IS NAMED, NOT FILTERED INTO THE COMPARISON. Picking the
+      // siblings to compare by a width threshold would drop the chooser itself
+      // the moment it became narrow — which is one of the ways this layout can
+      // go wrong — and an alignment assertion over the remaining one element is
+      // vacuously true. Both edges are read directly instead.
+      const panel = [...column.children].find((child) => child !== scope)
+      if (!(panel instanceof HTMLElement)) throw new Error('no panel under the chooser')
       return {
         options: options.length,
         emptyToTheRight: Math.round(box.right - last.right),
         columnWidth: Math.round(column.getBoundingClientRect().width),
         pillWidth: Math.round(box.width),
-        leftEdges: [...new Set(siblings.map((r) => Math.round(r.left)))],
+        chooserLeft: Math.round(box.left),
+        panelLeft: Math.round(panel.getBoundingClientRect().left),
+        panelWidth: Math.round(panel.getBoundingClientRect().width),
       }
     })
 
@@ -504,9 +510,18 @@ test.describe('the scope chooser is a control, not a column', () => {
       reading.pillWidth,
       'the chooser still spans the whole column',
     ).toBeLessThan(reading.columnWidth)
+    // The panel is the thing that sets the measure, so it has to still be the
+    // wider of the two — otherwise "the chooser is narrower than its column"
+    // above could be satisfied by a collapsed panel rather than a hugging pill.
+    expect(
+      reading.panelWidth,
+      'the panel below the chooser is no wider than the chooser',
+    ).toBeGreaterThan(reading.pillWidth)
     // What replaces the old right-edge agreement: the control and the panel
     // below it start together, which is the alignment a reader actually sees.
-    expect(reading.leftEdges, 'the column no longer shares one left edge').toHaveLength(1)
+    expect(reading.chooserLeft, 'the chooser and the panel below it start apart').toBe(
+      reading.panelLeft,
+    )
   })
 
   test('still scrolls inside itself rather than widening a phone', async ({ page }) => {
@@ -519,7 +534,8 @@ test.describe('the scope chooser is a control, not a column', () => {
       return {
         pillWidth: Math.round(scope.getBoundingClientRect().width),
         columnWidth: Math.round((scope.parentElement as HTMLElement).getBoundingClientRect().width),
-        scrollsInside: scope.scrollWidth > scope.clientWidth,
+        hiddenInside: scope.scrollWidth - scope.clientWidth,
+        overflowX: getComputedStyle(scope).overflowX,
         pageOverflow: main.scrollWidth - main.clientWidth,
       }
     })
@@ -528,5 +544,16 @@ test.describe('the scope chooser is a control, not a column', () => {
       reading.columnWidth,
     )
     expect(reading.pageOverflow, 'the chooser took the page sideways').toBe(0)
+    // THE POINT OF THE PHONE CASE, AND IT HAS TO BE ASSERTED RATHER THAN JUST
+    // MEASURED. This story has more leagues than fit, so options ARE off the
+    // end of the pill. Without this, `overflow-x` could become `hidden` and the
+    // two assertions above would still pass while the options it clipped became
+    // unreachable — the page stays the right width either way. The reachable
+    // overflow is the contract; the page not moving is only half of it.
+    expect(
+      reading.hiddenInside,
+      'the chooser has nothing hidden inside it, so this story proves nothing',
+    ).toBeGreaterThan(0)
+    expect(reading.overflowX, 'the hidden options cannot be scrolled to').toBe('auto')
   })
 })
