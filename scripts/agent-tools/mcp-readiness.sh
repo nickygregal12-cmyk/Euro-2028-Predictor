@@ -45,9 +45,14 @@ for server in "${servers[@]}"; do
   connected='NO'
   unavailable='NO'
   if [[ "$server" != supabase-* && "$server" != netlify && "$server" != sentry && "$server" != posthog && "$server" != github ]]; then auth='N/A'; fi
-  if grep -Eqi 'auth|unauthorized|401|login' <<<"$detail"; then auth='REQUIRED'; fi
-  if [ "$server" = 'github' ] && [ -z "${GITHUB_MCP_TOKEN:-}" ]; then auth='REQUIRED'; fi
-  if grep -Eqi '(^|[^0-9])5[0-9]{2}([^0-9]|$)|bad gateway|service unavailable|timed out|timeout' <<<"$detail"; then unavailable='YES'; fi
+  if grep -Eqi '(^|[^0-9])5[0-9]{2}([^0-9]|$)|bad gateway|service unavailable|timed out|timeout' <<<"$detail"; then
+    unavailable='YES'
+  elif grep -Eqi 'needs[[:space:]]+authentication|authentication[[:space:]]+(is[[:space:]]+)?required|(^|[^[:alnum:]_])unauthorized([^[:alnum:]_]|$)|http([[:space:]]+status)?[[:space:]:_-]*401([^0-9]|$)|login[[:space:]_-]+(is[[:space:]]+)?required|required[[:space:]]+to[[:space:]]+log[[:space:]]*in|please[[:space:]]+log[[:space:]]*in' <<<"$detail"; then
+    auth='REQUIRED'
+  fi
+  if [ "$server" = 'github' ] && [ -z "${GITHUB_MCP_TOKEN:-}" ]; then
+    auth='REQUIRED'
+  fi
   failed='NO'
   if grep -Eqi 'fail(ed|ure)?|error|unable to connect|connection refused|disconnected|not[[:space:]]+(connected|ready)' <<<"$detail"; then failed='YES'; fi
   if [ "$auth" != 'REQUIRED' ] && [ "$unavailable" != 'YES' ] && [ "$failed" != 'YES' ] && grep -Eqi 'connected|ready' <<<"$line"; then

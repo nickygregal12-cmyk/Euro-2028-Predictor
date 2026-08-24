@@ -7,6 +7,30 @@ import { describe, expect, it } from 'vitest'
 const root = process.cwd()
 const read = (path: string) => readFileSync(resolve(root, path), 'utf8')
 
+const runMcpReadiness = (mcpListOutput: string, githubToken?: string) => {
+  const home = mkdtempSync(resolve(tmpdir(), 'predictor-mcp-readiness-'))
+  const bin = resolve(home, '.local/bin')
+  mkdirSync(bin, { recursive: true })
+  writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
+case "\${1:-}" in
+  --version) printf '1.18.19\\n' ;;
+  debug) exit 0 ;;
+  mcp) printf '%s\\n' "\${MCP_LIST_OUTPUT:-}" ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o755 })
+
+  const env: NodeJS.ProcessEnv = { ...process.env, HOME: home, MCP_LIST_OUTPUT: mcpListOutput }
+  if (githubToken === undefined) delete env.GITHUB_MCP_TOKEN
+  else env.GITHUB_MCP_TOKEN = githubToken
+
+  return execFileSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
+    cwd: root,
+    env,
+    encoding: 'utf8',
+  })
+}
+
 describe('persistent private cloud Conductor', () => {
   it('keeps one default front door with bounded write, critic, visual and release lanes', () => {
     const opencode = JSON.parse(read('opencode.json')) as { default_agent?: string }
@@ -242,24 +266,58 @@ printf '%s\\n' \\
     expect(fallback).toContain("require('./config/agent-tools.json').netlifyMcp")
   })
 
-  it('classifies failed MCP connections before positive ready text', () => {
-    const home = mkdtempSync(resolve(tmpdir(), 'predictor-mcp-readiness-'))
-    const bin = resolve(home, '.local/bin')
-    mkdirSync(bin, { recursive: true })
-    writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/env bash
-case "\${1:-}" in
-  --version) printf '1.18.19\\n' ;;
-  debug) exit 0 ;;
-  mcp) printf '  sentry  Failed to connect: server not ready\\n' ;;
-  *) exit 2 ;;
-esac
-`, { mode: 0o755 })
+  it('accepts OAuth-labelled hosted connections and ordinary local connections', () => {
+    const output = runMcpReadiness(`  sentry  connected (OAuth)
+  playwright  connected`)
 
-    const output = execFileSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
-      cwd: root,
-      env: { ...process.env, HOME: home },
-      encoding: 'utf8',
-    })
+    expect(output).toMatch(/CONFIGURED sentry\s+AUTH=OK\s+CONNECTED=YES\s+UNAVAILABLE=NO/)
+    expect(output).toMatch(/CONFIGURED playwright\s+AUTH=OK\s+CONNECTED=YES\s+UNAVAILABLE=NO/)
+  })
+
+  it.each([
+    'needs authentication',
+    'unauthorized',
+    'Failed: HTTP 401',
+    'login-required',
+  ])('classifies an explicit hosted auth failure: %s', (detail) => {
+    const output = runMcpReadiness(`  sentry  ${detail}`)
+
+    expect(output).toMatch(/CONFIGURED sentry\s+AUTH=REQUIRED\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
+  })
+
+  it.each([
+    'Failed: HTTP 503 from OAuth upstream',
+    'connection timed out',
+  ])('classifies provider unavailability before auth or connection success: %s', (detail) => {
+    const output = runMcpReadiness(`  sentry  ${detail}`)
+
+    expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=YES/)
+    expect(output).not.toMatch(/CONFIGURED sentry\s+AUTH=REQUIRED/)
+  })
+
+  it.each([undefined, ''])('requires a GitHub token even when GitHub looks connected', (token) => {
+    const output = runMcpReadiness('  github  connected', token)
+
+    expect(output).toMatch(/CONFIGURED github\s+AUTH=REQUIRED\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
+  })
+
+  it('keeps the missing GitHub token classification independent of provider unavailability', () => {
+    const output = runMcpReadiness('  github  Failed: HTTP 503 from OAuth upstream')
+
+    expect(output).toMatch(/CONFIGURED github\s+AUTH=REQUIRED\s+CONNECTED=NO\s+UNAVAILABLE=YES/)
+  })
+
+  it('fails closed for unrecognized hosted and local output', () => {
+    const output = runMcpReadiness(`  sentry  status indeterminate
+  playwright  status indeterminate`)
+
+    expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
+    expect(output).toMatch(/CONFIGURED playwright\s+AUTH=N\/A\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
+  })
+
+  it('classifies failed MCP connections before positive ready text', () => {
+    const output = runMcpReadiness('  sentry  Failed to connect: server not ready')
+
     expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
     expect(output).not.toMatch(/CONFIGURED sentry\s+.*CONNECTED=YES/)
   })
