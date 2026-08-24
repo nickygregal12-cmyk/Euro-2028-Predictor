@@ -42,14 +42,13 @@
     }
   },
   "claudeCode": {
-    "repository": "anthropics/claude-code",
+    "package": "@anthropic-ai/claude-code",
     "version": "2.1.220",
     "mode": "optional-subscription-agent",
     "renovate": {
-      "datasource": "github-releases",
-      "depName": "anthropics/claude-code",
-      "versioning": "semver",
-      "extractVersion": "^v(?<version>.+)$"
+      "datasource": "npm",
+      "depName": "@anthropic-ai/claude-code",
+      "versioning": "npm"
     }
   },
   "serena": {
