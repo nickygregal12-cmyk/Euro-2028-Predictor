@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Contract 211 to 217: the one verifier the rehearsal and the rollout both run.
+// Contract 211 to 218: the one verifier the rehearsal and the rollout both run.
 //
 // It is a FILE rather than a heredoc in each workflow because the rehearsal only
 // means something if it asks the same question the rollout will. Two copies of a
@@ -8,7 +8,7 @@
 // Reads three JSON documents produced by the two SQL files beside it:
 //   BEFORE_FILE   preserved state at contract 211
 //   AFTER_FILE    preserved state at contract 217
-//   BOUNDARY_FILE what contracts 212 to 217 must have done, at 217
+//   BOUNDARY_FILE what contracts 212 to 218 must have done, at 217
 //
 // Exits non-zero naming every problem it found, rather than the first.
 import fs from 'node:fs'
@@ -58,9 +58,9 @@ const same = (label, actual, expected) => {
 // ---------------------------------------------------------------------------
 // The ledger arrived where it was sent.
 // ---------------------------------------------------------------------------
-eq('migration_count', after.migration_count, 217)
-eq('latest_version', after.latest_version, '20260824090000')
-eq('latest_name', after.latest_name, 'web_push_channel')
+eq('migration_count', after.migration_count, 218)
+eq('latest_version', after.latest_version, '20260824100000')
+eq('latest_name', after.latest_name, 'live_results_channel')
 
 // ---------------------------------------------------------------------------
 // NOT ONE PLAYER-OWNED ROW MOVED, and nothing outside the boundary did either.
@@ -75,7 +75,7 @@ for (const key of [
 
 // Compared whole, because a total cannot see a fixture move between statuses.
 same('fixture_status_histogram', after.fixture_status_histogram, before.fixture_status_histogram)
-// Contract 211 settled these five tiers. Nothing in 212 to 217 may touch them.
+// Contract 211 settled these five tiers. Nothing in 212 to 218 may touch them.
 same('poll_dials', after.poll_dials, before.poll_dials)
 
 // Contract 216 schedules exactly one new job, `player-reminder-dispatch`.
@@ -149,6 +149,18 @@ eq('claim_anon_execute', boundary.claim_anon_execute, false)
 eq('save_push_authenticated_execute', boundary.save_push_authenticated_execute, true)
 eq('save_push_anon_execute', boundary.save_push_anon_execute, false)
 
+// ---------------------------------------------------------------------------
+// Contract 218 — public.matches publishes on the realtime channel.
+// ---------------------------------------------------------------------------
+// The table and nothing else. ADR 0008 rejected subscribing to broad user-owned
+// or scoring tables, so a publication that had grown a second table would be the
+// finding rather than a detail.
+eq('matches_published', boundary.matches_published, true)
+eq('realtime_published_tables', boundary.realtime_published_tables, 'public.matches')
+// Left at its default deliberately: FULL would add the pre-update row image to
+// every message, which is more exposure and more traffic for nothing.
+eq('matches_replica_identity', boundary.matches_replica_identity, 'd')
+
 // A player with both channels available is still told once. Contract 217 widens
 // the channel, never the key.
 //
@@ -164,6 +176,6 @@ if (!/user_id/.test(oncePerActionKey) ||
 }
 
 if (problems.length) {
-  throw new Error(`CONTRACT 211 TO 217 VERIFICATION FAILED:\n - ${problems.join('\n - ')}`)
+  throw new Error(`CONTRACT 211 TO 218 VERIFICATION FAILED:\n - ${problems.join('\n - ')}`)
 }
-console.log('Contract 211 to 217 verification passed: ledger at 217, boundary driven, protected state unmoved.')
+console.log('Contract 211 to 218 verification passed: ledger at 217, boundary driven, protected state unmoved.')

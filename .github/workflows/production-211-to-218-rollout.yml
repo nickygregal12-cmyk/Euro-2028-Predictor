@@ -1,13 +1,13 @@
-name: Production 211 to 217 rollout
+name: Production 211 to 218 rollout
 
-# One-shot guarded Production promotion for Contracts 212 through 217.
-# Requires a fresh encrypted backup and a successful exact-head 211-to-217
+# One-shot guarded Production promotion for Contracts 212 through 218.
+# Requires a fresh encrypted backup and a successful exact-head 211-to-218
 # rehearsal, and refuses unless BOTH destructive filenames in the boundary are
 # explicitly acknowledged.
 #
 # Development is moved first and Production second. That order is not a
 # convention here: the step below reads the Development machine record and
-# refuses to make Production the first hosted environment to see Contract 217.
+# refuses to make Production the first hosted environment to see Contract 218.
 #
 # It applies and then measures. The measurement it runs is the same file the
 # rehearsal ran, for the same reason the rehearsal exists: a rehearsal that asks
@@ -19,7 +19,7 @@ on:
         description: Exact Production project ref confirmation
         required: true
       confirmation:
-        description: Type APPLY-PRODUCTION-211-TO-217 to proceed
+        description: Type APPLY-PRODUCTION-211-TO-218 to proceed
         required: true
       destructive_acknowledgement_213:
         description: Type ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql
@@ -31,7 +31,7 @@ on:
         description: Run id of the successful fresh Production backup
         required: true
       rehearsal_run_id:
-        description: Run id of the successful 211-to-217 rehearsal
+        description: Run id of the successful 211-to-218 rehearsal
         required: true
 
 permissions:
@@ -45,22 +45,23 @@ concurrency:
 env:
   EXPECTED_PROJECT_REF: vkfnsqdyhvtwyqkisxhk
   FORBIDDEN_DEVELOPMENT_REF: iouzoutneyjpugbbtdem
-  CONFIRMATION_PHRASE: APPLY-PRODUCTION-211-TO-217
+  CONFIRMATION_PHRASE: APPLY-PRODUCTION-211-TO-218
   DESTRUCTIVE_ACK_213: ACKNOWLEDGE-DESTRUCTIVE-20260820150000_drop_unmeasured_sportmonks_tokens.sql
   DESTRUCTIVE_ACK_217: ACKNOWLEDGE-DESTRUCTIVE-20260824090000_web_push_channel.sql
   SOURCE_CONTRACT: '211'
   SOURCE_VERSION: '20260820090000'
   SOURCE_NAME: provider_deadline_watch_tier
-  TARGET_CONTRACT: '217'
-  TARGET_VERSION: '20260824090000'
-  TARGET_NAME: web_push_channel
+  TARGET_CONTRACT: '218'
+  TARGET_VERSION: '20260824100000'
+  TARGET_NAME: live_results_channel
   CONTRACT_212: 20260820130000_matchweek_card_publishes_the_fixture_lock.sql
   CONTRACT_213: 20260820150000_drop_unmeasured_sportmonks_tokens.sql
   CONTRACT_214: 20260820170000_confirmation_tracks_current_card.sql
   CONTRACT_215: 20260823001000_ai_canonical_value_currency.sql
   CONTRACT_216: 20260823120000_reminder_dispatch_wiring.sql
   CONTRACT_217: 20260824090000_web_push_channel.sql
-  WORK_DIR: /tmp/production-211-to-217-rollout
+  CONTRACT_218: 20260824100000_live_results_channel.sql
+  WORK_DIR: /tmp/production-211-to-218-rollout
 
 jobs:
   rollout:
@@ -116,7 +117,7 @@ jobs:
             printf '%s' "${json}"
           }
           backup="$(check_run "${BACKUP_RUN_ID}" '.github/workflows/production-backup.yml' Backup)"
-          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-211-to-217-rehearsal.yml' Rehearsal)"
+          rehearsal="$(check_run "${REHEARSAL_RUN_ID}" '.github/workflows/production-211-to-218-rehearsal.yml' Rehearsal)"
           # EXACT head, not an ancestor: a rehearsal of a different tree has
           # rehearsed a different migration set.
           rehearsal_sha="$(jq -r '.head_sha' <<<"${rehearsal}")"
@@ -132,7 +133,7 @@ jobs:
             exit 1
           }
 
-      - name: Refuse to make Production the first hosted environment to see Contract 217
+      - name: Refuse to make Production the first hosted environment to see Contract 218
         shell: bash
         run: |
           set -euo pipefail
@@ -144,16 +145,46 @@ jobs:
             exit 1
           }
 
-      - name: Prove the repository boundary is exactly 211 to 217
+      - name: Prove the repository boundary is exactly 211 to 218
         shell: bash
         run: |
           set -euo pipefail
+          # PINNED TO THE BOUNDARY, NOT TO A FROZEN REPOSITORY.
+          #
+          # This check used to require the repository to hold EXACTLY
+          # TARGET_CONTRACT migrations. That is the wrong invariant, and it cost
+          # a rehearsal to learn: it means the lane can only run while `main` is
+          # standing still, and on this repository `main` moved three times
+          # during one promotion. A lane that unrelated work can invalidate
+          # mid-flight is not a safe lane, it is an unrunnable one.
+          #
+          # What actually has to be true is that the boundary is where it was
+          # reviewed: contract N is the Nth migration in the chain, so the file
+          # at row TARGET_CONTRACT must be the target, and rows SOURCE+1 to
+          # TARGET must be exactly the reviewed files. Anything ABOVE the target
+          # is held back below and never reaches the database, so it cannot
+          # change what this run applies. The dry run is still diffed against the
+          # reviewed list before anything is written.
           committed="$(git ls-files 'supabase/migrations/*.sql' | wc -l | tr -d ' ')"
           declared="$(node -p "require('./config/deployment-contract.json').requiredMigrationCount")"
-          newest="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | tail -1)")"
-          [ "${committed}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: repository has ${committed} migrations."; exit 1; }
-          [ "${declared}" = "${TARGET_CONTRACT}" ] || { echo "ERROR: deployment contract is ${declared}."; exit 1; }
-          [ "${newest}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || { echo "ERROR: newest migration is ${newest}."; exit 1; }
+          at_target="$(basename "$(git ls-files 'supabase/migrations/*.sql' | sort | sed -n "${TARGET_CONTRACT}p")")"
+          [ "${committed}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: repository holds ${committed} migrations, fewer than the boundary target ${TARGET_CONTRACT}."
+            exit 1
+          }
+          [ "${declared}" -ge "${TARGET_CONTRACT}" ] || {
+            echo "ERROR: deployment contract is ${declared}, below the boundary target ${TARGET_CONTRACT}."
+            exit 1
+          }
+          [ "${at_target}" = "${TARGET_VERSION}_${TARGET_NAME}.sql" ] || {
+            echo "ERROR: migration row ${TARGET_CONTRACT} is ${at_target}, not ${TARGET_VERSION}_${TARGET_NAME}.sql."
+            echo 'The boundary has moved in the chain. Re-review it rather than running this lane.'
+            exit 1
+          }
+          if [ "${committed}" -gt "${TARGET_CONTRACT}" ]; then
+            echo "Repository holds ${committed} migrations; rows above ${TARGET_CONTRACT} are held back and NOT applied by this run:"
+            git ls-files 'supabase/migrations/*.sql' | sort | sed -n "$((TARGET_CONTRACT + 1)),${committed}p"
+          fi
 
           : > "${WORK_DIR}/boundary.txt"
           for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
@@ -165,21 +196,46 @@ jobs:
 
           printf '%s\n' "${CONTRACT_212}" "${CONTRACT_213}" "${CONTRACT_214}" \
                         "${CONTRACT_215}" "${CONTRACT_216}" "${CONTRACT_217}" \
+                        "${CONTRACT_218}" \
             > "${WORK_DIR}/expected-boundary.txt"
           diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/boundary.txt" || {
-            echo 'ERROR: boundary is not exactly Contracts 212 through 217.'
+            echo 'ERROR: boundary is not exactly Contracts 212 through 218.'
             exit 1
           }
+
+      - name: Hold back anything above the boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Moved out of the checkout so the CLI cannot see them. Without this,
+          # a migration merged to `main` after this boundary was reviewed would
+          # be pushed by the same `db push` — which is the exact thing a pinned
+          # lane exists to prevent. The dry run below still proves what is left
+          # is precisely the reviewed boundary.
+          mkdir -p "${WORK_DIR}/later-migrations"
+          : > "${WORK_DIR}/moved-files.txt"
+          # shellcheck disable=SC2013
+          for file in $(git ls-files 'supabase/migrations/*.sql' | sort); do
+            filename="$(basename "${file}")"
+            version="${filename:0:14}"
+            if [[ "${version}" > "${TARGET_VERSION}" ]]; then
+              mv "${file}" "${WORK_DIR}/later-migrations/${filename}"
+              printf '%s\n' "${file}" >> "${WORK_DIR}/moved-files.txt"
+              echo "held back: ${filename}"
+            fi
+          done
+          visible="$(find supabase/migrations -maxdepth 1 -name '*.sql' | sort)"
+          echo "Migrations visible to the CLI: $(printf '%s\n' "${visible}" | wc -l | tr -d ' '), newest $(basename "$(printf '%s\n' "${visible}" | tail -1)")"
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22.22.2
 
-      - name: Prove which of the six are additive and which are destructive
+      - name: Prove which of the seven are additive and which are destructive
         shell: bash
         run: |
           set -euo pipefail
-          for additive in "${CONTRACT_212}" "${CONTRACT_214}" "${CONTRACT_215}" "${CONTRACT_216}"; do
+          for additive in "${CONTRACT_212}" "${CONTRACT_214}" "${CONTRACT_215}" "${CONTRACT_216}" "${CONTRACT_218}"; do
             node scripts/check-migration-additive.mjs "supabase/migrations/${additive}"
           done
 
@@ -215,7 +271,7 @@ jobs:
             *) echo 'ERROR: Production secret does not name Production.'; exit 1 ;;
           esac
           psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
-            -f scripts/database-rollout/production-211-to-217-preserved-state.sql \
+            -f scripts/database-rollout/production-211-to-218-preserved-state.sql \
             > "${WORK_DIR}/before.json"
           cat "${WORK_DIR}/before.json"
 
@@ -232,7 +288,7 @@ jobs:
           }
           NODE
 
-      - name: Dry run and apply exactly Contracts 212 through 217 to Production
+      - name: Dry run and apply exactly Contracts 212 through 218 to Production
         env:
           SUPABASE_PROD_DB_URL: ${{ secrets.SUPABASE_PROD_DB_URL }}
         shell: bash
@@ -244,7 +300,7 @@ jobs:
           # The dry run is the last word, not the resolved boundary: it is what
           # the CLI will actually push. Disagreement is the finding.
           diff -u "${WORK_DIR}/expected-boundary.txt" "${WORK_DIR}/pending.txt" || {
-            echo 'ERROR: Production dry run is not exactly Contracts 212 through 217.'
+            echo 'ERROR: Production dry run is not exactly Contracts 212 through 218.'
             exit 1
           }
           supabase db push --db-url "${SUPABASE_PROD_DB_URL}"
@@ -256,17 +312,17 @@ jobs:
         run: |
           set -euo pipefail
           psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
-            -f scripts/database-rollout/production-211-to-217-preserved-state.sql \
+            -f scripts/database-rollout/production-211-to-218-preserved-state.sql \
             > "${WORK_DIR}/after.json"
           psql "${SUPABASE_PROD_DB_URL}" -X -q -A -t -v ON_ERROR_STOP=1 \
-            -f scripts/database-rollout/production-211-to-217-boundary-state.sql \
+            -f scripts/database-rollout/production-211-to-218-boundary-state.sql \
             > "${WORK_DIR}/boundary-state.json"
           cat "${WORK_DIR}/after.json"
           cat "${WORK_DIR}/boundary-state.json"
           BEFORE_FILE="${WORK_DIR}/before.json" \
           AFTER_FILE="${WORK_DIR}/after.json" \
           BOUNDARY_FILE="${WORK_DIR}/boundary-state.json" \
-            node scripts/database-rollout/verify-production-211-to-217.mjs
+            node scripts/database-rollout/verify-production-211-to-218.mjs
 
       - name: Say what to record, rather than claiming it here
         if: success()
@@ -280,7 +336,7 @@ jobs:
           # intent and disable the rule; here the construct that raises it can
           # simply be removed, and a heredoc reads better than twenty echoes.
           cat >> "${GITHUB_STEP_SUMMARY}" <<'SUMMARY'
-          ## Production applied Contracts 212 through 217
+          ## Production applied Contracts 212 through 218
 
           This job applied the boundary and ran its own postflight. That postflight
           is NOT the evidence this repository records: a job reporting on its own
@@ -300,17 +356,32 @@ jobs:
           whether this promotion happened.
           SUMMARY
 
+      - name: Restore the held-back migrations in the runner
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${WORK_DIR}/moved-files.txt" ]; then
+            while IFS= read -r file; do
+              [ -n "${file}" ] || continue
+              filename="$(basename "${file}")"
+              if [ -e "${WORK_DIR}/later-migrations/${filename}" ]; then
+                mv "${WORK_DIR}/later-migrations/${filename}" "${file}"
+              fi
+            done < "${WORK_DIR}/moved-files.txt"
+          fi
+
       - name: Upload rollout evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: production-211-to-217-rollout-evidence
+          name: production-211-to-218-rollout-evidence
           path: |
-            /tmp/production-211-to-217-rollout/before.json
-            /tmp/production-211-to-217-rollout/after.json
-            /tmp/production-211-to-217-rollout/boundary-state.json
-            /tmp/production-211-to-217-rollout/boundary.txt
-            /tmp/production-211-to-217-rollout/dry-run.txt
-            /tmp/production-211-to-217-rollout/destructive-guard.txt
+            /tmp/production-211-to-218-rollout/before.json
+            /tmp/production-211-to-218-rollout/after.json
+            /tmp/production-211-to-218-rollout/boundary-state.json
+            /tmp/production-211-to-218-rollout/boundary.txt
+            /tmp/production-211-to-218-rollout/dry-run.txt
+            /tmp/production-211-to-218-rollout/destructive-guard.txt
           retention-days: 7
           if-no-files-found: error

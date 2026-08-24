@@ -1,4 +1,4 @@
--- Contract 211 to 217 boundary: the state the promotion must NOT move.
+-- Contract 211 to 218 boundary: the state the promotion must NOT move.
 --
 -- This file is deliberately run UNCHANGED before and after the apply, on the
 -- rehearsal copy and on Production, so a difference between the two readings is
@@ -10,7 +10,7 @@
 -- 217. Anything that only exists above 211 belongs in the boundary file, not
 -- here.
 --
--- The function fingerprint excludes, by name, every routine contracts 212 to 217
+-- The function fingerprint excludes, by name, every routine contracts 212 to 218
 -- create or redefine. Excluding them is the point: what the fingerprint proves is
 -- that NOTHING ELSE in `public` or `predictor_internal` moved while six contracts
 -- were applied.
@@ -72,7 +72,7 @@ select jsonb_build_object(
     from (select status, count(*) as tally from public.season_fixtures group by status) s),
   'lifecycle_transition_count',(select count(*) from predictor_internal.season_fixture_lifecycle_transitions),
   'provider_status_observation_count',(select count(*) from predictor_internal.provider_status_observations),
-  -- All five tiers contract 211 settled on. None of contracts 212 to 217 touches
+  -- All five tiers contract 211 settled on. None of contracts 212 to 218 touches
   -- provider polling, so any movement here is the boundary reaching somewhere it
   -- was not supposed to.
   'poll_dials',(

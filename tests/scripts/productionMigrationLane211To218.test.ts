@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
  * the moment another migration lands, and the temptation is then to widen the
  * old pair in place rather than re-review it.
  *
- * These assertions pin what the 211-to-217 pair is only safe inside. They read
+ * These assertions pin what the 211-to-218 pair is only safe inside. They read
  * the workflows rather than trusting their names, in the same spirit as
  * `developmentFastLaneRollout.test.ts`.
  */
@@ -18,11 +18,11 @@ import { describe, expect, it } from 'vitest'
 const root = process.cwd()
 const read = (relative: string) => readFileSync(resolve(root, relative), 'utf8')
 
-const REHEARSAL_PATH = '.github/workflows/production-211-to-217-rehearsal.yml'
-const ROLLOUT_PATH = '.github/workflows/production-211-to-217-rollout.yml'
-const VERIFIER_PATH = 'scripts/database-rollout/verify-production-211-to-217.mjs'
-const PRESERVED_PATH = 'scripts/database-rollout/production-211-to-217-preserved-state.sql'
-const BOUNDARY_PATH = 'scripts/database-rollout/production-211-to-217-boundary-state.sql'
+const REHEARSAL_PATH = '.github/workflows/production-211-to-218-rehearsal.yml'
+const ROLLOUT_PATH = '.github/workflows/production-211-to-218-rollout.yml'
+const VERIFIER_PATH = 'scripts/database-rollout/verify-production-211-to-218.mjs'
+const PRESERVED_PATH = 'scripts/database-rollout/production-211-to-218-preserved-state.sql'
+const BOUNDARY_PATH = 'scripts/database-rollout/production-211-to-218-boundary-state.sql'
 
 const rehearsal = read(REHEARSAL_PATH)
 const rollout = read(ROLLOUT_PATH)
@@ -38,6 +38,7 @@ const BOUNDARY_FILES = [
   '20260823001000_ai_canonical_value_currency.sql',
   '20260823120000_reminder_dispatch_wiring.sql',
   '20260824090000_web_push_channel.sql',
+  '20260824100000_live_results_channel.sql',
 ]
 
 const DESTRUCTIVE_FILES = [
@@ -49,21 +50,21 @@ describe('the lane is pinned to one boundary and names it by filename', () => {
   it.each([
     ['rehearsal', rehearsal],
     ['rollout', rollout],
-  ])('%s pins source 211 and target 217', (_label, workflow) => {
+  ])('%s pins source 211 and target 218', (_label, workflow) => {
     expect(workflow).toContain("SOURCE_CONTRACT: '211'")
     expect(workflow).toContain("SOURCE_VERSION: '20260820090000'")
-    expect(workflow).toContain("TARGET_CONTRACT: '217'")
-    expect(workflow).toContain("TARGET_VERSION: '20260824090000'")
-    expect(workflow).toContain('TARGET_NAME: web_push_channel')
+    expect(workflow).toContain("TARGET_CONTRACT: '218'")
+    expect(workflow).toContain("TARGET_VERSION: '20260824100000'")
+    expect(workflow).toContain('TARGET_NAME: live_results_channel')
   })
 
   it.each([
     ['rehearsal', rehearsal],
     ['rollout', rollout],
   ])('%s names all six contracts by filename, not by number', (_label, workflow) => {
-    // `216` is a typo away from `217`. A filename is not.
+    // `217` is a typo away from `218`. A filename is not.
     for (const file of BOUNDARY_FILES) expect(workflow).toContain(file)
-    expect(workflow).toContain('boundary is not exactly Contracts 212 through 217')
+    expect(workflow).toContain('boundary is not exactly Contracts 212 through 218')
   })
 
   it('every file the lane names exists exactly once in the migration tree', () => {
@@ -75,12 +76,35 @@ describe('the lane is pinned to one boundary and names it by filename', () => {
   it.each([
     ['rehearsal', rehearsal],
     ['rollout', rollout],
-  ])('%s refuses a repository that is not exactly 217 migrations', (_label, workflow) => {
-    // This is what makes the earlier 211-to-213 pair unrunnable rather than
-    // merely out of date, and it is the property worth keeping.
-    expect(workflow).toContain("git ls-files 'supabase/migrations/*.sql' | wc -l")
-    expect(workflow).toMatch(/\[ "\$\{committed\}" = "\$\{TARGET_CONTRACT\}" \]/)
-    expect(workflow).toMatch(/\[ "\$\{declared\}" = "\$\{TARGET_CONTRACT\}" \]/)
+  ])('%s pins the boundary POSITION, not a frozen repository', (_label, workflow) => {
+    // The first version of this required the repository to hold EXACTLY
+    // TARGET_CONTRACT migrations, which meant the lane could only run while
+    // `main` was standing still. `main` moved three times during one promotion
+    // and invalidated a rehearsal mid-flight, so the invariant was wrong rather
+    // than merely unlucky.
+    //
+    // What has to be true is that the boundary is where it was reviewed:
+    // contract N is the Nth migration, so row TARGET_CONTRACT must BE the
+    // target. Anything above it is held back, so it cannot change what runs.
+    expect(workflow).toContain('sed -n "${TARGET_CONTRACT}p"')
+    expect(workflow).toMatch(/\[ "\$\{at_target\}" = "\$\{TARGET_VERSION\}_\$\{TARGET_NAME\}\.sql" \]/)
+    expect(workflow).toContain('The boundary has moved in the chain.')
+    // Ahead is tolerated; behind is not.
+    expect(workflow).toMatch(/\[ "\$\{committed\}" -ge "\$\{TARGET_CONTRACT\}" \]/)
+    expect(workflow).toMatch(/\[ "\$\{declared\}" -ge "\$\{TARGET_CONTRACT\}" \]/)
+  })
+
+  it.each([
+    ['rehearsal', rehearsal],
+    ['rollout', rollout],
+  ])('%s holds back anything above the boundary so a later merge cannot ride along', (_label, workflow) => {
+    // Without this, a migration merged to `main` after the boundary was reviewed
+    // would be pushed by the same `db push` — the exact thing a pinned lane
+    // exists to prevent.
+    expect(workflow).toContain('Hold back anything above the boundary')
+    expect(workflow).toMatch(/if \[\[ "\$\{version\}" > "\$\{TARGET_VERSION\}" \]\]/)
+    expect(workflow).toContain('moved-files.txt')
+    expect(workflow).toContain('Restore the held-back migrations in the runner')
   })
 })
 
@@ -117,9 +141,9 @@ describe('Development is never second', () => {
   it.each([
     ['rehearsal', rehearsal],
     ['rollout', rollout],
-  ])('%s reads the Development record and refuses if it is below 217', (_label, workflow) => {
+  ])('%s reads the Development record and refuses if it is below 218', (_label, workflow) => {
     expect(workflow).toContain(
-      'Refuse to make Production the first hosted environment to see Contract 217',
+      'Refuse to make Production the first hosted environment to see Contract 218',
     )
     expect(workflow).toContain("require('./config/development-hosted-contract.json').requiredMigrationCount")
     expect(workflow).toMatch(/\[ "\$\{dev_contract\}" -ge "\$\{TARGET_CONTRACT\}" \]/)
@@ -185,11 +209,17 @@ describe('the rehearsal rehearses and never writes Production', () => {
   it('runs every suite even after one fails, so one rehearsal reports the whole picture', () => {
     // A dump and restore of Production is five minutes. Finding the second
     // failing suite should not cost another one.
-    const pgtapSteps = rehearsal.match(/- name: 'pgTAP [^']+'\n\s+if: \$\{\{ !cancelled\(\) \}\}/g) ?? []
+    // Gated on STAGING having succeeded, not on `!cancelled()` alone. A bare
+    // `!cancelled()` made all eight suites fire after an earlier GUARD refused,
+    // reporting eight failures for one refusal — which is the opposite of the
+    // legibility these steps exist for.
+    const guard = String.raw`if: \$\{\{ !cancelled\(\) && steps\.stage_suites\.outcome == 'success' \}\}`
+    const pgtapSteps = rehearsal.match(new RegExp(String.raw`- name: 'pgTAP [^']+'\n\s+${guard}`, 'g')) ?? []
     expect(pgtapSteps).toHaveLength(8)
+    expect(rehearsal).toContain('id: stage_suites')
     // The preservation verdict must not be hidden by a suite failure either.
     expect(rehearsal).toMatch(
-      /- name: Verify the boundary and preservation on the disposable copy\n\s+if: \$\{\{ !cancelled\(\) \}\}/,
+      new RegExp(String.raw`- name: Verify the boundary and preservation on the disposable copy\n\s+${guard}`),
     )
   })
 
@@ -199,7 +229,7 @@ describe('the rollout is gated on the rehearsal that actually rehearsed it', () 
   it('requires both a backup and a rehearsal run id', () => {
     expect(rollout).toContain('backup_run_id:')
     expect(rollout).toContain('rehearsal_run_id:')
-    expect(rollout).toContain('.github/workflows/production-211-to-217-rehearsal.yml')
+    expect(rollout).toContain('.github/workflows/production-211-to-218-rehearsal.yml')
     expect(rollout).toContain('.github/workflows/production-backup.yml')
   })
 
@@ -232,7 +262,7 @@ describe('the rollout is gated on the rehearsal that actually rehearsed it', () 
     expect(applyStep.indexOf('--dry-run')).toBeLessThan(
       applyStep.indexOf('supabase db push --db-url "${SUPABASE_PROD_DB_URL}"\n'),
     )
-    expect(rollout).toContain('ERROR: Production dry run is not exactly Contracts 212 through 217.')
+    expect(rollout).toContain('ERROR: Production dry run is not exactly Contracts 212 through 218.')
   })
 })
 
@@ -244,7 +274,7 @@ describe('the additive guard is a report on both destructive contracts', () => {
     expect(workflow).toContain('unexpectedly passed the additive guard')
     expect(workflow).toMatch(/for destructive in "\$\{CONTRACT_213\}" "\$\{CONTRACT_217\}"/)
     expect(workflow).toMatch(
-      /for additive in "\$\{CONTRACT_212\}" "\$\{CONTRACT_214\}" "\$\{CONTRACT_215\}" "\$\{CONTRACT_216\}"/,
+      /for additive in "\$\{CONTRACT_212\}" "\$\{CONTRACT_214\}" "\$\{CONTRACT_215\}" "\$\{CONTRACT_216\}" "\$\{CONTRACT_218\}"/,
     )
   })
 })
@@ -266,7 +296,7 @@ describe('the rehearsal and the rollout ask the same question', () => {
 
   it('the preserved-state query is read before AND after, so it must be valid at 211', () => {
     const preserved = read(PRESERVED_PATH)
-    // Anything contracts 212 to 217 CREATE belongs in the boundary file: reading
+    // Anything contracts 212 to 218 CREATE belongs in the boundary file: reading
     // it on a 211 database raises, and the read that raises is the BEFORE one,
     // so the promotion fails at its first step with a confusing message.
     //
@@ -323,7 +353,7 @@ describe('the verifier checks what the ledger cannot answer', () => {
 
 /**
  * A verifier is only worth the run it gates if it FAILS when the thing it
- * guards is broken. These drive it with a synthetic 211-to-217 promotion and
+ * guards is broken. These drive it with a synthetic 211-to-218 promotion and
  * then reintroduce, one at a time, the defect each assertion exists to catch.
  *
  * This is the same discipline the migrations themselves are held to — contract
@@ -358,10 +388,10 @@ describe('the verifier fails when the promotion is wrong', () => {
 
   const AFTER = {
     ...BEFORE,
-    migration_count: 217,
-    latest_version: '20260824090000',
-    latest_name: 'web_push_channel',
-    // Contract 216 schedules exactly one job.
+    migration_count: 218,
+    latest_version: '20260824100000',
+    latest_name: 'live_results_channel',
+    // Contract 216 schedules exactly one job; 218 schedules none.
     cron_jobs: 12,
   }
 
@@ -394,6 +424,9 @@ describe('the verifier fails when the promotion is wrong', () => {
     save_push_authenticated_execute: true,
     save_push_anon_execute: false,
     once_per_action_key: 'UNIQUE (user_id, action_key, reminder_kind)',
+    matches_published: true,
+    realtime_published_tables: 'public.matches',
+    matches_replica_identity: 'd',
   }
 
   function runVerifier(
@@ -401,7 +434,7 @@ describe('the verifier fails when the promotion is wrong', () => {
     after: Record<string, unknown>,
     boundary: Record<string, unknown>,
   ): { ok: boolean; output: string } {
-    const dir = mkdtempSync(join(tmpdir(), 'verify-211-217-'))
+    const dir = mkdtempSync(join(tmpdir(), 'verify-211-218-'))
     try {
       const paths = { BEFORE_FILE: 'before', AFTER_FILE: 'after', BOUNDARY_FILE: 'boundary' }
       const env: NodeJS.ProcessEnv = { ...process.env }
@@ -443,6 +476,11 @@ describe('the verifier fails when the promotion is wrong', () => {
     ['the canonical currency guard is missing from the view', { canonical_view_uses_canonical: false }, 'canonical_view_uses_canonical'],
     // A missing constraint comes back as SQL null, not as a wrong string.
     ['the once-per-action key was widened away', { once_per_action_key: null }, 'once_per_action_key'],
+    // Contract 218: ADR 0008 rejected broad user-owned or scoring tables, so a
+    // publication that grew a second one is the finding.
+    ['public.matches never reached the realtime publication', { matches_published: false }, 'matches_published'],
+    ['the publication grew a table ADR 0008 rejected', { realtime_published_tables: 'public.matches,public.season_predictions' }, 'realtime_published_tables'],
+    ['replica identity was set to FULL, exposing the pre-update row', { matches_replica_identity: 'f' }, 'matches_replica_identity'],
   ]
 
   it.each(BOUNDARY_DEFECTS)('catches: %s', (_label, override, expectedKey) => {
@@ -458,7 +496,7 @@ describe('the verifier fails when the promotion is wrong', () => {
     ['provider polling cadence was touched', { poll_dials: { t1: [360, 10, 15, 60, 720] } }, 'poll_dials'],
     ['two cron jobs appeared instead of one', { cron_jobs: 13 }, 'cron_jobs'],
     ['no cron job appeared at all', { cron_jobs: 11 }, 'cron_jobs'],
-    ['the ledger stopped short of 217', { migration_count: 216 }, 'migration_count'],
+    ['the ledger stopped short of 218', { migration_count: 217 }, 'migration_count'],
     ['a publication gate opened during the promotion', { public_enabled: true }, 'public_enabled'],
   ]
 
