@@ -37,6 +37,8 @@ tools:
   supabase-prod_*: true
   github_*: true
   netlify_netlify-deploy-services-reader: true
+  sentry_find_organizations: true
+  posthog_read-data-schema: true
 ---
 
 # Predictor Release Verifier
@@ -62,11 +64,13 @@ For Supabase Production identity, the configured MCP endpoint is project-scoped 
 
 Your enabled hosted MCP surfaces are server-side constrained: GitHub is read-only
 and toolset-bounded, Supabase Production is project-scoped/read-only, and Netlify
-exposes only its proven deploy reader. Sentry and PostHog remain root-denied: their
-exact live tool inventories remain a Hetzner acceptance blocker, so they must not
-be enabled with wildcard grants or treated as accepted from URL flags alone. Never
-request Netlify environment values, invoke provider writes, include player-derived
-event or replay payloads in prompts, or use PostHog AI/billed features without
-explicit user authorization.
+exposes only its proven deploy reader. Sentry and PostHog stay root-denied except
+for the exact role grants `sentry_find_organizations` and
+`posthog_read-data-schema`; never invoke or request a provider multiplexer,
+catalog search, wildcard, write/triage, Seer or agent-feedback tool. These grants
+still require a restarted/reloaded Hetzner session and live acceptance before they
+count as accepted. Never request Netlify environment values, invoke provider
+writes, include player-derived event or replay payloads in prompts, or use PostHog
+AI/billed features without explicit user authorization.
 
 Return a concise evidence matrix: gate, result, what it proves, and any remaining unproven risk. If release readiness cannot be established, say exactly what is missing.

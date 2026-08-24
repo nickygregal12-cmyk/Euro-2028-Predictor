@@ -137,12 +137,15 @@ describe('MCP server configuration', () => {
     }
 
     const posthog = new URL(mcp.posthog!.url as string)
+    expect(mcp.posthog!.url).toBe(
+      'https://mcp.posthog.com/mcp?readonly=true&mode=tools&tools=read-data-schema',
+    )
     expect(posthog.origin + posthog.pathname).toBe('https://mcp.posthog.com/mcp')
     expect(posthog.searchParams.get('readonly')).toBe('true')
-    expect(posthog.searchParams.get('mode')).toBe('cli')
-    const features = posthog.searchParams.get('features')?.split(',') ?? []
-    expect(features).toEqual(['data_schema', 'events', 'insights', 'sql', 'web_analytics', 'error_tracking', 'replay', 'sdk_doctor', 'search'])
-    expect(features).not.toEqual(expect.arrayContaining(['ai_observability', 'replay_vision']))
+    expect(posthog.searchParams.get('mode')).toBe('tools')
+    expect(posthog.searchParams.getAll('tools')).toEqual(['read-data-schema'])
+    expect(posthog.searchParams.has('features')).toBe(false)
+    expect([...posthog.searchParams.keys()].sort()).toEqual(['mode', 'readonly', 'tools'])
   })
 
   it('denies all MCP prefixes at root and grants only bounded role surfaces', () => {
@@ -159,10 +162,29 @@ describe('MCP server configuration', () => {
     expect(releaseVerifier).toContain('supabase-prod_*: true')
     expect(releaseVerifier).toContain('netlify_netlify-deploy-services-reader: true')
     expect(releaseVerifier).not.toContain('netlify_*: true')
-    expect(releaseVerifier).not.toContain('sentry_*: true')
-    expect(releaseVerifier).not.toContain('posthog_*: true')
-    expect(releaseVerifier).not.toMatch(/^\s+sentry_\S*(?:update|create|delete|resolve|feedback)\S*:\s*true$/m)
-    expect(releaseVerifier).not.toMatch(/^\s+posthog_\S*agent[-_]feedback\S*:\s*true$/m)
+    expect(config.tools['sentry_*']).toBe(false)
+    expect(config.tools['posthog_*']).toBe(false)
+    const allAgentPolicies = [
+      'predictor-conductor',
+      'predictor-builder',
+      'predictor-critic',
+      'predictor-visual-qa',
+      'predictor-release-verifier',
+    ].map(agent).join('\n')
+    const providerGrants = [...allAgentPolicies.matchAll(
+      /^\s+((?:sentry|posthog)_\S+):\s*true$/gm,
+    )].map((match) => match[1])
+    expect(providerGrants).toEqual([
+      'sentry_find_organizations',
+      'posthog_read-data-schema',
+    ])
+    expect(releaseVerifier).toContain('sentry_find_organizations: true')
+    expect(releaseVerifier).toContain('posthog_read-data-schema: true')
+    expect(allAgentPolicies).not.toMatch(/^\s+sentry_\*:\s*true$/m)
+    expect(allAgentPolicies).not.toMatch(/^\s+posthog_\*:\s*true$/m)
+    expect(allAgentPolicies).not.toMatch(/^\s+sentry_\S*(?:search|execute|update|triage|seer)\S*:\s*true$/mi)
+    expect(allAgentPolicies).not.toMatch(/^\s+posthog_exec:\s*true$/m)
+    expect(allAgentPolicies).not.toMatch(/^\s+posthog_\S*agent[-_]feedback\S*:\s*true$/mi)
     expect(agent('predictor-critic')).not.toMatch(/^\s+\S+_\*: true$/m)
   })
 

@@ -144,13 +144,22 @@ instruction to rotate credentials or fail over. Configured, authenticated and
 connected are separate facts; do not claim connection until the live probe says
 so.
 
-The OpenCode CLI currently proves Sentry/PostHog server initialization only; it
-does not expose a role-scoped effective tool inventory without entering a model
-session. Until the Hetzner acceptance pass captures the exact live inventories
-and mechanically classifies safe read tools, Release Verifier keeps both prefixes
-root-denied and has no role grant for either service. URL read-only flags and tool
-annotations are not sufficient evidence, wildcard grants are forbidden, and this
-open inventory/allowlist step prevents Stage 0 acceptance.
+The Hetzner read-only inventory proved that Sentry exposes the harmless
+`sentry_find_organizations` alongside dangerous `sentry_update_issue`,
+`sentry_execute_sentry_tool` and other write/Seer surfaces; the harmless
+organization read succeeded. PostHog's current CLI
+surface is the unsafe `posthog_exec` multiplexer, whose nested catalog includes
+write-shaped `agent-feedback`. Both provider prefixes therefore remain root-denied.
+Release Verifier overrides only `sentry_find_organizations` and the expected
+tools-mode name `posthog_read-data-schema`. PostHog is server-constrained with
+`readonly=true`, `mode=tools` and exact `tools=read-data-schema`; it has no broad
+`features` parameter. Wildcard, catalog, multiplexer, write/triage, Seer and
+agent-feedback grants remain forbidden.
+
+This repository policy is not live acceptance. After merge, restart/reload
+OpenCode on Hetzner and run `stage0-live-acceptance.sh --live` to prove the exact
+role-visible tools, the harmless reads and write-tool absence under the reloaded
+configuration. Until that pass succeeds, Stage 0 remains unaccepted.
 
 ## Ox Alpha
 
