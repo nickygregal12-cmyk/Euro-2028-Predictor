@@ -1,0 +1,26 @@
+{
+  "//": [
+    "Non-secret canonical Netlify project identifiers for read-only release verification.",
+    "Resolve current deploy evidence from siteId at verification time; deploy IDs are intentionally not pinned here."
+  ],
+  "production": {
+    "hub": {
+      "name": "predictorhub",
+      "siteId": "88356cfb-6815-44ed-9ff6-83100425fac4",
+      "variant": "hub",
+      "primaryUrl": "https://predictorhub.netlify.app"
+    },
+    "euro": {
+      "name": "euro28predictor",
+      "siteId": "c69da01a-4650-43db-a1d2-b78b7f8e198a",
+      "variant": "euro",
+      "primaryUrl": "https://euro28predictor.com"
+    }
+  },
+  "retired": {
+    "euroDevelopment": {
+      "name": "euro28-predictor-dev",
+      "siteId": "e729912b-7fd7-4bd4-b7c1-d1ad7401f6fd"
+    }
+  }
+}
