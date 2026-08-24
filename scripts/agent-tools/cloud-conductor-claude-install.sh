@@ -4,6 +4,7 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repo_root"
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
+export DISABLE_AUTOUPDATER=1
 
 if [ "$(id -u)" -eq 0 ]; then
   printf 'Run this as the normal development user, not root.\n' >&2
@@ -40,6 +41,10 @@ chmod 700 "$installer"
 printf 'Installing repository-supported Claude Code %s...\n' "$version"
 bash "$installer" "$version"
 
+# Claude's native installer can auto-update unless this user setting is present.
+# Merge rather than replace so operator-owned Claude settings survive reruns.
+node scripts/agent-tools/configure-claude-settings.mjs "${CLAUDE_CONFIG_DIR:-${HOME}/.claude}/settings.json"
+
 export PATH="${HOME}/.local/bin:/usr/local/bin:${PATH}"
 if ! command -v claude >/dev/null 2>&1; then
   printf 'Claude Code installed but `claude` is not on PATH. Add ~/.local/bin to PATH and retry.\n' >&2
@@ -55,6 +60,8 @@ fi
 cat <<EOF
 
 Claude Code ${version} is installed.
+Automatic client updates are disabled in the merged user settings. Reviewed
+updates remain available by raising the central pin and rerunning this installer.
 
 Authenticate it with your existing Claude.ai Pro/Max subscription:
   claude

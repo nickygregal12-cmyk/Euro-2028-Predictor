@@ -64,14 +64,17 @@ describe('Predictor developer operating system', () => {
         'agentMail',
         'astGrep',
         'beads',
+        'chromeDevtoolsMcp',
         'claudeCode',
         'context7',
         'dependencyCruiser',
         'graphify',
         'lostPixel',
         'mergiraf',
+        'netlifyMcp',
         'omniroute',
         'opencode',
+        'playwrightMcp',
         'reactScan',
         'repomix',
         'serena',
@@ -132,6 +135,10 @@ describe('Predictor developer operating system', () => {
     expect(tools.opencode?.mode).toBe('bootstrap-cloud-agent')
     expect(tools.claudeCode?.package).toBe('@anthropic-ai/claude-code')
     expect(tools.claudeCode?.mode).toBe('optional-subscription-agent')
+    expect(tools.playwrightMcp?.package).toBe('@playwright/mcp')
+    expect(tools.chromeDevtoolsMcp?.package).toBe('chrome-devtools-mcp')
+    expect(tools.netlifyMcp?.package).toBe('@netlify/mcp')
+    expect(tools.netlifyMcp?.version).toBe('1.15.1')
     expect(tools.agentMail?.port).toBe(8765)
     expect(tools.beads?.repository).toBe('gastownhall/beads')
   })
@@ -231,6 +238,7 @@ describe('Predictor developer operating system', () => {
 
   it('bounds Serena to the pinned project schema and disables persistent memories', () => {
     const project = read('.serena/project.yml')
+    const toolingSmoke = read('.github/workflows/agent-tooling-smoke.yml')
     expect(project).toContain('languages:')
     expect(project).toContain('- typescript')
     expect(project).not.toContain('language_servers:')
@@ -240,6 +248,9 @@ describe('Predictor developer operating system', () => {
     expect(project).toContain('docs/quality/evidence/**')
     expect(project).toContain('ignored_memory_patterns:')
     expect(project).toContain('- ".*"')
+    expect(project).toContain('activation_command_timeout: 180.0')
+    expect(toolingSmoke).toContain('serena project health-check .')
+    expect(toolingSmoke).toContain('git diff --exit-code -- .serena/project.yml')
   })
 
   it('keeps Beads local, telemetry-disabled and Agent Mail explicitly opt-in', () => {

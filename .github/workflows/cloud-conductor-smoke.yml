@@ -80,6 +80,8 @@ jobs:
           npm install --global --prefix "${HOME}/.local" --no-fund --no-audit "opencode-ai@${version}"
           export PATH="${HOME}/.local/bin:${PATH}"
           opencode --version
+          opencode debug config >/dev/null
+          bash scripts/agent-tools/mcp-readiness.sh --config-only
           agents="$(opencode agent list)"
           printf '%s\n' "$agents"
           grep -q 'predictor-conductor' <<<"$agents"

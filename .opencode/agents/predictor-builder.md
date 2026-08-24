@@ -38,6 +38,11 @@ permission:
     "gh pr create*": ask
   webfetch: allow
   websearch: allow
+tools:
+  serena_*: true
+  context7_*: true
+  repomix_*: true
+  supabase-dev_*: true
 ---
 
 # Predictor Builder
@@ -63,6 +68,9 @@ Implementation rules:
 - Never mutate Production, Supabase Production, Netlify Production, paid provider state or real player data without explicit user authority for that exact action.
 - Prefer executable tests over explanatory documentation when preventing a regression.
 - Do not call paid Claude/OpenRouter models on your own. The official Claude Code subscription lane is an optional escalation owned by the Conductor/user.
+- `supabase-dev_*` is the only potentially mutating hosted MCP surface available
+  to this role. Its availability is not permission to mutate: obey the exact
+  task's Development/Production/provider authority and review every call.
 
 Run the relevant repository-native tests/checks. Do not claim a check passed unless it actually ran successfully. If a check is unavailable, say so.
 

@@ -14,6 +14,8 @@ on:
       - '.devcontainer/**'
       - '.graphifyignore'
       - '.mcp.json'
+      - 'opencode.json'
+      - '.opencode/agents/**'
       - '.serena/**'
       - '.dependency-cruiser.cjs'
       - 'repomix.config.json'
@@ -45,6 +47,8 @@ on:
       - 'renovate.json'
       - '.devcontainer/**'
       - '.mcp.json'
+      - 'opencode.json'
+      - '.opencode/agents/**'
       - '.serena/**'
       - '.dependency-cruiser.cjs'
       - 'repomix.config.json'
@@ -156,9 +160,11 @@ jobs:
           serena print-system-prompt . --context=ide --only-instructions >/dev/null
           serena project is_ignored_path docs/history/README.md
           timeout 180s serena project health-check .
+          git diff --exit-code -- .serena/project.yml
           specify --help >/dev/null
           ast-grep --version
           bd version
+          bash scripts/agent-tools/mcp-readiness.sh --config-only
 
       - name: Exercise live Graphify task routing
         shell: bash

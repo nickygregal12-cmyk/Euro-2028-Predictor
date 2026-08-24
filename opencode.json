@@ -2,5 +2,92 @@
   "$schema": "https://opencode.ai/config.json",
   "default_agent": "predictor-conductor",
   "share": "disabled",
-  "autoupdate": false
+  "autoupdate": false,
+  "mcp": {
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@0.0.79"],
+      "enabled": true
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["npx", "-y", "chrome-devtools-mcp@1.7.0", "--usageStatistics=false", "--performanceCrux=false"],
+      "enabled": true
+    },
+    "serena": {
+      "type": "local",
+      "command": ["serena", "start-mcp-server", "--project-from-cwd", "--context=ide", "--open-web-dashboard=false"],
+      "enabled": true
+    },
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp@2.0.2"],
+      "enabled": true
+    },
+    "repomix": {
+      "type": "local",
+      "command": ["npx", "-y", "repomix@1.17.0", "--mcp"],
+      "enabled": true
+    },
+    "supabase-dev": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=iouzoutneyjpugbbtdem&features=database,debugging,development,functions,docs",
+      "oauth": {},
+      "enabled": true,
+      "timeout": 10000
+    },
+    "supabase-prod": {
+      "type": "remote",
+      "url": "https://mcp.supabase.com/mcp?project_ref=vkfnsqdyhvtwyqkisxhk&read_only=true&features=database,debugging,docs",
+      "oauth": {},
+      "enabled": true,
+      "timeout": 10000
+    },
+    "netlify": {
+      "type": "remote",
+      "url": "https://netlify-mcp.netlify.app/mcp",
+      "oauth": {},
+      "enabled": true,
+      "timeout": 10000
+    },
+    "github": {
+      "type": "remote",
+      "url": "https://api.githubcopilot.com/mcp/readonly",
+      "headers": {
+        "Authorization": "Bearer {env:GITHUB_MCP_TOKEN}",
+        "X-MCP-Toolsets": "context,repos,pull_requests,issues,actions,code_security",
+        "X-MCP-Readonly": "true"
+      },
+      "oauth": false,
+      "enabled": true,
+      "timeout": 10000
+    },
+    "sentry": {
+      "type": "remote",
+      "url": "https://mcp.sentry.dev/mcp?skills=inspect,triage&disable-skills=seer",
+      "oauth": {},
+      "enabled": true,
+      "timeout": 10000
+    },
+    "posthog": {
+      "type": "remote",
+      "url": "https://mcp.posthog.com/mcp?readonly=true&mode=cli&features=data_schema,events,insights,sql,web_analytics,error_tracking,replay,sdk_doctor,search",
+      "oauth": {},
+      "enabled": true,
+      "timeout": 10000
+    }
+  },
+  "tools": {
+    "playwright_*": false,
+    "chrome-devtools_*": false,
+    "serena_*": false,
+    "context7_*": false,
+    "repomix_*": false,
+    "supabase-dev_*": false,
+    "supabase-prod_*": false,
+    "netlify_*": false,
+    "github_*": false,
+    "sentry_*": false,
+    "posthog_*": false
+  }
 }

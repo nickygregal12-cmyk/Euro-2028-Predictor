@@ -24,6 +24,9 @@ permission:
     "npx playwright*": allow
   webfetch: allow
   websearch: allow
+tools:
+  playwright_*: true
+  chrome-devtools_*: true
 ---
 
 # Predictor Visual QA
@@ -39,6 +42,9 @@ Before testing:
 Use the repository's Playwright/browser tooling when it materially proves the task. Cover the smallest representative set of desktop and mobile viewports needed to catch responsive regressions. Check interaction, loading/empty/error/locked/live/settled states where relevant, keyboard/accessibility behaviour, console errors, failed network requests and visual-contract evidence.
 
 Do not point browser automation at Production by default. Do not trigger paid provider usage merely because a page can do so. Do not accept a screenshot as evidence that a journey works; interaction and authoritative state must also be proven where the task requires them.
+
+Only the Playwright and Chrome DevTools MCP prefixes are available to this role.
+No hosted service MCP is available.
 
 Return:
 

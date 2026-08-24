@@ -1,4 +1,6 @@
-import { readFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -109,6 +111,9 @@ describe('persistent private cloud Conductor', () => {
     expect(installer).not.toContain('tailscale funnel')
     expect(installer).not.toContain('--hostname 0.0.0.0')
     expect(installer).not.toContain('sk-or-')
+    expect(installer).toContain('gh auth token')
+    expect(installer).toContain('merge-cloud-env.mjs')
+    expect(installer).toContain('Environment=DISABLE_AUTOUPDATER=1')
 
     expect(doctor).toContain('Default web agent')
     expect(doctor).toContain('Local auth boundary')
@@ -118,6 +123,57 @@ describe('persistent private cloud Conductor', () => {
     expect(doctor).toContain('Claude login verification')
     expect(doctor).toContain('Ox live review bridge')
     expect(doctor).toContain('--live')
+    expect(doctor).toContain('--mcp')
+    expect(doctor).toContain('MCP capability state')
     expect(doctor).not.toContain('claude auth status')
+  })
+
+  it('preserves unknown protected env keys while rotating managed values', () => {
+    const directory = mkdtempSync(resolve(tmpdir(), 'predictor-cloud-env-'))
+    const target = resolve(directory, 'opencode.env')
+    writeFileSync(target, 'UNKNOWN_PROTECTED=keep\nOPENROUTER_API_KEY=old\nOPENROUTER_API_KEY=stale-duplicate\nGITHUB_MCP_TOKEN=preserved\n', { mode: 0o600 })
+    const childEnvironment: NodeJS.ProcessEnv = {
+      ...process.env,
+      OPENROUTER_API_KEY: 'new',
+      OPENCODE_SERVER_USERNAME: 'predictor',
+    }
+    delete childEnvironment.GITHUB_MCP_TOKEN
+    execFileSync('node', ['scripts/agent-tools/merge-cloud-env.mjs', target], {
+      cwd: root,
+      env: childEnvironment,
+    })
+    const result = readFileSync(target, 'utf8')
+    expect(result).toContain('UNKNOWN_PROTECTED=keep')
+    expect(result).toContain('OPENROUTER_API_KEY=new')
+    expect(result).not.toContain('OPENROUTER_API_KEY=old')
+    expect(result).not.toContain('stale-duplicate')
+    expect(result).toContain('GITHUB_MCP_TOKEN=preserved')
+    expect(result.match(/^OPENROUTER_API_KEY=/gm)).toHaveLength(1)
+    expect(statSync(target).mode & 0o777).toBe(0o600)
+  })
+
+  it('merges the Claude updater guard without replacing user settings', () => {
+    const directory = mkdtempSync(resolve(tmpdir(), 'predictor-claude-settings-'))
+    const target = resolve(directory, 'settings.json')
+    writeFileSync(target, JSON.stringify({ theme: 'dark', env: { KEEP: 'yes' } }))
+    execFileSync('node', ['scripts/agent-tools/configure-claude-settings.mjs', target], { cwd: root })
+    expect(JSON.parse(readFileSync(target, 'utf8'))).toEqual({
+      theme: 'dark', env: { KEEP: 'yes', DISABLE_AUTOUPDATER: '1' },
+    })
+    expect(read('scripts/agent-tools/claude-review.sh')).toContain('export DISABLE_AUTOUPDATER=1')
+    expect(read('scripts/agent-tools/cloud-conductor-claude-install.sh')).toContain('export DISABLE_AUTOUPDATER=1')
+  })
+
+  it('keeps MCP smoke initialization-only and classifies provider availability', () => {
+    const readiness = read('scripts/agent-tools/mcp-readiness.sh')
+    const fallback = read('scripts/agent-tools/netlify-mcp-fallback.sh')
+    expect(readiness).toContain('opencode debug config')
+    expect(readiness).toContain('opencode mcp list')
+    expect(readiness).toContain('initialize/tools-list only')
+    expect(readiness).toContain('UNAVAILABLE')
+    expect(readiness).not.toMatch(/mcp\s+run|tools\/call/)
+    expect(fallback).toContain('No automatic failover')
+    expect(fallback).toContain('netlify-deploy-services-reader')
+    expect(fallback).toContain("require('./config/agent-tools.json').netlifyMcp")
   })
 })
