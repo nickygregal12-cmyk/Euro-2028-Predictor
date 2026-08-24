@@ -1,0 +1,195 @@
+name: Operator announcement
+
+# Publish or withdraw the short service message players see at the top of the
+# application.
+#
+# WHY A DISPATCH AND NOT AN ADMIN SCREEN. The message is held in the repository
+# rather than the database, because a banner in the database cannot be shown
+# when the database is down -- which is the outage most worth announcing. Once
+# the record lives here, the operator control is a job that edits one file, and
+# this repository already operates that way: the rollout lanes and the Netlify
+# publish are dispatches too. Git history becomes the audit trail for free.
+#
+# The cost is stated rather than hidden: publishing takes a build and a deploy,
+# so this is a service message, not a live ticker.
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Publish a message, or withdraw the current one'
+        required: true
+        type: choice
+        options:
+          - publish
+          - withdraw
+        default: publish
+      message:
+        description: 'What players should read (ignored when withdrawing)'
+        required: false
+        type: string
+      level:
+        description: 'How loudly to draw it'
+        required: false
+        type: choice
+        options:
+          - info
+          - warning
+        default: info
+      hours:
+        description: 'Hours until it removes itself (1-168)'
+        required: false
+        type: string
+        default: '24'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: operator-announcement
+  cancel-in-progress: false
+
+jobs:
+  announce:
+    name: Write the announcement record
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.repository == 'nickygregal12-cmyk/Euro-2028-Predictor'
+    permissions:
+      # Writes one file to the default branch and makes no network request of
+      # its own beyond the push.
+      contents: write
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Compose the record
+        id: compose
+        shell: bash
+        env:
+          ACTION: ${{ inputs.action }}
+          MESSAGE: ${{ inputs.message }}
+          LEVEL: ${{ inputs.level }}
+          HOURS: ${{ inputs.hours }}
+        run: |
+          set -euo pipefail
+
+          # Composed by node, never by string-building JSON in shell: the
+          # message is operator free text and may contain quotes, newlines and
+          # backslashes. JSON.stringify is the only thing here that gets that
+          # right every time.
+          node --input-type=module -e "
+            import { writeFileSync } from 'node:fs'
+
+            const action = process.env.ACTION
+            const empty = { message: null, level: null, publishedAt: null, expiresAt: null }
+
+            if (action === 'withdraw') {
+              writeFileSync('config/operator-announcement.json', JSON.stringify(empty, null, 2) + '\n')
+              process.stdout.write('withdrawn')
+              process.exit(0)
+            }
+
+            const message = (process.env.MESSAGE ?? '').trim()
+            if (message === '') {
+              console.error('STOP: publishing needs a message.')
+              process.exit(1)
+            }
+            // The same cap the reader enforces. Refusing here means the
+            // operator finds out now, rather than by the banner silently not
+            // appearing after a deploy.
+            if (message.length > 280) {
+              console.error(\`STOP: message is \${message.length} characters; the limit is 280.\`)
+              process.exit(1)
+            }
+
+            const hours = Number(process.env.HOURS)
+            if (!Number.isInteger(hours) || hours < 1 || hours > 168) {
+              console.error('STOP: hours must be a whole number between 1 and 168.')
+              process.exit(1)
+            }
+
+            const now = new Date()
+            writeFileSync(
+              'config/operator-announcement.json',
+              JSON.stringify(
+                {
+                  message,
+                  level: process.env.LEVEL === 'warning' ? 'warning' : 'info',
+                  publishedAt: now.toISOString(),
+                  expiresAt: new Date(now.getTime() + hours * 3600_000).toISOString(),
+                },
+                null,
+                2,
+              ) + '\n',
+            )
+            process.stdout.write('published')
+          "
+
+      - name: Commit it
+        shell: bash
+        env:
+          ACTION: ${{ inputs.action }}
+        run: |
+          set -euo pipefail
+
+          # ONE FILE, AND THE GUARD IS NOT A FORMALITY. A job with write access
+          # to the default branch must be unable to carry anything else along,
+          # whatever else happened to land in the workspace.
+          if [ -n "$(git status --porcelain -- . ':!config/operator-announcement.json')" ]; then
+            echo 'STOP: something other than the announcement record is modified; refusing to push.' >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+
+          if git diff --quiet -- config/operator-announcement.json; then
+            echo 'The record already says this. Nothing to commit.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/operator-announcement.json
+          git commit -m "Operator announcement: ${ACTION}"
+
+          # main moves; this must not fail because something merged while the
+          # operator was typing. Rebase keeps the record on top and touches
+          # nothing else, because nothing else is committed here.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing onto main and retrying." >&2
+            git pull --rebase origin main
+          done
+
+          echo 'STOP: could not write the announcement after three attempts.' >&2
+          exit 1
+
+      - name: Say what it now reads
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '## Operator announcement'
+            echo
+            echo 'The committed record now reads:'
+            echo
+            echo '```json'
+            cat config/operator-announcement.json
+            echo '```'
+            echo
+            echo 'It reaches players on the next deploy of the default branch.'
+          } >> "$GITHUB_STEP_SUMMARY"
