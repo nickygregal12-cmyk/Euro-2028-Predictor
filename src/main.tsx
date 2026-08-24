@@ -16,11 +16,14 @@ import { initProductAnalytics } from './services/analytics/productAnalytics'
 
 installGlobalErrorCapture()
 
-// Fire-and-forget, and deliberately NOT awaited before the first render.
-// With no key configured this returns immediately and never requests the
-// PostHog chunk; with one, the events recorded during startup queue behind
-// it. Either way a player waits for nothing -- analytics that can delay the
-// application is worse than no analytics.
+// Fire-and-forget, and deliberately NOT awaited before the first render:
+// analytics that can delay the application is worse than no analytics.
+//
+// With no key configured this resolves false immediately and never requests the
+// PostHog chunk. With one, an event recorded before initialisation finishes
+// waits for it rather than being dropped -- `captureProductEvent` joins the
+// promise this call memoises. That sentence used to be here as a claim while
+// the transport did the opposite, which review caught.
 void initProductAnalytics()
 
 // Dev auto-login runs before the first render (docs/auth-plan.md §1). In a

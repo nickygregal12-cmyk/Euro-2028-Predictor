@@ -28,7 +28,7 @@ import { captureProductEvent } from './productAnalytics'
  * Every event this product emits, with exactly the properties it may carry.
  *
  * Adding a moment means adding a line here. That is the point: the vocabulary
- * is reviewable in one place, and `docs/product/first-party-events.md` explains
+ * is reviewable in one place, and `specs/first-party-product-events.md` explains
  * what each one is for.
  */
 type ProductEventProperties = {

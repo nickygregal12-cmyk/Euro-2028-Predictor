@@ -110,6 +110,64 @@ describe('startup', () => {
   })
 })
 
+describe('an event recorded during startup is not lost', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.resetModules()
+    vi.doUnmock('posthog-js')
+  })
+
+  it('waits for an initialisation already under way instead of dropping', async () => {
+    // THE STARTUP WINDOW. `initProductAnalytics()` is fire-and-forget and
+    // resolves asynchronously because it imports a chunk. An invite landing can
+    // easily fire inside that window, and refusing there would silently
+    // undercount exactly the arrivals this stage exists to count.
+    vi.resetModules()
+    vi.stubEnv('VITE_POSTHOG_KEY', 'phc_test')
+
+    const captured: string[] = []
+    let releaseImport: () => void = () => {}
+    const importBlocked = new Promise<void>((resolve) => {
+      releaseImport = resolve
+    })
+
+    vi.doMock('posthog-js', async () => {
+      await importBlocked
+      return { default: { init: () => {}, capture: (event: string) => captured.push(event) } }
+    })
+
+    const { initProductAnalytics, captureProductEvent } = await import(
+      '../../src/services/analytics/productAnalytics'
+    )
+
+    // Start init, then record BEFORE it can finish.
+    const initialising = initProductAnalytics()
+    const duringStartup = captureProductEvent('entry_submitted', {})
+
+    // Nothing has been captured yet -- the client does not exist.
+    expect(captured).toEqual([])
+
+    releaseImport()
+    await initialising
+    await expect(duringStartup).resolves.toBe(true)
+    expect(captured).toEqual(['entry_submitted'])
+  })
+
+  it('still refuses when nobody ever started an initialisation', async () => {
+    // Waiting must not become "initialise on first event". Analytics stays
+    // opt-in: with no `initProductAnalytics()` call there is no promise to join.
+    vi.resetModules()
+    vi.stubEnv('VITE_POSTHOG_KEY', 'phc_test')
+    vi.doMock('posthog-js', () => ({
+      default: { init: () => {}, capture: () => { throw new Error('must not capture') } },
+    }))
+    const { captureProductEvent } = await import(
+      '../../src/services/analytics/productAnalytics'
+    )
+    await expect(captureProductEvent('entry_submitted', {})).resolves.toBe(false)
+  })
+})
+
 describe('it stays silent when unconfigured', () => {
   afterEach(() => {
     vi.unstubAllEnvs()
