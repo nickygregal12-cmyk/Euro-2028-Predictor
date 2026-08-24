@@ -1,6 +1,7 @@
 import type { PlayerPreferences } from '../../../services/supabase/playerPreferencesModel'
 import type { SeasonHistoryPage } from '../../../services/supabase/seasonHistoryModel'
 import type { PublishedWeeklySeason } from '../../../services/supabase/weeklyCatalogueModel'
+import type { PushNotificationState } from '../../../services/pushNotifications'
 
 /**
  * WHAT THE REAL APPLICATION HANDS vNEXT ACCOUNT.
@@ -95,6 +96,7 @@ export type AccountSource = {
   readonly history: HistoryRead
   readonly catalogue: CatalogueRead
   readonly settings: SettingsRead
+  readonly pushNotifications: PushNotificationState | { readonly kind: 'unavailable' }
   /**
    * The deployment's configured administrator address as a ready `mailto:`, or
    * `null` where none is configured or the configured one is not an address.

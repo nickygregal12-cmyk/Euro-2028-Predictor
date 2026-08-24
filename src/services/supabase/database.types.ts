@@ -2520,6 +2520,8 @@ export type Database = {
         Row: {
           cadence_minutes: number
           created_at: string
+          deadline_cadence_minutes: number
+          deadline_lead_minutes: number
           enabled: boolean
           id: string
           last_dispatched_at: string | null
@@ -2534,6 +2536,8 @@ export type Database = {
         Insert: {
           cadence_minutes?: number
           created_at?: string
+          deadline_cadence_minutes?: number
+          deadline_lead_minutes?: number
           enabled?: boolean
           id?: string
           last_dispatched_at?: string | null
@@ -2548,6 +2552,8 @@ export type Database = {
         Update: {
           cadence_minutes?: number
           created_at?: string
+          deadline_cadence_minutes?: number
+          deadline_lead_minutes?: number
           enabled?: boolean
           id?: string
           last_dispatched_at?: string | null
@@ -2568,6 +2574,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_seen_at: string
+          p256dh: string
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_seen_at?: string
+          p256dh: string
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_seen_at?: string
+          p256dh?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       rank_history: {
         Row: {
@@ -2635,6 +2671,7 @@ export type Database = {
         Row: {
           action_key: string
           attempts: number
+          channel: string
           created_at: string
           deadline_at: string
           dry_run: boolean
@@ -2653,6 +2690,7 @@ export type Database = {
         Insert: {
           action_key: string
           attempts?: number
+          channel?: string
           created_at?: string
           deadline_at: string
           dry_run?: boolean
@@ -2671,6 +2709,7 @@ export type Database = {
         Update: {
           action_key?: string
           attempts?: number
+          channel?: string
           created_at?: string
           deadline_at?: string
           dry_run?: boolean
@@ -3809,6 +3848,7 @@ export type Database = {
         Returns: {
           action_key: string
           attempts: number
+          channel: string
           deadline_at: string
           dry_run: boolean
           email: string
@@ -3901,6 +3941,7 @@ export type Database = {
       dismiss_action: { Args: { p_action_key: string }; Returns: Json }
       dispatch_ai_odds_polls: { Args: { p_force?: boolean }; Returns: Json }
       dispatch_due_provider_polls: { Args: { p_now?: string }; Returns: Json }
+      dispatch_due_reminders: { Args: { p_now?: string }; Returns: Json }
       enforce_rate_limit: {
         Args: { p_action: string; p_max_per_min: number }
         Returns: undefined
@@ -4235,6 +4276,7 @@ export type Database = {
         Args: { p_dry_run?: boolean; p_lead?: string }
         Returns: Json
       }
+      prune_push_subscription: { Args: { p_endpoint: string }; Returns: Json }
       reclaim_stalled_reminders: {
         Args: { p_stale_after?: string }
         Returns: Json
@@ -4271,6 +4313,18 @@ export type Database = {
           p_succeeded: boolean
         }
         Returns: string
+      }
+      record_reminder_dispatch_run: {
+        Args: {
+          p_claimed?: number
+          p_delivered?: number
+          p_detail?: string
+          p_outcome: string
+          p_refused?: number
+          p_run_id: string
+          p_skipped?: number
+        }
+        Returns: Json
       }
       record_reminder_result: {
         Args: {
@@ -4324,6 +4378,10 @@ export type Database = {
           p_window_id: string
         }
         Returns: Json
+      }
+      save_push_subscription: {
+        Args: { p_auth: string; p_endpoint: string; p_p256dh: string }
+        Returns: undefined
       }
       save_season_prediction: {
         Args: {

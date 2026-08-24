@@ -167,6 +167,8 @@ export {
   accountScenarios,
 } from './account/scenarios'
 export type { AccountScenarioName } from './account/scenarios'
+export { accountPushNotificationStates } from './account/pushNotifications'
+export type { AccountPushNotificationScenario } from './account/pushNotifications'
 
 /**
  * Stage 13's Games hub worlds. The binding world here is `leftAndUncertain`: a
