@@ -63,12 +63,13 @@ describe('persistent cloud browser runtime', () => {
     expect(doctor).toContain("missing 'Browser runtime'")
   })
 
-  it('keeps all browser bootstrap shell entrypoints syntactically valid', () => {
+  it('keeps all Stage 0 cloud shell entrypoints syntactically valid', () => {
     for (const file of [
       'scripts/agent-tools/cloud-browser-install.sh',
       'scripts/agent-tools/cloud-conductor-install.sh',
       'scripts/agent-tools/cloud-conductor-doctor.sh',
       'scripts/agent-tools/mcp-readiness.sh',
+      'scripts/agent-tools/stage0-live-acceptance.sh',
     ]) {
       expect(() => execFileSync('bash', ['-n', file], { cwd: root })).not.toThrow()
     }
