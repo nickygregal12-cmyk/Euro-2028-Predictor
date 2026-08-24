@@ -30,7 +30,7 @@
  * the season leaderboard clears it easily and a private league usually will
  * not, which is the correct outcome for both.
  */
-export const MIN_FIELD_FOR_PERCENTILE = 25
+export const MIN_FIELD_FOR_PERCENTILE = 50
 
 /**
  * "Top 8%" for a player who is genuinely near the top, or null.
