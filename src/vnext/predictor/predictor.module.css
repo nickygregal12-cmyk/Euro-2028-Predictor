@@ -691,9 +691,23 @@
   opacity: 0.45;
 }
 
+/* TWO CHARACTERS, BECAUSE TWO IS ALL THE INPUT ACCEPTS.
+ *
+ * `maxLength={2}` and `MAX_SCORE = 99` in `ScoreEntry.tsx` mean a third digit
+ * can never be typed, so `3ch` reserved room for a value the control refuses.
+ * That is not free: it made the box 54px rather than the 44px floor, and on a
+ * 375px phone the row is `minmax(0, 1fr) auto` — every pixel the score box
+ * takes comes straight out of the club name beside it. It cost 10px, the name
+ * was left with 101px, and "Auchentoshan" needs 104px, so the name broke
+ * INSIDE the word: "Auchentosha / n Corinthians".
+ *
+ * `min-width` still holds the 44px tap target, so the control is the same size
+ * to a thumb; only the space it was reserving for an impossible digit is
+ * returned. `e2e/vnext-predictor.spec.ts` measures that no club name breaks
+ * mid-word at 375px. */
 .scoreInput {
-  width: 3ch;
-  min-width: 44px;
+  width: 2ch;
+  min-width: var(--vnext-tap-target);
   height: var(--vnext-tap-target);
   padding: 0;
   border: 0;

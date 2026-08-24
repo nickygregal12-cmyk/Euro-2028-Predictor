@@ -80,3 +80,125 @@
   scroll-snap-align: start;
   flex: 0 0 auto;
 }
+
+/* ---- a scroller that says it continues ---------------------------------
+ *
+ * THE PROBLEM THIS SOLVES IS VISIBLE ON HOME'S FIRST SCREEN. The matchweek
+ * strip is 890px of fixtures in a 375px column, so 515px of it is off-screen —
+ * and `overflow-x: auto` on its own ends that content by slicing the next
+ * fixture through the middle of a glyph at the container edge. A cut mid-letter
+ * is the same shape as a broken layout, and nothing else on the strip says the
+ * football continues past it.
+ *
+ * A FADE ON THE SIDE THAT HAS MORE, AND ONLY THERE. A permanent fade on both
+ * edges would dim the first fixture while the player is looking straight at it
+ * and would lie at both ends of a strip that is not scrollable at all. So the
+ * two edges are driven by the scroller's own position: the leading edge fades
+ * in over the first `--vnext-scroll-fade` of travel, the trailing edge fades
+ * out over the last.
+ *
+ * NO JAVASCRIPT, AND NO RE-RENDER. A scroll listener on a strip that moves
+ * under a thumb is a render per frame in React and a dependency for every
+ * surface that wants the affordance. `scroll()` makes the scroller its own
+ * timeline, so the browser drives the mask off the same scroll it is already
+ * compositing.
+ *
+ * IT IS NOT MOTION, SO REDUCED MOTION DOES NOT REMOVE IT. Nothing here travels
+ * on its own or on a clock: the mask has exactly one value per scroll offset,
+ * and a reduced-motion player scrolling the strip needs the "there is more"
+ * signal at least as much as anyone else. Taking it away would remove
+ * information rather than stillness.
+ *
+ * THE INITIAL VALUES ARE THE UNSCROLLABLE CASE. Where the content fits, the
+ * timeline is inactive and neither animation applies, so both custom properties
+ * hold their initial `0` and the mask is fully opaque — a short strip gets no
+ * fade at all rather than a permanent one on the right. That is why the trailing
+ * keyframes run 1 → 0 rather than 0 → 1.
+ *
+ * WHERE `scroll()` IS NOT SUPPORTED the whole block is skipped and the scroller
+ * behaves exactly as it did before this rule existed. */
+
+@property --vnext-scroll-edge-start {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@property --vnext-scroll-edge-end {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes vnextScrollEdgeStart {
+  from {
+    --vnext-scroll-edge-start: 0;
+  }
+
+  to {
+    --vnext-scroll-edge-start: 1;
+  }
+}
+
+@keyframes vnextScrollEdgeEnd {
+  from {
+    --vnext-scroll-edge-end: 1;
+  }
+
+  to {
+    --vnext-scroll-edge-end: 0;
+  }
+}
+
+.scrollEdges {
+  --vnext-scroll-fade: var(--vnext-space-6);
+}
+
+@supports (animation-timeline: scroll(self inline)) {
+  .scrollEdges {
+    /* PREFIXED FIRST, BECAUSE THE TWO FEATURES DID NOT SHIP TOGETHER. Chromium
+     * has driven animations from a `scroll()` timeline since 115 but only
+     * accepted unprefixed `mask-image` from 120, so 115 through 119 pass the
+     * `@supports` test above and would then ignore the mask — the affordance
+     * silently absent on the one engine the gate just admitted. The repository
+     * already pairs the two spellings in `design-system/Masthead.module.css`;
+     * this follows it. */
+    -webkit-mask-image: linear-gradient(
+      to right,
+      rgb(0 0 0 / 0%) 0,
+      rgb(0 0 0 / 100%) calc(var(--vnext-scroll-edge-start) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 100%) calc(100% - var(--vnext-scroll-edge-end) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 0%) 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      rgb(0 0 0 / 0%) 0,
+      rgb(0 0 0 / 100%) calc(var(--vnext-scroll-edge-start) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 100%) calc(100% - var(--vnext-scroll-edge-end) * var(--vnext-scroll-fade)),
+      rgb(0 0 0 / 0%) 100%
+    );
+    animation:
+      vnextScrollEdgeStart linear both,
+      vnextScrollEdgeEnd linear both;
+    animation-timeline: scroll(self inline);
+    /* WHERE THIS SCROLLER RESTS, WHICH IS NOT ALWAYS ZERO.
+     *
+     * A full-bleed rail pads its own inline edges and snaps its first item to
+     * that padding, so the position the player sees at rest is
+     * `scrollLeft: padding` rather than `scrollLeft: 0`. Measuring the leading
+     * fade from 0 then draws half a fade over a first item that has nothing
+     * hidden behind it — the affordance telling a small lie in the one state
+     * every player sees.
+     *
+     * IT IS A FALLBACK RATHER THAN A DECLARED DEFAULT ON PURPOSE. Declaring
+     * `--vnext-scroll-rest: 0px` here would put this rule and the scroller's own
+     * rule at equal specificity on the same element, leaving which one wins to
+     * the order the two CSS modules happen to be bundled in. A fallback cannot
+     * be beaten by bundle order: a rail that rests at 0 says nothing, and one
+     * that pads itself sets the property and is always the only declaration. */
+    animation-range:
+      var(--vnext-scroll-rest, 0px)
+        calc(var(--vnext-scroll-rest, 0px) + var(--vnext-scroll-fade)),
+      calc(100% - var(--vnext-scroll-fade)) 100%;
+  }
+}

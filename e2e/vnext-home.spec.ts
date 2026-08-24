@@ -595,3 +595,81 @@ test.describe('the rest of the week', () => {
     }
   })
 })
+
+/**
+ * THE SCORE BAR SAYS WHERE IT CONTINUES.
+ *
+ * The strip carries the whole matchweek in one row, which on a phone means most
+ * of it is off-screen: at 375 there are around 500px of fixtures to the right of
+ * the fold. `overflow-x: auto` on its own ends that content by slicing the next
+ * fixture through the middle of a glyph at the container edge, and a cut
+ * mid-letter is the same shape as a broken layout.
+ *
+ * WHAT IS ASSERTED IS THE STATE, NOT THE PIXELS. `surfaces.scrollEdges` drives
+ * two registered custom properties off the scroller's own scroll position, so
+ * the contract can be read back as two numbers rather than compared as an image:
+ * 0 means "this edge is flush", 1 means "this edge is faded because there is
+ * more football that way".
+ *
+ * THE UNSCROLLABLE CASE IS THE ONE WORTH GUARDING. A permanent fade would lie on
+ * a strip that fits — it would dim a real fixture to hint at content that does
+ * not exist — so a width where the whole matchweek fits must report no fade on
+ * either edge. That is why the initial values of both properties are 0 and the
+ * trailing keyframes run 1 to 0; getting that backwards is invisible to a
+ * screenshot of the scrolled state and obvious here.
+ */
+type EdgeReading = { overflow: number; start: number; end: number }
+
+/**
+ * The properties are driven by a scroll timeline, so they are resolved by the
+ * compositor rather than by the assignment: reading them in the same tick as the
+ * scroll returns the PREVIOUS frame's value. Two animation frames after the
+ * scroll is what makes the reading the one the player is looking at.
+ */
+async function readScoreBarEdges(
+  page: import('@playwright/test').Page,
+  scrollLeft: number,
+): Promise<EdgeReading> {
+  return page.evaluate(async (offset) => {
+    const scroller = document.querySelector('[data-vnext-zone="scores"] div')
+    if (!(scroller instanceof HTMLElement)) throw new Error('no score bar scroller')
+    scroller.scrollLeft = offset === -1 ? scroller.scrollWidth : offset
+    await new Promise((settle) => requestAnimationFrame(() => requestAnimationFrame(settle)))
+    const style = getComputedStyle(scroller)
+    return {
+      overflow: scroller.scrollWidth - scroller.clientWidth,
+      start: Number(style.getPropertyValue('--vnext-scroll-edge-start')),
+      end: Number(style.getPropertyValue('--vnext-scroll-edge-end')),
+    }
+  }, scrollLeft)
+}
+
+test.describe('the score bar says where it continues', () => {
+  test('fades only the edge that still has fixtures behind it, at 375', async ({ page }) => {
+    await open(page, 'live-matchday-375')
+
+    const atStart = await readScoreBarEdges(page, 0)
+    expect(atStart.overflow, 'the strip does not overflow at 375').toBeGreaterThan(100)
+    expect(atStart.start, 'the leading edge is faded while the strip is at its start').toBe(0)
+    expect(atStart.end, 'the trailing edge is flush while fixtures remain to the right').toBe(1)
+
+    // Scrolling past the fade distance lights the leading edge without putting
+    // out the trailing one: in the middle, both directions have more.
+    const midway = await readScoreBarEdges(page, 200)
+    expect(midway.start, 'the leading edge stays flush after scrolling away from it').toBe(1)
+    expect(midway.end, 'the trailing edge went out while fixtures remain to the right').toBe(1)
+
+    const atEnd = await readScoreBarEdges(page, -1)
+    expect(atEnd.end, 'the trailing edge still hints at fixtures that are not there').toBe(0)
+    expect(atEnd.start, 'the leading edge went flush at the end of the strip').toBe(1)
+  })
+
+  test('fades neither edge at a width where the whole matchweek fits', async ({ page }) => {
+    await open(page, 'live-matchday-1920')
+
+    const reading = await readScoreBarEdges(page, 0)
+    expect(reading.overflow, 'the strip overflows at 1920, so this proves nothing').toBe(0)
+    expect(reading.start, 'a strip that fits fades its leading edge').toBe(0)
+    expect(reading.end, 'a strip that fits fades its trailing edge').toBe(0)
+  })
+})

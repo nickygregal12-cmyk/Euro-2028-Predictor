@@ -453,3 +453,107 @@ test.describe('an empty answer is a sentence, not an empty table', () => {
     expect(reading.pageText).not.toContain('Nobody has entered')
   })
 })
+
+/**
+ * THE SCOPE CHOOSER IS THE SIZE OF ITS OPTIONS.
+ *
+ * As a block-level flex container it took the whole column, which is right on a
+ * phone — the options fill it and it scrolls — and wrong on a desktop, where
+ * three options occupied 335px of an 1112px pill and left 777px of empty sunken
+ * surface trailing off to the right. It also broke the column's edge: the
+ * standings below stop at the 960px measure `.tableRegion` sets, so the two
+ * stacked siblings disagreed by 152px on the right.
+ *
+ * BOTH HALVES ARE ASSERTED, because fixing one by breaking the other is the
+ * obvious wrong move: `width: fit-content` alone would let a long league name
+ * push the pill past the column and take the page sideways with it, and the
+ * phone case is the one where that actually happens.
+ */
+test.describe('the scope chooser is a control, not a column', () => {
+  test('hugs its options on a desktop instead of trailing off', async ({ page }) => {
+    await open(page, 'frame-season-desktop')
+
+    const reading = await page.evaluate(() => {
+      const scope = document.querySelector('nav[class*="scope"]') ?? document.querySelector('[class*="scope"]')
+      if (!(scope instanceof HTMLElement)) throw new Error('no scope chooser')
+      const options = [...scope.querySelectorAll('button')]
+      const furthest = options.at(-1)
+      if (!furthest) throw new Error('the scope chooser rendered no options')
+      const last = furthest.getBoundingClientRect()
+      const box = scope.getBoundingClientRect()
+      const column = scope.parentElement as HTMLElement
+      // THE CHOOSER IS NAMED, NOT FILTERED INTO THE COMPARISON. Picking the
+      // siblings to compare by a width threshold would drop the chooser itself
+      // the moment it became narrow — which is one of the ways this layout can
+      // go wrong — and an alignment assertion over the remaining one element is
+      // vacuously true. Both edges are read directly instead.
+      const panel = [...column.children].find((child) => child !== scope)
+      if (!(panel instanceof HTMLElement)) throw new Error('no panel under the chooser')
+      return {
+        options: options.length,
+        emptyToTheRight: Math.round(box.right - last.right),
+        columnWidth: Math.round(column.getBoundingClientRect().width),
+        pillWidth: Math.round(box.width),
+        chooserLeft: Math.round(box.left),
+        panelLeft: Math.round(panel.getBoundingClientRect().left),
+        panelWidth: Math.round(panel.getBoundingClientRect().width),
+      }
+    })
+
+    expect(reading.options, 'the desktop story has too few options to prove anything').toBeGreaterThan(1)
+    // The trailing gap is the padding and nothing else.
+    expect(
+      reading.emptyToTheRight,
+      `the chooser leaves ${reading.emptyToTheRight}px of empty control past its last option`,
+    ).toBeLessThanOrEqual(8)
+    expect(
+      reading.pillWidth,
+      'the chooser still spans the whole column',
+    ).toBeLessThan(reading.columnWidth)
+    // The panel is the thing that sets the measure, so it has to still be the
+    // wider of the two — otherwise "the chooser is narrower than its column"
+    // above could be satisfied by a collapsed panel rather than a hugging pill.
+    expect(
+      reading.panelWidth,
+      'the panel below the chooser is no wider than the chooser',
+    ).toBeGreaterThan(reading.pillWidth)
+    // What replaces the old right-edge agreement: the control and the panel
+    // below it start together, which is the alignment a reader actually sees.
+    expect(reading.chooserLeft, 'the chooser and the panel below it start apart').toBe(
+      reading.panelLeft,
+    )
+  })
+
+  test('still scrolls inside itself rather than widening a phone', async ({ page }) => {
+    await open(page, 'frame-several-leagues-phone')
+
+    const reading = await page.evaluate(() => {
+      const scope = document.querySelector('[class*="scope"]')
+      if (!(scope instanceof HTMLElement)) throw new Error('no scope chooser')
+      const main = document.querySelector('[data-vnext-shell] main') as HTMLElement
+      return {
+        pillWidth: Math.round(scope.getBoundingClientRect().width),
+        columnWidth: Math.round((scope.parentElement as HTMLElement).getBoundingClientRect().width),
+        hiddenInside: scope.scrollWidth - scope.clientWidth,
+        overflowX: getComputedStyle(scope).overflowX,
+        pageOverflow: main.scrollWidth - main.clientWidth,
+      }
+    })
+
+    expect(reading.pillWidth, 'the chooser is wider than its column').toBeLessThanOrEqual(
+      reading.columnWidth,
+    )
+    expect(reading.pageOverflow, 'the chooser took the page sideways').toBe(0)
+    // THE POINT OF THE PHONE CASE, AND IT HAS TO BE ASSERTED RATHER THAN JUST
+    // MEASURED. This story has more leagues than fit, so options ARE off the
+    // end of the pill. Without this, `overflow-x` could become `hidden` and the
+    // two assertions above would still pass while the options it clipped became
+    // unreachable — the page stays the right width either way. The reachable
+    // overflow is the contract; the page not moving is only half of it.
+    expect(
+      reading.hiddenInside,
+      'the chooser has nothing hidden inside it, so this story proves nothing',
+    ).toBeGreaterThan(0)
+    expect(reading.overflowX, 'the hidden options cannot be scrolled to').toBe('auto')
+  })
+})

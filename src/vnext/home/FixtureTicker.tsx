@@ -1,5 +1,6 @@
 import type { Match } from '../models/football'
 import { formatKickoffLabel } from '../foundations/format'
+import surfaces from '../foundations/surfaces.module.css'
 import typography from '../foundations/typography.module.css'
 import styles from './home.module.css'
 
@@ -39,7 +40,10 @@ export function FixtureTicker({ matches, now }: FixtureTickerProps) {
       aria-label="Matchweek scores"
       data-vnext-zone="scores"
     >
-      <div className={styles.tickerScroller} tabIndex={0}>
+      {/* The fade is `surfaces.scrollEdges` rather than a rule of this page's
+       * own, because "this scroller has more to the right" is the same sentence
+       * on every strip in the product and it should not be written twice. */}
+      <div className={`${styles.tickerScroller} ${surfaces.scrollEdges}`} tabIndex={0}>
         <ul className={styles.tickerList}>
           {matches.map((match) => {
             const inPlay = match.status === 'live' || match.status === 'halfTime'
