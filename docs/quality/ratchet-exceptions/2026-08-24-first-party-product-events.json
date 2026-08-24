@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "changes": [
+    {
+      "id": "bundle.totalJsKb",
+      "from": 506,
+      "to": 573,
+      "reason": "First-party product events give the existing PostHog wrapper its first callers, so posthog-js enters the module graph and is emitted as one vendor chunk for the first time. Measured in isolated worktrees: main builds 480.6 KB gz of JavaScript and the change builds 558.8 KB, a +78 KB increase that is entirely that chunk. The entry chunk every player downloads is unchanged at 85.7 KB, and the vendor chunk is reached through a dynamic import that is only awaited when VITE_POSTHOG_KEY is set, which no environment currently sets, so it is emitted and never fetched. Making the import lazier was tried first and does not help: Rollup emits a chunk for every dynamic-import specifier in the graph whether or not the call site survives dead-code elimination, so the file count rose and the total did not move. Removing the four call sites returns the build to 480.6 exactly.",
+      "evidence": "specs/first-party-product-events.md"
+    }
+  ]
+}

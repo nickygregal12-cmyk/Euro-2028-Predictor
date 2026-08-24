@@ -70,6 +70,30 @@ deliberately not awaited before the first render. With no key configured it
 returns immediately and the PostHog chunk is never requested. Either way a
 player waits for nothing.
 
+## What it costs, measured
+
+Giving the wrapper its first callers puts `posthog-js` into the module graph,
+where it had never been. Built in isolated worktrees:
+
+| | entry chunk | all JS | files |
+| --- | --- | --- | --- |
+| before | 85.7 KB gz | 480.6 KB gz | 154 |
+| after | 85.7 KB gz | 558.8 KB gz | 156 |
+
+**+78 KB gz, all of it one vendor chunk, and the entry chunk does not move.**
+No player downloads a byte more than yesterday: the chunk is reached through a
+dynamic import that is only awaited when `VITE_POSTHOG_KEY` is set, and no
+environment sets one — so it is emitted and never fetched.
+
+That took the repository's compressed `all JS` budget over, and the budget was
+raised to 573 with the measurement recorded in
+`scripts/check-bundle-budget.mjs` and an explicit ratchet exception. Making the
+import lazier was tried first and does not help: Rollup emits a chunk for every
+dynamic-import specifier in the graph whether or not the call site survives
+dead-code elimination, so the file count rose and the total did not move.
+
+Removing the four call sites returns the build to 480.6 exactly.
+
 ## Deliberately not in this stage
 
 - **A dashboard.** The programme forbids a generic dashboard framework, and

@@ -392,9 +392,42 @@ const root = process.argv[2] ?? resolve(process.cwd(), 'dist')
 // THE ROLLBACK MEASUREMENT STILL HOLDS, and now covers this destination too:
 // with every flag off the build measures 80.1 / 431.2 / 53.2, so turning the
 // Match Predictor back off recovers its bytes as well as its behaviour.
+// RAISED 24 AUGUST 2026 — 506 → 573, ENTRY AND CSS UNCHANGED AT 92 AND 64 —
+// BECAUSE FIRST-PARTY PRODUCT EVENTS SHIP THE ANALYTICS CLIENT AT ALL.
+//
+// `productAnalytics.ts` has wrapped PostHog for some time, but NOTHING imported
+// it: `initProductAnalytics` and `captureProductEvent` had zero callers, so the
+// module was never in the graph and its `import('posthog-js')` never became a
+// chunk. Stage 9 gives the wrapper its first callers, and the vendor chunk
+// arrives with them. The bytes are that client arriving rather than any
+// existing surface growing.
+//
+// Isolated by building the merge base and the change in separate worktrees:
+//
+//   main, before the events ....... 85.7 / 480.6 / 59.0   (154 files)
+//   with first-party events ....... 85.7 / 558.8 / 59.4   (156 files, CI)
+//
+// so the whole cost is +78 KB gz of JavaScript in ONE vendor chunk, and THE
+// ENTRY CHUNK DOES NOT MOVE. Every player downloads exactly what they did
+// yesterday: `posthog-js` is reached through a dynamic import that is only
+// awaited when `VITE_POSTHOG_KEY` is set, and no environment sets one, so the
+// chunk is emitted and never fetched.
+//
+// MAKING IT LAZIER DOES NOT HELP, and was tried before this raise. Guarding the
+// dynamic import behind a build-time constant does eliminate the branch, but
+// Rollup emits a chunk for every dynamic-import specifier in the module graph
+// regardless of whether the call site survives, so the file count went UP by
+// one and the total did not move. The note above this block about making a
+// static import lazy rather than budgeting it does not apply: this import is
+// already lazy, and `all JS` counts what is emitted rather than what is served.
+//
+// 573 sits about fourteen kilobytes over the measured 558.8 — the same
+// headroom-to-measurement shape every previous raise chose. THE ROLLBACK
+// MEASUREMENT IS EXACT: removing the four call sites returns the build to
+// 480.6, because the chunk exists only while something reaches the wrapper.
 const BUDGETS = {
   entryChunkKb: 92,
-  totalJsKb: 506,
+  totalJsKb: 573,
   totalCssKb: 64,
 }
 
