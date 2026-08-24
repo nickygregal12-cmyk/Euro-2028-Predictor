@@ -40,10 +40,7 @@ identity_email="$(git config user.email || true)"
 [ -n "$identity_email" ] || fail 'git user.email is empty'
 printf 'GIT_IDENTITY=OK name=%s email=%s\n' "$identity_name" "$identity_email"
 
-expected_contract="$(node -p "require('./NOW.json').contractVersion" 2>/dev/null || true)"
-if [ -z "$expected_contract" ]; then
-  expected_contract="$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")"
-fi
+expected_contract="$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")"
 printf 'EXPECTED_CONTRACT=%s\n' "$expected_contract"
 
 printf '\nHost doctor + MCP initialise/tools-list\n---------------------------------------\n'
@@ -51,13 +48,29 @@ bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
 
 env_file="${HOME}/.config/predictor-cloud/opencode.env"
 [ -r "$env_file" ] || fail 'protected OpenCode service env is missing'
-# shellcheck disable=SC1090
-set -a
-source "$env_file"
-set +a
-[ -n "${GITHUB_MCP_TOKEN:-}" ] || fail 'service env has no GitHub MCP token'
-[ -n "${OPENCODE_SERVER_PASSWORD:-}" ] || fail 'service env has no OpenCode server password'
-printf 'SERVICE_ENV=OK GitHub MCP token present (value hidden); web password present (value hidden)\n'
+read_env_value() {
+  python3 - "$env_file" "$1" <<'PY'
+from pathlib import Path
+import sys
+path, key = sys.argv[1], sys.argv[2]
+prefix = key + '='
+for line in Path(path).read_text().splitlines():
+    if line.startswith(prefix):
+        print(line[len(prefix):])
+        break
+PY
+}
+
+github_mcp_token="$(read_env_value GITHUB_MCP_TOKEN)"
+opencode_username="$(read_env_value OPENCODE_SERVER_USERNAME)"
+opencode_password="$(read_env_value OPENCODE_SERVER_PASSWORD)"
+[ -n "$github_mcp_token" ] || fail 'service env has no GitHub MCP token'
+[ -n "$opencode_username" ] || fail 'service env has no OpenCode server username'
+[ -n "$opencode_password" ] || fail 'service env has no OpenCode server password'
+export OPENCODE_SERVER_USERNAME="$opencode_username"
+export OPENCODE_SERVER_PASSWORD="$opencode_password"
+unset github_mcp_token opencode_username opencode_password
+printf 'SERVICE_ENV=OK GitHub MCP token present (value hidden); web auth present (values hidden)\n'
 
 acceptance_prompt=$(cat <<'EOF'
 Run the Predictor Stage 0 LIVE ACCEPTANCE MATRIX. This is an evidence-gathering task only.
