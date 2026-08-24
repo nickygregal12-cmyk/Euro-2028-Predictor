@@ -44,6 +44,12 @@ jobs:
     name: Walk the journey
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      # Whether this run actually produced a record. The publisher gates on it,
+      # so it never has to tolerate a missing artefact — which is why no step
+      # here needs `continue-on-error`, a thing this repository counts and
+      # ratchets against.
+      recorded: ${{ steps.recorded.outputs.recorded }}
     steps:
       - name: Harden runner (audit egress)
         uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
@@ -107,6 +113,21 @@ jobs:
             --origin "$ORIGIN" \
             --write "${RUNNER_TEMP}/journey-probe-record.json"
 
+      - name: Note whether a record was produced
+        id: recorded
+        # ALWAYS, because a BROKEN journey still writes a record and is still the
+        # thing most worth publishing. Only a run that never got that far has
+        # nothing to say.
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${RUNNER_TEMP}/journey-probe-record.json" ]; then
+            echo 'recorded=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'recorded=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Report what this run walked
         # Runs whether the journey passed or failed, but only once the walk has
         # actually run: a summary is worthless if it cannot be told apart from
@@ -151,10 +172,14 @@ jobs:
   publish:
     name: Publish the record
     needs: walk
-    # ALWAYS, because a BROKEN journey is the result most worth publishing. A
-    # publisher that only ran on success would keep the page green through an
-    # outage, which is the one thing it must never do.
-    if: always() && github.repository == 'nickygregal12-cmyk/Euro-2028-Predictor'
+    # ALWAYS, because a BROKEN journey is the result most worth publishing — a
+    # publisher that only ran on success would hold the page green through an
+    # outage. Gated on a record EXISTING, so the download below can be required
+    # rather than tolerated.
+    if: >-
+      always()
+      && needs.walk.outputs.recorded == 'true'
+      && github.repository == 'nickygregal12-cmyk/Euro-2028-Predictor'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -177,16 +202,13 @@ jobs:
           node-version-file: .nvmrc
 
       - name: Take the record this run produced
-        id: fetched
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v7
-        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: journey-probe-record
           path: ${{ runner.temp }}/incoming
 
       - name: Decide whether it says anything new
         id: decide
-        if: steps.fetched.outcome == 'success'
         shell: bash
         env:
           INCOMING: ${{ runner.temp }}/incoming/journey-probe-record.json
