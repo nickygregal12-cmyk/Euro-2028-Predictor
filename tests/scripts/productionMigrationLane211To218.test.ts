@@ -160,6 +160,35 @@ describe('the rehearsal rehearses and never writes Production', () => {
     }
   })
 
+  it('quiets the restored cron jobs on the COPY, and only on the copy', () => {
+    // A restore brings `cron.job` with it, so the copy comes up running
+    // Production's schedule and the behavioural suites end up measuring what the
+    // boundary did plus whatever the schedule did while they ran — which depends
+    // on the minute the runner started. Suite 262 carries two comments that are
+    // this exact bug, found twice and scoped narrowly each time.
+    expect(rehearsal).toContain('Quiet the restored cron jobs on the disposable copy')
+    expect(rehearsal).toContain('select cron.unschedule(job.jobid) from cron.job job')
+    // Production keeps every job it has. This must never appear in the rollout.
+    expect(rollout).not.toContain('cron.unschedule')
+    // And in the rehearsal it must only ever be aimed at the throwaway.
+    for (const line of rehearsal.split('\n').filter((l) => l.includes('cron.unschedule'))) {
+      expect(line).not.toContain('SUPABASE_PROD_DB_URL')
+    }
+    const quiet = rehearsal.slice(rehearsal.indexOf('Quiet the restored cron jobs'))
+    expect(quiet.slice(0, quiet.indexOf('cron.unschedule'))).toContain('LOCAL_DB_URL')
+  })
+
+  it('takes both cron readings after quieting, so before and after agree', () => {
+    // The preservation verifier still requires contract 216 to add exactly one
+    // job, so the two readings have to be taken on the same footing.
+    const quietAt = rehearsal.indexOf('Quiet the restored cron jobs')
+    const beforeAt = rehearsal.indexOf('Measure protected state before applying')
+    const applyAt = rehearsal.indexOf('Apply exactly Contracts 212 through 218')
+    expect(quietAt).toBeGreaterThan(0)
+    expect(quietAt).toBeLessThan(beforeAt)
+    expect(beforeAt).toBeLessThan(applyAt)
+  })
+
   it('reads Production only to dump it, and proves it is at 211 first', () => {
     expect(rehearsal).toContain('Confirm Production is exactly 211 before dumping it')
     expect(rehearsal).toContain('supabase db dump')
