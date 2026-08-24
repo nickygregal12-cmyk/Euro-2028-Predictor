@@ -3,8 +3,11 @@ name: Cloud conductor smoke
 on:
   pull_request:
     paths:
+      - 'opencode.json'
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'scripts/agent-tools/ox-review.sh'
+      - 'scripts/agent-tools/claude-review.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
       - 'config/agent-tools.json'
@@ -12,8 +15,11 @@ on:
   push:
     branches: [main]
     paths:
+      - 'opencode.json'
       - '.opencode/**'
       - 'scripts/agent-tools/cloud-conductor-*.sh'
+      - 'scripts/agent-tools/ox-review.sh'
+      - 'scripts/agent-tools/claude-review.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
       - 'config/agent-tools.json'
@@ -59,6 +65,10 @@ jobs:
           set -euo pipefail
           bash -n scripts/agent-tools/cloud-conductor-install.sh
           bash -n scripts/agent-tools/cloud-conductor-doctor.sh
+          bash -n scripts/agent-tools/cloud-conductor-claude-install.sh
+          bash -n scripts/agent-tools/ox-review.sh
+          bash -n scripts/agent-tools/claude-review.sh
+          node -e "const c=require('./opencode.json'); if (c.default_agent !== 'predictor-conductor') process.exit(1)"
           npm ci
           npx vitest run tests/scripts/cloudConductorConfiguration.test.ts
 
@@ -75,6 +85,8 @@ jobs:
           grep -q 'predictor-conductor' <<<"$agents"
           grep -q 'predictor-builder' <<<"$agents"
           grep -q 'predictor-critic' <<<"$agents"
+          grep -q 'predictor-visual-qa' <<<"$agents"
+          grep -q 'predictor-release-verifier' <<<"$agents"
 
       - name: Summary
         if: ${{ always() }}
@@ -84,10 +96,12 @@ jobs:
             echo '## Persistent cloud Conductor smoke'
             echo
             echo '- Cloud installer/doctor shell syntax validated for Ubuntu x86-64/ARM64 hosts.'
-            echo '- Repository guard tests passed.'
-            echo '- The centrally pinned OpenCode CLI loaded all three tracked agent definitions.'
-            echo '- Default GPT agents target the direct OpenAI provider rather than paid OpenRouter GPT.'
-            echo '- The Ox critic remains the OpenRouter model lane; CI received no OpenRouter credential and made no model request.'
-            echo '- No paid host is assumed by repository configuration; Oracle Always Free/home-hosted/Codespaces-on-demand remain valid paths.'
+            echo '- Repository guard tests passed and predictor-conductor is the default web agent.'
+            echo '- The centrally pinned OpenCode CLI loaded all five tracked agent definitions.'
+            echo '- GPT lanes target the direct OpenAI provider rather than paid OpenRouter GPT.'
+            echo '- The Ox critic is primary/read-only so the direct review bridge can capture its response reliably.'
+            echo '- Claude remains an optional official-client subscription lane; CI installs/calls neither Claude nor a model.'
+            echo '- Visual QA and release verification are read-only bounded subagents.'
+            echo '- No provider credential is present in CI and no model request is made by this workflow.'
             echo '- No VM, Tailscale device, hosted environment or Production resource was mutated.'
           } >> "${GITHUB_STEP_SUMMARY}"
