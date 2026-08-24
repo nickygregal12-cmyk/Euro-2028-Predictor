@@ -1,0 +1,302 @@
+name: Synthetic journey probe
+
+# Walks the acquisition journey a NEW PLAYER takes and records the result.
+#
+# ANONYMOUS AND READ-ONLY. No credential is passed, no account is used, nothing
+# is written to any environment. That is a deliberate limit rather than an
+# omission: production answers 401 to everyone (see production-anonymous-smoke,
+# which asserts exactly that), so a journey there needs the site password and is
+# an explicit operator action in production-smoke.yml. This probe therefore runs
+# against an origin where the journey can actually be walked, and says which one
+# it used in the record it writes.
+#
+# It does NOT replace what already exists. The perimeter, headers, CSP parity and
+# release identity are covered by the production smokes; none of them walks a
+# person through anything, which is the gap this fills.
+#
+# TWO JOBS, AND THE SPLIT IS THE SECURITY BOUNDARY. `walk` touches the network
+# and holds NO write access or push credential. `publish` holds write access and
+# touches no network — it only moves a record this repository's own job already
+# produced. Neither job can both fetch a remote document and push to the default
+# branch, which is the combination worth denying.
+
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: 'Origin to walk the journey against'
+        required: true
+        type: string
+  schedule:
+    # Every six hours, offset from the perimeter smoke so the two do not land
+    # together and make one look like the cause of the other.
+    - cron: '41 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: journey-probe
+  cancel-in-progress: true
+
+jobs:
+  walk:
+    name: Walk the journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      # Whether this run actually produced a record. The publisher gates on it,
+      # so it never has to tolerate a missing artefact — which is why no step
+      # here needs `continue-on-error`, a thing this repository counts and
+      # ratchets against.
+      recorded: ${{ steps.recorded.outputs.recorded }}
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # This job never pushes; it reads the repository and writes a record to
+          # the job summary. A token left on disk for a scheduled job that does
+          # not need one is a credential waiting to be reused by something else.
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Resolve the origin to walk
+        id: origin
+        shell: bash
+        env:
+          REQUESTED: ${{ inputs.origin }}
+          CONFIGURED: ${{ vars.EURO28_JOURNEY_PROBE_ORIGIN }}
+        run: |
+          set -euo pipefail
+          origin="${REQUESTED:-${CONFIGURED:-}}"
+
+          if [ -z "$origin" ]; then
+            # Fail with the action rather than inventing a target. Defaulting to
+            # production would report a 401 journey as a broken product, which is
+            # a wrong answer stated confidently.
+            {
+              echo '## Synthetic journey probe did not run'
+              echo
+              echo 'No origin is configured, so there was nothing to walk.'
+              echo
+              echo 'Set the repository variable EURO28_JOURNEY_PROBE_ORIGIN to an origin'
+              echo 'where the journey is reachable — a deploy preview, or production once'
+              echo 'its password perimeter is lifted. Production currently answers 401 to'
+              echo 'every anonymous request, which this probe deliberately does not carry a'
+              echo 'credential to get past.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo 'STOP: no origin configured; see the job summary.' >&2
+            exit 1
+          fi
+
+          echo "origin=$origin" >> "$GITHUB_OUTPUT"
+
+      - name: Walk the journey
+        id: walk
+        shell: bash
+        env:
+          ORIGIN: ${{ steps.origin.outputs.origin }}
+        run: |
+          set -euo pipefail
+          # Written to the RUNNER TEMP, never over the tracked record. The tracked
+          # file exists the moment checkout finishes, so reporting "the file is
+          # here" would have shown the previously committed result as though this
+          # run had produced it — a stale green for a run that never happened.
+          node scripts/journey-probe/run.mjs \
+            --origin "$ORIGIN" \
+            --write "${RUNNER_TEMP}/journey-probe-record.json"
+
+      - name: Note whether a record was produced
+        id: recorded
+        # ALWAYS, because a BROKEN journey still writes a record and is still the
+        # thing most worth publishing. Only a run that never got that far has
+        # nothing to say.
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "${RUNNER_TEMP}/journey-probe-record.json" ]; then
+            echo 'recorded=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'recorded=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Report what this run walked
+        # Runs whether the journey passed or failed, but only once the walk has
+        # actually run: a summary is worthless if it cannot be told apart from
+        # the last one.
+        if: always() && steps.walk.outcome != 'skipped'
+        shell: bash
+        run: |
+          set -euo pipefail
+          record="${RUNNER_TEMP}/journey-probe-record.json"
+
+          if [ ! -f "$record" ]; then
+            {
+              echo '## Synthetic journey probe'
+              echo
+              echo 'The walk produced no record, so this run has nothing to report.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # NO SINGLE-BACKTICK PAIRS in these strings. shellcheck reads a matched
+          # pair inside a single-quoted echo as command substitution, and
+          # actionlint promotes that to a failure — the same trap
+          # ai-odds-scheduler-reconcile.yml already carries a note about. Triple
+          # fences are fine; a matched pair around an identifier is not.
+          {
+            echo '## Synthetic journey probe'
+            echo
+            echo '```json'
+            cat "$record"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the record retrievable
+        if: always() && steps.walk.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: journey-probe-record
+          path: ${{ runner.temp }}/journey-probe-record.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+  publish:
+    name: Publish the record
+    needs: walk
+    # ALWAYS, because a BROKEN journey is the result most worth publishing — a
+    # publisher that only ran on success would hold the page green through an
+    # outage. Gated on a record EXISTING, so the download below can be required
+    # rather than tolerated.
+    if: >-
+      always()
+      && needs.walk.outputs.recorded == 'true'
+      && github.repository == 'nickygregal12-cmyk/Euro-2028-Predictor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # The only job in this workflow with write access, and it makes no network
+      # request of its own.
+      contents: write
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Take the record this run produced
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: journey-probe-record
+          path: ${{ runner.temp }}/incoming
+
+      - name: Decide whether it says anything new
+        id: decide
+        shell: bash
+        env:
+          INCOMING: ${{ runner.temp }}/incoming/journey-probe-record.json
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "$INCOMING" ]; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=The walk produced no record.' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          decision="$(node --input-type=module -e "
+            import { readFileSync } from 'node:fs'
+            const { publishDecision } = await import('./scripts/journey-probe/publishDecision.mjs')
+            const read = (path) => JSON.parse(readFileSync(path, 'utf8'))
+            const result = publishDecision(
+              read('config/journey-probe-record.json'),
+              read(process.env.INCOMING),
+            )
+            process.stdout.write(JSON.stringify(result))
+          ")"
+
+          echo "publish=$(node -p "JSON.parse(process.argv[1]).publish" "$decision")" >> "$GITHUB_OUTPUT"
+          echo "reason=$(node -p "JSON.parse(process.argv[1]).reason" "$decision")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish it
+        if: steps.decide.outputs.publish == 'true'
+        shell: bash
+        env:
+          INCOMING: ${{ runner.temp }}/incoming/journey-probe-record.json
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          set -euo pipefail
+
+          cp "$INCOMING" config/journey-probe-record.json
+
+          # ONE FILE, AND THE GUARD IS NOT A FORMALITY. A job with write access
+          # to the default branch must be unable to carry anything else along,
+          # whatever else happened to land in the workspace.
+          if [ -n "$(git status --porcelain -- . ':!config/journey-probe-record.json')" ]; then
+            echo 'STOP: something other than the probe record is modified; refusing to push.' >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+
+          if git diff --quiet -- config/journey-probe-record.json; then
+            echo 'Nothing to commit after all.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/journey-probe-record.json
+          git commit -m "Record the synthetic journey probe
+
+          ${REASON}"
+
+          # main moves; a scheduled job must not fail because something merged
+          # while it was walking. Rebase keeps the record on top and touches
+          # nothing else, because nothing else is committed here.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing onto main and retrying." >&2
+            git pull --rebase origin main
+          done
+
+          echo 'STOP: could not publish the record after three attempts.' >&2
+          exit 1
+
+      - name: Say what was decided
+        if: always()
+        shell: bash
+        env:
+          PUBLISH: ${{ steps.decide.outputs.publish }}
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          set -euo pipefail
+          {
+            echo '## Publishing the probe record'
+            echo
+            if [ -z "${REASON:-}" ]; then
+              echo 'No decision was reached, so nothing was published.'
+            else
+              echo "Published: ${PUBLISH:-false}"
+              echo
+              echo "${REASON}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

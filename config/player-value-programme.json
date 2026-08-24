@@ -78,7 +78,7 @@
         "A push endpoint is chosen by a browser and posted to by a service role, so both the schema and the sender refuse an address literal, a host with no dot and the private suffixes, and the sender does not follow redirects. Deliberately not an origin allow-list: the suites check that the four real push services are still accepted.",
         "The visual-contract suite failed once and was re-run once rather than explained away: this branch changes exactly one file under the rendered source tree, nothing imports it, and the same suite had passed on nine earlier heads of the branch. The re-run passed."
       ],
-      "blocker": "No player can turn push on yet. Every part behind the switch is merged and proved, and the account surface cannot offer one because every call from the application is checked against generated database types that are produced from hosted Development, which trails the repository. The repository states that ordering as a feature rather than an accident. One action unblocks it: roll this migration out to Development through the existing lane and regenerate the types. The reminder is executable — tests/vnext/notificationPreferences.test.tsx fails the moment the generated types know the save function, and its comment says what to build."
+      "blocker": "No player can turn push on yet, and the blocker has NARROWED rather than cleared. Its first half is done: hosted Development now carries this migration, so the schema the switch needs exists. Its second half does not: the generated database types are still the ones produced before that rollout and contain no reference to the push surface at all, and every call from the application is checked against them, so the account surface still cannot offer a switch. One action remains, and it is smaller than the original: regenerate the types from Development and commit them. That needs a credential this repository holds as a secret and no agent session does — scripts/generate-database-types.mjs refuses without SUPABASE_DEV_DB_URL or SUPABASE_ACCESS_TOKEN, which is the correct refusal. The reminder stays executable: tests/vnext/notificationPreferences.test.tsx fails the moment the regenerated types know the save function, and its comment says what to build."
     },
     {
       "id": "3",
@@ -124,11 +124,17 @@
       "dependencies": [
         "4"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1015,
+      "headSha": "c0b4f703950a992001c5f0e36359cfceea976763",
+      "mergedSha": "f1bb0836ea1c0c09d0a55b378f146d5e58a4f352",
+      "acceptanceEvidence": [
+        "The adversarial question was where a binding product rule states a number nothing checks the code still honours, rather than adding volume to 239 test files that already cover failure, retry, timeout and conflict.",
+        "Found live: the design system requires a fifty-player pool before a percentile is shown, on a de-anonymisation and dignity rationale, while the implementation enforced twenty-five.",
+        "The boundary assertion could not have caught it, because it was written in terms of the constant under test; the guard now reads the number out of the authority and requires exactly one match.",
+        "Proved in four directions: the code diverging, the document's number gutted, the rule deleted from the document, and a second matching phrase added.",
+        "A second instance of the same fault was found and fixed while fixing the first: the controller's out-of-order case sourced its fixture from live data and stopped working once every dependency completed."
+      ],
       "blocker": null
     },
     {
@@ -137,7 +143,7 @@
       "dependencies": [
         "0"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

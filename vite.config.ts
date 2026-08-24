@@ -14,6 +14,14 @@ import {
   sitemapXml,
 } from './src/app/site/documentMetadata.js'
 import {
+  STATUS_DOCUMENT_PATH,
+  STATUS_STYLESHEET,
+  STATUS_STYLESHEET_PATH,
+  statusDocumentHtml,
+  type JourneyProbeRecord,
+} from './src/app/site/statusDocument.js'
+import journeyProbeRecord from './config/journey-probe-record.json' with { type: 'json' }
+import {
   SITE_ICON_FILES,
   faviconSvg,
   siteIconDirectory,
@@ -288,6 +296,36 @@ export default defineConfig(({ command, mode }) => {
           writeFileSync(
             resolve(directory, INVITE_DOCUMENT_PATH.slice(1)),
             applyDocumentHead(String(document.source), site, inviteShareCard(site)),
+          )
+        },
+      },
+      {
+        // The status document, and the second caller of the same idea the invite
+        // document introduced: a page derived at build time rather than authored
+        // beside the app and left to drift.
+        //
+        // It links the app's HASHED stylesheet so it inherits the design tokens,
+        // and discovers that name from the bundle rather than guessing it — the
+        // guess is exactly what goes stale on the next build. If it cannot be
+        // found the page still ships, styled by its own sheet with token
+        // fallbacks: a status page that fails to render is worse than a plain one.
+        name: 'euro28-status-document',
+        writeBundle(options, bundle) {
+          const directory = options.dir
+          if (!directory) throw new Error('The build has no output directory to write into.')
+
+          const stylesheet = Object.keys(bundle).find(
+            (name) => name.startsWith('assets/') && name.endsWith('.css'),
+          )
+
+          writeFileSync(resolve(directory, STATUS_STYLESHEET_PATH.slice(1)), STATUS_STYLESHEET)
+          writeFileSync(
+            resolve(directory, STATUS_DOCUMENT_PATH.slice(1)),
+            statusDocumentHtml(
+              journeyProbeRecord as JourneyProbeRecord,
+              site.productName,
+              stylesheet ? `/${stylesheet}` : null,
+            ),
           )
         },
       },

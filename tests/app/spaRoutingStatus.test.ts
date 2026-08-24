@@ -37,6 +37,16 @@ const redirects: Redirect[] = [
 
 const okRoutes = redirects.filter((rule) => rule.status === 200).map((rule) => rule.from)
 
+/**
+ * Paths that answer 200 but are NOT application routes.
+ *
+ * `/status` is a static document the build emits, and deliberately not a React
+ * route: it has to stay readable on the occasion the application does not boot,
+ * which is the only occasion anybody reads it. Listed explicitly so a third such
+ * path cannot appear without this line changing.
+ */
+const staticDocumentRoutes = ['/status']
+
 describe('SPA routing answers a real status per path', () => {
   it('versions the Netlify build command and publish directory', () => {
     expect(netlifyConfig).toMatch(
@@ -48,11 +58,12 @@ describe('SPA routing answers a real status per path', () => {
 
   it('finds the application routes and the redirect rules', () => {
     expect(appRoutes.length).toBeGreaterThan(20)
-    expect(redirects.length).toBe(appRoutes.length + 1)
+    // + the static documents, + the `/*` catch-all.
+    expect(redirects.length).toBe(appRoutes.length + staticDocumentRoutes.length + 1)
   })
 
-  it('answers 200 for every real application route', () => {
-    expect([...okRoutes].sort()).toEqual([...appRoutes].sort())
+  it('answers 200 for every real application route, and for nothing else unnamed', () => {
+    expect([...okRoutes].sort()).toEqual([...appRoutes, ...staticDocumentRoutes].sort())
   })
 
   it('answers 404 for unknown paths instead of a soft 200', () => {
@@ -66,16 +77,20 @@ describe('SPA routing answers a real status per path', () => {
   it('rewrites every path to a document this build actually emits', () => {
     // NARROWED FROM "everything goes to /index.html", and narrowed rather than
     // deleted. The old form was the right invariant while one document existed;
-    // `/join/:code` now has its own, because an invite is the one link players
-    // paste where a crawler unfurls it and the site's own card is the wrong
-    // answer for it. What must not happen is a SECOND route quietly diverging,
-    // so the exception is named rather than allowed by class.
+    // `/join/:code` has its own, because an invite is the one link players paste
+    // where a crawler unfurls it and the site's own card is the wrong answer for
+    // it. `/status` has its own because it is not the application at all — it is
+    // a static record that must stay readable when the application does not boot.
+    // What must not happen is a route quietly diverging, so each exception is
+    // named rather than allowed by class.
     for (const rule of redirects) {
-      expect(['/index.html', '/join.html']).toContain(rule.to)
+      expect(['/index.html', '/join.html', '/status.html']).toContain(rule.to)
     }
 
+    // Each divergence is NAMED, never allowed by class. A second document was
+    // always going to arrive; what this stops is a third arriving unnoticed.
     const diverging = redirects.filter((rule) => rule.to !== '/index.html')
-    expect(diverging.map((rule) => rule.from)).toEqual(['/join/:code'])
+    expect(diverging.map((rule) => rule.from)).toEqual(['/join/:code', '/status'])
   })
 
   it('sends the invite route to the invite document, which the build emits', () => {

@@ -224,6 +224,13 @@ describe('JavaScript under scripts/', () => {
     // assertion exists to catch. It also decides whether a Production promotion
     // is recorded as sound, which is the last place to leave unexamined.
     'scripts/database-rollout/verify-production-211-to-217.mjs',
+    // Arrived clean under JSDoc annotation rather than as a deferred count. The
+    // probe decides whether a deployment is reported as walkable, so a type
+    // error here would surface as a status page confidently saying the wrong
+    // thing — which is the one failure a status page must not have.
+    'scripts/journey-probe/checks.mjs',
+    'scripts/journey-probe/publishDecision.mjs',
+    'scripts/journey-probe/run.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',
