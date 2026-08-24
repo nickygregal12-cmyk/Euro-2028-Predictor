@@ -30,6 +30,7 @@ executable_link="${browser_config[4]}"
 provenance_file="${browser_config[5]}"
 coupled_mcp_package="${browser_config[6]}"
 coupled_mcp_version="${browser_config[7]}"
+runtime_root="${install_root}/${installer_version}"
 
 configured_mcp_version="$(node -p "require('./config/agent-tools.json').playwrightMcp.version")"
 if [ "$configured_mcp_version" != "$coupled_mcp_version" ]; then
@@ -45,43 +46,56 @@ process.exit(
   p.installerPackage === process.argv[2] &&
   p.installerVersion === process.argv[3] &&
   p.browser === process.argv[4] &&
-  p.coupledMcpVersion === process.argv[5] ? 0 : 1
+  p.runtimeRoot === process.argv[5] &&
+  p.coupledMcpVersion === process.argv[6] ? 0 : 1
 )
-' "$provenance_file" "$installer_package" "$installer_version" "$browser_name" "$coupled_mcp_version"; then
-  printf 'Pinned browser runtime already present: %s\n' "$executable_link"
-  exit 0
+' "$provenance_file" "$installer_package" "$installer_version" "$browser_name" "$runtime_root" "$coupled_mcp_version"; then
+  if browser_version="$($executable_link --version 2>/dev/null)" && [ -n "$browser_version" ]; then
+    printf 'Pinned browser runtime already present: %s (%s)\n' "$executable_link" "$browser_version"
+    exit 0
+  fi
+  printf 'Existing browser provenance matched but the executable did not launch; reinstalling.\n' >&2
 fi
 
 printf 'Installing pinned %s@%s %s runtime and host dependencies...\n' \
   "$installer_package" "$installer_version" "$browser_name"
 sudo install -d -m 0755 "$install_root" "$(dirname "$executable_link")"
-sudo env "PATH=$PATH" "PLAYWRIGHT_BROWSERS_PATH=$install_root" \
+# The version-specific root prevents a future upgrade from selecting an older
+# Playwright browser revision that remains under the shared base directory.
+sudo rm -rf "$runtime_root"
+sudo install -d -m 0755 "$runtime_root"
+sudo env "PATH=$PATH" "PLAYWRIGHT_BROWSERS_PATH=$runtime_root" \
   npx -y "${installer_package}@${installer_version}" install --with-deps "$browser_name"
 
-browser_executable="$(sudo find "$install_root" -type f -name chrome -path '*/chrome-linux*/chrome' -perm -111 -print | sort | head -n 1)"
+browser_executable="$(sudo find "$runtime_root" -type f -name chrome -path '*/chrome-linux*/chrome' -perm -111 -print | sort | head -n 1)"
 if [ -z "$browser_executable" ] || [ ! -x "$browser_executable" ]; then
-  printf 'Pinned Playwright install completed but no Chromium executable was found under %s.\n' "$install_root" >&2
+  printf 'Pinned Playwright install completed but no Chromium executable was found under %s.\n' "$runtime_root" >&2
   exit 1
 fi
 
 sudo ln -sfn "$browser_executable" "$executable_link"
+if ! browser_version="$($executable_link --version 2>/dev/null)" || [ -z "$browser_version" ]; then
+  sudo rm -f "$executable_link"
+  printf 'Installed browser executable did not launch for a version check: %s\n' "$browser_executable" >&2
+  exit 1
+fi
+
+# Persist provenance only after the exact version-specific executable has been
+# proven launchable. A failed install therefore cannot make the next retry skip.
 printf '%s\n' "$(node - <<NODE
 console.log(JSON.stringify({
   installerPackage: ${installer_package@Q},
   installerVersion: ${installer_version@Q},
   browser: ${browser_name@Q},
   installRoot: ${install_root@Q},
+  runtimeRoot: ${runtime_root@Q},
   executable: ${browser_executable@Q},
   executableLink: ${executable_link@Q},
+  browserVersion: ${browser_version@Q},
   coupledMcpPackage: ${coupled_mcp_package@Q},
   coupledMcpVersion: ${coupled_mcp_version@Q},
 }, null, 2))
 NODE
 )" | sudo tee "$provenance_file" >/dev/null
 sudo chmod 0644 "$provenance_file"
-
-if ! "$executable_link" --version >/dev/null 2>&1; then
-  printf 'Installed browser executable did not launch for a version check: %s\n' "$executable_link" >&2
-  exit 1
-fi
-printf 'Pinned browser runtime ready: %s (%s)\n' "$executable_link" "$("$executable_link" --version)"
+printf 'Pinned browser runtime ready: %s (%s)\n' "$executable_link" "$browser_version"
