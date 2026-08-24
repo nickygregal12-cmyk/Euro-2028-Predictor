@@ -169,8 +169,21 @@ select is(
   'and it RECORDS the refusal, closed, which is the fact the delivery ledger cannot carry because nothing was ever claimed'
 );
 
+-- SCOPED TO THIS CONTRACT'S OWN ENDPOINT, for the same reason the assertion
+-- above is scoped to `now()`, and learned the same way. `net.http_request_queue`
+-- is shared, and a database restored from a real environment brings its
+-- `cron.job` rows with it: those jobs fire on the disposable copy while this
+-- suite runs and queue their own requests. A global count therefore passes on a
+-- freshly migrated chain, where the same jobs exist but have no poll target or
+-- due fixture to act on, and fails against restored data — which is exactly what
+-- it did, in the Contract 211-to-217 Production rehearsal.
+--
+-- The claim is unchanged: this contract can only ever post to the endpoint the
+-- vault names it, so "sent nothing at all" IS "queued nothing for that
+-- endpoint". Both the http and https forms the suite tries share the path.
 select is(
-  (select count(*)::integer from net.http_request_queue),
+  (select count(*)::integer from net.http_request_queue
+    where url like '%/functions/v1/notification-dispatch'),
   0,
   'having sent nothing at all'
 );
@@ -197,7 +210,8 @@ select is(
 );
 
 select is(
-  (select count(*)::integer from net.http_request_queue),
+  (select count(*)::integer from net.http_request_queue
+    where url like '%/functions/v1/notification-dispatch'),
   0,
   'and nothing is queued'
 );
@@ -278,7 +292,8 @@ select is(
 -- pg_net stores the pending body as `bytea`, so it is decoded rather than cast.
 -- Suite 166 established the idiom; a plain `::jsonb` raises.
 select is(
-  (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue),
+  (select convert_from(body, 'UTF8')::jsonb->>'runId' from net.http_request_queue
+    where url like '%/functions/v1/notification-dispatch'),
   current_setting('test.c216_run'),
   'carrying the id of the run it just opened, which is how the sender closes the right one'
 );
