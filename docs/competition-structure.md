@@ -231,6 +231,17 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 218 live-standings review
+
+Competition structure, fixtures, scoring, locks, progression and settlement are
+untouched by contract 218. It adds no column, no function and no policy; it adds
+one table to a replication publication.
+
+No rule about how a competition is shaped or scored can be reached from it. The
+channel carries no payload the browser reads, and the standings it causes to be
+refetched are produced by the same server RPC as before -- so the structure this
+document owns is not merely unchanged, it is not consulted.
+
 ## Contract 217 push-channel review
 
 Nothing in this document changes. Competition structure, entry, membership and

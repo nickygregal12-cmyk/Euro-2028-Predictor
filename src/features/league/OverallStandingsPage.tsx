@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { Alert, Button, EmptyState, Skeleton } from '../../design-system'
 import { ChevronLeftIcon, TrophyIcon } from '../../design-system/icons'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
+import { useLiveResultsVersion } from '../../app/providers/liveResultsContext'
 import { areFinalStandingsActive } from '../../domain/tournament/finalStandings'
 import {
   fetchLeaderboardPage,
@@ -16,6 +17,12 @@ import s from '../shared.module.css'
 import l from './leaderboard.module.css'
 
 const PAGE_SIZE = 50
+
+// `get_leaderboard` clamps a page to 100 rows. Past that a live refresh cannot
+// rebuild the view in one request, and stitching a fresh head onto stale tail
+// pages under a moving ranking shows duplicates and gaps -- so a list this deep
+// holds still instead. The player's own standing still moves on Home.
+const MAX_LIVE_REFRESH_ROWS = 100
 
 type ReadyData = {
   rows: LeaderboardEntry[]
@@ -37,6 +44,9 @@ export function OverallStandingsPage() {
   const finalStandings =
     data.status === 'ready' && areFinalStandingsActive(data.data.matches)
   const [state, setState] = useState<State>({ status: 'loading' })
+  const stateRef = useRef(state)
+  stateRef.current = state
+  const resultsVersion = useLiveResultsVersion()
   const [reloadKey, setReloadKey] = useState(0)
   const [loadingMore, setLoadingMore] = useState(false)
   const [moreError, setMoreError] = useState<string | null>(null)
@@ -77,11 +87,55 @@ export function OverallStandingsPage() {
     }
   }, [tournamentId, reloadKey])
 
+  // ONCE. This used to run on every state change, so loading another page --
+  // and now a live refresh -- yanked the viewport back to the player's own row
+  // while they were reading somewhere else. Finding your row is a landing
+  // courtesy, not something to redo under them.
+  const hasScrolledToYou = useRef(false)
   useEffect(() => {
+    if (hasScrolledToYou.current) return
     if (state.status === 'ready' && state.data.rows.some((row) => row.isYou)) {
+      hasScrolledToYou.current = true
       youRow.current?.scrollIntoView({ block: 'center' })
     }
   }, [state])
+
+  // The live path. Separate from the mount/retry effect above on purpose: this
+  // one must never blank the list, never replace good data with an error, and
+  // never widen or narrow how far the player has paged.
+  useEffect(() => {
+    if (resultsVersion === 0 || !tournamentId) return
+    const current = stateRef.current
+    if (current.status !== 'ready') return
+
+    const shown = current.data.rows.length
+    if (shown > MAX_LIVE_REFRESH_ROWS) return
+    const limit = Math.min(Math.max(shown, PAGE_SIZE), MAX_LIVE_REFRESH_ROWS)
+
+    let active = true
+    fetchLeaderboardPage(tournamentId, { limit })
+      .then((page) => {
+        if (!active) return
+        setState({
+          status: 'ready',
+          data: {
+            rows: page.rows,
+            totalCount: page.totalCount,
+            hasMore: page.hasMore,
+            nextCursor: page.nextCursor,
+            you: page.you,
+          },
+        })
+      })
+      .catch(() => {
+        // Deliberately silent. A background refresh that fails leaves the
+        // standings the player is already reading exactly where they are.
+      })
+
+    return () => {
+      active = false
+    }
+  }, [resultsVersion, tournamentId])
 
   async function loadMore() {
     if (

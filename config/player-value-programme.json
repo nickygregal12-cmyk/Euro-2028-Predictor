@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine state for the player-value and reliability delivery programme. Orchestration only. It never carries repository, hosted, contract, scoring or product facts — those live in their own authorities and are read fresh. See docs/product/player-value-programme-controller.md and tests/documentation/playerValueProgrammeController.test.ts.",
+  "$comment": "Machine state for the player-value and reliability delivery programme. Orchestration only. It never carries repository, hosted, contract, scoring or product facts \u2014 those live in their own authorities and are read fresh. See docs/product/player-value-programme-controller.md and tests/documentation/playerValueProgrammeController.test.ts.",
   "schemaVersion": 1,
   "programme": "player-value",
   "completionPredicate": "every_stage_complete_with_its_merged_pr_present_on_main",
@@ -32,7 +32,7 @@
         "Migration numbering is unambiguous: no two branches hold one number, and the runway records the number the other open migration branch must take.",
         "Every open pull request is classified on its exact head, in this record.",
         "The programme controller, its orchestration contract and its executable gate are on main, reachable from the root agent router.",
-        "The gate refuses a completion with no merge behind it, a completion ahead of its dependency, blank evidence, an unnamed blocker, two stages in flight, two branches on one number, an overtaken claim, a hole in the runway, an unclassified claimant, a draft called ready to merge, and copied prose — proven against deliberately broken states and against an empty runway.",
+        "The gate refuses a completion with no merge behind it, a completion ahead of its dependency, blank evidence, an unnamed blocker, two stages in flight, two branches on one number, an overtaken claim, a hole in the runway, an unclassified claimant, a draft called ready to merge, and copied prose \u2014 proven against deliberately broken states and against an empty runway.",
         "main was green on the exact head before merge."
       ],
       "blocker": null
@@ -78,7 +78,7 @@
         "A push endpoint is chosen by a browser and posted to by a service role, so both the schema and the sender refuse an address literal, a host with no dot and the private suffixes, and the sender does not follow redirects. Deliberately not an origin allow-list: the suites check that the four real push services are still accepted.",
         "The visual-contract suite failed once and was re-run once rather than explained away: this branch changes exactly one file under the rendered source tree, nothing imports it, and the same suite had passed on nine earlier heads of the branch. The re-run passed."
       ],
-      "blocker": "No player can turn push on yet, and the blocker has NARROWED rather than cleared. Its first half is done: hosted Development now carries this migration, so the schema the switch needs exists. Its second half does not: the generated database types are still the ones produced before that rollout and contain no reference to the push surface at all, and every call from the application is checked against them, so the account surface still cannot offer a switch. One action remains, and it is smaller than the original: regenerate the types from Development and commit them. That needs a credential this repository holds as a secret and no agent session does — scripts/generate-database-types.mjs refuses without SUPABASE_DEV_DB_URL or SUPABASE_ACCESS_TOKEN, which is the correct refusal. The reminder stays executable: tests/vnext/notificationPreferences.test.tsx fails the moment the regenerated types know the save function, and its comment says what to build."
+      "blocker": "No player can turn push on yet, and the blocker has NARROWED rather than cleared. Its first half is done: hosted Development now carries this migration, so the schema the switch needs exists. Its second half does not: the generated database types are still the ones produced before that rollout and contain no reference to the push surface at all, and every call from the application is checked against them, so the account surface still cannot offer a switch. One action remains, and it is smaller than the original: regenerate the types from Development and commit them. That needs a credential this repository holds as a secret and no agent session does \u2014 scripts/generate-database-types.mjs refuses without SUPABASE_DEV_DB_URL or SUPABASE_ACCESS_TOKEN, which is the correct refusal. The reminder stays executable: tests/vnext/notificationPreferences.test.tsx fails the moment the regenerated types know the save function, and its comment says what to build."
     },
     {
       "id": "3",
@@ -111,7 +111,7 @@
       "mergedSha": "685937471bf890a2d0d9ca36b87cb109d533e19c",
       "acceptanceEvidence": [
         "Named scenarios seed the three hostile states the design rule names and the seed previously could not express: a guaranteed tie on the top total, entries that were never submitted, and a one-member and two-member pool.",
-        "The tie is created by construction — the best entry's predictions are copied onto the worst, so they must score identically — and verified through the real scoring pipeline rather than by any reimplementation of it.",
+        "The tie is created by construction \u2014 the best entry's predictions are copied onto the worst, so they must score identically \u2014 and verified through the real scoring pipeline rather than by any reimplementation of it.",
         "Every guarantee was proved by removing it and watching the assertion fail, in four directions; an unrecognised scenario name refuses rather than falling back to the ordinary world.",
         "The dry run ranks submitted entries only, matching what the database ranks from, after review found it would otherwise print a table the seeded app refuses to render.",
         "The default scenario is byte-identical to the previous output, so nothing depending on the seed moved. No migration."
@@ -143,11 +143,19 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1018,
+      "headSha": "d27bee0b3bebd89d8ac05dbf36102abbcabf310f",
+      "mergedSha": "b8375ce64ed4c6cd5e618407d2619b9019411267",
+      "acceptanceEvidence": [
+        "A synthetic probe walks the acquisition journey a new player takes and records the outcome of each step, so a broken journey is discovered by something other than a player hitting it.",
+        "The walking job touches the network and holds no write access or persisted credential; the publishing job holds write access and makes no network request of its own. Neither job can both fetch a remote document and push to the default branch.",
+        "The publisher runs even when the journey failed, because a publisher that only ran on success would hold the status page green straight through an outage.",
+        "Whether to publish is a pure tested function: publish when the answer changes, including a recovery and the same failure for a different reason, otherwise at most once a day. Timings are excluded so a stable result does not churn the branch.",
+        "A guard refuses to commit when anything other than the record file is modified, proved by smuggling an unrelated edit into the workspace and watching it refuse.",
+        "The workflow credential allowlist moved from per-file to per-job, because a per-file rule could only describe this workflow by granting its network-facing job a token, which would have destroyed the boundary the two-job split exists to create.",
+        "The probe is dormant until a deployment names an origin where the journey can actually be walked; production answers 401 to every anonymous request and the probe deliberately carries no credential past it."
+      ],
       "blocker": null
     },
     {
@@ -156,7 +164,7 @@
       "dependencies": [
         "4"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

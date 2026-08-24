@@ -156,6 +156,23 @@ Contract 214 refines the existing season-card implementation so a confirmation b
 
 Contract 215 requires no new ADR. It is a consistency fix inside the already-private AI Lab: the betting decision shown as current must be derived from the same canonical forecast the Lab shows as current, while historical forecasts/recommendations remain evidence. It changes neither the accepted model-selection/publication authority nor the boundary that this is paper research with no public bet placement. Hosted rollout remains separately authorised.
 
+### Contract 218 implementation note
+
+Contract 218 needs no new architecture decision record, because it implements an
+existing one almost literally. ADR 0008 chose a narrow live-results channel that
+invalidates standings queries, rejected realtime over broad user-owned or
+scoring tables, and required that payloads carry only what the caller could
+already read.
+
+The one judgement worth recording is which table, and why it makes the payload
+rule structural rather than procedural. `public.matches` carries the result
+lifecycle that moves every standing, is owned by nobody and scores nothing, and
+its policy is already `for select to authenticated using (true)` -- so a
+subscriber cannot learn anything it could not select. The implementation then
+goes further than the ADR requires and reads no payload at all, which is what
+makes "this must not become a second source of match truth" a property of the
+code rather than a rule someone has to keep remembering.
+
 ### Contract 217 implementation note
 
 Contract 217 needs no architecture decision record of its own. ADR 0016 already

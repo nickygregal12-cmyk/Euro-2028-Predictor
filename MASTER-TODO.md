@@ -105,6 +105,24 @@ Contract 214 is implemented in the repository: a successful material season pred
 
 Contract 215 is implemented in the repository: the value loop keeps every historical forecast horizon as immutable audit evidence but assesses only the fixture's canonical newest non-quarantined forecast, and the current-recommendation read fails closed while a fresher canonical forecast awaits value evaluation. Hosted rollout remains pending; this repository change does not claim a hosted schema update.
 
+## Contract 218 sweep — standings that move while you are looking at them
+
+Contract 218 publishes one table, `public.matches`, on the realtime channel.
+That is the whole migration. ADR 0008 already decided the shape years of
+audits had asked for: a narrow live-results channel that INVALIDATES standings
+queries, never a synchronisation layer and never a second place scores can
+come from.
+
+The browser reads no payload from it. The subscription hands its callback
+nothing, so the only thing that can travel over this channel is the fact that
+something changed; the numbers are refetched from `get_leaderboard`, which is
+the only thing in the system that ranks anything. `REL-005` and `ACQ-R15` --
+"users must refresh for result and standing changes" -- are what this closes.
+
+It ships switched off. `VITE_LIVE_UPDATES_ENABLED` must be exactly `true`, per
+ADR 0008's own consequence that the feature stays guarded until hosted
+operational evidence exists.
+
 ## Contract 217 sweep — a channel that does not need a provider
 
 The reminder path gained a second channel it can actually run. Web push needs no

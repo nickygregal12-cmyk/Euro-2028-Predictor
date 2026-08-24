@@ -1,5 +1,5 @@
 import { userFacingError } from '../../shared/errors/userFacingError'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { MatchTeam } from '../../design-system'
 import { useAuth } from '../auth/AuthProvider'
 import { useTournamentData } from '../../app/providers/TournamentDataProvider'
@@ -13,6 +13,7 @@ import {
   type LeagueStanding,
 } from '../../domain/tournament/homeDashboard'
 import { fetchLeaderboardPage } from '../../services/supabase/leaderboard'
+import { useLiveResultsVersion } from '../../app/providers/liveResultsContext'
 import {
   fetchLeagueMembersPage,
   fetchMyLeagues,
@@ -77,8 +78,13 @@ export function useHomeData(): HomeState {
   const data = useTournamentData()
   const preds = usePredictions()
   const [state, setState] = useState<HomeState>({ status: 'loading' })
+  const stateRef = useRef(state)
+  stateRef.current = state
 
   const ready = data.status === 'ready' && preds.ready
+  // ADR 0008: advances when the server says results moved, so Home's own-standing
+  // card refetches from get_leaderboard instead of waiting for a manual refresh.
+  const resultsVersion = useLiveResultsVersion()
   const tournamentId = data.status === 'ready' ? data.data.tournament.id : null
 
   useEffect(() => {
@@ -91,7 +97,12 @@ export function useHomeData(): HomeState {
       return
     }
     let active = true
-    setState({ status: 'loading' })
+    // A refresh of an already-rendered Home must not blank it. This runs again
+    // whenever results move (ADR 0008), and replacing a populated page with a
+    // skeleton every time a goal is confirmed would be worse than not being
+    // live at all. Same rule TournamentDataProvider already follows.
+    const isBackgroundRefresh = stateRef.current.status === 'ready'
+    if (!isBackgroundRefresh) setState({ status: 'loading' })
 
     const td = data.data
     const teamsById = new Map(td.teams.map((team) => [team.id, team]))
@@ -274,7 +285,9 @@ export function useHomeData(): HomeState {
         if (active) setState({ status: 'ready', model })
       })
       .catch((error) => {
-        if (active) {
+        // A failed background refresh keeps the good page the player is looking
+        // at. Only a first load has nothing to fall back to.
+        if (active && !isBackgroundRefresh) {
           setState({
             status: 'error',
             message: userFacingError(error, 'Could not load Home. Please try again.'),
@@ -285,7 +298,7 @@ export function useHomeData(): HomeState {
     return () => {
       active = false
     }
-  }, [data, displayName, preds, ready, tournamentId, userId])
+  }, [data, displayName, preds, ready, tournamentId, userId, resultsVersion])
 
   return state
 }

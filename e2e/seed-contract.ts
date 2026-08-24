@@ -298,8 +298,35 @@
  * and exercises authenticated journeys — including the administrator's —
  * against that rebuilt database, which is the only evidence that actually
  * answers the question this marker asks.
+ *
+ * ── CONTRACT 218, AND FOR ONCE NO REACHABLE CHANGE AT ALL ───────────────────
+ *
+ * The live-results channel. `20260824100000_live_results_channel.sql` adds
+ * `public.matches` to the `supabase_realtime` publication, and that is the
+ * entire migration.
+ *
+ * This marker exists to ask one question: did a migration put a new gate in
+ * front of a read a seeded user performs? Contract 218 cannot have, and the
+ * reason is categorical rather than a matter of inspection. Publication
+ * membership is a REPLICATION property. It takes no part in `select`
+ * authorisation -- there is no policy, grant, role, function, column, table or
+ * default in the diff for a gate to live in. `matches` was readable by
+ * `authenticated` before this contract under `using (true)` and is readable on
+ * exactly the same terms after it.
+ *
+ * The change is therefore invisible to every seeded journey, including the
+ * administrator's. It does not even appear in `database.types.ts`, because a
+ * publication is not part of the generated schema.
+ *
+ * NO RUN IDS ARE QUOTED HERE, and that is deliberate rather than an omission.
+ * The contracts above quote them because each had a reachable change whose
+ * behaviour under a real seeded session was the evidence. This one has no
+ * reachable change to exercise, so the argument above is the evidence, and this
+ * head's own Database parity and Browser E2E runs confirm it rather than
+ * establish it. If either goes red on this head, this note is wrong and the
+ * marker must come back down.
  */
-export const SEED_REVIEWED_AT_CONTRACT = 217
+export const SEED_REVIEWED_AT_CONTRACT = 218
 
 export type SeedIdentity = {
   key: 'admin' | 'player_one' | 'player_two'

@@ -312,6 +312,17 @@ Contract 214 changes only season matchweek confirmation integrity and its bounde
 
 Contract 215 changes only how the private AI Lab decides which forecast is current for a value decision, and its bounded read. It does not change competition identity, game structure, season scheduling, scoring, settlement, progression, reveal, provider ingestion or the programme sequence.
 
+## Contract 218 live-standings review
+
+No programme milestone moves. Contract 218 is the delivery of ADR 0008's
+accepted direction for live result and standing updates, and the ADR was already
+part of the accepted architecture.
+
+The architectural property to preserve is the one the plan cares about: browser
+database access stays inside `src/services/supabase/`, and exactly one module
+there may open a channel. A test enumerates the openers so a second one is a
+failure rather than a discovery.
+
 ## Contract 217 push-channel review
 
 No programme milestone moves. Contract 217 is a second delivery channel for an
