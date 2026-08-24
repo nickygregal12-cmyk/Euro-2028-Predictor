@@ -203,6 +203,15 @@ printf '%s\\n' \\
     }
   })
 
+  it('installs the centrally pinned OpenCode CLI before effective-permission tests', () => {
+    const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
+    const install = workflow.indexOf('"opencode-ai@${version}"')
+    const effectiveTest = workflow.indexOf('npx vitest run tests/scripts/ownerModePermissions.test.ts')
+    expect(workflow).toContain("require('./config/agent-tools.json').opencode.version")
+    expect(install).toBeGreaterThan(-1)
+    expect(effectiveTest).toBeGreaterThan(install)
+  })
+
   it('preserves unknown protected env keys while rotating managed values', () => {
     const directory = mkdtempSync(resolve(tmpdir(), 'predictor-cloud-env-'))
     const target = resolve(directory, 'opencode.env')

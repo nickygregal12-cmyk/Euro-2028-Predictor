@@ -86,7 +86,7 @@ jobs:
           bash -n scripts/agent-tools/owner-pr.sh
           node -e "const c=require('./opencode.json'); if (c.default_agent !== 'predictor-conductor') process.exit(1)"
           npm ci
-          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts tests/scripts/ownerModePermissions.test.ts
+          npx vitest run tests/scripts/cloudConductorConfiguration.test.ts
 
       - name: Validate OpenCode loads all tracked agents
         shell: bash
@@ -100,6 +100,7 @@ jobs:
           for agent in predictor-conductor predictor-builder predictor-critic predictor-visual-qa predictor-release-verifier; do
             opencode debug agent "$agent" >/dev/null
           done
+          npx vitest run tests/scripts/ownerModePermissions.test.ts
           bash scripts/agent-tools/mcp-readiness.sh --config-only
           agents="$(opencode agent list)"
           printf '%s\n' "$agents"
