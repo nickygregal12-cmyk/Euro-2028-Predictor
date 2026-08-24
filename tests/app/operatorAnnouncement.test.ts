@@ -171,4 +171,32 @@ describe('the operator control', () => {
     expect(workflow).toContain('git pull --rebase origin main')
     expect(workflow).not.toContain('--force')
   })
+
+  it('claims a commit only after the push actually succeeded', () => {
+    // THE FALSE-SUCCESS CHANNEL. A rejected push leaves the newly composed text
+    // in a workspace file nobody else can see; printing that under "the
+    // committed record" is how an operator walks away believing a maintenance
+    // notice is live when it is not. This repository closed the same hole in
+    // the journey probe once already.
+    const summary = workflow.slice(workflow.indexOf('Say what actually happened'))
+
+    // `pushed` is set inside the success branch of the push loop, not beside it.
+    const commitStep = workflow.slice(
+      workflow.indexOf('- name: Commit it'),
+      workflow.indexOf('- name: Say what actually happened'),
+    )
+    const pushSucceeded = commitStep.indexOf('if git push origin HEAD:main; then')
+    const marksPushed = commitStep.indexOf("echo 'pushed=true'")
+    expect(pushSucceeded).toBeGreaterThan(-1)
+    expect(marksPushed).toBeGreaterThan(pushSucceeded)
+
+    // The summary decides on that output, and reads the COMMIT rather than the
+    // workspace, so it cannot show text that was never pushed.
+    expect(summary).toContain("[ \"${PUSHED:-}\" = 'true' ]")
+    expect(summary).toContain('git show HEAD:config/operator-announcement.json')
+    expect(summary).not.toContain('cat config/operator-announcement.json')
+
+    // And it says so plainly when nothing landed.
+    expect(summary).toContain('NOTHING WAS COMMITTED')
+  })
 })

@@ -138,6 +138,7 @@ jobs:
           "
 
       - name: Commit it
+        id: commit
         shell: bash
         env:
           ACTION: ${{ inputs.action }}
@@ -154,6 +155,7 @@ jobs:
           fi
 
           if git diff --quiet -- config/operator-announcement.json; then
+            echo 'unchanged=true' >> "$GITHUB_OUTPUT"
             echo 'The record already says this. Nothing to commit.'
             exit 0
           fi
@@ -168,6 +170,10 @@ jobs:
           # nothing else, because nothing else is committed here.
           for attempt in 1 2 3; do
             if git push origin HEAD:main; then
+              # Set ONLY after the push actually succeeded. The summary below
+              # reads this and nothing else to decide whether it may say the
+              # word "committed".
+              echo 'pushed=true' >> "$GITHUB_OUTPUT"
               exit 0
             fi
             echo "Push rejected (attempt ${attempt}); rebasing onto main and retrying." >&2
@@ -177,19 +183,41 @@ jobs:
           echo 'STOP: could not write the announcement after three attempts.' >&2
           exit 1
 
-      - name: Say what it now reads
+      - name: Say what actually happened
         if: always()
         shell: bash
+        env:
+          PUSHED: ${{ steps.commit.outputs.pushed }}
+          UNCHANGED: ${{ steps.commit.outputs.unchanged }}
         run: |
           set -euo pipefail
+
+          # READS THE COMMIT, NEVER THE WORKSPACE. The workspace file holds what
+          # this run composed, which is not the same thing as what players will
+          # get: a rejected push leaves the new text sitting in a file nobody
+          # else can see. Printing that under "the committed record" is how an
+          # operator walks away believing a maintenance notice is live when it
+          # is not -- the same false-success channel this repository already
+          # closed once in the journey probe.
           {
             echo '## Operator announcement'
             echo
-            echo 'The committed record now reads:'
-            echo
-            echo '```json'
-            cat config/operator-announcement.json
-            echo '```'
-            echo
-            echo 'It reaches players on the next deploy of the default branch.'
+            if [ "${PUSHED:-}" = 'true' ]; then
+              echo "Committed as $(git rev-parse --short HEAD). The record on the default branch now reads:"
+              echo
+              echo '```json'
+              git show HEAD:config/operator-announcement.json
+              echo '```'
+              echo
+              echo 'It reaches players on the next deploy of the default branch.'
+            elif [ "${UNCHANGED:-}" = 'true' ]; then
+              echo 'NOTHING WAS COMMITTED, because the record already said this.'
+              echo 'What players see is unchanged.'
+            else
+              echo 'NOTHING WAS COMMITTED. What players see is unchanged.'
+              echo
+              echo 'Read the failing step above for the reason. No content is shown'
+              echo 'here on purpose: the only text worth trusting is what is on the'
+              echo 'default branch, and this run did not put anything there.'
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
