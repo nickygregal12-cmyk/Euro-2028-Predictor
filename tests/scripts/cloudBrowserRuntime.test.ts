@@ -31,10 +31,16 @@ describe('persistent cloud browser runtime', () => {
   it('points both browser MCPs at the same explicit headless executable', () => {
     const runtime = JSON.parse(read('config/browser-runtime.json')) as { executableLink: string }
     const claude = JSON.parse(read('.mcp.json')) as {
-      mcpServers: Record<string, { args: string[] }>
+      mcpServers: {
+        playwright: { args: string[] }
+        'chrome-devtools': { args: string[] }
+      }
     }
     const opencode = JSON.parse(read('opencode.json')) as {
-      mcp: Record<string, { command?: string[] }>
+      mcp: {
+        playwright: { command: string[] }
+        'chrome-devtools': { command: string[] }
+      }
     }
 
     const playwrightArgs = claude.mcpServers.playwright.args
