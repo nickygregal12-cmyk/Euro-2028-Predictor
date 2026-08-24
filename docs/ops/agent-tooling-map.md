@@ -23,6 +23,7 @@ This file **routes only**. The architecture and authority model lives in [`../ar
 | Which configured model/provider should a compatible coding CLI use? | **OmniRoute** | optional developer infrastructure |
 | How do I run Ox Alpha as a separate cloud coding/review worker? | **OpenCode** via `scripts/agent-tools/ox-alpha.sh` | optional external-model agent |
 | How do I use one private front door for subscription/free-first multi-model work? | **Predictor Conductor** via OpenCode Web + Tailscale | optional persistent developer infrastructure |
+| Which programme task runs next, and what is a pull request actually waiting on? | **Loop Bootstrap** via `node scripts/control-plane/cli.mjs` | deterministic control state |
 
 Do not chain all of these automatically. Start with authority, then use only the specialist that answers the missing question.
 
@@ -64,6 +65,7 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | Install/run/activate developer tools | [`developer-toolchain.md`](developer-toolchain.md) |
 | Repository graph navigation | [`graphify-navigation.md`](graphify-navigation.md) |
 | Coding-model/provider routing | [`omniroute-agent-routing.md`](omniroute-agent-routing.md) |
+| Deterministic loop/task/checkpoint state | [`control-plane-loop-bootstrap.md`](control-plane-loop-bootstrap.md) |
 | Ox Alpha cloud development | [`ox-alpha-cloud-development.md`](ox-alpha-cloud-development.md) |
 | Persistent private Conductor | [`persistent-cloud-conductor.md`](persistent-cloud-conductor.md) |
 | Offline analytical SQL | [`offline-analytics.md`](offline-analytics.md) |
