@@ -63,7 +63,7 @@ describe('persistent private cloud Conductor', () => {
     const claude = read('scripts/agent-tools/claude-review.sh')
     const claudeInstall = read('scripts/agent-tools/cloud-conductor-claude-install.sh')
     const tools = JSON.parse(read('config/agent-tools.json')) as {
-      claudeCode?: { repository?: string; version?: string; mode?: string }
+      claudeCode?: { package?: string; version?: string; mode?: string }
     }
 
     expect(ox).toContain('--agent predictor-critic')
@@ -78,7 +78,7 @@ describe('persistent private cloud Conductor', () => {
     expect(claude).toContain('Refusing Claude review')
     expect(claude).not.toContain('--console')
 
-    expect(tools.claudeCode?.repository).toBe('anthropics/claude-code')
+    expect(tools.claudeCode?.package).toBe('@anthropic-ai/claude-code')
     expect(tools.claudeCode?.version).toMatch(/^\d+\.\d+\.\d+$/)
     expect(tools.claudeCode?.mode).toBe('optional-subscription-agent')
     expect(claudeInstall).toContain("require('./config/agent-tools.json').claudeCode.version")
