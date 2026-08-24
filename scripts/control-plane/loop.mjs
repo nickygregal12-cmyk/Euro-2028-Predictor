@@ -127,7 +127,12 @@ export class LoopEngine {
    * @param {string} at
    */
   #settle(task, result, at) {
-    this.store.recordAttempt(task.id, { at, failureClass: result.failureClass })
+    // A superseded run is not an attempt. The work was abandoned because a newer
+    // commit replaced the one being measured, so counting it would spend the
+    // task's three attempts on pushes rather than on problems.
+    if (result.failureClass !== 'SUPERSEDED') {
+      this.store.recordAttempt(task.id, { at, failureClass: result.failureClass })
+    }
 
     if (result.checkpoint) {
       this.store.saveCheckpoint(task.id, { at, ...result.checkpoint })
@@ -160,7 +165,15 @@ export class LoopEngine {
     })
     // A classified failure is real diagnostic progress even though it failed;
     // an unclassified one is not, so the stall detector still fires on thrash.
-    if (result.failureClass && result.failureClass !== 'UNKNOWN') this.store.recordProgress(at)
+    // SUPERSEDED is neither: nothing was learned and nothing was attempted, so
+    // it must not reset the stall clock either.
+    if (
+      result.failureClass &&
+      result.failureClass !== 'UNKNOWN' &&
+      result.failureClass !== 'SUPERSEDED'
+    ) {
+      this.store.recordProgress(at)
+    }
     return {
       at,
       outcome: exhausted ? 'BLOCKED' : 'FAILED',

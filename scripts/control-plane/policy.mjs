@@ -26,7 +26,8 @@
  * @typedef {{ maxAttemptsPerTask: number, maxRepeatedIdenticalFailures: number,
  *   maxNoProgressCycles: number, noProgressStallMs: number, maxPullRequests: number }} Limits
  *
- * @typedef {{ name: string, status?: string, conclusion?: string, output?: string }} Check
+ * @typedef {{ name: string, status?: string, conclusion?: string, output?: string,
+ *   runSha?: string }} Check
  *
  * @typedef {{ number?: number, state?: string, draft?: boolean, merged?: boolean,
  *   headSha?: string, baseSha?: string, baseChangedSince?: boolean, mergeable?: boolean|undefined,
@@ -99,6 +100,7 @@ export const FAILURE_CLASSES = Object.freeze([
   'PROVIDER_OUTAGE',
   'HOST_RESOURCE_LIMIT',
   'HOST_UNREACHABLE',
+  'SUPERSEDED',
   'UNKNOWN',
 ])
 
@@ -256,12 +258,19 @@ export function assessLiveness(run, nowIso, limits = DEFAULT_LIMITS) {
  * never inferred from a failure alone — only from a prior green on the same SHA.
  *
  * @param {{ name?: string, output?: string, hostUnreachable?: boolean, policyDenied?: boolean,
- *   redOnBase?: boolean, previouslyGreenOnSameSha?: boolean }} signal
+ *   redOnBase?: boolean, previouslyGreenOnSameSha?: boolean, superseded?: boolean }} signal
  * @returns {string}
  */
 export function classifyFailure(signal) {
   const text = `${signal.name ?? ''} ${signal.output ?? ''}`.toLowerCase()
 
+  // A run cancelled because a newer commit replaced the one it was measuring
+  // did not fail; it was abandoned, and the new head has its own run. Observed
+  // twice on 24 August 2026 on PR #1044, where pushing a fix mid-run left the
+  // merge gate reporting `CI_RESULT: cancelled` against a commit that was no
+  // longer the head. Classified first, because the cancellation reason matters
+  // more than anything else the output happens to contain.
+  if (signal.superseded) return 'SUPERSEDED'
   if (signal.hostUnreachable) return 'HOST_UNREACHABLE'
   if (signal.policyDenied) return 'POLICY_DENIAL'
   if (/\b(401|403|unauthorized|forbidden|bad credentials)\b/.test(text)) return 'AUTH_REQUIRED'
@@ -288,6 +297,7 @@ export function classifyFailure(signal) {
 
 /** Failure classes the loop must never try to "fix" by changing branch code. */
 export const NOT_OUR_CODE = Object.freeze([
+  'SUPERSEDED',
   'INHERITED_FAILURE',
   'CI_INFRA_FAILURE',
   'EXTERNAL_SERVICE_FAILURE',

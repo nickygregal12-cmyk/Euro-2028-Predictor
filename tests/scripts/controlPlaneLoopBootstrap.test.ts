@@ -125,6 +125,138 @@ describe('failure classification', () => {
   })
 })
 
+describe('a run replaced by a newer push is not a failure of this branch', () => {
+  it('classifies a superseded cancellation ahead of anything in its output', () => {
+    // Observed twice on PR #1044: pushing a fix mid-run left the merge gate
+    // reporting `CI_RESULT: cancelled` against a commit that was no longer the
+    // head. Nothing broke; the run was abandoned.
+    expect(classifyFailure({ name: 'ci', output: 'CI_RESULT: cancelled', superseded: true })).toBe(
+      'SUPERSEDED',
+    )
+    // The reason outranks the text: a superseded run whose log happens to carry
+    // assertion noise is still superseded.
+    expect(
+      classifyFailure({ name: 'ci', output: 'expected true to be false', superseded: true }),
+    ).toBe('SUPERSEDED')
+  })
+
+  it('derives it from the SHA the run measured, not from the word cancelled', () => {
+    const pr = normalisePullRequest(
+      {
+        number: 1044,
+        state: 'open',
+        mergeable: true,
+        headSha: 'newhead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    expect(triagePullRequest(pr).failures[0]).toMatchObject({ failureClass: 'SUPERSEDED' })
+  })
+
+  it('still calls a cancellation on the current head a real problem', () => {
+    // Cancelled while measuring this very commit is not superseded — something
+    // stopped it, and that is worth a repair task.
+    const pr = normalisePullRequest(
+      {
+        number: 1044,
+        state: 'open',
+        mergeable: true,
+        headSha: 'samehead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'samehead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    expect(triagePullRequest(pr).failures[0]?.failureClass).not.toBe('SUPERSEDED')
+  })
+
+  it('blocks the merge either way, because cancelled evidence is not a pass', () => {
+    const pr = normalisePullRequest(
+      {
+        number: 1044,
+        state: 'open',
+        mergeable: true,
+        headSha: 'newhead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    expect(evaluateMergeEligibility(pr).blockers).toContain('check_cancelled:gate')
+  })
+
+  it('waits for the new head rather than queuing repair work for a push', () => {
+    const pr = normalisePullRequest(
+      {
+        number: 1044,
+        state: 'open',
+        mergeable: true,
+        headSha: 'newhead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    const triage = triagePullRequest(pr)
+    // Classifying it but still routing to REPAIR_CI would manufacture work out
+    // of a push, which is the whole thing this avoids.
+    expect(triage).toMatchObject({ status: 'WAITING_CI', nextAction: 'WATCH_CI' })
+    expect(triage.mergeEligible).toBe(false)
+  })
+
+  it('still repairs when a real failure sits alongside a superseded one', () => {
+    const pr = normalisePullRequest(
+      {
+        number: 1044,
+        state: 'open',
+        mergeable: true,
+        headSha: 'newhead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+          { name: 'tests', status: 'completed', conclusion: 'failure', head_sha: 'newhead' },
+        ],
+      },
+      { requiredCheckNames: ['gate', 'tests'] },
+    )
+    expect(triagePullRequest(pr).nextAction).toBe('REPAIR_CI')
+  })
+
+  it('spends no attempt and no stall credit on a superseded run', async () => {
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'A', handler: 'superseded', order: 0 })
+
+    let calls = 0
+    const engine = new LoopEngine({
+      store,
+      now: () => T0,
+      handlers: {
+        superseded: async () => {
+          calls += 1
+          return { ok: false, failureClass: 'SUPERSEDED', evidence: 'replaced by a newer push' }
+        },
+      },
+    })
+
+    await engine.tick()
+    await engine.tick()
+    await engine.tick()
+
+    // Three pushes must not exhaust a task's three attempts: nothing was tried.
+    expect(calls).toBe(3)
+    expect(store.loadTasks().A?.attempts).toBe(0)
+    expect(store.loadTasks().A?.status).not.toBe('BLOCKED')
+    // And nothing was learned, so the stall clock is untouched.
+    expect(store.loadRun()?.lastProgressAt).toBe(T0)
+  })
+})
+
 describe('merge eligibility is decided from GitHub state, not assertion', () => {
   const greenPr = {
     state: 'open',

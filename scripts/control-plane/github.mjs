@@ -23,7 +23,14 @@ export function normalisePullRequest(raw, { requiredCheckNames = [], baseSha } =
 
   const observed = new Map()
   for (const run of checkRuns) {
-    observed.set(run.name, { name: run.name, status: run.status, conclusion: run.conclusion })
+    observed.set(run.name, {
+      name: run.name,
+      status: run.status,
+      conclusion: run.conclusion,
+      // Kept so triage can tell a cancelled run that measured an older commit
+      // from one that was cancelled while measuring this head.
+      runSha: run.head_sha ?? run.runSha,
+    })
   }
   for (const status of statuses) {
     observed.set(status.context, {
@@ -81,6 +88,13 @@ export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha
       failureClass: classifyFailure({
         name: check.name,
         output: check.output,
+        // Cancelled against a commit that is no longer the head means a newer
+        // push replaced it, not that this branch broke anything.
+        superseded:
+          check.conclusion === 'cancelled' &&
+          Boolean(check.runSha) &&
+          Boolean(pr.headSha) &&
+          check.runSha !== pr.headSha,
         redOnBase: redOnBase.includes(check.name),
         previouslyGreenOnSameSha: previouslyGreenOnSameSha.includes(check.name),
       }),
@@ -90,13 +104,24 @@ export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha
     .filter((check) => check.status !== 'completed')
     .map((check) => check.name)
 
+  // A pull request whose only failing checks were superseded has nothing to
+  // repair: those runs measured a commit that is no longer the head, and the
+  // current head has runs of its own. Routing it to repair would manufacture
+  // work out of a push. It still cannot merge — cancelled evidence is not a
+  // pass — so it waits for the new head's runs instead.
+  const onlySuperseded =
+    failures.length > 0 && failures.every((failure) => failure.failureClass === 'SUPERSEDED')
+  const routed = onlySuperseded
+    ? { status: /** @type {const} */ ('WAITING_CI'), nextAction: 'WATCH_CI' }
+    : { status: next.status, nextAction: next.nextAction }
+
   return {
     number: pr.number,
     headSha: pr.headSha,
     mergeEligible: merge.eligible,
     blockers: merge.blockers,
-    status: next.status,
-    nextAction: next.nextAction,
+    status: routed.status,
+    nextAction: routed.nextAction,
     failures,
     pending,
     unresolvedThreads: (pr.reviewThreads ?? []).filter(
