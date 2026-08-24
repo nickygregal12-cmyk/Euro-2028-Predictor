@@ -4,6 +4,7 @@
 // and the joker flag.
 
 import { db } from './client'
+import { recordProductEvent } from '../analytics/productEvents'
 import { rpcArgs } from './rpcArguments'
 import { preparedInsert } from './preparedInsert'
 import { VersionConflictError, isVersionConflict } from './writeConflict'
@@ -120,6 +121,11 @@ export async function getOrCreateEntry(userId: string, tournamentId: string): Pr
 export async function submitEntry(entryId: string): Promise<string> {
   const { data, error } = await db.rpc('submit_entry', { p_entry_id: entryId })
   if (error) throw error
+  // Recorded HERE rather than at the caller, so no submission path can be added
+  // later that forgets to count. Fire-and-forget and after the server said yes:
+  // an attempt that failed is not a submission, and analytics must not delay
+  // the timestamp a player is waiting for.
+  recordProductEvent('entry_submitted', {})
   return data as string
 }
 

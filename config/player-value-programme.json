@@ -185,11 +185,19 @@
       "dependencies": [
         "0"
       ],
-      "status": "in_progress",
-      "pr": null,
-      "headSha": null,
-      "mergedSha": null,
-      "acceptanceEvidence": [],
+      "status": "complete",
+      "pr": 1024,
+      "headSha": "c3308d37758310045a75227f357846467b442008",
+      "mergedSha": "60d2980feee1eb3c2886e4c065bb64845cdd11b9",
+      "acceptanceEvidence": [
+        "An operator can put a short service message in front of players and take it down again, without editing a file by hand and without a deploy-time code change.",
+        "It is deliberately not database-backed, and the reason was measured rather than assumed: every browser call is typechecked against types generated from a hosted environment that trails the repository, so a new table or function cannot be called from the application until those types are regenerated with a credential no agent session holds. Building it that way would have shipped a second stage blocked on the same missing credential.",
+        "The independent reason stands on its own: a banner held in the database cannot be shown when the database is down, which is the outage most worth announcing. Holding the message in the repository means it survives the failure it describes. The cost is stated rather than hidden, because publishing then takes a build and a deploy.",
+        "The control reuses the guarded commit step the synthetic probe already proved: one file, and a refusal to push if anything else in the workspace is modified, so version history is the audit trail.",
+        "The run summary says a message was committed only after a push actually succeeded, and reads the commit rather than the workspace. A rejected push leaves new text in a file nobody else can see, and reporting that as live is how an operator walks away believing a notice is up when it is not.",
+        "Every announcement expires. A record with no expiry is treated as broken rather than as permanent, because a banner nobody remembers to withdraw is how a maintenance notice greets players a week later.",
+        "The message is the one string on the page written outside the codebase, so the reader refuses rather than repairs: malformed, over-long, unknown level, expired or absent all render nothing, and hostile markup reaches the page as characters, proved in a document rather than by reading the source."
+      ],
       "blocker": null
     },
     {
@@ -198,7 +206,7 @@
       "dependencies": [
         "0"
       ],
-      "status": "not_started",
+      "status": "in_progress",
       "pr": null,
       "headSha": null,
       "mergedSha": null,

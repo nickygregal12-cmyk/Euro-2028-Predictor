@@ -1,6 +1,7 @@
 // Profile query wrappers.
 
 import { db } from './client'
+import { recordProductEvent } from '../analytics/productEvents'
 
 export type Profile = {
   id: string
@@ -67,6 +68,8 @@ export async function updateReminderEmails(
     .update({ reminder_emails: reminderEmails })
     .eq('id', userId)
   if (error) throw error
+  // Which way it was turned is the whole signal; who turned it is not recorded.
+  recordProductEvent('reminders_changed', { enabled: reminderEmails })
 }
 
 export async function fetchWelcomedAt(userId: string): Promise<{ welcomedAt: string | null }> {

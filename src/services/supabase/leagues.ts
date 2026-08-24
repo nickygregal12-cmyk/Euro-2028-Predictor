@@ -7,6 +7,7 @@
 // successful empty account or league.
 
 import { db } from './client'
+import { recordProductEvent } from '../analytics/productEvents'
 import {
   reportOperationFailure,
   serverCodeOf,
@@ -144,6 +145,10 @@ export async function joinLeague(code: string): Promise<{ id: string; name: stri
   }
   const row = (data ?? [])[0]
   if (!row) throw new Error('Join returned no league')
+  // Two call sites reach this function; counting here means neither can drift.
+  // Carries no code, no league id and no name -- the event type has nowhere to
+  // put them, which is the same rule the failure path above already follows.
+  recordProductEvent('league_joined', {})
   return { id: row.id, name: row.name }
 }
 

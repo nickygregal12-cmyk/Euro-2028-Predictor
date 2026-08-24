@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router'
 import { Alert, Button, Skeleton } from '../../design-system'
 import { weeklyRoutes } from '../../app/weeklyRoutes'
@@ -6,6 +6,7 @@ import { useSite } from '../../app/site/SiteProvider'
 import { AuthSplash } from '../auth/AuthSplash'
 import { InvitePreviewCard } from './InvitePreviewCard'
 import { useInviteCode } from './useInviteCode'
+import { recordProductEvent } from '../../services/analytics/productEvents'
 import { useInviteLanding } from './useInviteLanding'
 import j from './join.module.css'
 
@@ -54,6 +55,23 @@ export function JoinLandingPage() {
     if (!ready || !code) return
     void resolve(code)
   }, [ready, code, resolve])
+
+  // ONE EVENT PER LANDING, and it is the numerator's other half: without
+  // knowing how many invitations were opened, `league_joined` is a count with
+  // no denominator and cannot answer whether an acquisition change helped.
+  //
+  // Fired as soon as the landing resolves either way, because arriving without
+  // a session is a real arrival -- it is the branch most likely to be lost, and
+  // recording it only after sign-up would hide exactly that.
+  //
+  // The code is not carried. It is a bearer credential, and there is nowhere in
+  // this event's type to put one.
+  const counted = useRef(false)
+  useEffect(() => {
+    if (counted.current || landing.kind === 'checking') return
+    counted.current = true
+    recordProductEvent('invite_opened', { signedIn: landing.kind === 'ready' })
+  }, [landing.kind])
 
   if (landing.kind === 'checking') return <AuthSplash />
   if (landing.kind === 'sign-up') return <Navigate to="/auth/signup" replace />

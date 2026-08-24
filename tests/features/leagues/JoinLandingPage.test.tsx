@@ -30,6 +30,9 @@ const mocks = vi.hoisted(() => ({
   joinPrivateCompetition: vi.fn(),
   joinLeague: vi.fn(),
   getOrCreateEntry: vi.fn(),
+  recordProductEvent: vi.fn(),
+  landing: { kind: 'ready' as 'checking' | 'ready' | 'sign-up' },
+  landingOverride: false,
 }))
 
 vi.mock('../../../src/features/auth/AuthProvider', () => ({
@@ -48,6 +51,39 @@ vi.mock('../../../src/services/supabase/leagues', () => ({
 vi.mock('../../../src/services/supabase/predictions', () => ({
   getOrCreateEntry: mocks.getOrCreateEntry,
 }))
+
+vi.mock('../../../src/services/analytics/productEvents', () => ({
+  recordProductEvent: mocks.recordProductEvent,
+}))
+
+// Driven rather than inferred, so the once-only guard can actually be exercised.
+// The real hook derives `kind` from auth; the default passes straight through to
+// that behaviour, and only the guard case overrides it.
+vi.mock('../../../src/features/leagues/useInviteLanding', async (importOriginal) => {
+  const actual = await importOriginal<
+    typeof import('../../../src/features/leagues/useInviteLanding')
+  >()
+  return {
+    ...actual,
+    useInviteLanding: (code?: string) => {
+      const real = actual.useInviteLanding(code)
+      return mocks.landingOverride ? { ...real, kind: mocks.landing.kind } : real
+    },
+  }
+})
+
+function Harness({ code = 'ABC234DEF567' }: { code?: string }) {
+  return (
+    <MemoryRouter initialEntries={[`/join/${code}`]}>
+      <Routes>
+        <Route path="/join/:code" element={<JoinLandingPage />} />
+        <Route path="/auth/signup" element={<p>Signup destination</p>} />
+        <Route path="/leagues" element={<p>Private play destination</p>} />
+        <Route path="/league/:leagueId" element={<p>Joined league destination</p>} />
+      </Routes>
+    </MemoryRouter>
+  )
+}
 
 function renderInvite(code = 'ABC234DEF567') {
   return render(
@@ -198,5 +234,84 @@ describe('the invite deep link', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Go to your private play' }))
 
     expect(await screen.findByText('Private play destination')).toBeInTheDocument()
+  })
+})
+
+describe('opening an invitation is counted', () => {
+  // RENDERED, NOT READ. A source-text assertion that the call exists would keep
+  // passing after the effect stopped running -- the wrong dependency array, an
+  // early return moved above it, a ref that never resets. These mount the page.
+  beforeEach(() => {
+    vi.clearAllMocks()
+    clearPendingJoin()
+    mocks.auth.userId = null
+    mocks.auth.loading = false
+    mocks.landingOverride = false
+  })
+
+  it('counts a signed-out arrival, which is the branch most likely to be lost', async () => {
+    mocks.auth.userId = null
+    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+    renderInvite()
+
+    await waitFor(() => {
+      expect(mocks.recordProductEvent).toHaveBeenCalledWith('invite_opened', {
+        signedIn: false,
+      })
+    })
+  })
+
+  it('counts a signed-in arrival as signed in', async () => {
+    mocks.auth.userId = 'player-1'
+    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+    renderInvite()
+
+    await waitFor(() => {
+      expect(mocks.recordProductEvent).toHaveBeenCalledWith('invite_opened', {
+        signedIn: true,
+      })
+    })
+  })
+
+  it('counts one arrival once even if the landing decides twice', async () => {
+    // WHAT THE `counted` REF ACTUALLY PROTECTS, driven rather than assumed.
+    //
+    // The effect depends on `landing.kind`, so during an ordinary visit it runs
+    // once anyway and a test that merely re-renders proves nothing -- an
+    // earlier version of this case passed with the ref deleted, which is why it
+    // is written this way now. The ref earns its place when the landing resolves
+    // more than once: auth settling late, a session expiring mid-visit. Then a
+    // second decision would count a second arrival and inflate the very
+    // denominator `invite_opened` exists to provide.
+    mocks.auth.userId = 'player-1'
+    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+
+    mocks.landingOverride = true
+    mocks.landing.kind = 'checking'
+    const { rerender } = renderInvite()
+    expect(mocks.recordProductEvent).not.toHaveBeenCalled()
+
+    mocks.landing.kind = 'ready'
+    rerender(<Harness />)
+    await waitFor(() => expect(mocks.recordProductEvent).toHaveBeenCalledTimes(1))
+
+    // A second, different decision. Without the ref this counts again.
+    mocks.landing.kind = 'sign-up'
+    rerender(<Harness />)
+    await waitFor(() => expect(screen.queryByText('Signup destination')).not.toBeNull())
+    expect(mocks.recordProductEvent).toHaveBeenCalledTimes(1)
+  })
+
+  it('never carries the code that made the invitation work', async () => {
+    // The code is a bearer credential. The event type has nowhere to put one,
+    // and this proves no caller found a way regardless.
+    mocks.auth.userId = 'player-1'
+    mocks.resolveInviteCode.mockResolvedValue(LEAGUE_INVITE)
+    renderInvite('SECRETCODE99')
+
+    await waitFor(() => expect(mocks.recordProductEvent).toHaveBeenCalled())
+    for (const call of mocks.recordProductEvent.mock.calls) {
+      expect(JSON.stringify(call)).not.toContain('SECRETCODE99')
+    }
   })
 })
