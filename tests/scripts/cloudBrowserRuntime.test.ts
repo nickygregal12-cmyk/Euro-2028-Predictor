@@ -54,19 +54,27 @@ describe('persistent cloud browser runtime', () => {
     expect(opencode.mcp['chrome-devtools'].command).toEqual(['npx', ...devtoolsArgs])
   })
 
-  it('installs the browser from pinned config during cloud bootstrap and doctors it', () => {
+  it('installs and attests only the exact version-specific browser runtime', () => {
     const install = read('scripts/agent-tools/cloud-browser-install.sh')
     const conductorInstall = read('scripts/agent-tools/cloud-conductor-install.sh')
     const doctor = read('scripts/agent-tools/cloud-conductor-doctor.sh')
 
     expect(install).toContain("require('./config/browser-runtime.json')")
+    expect(install).toContain('runtime_root="${install_root}/${installer_version}"')
+    expect(install).toContain('PLAYWRIGHT_BROWSERS_PATH=$runtime_root')
+    expect(install).toContain('sudo find "$runtime_root"')
     expect(install).toContain('install --with-deps "$browser_name"')
-    expect(install).toContain('PLAYWRIGHT_BROWSERS_PATH=$install_root')
+    expect(install).toContain('p.runtimeRoot === process.argv[5]')
     expect(install).toContain('coupledMcpVersion')
     expect(conductorInstall).toContain('bash scripts/agent-tools/cloud-browser-install.sh')
     expect(doctor).toContain("require('./config/browser-runtime.json').executableLink")
     expect(doctor).toContain("ready 'Browser runtime'")
     expect(doctor).toContain("missing 'Browser runtime'")
+
+    const launchProof = install.indexOf('if ! browser_version="$($executable_link --version')
+    const provenanceWrite = install.indexOf('| sudo tee "$provenance_file"')
+    expect(launchProof).toBeGreaterThan(-1)
+    expect(provenanceWrite).toBeGreaterThan(launchProof)
   })
 
   it('keeps all Stage 0 cloud shell entrypoints syntactically valid', () => {
