@@ -10,9 +10,9 @@ usage() {
 Usage:
   bash scripts/agent-tools/claude-review.sh "REVIEW TASK"
 
-Runs the official Claude Code client non-interactively in plan mode. The bridge
-is intentionally read-only and refuses provider/API environment overrides so a
-Claude.ai subscription review cannot silently become API or cloud-provider billing.
+Runs the repository-supported official Claude Code client non-interactively in
+plan mode. The bridge is read-only and refuses version/provider/API drift so a
+Claude.ai subscription review cannot silently become another billing route.
 EOF
 }
 
@@ -26,9 +26,17 @@ if ! command -v claude >/dev/null 2>&1; then
   exit 1
 fi
 
+supported_version="$(node -p "require('./config/agent-tools.json').claudeCode.version")"
+installed_version="$(claude --version 2>/dev/null | awk 'NR == 1 {print $1}' || true)"
+if [ -z "$supported_version" ] || [ "$installed_version" != "$supported_version" ]; then
+  printf 'Refusing Claude review because the client version drifted: expected %s, got %s. Re-run scripts/agent-tools/cloud-conductor-claude-install.sh.\n' "${supported_version:-unknown}" "${installed_version:-unknown}" >&2
+  exit 1
+fi
+
 for variable in \
   ANTHROPIC_API_KEY \
   ANTHROPIC_AUTH_TOKEN \
+  ANTHROPIC_BASE_URL \
   CLAUDE_CODE_USE_BEDROCK \
   CLAUDE_CODE_USE_VERTEX \
   CLAUDE_CODE_USE_FOUNDRY; do
