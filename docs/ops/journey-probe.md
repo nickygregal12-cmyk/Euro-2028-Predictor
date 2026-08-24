@@ -61,18 +61,38 @@ people to ignore red.
 which origin, each step's outcome, and a reason for anything that failed. It
 carries **no player data** — there is none in it to carry.
 
-**Publishing is deliberate, and the workflow cannot do it.** The scheduled job
-holds read-only permissions and no push credential: it writes its record to the
-runner's temporary directory, prints it to the job summary and uploads it as an
-artifact. Nothing carries that into the repository, so `/status` shows the last
-record somebody committed.
+**The record publishes itself, under guard.** The workflow is two jobs, and the
+split is the security boundary:
 
-That is a choice rather than an omission. Granting a scheduled job write access
-to the repository is an operator decision — `OPS-010` is the open row about a
-verified record failing to reach `main`, and this stage did not want to add a
-second way for that to matter. **Until a record is committed, `/status` honestly
-says no check has been recorded yet.** To publish one, commit the artifact's
-contents to `config/journey-probe-record.json` in a pull request.
+- `walk` touches the network and holds **no** write access and no push
+  credential. It writes its record to the runner's temporary directory and
+  uploads it as an artifact.
+- `publish` holds `contents: write` and makes **no network request of its own**.
+  It takes the artifact the first job produced and commits it to `main`.
+
+Neither job can both fetch a remote document and push to the default branch,
+which is the combination worth denying.
+
+### What the publisher refuses to do
+
+- **It will not commit anything but the record.** Before committing it asserts
+  that nothing else in the workspace is modified, and stops if anything is.
+- **It will not fill the history with runs that say nothing new.**
+  `scripts/journey-probe/publishDecision.mjs` decides, and it is a pure function
+  with its own tests. It publishes when the *answer* changes — including a
+  recovery, and including the same failure for a different reason — and
+  otherwise no more than once a day.
+
+  Both naive rules are wrong and both are tested as such. Committing every run
+  gives four commits a day that differ only in a timestamp. Committing only on
+  change makes a stopped probe look exactly like a stable system, which is the
+  failure this whole stage exists to avoid.
+- **It will not report a run it did not make.** The summary is gated on the walk
+  having run, and the record is read from the runner's temp rather than the
+  tracked file, which exists the moment checkout finishes.
+- **It publishes a BROKEN journey too.** The publish job runs on `always()`,
+  because a publisher that only ran on success would hold the page green through
+  an outage.
 
 `/status` renders that record, built by the `euro28-status-document` plugin the
 same way the invite document is built. Three rules govern it, and they are

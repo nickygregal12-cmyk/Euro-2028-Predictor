@@ -52,11 +52,12 @@ and its most recent result is recorded and rendered honestly.
 - Its checks expressed as data and evaluated by a pure function, so each one is
   unit-testable without a network.
 - A record of each run, printed to the job summary and kept as an artifact.
-- A committed record of the most recent **published** run, which `/status` renders.
-  Publishing is a deliberate commit, not something the scheduled job can do: it
-  holds read-only permissions and no push credential, because granting a
-  scheduled job write access to the repository is an operator decision and
-  `OPS-010` is already the open row about records failing to reach `main`.
+- A committed record that the workflow maintains itself, published under guard by
+  a second job that holds write access and makes no network request, so no job
+  can both fetch a remote document and push to the default branch.
+- A publish decision that is a pure, tested function rather than inline shell:
+  publish when the answer changes, and otherwise no more than once a day, so the
+  history stays skimmable without a stopped probe looking like a stable one.
 - A status document rendered from that record, built the same way the invite
   document is, and honest that it is a snapshot rather than a live heartbeat.
 

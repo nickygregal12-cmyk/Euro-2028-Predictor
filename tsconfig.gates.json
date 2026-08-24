@@ -34,6 +34,7 @@
     "scripts/og/generate-site-icons.mjs",
     "scripts/database-rollout/verify-production-211-to-217.mjs",
     "scripts/journey-probe/checks.mjs",
+    "scripts/journey-probe/publishDecision.mjs",
     "scripts/journey-probe/run.mjs"
   ]
 }

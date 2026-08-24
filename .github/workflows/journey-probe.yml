@@ -13,6 +13,12 @@ name: Synthetic journey probe
 # It does NOT replace what already exists. The perimeter, headers, CSP parity and
 # release identity are covered by the production smokes; none of them walks a
 # person through anything, which is the gap this fills.
+#
+# TWO JOBS, AND THE SPLIT IS THE SECURITY BOUNDARY. `walk` touches the network
+# and holds NO write access or push credential. `publish` holds write access and
+# touches no network — it only moves a record this repository's own job already
+# produced. Neither job can both fetch a remote document and push to the default
+# branch, which is the combination worth denying.
 
 on:
   workflow_dispatch:
@@ -131,14 +137,6 @@ jobs:
             echo '```json'
             cat "$record"
             echo '```'
-            echo
-            echo 'PUBLISHING IS DELIBERATE, NOT AUTOMATIC. This job holds read-only'
-            echo 'permissions and no push credential, so it cannot move this record'
-            echo 'into the repository, and /status renders the COMMITTED record.'
-            echo 'To publish a result, commit it to config/journey-probe-record.json'
-            echo 'in a pull request. Granting a scheduled job write access to the'
-            echo 'repository is an operator decision, not one this workflow makes for'
-            echo 'itself.'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Keep the record retrievable
@@ -149,3 +147,134 @@ jobs:
           path: ${{ runner.temp }}/journey-probe-record.json
           if-no-files-found: ignore
           retention-days: 30
+
+  publish:
+    name: Publish the record
+    needs: walk
+    # ALWAYS, because a BROKEN journey is the result most worth publishing. A
+    # publisher that only ran on success would keep the page green through an
+    # outage, which is the one thing it must never do.
+    if: always() && github.repository == 'nickygregal12-cmyk/Euro-2028-Predictor'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      # The only job in this workflow with write access, and it makes no network
+      # request of its own.
+      contents: write
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: main
+          persist-credentials: true
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Take the record this run produced
+        id: fetched
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v7
+        continue-on-error: true
+        with:
+          name: journey-probe-record
+          path: ${{ runner.temp }}/incoming
+
+      - name: Decide whether it says anything new
+        id: decide
+        if: steps.fetched.outcome == 'success'
+        shell: bash
+        env:
+          INCOMING: ${{ runner.temp }}/incoming/journey-probe-record.json
+        run: |
+          set -euo pipefail
+
+          if [ ! -f "$INCOMING" ]; then
+            echo 'publish=false' >> "$GITHUB_OUTPUT"
+            echo 'reason=The walk produced no record.' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          decision="$(node --input-type=module -e "
+            import { readFileSync } from 'node:fs'
+            const { publishDecision } = await import('./scripts/journey-probe/publishDecision.mjs')
+            const read = (path) => JSON.parse(readFileSync(path, 'utf8'))
+            const result = publishDecision(
+              read('config/journey-probe-record.json'),
+              read(process.env.INCOMING),
+            )
+            process.stdout.write(JSON.stringify(result))
+          ")"
+
+          echo "publish=$(node -p "JSON.parse(process.argv[1]).publish" "$decision")" >> "$GITHUB_OUTPUT"
+          echo "reason=$(node -p "JSON.parse(process.argv[1]).reason" "$decision")" >> "$GITHUB_OUTPUT"
+
+      - name: Publish it
+        if: steps.decide.outputs.publish == 'true'
+        shell: bash
+        env:
+          INCOMING: ${{ runner.temp }}/incoming/journey-probe-record.json
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          set -euo pipefail
+
+          cp "$INCOMING" config/journey-probe-record.json
+
+          # ONE FILE, AND THE GUARD IS NOT A FORMALITY. A job with write access
+          # to the default branch must be unable to carry anything else along,
+          # whatever else happened to land in the workspace.
+          if [ -n "$(git status --porcelain -- . ':!config/journey-probe-record.json')" ]; then
+            echo 'STOP: something other than the probe record is modified; refusing to push.' >&2
+            git status --porcelain >&2
+            exit 1
+          fi
+
+          if git diff --quiet -- config/journey-probe-record.json; then
+            echo 'Nothing to commit after all.'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add config/journey-probe-record.json
+          git commit -m "Record the synthetic journey probe
+
+          ${REASON}"
+
+          # main moves; a scheduled job must not fail because something merged
+          # while it was walking. Rebase keeps the record on top and touches
+          # nothing else, because nothing else is committed here.
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Push rejected (attempt ${attempt}); rebasing onto main and retrying." >&2
+            git pull --rebase origin main
+          done
+
+          echo 'STOP: could not publish the record after three attempts.' >&2
+          exit 1
+
+      - name: Say what was decided
+        if: always()
+        shell: bash
+        env:
+          PUBLISH: ${{ steps.decide.outputs.publish }}
+          REASON: ${{ steps.decide.outputs.reason }}
+        run: |
+          set -euo pipefail
+          {
+            echo '## Publishing the probe record'
+            echo
+            if [ -z "${REASON:-}" ]; then
+              echo 'No decision was reached, so nothing was published.'
+            else
+              echo "Published: ${PUBLISH:-false}"
+              echo
+              echo "${REASON}"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

@@ -229,6 +229,7 @@ describe('JavaScript under scripts/', () => {
     // error here would surface as a status page confidently saying the wrong
     // thing — which is the one failure a status page must not have.
     'scripts/journey-probe/checks.mjs',
+    'scripts/journey-probe/publishDecision.mjs',
     'scripts/journey-probe/run.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',

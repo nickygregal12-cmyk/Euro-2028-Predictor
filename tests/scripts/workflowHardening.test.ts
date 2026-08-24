@@ -22,11 +22,29 @@ const secretBearingWorkflows = [
   'production-backup.yml',
   'production-smoke.yml',
 ]
-const credentialPersistingWorkflows = new Set([
-  'development-hosted-status-followup.yml',
-  'graphify-navigation.yml',
-  'regenerate-database-types.yml',
-  'visual-contracts.yml',
+/**
+ * The jobs allowed to keep a push credential on disk, named as `file#job`.
+ *
+ * WIDENED FROM A LIST OF FILES, and widened rather than relaxed. The old form
+ * said "every checkout in these workflows may persist", which was right while a
+ * pushing workflow was pushing-only. `journey-probe.yml` is the first with two
+ * jobs that must DIFFER: the job that touches the network holds no credential,
+ * and the job that holds the credential touches no network. Per-file, that
+ * workflow could only be described by permitting its network job a token too —
+ * the guard would have forced the removal of the very boundary it exists to
+ * protect.
+ *
+ * Naming the job is strictly stricter: every entry below was previously implied
+ * for a whole file and is now spelled out for one job in it.
+ */
+const credentialPersistingJobs = new Set([
+  'development-hosted-status-followup.yml#record-hosted-contract',
+  'graphify-navigation.yml#build-navigation-graph',
+  'regenerate-database-types.yml#regenerate',
+  'visual-contracts.yml#visual',
+  // Holds contents:write and makes no network request of its own; the walking
+  // job beside it holds neither.
+  'journey-probe.yml#publish',
 ])
 
 describe('workflow supply-chain hardening', () => {
@@ -78,7 +96,7 @@ describe('workflow supply-chain hardening', () => {
     }
   })
 
-  it('disables checkout credential persistence except in the four push jobs', () => {
+  it('disables checkout credential persistence except in the named push jobs', () => {
     const files = execFileSync(
       'git',
       ['ls-files', '.github/workflows/*.yml', '.github/workflows/*.yaml'],
@@ -97,14 +115,15 @@ describe('workflow supply-chain hardening', () => {
           { steps?: Array<{ uses?: string; with?: Record<string, unknown> }> }
         >
       }
-      for (const job of Object.values(workflow.jobs ?? {})) {
+      for (const [jobName, job] of Object.entries(workflow.jobs ?? {})) {
         for (const step of job.steps ?? []) {
           if (!step.uses?.startsWith('actions/checkout@')) continue
           const name = file.split('/').at(-1) ?? file
-          if (credentialPersistingWorkflows.has(name)) {
-            expect(step.with?.['persist-credentials']).not.toBe(false)
+          const key = `${name}#${jobName}`
+          if (credentialPersistingJobs.has(key)) {
+            expect(step.with?.['persist-credentials'], key).not.toBe(false)
           } else {
-            expect(step.with?.['persist-credentials'], file).toBe(false)
+            expect(step.with?.['persist-credentials'], key).toBe(false)
           }
         }
       }
