@@ -192,12 +192,14 @@ printf '%s\\n' \\
   it('runs the cloud smoke when any directly tested helper changes', () => {
     const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
     for (const helper of [
+      'scripts/agent-tools/cloud-browser-install.sh',
       'scripts/agent-tools/configure-claude-settings.mjs',
       'scripts/agent-tools/merge-cloud-env.mjs',
       'scripts/agent-tools/mcp-readiness.sh',
       'scripts/agent-tools/netlify-mcp-fallback.sh',
       'scripts/agent-tools/owner-task-push.sh',
       'scripts/agent-tools/owner-pr.sh',
+      'scripts/agent-tools/stage0-live-acceptance.sh',
     ]) {
       expect(workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`)).toHaveLength(2)
     }
@@ -210,6 +212,32 @@ printf '%s\\n' \\
     expect(workflow).toContain("require('./config/agent-tools.json').opencode.version")
     expect(install).toBeGreaterThan(-1)
     expect(effectiveTest).toBeGreaterThan(install)
+  })
+
+  it('validates tracked agents from complete OpenCode output without printing permissions', () => {
+    const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
+    const step = workflow.match(
+      /- name: Validate OpenCode loads all tracked agents[\s\S]*?(?=\n\s+- name: Summary)/,
+    )?.[0]
+
+    expect(step).toBeDefined()
+    expect(step).toContain('opencode agent list >"$agents_file"')
+    expect(step).toContain('grep -F -x -- "${agent} (${mode})" "$agents_file" >/dev/null')
+    expect(step).toContain("printf 'PASS %s\\n' \"$agent\"")
+    expect(step).not.toMatch(/printf[^\n]*\$agents(?:\b|_file)/)
+    expect(step).not.toMatch(/cat\s+[^\n]*\$agents_file/)
+    expect(step).not.toMatch(/opencode agent list\s*\|/)
+    expect(step).not.toContain('grep -q')
+  })
+
+  it('fails closed while Sentry and PostHog role inventories remain unproven', () => {
+    const releaseVerifier = read('.opencode/agents/predictor-release-verifier.md')
+
+    expect(releaseVerifier).not.toContain('sentry_*: true')
+    expect(releaseVerifier).not.toContain('posthog_*: true')
+    expect(releaseVerifier).not.toMatch(/^\s+sentry_\S*(?:update|create|delete|resolve|feedback)\S*:\s*true$/m)
+    expect(releaseVerifier).not.toMatch(/^\s+posthog_\S*agent[-_]feedback\S*:\s*true$/m)
+    expect(releaseVerifier).toContain('exact live tool inventories remain a Hetzner acceptance blocker')
   })
 
   it('preserves unknown protected env keys while rotating managed values', () => {
@@ -269,7 +297,20 @@ printf '%s\\n' \\
 case "\${1:-}" in
   --version) printf '1.18.19\\n' ;;
   debug) exit 0 ;;
-  mcp) printf '  sentry  Failed to connect: server not ready\\n' ;;
+  mcp) cat <<'MCP'
+  playwright  Connected
+  chrome-devtools  Connected
+  serena  Connected
+  context7  Connected
+  repomix  Connected
+  supabase-dev  Connected (OAuth)
+  supabase-prod  Connected (OAuth)
+  netlify  Connected (OAuth)
+  github  Connected
+  sentry  Failed to connect: server not ready
+  posthog  Connected (OAuth)
+MCP
+    ;;
   *) exit 2 ;;
 esac
 `, { mode: 0o755 })

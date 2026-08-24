@@ -1,0 +1,14 @@
+{
+  "//": [
+    "Pinned browser runtime shared by Playwright MCP and Chrome DevTools MCP on the persistent cloud host.",
+    "The Playwright version is the exact runtime generation used by @playwright/mcp 0.0.79; keep them coupled when upgrading."
+  ],
+  "installerPackage": "playwright",
+  "installerVersion": "1.63.0-alpha-2026-08-05",
+  "browser": "chromium",
+  "installRoot": "/opt/predictor-playwright",
+  "executableLink": "/opt/predictor-browser/chrome",
+  "provenanceFile": "/opt/predictor-browser/runtime.json",
+  "coupledMcpPackage": "@playwright/mcp",
+  "coupledMcpVersion": "0.0.79"
+}

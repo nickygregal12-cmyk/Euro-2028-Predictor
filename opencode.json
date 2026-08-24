@@ -12,12 +12,12 @@
   "mcp": {
     "playwright": {
       "type": "local",
-      "command": ["npx", "-y", "@playwright/mcp@0.0.79"],
+      "command": ["npx", "-y", "@playwright/mcp@0.0.79", "--executable-path=/opt/predictor-browser/chrome", "--headless"],
       "enabled": true
     },
     "chrome-devtools": {
       "type": "local",
-      "command": ["npx", "-y", "chrome-devtools-mcp@1.7.0", "--usageStatistics=false", "--performanceCrux=false"],
+      "command": ["npx", "-y", "chrome-devtools-mcp@1.7.0", "--executablePath=/opt/predictor-browser/chrome", "--headless", "--isolated", "--usageStatistics=false", "--performanceCrux=false"],
       "enabled": true
     },
     "serena": {

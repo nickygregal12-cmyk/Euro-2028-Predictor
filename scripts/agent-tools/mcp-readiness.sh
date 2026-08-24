@@ -35,28 +35,67 @@ raw="$(timeout 45 opencode mcp list 2>&1)"
 status=$?
 set -e
 clean="$(printf '%s\n' "$raw" | sed -E $'s/\x1b\\[[0-9;]*m//g')"
+classification_failure=0
 for server in "${servers[@]}"; do
   line="$(printf '%s\n' "$clean" | grep -i -m 1 -E "[[:space:]]${server}[[:space:]]" || true)"
   detail="$line"
   if grep -qi 'failed' <<<"$line"; then
     detail="$(printf '%s\n' "$clean" | grep -i -A 2 -m 1 -E "[[:space:]]${server}[[:space:]]" || true)"
   fi
+
   auth='UNKNOWN'
   connected='NO'
   unavailable='NO'
-  if [[ "$server" != supabase-* && "$server" != netlify && "$server" != sentry && "$server" != posthog && "$server" != github ]]; then auth='N/A'; fi
-  if grep -Eqi 'auth|unauthorized|401|login' <<<"$detail"; then auth='REQUIRED'; fi
-  if [ "$server" = 'github' ] && [ -z "${GITHUB_MCP_TOKEN:-}" ]; then auth='REQUIRED'; fi
-  if grep -Eqi '(^|[^0-9])5[0-9]{2}([^0-9]|$)|bad gateway|service unavailable|timed out|timeout' <<<"$detail"; then unavailable='YES'; fi
   failed='NO'
-  if grep -Eqi 'fail(ed|ure)?|error|unable to connect|connection refused|disconnected|not[[:space:]]+(connected|ready)' <<<"$detail"; then failed='YES'; fi
+  unknown='NO'
+
+  if [[ "$server" != supabase-* && "$server" != netlify && "$server" != sentry && "$server" != posthog && "$server" != github ]]; then
+    auth='N/A'
+  fi
+
+  # Match actual authentication failures, not the substring "auth". In
+  # particular, healthy OpenCode output such as "connected (OAuth)" must remain
+  # a positive connection signal.
+  if grep -Eqi 'needs[[:space:]]+authentication|authentication[[:space:]]+(required|needed)|auth[[:space:]]+(required|needed)|unauthori[sz]ed|(^|[^0-9])401([^0-9]|$)|login[[:space:]]+(required|needed)|please[[:space:]]+(log[[:space:]]+in|login|sign[[:space:]]+in)' <<<"$detail"; then
+    auth='REQUIRED'
+  fi
+  if [ "$server" = 'github' ] && [ -z "${GITHUB_MCP_TOKEN:-}" ]; then
+    auth='REQUIRED'
+  fi
+
+  if grep -Eqi '(^|[^0-9])5[0-9]{2}([^0-9]|$)|bad gateway|service unavailable|timed out|timeout' <<<"$detail"; then
+    unavailable='YES'
+  fi
+  if grep -Eqi 'fail(ed|ure)?|error|unable to connect|connection refused|disconnected|not[[:space:]]+(connected|ready)' <<<"$detail"; then
+    failed='YES'
+  fi
+
   if [ "$auth" != 'REQUIRED' ] && [ "$unavailable" != 'YES' ] && [ "$failed" != 'YES' ] && grep -Eqi 'connected|ready' <<<"$line"; then
     connected='YES'
-    auth='OK'
+    if [ "$auth" != 'N/A' ]; then
+      auth='OK'
+    fi
   fi
-  printf 'CONFIGURED %-18s AUTH=%-8s CONNECTED=%-3s UNAVAILABLE=%s\n' "$server" "$auth" "$connected" "$unavailable"
+
+  # A line that is neither a recognised positive state nor a recognised failure
+  # must not be silently treated as healthy. Preserve the diagnostic row and
+  # make the overall readiness command fail closed.
+  if [ -z "$line" ] || { [ "$connected" = 'NO' ] && [ "$auth" != 'REQUIRED' ] && [ "$unavailable" != 'YES' ] && [ "$failed" != 'YES' ]; }; then
+    unknown='YES'
+    classification_failure=1
+  fi
+
+  printf 'CONFIGURED %-18s AUTH=%-8s CONNECTED=%-3s UNAVAILABLE=%s' "$server" "$auth" "$connected" "$unavailable"
+  if [ "$unknown" = 'YES' ]; then
+    printf ' CLASSIFICATION=UNKNOWN'
+  fi
+  printf '\n'
 done
 printf 'Connectivity probe: initialize/tools-list only; zero external MCP tools invoked.\n'
 if [ "$status" -eq 124 ]; then
   printf 'UNAVAILABLE readiness probe exceeded 45 seconds.\n'
+fi
+if [ "$classification_failure" -ne 0 ]; then
+  printf 'FAILED readiness output contained an unclassified MCP state.\n' >&2
+  exit 1
 fi

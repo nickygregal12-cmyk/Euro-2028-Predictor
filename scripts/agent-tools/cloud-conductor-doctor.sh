@@ -77,6 +77,25 @@ else
   missing 'OpenCode' 'run scripts/agent-tools/cloud-conductor-install.sh'
 fi
 
+browser_executable="$(node -p "require('./config/browser-runtime.json').executableLink" 2>/dev/null || true)"
+browser_provenance="$(node -p "require('./config/browser-runtime.json').provenanceFile" 2>/dev/null || true)"
+browser_installer_version="$(node -p "require('./config/browser-runtime.json').installerVersion" 2>/dev/null || true)"
+browser_coupled_mcp="$(node -p "require('./config/browser-runtime.json').coupledMcpVersion" 2>/dev/null || true)"
+if [ -n "$browser_executable" ] && [ -x "$browser_executable" ] && [ -r "$browser_provenance" ] && node -e '
+const fs = require("fs")
+const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+process.exit(p.installerVersion === process.argv[2] && p.coupledMcpVersion === process.argv[3] ? 0 : 1)
+' "$browser_provenance" "$browser_installer_version" "$browser_coupled_mcp" 2>/dev/null; then
+  browser_version="$($browser_executable --version 2>/dev/null || true)"
+  if [ -n "$browser_version" ]; then
+    ready 'Browser runtime' "$browser_version at $browser_executable"
+  else
+    missing 'Browser runtime' "executable exists but did not return a version: $browser_executable"
+  fi
+else
+  missing 'Browser runtime' 'run scripts/agent-tools/cloud-browser-install.sh; both Visual QA MCPs require the pinned shared executable'
+fi
+
 if command -v opencode >/dev/null 2>&1 && opencode auth list 2>/dev/null | grep -qi 'openai'; then
   ready 'ChatGPT/OpenAI auth' 'direct OpenAI provider authenticated'
 else

@@ -2,13 +2,21 @@
   "mcpServers": {
     "playwright": {
       "command": "npx",
-      "args": ["-y", "@playwright/mcp@0.0.79"]
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.79",
+        "--executable-path=/opt/predictor-browser/chrome",
+        "--headless"
+      ]
     },
     "chrome-devtools": {
       "command": "npx",
       "args": [
         "-y",
         "chrome-devtools-mcp@1.7.0",
+        "--executablePath=/opt/predictor-browser/chrome",
+        "--headless",
+        "--isolated",
         "--usageStatistics=false",
         "--performanceCrux=false"
       ]

@@ -93,7 +93,8 @@ Playwright and Chrome DevTools are deliberately different: Playwright proves **w
 | OpenCode MCP capability foundation | all server prefixes denied by default; role grants are tracked in agent frontmatter; OAuth remains operator-owned |
 | Supabase Development MCP | project-scoped; potentially mutating and Builder-only; task authority still required |
 | Supabase Production MCP | project-scoped, server-side read-only and Release-Verifier-only |
-| GitHub / Netlify / Sentry / PostHog MCP | server-side constrained read evidence for Release Verifier; Netlify exposes only its deploy reader |
+| GitHub / Netlify MCP | server-side constrained read evidence for Release Verifier; Netlify exposes only its deploy reader |
+| Sentry / PostHog MCP | configured and root-denied; exact Release Verifier read grants await live Hetzner inventory evidence |
 | Playwright visual contracts | blocking curated baseline workflow |
 | Lost Pixel OSS | optional generate-only adapter; managed service is not a repository dependency |
 | React Scan | manual URL-based diagnosis; not in the product bundle |

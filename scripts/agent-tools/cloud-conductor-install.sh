@@ -104,6 +104,8 @@ fi
 
 printf 'Provisioning the repository-pinned developer toolchain...\n'
 bash scripts/agent-tools/bootstrap.sh
+printf 'Provisioning the shared browser runtime used by Visual QA MCPs...\n'
+bash scripts/agent-tools/cloud-browser-install.sh
 
 config_dir="${HOME}/.config/predictor-cloud"
 env_file="${config_dir}/opencode.env"
