@@ -531,15 +531,31 @@ describe('player-value programme controller', () => {
     // stages and putting both in flight says what the rule is about regardless
     // of where the programme has got to.
     const [first, second] = state.stages
+    const chosen = new Set([first!.id, second!.id])
     const parallel = bend((draft) => {
-      for (const id of [first!.id, second!.id]) {
-        const stage = stageIn(draft, id)
-        stage.status = 'in_progress'
-        // A blocker belongs only to a blocked stage, and a merge only to a
-        // complete or blocked one; leaving either behind would fail this
-        // fixture for a reason that is not the one under test.
-        stage.blocker = null
+      for (const stage of draft.stages) {
+        if (chosen.has(stage.id)) {
+          stage.status = 'in_progress'
+          // A blocker belongs only to a blocked stage, and a merge only to a
+          // complete or blocked one; leaving either behind would fail this
+          // fixture for a reason that is not the one under test.
+          stage.blocker = null
+          stage.mergedSha = null
+          continue
+        }
+        // AND NOTHING ELSE IN FLIGHT -- the half this rewrite first missed.
+        // Setting two stages says nothing about the rest, so on the day the
+        // programme legitimately has one running the fixture would hold three
+        // and the self-check below would go red for the calendar rather than
+        // the rule. That is the very defect this case was rewritten to remove,
+        // one level out.
+        if (stage.status !== 'in_progress') continue
+        stage.status = 'not_started'
+        stage.pr = null
+        stage.headSha = null
         stage.mergedSha = null
+        stage.blocker = null
+        stage.acceptanceEvidence = []
       }
     })
     expect(
