@@ -160,33 +160,54 @@ describe('the rehearsal rehearses and never writes Production', () => {
     }
   })
 
-  it('quiets the restored cron jobs on the COPY, and only on the copy', () => {
-    // A restore brings `cron.job` with it, so the copy comes up running
-    // Production's schedule and the behavioural suites end up measuring what the
-    // boundary did plus whatever the schedule did while they ran — which depends
-    // on the minute the runner started. Suite 262 carries two comments that are
-    // this exact bug, found twice and scoped narrowly each time.
-    expect(rehearsal).toContain('Quiet the restored cron jobs on the disposable copy')
-    expect(rehearsal).toContain('select cron.unschedule(job.jobid) from cron.job job')
-    // Production keeps every job it has. This must never appear in the rollout.
-    expect(rollout).not.toContain('cron.unschedule')
-    // And in the rehearsal it must only ever be aimed at the throwaway.
-    for (const line of rehearsal.split('\n').filter((l) => l.includes('cron.unschedule'))) {
-      expect(line).not.toContain('SUPABASE_PROD_DB_URL')
+  it('restores the reminder jobs onto the copy, because the dump does not carry the schedule', () => {
+    // `supabase db dump` carries user schemas and not `cron`, so a restored copy
+    // has no scheduled jobs at all. Measured rather than assumed: two rehearsals
+    // failed suite 262 on exactly the two assertions requiring contract 172's
+    // three reminder jobs, and a step that unscheduled everything on the copy
+    // reported "Unscheduled 0".
+    expect(rehearsal).toContain('reminder-jobs.sql')
+    for (const job of [
+      'player-action-centre-generate',
+      'player-reminder-schedule',
+      'player-reminder-reclaim-stalled',
+    ]) {
+      expect(rehearsal).toContain(job)
     }
-    const quiet = rehearsal.slice(rehearsal.indexOf('Quiet the restored cron jobs'))
-    expect(quiet.slice(0, quiet.indexOf('cron.unschedule'))).toContain('LOCAL_DB_URL')
+    // Contract 216 schedules the fourth itself — that is what the count-of-four
+    // assertion is for, so it must not be copied.
+    expect(rehearsal).not.toContain("'player-reminder-dispatch',")
+    expect(rehearsal).toContain('cron.schedule')
   })
 
-  it('takes both cron readings after quieting, so before and after agree', () => {
-    // The preservation verifier still requires contract 216 to add exactly one
-    // job, so the two readings have to be taken on the same footing.
-    const quietAt = rehearsal.indexOf('Quiet the restored cron jobs')
-    const beforeAt = rehearsal.indexOf('Measure protected state before applying')
-    const applyAt = rehearsal.indexOf('Apply exactly Contracts 212 through 218')
-    expect(quietAt).toBeGreaterThan(0)
-    expect(quietAt).toBeLessThan(beforeAt)
-    expect(beforeAt).toBeLessThan(applyAt)
+  it('refuses to copy the paid provider-poll job onto the throwaway', () => {
+    // `provider-poll-dispatch-due-targets` runs `dispatch_due_provider_polls()`,
+    // which is the paid provider call path. A disposable copy must never spend
+    // provider credit, so it is excluded by name AND asserted absent afterwards
+    // rather than left to chance.
+    // Checked on the SELECTION LIST rather than as a bare substring: the comment
+    // above it names the poll job deliberately, and a rule that forbids naming
+    // the risk cannot be satisfied by an honest explanation of it.
+    const selection = rehearsal.slice(
+      rehearsal.indexOf('where job.jobname in ('),
+      rehearsal.indexOf('and job.active'),
+    )
+    expect(selection).toContain('player-action-centre-generate')
+    expect(selection).not.toContain('provider-poll-dispatch-due-targets')
+    expect(selection).not.toContain('provider')
+    // And asserted absent at runtime, not merely left out of a list.
+    expect(rehearsal).toContain('provider-poll jobs reached the copy')
+    expect(rehearsal).toContain("provider_poll|dispatch_due_provider_polls")
+    // The rollout never touches a schedule at all.
+    expect(rollout).not.toContain('cron.schedule')
+    expect(rollout).not.toContain('cron.unschedule')
+  })
+
+  it('copies the schedule from Production rather than writing it out here', () => {
+    // A hand-written schedule is this file's idea of the job, not the job.
+    expect(rehearsal).toMatch(/select format\('select cron\.schedule\(%L, %L, %L\);'/)
+    const capture = rehearsal.slice(rehearsal.indexOf('reminder-jobs.sql') - 2000, rehearsal.indexOf('reminder-jobs.sql'))
+    expect(capture).toContain('SUPABASE_PROD_DB_URL')
   })
 
   it('reads Production only to dump it, and proves it is at 211 first', () => {
