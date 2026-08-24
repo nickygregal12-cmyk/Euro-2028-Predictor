@@ -74,11 +74,22 @@ async function main() {
     return
   }
 
-  const results = []
+  // ONE REQUEST PER UNIQUE PATH, shared by every check that reads it. Two checks
+  // examine the invitation, and fetching it twice let them disagree: the first
+  // request could succeed and the second hit a blip, so the record would carry
+  // two different accounts of the same document at the same moment. It also
+  // halves the traffic this puts on a deployment it is supposed to be observing.
+  /** @type {Map<string, Awaited<ReturnType<typeof fetchStep>>>} */
+  const byPath = new Map()
   for (const check of JOURNEY_CHECKS) {
-    const fetched = await fetchStep(origin, check.path)
-    results.push({ id: check.id, ...fetched })
+    if (!byPath.has(check.path)) byPath.set(check.path, await fetchStep(origin, check.path))
   }
+
+  const results = JOURNEY_CHECKS.map((check) => {
+    const fetched = byPath.get(check.path)
+    if (fetched === undefined) throw new Error(`No response was fetched for ${check.path}.`)
+    return { id: check.id, ...fetched }
+  })
 
   const journey = evaluateJourney(results)
   const record = {

@@ -21,11 +21,6 @@ on:
         description: 'Origin to walk the journey against'
         required: true
         type: string
-      record:
-        description: 'Commit the result to config/journey-probe-record.json'
-        required: false
-        default: false
-        type: boolean
   schedule:
     # Every six hours, offset from the perimeter smoke so the two do not land
     # together and make one look like the cause of the other.
@@ -92,22 +87,60 @@ jobs:
           echo "origin=$origin" >> "$GITHUB_OUTPUT"
 
       - name: Walk the journey
+        id: walk
         shell: bash
         env:
           ORIGIN: ${{ steps.origin.outputs.origin }}
-        run: node scripts/journey-probe/run.mjs --origin "$ORIGIN" --write config/journey-probe-record.json
+        run: |
+          set -euo pipefail
+          # Written to the RUNNER TEMP, never over the tracked record. The tracked
+          # file exists the moment checkout finishes, so reporting "the file is
+          # here" would have shown the previously committed result as though this
+          # run had produced it — a stale green for a run that never happened.
+          node scripts/journey-probe/run.mjs \
+            --origin "$ORIGIN" \
+            --write "${RUNNER_TEMP}/journey-probe-record.json"
 
-      - name: Report what was walked
-        if: always()
+      - name: Report what this run walked
+        # Runs whether the journey passed or failed, but only once the walk has
+        # actually run: a summary is worthless if it cannot be told apart from
+        # the last one.
+        if: always() && steps.walk.outcome != 'skipped'
         shell: bash
         run: |
           set -euo pipefail
-          if [ -f config/journey-probe-record.json ]; then
+          record="${RUNNER_TEMP}/journey-probe-record.json"
+
+          if [ ! -f "$record" ]; then
             {
               echo '## Synthetic journey probe'
               echo
-              echo '```json'
-              cat config/journey-probe-record.json
-              echo '```'
+              echo 'The walk produced no record, so this run has nothing to report.'
             } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+
+          {
+            echo '## Synthetic journey probe'
+            echo
+            echo '```json'
+            cat "$record"
+            echo '```'
+            echo
+            echo 'PUBLISHING IS DELIBERATE, NOT AUTOMATIC. This job holds read-only'
+            echo 'permissions and no push credential, so it cannot move this record'
+            echo 'into the repository — and `/status` renders the COMMITTED record.'
+            echo 'To publish a result, commit it to `config/journey-probe-record.json`'
+            echo 'in a pull request. Granting a scheduled job write access to the'
+            echo 'repository is an operator decision, not one this workflow makes for'
+            echo 'itself.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Keep the record retrievable
+        if: always() && steps.walk.outcome != 'skipped'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: journey-probe-record
+          path: ${{ runner.temp }}/journey-probe-record.json
+          if-no-files-found: ignore
+          retention-days: 30

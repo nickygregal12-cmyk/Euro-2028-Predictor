@@ -86,17 +86,39 @@ describe('the journey checks', () => {
     })
 
     it('catches an invitation that began publishing the code', () => {
-      const withUrl = check('invite-discloses-nothing').failure({
-        status: 200,
-        body: '<meta property="og:url" content="https://x/join/ABC123">',
-      })
-      expect(withUrl).toMatch(/og:url/)
+      // A REAL invite document that also discloses, rather than a bare fragment:
+      // the disclosure check now establishes the document first, so a fragment
+      // would fail for the wrong reason and prove nothing about disclosure.
+      const disclosing = (extra: string) =>
+        check('invite-discloses-nothing').failure({
+          status: 200,
+          body: `${extra}<meta name="robots" content="noindex, nofollow">` +
+            '<div id="root"></div><script type="module" src="/a.js"></script>',
+        })
 
-      const withCanonical = check('invite-discloses-nothing').failure({
+      expect(disclosing('<meta property="og:url" content="https://x/join/ABC123">')).toMatch(
+        /og:url/,
+      )
+      expect(disclosing('<link rel="canonical" href="https://x/join/ABC123">')).toMatch(
+        /canonical/,
+      )
+      // and the same document without either passes, so the two cases above are
+      // failing for the disclosure and not for the scaffolding around it
+      expect(disclosing('')).toBeNull()
+    })
+
+    it('catches a disclosure step asked to judge a page that is not there', () => {
+      // The finding this replaces: the predicate looked only for what must be
+      // ABSENT, so a 404 body satisfied it. It reported "gives away no private
+      // league" in green for a deployment serving no invitation at all.
+      const notFound = check('invite-discloses-nothing').failure({ status: 404, body: '' })
+      expect(notFound).toMatch(/answered 404/)
+
+      const errorPage = check('invite-discloses-nothing').failure({
         status: 200,
-        body: '<link rel="canonical" href="https://x/join/ABC123">',
+        body: '<html><body>Netlify: page not found</body></html>',
       })
-      expect(withCanonical).toMatch(/canonical/)
+      expect(errorPage).toMatch(/not the application shell/)
     })
 
     it('catches robots.txt no longer disallowing invitations', () => {
@@ -105,6 +127,44 @@ describe('the journey checks', () => {
         body: 'User-agent: *\nAllow: /\n',
       })
       expect(reason).toMatch(/no longer disallows \/join\//)
+    })
+
+    describe('and the robots check reads groups rather than the raw text', () => {
+      const robots = (body: string) =>
+        check('crawlers-told-to-stay-out-of-invites').failure({ status: 200, body })
+
+      it('passes the directive as the site actually writes it', () => {
+        expect(robots('User-agent: *\nDisallow: /join/\nAllow: /\n')).toBeNull()
+      })
+
+      it('catches a directive that has been COMMENTED OUT', () => {
+        // A substring search passes this, and invitations are crawlable.
+        expect(robots('User-agent: *\n# Disallow: /join/\nAllow: /\n')).not.toBeNull()
+      })
+
+      it('catches a directive scoped to some other crawler while * still allows it', () => {
+        // The subtler regression: the text is present, so a substring search is
+        // satisfied, but Google is in the group that may crawl invitations.
+        expect(
+          robots('User-agent: BadBot\nDisallow: /join/\n\nUser-agent: *\nAllow: /\n'),
+        ).not.toBeNull()
+      })
+
+      it('accepts the wildcard group wherever it appears, and however it is spelled', () => {
+        expect(
+          robots('User-agent: BadBot\nDisallow: /\n\nUser-agent: *\nDisallow: /join/\n'),
+        ).toBeNull()
+        expect(robots('user-agent: *\ndisallow: /join/\n')).toBeNull()
+      })
+
+      it('accepts a group that names several agents including the wildcard', () => {
+        expect(robots('User-agent: Googlebot\nUser-agent: *\nDisallow: /join/\n')).toBeNull()
+      })
+
+      it('does not accept a near-miss path', () => {
+        expect(robots('User-agent: *\nDisallow: /joining/\n')).not.toBeNull()
+        expect(robots('User-agent: *\nDisallow: /join\n')).not.toBeNull()
+      })
     })
   })
 })

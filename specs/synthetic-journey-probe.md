@@ -51,7 +51,12 @@ and its most recent result is recorded and rendered honestly.
 - A probe that walks the anonymous acquisition journey against a given origin.
 - Its checks expressed as data and evaluated by a pure function, so each one is
   unit-testable without a network.
-- A committed record of the most recent run.
+- A record of each run, printed to the job summary and kept as an artifact.
+- A committed record of the most recent **published** run, which `/status` renders.
+  Publishing is a deliberate commit, not something the scheduled job can do: it
+  holds read-only permissions and no push credential, because granting a
+  scheduled job write access to the repository is an operator decision and
+  `OPS-010` is already the open row about records failing to reach `main`.
 - A status document rendered from that record, built the same way the invite
   document is, and honest that it is a snapshot rather than a live heartbeat.
 

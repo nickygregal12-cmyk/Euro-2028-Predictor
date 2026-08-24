@@ -47,7 +47,7 @@ None of those walks anybody through anything, which is the gap this fills.
 
 ```sh
 node scripts/journey-probe/run.mjs --origin https://deploy-preview-1--example.netlify.app
-node scripts/journey-probe/run.mjs --origin <origin> --write config/journey-probe-record.json
+node scripts/journey-probe/run.mjs --origin <origin> --write <path>
 ```
 
 It exits non-zero when the journey is broken. Transport failures are retried
@@ -57,9 +57,22 @@ people to ignore red.
 
 ## The record and the page
 
-`config/journey-probe-record.json` holds the most recent run: when, which origin,
-each step's outcome, and a reason for anything that failed. It carries **no
-player data** — there is none in it to carry.
+`config/journey-probe-record.json` holds the most recent **published** run: when,
+which origin, each step's outcome, and a reason for anything that failed. It
+carries **no player data** — there is none in it to carry.
+
+**Publishing is deliberate, and the workflow cannot do it.** The scheduled job
+holds read-only permissions and no push credential: it writes its record to the
+runner's temporary directory, prints it to the job summary and uploads it as an
+artifact. Nothing carries that into the repository, so `/status` shows the last
+record somebody committed.
+
+That is a choice rather than an omission. Granting a scheduled job write access
+to the repository is an operator decision — `OPS-010` is the open row about a
+verified record failing to reach `main`, and this stage did not want to add a
+second way for that to matter. **Until a record is committed, `/status` honestly
+says no check has been recorded yet.** To publish one, commit the artifact's
+contents to `config/journey-probe-record.json` in a pull request.
 
 `/status` renders that record, built by the `euro28-status-document` plugin the
 same way the invite document is built. Three rules govern it, and they are

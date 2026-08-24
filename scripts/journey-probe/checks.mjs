@@ -48,6 +48,76 @@ function looksLikeTheApp(body) {
   return body.includes('<div id="root"') && /<script[^>]+type="module"/.test(body)
 }
 
+/**
+ * Why this response is not the invite document, or null when it is.
+ *
+ * SHARED BY BOTH INVITE CHECKS, and that sharing is the point. The disclosure
+ * check used to look only for what must be ABSENT, so a 404 or an error page
+ * satisfied it: nothing discloses nothing. It reported "gives away no private
+ * league" in green for a deployment that was serving no invitation at all —
+ * true, useless, and reassuring in exactly the wrong direction.
+ *
+ * A check that can only pass is not a check. Absence is only evidence once the
+ * document is present.
+ *
+ * @param {ProbeResponse} response
+ * @returns {string | null}
+ */
+function notTheInviteDocument(response) {
+  if (response.status !== 200) return `The invitation answered ${response.status}.`
+  if (!looksLikeTheApp(response.body)) {
+    return 'The invitation answered, but it is not the application shell.'
+  }
+  return null
+}
+
+/**
+ * Whether robots.txt tells ORDINARY crawlers to stay out of a path.
+ *
+ * Parsed rather than string-matched. `body.includes('Disallow: /join/')` passes
+ * on a commented-out line, and passes when the directive sits under some narrow
+ * user-agent group while `User-agent: *` still allows the path — both of which
+ * leave invitations crawlable by the crawlers that actually matter, while the
+ * probe reports success.
+ *
+ * robots.txt groups consecutive `User-agent` lines with the directives that
+ * follow, so the group is walked properly: find the group that includes `*`, and
+ * look for an active directive inside it.
+ *
+ * @param {string} body
+ * @param {string} path
+ */
+function wildcardCrawlersAreDisallowed(body, path) {
+  const lines = body
+    .split(/\r?\n/)
+    .map((line) => line.replace(/#.*$/, '').trim())
+    .filter((line) => line.length > 0)
+
+  let agents = []
+  let collectingAgents = false
+  let inWildcardGroup = false
+
+  for (const line of lines) {
+    const agent = /^user-agent:\s*(.+)$/i.exec(line)
+    if (agent?.[1] !== undefined) {
+      // A `User-agent` line after directives starts a NEW group.
+      if (!collectingAgents) agents = []
+      agents.push(agent[1].trim())
+      collectingAgents = true
+      inWildcardGroup = agents.includes('*')
+      continue
+    }
+
+    collectingAgents = false
+    if (!inWildcardGroup) continue
+
+    const disallow = /^disallow:\s*(.*)$/i.exec(line)
+    if (disallow?.[1] !== undefined && disallow[1].trim() === path) return true
+  }
+
+  return false
+}
+
 /** @type {readonly JourneyCheck[]} */
 export const JOURNEY_CHECKS = [
   {
@@ -67,10 +137,8 @@ export const JOURNEY_CHECKS = [
     step: 'They follow an invitation somebody sent them',
     path: '/join/PROBE0',
     failure: (response) => {
-      if (response.status !== 200) return `The invitation answered ${response.status}.`
-      if (!looksLikeTheApp(response.body)) {
-        return 'The invitation answered, but it is not the application shell.'
-      }
+      const missing = notTheInviteDocument(response)
+      if (missing) return missing
       // The invite document is deliberately noindex, and deliberately says it is
       // an invitation. Both are the SEC-001 and SEO-002 shape from stage 3, and a
       // rewrite that silently reverted to serving index.html would still return
@@ -87,6 +155,12 @@ export const JOURNEY_CHECKS = [
     step: 'The invitation they were sent gives away no private league',
     path: '/join/PROBE0',
     failure: (response) => {
+      // ESTABLISH THE DOCUMENT BEFORE READING ANYTHING INTO ITS ABSENCES.
+      // Without this, a 404 body satisfies every condition below and this step
+      // reports green for a deployment serving no invitation at all.
+      const missing = notTheInviteDocument(response)
+      if (missing) return missing
+
       // A guessed code must not be distinguishable from a real one by the card.
       // The probe uses a code that does not exist, so ANY league-shaped content
       // here is a disclosure regression rather than a coincidence.
@@ -105,8 +179,9 @@ export const JOURNEY_CHECKS = [
     path: '/robots.txt',
     failure: (response) => {
       if (response.status !== 200) return `robots.txt answered ${response.status}.`
-      if (!response.body.includes('Disallow: /join/')) {
-        return 'robots.txt no longer disallows /join/, so a posted invite is crawlable.'
+      if (!wildcardCrawlersAreDisallowed(response.body, '/join/')) {
+        return 'robots.txt no longer disallows /join/ for ordinary crawlers, so a ' +
+          'posted invite is crawlable.'
       }
       return null
     },
