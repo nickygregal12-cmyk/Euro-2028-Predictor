@@ -1,0 +1,113 @@
+name: Synthetic journey probe
+
+# Walks the acquisition journey a NEW PLAYER takes and records the result.
+#
+# ANONYMOUS AND READ-ONLY. No credential is passed, no account is used, nothing
+# is written to any environment. That is a deliberate limit rather than an
+# omission: production answers 401 to everyone (see production-anonymous-smoke,
+# which asserts exactly that), so a journey there needs the site password and is
+# an explicit operator action in production-smoke.yml. This probe therefore runs
+# against an origin where the journey can actually be walked, and says which one
+# it used in the record it writes.
+#
+# It does NOT replace what already exists. The perimeter, headers, CSP parity and
+# release identity are covered by the production smokes; none of them walks a
+# person through anything, which is the gap this fills.
+
+on:
+  workflow_dispatch:
+    inputs:
+      origin:
+        description: 'Origin to walk the journey against'
+        required: true
+        type: string
+      record:
+        description: 'Commit the result to config/journey-probe-record.json'
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Every six hours, offset from the perimeter smoke so the two do not land
+    # together and make one look like the cause of the other.
+    - cron: '41 */6 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: journey-probe
+  cancel-in-progress: true
+
+jobs:
+  walk:
+    name: Walk the journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Harden runner (audit egress)
+        uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # This job never pushes; it reads the repository and writes a record to
+          # the job summary. A token left on disk for a scheduled job that does
+          # not need one is a credential waiting to be reused by something else.
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Resolve the origin to walk
+        id: origin
+        shell: bash
+        env:
+          REQUESTED: ${{ inputs.origin }}
+          CONFIGURED: ${{ vars.EURO28_JOURNEY_PROBE_ORIGIN }}
+        run: |
+          set -euo pipefail
+          origin="${REQUESTED:-${CONFIGURED:-}}"
+
+          if [ -z "$origin" ]; then
+            # Fail with the action rather than inventing a target. Defaulting to
+            # production would report a 401 journey as a broken product, which is
+            # a wrong answer stated confidently.
+            {
+              echo '## Synthetic journey probe did not run'
+              echo
+              echo 'No origin is configured, so there was nothing to walk.'
+              echo
+              echo 'Set the repository variable `EURO28_JOURNEY_PROBE_ORIGIN` to an origin'
+              echo 'where the journey is reachable — a deploy preview, or production once'
+              echo 'its password perimeter is lifted. Production currently answers 401 to'
+              echo 'every anonymous request, which this probe deliberately does not carry a'
+              echo 'credential to get past.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo 'STOP: no origin configured; see the job summary.' >&2
+            exit 1
+          fi
+
+          echo "origin=$origin" >> "$GITHUB_OUTPUT"
+
+      - name: Walk the journey
+        shell: bash
+        env:
+          ORIGIN: ${{ steps.origin.outputs.origin }}
+        run: node scripts/journey-probe/run.mjs --origin "$ORIGIN" --write config/journey-probe-record.json
+
+      - name: Report what was walked
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f config/journey-probe-record.json ]; then
+            {
+              echo '## Synthetic journey probe'
+              echo
+              echo '```json'
+              cat config/journey-probe-record.json
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

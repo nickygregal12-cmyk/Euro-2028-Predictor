@@ -282,6 +282,15 @@
   to = "/join.html"
   status = 200
 
+# The status document is emitted by the build (see `euro28-status-document` in
+# vite.config.ts). `/status` is what a person types when they suspect something is
+# wrong; `/status.html` is what the build writes. This joins the two rather than
+# asking anybody to guess the extension.
+[[redirects]]
+  from = "/status"
+  to = "/status.html"
+  status = 200
+
 # Public platform documents. They are direct-entry pages for visitors, players,
 # rights holders and reviewers, so each receives the SPA document with a real
 # 200 rather than falling through to the Not Found rewrite.

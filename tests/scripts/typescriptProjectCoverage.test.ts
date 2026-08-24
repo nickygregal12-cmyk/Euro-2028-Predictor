@@ -214,6 +214,12 @@ describe('JavaScript under scripts/', () => {
     // error there produces an icon nobody looks at until it is on a home
     // screen.
     'scripts/og/generate-site-icons.mjs',
+    // Arrived clean under JSDoc annotation rather than as a deferred count. The
+    // probe decides whether a deployment is reported as walkable, so a type
+    // error here would surface as a status page confidently saying the wrong
+    // thing — which is the one failure a status page must not have.
+    'scripts/journey-probe/checks.mjs',
+    'scripts/journey-probe/run.mjs',
     'scripts/reset-development-seed.mjs',
     'scripts/run-lighthouse.mjs',
     'scripts/select-browser-journeys.mjs',

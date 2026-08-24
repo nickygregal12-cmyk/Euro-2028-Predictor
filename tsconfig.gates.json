@@ -31,6 +31,8 @@
     "scripts/validate-deployment-contract.mjs",
     "scripts/validate-netlify-environment.mjs",
     "scripts/list-notification-workflows.mjs",
-    "scripts/og/generate-site-icons.mjs"
+    "scripts/og/generate-site-icons.mjs",
+    "scripts/journey-probe/checks.mjs",
+    "scripts/journey-probe/run.mjs"
   ]
 }
