@@ -89,8 +89,16 @@ jobs:
             exit 0
           fi
 
+          # THREE DOTS, NOT TWO. `git diff A B` compares the two trees, so once
+          # the base branch advances it reports files changed *on the base* as
+          # though this pull request had touched them — and a pull request that
+          # touched nothing here would then be told parity was owed and spend
+          # thirty minutes proving it. `A...B` diffs from the merge base, which
+          # is the question actually being asked: what did this branch change?
+          # `migration-safety.yml` and `security-tooling.yml` already use this
+          # form; this job was written from the one workflow that does not.
           changed_file="$(mktemp)"
-          git diff --name-only "$BASE_SHA" "$HEAD_SHA" > "$changed_file"
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$changed_file"
 
           matched=''
           while IFS= read -r entry; do

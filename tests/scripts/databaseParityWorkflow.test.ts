@@ -170,6 +170,15 @@ describe('the parity gate can be required without blocking anything', () => {
     expect(trigger).not.toContain('paths:')
   })
 
+  it('asks what this branch changed, not how the two trees differ', () => {
+    // `git diff A B` compares trees, so a base branch that has advanced makes
+    // its own changes look like this pull request's. Proven: a branch touching
+    // only docs.md reports src/domain/logic.ts as changed when the base moved
+    // there. `A...B` diffs from the merge base and reports only docs.md.
+    expect(workflow).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"')
+    expect(workflow).not.toMatch(/git diff --name-only "\$BASE_SHA" "\$HEAD_SHA"/)
+  })
+
   it('publishes a stable context named the way a ruleset asks for it', () => {
     expect(workflow).toContain('name: Database parity / Required parity gate')
   })
