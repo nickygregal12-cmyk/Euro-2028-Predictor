@@ -150,3 +150,21 @@ export const FrameLeftUncertainPhone: Story = frame('leftAndUncertain', 'phone-3
 export const FrameWidePhone: Story = frame('wideCatalogue', 'phone-375')
 export const FrameWideDesktop: Story = frame('wideCatalogue', 'desktop-1920')
 export const FrameUnavailablePhone: Story = frame('unavailable', 'phone-375')
+
+/* ========================================================================== *
+ * E. THE WEEK REACHES THE CATALOGUE
+ * ========================================================================== */
+
+/**
+ * Two games asking and one reporting. The review question is whether the
+ * difference is visible without reading the copy: the two jobs lead with their
+ * own verb, the report keeps a destination.
+ */
+export const AskingThisWeek: Story = board('askingThisWeek', ['phone-375', 'laptop-1024'], 0.7)
+
+/** The same three with nothing outstanding. No row may carry an action verb. */
+export const SettledThisWeek: Story = board('settledThisWeek', ['phone-375', 'laptop-1024'], 0.7)
+
+export const FrameAskingPhone: Story = frame('askingThisWeek', 'phone-375')
+export const FrameAskingDesktop: Story = frame('askingThisWeek', 'desktop-1920')
+export const FrameSettledPhone: Story = frame('settledThisWeek', 'phone-375')

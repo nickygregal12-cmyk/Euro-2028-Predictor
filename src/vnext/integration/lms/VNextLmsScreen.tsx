@@ -47,7 +47,7 @@ export function VNextLmsScreen(props: VNextLmsScreenProps) {
               colours: null,
             },
             playerName: null,
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

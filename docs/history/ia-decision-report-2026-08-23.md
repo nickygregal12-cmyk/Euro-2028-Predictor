@@ -1376,6 +1376,101 @@ the two documents, and go and launch it.
 
 ---
 
+---
+
+# 24. Follow-up — the desktop rail game group, and the shell's `games` gap
+
+**Dated 23 August 2026, after the refinement in PRs A–C.** §21's Stage E and
+Stage F are resolved here: **both are REJECTED**, and this section is the record
+the brief asks for when an experiment is not shipped.
+
+## 24.1 The desktop rail game group — REJECTED
+
+§10 of this report argued that the desktop rail wastes vertical space and that
+naming Last Man Standing and the Championship in a subordinate group would take
+Candidate B's one genuine win without its mobile cost. That argument was made
+before the rest of the refinement existed. Three measurements taken after it
+withdraw it.
+
+**1. The spare space is not reliably spare.** Measured in Chromium at 1440×900
+against the shell's own deterministic worlds (`.artifacts/ia-audit/rail-space.mjs`):
+
+| World | Rail height | Used | Spare | Rows |
+| --- | ---: | ---: | ---: | ---: |
+| one competition | 900px | 352px | **548px** | 3 |
+| four competitions | 900px | 598px | **302px** | 5 |
+| twenty published | 900px | 508px | **392px** | 4 |
+| long names | 900px | 667px | **233px** | 5 |
+| ten-plus competitions | 900px | 769px | **131px** | 6 |
+
+The headline number in §10 — a rail carrying eight controls — is the
+**one-competition** case. At ten-plus competitions, which is precisely the scale
+the bounded shortcut list exists for, the margin is **131px**. A three-row game
+group with 44px targets does not fit there, and would not fit at all on a
+1440×800 laptop. A group that appears for a one-competition player and overflows
+for a ten-competition one is not a group; it is a bug waiting for the second
+kind of player.
+
+**2. On Home it would now be a literal duplicate.** The brief's own constraint
+for this experiment is *"no duplicate action if Home already displays it"*. After
+PR B, Home displays exactly that: one primary action across all three games, plus
+at most two compact secondary rows. A rail group would repeat, permanently and
+beside it, what the page it frames has just said.
+
+**3. Suppressing it on Home would break a stronger rule.** The obvious escape —
+render the group everywhere except Home — makes permanent chrome a function of
+*which destination you are on*. The Competition Deck's binding claim is the
+opposite: the chrome is a function of **what the player plays**, never of where
+they are or of what the platform publishes. Trading that for a group is a worse
+deal than the group is worth.
+
+**What replaced it.** The need was real; the mechanism was wrong. Side-game
+visibility is now delivered where the player is already looking — Home's primary
+action can be the Last Man Standing pick, and Games leads each row with the
+action that game is actually asking for. Both are measured, and neither touches
+the shell.
+
+## 24.2 The shell's `games: []` / `leagues: []` gap — DELIBERATELY LEFT
+
+`buildShellModel` hard-codes both, and §12 listed populating them as Stage E.
+Investigated properly, per the brief's instruction not to populate them *"simply
+because the types exist"*:
+
+**The shell already holds the actions, and it still cannot fill this model.**
+`useGlobalPlayInbox` runs `presentCompetitionWeek` for every competition the
+player is in, mounted once above the destinations — so the cross-competition
+week is genuinely free at the shell. But what it carries is a `WeekAction`:
+`title`, `locksAt`, `outstanding`. What `ShellGameSummary` requires is three
+**different** shapes — `made`/`of`/`deadlineLabel` for the Match Predictor,
+`life`/`selection`/`deadlineLabel` for Last Man Standing, `position`/`of`/
+`nextOpponent` for the Championship — and the inbox carries none of them.
+
+So the options were:
+
+| Option | Verdict |
+| --- | --- |
+| Populate with real summaries | **Not possible** without a per-navigation read per game, which the shell deliberately does not pay |
+| Populate names with `summary: null` | **A lie.** `summary: null` means "no state in this game yet"; asserting it for a player who has state is exactly the false confidence the badge fix removed |
+| Leave both empty | **Chosen**, and now recorded as a decision rather than a TODO |
+
+The visible consequence is bounded and honest: Jump offers competitions and not
+games. Jump is only offered once the rail has overflowed, and a game is two
+presses from anywhere regardless — so what is lost is an accelerator for a
+power-user case, not a route.
+
+**If it is wanted later**, the honest way in is for the play inbox to carry each
+game's structured summary alongside its action — one change, at the authority
+that already does the reading, with no new request. That is a real piece of work
+and not a field to fill in.
+
+## 24.3 What this leaves
+
+The refinement shipped is exactly the one this report recommended and no more:
+Home carries the whole week, Games leads with the action where a game is asking,
+and the badge counts games rather than fixtures. **Mobile navigation is
+unchanged. The desktop rail is unchanged. Nothing was renamed, moved, demoted or
+repointed.**
+
 ## Appendix — how this was established
 
 - **Repository state:** `main` `711374c`; local clone had diverged on unrelated

@@ -232,3 +232,67 @@ test.describe('the games hub promotes no game over its peers', () => {
     })
   }
 })
+
+/**
+ * GAMES LEADS WITH THE ACTION, IN A REAL ENGINE.
+ *
+ * `DFA-006`'s rule is that a card's primary control is the action where the
+ * game is asking and a destination where it is not. Vitest proves the mapping;
+ * what a browser adds is that the difference SURVIVES a 375px column — the
+ * width where an action verb is longest relative to the space it has — and that
+ * a settled row really has nothing to press.
+ *
+ * The distinction is counted rather than described: a report and a task differ
+ * by whether the row carries an action verb.
+ */
+test.describe('the games hub leads with the action', () => {
+  test('gives an asking game its own verb and a reporting one a destination', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 })
+    await page.goto('/iframe.html?id=vnext-games--frame-asking-phone&viewMode=story', {
+      waitUntil: 'load',
+    })
+    await page.waitForSelector('[data-vnext-game]')
+
+    const predictor = page.locator('[data-vnext-game="g-main"]')
+    const lms = page.locator('[data-vnext-game="g-lms"]')
+    const cup = page.locator('[data-vnext-game="g-cup"]')
+
+    await expect(predictor.getByRole('button', { name: /Predict this matchweek/ })).toBeVisible()
+    await expect(lms.getByRole('button', { name: /Pick your club/ })).toBeVisible()
+
+    // The Championship is riding on points the player is already earning. It
+    // reports its matchup and keeps a destination verb.
+    await expect(cup).toContainText('Matchday 3')
+    await expect(cup.locator('button[data-asking="true"]')).toHaveCount(0)
+  })
+
+  test('gives a settled week no action verb at all', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 })
+    await page.goto('/iframe.html?id=vnext-games--frame-settled-phone&viewMode=story', {
+      waitUntil: 'load',
+    })
+    await page.waitForSelector('[data-vnext-game]')
+
+    await expect(page.locator('button[data-asking="true"]')).toHaveCount(0)
+    await expect(page.locator('[data-vnext-game="g-lms"]')).toContainText('you are out')
+  })
+
+  test('keeps every action target tappable at 375', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 900 })
+    await page.goto('/iframe.html?id=vnext-games--frame-asking-phone&viewMode=story', {
+      waitUntil: 'load',
+    })
+    await page.waitForSelector('[data-vnext-game]')
+
+    const small = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-vnext-game] button')]
+        .map((node) => ({
+          label: (node.textContent ?? '').trim().slice(0, 32),
+          height: Math.round(node.getBoundingClientRect().height),
+        }))
+        .filter((entry) => entry.height < 44),
+    )
+
+    expect(small, 'controls under the 44px target').toEqual([])
+  })
+})

@@ -19,6 +19,8 @@ import type { SeasonGames } from '../../../services/supabase/competitionGamesMod
  * that did not answer.
  */
 
+import type { CompetitionWeek } from '../../../features/hub/competitionWeekModel'
+
 type GamesRead = { readonly kind: 'ok'; readonly games: SeasonGames } | { readonly kind: 'failed' }
 
 export type GamesSource = {
@@ -31,4 +33,17 @@ export type GamesSource = {
     readonly seasonLabel: string
   }
   readonly games: GamesRead
+  /**
+   * The player's week across every game that answered, from the ONE authority.
+   *
+   * IT IS NOT PART OF THE CATALOGUE READ, and that separation is the point.
+   * `get_competition_games` answers membership and registration; whether a pick
+   * is in is each game's own read, and `presentCompetitionWeek` is the only
+   * thing that turns those into actions. Home consumes the same value, which is
+   * what `DFA-006` means by a card and the panel never disagreeing.
+   *
+   * `null` where nothing answered. A row then falls back to its destination
+   * wording rather than claiming the game is settled.
+   */
+  readonly week: CompetitionWeek | null
 }

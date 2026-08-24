@@ -23,6 +23,8 @@ function entry(over: Partial<GameEntry> = {}): GameEntry {
     displayName: 'Match Predictor',
     active: true,
     standing: { kind: 'never-joined', registration: 'open' },
+    // Most worlds are catalogue worlds: nothing joined, so no game is asking.
+    weekAction: null,
     ...over,
   }
 }
@@ -166,7 +168,91 @@ const wideCatalogue = world({
    THE REGISTRY
    ========================================================================== */
 
+/**
+ * THE WEEK REACHES THE CATALOGUE — the world the shipped surface could not draw.
+ *
+ * Three joined games, each in a different relationship to this week: the Match
+ * Predictor still wants seven scorelines, Last Man Standing still wants a club,
+ * and the Championship is riding on points the player is already being told to
+ * earn. Two of those are jobs and one is a report, and the surface has to show
+ * that difference without being told which is which — `outstanding` is the only
+ * input that decides it.
+ *
+ * The titles are `competitionWeekModel`'s own sentences, copied verbatim rather
+ * than paraphrased, because that is what Home prints for the same game and the
+ * two must not drift.
+ */
+const askingThisWeek = world({
+  games: {
+    kind: 'games',
+    entries: [
+      {
+        ...MAIN,
+        standing: { kind: 'playing' },
+        weekAction: {
+          title: 'Matchweek 12: 7 of 10 still to predict',
+          outstanding: true,
+          deadline: '2027-08-21T14:00:00.000Z',
+          call: 'Predict this matchweek',
+        },
+      },
+      {
+        ...LMS,
+        standing: { kind: 'playing' },
+        weekAction: {
+          title: 'Last Man Standing: pick a club for Round 12',
+          outstanding: true,
+          deadline: '2027-08-21T13:30:00.000Z',
+          call: 'Pick your club',
+        },
+      },
+      {
+        ...CUP,
+        standing: { kind: 'playing' },
+        weekAction: {
+          title: 'Championship: Matchday 3 against Rowan Adeyemi',
+          outstanding: false,
+          deadline: '2027-08-21T14:00:00.000Z',
+          call: null,
+        },
+      },
+    ],
+  },
+})
+
+/** The same three, all settled: three reports and nothing to press. */
+const settledThisWeek = world({
+  games: {
+    kind: 'games',
+    entries: [
+      {
+        ...MAIN,
+        standing: { kind: 'playing' },
+        weekAction: {
+          title: 'Matchweek 12 card is complete',
+          outstanding: false,
+          deadline: '2027-08-21T14:00:00.000Z',
+          call: null,
+        },
+      },
+      {
+        ...LMS,
+        standing: { kind: 'playing' },
+        weekAction: {
+          title: 'Last Man Standing: you are out',
+          outstanding: false,
+          deadline: null,
+          call: null,
+        },
+      },
+      { ...CUP, standing: { kind: 'playing' } },
+    ],
+  },
+})
+
 export const gamesScenarios = {
+  askingThisWeek,
+  settledThisWeek,
   allOpen,
   playingOne,
   playingAll,
@@ -204,4 +290,8 @@ export const gamesScenarioPremises: Readonly<Record<GamesScenarioName, string>> 
   noGames: 'A member of a competition running no games this season.',
   unavailable: 'The read did not answer.',
   wideCatalogue: 'Five games and a very long name. The width test.',
+  askingThisWeek:
+    'Two games asking and one reporting. The Match Predictor wants seven scorelines, Last Man Standing wants a club, and the Championship is riding on points the player is already being told to earn. The surface must lead the first two with the ACTION and leave the third a destination, and `outstanding` is the only input that decides which.',
+  settledThisWeek:
+    'The same three, nothing outstanding. A complete card, an eliminated entry and a Championship between matchdays are all worth saying and none of them is a job — so no row here may carry an action verb.',
 }

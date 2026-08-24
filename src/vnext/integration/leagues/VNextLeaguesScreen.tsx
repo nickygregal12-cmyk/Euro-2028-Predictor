@@ -92,7 +92,7 @@ export function VNextLeaguesScreen(props: VNextLeaguesScreenProps) {
             playerName: null,
             // A standings table carries no prediction, so it cannot count what
             // is outstanding. `null` is "this page cannot say", never zero.
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

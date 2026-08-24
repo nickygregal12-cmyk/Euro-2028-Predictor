@@ -77,7 +77,7 @@ export function VNextChampionshipScreen(props: VNextChampionshipScreenProps) {
             playerName: null,
             // A Championship counts no outstanding predictions of its own.
             // `null` is "this page cannot say", never zero.
-            outstandingPredictions: null,
+            outstandingGames: null,
             canNavigateAway: props.onShellIntent !== undefined,
             elsewhere,
           })

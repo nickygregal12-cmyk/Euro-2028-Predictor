@@ -102,6 +102,22 @@
   color: var(--vnext-text-muted);
 }
 
+/* THE GAME'S OWN WEEK SENTENCE.
+   Quiet by default, because most of them are reports: "pick is in", "card is
+   complete", "you are out". It gains weight only where the game is actually
+   asking, which is the same `outstanding` the button reads — so the emphasis
+   and the verb can never disagree. */
+.rowWeek {
+  margin: 0;
+  color: var(--vnext-text-muted);
+  overflow-wrap: anywhere;
+}
+
+.rowWeek[data-outstanding='true'] {
+  color: var(--vnext-text);
+  font-weight: 600;
+}
+
 .rowActions {
   display: flex;
   flex-wrap: wrap;
@@ -119,6 +135,13 @@
   background-color: var(--vnext-surface-interactive);
   color: var(--vnext-text);
   cursor: pointer;
+}
+
+/* A ROW THAT IS ASKING GETS A STRONGER EDGE, and nothing more. It must not
+   become a second accented control: `Join` is still the only one that writes,
+   and the accent stays reserved for it. */
+.rowAction[data-asking='true'] {
+  border-color: var(--vnext-accent);
 }
 
 /* The one affordance that changes something. It is the only accented control
