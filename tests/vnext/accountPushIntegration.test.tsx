@@ -64,4 +64,15 @@ describe('connected Account push preference', () => {
     expect(await screen.findByText(/could not check push notifications/i)).toBeInTheDocument()
     expect(screen.queryByRole('switch', { name: /Push notifications/ })).not.toBeInTheDocument()
   })
+
+  it('renders the rest of Account while push capability is still unresolved', async () => {
+    getPushNotificationState.mockImplementation(() => new Promise(() => {}))
+
+    render(
+      <VNextAccountScreen userId="user-1" authLoading={false} displayName="Ada Lovelace" />,
+    )
+
+    expect(await screen.findByRole('heading', { name: 'Your details' })).toBeInTheDocument()
+    expect(screen.getByText(/could not check push notifications/i)).toBeInTheDocument()
+  })
 })

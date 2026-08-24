@@ -379,11 +379,12 @@ export function VNextAccountDestination() {
           )
           return
         default:
-          // SIGN OUT IS NOT AWAITED HERE AND NOTHING IS NAVIGATED AFTER IT.
+          // NOTHING IS NAVIGATED AFTER SIGN-OUT. Return the command so the
+          // Account page can keep a failed cleanup visible and retryable.
           // `AuthProvider` clears the session and `RequireAuth` answers the
           // next render, which is one authority deciding where a signed-out
           // visitor goes rather than two.
-          void signOut()
+          return signOut()
       }
     },
     [navigate, setChoice, setPreference, signOut],

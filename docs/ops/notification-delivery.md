@@ -330,14 +330,30 @@ The vNext Account surface offers push for the one reminder the delivery ledger
 actually schedules. The subscription row remains the opt-in: turning the switch
 on stores this browser's endpoint and encryption keys through
 `save_push_subscription`, while turning it off deletes that own row before
-releasing the browser subscription. No second preference boolean exists.
+releasing the browser subscription. Signing out follows the same order while the
+old authenticated session still exists; if that own-row deletion fails, the
+session remains available so the player can retry. No second preference boolean
+exists.
+
+An existing browser subscription is reused only when its application-server key
+matches this deployment's configured public key byte for byte. A rotated key
+deletes the old own row before releasing that local subscription, then creates
+and stores the replacement; the old endpoint is never reported as current.
+When storing a newly created subscription returns an error, Account verifies its
+own row before rolling local state back: a present row confirms success, a
+confirmed absence is safe to release, and an unavailable verification preserves
+the local subscription while surfacing failure. A pre-existing matching
+subscription is never released merely because storing it returned an error.
 
 The switch appears only when the deployment supplies `VITE_VAPID_PUBLIC_KEY`,
 the browser implements the Push API, the page is not an iOS browser tab that
 must first be added to the Home Screen, and permission has not been denied. The
 Account surface explains each unavailable state, including a failed capability
-read, rather than drawing a switch that cannot work. Saving confirms only that
-the preference persisted; it never claims a reminder was sent or delivered.
+read, rather than drawing a switch that cannot work. Push capability acquisition
+does not hold profile, history or the other Account reads open, and a failed
+worker registration terminates as unavailable rather than waiting indefinitely.
+Saving confirms only that the preference persisted; it never claims a reminder
+was sent or delivered.
 
 `src/services/supabase/database.types.ts` and its metadata are the unchanged
 generated Development contract-218 artefacts. They include contract 217's

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { expectNoAxeViolations } from './vnextAxe'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { VNextAccount } from '../../src/vnext/account/VNextAccount'
 import { VNextShellProvider } from '../../src/vnext/app/VNextShellProvider'
 import { accountScenarioNames, accountScenarios, shellScenarios } from '../../src/vnext/fixtures'
@@ -24,7 +24,7 @@ function renderAccount(
   props: {
     onRetry?: () => void
     refreshing?: boolean
-    onIntent?: (intent: { kind: string }) => void
+    onIntent?: (intent: { kind: string }) => void | Promise<void>
     actions?: AccountActions
     theme?: 'system' | 'dark' | 'light'
     haptics?: 'system' | 'on' | 'off'
@@ -274,6 +274,22 @@ describe('signing out', () => {
     // refuse.
     renderAccount(accountScenarios.ordinary)
     expect(screen.queryByRole('button', { name: 'Sign out' })).toBeNull()
+  })
+
+  it('shows a safe retry path when the host cannot finish signing out', async () => {
+    const onIntent = vi.fn()
+      .mockRejectedValueOnce(new Error('internal provider detail'))
+      .mockResolvedValueOnce(undefined)
+    renderAccount(accountScenarios.ordinary, { onIntent })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert).toHaveTextContent(/couldn.t sign you out/i)
+    expect(alert).not.toHaveTextContent('internal provider detail')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sign out' }))
+    await waitFor(() => expect(onIntent).toHaveBeenCalledTimes(2))
   })
 
   it('heads no details section a host supplied no writes for', () => {

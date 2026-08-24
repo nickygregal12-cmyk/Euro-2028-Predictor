@@ -150,7 +150,8 @@ export function useVNextAccountSource(
       // caught together, because the settings panel cannot draw itself from
       // half of them: an email row with no address and a switch in an unknown
       // position are not two independently useful halves.
-      const [preferences, history, catalogue, settings, pushNotifications] = await Promise.all([
+      const pushNotificationsPromise = pushModule.getPushNotificationState().catch(() => null)
+      const [preferences, history, catalogue, settings] = await Promise.all([
         preferencesModule.fetchPlayerPreferences().catch(() => null),
         historyModule.fetchMySeasonHistory().catch(() => null),
         catalogueModule.fetchPublishedWeeklySeasons().catch(() => null),
@@ -162,7 +163,6 @@ export function useVNextAccountSource(
             account === null ? null : { account, emails },
           )
           .catch(() => null),
-        pushModule.getPushNotificationState().catch(() => null),
       ])
       if (!active) return
 
@@ -194,9 +194,26 @@ export function useVNextAccountSource(
                   displayNameMaxLength: policy.DISPLAY_NAME_MAX,
                   passwordMinLength: policy.PASSWORD_MIN,
                 },
-          pushNotifications: pushNotifications ?? { kind: 'unavailable' },
+          pushNotifications: { kind: 'unavailable' },
           supportHref,
         },
+      })
+
+      // Push is an optional browser capability, not a prerequisite for profile,
+      // settings or history. Let Account render those reads even if capability
+      // acquisition is delayed, then replace only this field if it settles.
+      void pushNotificationsPromise.then((pushNotifications) => {
+        if (!active) return
+        setState((current) => {
+          if (current.status !== 'loaded' || current.identity !== identity) return current
+          return {
+            ...current,
+            payload: {
+              ...current.payload,
+              pushNotifications: pushNotifications ?? { kind: 'unavailable' },
+            },
+          }
+        })
       })
     })()
 

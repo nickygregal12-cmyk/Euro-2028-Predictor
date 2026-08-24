@@ -157,7 +157,7 @@ export type VNextAccountProps = {
   readonly pushNotifications?: AccountPushNotifications
   readonly onRetry?: (() => void) | undefined
   readonly refreshing?: boolean
-  readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  readonly onIntent?: ((intent: AccountIntent) => void | Promise<void>) | undefined
   /** The writes this host can perform. Absent members draw no control. */
   readonly actions?: AccountActions | undefined
 }
@@ -251,9 +251,25 @@ function Session({
 }: {
   readonly theme: 'system' | 'dark' | 'light'
   readonly haptics: 'system' | 'on' | 'off'
-  readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  readonly onIntent?: ((intent: AccountIntent) => void | Promise<void>) | undefined
 }) {
+  const [signingOut, setSigningOut] = useState(false)
+  const [signOutError, setSignOutError] = useState(false)
   if (onIntent === undefined) return null
+
+  const performSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    setSignOutError(false)
+    try {
+      await onIntent({ kind: 'sign-out' })
+    } catch {
+      setSignOutError(true)
+    } finally {
+      setSigningOut(false)
+    }
+  }
+
   return (
     <section className={styles.panel} data-vnext-zone="session">
       <h2 className={`${text.title} ${styles.panelHeading}`}>This device</h2>
@@ -308,10 +324,16 @@ function Session({
       <button
         type="button"
         className={styles.signOut}
-        onClick={() => onIntent({ kind: 'sign-out' })}
+        onClick={() => void performSignOut()}
+        disabled={signingOut}
       >
-        Sign out
+        {signingOut ? 'Signing out…' : 'Sign out'}
       </button>
+      {signOutError ? (
+        <p className={`${text.micro} ${styles.error}`} role="alert">
+          We couldn’t sign you out. Please try again.
+        </p>
+      ) : null}
     </section>
   )
 }

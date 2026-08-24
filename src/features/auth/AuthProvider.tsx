@@ -5,6 +5,7 @@ import {
   signOut as serviceSignOut,
 } from '../../services/supabase/auth'
 import { fetchMyProfile, fetchWelcomedAt, markWelcomedNow } from '../../services/supabase/profile'
+import { removeCurrentPushSubscription } from '../../services/pushNotifications'
 import { welcomeStatusFor, type WelcomeStatus } from '../welcome/welcomeGating'
 
 // Session state for the whole app. The session is established either by real
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // screens. The dev auto-login shim only runs at startup (main.tsx), so
     // signing out no longer bounces straight back in — a full reload in a dev
     // build with the flag on will auto-login again, which is expected.
+    if (userId) await removeCurrentPushSubscription()
     await serviceSignOut()
   }
 

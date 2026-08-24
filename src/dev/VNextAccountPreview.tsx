@@ -150,8 +150,7 @@ function AccountHarness({
             // session belongs to the auth provider, and this is the host
             // performing it — the same division every write in this lane uses.
             setNote('Signing out…')
-            void signOut()
-            return
+            return signOut()
           }
           setNote(`Intent "${(intent as { kind: string }).kind}" — reported rather than routed.`)
         }}

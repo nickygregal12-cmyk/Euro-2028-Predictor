@@ -56,8 +56,21 @@ function isIosBrowserTab(): boolean {
 }
 
 async function pushManager(): Promise<PushManager> {
-  const registration = await navigator.serviceWorker.ready
+  const registration = await navigator.serviceWorker.getRegistration()
+  if (!registration) throw new Error('Push notifications are unavailable in this browser.')
   return registration.pushManager
+}
+
+function serverKeyMatches(subscription: PushSubscription, configured: Uint8Array): boolean {
+  const key: unknown = subscription.options.applicationServerKey
+  const bytes =
+    key instanceof ArrayBuffer
+      ? new Uint8Array(key)
+      : ArrayBuffer.isView(key)
+        ? new Uint8Array(key.buffer, key.byteOffset, key.byteLength)
+        : null
+  if (bytes === null || bytes.byteLength !== configured.byteLength) return false
+  return bytes.every((byte, index) => byte === configured[index])
 }
 
 async function saveSubscription(subscription: PushSubscription): Promise<void> {
@@ -87,6 +100,21 @@ async function storedSubscriptionExists(endpoint: string): Promise<boolean> {
 async function removeStoredSubscription(endpoint: string): Promise<void> {
   const { error } = await db.from('push_subscriptions').delete().eq('endpoint', endpoint)
   if (error) throw error
+}
+
+async function removeSubscription(subscription: PushSubscription): Promise<boolean> {
+  // The row is the opt-in. Remote removal must finish while the authenticated
+  // session still exists and before the browser releases the endpoint.
+  await removeStoredSubscription(subscription.endpoint)
+  return subscription.unsubscribe().catch(() => false)
+}
+
+export async function removeCurrentPushSubscription(): Promise<void> {
+  if (!browserSupportsPush()) return
+  const registration = await navigator.serviceWorker.getRegistration()
+  if (!registration) return
+  const subscription = await registration.pushManager.getSubscription()
+  if (subscription !== null) await removeSubscription(subscription)
 }
 
 export async function getPushNotificationState(): Promise<PushNotificationState> {
@@ -122,10 +150,7 @@ export async function setPushNotifications(on: boolean): Promise<void> {
 
   if (!on) {
     if (existing === null) return
-    // The row is the opt-in. Remove the endpoint and encryption keys first so
-    // even a browser that refuses to release its local object cannot be reached.
-    await removeStoredSubscription(existing.endpoint)
-    await existing.unsubscribe().catch(() => false)
+    await removeSubscription(existing)
     return
   }
 
@@ -138,16 +163,33 @@ export async function setPushNotifications(on: boolean): Promise<void> {
   const key = configuredKey()
   if (!key) throw new Error('Push notifications are not configured on this deployment.')
 
-  const subscription =
-    existing ??
-    (await manager.subscribe({
+  const configured = vapidPublicKeyBytes(key)
+  let created = false
+  let subscription = existing
+  if (subscription !== null && !serverKeyMatches(subscription, configured)) {
+    const released = await removeSubscription(subscription)
+    if (!released) throw new Error('The existing push subscription could not be replaced.')
+    subscription = null
+  }
+  if (subscription === null) {
+    subscription = await manager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: vapidPublicKeyBytes(key),
-    }))
+      applicationServerKey: configured,
+    })
+    created = true
+  }
 
   try {
     await saveSubscription(subscription)
   } catch (error) {
+    if (!created) throw error
+    try {
+      if (await storedSubscriptionExists(subscription.endpoint)) return
+    } catch {
+      // A lost save response followed by a failed verification is ambiguous.
+      // Preserve the local endpoint so a potentially committed row stays live.
+      throw error
+    }
     await subscription.unsubscribe().catch(() => false)
     throw error
   }

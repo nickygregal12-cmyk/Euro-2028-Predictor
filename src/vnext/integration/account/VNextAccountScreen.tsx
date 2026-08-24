@@ -75,7 +75,7 @@ export type VNextAccountScreenProps = {
   readonly theme?: 'system' | 'dark' | 'light'
   /** The player's haptic choice, held by the host that persists it. */
   readonly haptics?: 'system' | 'on' | 'off'
-  readonly onIntent?: ((intent: AccountIntent) => void) | undefined
+  readonly onIntent?: ((intent: AccountIntent) => void | Promise<void>) | undefined
   /**
    * A ready `mailto:` for the deployment's administrator, or absent where none
    * is configured. Built by the host, because the subject names the product and

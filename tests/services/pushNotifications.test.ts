@@ -41,9 +41,13 @@ function installBrowser(current: PushSubscription | null) {
     getSubscription: vi.fn(async () => current),
     subscribe: vi.fn(async () => subscription()),
   }
+  const registration = { pushManager: manager }
   Object.defineProperty(navigator, 'serviceWorker', {
     configurable: true,
-    value: { ready: Promise.resolve({ pushManager: manager }) },
+    value: {
+      getRegistration: vi.fn(async () => registration),
+      ready: Promise.resolve(registration),
+    },
   })
   Object.defineProperty(window, 'PushManager', { configurable: true, value: class {} })
   Object.defineProperty(window, 'Notification', {
@@ -102,6 +106,23 @@ describe('pushNotifications', () => {
     await expect(getPushNotificationState()).rejects.toThrow('read failed')
   })
 
+  it('terminates as unavailable when registration failed while ready never resolves', async () => {
+    Object.defineProperty(navigator, 'serviceWorker', {
+      configurable: true,
+      value: {
+        getRegistration: vi.fn(async () => undefined),
+        ready: new Promise<ServiceWorkerRegistration>(() => {}),
+      },
+    })
+    Object.defineProperty(window, 'PushManager', { configurable: true, value: class {} })
+    Object.defineProperty(window, 'Notification', {
+      configurable: true,
+      value: { permission: 'granted', requestPermission: vi.fn() },
+    })
+
+    await expect(getPushNotificationState()).rejects.toThrow(/unavailable/i)
+  })
+
   it('subscribes and stores the endpoint and keys after permission is granted', async () => {
     const manager = installBrowser(null)
     await setPushNotifications(true)
@@ -113,13 +134,97 @@ describe('pushNotifications', () => {
     })
   })
 
-  it('unsubscribes again when storing a new opt-in fails', async () => {
+  it('reuses a subscription whose typed-array server key matches byte-for-byte', async () => {
+    const configured = vapidPublicKeyBytes(PUBLIC_KEY)
+    const backing = new Uint8Array(configured.length + 2)
+    backing.set(configured, 1)
+    const existing = subscription({
+      options: {
+        applicationServerKey: backing.subarray(1, -1) as unknown as ArrayBuffer,
+        userVisibleOnly: true,
+      },
+    })
+    const manager = installBrowser(existing)
+
+    await setPushNotifications(true)
+
+    expect(manager.subscribe).not.toHaveBeenCalled()
+    expect(existing.unsubscribe).not.toHaveBeenCalled()
+    expect(remove).not.toHaveBeenCalled()
+    expect(rpc).toHaveBeenCalledWith('save_push_subscription', expect.objectContaining({
+      p_endpoint: existing.endpoint,
+    }))
+  })
+
+  it('deletes and releases a subscription for a rotated key before storing the replacement', async () => {
+    const old = subscription({
+      options: { applicationServerKey: new Uint8Array([1, 2, 3]).buffer, userVisibleOnly: true },
+    })
+    const replacement = subscription({ endpoint: 'https://push.example.com/two' })
+    const manager = installBrowser(old)
+    manager.subscribe.mockResolvedValue(replacement)
+
+    await setPushNotifications(true)
+
+    expect(eq).toHaveBeenCalledWith('endpoint', old.endpoint)
+    expect(old.unsubscribe).toHaveBeenCalledOnce()
+    expect(manager.subscribe).toHaveBeenCalledOnce()
+    expect(eq.mock.invocationCallOrder[0]).toBeLessThan(
+      vi.mocked(old.unsubscribe).mock.invocationCallOrder[0] as number,
+    )
+    expect(vi.mocked(old.unsubscribe).mock.invocationCallOrder[0]).toBeLessThan(
+      manager.subscribe.mock.invocationCallOrder[0] as number,
+    )
+    expect(rpc).toHaveBeenCalledWith('save_push_subscription', expect.objectContaining({
+      p_endpoint: replacement.endpoint,
+    }))
+  })
+
+  it('never releases an existing matching subscription when storing it fails', async () => {
+    const existing = subscription({
+      options: {
+        applicationServerKey: vapidPublicKeyBytes(PUBLIC_KEY).buffer,
+        userVisibleOnly: true,
+      },
+    })
+    installBrowser(existing)
+    rpc.mockResolvedValue({ error: new Error('save failed') })
+
+    await expect(setPushNotifications(true)).rejects.toThrow('save failed')
+    expect(existing.unsubscribe).not.toHaveBeenCalled()
+  })
+
+  it('rolls back a new local subscription only after confirming the row is absent', async () => {
     const created = subscription()
     const manager = installBrowser(null)
     manager.subscribe.mockResolvedValue(created)
     rpc.mockResolvedValue({ error: new Error('save failed') })
+
     await expect(setPushNotifications(true)).rejects.toThrow('save failed')
+    expect(maybeSingle).toHaveBeenCalledOnce()
     expect(created.unsubscribe).toHaveBeenCalledOnce()
+  })
+
+  it('accepts a potentially committed save when verification finds its own row', async () => {
+    const created = subscription()
+    const manager = installBrowser(null)
+    manager.subscribe.mockResolvedValue(created)
+    rpc.mockResolvedValue({ error: new Error('response was lost') })
+    maybeSingle.mockResolvedValue({ data: { endpoint: created.endpoint }, error: null })
+
+    await expect(setPushNotifications(true)).resolves.toBeUndefined()
+    expect(created.unsubscribe).not.toHaveBeenCalled()
+  })
+
+  it('preserves a new local subscription when failed-save verification is ambiguous', async () => {
+    const created = subscription()
+    const manager = installBrowser(null)
+    manager.subscribe.mockResolvedValue(created)
+    rpc.mockResolvedValue({ error: new Error('save failed') })
+    maybeSingle.mockResolvedValue({ data: null, error: new Error('verification failed') })
+
+    await expect(setPushNotifications(true)).rejects.toThrow('save failed')
+    expect(created.unsubscribe).not.toHaveBeenCalled()
   })
 
   it('deletes the stored endpoint and keys before releasing the browser subscription', async () => {
