@@ -15,7 +15,7 @@ One page of current facts, generated from the machine-readable sources. It is
 | --- | ---: | --- |
 | Repository | **218** | latest `20260824100000_live_results_channel.sql` |
 | Development hosted | **218** | at `20260824100000_live_results_channel.sql`, verified `2026-08-24T11:03:45.635Z` |
-| Production | **211** | promotion **not authorised** |
+| Production | **218** | promotion **not authorised** |
 
 Production is read from production's own hosted record, and promotion
 authorisation with it. It is never inferred from how far the repository or
