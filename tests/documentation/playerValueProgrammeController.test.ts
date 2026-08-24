@@ -282,11 +282,35 @@ function bend(mutate: (draft: Programme) => void): Programme {
 }
 const stageIn = (draft: Programme, id: string) => draft.stages.find((stage) => stage.id === id)!
 
-/** A stage that has not started yet, whichever one that is as the programme moves. */
+/**
+ * A stage in the NOT-STARTED shape, constructed rather than found.
+ *
+ * This used to look for a stage whose live status was already `not_started`,
+ * which worked right up until the programme reached its last stage and there
+ * were none left -- at which point four negative cases could not run at all.
+ * That is the same fault the out-of-order case below already warns about, in
+ * its mirror image: a case that can only run while the live file happens to
+ * contain its fixture is a case that quietly stops testing anything.
+ *
+ * These cases need a stage that has not started. Whether the programme still
+ * has one is not their business, so `bendWaiting` makes one.
+ */
 function notStartedStageId(): string {
-  const waiting = state.stages.find((stage) => stage.status === 'not_started')
-  if (!waiting) throw new Error('every stage has started, so this case needs rewriting')
-  return waiting.id
+  return state.stages[state.stages.length - 1]!.id
+}
+
+/** `bend`, with the waiting stage first reset to a pristine not-started shape. */
+function bendWaiting(mutate: (draft: Programme) => void): Programme {
+  return bend((draft) => {
+    const stage = stageIn(draft, notStartedStageId())
+    stage.status = 'not_started'
+    stage.pr = null
+    stage.headSha = null
+    stage.mergedSha = null
+    stage.acceptanceEvidence = []
+    stage.blocker = null
+    mutate(draft)
+  })
 }
 
 /**
@@ -397,7 +421,7 @@ describe('player-value programme controller', () => {
     // behind it, and the next reader would have no way to tell a stage that
     // shipped two thirds from one that shipped nothing.
     const waiting = notStartedStageId()
-    const partly = bend((draft) => {
+    const partly = bendWaiting((draft) => {
       const stage = stageIn(draft, waiting)
       stage.status = 'blocked'
       stage.blocker = 'waiting on somebody else'
@@ -422,7 +446,7 @@ describe('player-value programme controller', () => {
         `stage ${waiting}: blocked with a merge and no acceptance evidence`,
       ],
     ] as const) {
-      const missing = bend((draft) => {
+      const missing = bendWaiting((draft) => {
         const stage = stageIn(draft, waiting)
         stage.status = 'blocked'
         stage.blocker = 'waiting on somebody else'
@@ -440,7 +464,7 @@ describe('player-value programme controller', () => {
 
   it('still refuses a merge recorded on a stage that has not been anywhere near one', () => {
     const waiting = notStartedStageId()
-    const claimed = bend((draft) => {
+    const claimed = bendWaiting((draft) => {
       const stage = stageIn(draft, waiting)
       stage.status = 'in_progress'
       stage.mergedSha = 'b'.repeat(40)
@@ -480,14 +504,14 @@ describe('player-value programme controller', () => {
     // rather than of the rule being tested.
     const waiting = notStartedStageId()
 
-    const unnamed = bend((draft) => {
+    const unnamed = bendWaiting((draft) => {
       stageIn(draft, waiting).status = 'blocked'
     })
     expect(validateProgramme(unnamed, repositoryContract)).toContain(
       `stage ${waiting}: blocked without a named blocker`,
     )
 
-    const stray = bend((draft) => {
+    const stray = bendWaiting((draft) => {
       stageIn(draft, waiting).blocker = 'waiting on the owner'
     })
     expect(validateProgramme(stray, repositoryContract)).toContain(

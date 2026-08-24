@@ -12,8 +12,16 @@ import {
   reportClientError,
 } from './services/observability/clientObservability'
 import { initDevAuth } from './services/supabase/devAutoLogin'
+import { initProductAnalytics } from './services/analytics/productAnalytics'
 
 installGlobalErrorCapture()
+
+// Fire-and-forget, and deliberately NOT awaited before the first render.
+// With no key configured this returns immediately and never requests the
+// PostHog chunk; with one, the events recorded during startup queue behind
+// it. Either way a player waits for nothing -- analytics that can delay the
+// application is worse than no analytics.
+void initProductAnalytics()
 
 // Dev auto-login runs before the first render (docs/auth-plan.md §1). In a
 // production build this is a no-op — UNLESS the autologin flag is still set, in
