@@ -29,7 +29,7 @@
  * @typedef {{ name: string, status?: string, conclusion?: string, output?: string }} Check
  *
  * @typedef {{ number?: number, state?: string, draft?: boolean, merged?: boolean,
- *   headSha?: string, baseSha?: string, baseChangedSince?: boolean, mergeable?: boolean,
+ *   headSha?: string, baseSha?: string, baseChangedSince?: boolean, mergeable?: boolean|undefined,
  *   requiredChecks?: Check[], reviewThreads?: Array<{ isResolved?: boolean, isOutdated?: boolean }>,
  *   reviews?: Array<{ state?: string }>, [key: string]: any }} PullRequestObservation
  */
@@ -261,6 +261,10 @@ export function evaluateMergeEligibility(pr) {
   if (pr.draft) blockers.push('draft')
   if (pr.merged) blockers.push('already_merged')
   if (pr.mergeable === false) blockers.push('not_mergeable')
+  // Unconfirmed is not the same as mergeable. GitHub computes mergeability
+  // asynchronously and reports null until it has, so anything short of an
+  // explicit true blocks and is re-read later.
+  else if (pr.mergeable !== true) blockers.push('mergeability_unconfirmed')
   if (pr.baseChangedSince) blockers.push('base_drift_invalidates_evidence')
 
   const required = pr.requiredChecks ?? []
@@ -304,7 +308,12 @@ export function nextStateForPullRequest(pr) {
   if (blockers.some((b) => b.startsWith('check_pending:'))) {
     return { status: 'WAITING_CI', nextAction: 'WATCH_CI', blockers }
   }
-  if (blockers.some((b) => b.startsWith('check_failure') || b.startsWith('check_cancelled'))) {
+  // Every non-pending check blocker routes to repair, not just failure and
+  // cancelled. `evaluateMergeEligibility` emits `check_<conclusion>:` for any
+  // conclusion that is not an explicit pass — skipped, timed_out,
+  // action_required, missing_decider — and naming only two of them here left
+  // the rest falling through to a wait that nothing would ever end.
+  if (blockers.some((b) => b.startsWith('check_') && !b.startsWith('check_pending:'))) {
     return { status: 'ELIGIBLE', nextAction: 'REPAIR_CI', blockers }
   }
   if (

@@ -47,7 +47,12 @@ export function normalisePullRequest(raw, { requiredCheckNames = [], baseSha } =
     baseSha: raw.base?.sha ?? raw.baseSha,
     // Evidence gathered against a stale base is not evidence for today's merge.
     baseChangedSince: Boolean(baseSha && (raw.base?.sha ?? raw.baseSha) !== baseSha),
-    mergeable: raw.mergeable ?? (raw.mergeable_state ? raw.mergeable_state !== 'dirty' : undefined),
+    // Only GitHub's own boolean counts. `mergeable_state` was tempting to infer
+    // from, but it reads 'unknown' while GitHub is still computing mergeability,
+    // and 'unknown' !== 'dirty' would have resolved to *mergeable* — failing open
+    // on the one question this module exists to answer. Undefined stays
+    // undefined and is blocked below.
+    mergeable: typeof raw.mergeable === 'boolean' ? raw.mergeable : undefined,
     mergeableState: raw.mergeable_state ?? raw.mergeableState,
     requiredChecks,
     observedChecks: [...observed.values()],

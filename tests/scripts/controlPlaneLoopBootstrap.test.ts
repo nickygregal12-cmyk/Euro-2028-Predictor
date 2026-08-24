@@ -158,6 +158,54 @@ describe('merge eligibility is decided from GitHub state, not assertion', () => 
     expect(verdict.blockers).toContain('check_cancelled:ci')
   })
 
+  it('refuses to call mergeability confirmed when GitHub has not computed it', () => {
+    // GitHub reports mergeable: null / mergeable_state: 'unknown' while it works
+    // the answer out. Inferring from mergeable_state made 'unknown' mergeable.
+    const pending = normalisePullRequest(
+      {
+        number: 9,
+        state: 'open',
+        mergeable: null,
+        mergeable_state: 'unknown',
+        checkRuns: [{ name: 'ci', status: 'completed', conclusion: 'success' }],
+      },
+      { requiredCheckNames: ['ci'] },
+    )
+    expect(pending.mergeable).toBeUndefined()
+    const verdict = evaluateMergeEligibility(pending)
+    expect(verdict.eligible).toBe(false)
+    expect(verdict.blockers).toContain('mergeability_unconfirmed')
+  })
+
+  it('does not treat a non-dirty mergeable_state as a confirmed merge', () => {
+    const blocked = normalisePullRequest(
+      { number: 10, state: 'open', mergeable_state: 'blocked', checkRuns: [] },
+      { requiredCheckNames: [] },
+    )
+    expect(blocked.mergeable).toBeUndefined()
+    expect(evaluateMergeEligibility(blocked).eligible).toBe(false)
+  })
+
+  it('routes every non-pending check conclusion to repair, not only failure', () => {
+    // The blocker vocabulary is check_<conclusion>:, so naming just failure and
+    // cancelled left skipped and timed_out waiting on nothing.
+    for (const conclusion of ['skipped', 'timed_out', 'action_required', 'stale']) {
+      const next = nextStateForPullRequest({
+        ...greenPr,
+        requiredChecks: [{ name: 'ci', status: 'completed', conclusion }],
+      })
+      expect(next, conclusion).toMatchObject({ status: 'ELIGIBLE', nextAction: 'REPAIR_CI' })
+    }
+  })
+
+  it('routes a required decider that never reported to repair rather than a wait', () => {
+    const pr = normalisePullRequest(
+      { number: 11, state: 'open', mergeable: true, checkRuns: [] },
+      { requiredCheckNames: ['migration-safety'] },
+    )
+    expect(nextStateForPullRequest(pr)).toMatchObject({ nextAction: 'REPAIR_CI' })
+  })
+
   it('blocks on an unresolved actionable review thread even with green CI', () => {
     const verdict = evaluateMergeEligibility({
       ...greenPr,
@@ -218,12 +266,38 @@ describe('merge eligibility is decided from GitHub state, not assertion', () => 
   })
 })
 
+describe('safety-brake inputs are validated where they are persisted', () => {
+  it('refuses a hard stop that does not parse, rather than disabling the brake', () => {
+    const store = new ControlPlaneStore(dir)
+    // Date.parse(true) is NaN and every NaN comparison is false, so an unusable
+    // hard stop would have silently allowed dispatch past the stop time.
+    for (const bad of [true, undefined, 'not-a-date', '']) {
+      expect(() =>
+        store.startRun({ hardStop: bad as never, mode: 'ACTIVE', now: T0 }),
+      ).toThrow(/parseable timestamp/)
+    }
+    expect(store.loadRun()).toBeNull()
+  })
+
+  it('accepts a real timestamp', () => {
+    const store = new ControlPlaneStore(dir)
+    expect(store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 }).hardStop).toBe(HARD_STOP)
+  })
+})
+
 describe('store durability', () => {
   it('refuses to persist secret-shaped keys', () => {
     const store = new ControlPlaneStore(dir)
     store.startRun({ hardStop: HARD_STOP, mode: 'OBSERVE_ONLY', now: T0 })
     expect(() => store.upsertTask({ id: 't', github_token: 'x' })).toThrow(/secret-shaped/)
     expect(() => store.appendEvent({ at: T0, password: 'x' })).toThrow(/secret-shaped/)
+  })
+
+  it('reads an absent ledger as empty rather than racing an existence check', () => {
+    const store = new ControlPlaneStore(dir)
+    expect(store.loadRun()).toBeNull()
+    expect(store.loadTasks()).toEqual({})
+    expect(store.readEvents()).toEqual([])
   })
 
   it('enforces one writer lane until the lease expires', () => {

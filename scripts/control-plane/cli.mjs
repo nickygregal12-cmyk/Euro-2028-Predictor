@@ -36,6 +36,33 @@ function arg(argv, name, fallback = undefined) {
 }
 
 /**
+ * Read a flag that must carry a real value. `arg` yields `true` for a bare
+ * `--flag`, which silently became NaN once parsed as a date or a number — so a
+ * mistyped safety limit disabled the brake instead of failing the command.
+ *
+ * @param {string[]} argv
+ * @param {string} name
+ * @returns {string | null}
+ */
+function valuedArg(argv, name) {
+  const value = arg(argv, name)
+  return typeof value === 'string' ? value : null
+}
+
+/**
+ * @param {string[]} argv
+ * @param {string} name
+ * @param {number} fallback
+ * @returns {number | null} null when present but not a finite number
+ */
+function numericArg(argv, name, fallback) {
+  const raw = arg(argv, name)
+  if (raw === undefined) return fallback
+  const value = Number(valuedArg(argv, name))
+  return Number.isFinite(value) ? value : null
+}
+
+/**
  * Built-in handlers. Each is read-only: it gathers evidence and returns it.
  * Mutating handlers are registered by the caller, never shipped as defaults.
  *
@@ -123,11 +150,23 @@ async function main() {
 
   switch (command) {
     case 'init': {
+      const hardStop = valuedArg(argv, 'hard-stop')
+      if (!hardStop || Number.isNaN(Date.parse(hardStop))) {
+        console.error('init requires --hard-stop <ISO timestamp>, e.g. 2026-08-25T06:00:00Z')
+        process.exitCode = 2
+        return
+      }
+      const maxPullRequests = numericArg(argv, 'max-prs', 8)
+      if (maxPullRequests === null || maxPullRequests < 0) {
+        console.error('--max-prs must be a non-negative number')
+        process.exitCode = 2
+        return
+      }
       const run = store.startRun({
-        hardStop: arg(argv, 'hard-stop'),
+        hardStop,
         mode: arg(argv, 'mode', 'OBSERVE_ONLY'),
         now: now(),
-        maxPullRequests: Number(arg(argv, 'max-prs', 8)),
+        maxPullRequests,
       })
       console.log(JSON.stringify({ stateDir: stateDir(), run }, null, 2))
       return
@@ -145,7 +184,7 @@ async function main() {
         objective: arg(argv, 'objective', id),
         handler: arg(argv, 'handler', 'git.reconcile'),
         stage: arg(argv, 'stage', null),
-        order: Number(arg(argv, 'order', 0)),
+        order: numericArg(argv, 'order', 0) ?? 0,
         dependencies: String(arg(argv, 'after', '')).split(',').filter(Boolean),
         mutating: arg(argv, 'mutating', false) === true,
         command: arg(argv, 'command') ? JSON.parse(arg(argv, 'command')) : undefined,
@@ -157,8 +196,14 @@ async function main() {
     }
 
     case 'run': {
+      const maxTicks = numericArg(argv, 'max-ticks', 50)
+      if (maxTicks === null || maxTicks < 1) {
+        console.error('--max-ticks must be a positive number')
+        process.exitCode = 2
+        return
+      }
       const engine = new LoopEngine({ store, handlers: readOnlyHandlers, now })
-      const decisions = await engine.run({ maxTicks: Number(arg(argv, 'max-ticks', 50)) })
+      const decisions = await engine.run({ maxTicks })
       for (const decision of decisions) {
         console.log(`${decision.at} ${decision.outcome} ${decision.dispatched ?? ''}`.trim())
       }

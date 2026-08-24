@@ -10,7 +10,7 @@
  * it is disposable, inspectable with `cat`, and needs no native dependency.
  */
 
-import { mkdirSync, readFileSync, writeFileSync, renameSync, appendFileSync, existsSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync, renameSync, appendFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import { randomUUID } from 'node:crypto'
@@ -64,8 +64,15 @@ export function assertNoSecrets(record, path = 'record') {
  */
 function readJson(dir, file, fallback) {
   const target = join(dir, file)
-  if (!existsSync(target)) return fallback
-  return JSON.parse(readFileSync(target, 'utf8'))
+  // Read and handle absence, rather than asking first: the state directory is
+  // shared with other processes holding the lease, so a file can vanish between
+  // an existence check and the read that trusted it.
+  try {
+    return JSON.parse(readFileSync(target, 'utf8'))
+  } catch (error) {
+    if (/** @type {NodeJS.ErrnoException} */ (error)?.code === 'ENOENT') return fallback
+    throw error
+  }
 }
 
 /**
@@ -106,6 +113,12 @@ export class ControlPlaneStore {
    */
   startRun({ hardStop, mode = 'OBSERVE_ONLY', now, maxPullRequests = DEFAULT_LIMITS.maxPullRequests }) {
     if (!RUN_MODES.includes(mode)) throw new Error(`unknown run mode ${mode}`)
+    // A hard stop that does not parse is worse than none: the brake compares
+    // Date.parse(hardStop), and NaN makes every comparison false, so an
+    // unusable value would silently disable the stop rather than announce it.
+    if (typeof hardStop !== 'string' || Number.isNaN(Date.parse(hardStop))) {
+      throw new Error(`hardStop must be a parseable timestamp, received ${JSON.stringify(hardStop)}`)
+    }
     const existing = this.loadRun()
     if (existing) return existing
     const run = {
@@ -288,8 +301,14 @@ export class ControlPlaneStore {
 
   readEvents() {
     const target = join(this.dir, EVENTS_FILE)
-    if (!existsSync(target)) return []
-    return readFileSync(target, 'utf8')
+    let raw
+    try {
+      raw = readFileSync(target, 'utf8')
+    } catch (error) {
+      if (/** @type {NodeJS.ErrnoException} */ (error)?.code === 'ENOENT') return []
+      throw error
+    }
+    return raw
       .split('\n')
       .filter(Boolean)
       .map((line) => JSON.parse(line))
