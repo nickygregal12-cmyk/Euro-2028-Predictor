@@ -171,6 +171,19 @@ printf '%s\\n' \\
     expect(doctor).toContain('Default web agent')
     expect(doctor).toContain('Local auth boundary')
     expect(doctor).toContain('tailscale serve status')
+    // STAGE 1 IS A SET OF BOUNDARIES, AND A DELETED CHECK LOOKS EXACTLY LIKE A
+    // PASSING ONE. Each of these answers a claim the private front door makes
+    // that nothing else in the doctor answers: that the service survives a
+    // reboot rather than merely running, that port 4096 has one door rather
+    // than a locked one plus an open one, that the route was never published
+    // to the internet, and that a session picked up on a phone is the same
+    // session left on the laptop.
+    expect(doctor).toContain('tailscale funnel status')
+    expect(doctor).toContain('UnitFileState')
+    expect(doctor).toContain('loginctl show-user')
+    expect(doctor).toContain('no SSH service dependency')
+    expect(doctor).toContain('opencode session list --format json')
+    expect(doctor).toContain("ss -ltnH 'sport = :4096'")
     expect(doctor).toContain('gh auth status')
     expect(doctor).toContain('Claude billing boundary')
     expect(doctor).toContain('Claude login verification')

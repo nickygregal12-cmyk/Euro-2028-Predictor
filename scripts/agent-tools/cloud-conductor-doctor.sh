@@ -162,6 +162,45 @@ else
   missing 'Conductor service' 'systemctl --user status predictor-conductor.service'
 fi
 
+# PERSISTENT MEANS SURVIVING THE THINGS THAT END A SESSION, not merely running
+# right now. `Conductor service` above answers "is it up"; these answer "will it
+# still be up after a logout, a reboot, or a crash" — which is the actual Stage 1
+# claim, and the one an operator on a phone depends on.
+#
+# The SSH clause is the non-obvious half. A unit ordered after `sshd` is one that
+# came up because somebody logged in, so it looks persistent for exactly as long
+# as nobody tests it.
+service_properties="$(systemctl --user show predictor-conductor.service --property=UnitFileState,Restart,ExecStart,WorkingDirectory,After --no-pager 2>/dev/null || true)"
+if grep -q '^UnitFileState=enabled$' <<<"$service_properties" &&
+   grep -q '^Restart=on-failure$' <<<"$service_properties" &&
+   grep -q 'opencode web --hostname 127.0.0.1 --port 4096' <<<"$service_properties" &&
+   ! grep -Eq '^After=.*(ssh|sshd)\.service' <<<"$service_properties"; then
+  ready 'Service persistence' 'enabled with restart-on-failure, localhost ExecStart and no SSH service dependency'
+else
+  missing 'Service persistence' 'service must be enabled, restart on failure, and bind OpenCode to 127.0.0.1:4096'
+fi
+
+# Without linger, a user service stops when the last session closes. The service
+# can be `enabled` and still not survive a reboot.
+if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)" = yes ]; then
+  ready 'Login persistence' 'linger is enabled for restart after logout/reboot'
+else
+  missing 'Login persistence' 'enable user linger for unattended restart'
+fi
+
+# The auth boundary below proves the door is locked. This proves there is only
+# one door: a process bound to 0.0.0.0 is reachable from the network whatever
+# Tailscale is doing, and Basic auth over plaintext is not the boundary Stage 1
+# claims. Absent output fails rather than passes — no listener observed is not
+# proof of a correct listener.
+listeners="$(ss -ltnH 'sport = :4096' 2>/dev/null || true)"
+if [ -n "$listeners" ] && ! grep -Eq '(^|[[:space:]])(0\.0\.0\.0|\[::\]|\*):4096([[:space:]]|$)' <<<"$listeners" &&
+   grep -q '127.0.0.1:4096' <<<"$listeners"; then
+  ready 'Socket boundary' 'port 4096 listens on IPv4 localhost only'
+else
+  missing 'Socket boundary' 'port 4096 must listen only on 127.0.0.1'
+fi
+
 status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 3 http://127.0.0.1:4096/ || true)"
 case "$status" in
   401) ready 'Local auth boundary' 'localhost:4096 requires HTTP Basic auth' ;;
@@ -179,6 +218,31 @@ if command -v tailscale >/dev/null 2>&1 && tailscale serve status 2>/dev/null | 
   ready 'Private web route' 'Tailscale Serve points to OpenCode'
 else
   optional 'Private web route' 'run: sudo tailscale serve --bg 4096'
+fi
+
+# "NO PUBLIC FUNNEL" IS THE ONE STAGE 1 CLAIM THAT FAILS SILENTLY. Serve and
+# Funnel are one command apart, a Funnel route works exactly like the private one
+# from the operator's phone, and nothing in normal use would ever reveal that the
+# workspace had been published to the internet.
+#
+# So this is asserted positively and fails closed: the route must SAY it is
+# tailnet only. An empty answer, a missing binary or an error all report missing,
+# because none of them is evidence that Funnel is off.
+funnel_status="$(tailscale funnel status 2>&1 || true)"
+if grep -q '(tailnet only)' <<<"$funnel_status" && ! grep -qi 'Funnel on' <<<"$funnel_status"; then
+  ready 'Public Funnel boundary' 'Funnel is disabled; route is tailnet only'
+else
+  missing 'Public Funnel boundary' 'tailscale funnel status must prove the route is tailnet only'
+fi
+
+# Resumability is what makes one front door a front door. If sessions did not
+# persist, picking the phone up would mean starting again, and the operator would
+# go back to the laptop — which is the state Stage 1 exists to leave behind.
+if command -v opencode >/dev/null 2>&1 &&
+   opencode session list --format json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const x=JSON.parse(s);process.exit(Array.isArray(x)&&x.length>0?0:1)}catch{process.exit(1)}})"; then
+  ready 'Resumable sessions' 'persisted OpenCode sessions are available'
+else
+  missing 'Resumable sessions' 'no persisted OpenCode session was listed'
 fi
 
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
