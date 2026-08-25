@@ -156,7 +156,7 @@ function readRecord() {
 export function resolveRepository(environmentValue, originUrl) {
   if (environmentValue) return environmentValue
   const match = /(?:github\.com[:/])([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(originUrl ?? '')
-  if (match) return match[1]
+  if (match?.[1]) return match[1]
   throw new Error(
     'cannot tell which repository to verify: set GITHUB_REPOSITORY, or run inside a clone whose origin is a GitHub remote',
   )
@@ -194,6 +194,50 @@ function checkOffline(record) {
   return true
 }
 
+/** The only host this script is ever allowed to talk to. */
+const API_ORIGIN = 'https://api.github.com'
+
+/** An owner or repository name, which cannot contain a path separator. */
+const SAFE_SEGMENT = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+
+/**
+ * Build the rules URL so that it cannot address anything but the GitHub API.
+ *
+ * Both inputs are untrusted by construction: the branch is read from a tracked
+ * file and the repository from `git remote`, and CodeQL flagged the first one
+ * reaching an outbound request — correctly. Validating the shape was the first
+ * answer and it was the weaker one: it argues the value is harmless, which is a
+ * claim about every future edit to the record rather than about this code.
+ *
+ * This asserts the conclusion instead. The URL is assembled through the `URL`
+ * parser and its origin is checked against the constant afterwards, so a value
+ * that escaped the path — a scheme, a host, an `@`, a traversal — fails here
+ * rather than being requested. That holds whatever the record says.
+ *
+ * @param {string} repository
+ * @param {string} branch
+ * @param {number} page
+ * @param {number} perPage
+ */
+export function rulesUrl(repository, branch, page, perPage) {
+  const parts = repository.split('/')
+  const owner = parts[0] ?? ''
+  const name = parts[1] ?? ''
+  if (parts.length !== 2 || !SAFE_SEGMENT.test(owner) || !SAFE_SEGMENT.test(name)) {
+    throw new Error(`not an owner/repo pair: ${JSON.stringify(repository)}`)
+  }
+  const url = new URL(
+    `${API_ORIGIN}/repos/${owner}/${name}/rules/branches/${encodeURIComponent(branch)}`,
+  )
+  url.searchParams.set('per_page', String(perPage))
+  url.searchParams.set('page', String(page))
+  // The assertion, not the escaping, is what makes this safe.
+  if (url.origin !== API_ORIGIN) {
+    throw new Error(`refusing a request to ${url.origin}`)
+  }
+  return url
+}
+
 /** @param {RequiredContextRecord} record */
 async function fetchEffectiveRules(record) {
   const origin = (() => {
@@ -216,10 +260,7 @@ async function fetchEffectiveRules(record) {
   const perPage = 100
   const rules = []
   for (let page = 1; ; page += 1) {
-    const url =
-      `https://api.github.com/repos/${repository}/rules/branches/` +
-      `${encodeURIComponent(record.branch)}?per_page=${perPage}&page=${page}`
-    const response = await fetch(url, {
+    const response = await fetch(rulesUrl(repository, record.branch, page, perPage), {
       headers: {
         authorization: `Bearer ${token}`,
         accept: 'application/vnd.github+json',

@@ -12,6 +12,7 @@ import {
   jobNames,
   parseRecord,
   resolveRepository,
+  rulesUrl,
 } from '../../scripts/check-required-merge-contexts.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
@@ -239,5 +240,36 @@ describe('deciding which repository the live check is about', () => {
     // answer about the wrong subject, which is false rather than merely weak.
     expect(() => resolveRepository(undefined, '')).toThrow(/GITHUB_REPOSITORY/)
     expect(() => resolveRepository(undefined, 'https://gitlab.com/owner/repo.git')).toThrow()
+  })
+})
+
+describe('a request that cannot address anything but the API', () => {
+  it('builds the expected URL', () => {
+    const url = rulesUrl('owner/repo', 'main', 2, 100)
+    expect(url.toString()).toBe(
+      'https://api.github.com/repos/owner/repo/rules/branches/main?per_page=100&page=2',
+    )
+  })
+
+  it('encodes a branch containing a separator rather than extending the path', () => {
+    expect(rulesUrl('owner/repo', 'release/2028', 1, 100).pathname).toBe(
+      '/repos/owner/repo/rules/branches/release%2F2028',
+    )
+  })
+
+  it('refuses anything that is not an owner/repo pair', () => {
+    for (const repository of ['owner', 'owner/repo/extra', '../etc', 'owner/', '/repo']) {
+      expect(() => rulesUrl(repository, 'main', 1, 100), repository).toThrow()
+    }
+  })
+
+  it('refuses a branch that escapes the path, whatever the record said', () => {
+    // Validating the shape earlier argues the value is harmless — a claim about
+    // every future edit to the record. This asserts the conclusion instead, so
+    // it holds even if the shape check is one day loosened.
+    for (const branch of ['https://evil.example/x', '//evil.example/x', 'a@evil.example']) {
+      const url = rulesUrl('owner/repo', branch, 1, 100)
+      expect(url.origin).toBe('https://api.github.com')
+    }
   })
 })
