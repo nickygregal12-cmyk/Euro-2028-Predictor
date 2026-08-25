@@ -142,7 +142,11 @@ bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
 This invokes no external MCP tool. A provider 5xx is `UNAVAILABLE`, not an
 instruction to rotate credentials or fail over. Configured, authenticated and
 connected are separate facts; do not claim connection until the live probe says
-so.
+so. The connectivity probe accepts an explicit current-process
+`GITHUB_MCP_TOKEN`; otherwise it reads only that exact key from the protected
+mode-`0600` service environment and fails before MCP initialization when the
+file or token boundary is invalid. A permanent developer-shell export is not
+required.
 
 The Hetzner read-only inventory proved that Sentry exposes the harmless
 `sentry_find_organizations` alongside dangerous `sentry_update_issue`,
