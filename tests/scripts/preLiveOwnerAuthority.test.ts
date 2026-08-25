@@ -9,6 +9,7 @@ import {
   decideOperation,
   deniedOperations,
   evaluateAuthorityPolicy,
+  isTaskBranch,
 } from '../../scripts/control-plane/authority.mjs'
 
 const root = process.cwd()
@@ -30,8 +31,9 @@ describe('the tracked PRE_LIVE_OWNER policy', () => {
   })
 
   it('permits every granted operation to the lane that actually exists today', () => {
-    for (const operation of Object.keys(policy().operations)) {
-      expect(decideOperation(policy(), identity(), operation), operation).toMatchObject({ allowed: true })
+    for (const [operation, granted] of Object.entries<{ requiresTaskBranch?: boolean }>(policy().operations)) {
+      const context = granted.requiresTaskBranch ? { branch: 'feat/sample' } : {}
+      expect(decideOperation(policy(), identity(), operation, context), operation).toMatchObject({ allowed: true })
     }
   })
 })
@@ -94,7 +96,7 @@ describe('an operation absent from the allowlist is denied', () => {
   it('fails closed on an unreadable or empty policy', () => {
     for (const broken of [null, undefined, 'policy', {}, { mode: 'PRE_LIVE_OWNER', lane: 'repository', operations: {} }]) {
       expect(evaluateAuthorityPolicy(broken as never).ok, JSON.stringify(broken)).toBe(false)
-      expect(decideOperation(broken, identity(), 'branch.push').allowed).toBe(false)
+      expect(decideOperation(broken, identity(), 'branch.push', { branch: 'feat/x' }).allowed).toBe(false)
     }
   })
 
@@ -108,19 +110,58 @@ describe('an operation absent from the allowlist is denied', () => {
   it('denies every operation when the identity record is incoherent', () => {
     const brokenIdentity = identity()
     brokenIdentity.lanes.repository.authority = 'DEPLOYMENT_EXECUTOR'
-    expect(decideOperation(policy(), brokenIdentity, 'branch.push')).toMatchObject({ allowed: false })
+    expect(decideOperation(policy(), brokenIdentity, 'branch.push', { branch: 'feat/x' })).toMatchObject({ allowed: false })
   })
 
   it('denies write operations when the acting lane holds only read authority', () => {
     const readOnly = identity()
     readOnly.lanes.repository.authority = 'READ_ONLY'
-    expect(decideOperation(policy(), readOnly, 'branch.push')).toMatchObject({ allowed: false })
+    expect(decideOperation(policy(), readOnly, 'branch.push', { branch: 'feat/x' })).toMatchObject({ allowed: false })
     expect(decideOperation(policy(), readOnly, 'ci.read')).toMatchObject({ allowed: true })
   })
 })
 
+describe('declared constraints are checked, not described', () => {
+  it('refuses a branch-scoped operation asked with no branch at all', () => {
+    // Otherwise every constraint is satisfied by omitting the thing it
+    // constrains. The first version of this policy carried the rule as prose
+    // that decideOperation never received.
+    for (const operation of ['branch.create', 'commit.create', 'branch.push', 'pr.create', 'pr.update']) {
+      const verdict = decideOperation(policy(), identity(), operation)
+      expect(verdict.allowed, operation).toBe(false)
+      expect(verdict.reason).toContain('none was supplied')
+    }
+  })
+
+  it('refuses protected and bare branch names', () => {
+    for (const branch of ['main', 'master', 'HEAD', 'scratch', '', '/leading', 'trailing/',
+      '-oops/x', 'a/../b', 'has space/x', null, undefined, 42]) {
+      expect(isTaskBranch(branch as never), JSON.stringify(branch)).toBe(false)
+      expect(decideOperation(policy(), identity(), 'branch.push', { branch }).allowed, JSON.stringify(branch)).toBe(false)
+    }
+  })
+
+  it('accepts a namespaced task branch', () => {
+    for (const branch of ['feat/x', 'fix/a-b', 'claude/predictor-control-plane-continue-0sm1nn']) {
+      expect(isTaskBranch(branch), branch).toBe(true)
+      expect(decideOperation(policy(), identity(), 'branch.push', { branch }).allowed, branch).toBe(true)
+    }
+  })
+
+  it('checks the branch before the identity, so a malformed request fails the same either way', () => {
+    const privileged = identity()
+    privileged.lanes.repository.authority = 'REPOSITORY_WRITE'
+    expect(decideOperation(privileged, identity(), 'branch.push', { branch: 'main' }).allowed).toBe(false)
+  })
+})
+
 describe('the owner wrappers', () => {
-  function run(script: string, args: string[], branch: string, upstream?: string) {
+  function run(script: string, args: string[], branch: string, options: {
+    upstream?: string
+    pushUrls?: string[]
+    rewrite?: boolean
+    ghRepo?: string
+  } = {}) {
     const home = mkdtempSync(resolve(tmpdir(), 'predictor-owner-wrapper-'))
     const bin = resolve(home, 'bin')
     mkdirSync(bin, { recursive: true })
@@ -133,6 +174,8 @@ case "$1 $2" in
   "rev-parse --show-toplevel") printf '%s\\n' "${root}"; exit 0 ;;
   "config --get") [[ -n "$FAKE_REMOTE" ]] && printf '%s\\n' "$FAKE_REMOTE"; exit 0 ;;
 esac
+if [[ "$1 $2" == "remote get-url" ]]; then printf '%s\\n' $FAKE_PUSH_URLS; exit 0; fi
+if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; exit; fi
 { printf 'git'; printf ' <%s>' "$@"; printf '\\n'; } >> "$WRAPPER_TEST_LOG"
 `, { mode: 0o755 })
     writeFileSync(resolve(bin, 'gh'), `#!/usr/bin/env bash
@@ -145,7 +188,10 @@ esac
         ...process.env,
         PATH: `${bin}:${process.env.PATH}`,
         FAKE_BRANCH: branch,
-        FAKE_REMOTE: upstream ?? '',
+        FAKE_REMOTE: options.upstream ?? '',
+        FAKE_PUSH_URLS: (options.pushUrls ?? ['https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git']).join(' '),
+        FAKE_REWRITE: options.rewrite ? 'yes' : 'no',
+        ...(options.ghRepo ? { GH_REPO: options.ghRepo } : {}),
         WRAPPER_TEST_LOG: log,
       },
       encoding: 'utf8',
@@ -172,7 +218,7 @@ esac
   })
 
   it('refuses a non-origin upstream', () => {
-    const result = run(PUSH, [], 'feat/owner-safe', 'upstream')
+    const result = run(PUSH, [], 'feat/owner-safe', { upstream: 'upstream' })
     expect(result.status).not.toBe(0)
     expect(result.calls).toBe('')
   })
@@ -181,12 +227,14 @@ esac
     const created = run(PR, ['create', '--title', 'Safe', '--body', 'Body'], 'feat/owner-safe')
     expect(created.status).toBe(0)
     expect(created.calls).toBe(
-      'gh <pr> <create> <--base> <main> <--head> <feat/owner-safe> <--title> <Safe> <--body> <Body>\n',
+      'gh <pr> <create> <--repo> <nickygregal12-cmyk/Euro-2028-Predictor> <--base> <main>'
+      + ' <--head> <feat/owner-safe> <--title> <Safe> <--body> <Body>\n',
     )
 
     const updated = run(PR, ['update', '--title', 'Updated'], 'feat/owner-safe')
     expect(updated.status).toBe(0)
-    expect(updated.calls).toBe('gh <pr> <edit> <feat/owner-safe> <--title> <Updated>\n')
+    expect(updated.calls).toBe(
+      'gh <pr> <edit> <feat/owner-safe> <--repo> <nickygregal12-cmyk/Euro-2028-Predictor> <--title> <Updated>\n')
   })
 
   it('forwards only allowlisted options, so an unnamed one is inert', () => {
@@ -210,10 +258,77 @@ esac
     expect(result.calls).toContain('<--draft>')
   })
 
+  it('refuses when origin points somewhere other than the tracked repository', () => {
+    // The ref was pinned and the repository was not: `git push origin` resolves
+    // through remote.origin.pushurl, which one line of git config can set.
+    for (const pushUrls of [
+      ['https://github.com/attacker/evil.git'],
+      ['git@github.com:attacker/evil.git'],
+      ['https://evil.example/nickygregal12-cmyk/Euro-2028-Predictor.git'],
+      ['https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git', 'https://github.com/attacker/evil.git'],
+      [],
+    ]) {
+      const result = run(PUSH, [], 'feat/owner-safe', { pushUrls })
+      expect(result.status, JSON.stringify(pushUrls)).not.toBe(0)
+      expect(result.calls, JSON.stringify(pushUrls)).toBe('')
+    }
+  })
+
+  it('accepts the tracked repository over either transport', () => {
+    for (const url of [
+      'https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git',
+      'https://github.com/nickygregal12-cmyk/Euro-2028-Predictor',
+      'git@github.com:nickygregal12-cmyk/Euro-2028-Predictor.git',
+    ]) {
+      expect(run(PUSH, [], 'feat/owner-safe', { pushUrls: [url] }).status, url).toBe(0)
+    }
+  })
+
+  it('refuses when a git URL rewrite rule could retarget the push', () => {
+    const result = run(PUSH, [], 'feat/owner-safe', { rewrite: true })
+    expect(result.status).not.toBe(0)
+    expect(result.calls).toBe('')
+  })
+
+  it('pins the pull-request repository against an inherited GH_REPO', () => {
+    // Excluding --repo from the caller's arguments was not enough: gh reads
+    // GH_REPO from the environment, so an inherited value redirected create and
+    // edit while the wrapper reported it had fixed base and head.
+    const created = run(PR, ['create', '--title', 'T'], 'feat/owner-safe', { ghRepo: 'attacker/evil' })
+    expect(created.status).toBe(0)
+    expect(created.calls).toContain('<--repo> <nickygregal12-cmyk/Euro-2028-Predictor>')
+    expect(created.calls).not.toContain('attacker/evil')
+
+    const updated = run(PR, ['update', '--title', 'T'], 'feat/owner-safe', { ghRepo: 'attacker/evil' })
+    expect(updated.calls).toContain('<--repo> <nickygregal12-cmyk/Euro-2028-Predictor>')
+  })
+
+  it('enforces the same boundaries for commits', () => {
+    const COMMIT = 'scripts/agent-tools/owner-commit.sh'
+    expect(run(COMMIT, ['--message', 'safe'], 'feat/owner-safe').status).toBe(0)
+    for (const [args, branch] of [[['--message', 'x'], 'main'], [['--message', 'x'], ''],
+      [['--amend'], 'feat/x'], [['--author', 'x'], 'feat/x'], [[], 'feat/x']] as Array<[string[], string]>) {
+      const result = run(COMMIT, args, branch)
+      expect(result.status, `${branch} ${args.join(' ')}`).not.toBe(0)
+      expect(result.calls).toBe('')
+    }
+  })
+
+  it('works from a repository subdirectory', () => {
+    // The authority CLI read its config relative to the caller's cwd, so every
+    // authorised push failed with ENOENT from anywhere but the root.
+    const result = spawnSync('bash', [resolve(root, PUSH)], {
+      cwd: resolve(root, 'src'),
+      env: { ...process.env, PATH: process.env.PATH },
+      encoding: 'utf8',
+    })
+    expect(`${result.stdout}${result.stderr}`).not.toContain('ENOENT')
+  })
+
   it('carries no test-only branch in the production scripts', () => {
     // #1041's wrappers ended with `if [ -n "${FAKE_LOG:-}" ]` — production code
     // taking a branch from a variable that exists only for a test.
-    for (const script of [PUSH, PR]) {
+    for (const script of [PUSH, PR, 'scripts/agent-tools/owner-commit.sh']) {
       const source = readFileSync(resolve(root, script), 'utf8')
       const code = source.split('\n').filter((line) => !line.trim().startsWith('#')).join('\n')
       expect(code, script).not.toContain('FAKE_LOG')

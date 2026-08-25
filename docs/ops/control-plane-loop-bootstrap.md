@@ -188,9 +188,15 @@ subject to the acting identity lane holding the level it needs:
 
 | Operation | Needs |
 | --- | --- |
-| `branch.create`, `commit.create`, `branch.push` | `REPOSITORY_WRITE` |
-| `pr.create`, `pr.update` | `REPOSITORY_WRITE` |
+| `branch.create`, `commit.create`, `branch.push` | `REPOSITORY_WRITE`, on a task branch |
+| `pr.create`, `pr.update` | `REPOSITORY_WRITE`, on a task branch |
 | `ci.read`, `review.read`, `repository.read` | `READ_ONLY` |
+
+An operation marked `requiresTaskBranch` is **denied when no branch is
+supplied**, not allowed — otherwise a constraint is satisfied by omitting the
+thing it constrains. The first version of this record carried those rules as
+prose that the decision function never received, which is the failure this stage
+exists to end.
 
 ```bash
 npm run check:owner-authority              # report and validate the policy
@@ -219,12 +225,20 @@ can unlock an operation — and `DEPLOYMENT_EXECUTOR` is not requirable in this
 mode at all, because Production work belongs to a later stage and a distinct
 machine actor, not to a larger value in a config file.
 
-`scripts/agent-tools/owner-task-push.sh` and `owner-pr.sh` are the enforcing
-edge. Each asks the policy before acting. The push wrapper takes no arguments,
-so force and target selection are unavailable rather than rejected, and it
-assembles `origin <branch>` from the branch the repository is on. The
-pull-request wrapper fixes base and head and forwards only an allowlist of
-option names.
+`owner-task-push.sh`, `owner-pr.sh` and `owner-commit.sh` under
+`scripts/agent-tools/` are the enforcing edge. Each asks the policy before
+acting, passing the branch it is standing on, and each forwards only an
+allowlist of option names. The push wrapper takes no arguments at all, so force
+and target selection are unavailable rather than rejected.
+
+**The repository is pinned, not just the ref.** Review found both wrappers
+constrained what was written and left *where* open: the push wrapper passed the
+remote name `origin` without reading `remote.origin.pushurl`, and `gh` resolved
+its target from an inherited `GH_REPO` while the wrapper reported that it had
+fixed base and head. Both now resolve the expected `owner/repo` from the
+identity record and refuse anything else — every effective push URL is checked,
+more than one push URL is refused, a configured URL rewrite rule is refused, and
+`gh` is passed `--repo` explicitly with `GH_REPO` cleared.
 
 ## Task states
 

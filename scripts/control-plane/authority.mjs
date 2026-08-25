@@ -51,11 +51,31 @@ export const ALWAYS_DENIED = Object.freeze({
   'authority.expand': 'no model may widen what a model is permitted to do',
 })
 
+/**
+ * Is this a branch autonomous work may act on?
+ *
+ * A namespace is required, which is what excludes `main`, `master` and every
+ * other bare name at once rather than by enumeration. The remaining checks are
+ * for values that are branch-shaped but would be read as something else by a
+ * command further down: a leading dash is an option, `..` is a range.
+ *
+ * @param {unknown} branch
+ * @returns {boolean}
+ */
+export function isTaskBranch(branch) {
+  if (typeof branch !== 'string' || branch.length === 0) return false
+  if (branch === 'main' || branch === 'master' || branch === 'HEAD') return false
+  if (!branch.includes('/')) return false
+  if (branch.startsWith('/') || branch.endsWith('/')) return false
+  if (branch.startsWith('-') || branch.includes('..') || branch.includes(' ')) return false
+  return true
+}
+
 /** Authority levels an operation may require. Mirrors identity.mjs. */
 const REQUIRABLE = Object.freeze(['READ_ONLY', 'REPOSITORY_WRITE'])
 
 /**
- * @typedef {{ requires: string, constraint?: string }} OperationPolicy
+ * @typedef {{ requires: string, requiresTaskBranch?: boolean }} OperationPolicy
  * @typedef {{ mode?: string, lane?: string, operations?: Record<string, OperationPolicy>,
  *             additionalDenied?: Record<string, string> }} AuthorityPolicy
  */
@@ -119,6 +139,9 @@ export function evaluateAuthorityPolicy(policy) {
     if (Object.hasOwn(ALWAYS_DENIED, name)) {
       problems.push(`operation '${name}' is granted by the policy but is permanently denied`)
     }
+    if (operation?.requiresTaskBranch !== undefined && typeof operation.requiresTaskBranch !== 'boolean') {
+      problems.push(`operation '${name}' has a non-boolean requiresTaskBranch`)
+    }
     return { name, requires: String(requires), ok: problems.length === before }
   })
 
@@ -139,12 +162,18 @@ export function evaluateAuthorityPolicy(policy) {
  * denied operation is refused before anything about the caller is consulted,
  * so no identity — however privileged, however recorded — reaches past it.
  *
+ * `context` supplies what an operation's declared constraints are checked
+ * against. An operation that declares one and is asked without the context to
+ * check it is DENIED, not allowed — otherwise every constraint could be
+ * satisfied by omitting the thing it constrains.
+ *
  * @param {unknown} policy
  * @param {unknown} identityRecord
  * @param {string} operation
+ * @param {{ branch?: unknown }} [context]
  * @returns {{ allowed: boolean, reason: string | null }}
  */
-export function decideOperation(policy, identityRecord, operation) {
+export function decideOperation(policy, identityRecord, operation, context = {}) {
   const denied = deniedOperations(/** @type {AuthorityPolicy} */ (policy ?? {}))
   if (Object.hasOwn(denied, operation)) {
     return { allowed: false, reason: `'${operation}' is denied: ${denied[operation]}` }
@@ -161,6 +190,17 @@ export function decideOperation(policy, identityRecord, operation) {
     // Absence is the refusal. This is the allowlist doing its work, and the
     // message says so rather than implying the operation was considered.
     return { allowed: false, reason: `'${operation}' is not an operation this policy grants` }
+  }
+
+  // Checked before the identity: a request that does not say what it acts on is
+  // malformed whoever is asking, and the answer should not depend on that.
+  if (granted.requiresTaskBranch) {
+    if (context.branch === undefined) {
+      return { allowed: false, reason: `'${operation}' acts on a branch and none was supplied` }
+    }
+    if (!isTaskBranch(context.branch)) {
+      return { allowed: false, reason: `'${operation}' refuses branch ${JSON.stringify(context.branch)}: not a task branch` }
+    }
   }
 
   const lane = /** @type {string} */ (parsed.lane)

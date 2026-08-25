@@ -14,12 +14,19 @@
 //   node scripts/check-pre-live-owner-authority.mjs <op>       decide one operation
 
 import { readFileSync } from 'node:fs'
-import { pathToFileURL } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { ALWAYS_DENIED, decideOperation, deniedOperations, evaluateAuthorityPolicy } from './control-plane/authority.mjs'
 
-const POLICY_PATH = 'config/pre-live-owner-authority.json'
-const IDENTITY_PATH = 'config/control-plane-identity.json'
+// Resolved from this file, not from the caller's working directory. The
+// wrappers invoke this by absolute path without changing directory, so a
+// cwd-relative read made every authorised push and pull request fail with
+// ENOENT from any subdirectory — a gate that refuses correct work is still a
+// broken gate, and the tests missed it by always running from the root.
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const POLICY_PATH = resolve(REPOSITORY_ROOT, 'config/pre-live-owner-authority.json')
+const IDENTITY_PATH = resolve(REPOSITORY_ROOT, 'config/control-plane-identity.json')
 
 /** @param {string} path */
 const read = (path) => JSON.parse(readFileSync(path, 'utf8'))
@@ -28,9 +35,25 @@ function main() {
   const policy = read(POLICY_PATH)
   const identity = read(IDENTITY_PATH)
 
+  // The one repository this programme may write to, taken from the identity
+  // record rather than from git configuration or the environment — both of
+  // which the thing being constrained can set.
+  if (process.argv.includes('--repository')) {
+    const repository = identity.repository
+    if (typeof repository !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(repository)) {
+      console.error('the identity record names no valid owner/repo')
+      process.exit(1)
+    }
+    console.log(repository)
+    return
+  }
+
+  const branchFlag = process.argv.indexOf('--branch')
+  const context = branchFlag === -1 ? {} : { branch: process.argv[branchFlag + 1] }
+
   const requested = process.argv.slice(2).filter((argument) => !argument.startsWith('-'))[0]
   if (requested) {
-    const verdict = decideOperation(policy, identity, requested)
+    const verdict = decideOperation(policy, identity, requested, context)
     console.log(`${verdict.allowed ? 'ALLOW' : 'DENY '} ${requested}${verdict.reason ? ` — ${verdict.reason}` : ''}`)
     if (!verdict.allowed) process.exit(1)
     return
@@ -47,9 +70,14 @@ function main() {
 
   console.log('\nGranted, subject to the acting lane holding the authority:')
   for (const operation of structural.operations) {
-    const verdict = decideOperation(policy, identity, operation.name)
+    // A sample task branch, so the report shows the operation's own verdict
+    // rather than the refusal every branch-scoped operation gives when asked
+    // with no branch at all.
+    const sample = policy.operations[operation.name]?.requiresTaskBranch ? { branch: 'feat/sample' } : {}
+    const verdict = decideOperation(policy, identity, operation.name, sample)
     const mark = verdict.allowed ? 'ALLOW' : 'DENY '
-    console.log(`  ${mark} ${operation.name.padEnd(20)} needs ${operation.requires}${verdict.allowed ? '' : ` — ${verdict.reason}`}`)
+    const scope = policy.operations[operation.name]?.requiresTaskBranch ? ' on a task branch' : ''
+    console.log(`  ${mark} ${operation.name.padEnd(20)} needs ${operation.requires}${scope}${verdict.allowed ? '' : ` — ${verdict.reason}`}`)
   }
 
   console.log('\nEverything else is denied by absence: this is an allowlist.')
