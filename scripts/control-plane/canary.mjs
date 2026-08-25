@@ -41,7 +41,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { ControlPlaneStore, stateDir } from './state.mjs'
+import { stateDir } from './state.mjs'
+import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
 import { deliveryHandlers, ENFORCEMENT_SURFACE } from './delivery.mjs'
 import { readOnlyHandlers } from './cli.mjs'
@@ -239,7 +240,7 @@ async function main() {
   }
 
   const now = () => new Date().toISOString()
-  const store = new ControlPlaneStore()
+  const store = openControlPlaneState()
 
   // ACTIVE, because the whole point is that mutation is dispatched. The brake
   // is `maxPullRequests`, and one is all this run may open.

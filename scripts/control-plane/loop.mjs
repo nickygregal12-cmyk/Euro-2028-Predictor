@@ -29,7 +29,7 @@ import {
 
 /**
  * @param {object} options
- * @param {import('./state.mjs').ControlPlaneStore} options.store
+ * @param {import('./state.mjs').ControlPlaneState} options.store
  * @param {Record<string, (ctx) => Promise<object>>} options.handlers
  *   Task handlers keyed by `task.handler`. A handler returns
  *   `{ ok, evidence, failureClass?, checkpoint?, status?, nextAction? }`.
@@ -37,7 +37,7 @@ import {
  */
 export class LoopEngine {
   /**
-   * @param {{ store: import('./state.mjs').ControlPlaneStore,
+   * @param {{ store: import('./state.mjs').ControlPlaneState,
    *   handlers?: Record<string, (ctx: any) => Promise<HandlerResult>>,
    *   now: () => string, limits?: Limits }} options
    */
