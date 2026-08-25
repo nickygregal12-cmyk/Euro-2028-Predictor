@@ -193,10 +193,32 @@ fi
 # Tailscale is doing, and Basic auth over plaintext is not the boundary Stage 1
 # claims. Absent output fails rather than passes — no listener observed is not
 # proof of a correct listener.
-listeners="$(ss -ltnH 'sport = :4096' 2>/dev/null || true)"
-if [ -n "$listeners" ] && ! grep -Eq '(^|[[:space:]])(0\.0\.0\.0|\[::\]|\*):4096([[:space:]]|$)' <<<"$listeners" &&
-   grep -q '127.0.0.1:4096' <<<"$listeners"; then
-  ready 'Socket boundary' 'port 4096 listens on IPv4 localhost only'
+# EVERY listener must be loopback, not merely "no wildcard listener present".
+#
+# The first version of this check enumerated the addresses it did not want —
+# 0.0.0.0, [::], * — and passed as long as a 127.0.0.1 row existed. `ss` lists
+# one row per socket, so a process bound to BOTH 127.0.0.1:4096 and a Tailscale
+# address satisfied it: no wildcard, loopback present, READY. That is the exact
+# second door this exists to refuse, and the check would have called it safe.
+#
+# So it is an allowlist. Every row's local address has to be loopback, and
+# anything the list does not recognise fails — including no rows at all, since
+# no listener observed is not proof of a correct listener.
+socket_is_loopback_only() {
+  local rows="$1" address
+  [ -n "$rows" ] || return 1
+  while read -r _ _ _ address _; do
+    [ -n "$address" ] || continue
+    case "$address" in
+      127.0.0.1:4096 | '[::1]:4096') ;;
+      *) return 1 ;;
+    esac
+  done <<<"$rows"
+  return 0
+}
+
+if socket_is_loopback_only "$(ss -ltnH 'sport = :4096' 2>/dev/null || true)"; then
+  ready 'Socket boundary' 'every listener on port 4096 is loopback'
 else
   missing 'Socket boundary' 'port 4096 must listen only on 127.0.0.1'
 fi
@@ -238,8 +260,11 @@ fi
 # Resumability is what makes one front door a front door. If sessions did not
 # persist, picking the phone up would mean starting again, and the operator would
 # go back to the laptop — which is the state Stage 1 exists to leave behind.
-if command -v opencode >/dev/null 2>&1 &&
-   opencode session list --format json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const x=JSON.parse(s);process.exit(Array.isArray(x)&&x.length>0?0:1)}catch{process.exit(1)}})"; then
+# `node` is guarded rather than assumed: the doctor deliberately keeps running
+# when a prerequisite is absent so it can report every missing item at once, and
+# an unguarded `node` would print a shell error into the middle of that report.
+if command -v opencode >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
+   opencode session list --format json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const x=JSON.parse(s);process.exit(Array.isArray(x)&&x.length>0?0:1)}catch{process.exit(1)}})" 2>/dev/null; then
   ready 'Resumable sessions' 'persisted OpenCode sessions are available'
 else
   missing 'Resumable sessions' 'no persisted OpenCode session was listed'
