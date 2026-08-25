@@ -270,8 +270,22 @@ Healthy state includes:
 - optional Claude installation plus a clean subscription-only billing boundary; use `/status` in Claude for the one-time interactive login-method confirmation;
 - mode-0600 cloud environment file;
 - localhost HTTP Basic auth;
-- active `systemd` service;
+- active `systemd` service, and separately that it will still be active after a
+  logout, a reboot or a crash: enabled, restart-on-failure, and **not** ordered
+  after `sshd`, which is how a unit that only came up because somebody logged in
+  looks persistent until it is tested;
+- OpenCode bound to `127.0.0.1:4096` and nothing wider, so the Basic-auth
+  boundary below is the only door rather than one of two;
 - Tailscale membership and private Serve route;
+- **explicit proof that Funnel is disabled.** Serve and Funnel are one command
+  apart, a Funnel route behaves identically from the operator's phone, and
+  nothing in normal use would reveal that the workspace had been published to
+  the internet. So this is asserted positively and fails closed: a missing
+  binary, an error or an empty answer all report missing, because none of them
+  is evidence that Funnel is off;
+- at least one persisted, resumable OpenCode session — what makes this one front
+  door rather than a second place to start again;
+- the hosted required-merge contexts still matching `config/required-merge-contexts.json`;
 - optional GitHub CLI auth;
 - a host-capacity warning if the machine is too small for comfortable browser/build verification.
 

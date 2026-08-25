@@ -162,6 +162,67 @@ else
   missing 'Conductor service' 'systemctl --user status predictor-conductor.service'
 fi
 
+# PERSISTENT MEANS SURVIVING THE THINGS THAT END A SESSION, not merely running
+# right now. `Conductor service` above answers "is it up"; these answer "will it
+# still be up after a logout, a reboot, or a crash" — which is the actual Stage 1
+# claim, and the one an operator on a phone depends on.
+#
+# The SSH clause is the non-obvious half. A unit ordered after `sshd` is one that
+# came up because somebody logged in, so it looks persistent for exactly as long
+# as nobody tests it.
+service_properties="$(systemctl --user show predictor-conductor.service --property=UnitFileState,Restart,ExecStart,WorkingDirectory,After --no-pager 2>/dev/null || true)"
+if grep -q '^UnitFileState=enabled$' <<<"$service_properties" &&
+   grep -q '^Restart=on-failure$' <<<"$service_properties" &&
+   grep -q 'opencode web --hostname 127.0.0.1 --port 4096' <<<"$service_properties" &&
+   ! grep -Eq '^After=.*(ssh|sshd)\.service' <<<"$service_properties"; then
+  ready 'Service persistence' 'enabled with restart-on-failure, localhost ExecStart and no SSH service dependency'
+else
+  missing 'Service persistence' 'service must be enabled, restart on failure, and bind OpenCode to 127.0.0.1:4096'
+fi
+
+# Without linger, a user service stops when the last session closes. The service
+# can be `enabled` and still not survive a reboot.
+if [ "$(loginctl show-user "$USER" -p Linger --value 2>/dev/null || true)" = yes ]; then
+  ready 'Login persistence' 'linger is enabled for restart after logout/reboot'
+else
+  missing 'Login persistence' 'enable user linger for unattended restart'
+fi
+
+# The auth boundary below proves the door is locked. This proves there is only
+# one door: a process bound to 0.0.0.0 is reachable from the network whatever
+# Tailscale is doing, and Basic auth over plaintext is not the boundary Stage 1
+# claims. Absent output fails rather than passes — no listener observed is not
+# proof of a correct listener.
+# EVERY listener must be loopback, not merely "no wildcard listener present".
+#
+# The first version of this check enumerated the addresses it did not want —
+# 0.0.0.0, [::], * — and passed as long as a 127.0.0.1 row existed. `ss` lists
+# one row per socket, so a process bound to BOTH 127.0.0.1:4096 and a Tailscale
+# address satisfied it: no wildcard, loopback present, READY. That is the exact
+# second door this exists to refuse, and the check would have called it safe.
+#
+# So it is an allowlist. Every row's local address has to be loopback, and
+# anything the list does not recognise fails — including no rows at all, since
+# no listener observed is not proof of a correct listener.
+socket_is_loopback_only() {
+  local rows="$1" address
+  [ -n "$rows" ] || return 1
+  while read -r _ _ _ address _; do
+    [ -n "$address" ] || continue
+    case "$address" in
+      127.0.0.1:4096 | '[::1]:4096') ;;
+      *) return 1 ;;
+    esac
+  done <<<"$rows"
+  return 0
+}
+
+if socket_is_loopback_only "$(ss -ltnH 'sport = :4096' 2>/dev/null || true)"; then
+  ready 'Socket boundary' 'every listener on port 4096 is loopback'
+else
+  missing 'Socket boundary' 'port 4096 must listen only on 127.0.0.1'
+fi
+
 status="$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 3 http://127.0.0.1:4096/ || true)"
 case "$status" in
   401) ready 'Local auth boundary' 'localhost:4096 requires HTTP Basic auth' ;;
@@ -179,6 +240,34 @@ if command -v tailscale >/dev/null 2>&1 && tailscale serve status 2>/dev/null | 
   ready 'Private web route' 'Tailscale Serve points to OpenCode'
 else
   optional 'Private web route' 'run: sudo tailscale serve --bg 4096'
+fi
+
+# "NO PUBLIC FUNNEL" IS THE ONE STAGE 1 CLAIM THAT FAILS SILENTLY. Serve and
+# Funnel are one command apart, a Funnel route works exactly like the private one
+# from the operator's phone, and nothing in normal use would ever reveal that the
+# workspace had been published to the internet.
+#
+# So this is asserted positively and fails closed: the route must SAY it is
+# tailnet only. An empty answer, a missing binary or an error all report missing,
+# because none of them is evidence that Funnel is off.
+funnel_status="$(tailscale funnel status 2>&1 || true)"
+if grep -q '(tailnet only)' <<<"$funnel_status" && ! grep -qi 'Funnel on' <<<"$funnel_status"; then
+  ready 'Public Funnel boundary' 'Funnel is disabled; route is tailnet only'
+else
+  missing 'Public Funnel boundary' 'tailscale funnel status must prove the route is tailnet only'
+fi
+
+# Resumability is what makes one front door a front door. If sessions did not
+# persist, picking the phone up would mean starting again, and the operator would
+# go back to the laptop — which is the state Stage 1 exists to leave behind.
+# `node` is guarded rather than assumed: the doctor deliberately keeps running
+# when a prerequisite is absent so it can report every missing item at once, and
+# an unguarded `node` would print a shell error into the middle of that report.
+if command -v opencode >/dev/null 2>&1 && command -v node >/dev/null 2>&1 &&
+   opencode session list --format json 2>/dev/null | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{try{const x=JSON.parse(s);process.exit(Array.isArray(x)&&x.length>0?0:1)}catch{process.exit(1)}})" 2>/dev/null; then
+  ready 'Resumable sessions' 'persisted OpenCode sessions are available'
+else
+  missing 'Resumable sessions' 'no persisted OpenCode session was listed'
 fi
 
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then

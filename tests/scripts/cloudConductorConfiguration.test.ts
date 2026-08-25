@@ -171,6 +171,19 @@ printf '%s\\n' \\
     expect(doctor).toContain('Default web agent')
     expect(doctor).toContain('Local auth boundary')
     expect(doctor).toContain('tailscale serve status')
+    // STAGE 1 IS A SET OF BOUNDARIES, AND A DELETED CHECK LOOKS EXACTLY LIKE A
+    // PASSING ONE. Each of these answers a claim the private front door makes
+    // that nothing else in the doctor answers: that the service survives a
+    // reboot rather than merely running, that port 4096 has one door rather
+    // than a locked one plus an open one, that the route was never published
+    // to the internet, and that a session picked up on a phone is the same
+    // session left on the laptop.
+    expect(doctor).toContain('tailscale funnel status')
+    expect(doctor).toContain('UnitFileState')
+    expect(doctor).toContain('loginctl show-user')
+    expect(doctor).toContain('no SSH service dependency')
+    expect(doctor).toContain('opencode session list --format json')
+    expect(doctor).toContain("ss -ltnH 'sport = :4096'")
     expect(doctor).toContain('gh auth status')
     expect(doctor).toContain('Claude billing boundary')
     expect(doctor).toContain('Claude login verification')
@@ -327,5 +340,55 @@ esac
     })
     expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
     expect(output).not.toMatch(/CONFIGURED sentry\s+.*CONNECTED=YES/)
+  })
+})
+
+/**
+ * THE SOCKET DECISION, EXECUTED RATHER THAN READ.
+ *
+ * The first version of this check enumerated the addresses it did not want and
+ * passed as long as a loopback row existed. `ss` prints one row per socket, so a
+ * process bound to BOTH `127.0.0.1:4096` and a Tailscale address satisfied it —
+ * no wildcard, loopback present, READY — which is precisely the second door the
+ * check exists to refuse.
+ *
+ * A string assertion cannot tell those two versions apart. This lifts the real
+ * function out of the real script and runs it against `ss` output, so the
+ * blocklist form fails here even though it reads almost identically.
+ */
+describe('the port 4096 socket boundary', () => {
+  const doctor = read('scripts/agent-tools/cloud-conductor-doctor.sh')
+  const start = doctor.indexOf('socket_is_loopback_only() {')
+  const fn = doctor.slice(start, doctor.indexOf('\n}\n', start) + 3)
+
+  const verdict = (rows: string) =>
+    execFileSync('bash', ['-c', `${fn}\nsocket_is_loopback_only "$1" && echo ok || echo no`, 'bash', rows], {
+      encoding: 'utf8',
+    }).trim()
+
+  it('was found in the script, so the cases below are not vacuous', () => {
+    expect(fn).toContain('127.0.0.1:4096')
+    expect(fn).toContain('return 1')
+  })
+
+  it('accepts loopback and only loopback', () => {
+    expect(verdict('LISTEN 0 511 127.0.0.1:4096 0.0.0.0:*')).toBe('ok')
+    expect(verdict('LISTEN 0 511 [::1]:4096 [::]:*')).toBe('ok')
+  })
+
+  it('refuses a second listener on a routable address beside the loopback one', () => {
+    // The case the blocklist form passed. No wildcard appears anywhere here.
+    expect(
+      verdict('LISTEN 0 511 127.0.0.1:4096 0.0.0.0:*\nLISTEN 0 511 100.83.12.4:4096 0.0.0.0:*'),
+    ).toBe('no')
+  })
+
+  it('refuses wildcard binds', () => {
+    expect(verdict('LISTEN 0 511 0.0.0.0:4096 0.0.0.0:*')).toBe('no')
+    expect(verdict('LISTEN 0 511 [::]:4096 [::]:*')).toBe('no')
+  })
+
+  it('refuses an empty answer, because no listener is not a correct listener', () => {
+    expect(verdict('')).toBe('no')
   })
 })
