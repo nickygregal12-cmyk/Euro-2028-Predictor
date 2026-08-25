@@ -227,6 +227,70 @@ describe('a run replaced by a newer push is not a failure of this branch', () =>
     expect(triagePullRequest(pr).nextAction).toBe('REPAIR_CI')
   })
 
+  it('reads the run SHA whichever shape the caller reports it in', () => {
+    // The PR head is already accepted as `head.sha` or `headSha`; a check run
+    // read through a camelCase client had no such tolerance, so its SHA came
+    // back undefined, the run classified UNKNOWN, and the push it was cancelled
+    // by became repair work — the very thing this classification prevents.
+    for (const shape of [{ head_sha: 'oldhead' }, { headSha: 'oldhead' }, { runSha: 'oldhead' }]) {
+      const pr = normalisePullRequest(
+        {
+          number: 1046,
+          state: 'open',
+          mergeable: true,
+          headSha: 'newhead',
+          checkRuns: [{ name: 'gate', status: 'completed', conclusion: 'cancelled', ...shape }],
+        },
+        { requiredCheckNames: ['gate'] },
+      )
+      expect(triagePullRequest(pr).failures[0], JSON.stringify(shape)).toMatchObject({
+        failureClass: 'SUPERSEDED',
+      })
+    }
+  })
+
+  it('does not let a superseded run hide a reviewer waiting on an answer', () => {
+    // Waiting on CI was once asserted for the whole pull request the moment its
+    // only failing check was superseded. A changes-requested review then sat
+    // behind a push, watching runs that were never the blocking item.
+    const pr = normalisePullRequest(
+      {
+        number: 1046,
+        state: 'open',
+        mergeable: true,
+        headSha: 'newhead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+        ],
+        reviews: [{ state: 'CHANGES_REQUESTED' }],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    const triage = triagePullRequest(pr)
+    expect(triage).toMatchObject({ status: 'ELIGIBLE', nextAction: 'ADDRESS_REVIEW' })
+    // The correction is to the routing only. Cancelled evidence is still not a
+    // pass, so the merge verdict must report the conclusion actually observed.
+    expect(triage.blockers).toContain('check_cancelled:gate')
+    expect(triage.mergeEligible).toBe(false)
+  })
+
+  it('does not let a superseded run hide a base the branch has drifted from', () => {
+    const pr = normalisePullRequest(
+      {
+        number: 1046,
+        state: 'open',
+        mergeable: false,
+        headSha: 'newhead',
+        base: { sha: 'old' },
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'cancelled', head_sha: 'oldhead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'], baseSha: 'new' },
+    )
+    expect(triagePullRequest(pr).nextAction).toBe('MERGE_BASE')
+  })
+
   it('spends no attempt and no stall credit on a superseded run', async () => {
     const store = new ControlPlaneStore(dir)
     store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
@@ -379,6 +443,17 @@ describe('merge eligibility is decided from GitHub state, not assertion', () => 
       requiredChecks: [{ name: 'ci', status: 'completed', conclusion: 'failure' }],
     })
     expect(next).toMatchObject({ status: 'ELIGIBLE', nextAction: 'REPAIR_CI' })
+  })
+
+  it('prefers work it can do now over a wait it cannot shorten', () => {
+    // Both blockers are real. Only one of them has an action attached, and a
+    // programme that picks the wait has turned CI latency into its own latency.
+    const next = nextStateForPullRequest({
+      ...greenPr,
+      requiredChecks: [{ name: 'ci', status: 'in_progress' }],
+      reviews: [{ state: 'CHANGES_REQUESTED' }],
+    })
+    expect(next).toMatchObject({ status: 'ELIGIBLE', nextAction: 'ADDRESS_REVIEW' })
   })
 
   it('refuses to merge when the head moved after triage', () => {

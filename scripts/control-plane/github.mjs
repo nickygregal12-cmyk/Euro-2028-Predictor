@@ -7,7 +7,7 @@
  * normalises whatever they observed and then decides from that alone.
  */
 
-import { classifyFailure, evaluateMergeEligibility, nextStateForPullRequest } from './policy.mjs'
+import { classifyFailure, evaluateMergeEligibility, routeFromBlockers } from './policy.mjs'
 
 /**
  * Required checks are the merge-blocking classes, not every check that ran.
@@ -28,8 +28,12 @@ export function normalisePullRequest(raw, { requiredCheckNames = [], baseSha } =
       status: run.status,
       conclusion: run.conclusion,
       // Kept so triage can tell a cancelled run that measured an older commit
-      // from one that was cancelled while measuring this head.
-      runSha: run.head_sha ?? run.runSha,
+      // from one that was cancelled while measuring this head. All three shapes
+      // are accepted for the same reason `headSha` is accepted for the pull
+      // request below: callers reach GitHub by different routes, and a check run
+      // whose SHA this failed to read would silently classify as UNKNOWN and be
+      // routed to repair — the exact failure this field exists to prevent.
+      runSha: run.head_sha ?? run.headSha ?? run.runSha,
     })
   }
   for (const status of statuses) {
@@ -78,7 +82,6 @@ export function normalisePullRequest(raw, { requiredCheckNames = [], baseSha } =
  */
 export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha = [] } = {}) {
   const merge = evaluateMergeEligibility(pr)
-  const next = nextStateForPullRequest(pr)
 
   const failures = pr.requiredChecks
     .filter((check) => check.status === 'completed' && !['success', 'neutral'].includes(check.conclusion))
@@ -104,16 +107,26 @@ export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha
     .filter((check) => check.status !== 'completed')
     .map((check) => check.name)
 
-  // A pull request whose only failing checks were superseded has nothing to
-  // repair: those runs measured a commit that is no longer the head, and the
-  // current head has runs of its own. Routing it to repair would manufacture
-  // work out of a push. It still cannot merge — cancelled evidence is not a
-  // pass — so it waits for the new head's runs instead.
-  const onlySuperseded =
-    failures.length > 0 && failures.every((failure) => failure.failureClass === 'SUPERSEDED')
-  const routed = onlySuperseded
-    ? { status: /** @type {const} */ ('WAITING_CI'), nextAction: 'WATCH_CI' }
-    : { status: next.status, nextAction: next.nextAction }
+  // A superseded check has nothing to repair: that run measured a commit which
+  // is no longer the head, and the head has runs of its own either finished or
+  // still to come. Repairing it would manufacture work out of a push.
+  //
+  // So it is re-stated as what it actually is — a check still owed on this head
+  // — and routing decides from there. An earlier version short-circuited the
+  // whole verdict to WATCH_CI instead, which parked pull requests on CI they
+  // were no longer waiting for: a reviewer's changes-requested, a drifted base
+  // or an unmergeable branch all vanished behind a push. The blockers reported
+  // below are deliberately left uncorrected: cancelled evidence is not a pass,
+  // and merge stays fail-closed on the conclusions actually observed.
+  const superseded = new Set(
+    failures.filter((failure) => failure.failureClass === 'SUPERSEDED').map((f) => f.name),
+  )
+  const routed = routeFromBlockers(
+    merge.blockers.map((blocker) => {
+      const owed = /^check_(?!pending:)[^:]+:(.+)$/.exec(blocker)
+      return owed && superseded.has(owed[1]) ? `check_pending:${owed[1]}` : blocker
+    }),
+  )
 
   return {
     number: pr.number,

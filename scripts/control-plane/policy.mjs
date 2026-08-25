@@ -359,20 +359,25 @@ export function evaluateMergeEligibility(pr) {
 }
 
 /**
- * Map an observed PR into the task state the loop should park it in.
- * This is what removes waiting from the model: after a push the worker stops,
- * and this function alone decides whether anything needs waking.
+ * Route a pull request from its blockers alone.
  *
- * @param {PullRequestObservation} pr
+ * Split out from `nextStateForPullRequest` so a caller holding better evidence
+ * than the raw conclusions — which cancelled runs measured a commit that is no
+ * longer the head, say — can correct the blocker set and still reach the verdict
+ * through this one function rather than second-guessing it afterwards.
+ *
+ * Actionable blockers are read before waiting ones. Waiting is what the loop
+ * does when there is nothing it can do, so a pull request that is both awaiting
+ * CI and carrying a reviewer's changes-requested has work available now, and
+ * parking it on the slower of the two answers is how CI latency becomes
+ * programme latency.
+ *
+ * @param {string[]} blockers
  * @returns {{ status: TaskState, nextAction: string, blockers: string[] }}
  */
-export function nextStateForPullRequest(pr) {
-  const { eligible, blockers } = evaluateMergeEligibility(pr)
-  if (eligible) return { status: 'ELIGIBLE', nextAction: 'MERGE', blockers }
+export function routeFromBlockers(blockers) {
+  if (blockers.length === 0) return { status: 'ELIGIBLE', nextAction: 'MERGE', blockers }
 
-  if (blockers.some((b) => b.startsWith('check_pending:'))) {
-    return { status: 'WAITING_CI', nextAction: 'WATCH_CI', blockers }
-  }
   // Every non-pending check blocker routes to repair, not just failure and
   // cancelled. `evaluateMergeEligibility` emits `check_<conclusion>:` for any
   // conclusion that is not an explicit pass — skipped, timed_out,
@@ -391,5 +396,20 @@ export function nextStateForPullRequest(pr) {
   if (blockers.includes('not_mergeable') || blockers.includes('base_drift_invalidates_evidence')) {
     return { status: 'ELIGIBLE', nextAction: 'MERGE_BASE', blockers }
   }
+  if (blockers.some((b) => b.startsWith('check_pending:'))) {
+    return { status: 'WAITING_CI', nextAction: 'WATCH_CI', blockers }
+  }
   return { status: 'WAITING_EXTERNAL', nextAction: 'RECONCILE', blockers }
+}
+
+/**
+ * Map an observed PR into the task state the loop should park it in.
+ * This is what removes waiting from the model: after a push the worker stops,
+ * and this function alone decides whether anything needs waking.
+ *
+ * @param {PullRequestObservation} pr
+ * @returns {{ status: TaskState, nextAction: string, blockers: string[] }}
+ */
+export function nextStateForPullRequest(pr) {
+  return routeFromBlockers(evaluateMergeEligibility(pr).blockers)
 }
