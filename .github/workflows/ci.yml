@@ -70,6 +70,11 @@ jobs:
         # The hosted half is deliberately not here. It would fail this job on an
         # owner changing a setting, which is not what this pull request did.
         run: npm run check:required-contexts
+      - name: Verify machine identity record
+        # Authority is a function of identity here. This half needs no network:
+        # it refuses a lane that claims more authority than its identity class
+        # permits, which is the edit a pull request would make.
+        run: npm run check:machine-identity
       - name: Check the documentation authorities against the contract
         # Two halves. Without arguments it asserts freshness: a document that
         # names contract numbers must name the current one as its newest. With

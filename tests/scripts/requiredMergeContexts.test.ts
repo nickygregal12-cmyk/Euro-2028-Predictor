@@ -125,6 +125,12 @@ describe('drift between the hosted set and the tracked record', () => {
     expect(drift.ok).toBe(false)
     // Every expected context is owed, because none of them was verified.
     expect(drift.missing).toEqual([...tracked.required].sort())
+
+    // The verdict is right, and the sentence the operator reads must be too.
+    // `missing` is populated identically for UNREADABLE and PROTECTION_ABSENT,
+    // so the status is the only thing that can tell them apart downstream.
+    expect(drift.reason).toContain('an unread ruleset is not a verified one')
+    expect(evaluateRulesetDrift({ effectiveRules: [], record: tracked }).status).toBe('PROTECTION_ABSENT')
   })
 
   it('treats a branch with no required_status_checks rule as protection absent', () => {

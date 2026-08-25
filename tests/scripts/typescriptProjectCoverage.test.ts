@@ -190,6 +190,10 @@ describe('JavaScript under scripts/', () => {
     'scripts/agent-tools/merge-cloud-env.mjs',
     'scripts/check-documentation-authorities.mjs',
     'scripts/check-knip-baseline.mjs',
+    // Machine identity decides which lane may hold which authority, and the
+    // whole point of it is refusing deployment authority to an owner-attributed
+    // lane. An unexamined type error there fails in the granting direction.
+    'scripts/check-machine-identity.mjs',
     'scripts/check-migration-additive.mjs',
   'scripts/check-required-merge-contexts.mjs',
     'scripts/check-workflow-action-pins.mjs',
@@ -197,6 +201,7 @@ describe('JavaScript under scripts/', () => {
     // merge eligibility and safety brakes, so they are checked on arrival.
     'scripts/control-plane/cli.mjs',
     'scripts/control-plane/github.mjs',
+    'scripts/control-plane/identity.mjs',
     'scripts/control-plane/loop.mjs',
     'scripts/control-plane/policy.mjs',
   'scripts/control-plane/ruleset.mjs',
