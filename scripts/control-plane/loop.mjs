@@ -212,6 +212,16 @@ export class LoopEngine {
     for (let i = 0; i < maxTicks; i += 1) {
       const decision = await this.tick()
       decisions.push(decision)
+      // Outcomes that mean nothing further can be advanced this pass.
+      //
+      // A per-task BLOCKED is deliberately NOT among them. It used to be, and
+      // the first live delivery canary is what showed the cost: one task
+      // exhausted its attempts against an unrecoverable environment
+      // restriction, `run` stopped there, and the independent work sitting
+      // behind it in the queue never ran — the exact failure mode the external
+      // wait exists to prevent, arriving through the other door. BLOCKED is
+      // terminal for that task, so it is never reselected; the loop simply
+      // moves on, and stops when the queue itself is genuinely done or parked.
       const halt = [
         'NO_RUN',
         'EMERGENCY_STOP',
@@ -221,7 +231,6 @@ export class LoopEngine {
         'WAITING_OWNER',
         'WAITING_EXTERNAL',
         'MUTATION_BLOCKED',
-        'BLOCKED',
         'STALLED',
       ]
       if (halt.includes(decision.outcome)) break

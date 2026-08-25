@@ -9,6 +9,24 @@
 # alone accepts a couple of dozen, and the set grows with the CLI. Naming what
 # may be passed means a new option is inert here until someone adds it
 # deliberately.
+#
+# WHY THIS SPEAKS REST RATHER THAN `gh pr create`. The first live canary run
+# failed here, three times, on the same thing:
+#
+#   HTTP 403: This GraphQL query (RepositoryInfo, sent by gh pr create/view
+#   (repo info preamble)) is not enabled for this session
+#
+# `gh pr create` opens with a GraphQL preamble, so on any host whose egress
+# serves a pinned set of GitHub operations it fails before this wrapper's own
+# checks mean anything — and it fails identically however correct the request
+# is. The REST pull-request endpoints are served, take base and head as fields,
+# and need no preamble, so the wrapper asks for exactly the call it wants.
+#
+# The option list narrowed in the same change. --label, --assignee and
+# --milestone were named here and used by nothing; each is a separate REST call
+# against a different endpoint, and an allowlist entry kept "in case" is the
+# thing an allowlist exists to prevent. They are refused now because they are
+# not on the list, which is how anything else gets refused.
 set -euo pipefail
 
 action="${1:-}"
@@ -16,7 +34,7 @@ if [ "$#" -gt 0 ]; then shift; fi
 case "$action" in
   create|update) ;;
   *)
-    printf 'Usage: owner-pr.sh create|update [--title T] [--body B] [--label L] [--draft] [--assignee A] [--milestone M]\n' >&2
+    printf 'Usage: owner-pr.sh create [--title T] [--body B] [--draft] | update [--title T] [--body B]\n' >&2
     exit 2
     ;;
 esac
@@ -82,17 +100,33 @@ fi
 
 assert_origin_is_the_expected_repository
 
-# Option names that may be forwarded. Anything else — including any option that
+# Option names that may be passed. Anything else — including any option that
 # could redirect the target, read a file, or reach another repository — is
 # refused because it is not here.
-expect_value=0
+title=''
+body=''
+draft=no
+have_title=no
+have_body=no
+expect=''
 for argument in "$@"; do
-  if [ "$expect_value" -eq 1 ]; then expect_value=0; continue; fi
+  if [ -n "$expect" ]; then
+    case "$expect" in
+      title) title="$argument"; have_title=yes ;;
+      body) body="$argument"; have_body=yes ;;
+    esac
+    expect=''
+    continue
+  fi
   case "$argument" in
-    --title|--body|--label|--assignee|--milestone)
-      expect_value=1
-      ;;
+    --title) expect=title ;;
+    --body) expect=body ;;
     --draft)
+      if [ "$action" != create ]; then
+        printf 'Refusing --draft on update: it means nothing there.\n' >&2
+        exit 2
+      fi
+      draft=yes
       ;;
     -*)
       printf 'Refusing option that this wrapper does not explicitly permit: %s\n' "$argument" >&2
@@ -104,18 +138,54 @@ for argument in "$@"; do
       ;;
   esac
 done
-if [ "$expect_value" -eq 1 ]; then
+if [ -n "$expect" ]; then
   printf 'Refusing trailing option with no value.\n' >&2
   exit 2
 fi
 
-# --repo is passed explicitly and GH_REPO is cleared. Excluding --repo from the
-# caller's arguments was not enough: gh reads GH_REPO from the environment, so
-# an inherited value redirected create and edit to another repository while the
-# wrapper reported that it had fixed base and head.
+# GH_HOST is cleared for the reason GH_REPO was: gh reads it from the
+# environment, and it redirects every request to another API host while the
+# wrapper still reports that it fixed the repository. The path below names the
+# repository explicitly, so GH_REPO cannot reach it either way.
 unset GH_REPO GH_HOST
+
+request=(api --method)
 if [ "$action" = create ]; then
-  gh pr create --repo "$expected_repository" --base main --head "$branch" "$@"
-else
-  gh pr edit "$branch" --repo "$expected_repository" "$@"
+  if [ "$have_title" = no ] || [ "$have_body" = no ]; then
+    printf 'Refusing: create needs both --title and --body.\n' >&2
+    exit 2
+  fi
+  request+=(POST "repos/${expected_repository}/pulls"
+    -f "title=${title}" -f "body=${body}" -f 'base=main' -f "head=${branch}")
+  if [ "$draft" = yes ]; then
+    request+=(-F 'draft=true')
+  fi
+  gh "${request[@]}" --jq '.html_url'
+  exit 0
 fi
+
+if [ "$have_title" = no ] && [ "$have_body" = no ]; then
+  printf 'Refusing: update needs --title or --body.\n' >&2
+  exit 2
+fi
+
+# The number is looked up rather than accepted, so `update` can only ever reach
+# the open pull request for the branch this repository is standing on.
+owner="${expected_repository%%/*}"
+number="$(gh api --method GET "repos/${expected_repository}/pulls" \
+  -f "head=${owner}:${branch}" -f 'state=open' --jq '.[0].number' 2>/dev/null || true)"
+if [ -z "$number" ] || [ "$number" = null ]; then
+  printf 'Refusing: no open pull request for %s.\n' "$branch" >&2
+  exit 1
+fi
+case "$number" in
+  ''|*[!0-9]*)
+    printf 'Refusing: pull request lookup returned %s, which is not a number.\n' "$number" >&2
+    exit 1
+    ;;
+esac
+
+request+=(PATCH "repos/${expected_repository}/pulls/${number}")
+if [ "$have_title" = yes ]; then request+=(-f "title=${title}"); fi
+if [ "$have_body" = yes ]; then request+=(-f "body=${body}"); fi
+gh "${request[@]}" --jq '.html_url'

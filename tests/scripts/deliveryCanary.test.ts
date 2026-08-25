@@ -98,7 +98,7 @@ describe('the delivery canary drives the loop, not the other way round', () => {
     for (const [operation, handler] of Object.entries(handlers)) {
       const result = await handler({ at: '2026-08-25T20:00:00.000Z', task: {} } as never)
       expect(result.ok, operation).toBe(false)
-      expect(result.failureClass, operation).toBe('POLICY')
+      expect(result.failureClass, operation).toBe('POLICY_DENIAL')
     }
     // The refusal happened before anything ran.
     expect(calls).toEqual([])
@@ -141,7 +141,7 @@ describe('the gate cannot vouch for a change to itself', () => {
     for (const [operation, handler] of Object.entries(handlers)) {
       const result = await handler({ at: '2026-08-25T20:00:00.000Z', task: {} } as never)
       expect(result.ok, operation).toBe(false)
-      expect(result.failureClass, operation).toBe('POLICY')
+      expect(result.failureClass, operation).toBe('POLICY_DENIAL')
       expect(result.blocker, operation).toBe('ENFORCEMENT_MODIFIED')
       expect(result.evidence, operation).toContain('owner-task-push.sh')
     }
@@ -154,7 +154,7 @@ describe('the gate cannot vouch for a change to itself', () => {
     expect(argv[0]?.slice(0, 4)).toEqual(['git', 'diff', '--name-only', 'origin/main'])
   })
 
-  it('classifies a wrapper authority refusal as POLICY, not CODE', async () => {
+  it('classifies a wrapper authority refusal as POLICY_DENIAL, not a defect', async () => {
     // A denial is not a defect. Collapsing it into CODE made the loop retry a
     // decision that will never change.
     const handlers = deliveryHandlers({
@@ -168,10 +168,10 @@ describe('the gate cannot vouch for a change to itself', () => {
       },
     })
     const result = await handlers['delivery.push']({ at: '2026-08-25T20:00:00.000Z' } as never)
-    expect(result.failureClass).toBe('POLICY')
+    expect(result.failureClass).toBe('POLICY_DENIAL')
   })
 
-  it('still classifies a genuine execution failure as CODE', async () => {
+  it('sends every other failure through the shared classifier', async () => {
     const handlers = deliveryHandlers({
       branch: BRANCH,
       title: 'canary',
@@ -183,7 +183,27 @@ describe('the gate cannot vouch for a change to itself', () => {
       },
     })
     const result = await handlers['delivery.push']({ at: '2026-08-25T20:00:00.000Z' } as never)
-    expect(result.failureClass).toBe('CODE')
+    expect(result.failureClass).toBe('UNKNOWN')
+  })
+
+  it('reads an unrecoverable 403 as AUTH_REQUIRED rather than a defect to retry', async () => {
+    // Measured in the first live canary run: `gh pr create` answered
+    // `HTTP 403 ... not enabled for this session`, and a hardcoded failure class
+    // made the loop spend all three attempts on it in under a second.
+    const handlers = deliveryHandlers({
+      branch: BRANCH,
+      title: 'canary',
+      runCommand: (argv) => {
+        if (argv[0] === 'git') return ''
+        const error: Error & { status?: number } = new Error(
+          'Command failed: HTTP 403: This GraphQL query is not enabled for this session',
+        )
+        error.status = 1
+        throw error
+      },
+    })
+    const result = await handlers['delivery.pr']({ at: '2026-08-25T20:00:00.000Z' } as never)
+    expect(result.failureClass).toBe('AUTH_REQUIRED')
   })
 })
 

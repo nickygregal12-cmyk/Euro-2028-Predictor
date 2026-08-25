@@ -35,6 +35,7 @@ import { fileURLToPath } from 'node:url'
 
 import { decideOperation } from './authority.mjs'
 import { mergeGuard, normalisePullRequest, triagePullRequest } from './github.mjs'
+import { classifyFailure } from './policy.mjs'
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -143,14 +144,14 @@ export function deliveryHandlers({ runCommand = shell, branch, title = '', body 
   const guarded = async (operation, act, settle) => {
     const verdict = permitted(operation, branch)
     if (!verdict.allowed) {
-      return { ok: false, failureClass: 'POLICY', evidence: verdict.reason ?? operation, blocker: operation }
+      return { ok: false, failureClass: 'POLICY_DENIAL', evidence: verdict.reason ?? operation, blocker: operation }
     }
     const changed = modifiedEnforcementFiles(runCommand)
     if (changed.length > 0) {
       // The gate cannot vouch for a change to itself.
       return {
         ok: false,
-        failureClass: 'POLICY',
+        failureClass: 'POLICY_DENIAL',
         evidence: `delivery modifies the enforcement surface: ${changed.join(', ')}`,
         blocker: 'ENFORCEMENT_MODIFIED',
       }
@@ -160,13 +161,20 @@ export function deliveryHandlers({ runCommand = shell, branch, title = '', body 
       return settle(act())
     } catch (error) {
       // A wrapper that refused on authority exits POLICY_REFUSED. Collapsing
-      // that into CODE told the loop a policy denial was a defect, so it
-      // retried a decision that will never change.
+      // that into a generic defect told the loop a policy denial was a bug, so
+      // it retried a decision that will never change.
       const status = /** @type {{ status?: number }} */ (error)?.status
       const message = error instanceof Error ? error.message : String(error)
-      return status === POLICY_REFUSED
-        ? { ok: false, failureClass: 'POLICY', evidence: message, blocker: operation }
-        : { ok: false, failureClass: 'CODE', evidence: message }
+      if (status === POLICY_REFUSED) {
+        return { ok: false, failureClass: 'POLICY_DENIAL', evidence: message, blocker: operation }
+      }
+      // Everything else goes through the shared classifier rather than being
+      // stamped with one word. The first live canary run is why: `gh pr create`
+      // failed with `HTTP 403 ... not enabled for this session`, an
+      // unrecoverable environment restriction, and a hardcoded class made the
+      // loop spend all three attempts on it in under a second. The classifier
+      // reads that as AUTH_REQUIRED, which is both true and actionable.
+      return { ok: false, failureClass: classifyFailure({ name: operation, output: message }), evidence: message }
     }
   }
 

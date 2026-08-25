@@ -865,6 +865,34 @@ describe('loop bootstrap canary', () => {
     expect(store.loadTasks().flaky?.status).toBe('BLOCKED')
   })
 
+  it('does not stop the queue because one task blocked', async () => {
+    // Measured in the first live delivery canary: a task exhausted its attempts
+    // against an unrecoverable environment restriction, `run` halted on that
+    // outcome, and the independent work behind it in the queue never ran.
+    const store = new ControlPlaneStore(dir)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: T0 })
+    store.upsertTask({ id: 'doomed', handler: 'fail', order: 0 })
+    store.upsertTask({ id: 'independent', handler: 'ok', order: 1 })
+
+    const ran: string[] = []
+    const engine = new LoopEngine({
+      store,
+      now: clock(),
+      handlers: {
+        fail: async () => ({ ok: false, failureClass: 'AUTH_REQUIRED', evidence: 'HTTP 403' }),
+        ok: async ({ task }: { task: { id: string } }) => {
+          ran.push(task.id)
+          return { ok: true, evidence: 'done' }
+        },
+      } as never,
+    })
+
+    await engine.run()
+
+    expect(store.loadTasks().doomed?.status).toBe('BLOCKED')
+    expect(ran).toEqual(['independent'])
+  })
+
   it('parks a mutating task in OBSERVE_ONLY without dispatching it', async () => {
     const store = new ControlPlaneStore(dir)
     store.startRun({ hardStop: HARD_STOP, mode: 'OBSERVE_ONLY', now: T0 })

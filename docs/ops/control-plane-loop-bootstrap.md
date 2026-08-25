@@ -243,8 +243,24 @@ remote name `origin` without reading `remote.origin.pushurl`, and `gh` resolved
 its target from an inherited `GH_REPO` while the wrapper reported that it had
 fixed base and head. Both now resolve the expected `owner/repo` from the
 identity record and refuse anything else — every effective push URL is checked,
-more than one push URL is refused, and `gh` is passed `--repo` explicitly with
-`GH_REPO` cleared.
+more than one push URL is refused, and the pull-request wrapper names the
+repository in the REST path with `GH_REPO` and `GH_HOST` both cleared.
+
+**The pull-request wrapper speaks REST, not `gh pr create`.** The first live
+canary run failed there three times on the same thing: `gh pr create` opens with
+a GraphQL `RepositoryInfo` preamble, and a host whose egress serves only a
+pinned set of GitHub operations answers it `HTTP 403` before any of the
+wrapper's own checks mean anything. The REST pull-request endpoints take base
+and head as fields and need no preamble, so the wrapper asks for exactly the
+call it wants. `update` looks the number up from the open pull request for the
+branch it is standing on rather than accepting one, and refuses a lookup that
+does not answer with a number.
+
+The option list narrowed in the same change: `--label`, `--assignee` and
+`--milestone` were named once and used by nothing, and each is a separate REST
+call against a different endpoint. An allowlist entry kept "in case" is what an
+allowlist exists to prevent, so they are refused now the way anything unnamed
+is.
 
 URL rewrites need no separate refusal: `git remote get-url --push --all` reports
 the URL *after* expanding both `insteadOf` and `pushInsteadOf`, so a rule
@@ -302,9 +318,13 @@ those files and every mutating step refuses while any of them differs from
 A change to the gate goes through review, not through automation.
 
 A wrapper's authority refusal exits **3**, distinct from a validation (1) or
-usage (2) failure, so the loop classifies it `POLICY` rather than `CODE`. A
-denial is not a defect, and retrying one only spends attempts on a decision that
-will never change.
+usage (2) failure, so the loop classifies it `POLICY_DENIAL`. A denial is not a
+defect, and retrying one only spends attempts on a decision that will never
+change. Every other wrapper failure goes through `classifyFailure` rather than
+being stamped with one word — the live run is why: an unrecoverable `HTTP 403`
+carried a class that meant nothing, and all three attempts were spent on it in
+under a second. It reads as `AUTH_REQUIRED` now, which is both true and
+actionable.
 
 ### Running it
 
@@ -354,6 +374,12 @@ the wrappers already use.
 Only `COMPLETED` satisfies a dependency. A stage parked on the owner never
 unblocks what genuinely needs it, so a blocked stage cannot be falsely
 satisfied by a later task's impatience.
+
+`BLOCKED` is terminal for its own task and for nothing else. A `run` pass used
+to stop on it, and the first live canary showed what that costs: one task
+exhausted its attempts against an environment restriction, the pass ended
+there, and the independent work behind it in the queue never ran — the failure
+mode the external wait exists to prevent, arriving through the other door.
 
 ## Acceptance
 
