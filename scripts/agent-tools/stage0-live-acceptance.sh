@@ -61,7 +61,7 @@ PY
 }
 
 printf '\nHost doctor + MCP initialise/tools-list\n---------------------------------------\n'
-bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
+env -u GITHUB_MCP_TOKEN bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
 
 opencode_username="$(read_env_value OPENCODE_SERVER_USERNAME)"
 opencode_password="$(read_env_value OPENCODE_SERVER_PASSWORD)"

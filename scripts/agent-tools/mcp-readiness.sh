@@ -29,7 +29,11 @@ if [ "$mode" = '--config-only' ]; then
   exit 0
 fi
 
-if [ -z "${GITHUB_MCP_TOKEN:-}" ]; then
+token_has_non_whitespace() {
+  [[ "$1" =~ [^[:space:]] ]]
+}
+
+if ! token_has_non_whitespace "${GITHUB_MCP_TOKEN:-}"; then
   env_file="${HOME}/.config/predictor-cloud/opencode.env"
   if [ ! -f "$env_file" ] || [ ! -r "$env_file" ]; then
     printf 'MISSING protected OpenCode service env is missing or unreadable\n' >&2
@@ -45,12 +49,12 @@ import sys
 
 prefix = "GITHUB_MCP_TOKEN="
 matches = [line[len(prefix):] for line in Path(sys.argv[1]).read_text().splitlines() if line.startswith(prefix)]
-if len(matches) != 1 or not matches[0]:
+if len(matches) != 1 or not matches[0].strip():
     raise SystemExit(1)
 sys.stdout.write(matches[0])
 PY
   )" || {
-    printf 'MISSING protected OpenCode service env has no single non-empty GitHub MCP token\n' >&2
+    printf 'MISSING protected OpenCode service env has no single non-blank GitHub MCP token\n' >&2
     exit 1
   }
   export GITHUB_MCP_TOKEN="$github_mcp_token"

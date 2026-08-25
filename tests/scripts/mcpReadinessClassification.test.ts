@@ -85,7 +85,11 @@ describe('MCP readiness classification', () => {
   })
 })
 
-function runGitHubCredentialBoundary(options: { token?: string; mode?: number } = {}) {
+function runGitHubCredentialBoundary(options: {
+  token?: string
+  mode?: number
+  callerToken?: string
+} = {}) {
   const home = mkdtempSync(resolve(tmpdir(), 'predictor-mcp-credential-'))
   const bin = resolve(home, '.local/bin')
   const protectedDirectory = resolve(home, '.config/predictor-cloud')
@@ -117,7 +121,11 @@ esac
 `, { mode: 0o755 })
 
   const environment: NodeJS.ProcessEnv = { ...process.env, HOME: home }
-  delete environment.GITHUB_MCP_TOKEN
+  if (options.callerToken === undefined) {
+    delete environment.GITHUB_MCP_TOKEN
+  } else {
+    environment.GITHUB_MCP_TOKEN = options.callerToken
+  }
   delete environment.IGNORED_PROTECTED_KEY
   const result = spawnSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
     cwd: root,
@@ -142,6 +150,25 @@ describe('GitHub MCP protected credential boundary', () => {
 
     expect(result.status).toBe(1)
     expect(existsSync(invocationMarker)).toBe(false)
+  })
+
+  it('fails closed before MCP initialization when the protected token is whitespace only', () => {
+    const { result, invocationMarker } = runGitHubCredentialBoundary({ token: ' \t ' })
+
+    expect(result.status).toBe(1)
+    expect(existsSync(invocationMarker)).toBe(false)
+    expect(`${result.stdout}${result.stderr}`).not.toContain('stage0-boundary-sentinel')
+  })
+
+  it('treats a whitespace-only caller token as absent and uses the protected token unchanged', () => {
+    const { result, invocationMarker } = runGitHubCredentialBoundary({
+      token: 'stage0-boundary-sentinel',
+      callerToken: ' \t ',
+    })
+
+    expect(result.status).toBe(0)
+    expect(existsSync(invocationMarker)).toBe(true)
+    expect(`${result.stdout}${result.stderr}`).not.toContain('stage0-boundary-sentinel')
   })
 
   it('passes only the GitHub token from the mode-0600 file to the MCP child without printing it', () => {
