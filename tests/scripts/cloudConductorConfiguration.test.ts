@@ -335,11 +335,67 @@ esac
 
     const output = execFileSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
       cwd: root,
-      env: { ...process.env, HOME: home },
+      env: {
+        ...process.env,
+        HOME: home,
+        GITHUB_MCP_TOKEN: 'test-placeholder-not-a-real-token',
+      },
       encoding: 'utf8',
     })
     expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
     expect(output).not.toMatch(/CONFIGURED sentry\s+.*CONNECTED=YES/)
+  })
+
+  it('removes an inherited GitHub MCP token from the Stage-0 doctor boundary', () => {
+    const home = mkdtempSync(resolve(tmpdir(), 'predictor-stage0-boundary-'))
+    const bin = resolve(home, '.local/bin')
+    const protectedDirectory = resolve(home, '.config/predictor-cloud')
+    const doctorMarker = resolve(home, 'doctor-invoked-without-parent-token')
+    mkdirSync(bin, { recursive: true })
+    mkdirSync(protectedDirectory, { recursive: true })
+    writeFileSync(
+      resolve(protectedDirectory, 'opencode.env'),
+      'OPENCODE_SERVER_USERNAME=predictor\nOPENCODE_SERVER_PASSWORD=test-password\n',
+      { mode: 0o600 },
+    )
+    writeFileSync(resolve(bin, 'git'), `#!/usr/bin/bash
+case "\${1:-}" in
+  branch) printf 'main\\n' ;;
+  rev-parse) printf 'stage0-test-head\\n' ;;
+  fetch|status) exit 0 ;;
+  config)
+    case "\${2:-}" in
+      user.name) printf 'Stage Zero Test\\n' ;;
+      user.email) printf 'stage0@example.invalid\\n' ;;
+      *) exit 1 ;;
+    esac
+    ;;
+  *) exit 2 ;;
+esac
+`, { mode: 0o755 })
+    writeFileSync(resolve(bin, 'bash'), `#!/usr/bin/bash
+[ "\${1:-}" = 'scripts/agent-tools/cloud-conductor-doctor.sh' ] || exit 2
+[ -z "\${GITHUB_MCP_TOKEN+x}" ] || exit 70
+: > '${doctorMarker}'
+`, { mode: 0o755 })
+    writeFileSync(resolve(bin, 'opencode'), `#!/usr/bin/bash
+printf 'MCP FOUNDATION LIVE ACCEPTANCE PASSED\\n'
+`, { mode: 0o755 })
+
+    const result = spawnSync('/usr/bin/bash', ['scripts/agent-tools/stage0-live-acceptance.sh', '--live'], {
+      cwd: root,
+      env: {
+        ...process.env,
+        HOME: home,
+        GITHUB_MCP_TOKEN: 'accidental-parent-sentinel',
+      },
+      encoding: 'utf8',
+      stdio: 'pipe',
+    })
+
+    expect(result.status).toBe(0)
+    expect(readFileSync(doctorMarker, 'utf8')).toBe('')
+    expect(`${result.stdout}${result.stderr}`).not.toContain('accidental-parent-sentinel')
   })
 })
 

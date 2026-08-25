@@ -17,6 +17,7 @@ if [ "$actual" != "$expected" ]; then
   printf 'MISSING OpenCode expected %s, got %s\n' "$expected" "${actual:-none}" >&2
   exit 1
 fi
+
 timeout 30 opencode debug config >/dev/null
 
 mapfile -t servers < <(node -e "console.log(Object.keys(require('./opencode.json').mcp).join('\\n'))")
@@ -26,6 +27,38 @@ if [ "$mode" = '--config-only' ]; then
   done
   printf 'Connectivity: not checked; this mode performs zero network MCP handshakes.\n'
   exit 0
+fi
+
+token_has_non_whitespace() {
+  [[ "$1" =~ [^[:space:]] ]]
+}
+
+if ! token_has_non_whitespace "${GITHUB_MCP_TOKEN:-}"; then
+  env_file="${HOME}/.config/predictor-cloud/opencode.env"
+  if [ ! -f "$env_file" ] || [ ! -r "$env_file" ]; then
+    printf 'MISSING protected OpenCode service env is missing or unreadable\n' >&2
+    exit 1
+  fi
+  if [ "$(stat -c '%a' "$env_file" 2>/dev/null || true)" != '600' ]; then
+    printf 'MISSING protected OpenCode service env must have mode 0600\n' >&2
+    exit 1
+  fi
+  github_mcp_token="$(python3 - "$env_file" <<'PY'
+from pathlib import Path
+import sys
+
+prefix = "GITHUB_MCP_TOKEN="
+matches = [line[len(prefix):] for line in Path(sys.argv[1]).read_text().splitlines() if line.startswith(prefix)]
+if len(matches) != 1 or not matches[0].strip():
+    raise SystemExit(1)
+sys.stdout.write(matches[0])
+PY
+  )" || {
+    printf 'MISSING protected OpenCode service env has no single non-blank GitHub MCP token\n' >&2
+    exit 1
+  }
+  export GITHUB_MCP_TOKEN="$github_mcp_token"
+  unset github_mcp_token
 fi
 
 # `opencode mcp list` performs protocol initialization and tools/list only. It

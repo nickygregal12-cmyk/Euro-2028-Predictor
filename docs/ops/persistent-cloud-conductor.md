@@ -142,7 +142,14 @@ bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
 This invokes no external MCP tool. A provider 5xx is `UNAVAILABLE`, not an
 instruction to rotate credentials or fail over. Configured, authenticated and
 connected are separate facts; do not claim connection until the live probe says
-so.
+so. The standalone connectivity probe accepts an explicit non-whitespace
+current-process `GITHUB_MCP_TOKEN`; an absent or whitespace-only process value
+instead loads the protected value unchanged. It reads only that exact key from
+the mode-`0600` service environment and fails before MCP initialization when the
+file or token boundary is invalid. Stage-0 acceptance deliberately removes any
+inherited process token from the doctor child so that acceptance always proves
+this same protected service boundary. A permanent developer-shell export is not
+required.
 
 The Hetzner read-only inventory proved that Sentry exposes the harmless
 `sentry_find_organizations` alongside dangerous `sentry_update_issue`,

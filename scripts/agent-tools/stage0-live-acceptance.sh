@@ -43,11 +43,10 @@ printf 'GIT_IDENTITY=OK name=%s email=%s\n' "$identity_name" "$identity_email"
 expected_contract="$(node -p "require('./config/production-hosted-contract.json').requiredMigrationCount")"
 printf 'EXPECTED_CONTRACT=%s\n' "$expected_contract"
 
-printf '\nHost doctor + MCP initialise/tools-list\n---------------------------------------\n'
-bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
-
 env_file="${HOME}/.config/predictor-cloud/opencode.env"
-[ -r "$env_file" ] || fail 'protected OpenCode service env is missing'
+[ -f "$env_file" ] && [ -r "$env_file" ] || fail 'protected OpenCode service env is missing or unreadable'
+[ "$(stat -c '%a' "$env_file" 2>/dev/null || true)" = '600' ] \
+  || fail 'protected OpenCode service env must have mode 0600'
 read_env_value() {
   python3 - "$env_file" "$1" <<'PY'
 from pathlib import Path
@@ -61,16 +60,17 @@ for line in Path(path).read_text().splitlines():
 PY
 }
 
-github_mcp_token="$(read_env_value GITHUB_MCP_TOKEN)"
+printf '\nHost doctor + MCP initialise/tools-list\n---------------------------------------\n'
+env -u GITHUB_MCP_TOKEN bash scripts/agent-tools/cloud-conductor-doctor.sh --mcp
+
 opencode_username="$(read_env_value OPENCODE_SERVER_USERNAME)"
 opencode_password="$(read_env_value OPENCODE_SERVER_PASSWORD)"
-[ -n "$github_mcp_token" ] || fail 'service env has no GitHub MCP token'
 [ -n "$opencode_username" ] || fail 'service env has no OpenCode server username'
 [ -n "$opencode_password" ] || fail 'service env has no OpenCode server password'
 export OPENCODE_SERVER_USERNAME="$opencode_username"
 export OPENCODE_SERVER_PASSWORD="$opencode_password"
-unset github_mcp_token opencode_username opencode_password
-printf 'SERVICE_ENV=OK GitHub MCP token present (value hidden); web auth present (values hidden)\n'
+unset opencode_username opencode_password
+printf 'SERVICE_ENV=OK GitHub MCP credential boundary and web auth present (values hidden)\n'
 
 acceptance_prompt=$(cat <<'EOF'
 Run the Predictor Stage 0 LIVE ACCEPTANCE MATRIX. This is an evidence-gathering task only.
