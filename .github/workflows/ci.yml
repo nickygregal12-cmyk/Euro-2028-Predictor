@@ -54,6 +54,22 @@ jobs:
         run: bash scripts/agent-tools/architecture-check.sh
       - name: Validate migration timestamps
         run: npm run check:migration-timestamps
+      - name: Check every required merge context is still published
+        # The required-check set is hosted state, and this repository spent the
+        # night asserting it from prose: #1047 and a comment in
+        # mergeGateConfiguration.test.ts both named a context `Protect Main` did
+        # not require. Nothing failed, because nothing could.
+        #
+        # This is the half that needs no network, and it runs here because here
+        # is where the damage would be done. GitHub matches a required context
+        # to a check run BY NAME, so renaming a gate job stops the context
+        # posting — and a required context that never posts blocks every pull
+        # request for ever, `DOC-001`. The pull request doing the renaming is
+        # the one that should fail.
+        #
+        # The hosted half is deliberately not here. It would fail this job on an
+        # owner changing a setting, which is not what this pull request did.
+        run: npm run check:required-contexts
       - name: Check the documentation authorities against the contract
         # Two halves. Without arguments it asserts freshness: a document that
         # names contract numbers must name the current one as its newest. With

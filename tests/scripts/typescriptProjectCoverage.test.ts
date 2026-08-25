@@ -191,6 +191,7 @@ describe('JavaScript under scripts/', () => {
     'scripts/check-documentation-authorities.mjs',
     'scripts/check-knip-baseline.mjs',
     'scripts/check-migration-additive.mjs',
+  'scripts/check-required-merge-contexts.mjs',
     'scripts/check-workflow-action-pins.mjs',
     // The control-plane loop modules arrived clean under checkJs and decide
     // merge eligibility and safety brakes, so they are checked on arrival.
@@ -198,6 +199,7 @@ describe('JavaScript under scripts/', () => {
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/loop.mjs',
     'scripts/control-plane/policy.mjs',
+  'scripts/control-plane/ruleset.mjs',
     'scripts/control-plane/state.mjs',
     'scripts/check-bundle-budget.mjs',
     'scripts/check-hosted-migration-inventory.mjs',

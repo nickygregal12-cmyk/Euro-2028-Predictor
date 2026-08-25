@@ -29,6 +29,7 @@
     "test:coverage:domain": "vitest run tests/domain --coverage",
     "check:bundle-budget": "node scripts/check-bundle-budget.mjs",
     "check:documentation-authorities": "node scripts/check-documentation-authorities.mjs",
+    "check:required-contexts": "node scripts/check-required-merge-contexts.mjs",
     "check:dead-code": "node scripts/check-knip-baseline.mjs",
     "report:dead-code": "knip --no-exit-code",
     "report:sbom": "npm sbom --package-lock-only --sbom-format=cyclonedx --sbom-type=application",

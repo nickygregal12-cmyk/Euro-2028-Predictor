@@ -117,8 +117,20 @@ describe('the vNext browser gate can be required without blocking anything', () 
     // from the merge base, which is the question a gate has to answer: what did
     // this branch change?
     //
-    // This gate is one of only two contexts the ruleset requires, so the cost is
-    // live rather than theoretical.
+    // The cost is live rather than theoretical, though NOT for the reason an
+    // earlier version of this comment gave. It said this gate was one of the
+    // contexts the ruleset requires. It was not, on 25 August 2026 or before:
+    // `Protect Main` required `CI / Required merge gate` and, from that morning,
+    // the migration and parity gates. This gate is requirable and not required,
+    // which `config/required-merge-contexts.json` now records and
+    // `npm run check:required-contexts -- --live` now reads from the ruleset
+    // itself rather than from a sentence like this one.
+    //
+    // What survives the correction is the soundness argument. A gate that
+    // reports success having run no shards is wrong whether or not a ruleset
+    // requires it, because the vNext programme's own stage transitions read this
+    // conclusion — and the whole point of the always-reporting shape is to be
+    // requirable, which a gate that can silently skip its evidence is not.
     expect(vnextWorkshop).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"')
     expect(vnextWorkshop).not.toMatch(/git diff --name-only "\$BASE_SHA" "\$HEAD_SHA"/)
   })
