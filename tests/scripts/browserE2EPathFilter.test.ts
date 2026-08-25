@@ -6,24 +6,29 @@ import { at } from '../support/indexed'
 /**
  * Whether the browser suite runs at all.
  *
- * `browser-e2e.yml` is filtered by a hand-written `paths:` list. A pull request
+ * `browser-e2e.yml` is filtered by a hand-written path list. A pull request
  * touching none of those paths does not run the browser suite or the protected
- * deploy-preview verification — and because a filtered-out workflow produces
- * no check run, nothing appears as skipped either.
+ * deploy-preview verification.
  *
  * The list must therefore contain every repository path that materially changes
  * either the disposable browser harness or the Netlify preview identity and
  * protection boundary.
+ *
+ * The list moved off the trigger and into the `changes` job, because a
+ * `paths:`-filtered workflow posts no check on a pull request it does not match
+ * and so could never be a required context. What the list has to cover did not
+ * change, only where it is written — and now a pull request that owes nothing
+ * here does appear, as a gate reporting success rather than as silence.
  */
 
 const root = resolve(import.meta.dirname, '../..')
 const workflowPath = '.github/workflows/browser-e2e.yml'
 const workflow = readFileSync(resolve(root, workflowPath), 'utf8')
 
-/** The `paths:` entries of the `pull_request` trigger. */
+/** The path entries the `changes` job decides from. */
 const watchedPaths = (() => {
-  const block = /paths:\n((?:\s*(?:#[^\n]*|- '[^']+')\n)+)/.exec(workflow)?.[1] ?? ''
-  return [...block.matchAll(/- '([^']+)'/g)].map((match) => at(match, 1))
+  const block = /^ {6}E2E_PATHS: \|\n((?: {8}.*\n)+)/m.exec(workflow)?.[1] ?? ''
+  return [...block.matchAll(/^ {8}(?!#)(\S+)\s*$/gm)].map((match) => at(match, 1))
 })()
 
 /** The configuration a guard of this harness would have to open. */

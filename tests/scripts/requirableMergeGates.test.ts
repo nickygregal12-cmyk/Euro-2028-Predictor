@@ -74,6 +74,27 @@ const GATES: Gate[] = [
     },
   },
   {
+    // The most expensive thing in the repository: a local Supabase and a driven
+    // browser, fifty minutes at the timeout. Nothing about this may run on a pull
+    // request that owes it nothing, so the filter moved inward rather than away.
+    workflow: '.github/workflows/browser-e2e.yml',
+    context: 'Browser end-to-end / Required browser gate',
+    needs: 'needs: [changes, authenticated-browser, deploy-preview-smoke]',
+    shape: (workflow) => {
+      expect(workflow).toContain("if: ${{ needs.changes.outputs.e2e == 'true' }}")
+      expect(workflow).toContain("if: ${{ needs.changes.result != 'success' }}")
+      expect(workflow).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"')
+      // `skipped` is tolerated for the preview smoke and nowhere else. That job
+      // only runs for a pull request targeting `main`, so on another base its
+      // absence is the right answer rather than missing evidence — while the
+      // browser suite being absent is always missing evidence.
+      expect(workflow).toContain("needs.deploy-preview-smoke.result != 'skipped'")
+      expect(workflow).not.toContain("needs.authenticated-browser.result != 'skipped'")
+      // The paths decision joined the base guard; it did not replace it.
+      expect(workflow).toContain("github.base_ref == 'main'")
+    },
+  },
+  {
     // One unconditional job that reads every tracked Markdown file rather than
     // the changed ones, so a pull request touching no Markdown costs exactly what
     // one rewriting it does. Nothing to gate, nothing to aggregate.

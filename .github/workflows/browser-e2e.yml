@@ -1,41 +1,129 @@
-name: Browser E2E
+name: Browser end-to-end
 
+# THE PATH LIST MOVED INSIDE, AND THAT IS WHAT MAKES THIS REQUIRABLE.
+#
+# A `paths:`-filtered workflow does not run on a pull request it does not match,
+# so its check never posts, and a required context that never posts blocks that
+# pull request for ever — `DOC-001`, then `OPS-012`. The quieter half is what
+# leaving the filter costs: the context cannot be required at all, so a change
+# that breaks the browser journey merges on a green core CI that never opened a
+# browser.
+#
+# This is the `database-parity.yml` shape, and for the same reason: the suite
+# below spins a local Supabase and drives a browser for up to fifty minutes, so
+# an unrelated pull request must still not run it. The filter becomes a
+# seconds-long `changes` job, both suites stay gated on its answer, and one
+# always-reporting gate publishes the stable context.
 on:
   pull_request:
-    paths:
-      - '.github/workflows/browser-e2e.yml'
-      - '.github/actions/start-local-supabase/**'
-      - 'e2e/**'
-      - 'production-smoke/**'
-      - 'playwright.config.ts'
-      - 'playwright.auth.config.ts'
-      - 'playwright.production.config.ts'
-      - 'scripts/bonus-games/**'
-      - 'scripts/production-smoke.mjs'
-      - 'vite.config.ts'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'src/**'
-      - 'supabase/**'
-      - 'config/deployment-contract.json'
-      - 'index.html'
-      - 'public/**'
-      - 'netlify.toml'
-      - 'tests/design-system/visualContractHarness.test.ts'
-      - 'tests/scripts/browserE2EWorkflow.test.ts'
-      - 'tests/scripts/authRecoveryE2E.test.ts'
-      - 'tests/scripts/e2eProjectGating.test.ts'
-      - 'tests/scripts/browserE2EPathFilter.test.ts'
-      - 'tests/scripts/localSupabaseStart.test.ts'
-      - 'tests/scripts/productionSmokePerimeter.test.ts'
   workflow_dispatch:
-
 permissions:
   contents: read
   statuses: read
 
 jobs:
+  changes:
+    name: Browser E2E paths changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      e2e: ${{ steps.decide.outputs.e2e }}
+    env:
+      # THE ONE COPY OF THE PATH LIST, moved here from the trigger's `paths:`.
+      # Kept as a parseable block rather than dissolved into grep patterns, so
+      # `tests/scripts/browserE2EPathFilter.test.ts` can still check it against
+      # what the harness actually reads — that test derives its expectations from
+      # the suites' own imports, and it is the reason this list is trustworthy.
+      #
+      # An entry is a shell pattern matched against each changed file, so an exact
+      # path and a `dir/**` prefix both work. Comment lines are skipped.
+      E2E_PATHS: |
+        .github/workflows/browser-e2e.yml
+        .github/actions/start-local-supabase/**
+        e2e/**
+        production-smoke/**
+        playwright.config.ts
+        playwright.auth.config.ts
+        playwright.production.config.ts
+        scripts/bonus-games/**
+        scripts/production-smoke.mjs
+        vite.config.ts
+        package.json
+        package-lock.json
+        src/**
+        supabase/**
+        config/deployment-contract.json
+        index.html
+        public/**
+        netlify.toml
+        tests/design-system/visualContractHarness.test.ts
+        tests/scripts/browserE2EWorkflow.test.ts
+        tests/scripts/authRecoveryE2E.test.ts
+        tests/scripts/e2eProjectGating.test.ts
+        tests/scripts/browserE2EPathFilter.test.ts
+        tests/scripts/localSupabaseStart.test.ts
+        tests/scripts/productionSmokePerimeter.test.ts
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # The base commit is what `git diff` needs, and full history is the
+          # dependable way to have it. This job is seconds either way.
+          fetch-depth: 0
+
+      - name: Decide whether the browser evidence is owed
+        id: decide
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BASE_SHA:-}" ]; then
+            # A manual dispatch has no base to compare against. Measure.
+            printf 'e2e=true\n' >> "$GITHUB_OUTPUT"
+            echo 'No pull-request base: running the browser suites.'
+            exit 0
+          fi
+
+          # THREE DOTS, NOT TWO. `git diff A B` compares the two trees, so once
+          # the base branch advances it reports files changed *on the base* as
+          # though this pull request had touched them — and a pull request that
+          # touched none of these would then be told the browser evidence was
+          # owed and spend fifty minutes proving it. `A...B` diffs from the merge
+          # base, which is the question actually being asked: what did this
+          # branch change?
+          changed_file="$(mktemp)"
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$changed_file"
+
+          matched=''
+          while IFS= read -r entry; do
+            entry="${entry#"${entry%[![:space:]]*}"}"
+            case "$entry" in '' | '#'*) continue ;; esac
+            while IFS= read -r file; do
+              # Unquoted on purpose: inside `case`, the word is a pattern, which
+              # is what every entry above is meant to be.
+              # shellcheck disable=SC2254
+              case "$file" in
+                $entry) matched="$entry" ;;
+              esac
+            done < "$changed_file"
+          done <<E2E_ENTRIES
+          $E2E_PATHS
+          E2E_ENTRIES
+
+          if [ -n "$matched" ]; then
+            printf 'e2e=true\n' >> "$GITHUB_OUTPUT"
+            printf 'Browser evidence is owed: %s changed.\n' "$matched"
+          else
+            printf 'e2e=false\n' >> "$GITHUB_OUTPUT"
+            echo 'No path the browser suites read was changed.'
+          fi
+
   authenticated-browser:
+    needs: changes
+    if: ${{ needs.changes.outputs.e2e == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
 
@@ -143,7 +231,15 @@ jobs:
         run: supabase stop --no-backup
 
   deploy-preview-smoke:
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    needs: changes
+    # The pre-existing condition is kept and the paths decision added to it. This
+    # job verifies the Netlify preview identity for a pull request targeting
+    # `main`, so it is legitimately skipped on other bases — which is why the gate
+    # below accepts `skipped` from it and not from the browser suite.
+    if: >-
+      ${{ needs.changes.outputs.e2e == 'true'
+      && github.event_name == 'pull_request'
+      && github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
 
@@ -294,3 +390,64 @@ jobs:
           echo 'The exact deploy is certified by the Netlify commit status and public release metadata is refused.'
           echo 'Authenticated browser behaviour remains covered by the disposable local-Supabase job.'
           echo 'CDN HTTP and browser smoke remain a manual, release-specific production gate.'
+
+  gate:
+    # THE NAME IS THE RULESET'S CONTEXT STRING. A ruleset matches a status check
+    # on the check-run name, which for an Actions job is the job's `name:` alone,
+    # so it is written in the `Workflow / Job` form the rule asks for. `CI /
+    # Required merge gate` was renamed for exactly this reason after every pull
+    # request sat waiting on a context nothing emitted.
+    name: Browser end-to-end / Required browser gate
+    # ALWAYS. This context has to exist on every pull request — including the ones
+    # with nothing to measure, and including the ones where a suite failed,
+    # because a gate that vanished on failure would be indistinguishable from one
+    # that passed.
+    if: ${{ always() }}
+    needs: [changes, authenticated-browser, deploy-preview-smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # AN UNANSWERED DECISION IS NOT "NOTHING TO MEASURE". Its output would be
+      # empty, and an empty output is not 'true' — so without this the gate would
+      # report success for a pull request nobody had classified.
+      - name: Refuse an unanswered decision
+        if: ${{ needs.changes.result != 'success' }}
+        run: |
+          echo "ERROR: the paths decision concluded '${{ needs.changes.result }}'."
+          echo 'Whether this change owes browser evidence is unknown, which is'
+          echo 'not a pass.'
+          exit 1
+
+      - name: Refuse a browser suite that did not succeed where it was owed
+        if: >-
+          ${{ needs.changes.result == 'success'
+          && needs.changes.outputs.e2e == 'true'
+          && needs.authenticated-browser.result != 'success' }}
+        run: |
+          echo 'ERROR: browser evidence was owed on this pull request.'
+          echo "authenticated-browser concluded '${{ needs.authenticated-browser.result }}'."
+          echo 'Red, cancelled and absent are all "not proven", and none of them'
+          echo 'is a pass.'
+          exit 1
+
+      # `skipped` is accepted here and nowhere else. This job only runs for a pull
+      # request targeting `main`, so on any other base its absence is the correct
+      # outcome rather than missing evidence. Red and cancelled are still refused.
+      - name: Refuse a preview smoke that ran and failed
+        if: >-
+          ${{ needs.changes.result == 'success'
+          && needs.changes.outputs.e2e == 'true'
+          && needs.deploy-preview-smoke.result != 'success'
+          && needs.deploy-preview-smoke.result != 'skipped' }}
+        run: |
+          echo 'ERROR: the deploy-preview smoke did not prove the preview identity.'
+          echo "deploy-preview-smoke concluded '${{ needs.deploy-preview-smoke.result }}'."
+          exit 1
+
+      - name: Report success where no browser path changed
+        if: ${{ needs.changes.result == 'success' && needs.changes.outputs.e2e != 'true' }}
+        run: |
+          echo 'No path the browser suites read was changed on this pull request.'
+          echo 'Nothing this change touches can move the browser journey or the'
+          echo 'preview boundary. Reporting success so the gate stays a stable'
+          echo 'required context.'
