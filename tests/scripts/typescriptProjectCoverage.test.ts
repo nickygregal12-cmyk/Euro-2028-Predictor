@@ -215,6 +215,9 @@ describe('JavaScript under scripts/', () => {
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/identity.mjs',
     'scripts/control-plane/loop.mjs',
+    // Observation builds URL paths from values that arrive in task records, and
+    // checks them as numbers and SHAs rather than trusting them as strings.
+    'scripts/control-plane/observe.mjs',
     'scripts/control-plane/policy.mjs',
   'scripts/control-plane/ruleset.mjs',
     'scripts/control-plane/state.mjs',

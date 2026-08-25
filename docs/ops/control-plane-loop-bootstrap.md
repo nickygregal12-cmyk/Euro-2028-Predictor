@@ -67,6 +67,23 @@ the queue is rescanned immediately. Independent, dependency-valid work runs
 during the wait; a dependant of the parked task stays blocked, because waiting is
 not completion.
 
+**Something has to be able to release it.** `delivery.push` parks with
+`nextAction: 'a watcher supplies check evidence for this head'`, and a parked
+task nothing can release is not a checkpoint, it is a dead end.
+`scripts/control-plane/observe.mjs` is that reader. It fetches, and only
+fetches: `github.mjs` opens by saying the verdict must not depend on how the
+caller reached GitHub, so observation produces the raw payload
+`normalisePullRequest` already expects and takes no part in deciding anything.
+
+Every request is a GET, the method is not a parameter, and the repository comes
+from the tracked identity record rather than from a caller — the same pin the
+push wrapper uses, for the same reason. The pull request number and the commit
+SHA both reach a URL path, so both are checked as what they claim to be rather
+than trusted as strings. The head is read back **from the pull request** rather
+than accepted from the caller: asking for a head someone else supplied is how a
+green check ends up vouching for a commit it never measured, which is the
+fail-open `decideCanaryMerge` already exists to catch.
+
 Selection prefers what most improves throughput: an explicit `priority`, then how
 many open tasks this one unblocks (transitively), then `order`, then id. That is
 what stops one branch's thirty-minute CI run from setting the pace of everything
