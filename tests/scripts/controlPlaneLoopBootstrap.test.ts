@@ -227,6 +227,63 @@ describe('a run replaced by a newer push is not a failure of this branch', () =>
     expect(triagePullRequest(pr).nextAction).toBe('REPAIR_CI')
   })
 
+  it('reads supersession from the SHA, not from the word cancelled', () => {
+    // MEASURED ON #1046 AT 00:21Z, AND THE CONCLUSIONS ARE VERBATIM.
+    //
+    // A push cancelled `ci` on `0a174be`. `CI / Required merge gate` reports
+    // under `always()` and decides from `needs.ci.result`, so it read the
+    // cancellation and concluded *failure* — on that same dead commit. Keying
+    // supersession on `cancelled` recognised one and sent the other to repair,
+    // though one push caused both, and the one sent to repair is a context the
+    // ruleset actually requires.
+    const pr = normalisePullRequest(
+      {
+        number: 1046,
+        state: 'open',
+        mergeable: true,
+        headSha: 'c8459b9',
+        checkRuns: [
+          { name: 'ci', status: 'completed', conclusion: 'cancelled', head_sha: '0a174be' },
+          {
+            name: 'CI / Required merge gate',
+            status: 'completed',
+            conclusion: 'failure',
+            head_sha: '0a174be',
+          },
+        ],
+      },
+      { requiredCheckNames: ['ci', 'CI / Required merge gate'] },
+    )
+    const triage = triagePullRequest(pr)
+    expect(triage.failures.map((failure) => failure.failureClass)).toEqual([
+      'SUPERSEDED',
+      'SUPERSEDED',
+    ])
+    expect(triage).toMatchObject({ status: 'WAITING_CI', nextAction: 'WATCH_CI' })
+    // Stale evidence is not a pass. Waiting for this head's own runs is the
+    // point; merging on another commit's verdict is not.
+    expect(triage.mergeEligible).toBe(false)
+  })
+
+  it('still trusts a failure that measured this very head', () => {
+    // The SHA is doing the work, so a red run on the current commit has to stay
+    // red — otherwise this would classify every failure away.
+    const pr = normalisePullRequest(
+      {
+        number: 1046,
+        state: 'open',
+        mergeable: true,
+        headSha: 'samehead',
+        checkRuns: [
+          { name: 'gate', status: 'completed', conclusion: 'failure', head_sha: 'samehead' },
+        ],
+      },
+      { requiredCheckNames: ['gate'] },
+    )
+    expect(triagePullRequest(pr).failures[0]?.failureClass).not.toBe('SUPERSEDED')
+    expect(triagePullRequest(pr).nextAction).toBe('REPAIR_CI')
+  })
+
   it('reads the run SHA whichever shape the caller reports it in', () => {
     // The PR head is already accepted as `head.sha` or `headSha`; a check run
     // read through a camelCase client had no such tolerance, so its SHA came

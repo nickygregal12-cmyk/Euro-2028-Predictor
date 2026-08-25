@@ -86,9 +86,15 @@ routed to the review. Waiting is what the loop does when there is nothing it can
 do, and choosing the slower of two true answers is the same mistake at a smaller
 scale.
 
-A run cancelled against a commit that is no longer the head is classified
-`SUPERSEDED`: a newer push replaced it, so it is neither a failure nor an
-attempt, and it spends no attempt and no stall credit. Triage restates it as a
+A run whose verdict was reached against a commit that is no longer the head is
+classified `SUPERSEDED`: a newer push replaced it, so it is neither a failure nor
+an attempt, and it spends no attempt and no stall credit. The SHA decides that,
+not the conclusion — a gate reporting under `always()` reads a cancelled
+dependency and concludes *failure*, on the same dead commit and from the same
+push, so keying on `cancelled` recognised one replaced run and sent the other to
+repair. The cost of reading it from the SHA is that a required context which
+never posts again is waited on rather than repaired; that is `DOC-001`, and it
+blocks the merge under either reading. Triage restates it as a
 check still owed on the current head and lets routing decide from there. It does
 *not* short-circuit the verdict — an earlier version did, and a reviewer's
 changes-requested, a drifted base and an unmergeable branch all disappeared

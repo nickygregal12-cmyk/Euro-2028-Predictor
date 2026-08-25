@@ -91,13 +91,27 @@ export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha
       failureClass: classifyFailure({
         name: check.name,
         output: check.output,
-        // Cancelled against a commit that is no longer the head means a newer
-        // push replaced it, not that this branch broke anything.
+        // A verdict against a commit that is no longer the head describes a
+        // commit nobody is proposing to merge. It says a newer push replaced it,
+        // not that this branch broke anything.
+        //
+        // The SHA decides this, not the conclusion. Requiring `cancelled` looked
+        // right and was measurably wrong: on `#1046` at 00:21Z a push cancelled
+        // `ci` on `0a174be`, and `CI / Required merge gate` — which reports under
+        // `always()` and reads `needs.ci.result` — therefore concluded *failure*
+        // on that same dead commit. One of the two checks was recognised as
+        // replaced and the other was routed to repair, though the same push
+        // caused both, and the one routed to repair is a context the ruleset
+        // actually requires.
+        //
+        // Fail-closed is unaffected: stale evidence is not a pass either, so the
+        // merge stays blocked while the current head's own runs are awaited. The
+        // cost is that a required context which never posts again is waited on
+        // rather than repaired — but that is `DOC-001`, a `paths:`-filtered
+        // workflow that cannot report, and it blocks the merge under either
+        // reading.
         superseded:
-          check.conclusion === 'cancelled' &&
-          Boolean(check.runSha) &&
-          Boolean(pr.headSha) &&
-          check.runSha !== pr.headSha,
+          Boolean(check.runSha) && Boolean(pr.headSha) && check.runSha !== pr.headSha,
         redOnBase: redOnBase.includes(check.name),
         previouslyGreenOnSameSha: previouslyGreenOnSameSha.includes(check.name),
       }),
