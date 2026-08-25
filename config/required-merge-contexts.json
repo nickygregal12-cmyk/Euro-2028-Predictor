@@ -12,13 +12,29 @@
   ],
   "requirableNotRequired": [
     {
+      "context": "Browser end-to-end / Required browser gate",
+      "reason": "Always-reporting since #1048. Requirable; adding it to Protect Main is an owner action."
+    },
+    {
+      "context": "Cloud conductor smoke / Required conductor gate",
+      "reason": "Always-reporting since #1048. Requirable; adding it to Protect Main is an owner action."
+    },
+    {
+      "context": "Documentation link integrity / Required link gate",
+      "reason": "Unconditional single job since #1048, so it needs no aggregate. Requirable; adding it to Protect Main is an owner action."
+    },
+    {
+      "context": "Security tooling / Required security gate",
+      "reason": "Always-reporting since #1048, and now sees documentation-only pull requests for the first time. Requirable; adding it to Protect Main is an owner action."
+    },
+    {
       "context": "vNext merged browser gate",
       "reason": "Always-reporting since #1047 and safe to require, but adding it to Protect Main is an owner action in GitHub settings that no session can perform. OPS-012 accepts this shape as the closure; the hosted half is outstanding."
     }
   ],
   "verifiedAt": "2026-08-25T07:35:19.228Z",
   "evidence": {
-    "source": "Read from the hosted ruleset itself on 25 August 2026, not from repository prose. GET /repos/nickygregal12-cmyk/Euro-2028-Predictor/rules/branches/main returned all three contexts under one required_status_checks rule sourced from repository ruleset 20508177, and GET /rulesets/20508177 agreed, reporting enforcement 'active', current_user_can_bypass 'never' and updated_at 2026-08-25T07:35:19.228Z. THE OVERNIGHT RUN IS WHY THIS FILE EXISTS: #1047 and a comment in mergeGateConfiguration.test.ts both asserted that 'vNext merged browser gate' was already a required context. It was not, and nothing in the repository could tell the difference, because a required-check set is hosted state that a clone cannot see. strict_required_status_checks_policy is false, so a branch need not be current with main before merging.",
+    "source": "Read from the hosted ruleset itself on 25 August 2026, not from repository prose. GET /repos/nickygregal12-cmyk/Euro-2028-Predictor/rules/branches/main returned all three contexts under one required_status_checks rule sourced from repository ruleset 20508177, and GET /rulesets/20508177 agreed, reporting enforcement 'active', current_user_can_bypass 'never' and updated_at 2026-08-25T07:35:19.228Z. THE OVERNIGHT RUN IS WHY THIS FILE EXISTS: #1047 and a comment in mergeGateConfiguration.test.ts both asserted that 'vNext merged browser gate' was already a required context. It was not, and nothing in the repository could tell the difference, because a required-check set is hosted state that a clone cannot see. strict_required_status_checks_policy is false, so a branch need not be current with main before merging. UPDATED after #1048 merged at 347a2c9: four more workflows now publish an always-reporting context, so seven gates exist and three are required. The other four are listed as requirable rather than silently absent \u2014 a record of what could be required that omitted them would mislead in exactly the direction this file exists to prevent, and listing them means a later promotion reads as PROMOTED rather than as an unknown context appearing from nowhere.",
     "rulesetEndpoint": "/repos/nickygregal12-cmyk/Euro-2028-Predictor/rules/branches/main",
     "verificationSource": "read-only GitHub REST call against the live ruleset, taken independently of any workflow run or agent report"
   }

@@ -178,6 +178,28 @@ describe('the tracked record against this repository', () => {
     expect(findUnpublishedContexts({ required: record.required, jobNames: published })).toEqual([])
   })
 
+  it('names a real workflow job for every gate it calls requirable', () => {
+    // A record listing a context nothing publishes would be describing a gate
+    // that cannot be required at all — the same class of unverifiable claim as
+    // the `required` half, one step further from being noticed because nothing
+    // depends on it until someone tries to promote it.
+    const workflows = execFileSync(
+      'git',
+      ['ls-files', '.github/workflows/*.yml', '.github/workflows/*.yaml'],
+      { cwd: repositoryRoot, encoding: 'utf8' },
+    )
+      .trim()
+      .split('\n')
+      .filter(Boolean)
+    const published = workflows.flatMap((file) =>
+      jobNames(readFileSync(resolve(repositoryRoot, file), 'utf8')),
+    )
+    const requirable = (record.requirableNotRequired ?? []).map(
+      (entry: { context: string }) => entry.context,
+    )
+    expect(findUnpublishedContexts({ required: requirable, jobNames: published })).toEqual([])
+  })
+
   it('does not claim a requirable gate is also required', () => {
     // The two lists answer different questions and an entry in both would make
     // the record contradict itself — which is the class of error it exists to
