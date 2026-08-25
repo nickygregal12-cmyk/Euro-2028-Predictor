@@ -99,7 +99,7 @@ jobs:
 
           matched=''
           while IFS= read -r entry; do
-            entry="${entry#"${entry%[![:space:]]*}"}"
+            entry="${entry#"${entry%%[![:space:]]*}"}"
             case "$entry" in '' | '#'*) continue ;; esac
             while IFS= read -r file; do
               # Unquoted on purpose: inside `case`, the word is a pattern, which

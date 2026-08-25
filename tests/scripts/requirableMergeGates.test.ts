@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -27,6 +28,13 @@ import { describe, expect, it } from 'vitest'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const read = (path: string) => readFileSync(resolve(repositoryRoot, path), 'utf8')
+
+/** Workflows whose `changes` job left-trims heredoc path entries. */
+const WORKFLOWS_WITH_TRIM = [
+  '.github/workflows/browser-e2e.yml',
+  '.github/workflows/cloud-conductor-smoke.yml',
+  '.github/workflows/database-parity.yml',
+] as const
 
 type Gate = {
   /** The workflow file, relative to the repository root. */
@@ -180,5 +188,61 @@ describe.each(GATES)('$context', ({ workflow: path, context, needs, shape }) => 
 
   it('holds its shape', () => {
     shape(workflow)
+  })
+})
+
+/**
+ * THE TRIM THAT DECIDES WHETHER A `changes` JOB DECIDES ANYTHING.
+ *
+ * Every `changes` job feeds its path list through a heredoc, so each entry
+ * arrives with the indentation of the YAML it was written in and has to be
+ * left-trimmed before it can be used as a `case` pattern. The idiom is a
+ * two-step parameter expansion, and it is one character away from silently
+ * inverting the job's answer:
+ *
+ *   `%%` strips the LONGEST suffix starting at a non-space — the entry itself —
+ *        leaving the indentation, which is then removed as a prefix. Correct.
+ *   `%`  strips the SHORTEST such suffix — the final character. `  src/**`
+ *        becomes `  src/*`, removing that as a prefix leaves `*`, and `case`
+ *        matches every changed file. The job reports `true` for every pull
+ *        request and the expensive suite it guards runs unconditionally.
+ *
+ * Found on #1048, where `browser-e2e.yml` had the second form while the two
+ * workflows beside it in the same diff had the first.
+ *
+ * CI CANNOT SEE THIS AND THAT IS THE POINT. Running a suite that was not owed
+ * still produces a passing gate, so every check on that pull request was green.
+ * The failure is only visible by executing the expansion, which is what this
+ * does — the real line, lifted from the real workflow, run by the real shell.
+ * A string assertion would have to guess the spelling; this cannot.
+ */
+describe('the heredoc path trim, executed rather than read', () => {
+  const trimmers = WORKFLOWS_WITH_TRIM.map((workflow) => {
+    const line = read(workflow)
+      .split('\n')
+      .find((candidate) => /entry="\$\{entry#"\$\{entry%/.test(candidate))
+    return { workflow, line: line?.trim() }
+  })
+
+  it('finds a trim line in every workflow expected to have one, so the rest is not vacuous', () => {
+    for (const { workflow, line } of trimmers) {
+      expect(line, `${workflow} has no trim line`).toBeDefined()
+    }
+  })
+
+  it.each(trimmers)('$workflow leaves the entry intact', ({ line }) => {
+    const run = (entry: string) =>
+      execFileSync('bash', ['-c', `entry=$1\n${line}\nprintf '%s' "$entry"`, 'bash', entry], {
+        encoding: 'utf8',
+      })
+
+    // The indented case the trim exists for.
+    expect(run('  src/**')).toBe('src/**')
+    expect(run('      e2e/**')).toBe('e2e/**')
+    // The unindented case, which the single-`%` form also corrupts — to `n`.
+    // A fix reasoning only about leading whitespace would still fail here.
+    expect(run('package.json')).toBe('package.json')
+    // A pattern whose last character is not `*`, so the bug is not disguised.
+    expect(run('  supabase/migrations')).toBe('supabase/migrations')
   })
 })
