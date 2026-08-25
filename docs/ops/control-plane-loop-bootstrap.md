@@ -287,6 +287,25 @@ By the time it runs, the worker that pushed is gone — a required check that
 never reported is refused rather than read as a pass, and a head that moved
 after the evidence was gathered refuses too.
 
+**Evidence belongs to the commit it ran against, and to no other.** Comparing
+only the pull request's head misses a required check that succeeded on an
+earlier commit: measured, not supposed — three required checks green on an older
+SHA, a newer head, merge allowed with no blockers at all. Each required check's
+own run SHA is now compared against the expected head, and a check whose
+provenance cannot be read is unproven rather than given the benefit of the doubt.
+
+**The gate cannot vouch for a change to itself.** The handlers run the wrappers
+from the working tree, so a delivery that edited `owner-task-push.sh` or the
+authority policy would be gated by its own edit. `ENFORCEMENT_SURFACE` names
+those files and every mutating step refuses while any of them differs from
+`origin/main` — the last state that went through review and the required gates.
+A change to the gate goes through review, not through automation.
+
+A wrapper's authority refusal exits **3**, distinct from a validation (1) or
+usage (2) failure, so the loop classifies it `POLICY` rather than `CODE`. A
+denial is not a defect, and retrying one only spends attempts on a decision that
+will never change.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

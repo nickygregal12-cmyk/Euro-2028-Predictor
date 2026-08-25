@@ -16,7 +16,7 @@ branch="$(git branch --show-current)"
 
 if ! node "$authority" commit.create --branch "$branch" >/dev/null; then
   printf 'Refusing: commit.create is not permitted for %s by the current authority policy.\n' "${branch:-DETACHED}" >&2
-  exit 1
+  exit 3
 fi
 
 if [ "$#" -eq 0 ]; then

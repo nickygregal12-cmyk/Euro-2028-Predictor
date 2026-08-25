@@ -77,7 +77,7 @@ operation="pr.create"
 [ "$action" = update ] && operation="pr.update"
 if ! node "$authority" "$operation" --branch "$branch" >/dev/null; then
   printf 'Refusing: %s is not permitted for %s by the current authority policy.\n' "$operation" "${branch:-DETACHED}" >&2
-  exit 1
+  exit 3
 fi
 
 assert_origin_is_the_expected_repository

@@ -19,7 +19,9 @@ repository_root="$(git rev-parse --show-toplevel)"
 # branch", used by every edge.
 if ! node "${repository_root}/scripts/check-pre-live-owner-authority.mjs" branch.create --branch "$branch" >/dev/null; then
   printf 'Refusing: branch.create is not permitted for %s by the current authority policy.\n' "$branch" >&2
-  exit 1
+  # 3 = authority refusal, distinct from a validation (1) or usage (2) failure:
+  # a policy denial is not a defect and must not be retried as one.
+  exit 3
 fi
 
 git switch --create "$branch"

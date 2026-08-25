@@ -38,8 +38,56 @@ import { mergeGuard, normalisePullRequest, triagePullRequest } from './github.mj
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
+/**
+ * The exit status a wrapper uses for an authority refusal, distinct from a
+ * usage error (2) or a validation refusal (1) so the loop can classify it.
+ */
+export const POLICY_REFUSED = 3
+
 const read = (/** @type {string} */ path) =>
   JSON.parse(readFileSync(resolve(REPOSITORY_ROOT, path), 'utf8'))
+
+/**
+ * The files that constrain a delivery. A delivery that changes any of them
+ * cannot be gated by them: the handler would run the candidate's own wrapper,
+ * against the candidate's own policy, and call the result enforcement.
+ *
+ * Review put this plainly — the wrappers are "advisory for any delivery that
+ * modifies enforcement files". Rather than try to run a trusted copy while its
+ * own dependencies still resolve through the working tree, the canary refuses
+ * to deliver a change to the gate at all. Such a change is exactly the kind
+ * that should go through review rather than through automation.
+ */
+export const ENFORCEMENT_SURFACE = Object.freeze([
+  'scripts/agent-tools/owner-branch.sh',
+  'scripts/agent-tools/owner-commit.sh',
+  'scripts/agent-tools/owner-pr.sh',
+  'scripts/agent-tools/owner-task-push.sh',
+  'scripts/check-pre-live-owner-authority.mjs',
+  'scripts/control-plane/authority.mjs',
+  'scripts/control-plane/identity.mjs',
+  'scripts/control-plane/delivery.mjs',
+  'config/pre-live-owner-authority.json',
+  'config/control-plane-identity.json',
+])
+
+/**
+ * Which enforcement files this working tree has changed against the last
+ * reviewed state.
+ *
+ * `origin/main` is the comparison rather than HEAD, because HEAD on a task
+ * branch is the candidate. Only what has already been merged has been through
+ * review and the required gates.
+ *
+ * @param {(argv: string[]) => string} [runCommand]
+ * @returns {string[]}
+ */
+export function modifiedEnforcementFiles(runCommand = shell) {
+  const output = runCommand([
+    'git', 'diff', '--name-only', 'origin/main', '--', ...ENFORCEMENT_SURFACE,
+  ])
+  return output.split('\n').map((line) => line.trim()).filter(Boolean)
+}
 
 /**
  * Ask the policy before doing anything. A refusal is POLICY, which the loop
@@ -97,11 +145,28 @@ export function deliveryHandlers({ runCommand = shell, branch, title = '', body 
     if (!verdict.allowed) {
       return { ok: false, failureClass: 'POLICY', evidence: verdict.reason ?? operation, blocker: operation }
     }
+    const changed = modifiedEnforcementFiles(runCommand)
+    if (changed.length > 0) {
+      // The gate cannot vouch for a change to itself.
+      return {
+        ok: false,
+        failureClass: 'POLICY',
+        evidence: `delivery modifies the enforcement surface: ${changed.join(', ')}`,
+        blocker: 'ENFORCEMENT_MODIFIED',
+      }
+    }
+
     try {
       return settle(act())
     } catch (error) {
+      // A wrapper that refused on authority exits POLICY_REFUSED. Collapsing
+      // that into CODE told the loop a policy denial was a defect, so it
+      // retried a decision that will never change.
+      const status = /** @type {{ status?: number }} */ (error)?.status
       const message = error instanceof Error ? error.message : String(error)
-      return { ok: false, failureClass: 'CODE', evidence: message }
+      return status === POLICY_REFUSED
+        ? { ok: false, failureClass: 'POLICY', evidence: message, blocker: operation }
+        : { ok: false, failureClass: 'CODE', evidence: message }
     }
   }
 
@@ -163,7 +228,34 @@ export function deliveryHandlers({ runCommand = shell, branch, title = '', body 
  */
 export function decideCanaryMerge({ observed, requiredCheckNames, baseSha, expectedHeadSha }) {
   const pr = normalisePullRequest(observed, { requiredCheckNames, baseSha })
+
+  // A green check is evidence for the commit it ran against, and for no other.
+  // `mergeGuard` compares the pull request's head, which does not catch a
+  // required check that succeeded on an earlier commit — measured, not
+  // supposed: three required checks all green on 0000old, head NEWHEAD, merge
+  // allowed with no blockers at all. That is the fail-open this whole module
+  // exists to prevent, so provenance is checked here rather than assumed.
+  //
+  // An absent run SHA is not evidence for this head either. GitHub's check-run
+  // payload carries one; a check whose provenance cannot be read is treated as
+  // unproven rather than given the benefit of the doubt.
+  const foreign = pr.requiredChecks.filter(
+    (check) => check.conclusion === 'success' && check.runSha !== expectedHeadSha,
+  )
+
   const triage = triagePullRequest(pr)
   const guard = mergeGuard(triage, expectedHeadSha)
-  return { allowed: guard.allowed, reason: guard.reason ?? null, blockers: triage.blockers ?? [] }
+  const blockers = [
+    ...(triage.blockers ?? []),
+    ...foreign.map((check) => `evidence_not_for_head:${check.name}`),
+  ]
+
+  if (foreign.length > 0) {
+    return {
+      allowed: false,
+      reason: `evidence_not_for_head:${foreign.map((check) => check.name).join('|')}`,
+      blockers,
+    }
+  }
+  return { allowed: guard.allowed, reason: guard.reason ?? null, blockers }
 }
