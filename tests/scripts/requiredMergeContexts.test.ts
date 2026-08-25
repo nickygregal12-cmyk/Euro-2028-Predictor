@@ -8,7 +8,11 @@ import {
   extractRequiredContexts,
   findUnpublishedContexts,
 } from '../../scripts/control-plane/ruleset.mjs'
-import { jobNames } from '../../scripts/check-required-merge-contexts.mjs'
+import {
+  jobNames,
+  parseRecord,
+  resolveRepository,
+} from '../../scripts/check-required-merge-contexts.mjs'
 
 const repositoryRoot = resolve(import.meta.dirname, '../..')
 const record = JSON.parse(
@@ -180,5 +184,60 @@ describe('the tracked record against this repository', () => {
     for (const entry of record.requirableNotRequired ?? []) {
       expect(record.required).not.toContain(entry.context)
     }
+  })
+})
+
+describe('refusing a malformed record instead of crashing on it', () => {
+  // This check runs in CI. `Cannot read properties of undefined` tells whoever
+  // broke the record nothing, and the argument of this whole file is that an
+  // unverifiable answer should be loud rather than confusing.
+  const valid = JSON.stringify({ branch: 'main', required: ['CI / Required merge gate'] })
+
+  it('accepts a well-formed record', () => {
+    expect(parseRecord(valid).required).toEqual(['CI / Required merge gate'])
+  })
+
+  it.each([
+    ['not JSON at all', '{'],
+    ['a top level that is not an object', '[]'],
+    ['no branch', JSON.stringify({ required: ['a'] })],
+    ['an empty required list', JSON.stringify({ branch: 'main', required: [] })],
+    ['a non-string context', JSON.stringify({ branch: 'main', required: [42] })],
+    ['a blank context', JSON.stringify({ branch: 'main', required: ['  '] })],
+    [
+      'a requirable entry with no context',
+      JSON.stringify({ branch: 'main', required: ['a'], requirableNotRequired: [{ reason: 'x' }] }),
+    ],
+  ])('refuses %s with a diagnostic naming the file', (_label, source) => {
+    expect(() => parseRecord(source, 'config/x.json')).toThrow(/config\/x\.json/)
+  })
+
+  it('refuses a branch that would not be safe in a URL path', () => {
+    // The branch is read from a file and then interpolated into the request, so
+    // it is untrusted by construction — which is what CodeQL flagged. A branch
+    // that needs escaping here is one this record should not be naming.
+    for (const branch of ['../../etc', 'main?x=1', 'main#frag', '-leading-dash', '']) {
+      expect(() => parseRecord(JSON.stringify({ branch, required: ['a'] }))).toThrow(/branch/)
+    }
+  })
+})
+
+describe('deciding which repository the live check is about', () => {
+  it('prefers the environment when CI set it', () => {
+    expect(resolveRepository('owner/repo', 'https://github.com/other/thing.git')).toBe('owner/repo')
+  })
+
+  it('falls back to the origin remote in both URL forms', () => {
+    expect(resolveRepository(undefined, 'https://github.com/owner/repo.git')).toBe('owner/repo')
+    expect(resolveRepository(undefined, 'https://github.com/owner/repo')).toBe('owner/repo')
+    expect(resolveRepository(undefined, 'git@github.com:owner/repo.git')).toBe('owner/repo')
+  })
+
+  it('refuses rather than guessing a repository', () => {
+    // The first version hard-coded this repository as the fallback. Run from a
+    // fork it would have read someone else's ruleset and reported MATCHED — an
+    // answer about the wrong subject, which is false rather than merely weak.
+    expect(() => resolveRepository(undefined, '')).toThrow(/GITHUB_REPOSITORY/)
+    expect(() => resolveRepository(undefined, 'https://gitlab.com/owner/repo.git')).toThrow()
   })
 })

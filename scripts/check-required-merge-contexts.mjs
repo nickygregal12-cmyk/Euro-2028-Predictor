@@ -69,9 +69,97 @@ export function jobNames(source) {
   return names.filter(Boolean)
 }
 
+/**
+ * A git branch name safe to place in a URL path.
+ *
+ * The branch is read from a file and then interpolated into the API request, so
+ * it is untrusted input by construction even though the file is tracked — which
+ * is exactly what CodeQL flagged on this script. Constraining it to the shape a
+ * ref can actually have is a better answer than escaping, because a branch that
+ * needs escaping here is a branch this record should not be naming.
+ */
+const SAFE_BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,254}$/
+
+/**
+ * Read the record, and refuse a malformed one with a diagnostic rather than a
+ * stack trace.
+ *
+ * This runs in CI. A partially-written or hand-edited record failing with
+ * `Cannot read properties of undefined` tells the person who broke it nothing,
+ * and this file's whole argument is that an unverifiable answer is worse than a
+ * loud one.
+ *
+ * @param {string} source
+ * @param {string} [path]
+ * @returns {RequiredContextRecord}
+ */
+export function parseRecord(source, path = RECORD_PATH) {
+  /** @param {string} problem */
+  const refuse = (problem) => {
+    throw new Error(`${path} is not a usable required-context record: ${problem}`)
+  }
+
+  let record
+  try {
+    record = JSON.parse(source)
+  } catch (error) {
+    return refuse(`it is not valid JSON (${error instanceof Error ? error.message : error})`)
+  }
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    return refuse('the top level is not an object')
+  }
+  if (typeof record.branch !== 'string' || !SAFE_BRANCH.test(record.branch)) {
+    return refuse(`\`branch\` must be a plain branch name, got ${JSON.stringify(record.branch)}`)
+  }
+  if (!Array.isArray(record.required) || record.required.length === 0) {
+    return refuse('`required` must be a non-empty array of context names')
+  }
+  for (const context of record.required) {
+    if (typeof context !== 'string' || context.trim() === '') {
+      return refuse(`\`required\` contains ${JSON.stringify(context)}, which is not a context name`)
+    }
+  }
+  if (record.requirableNotRequired !== undefined) {
+    if (!Array.isArray(record.requirableNotRequired)) {
+      return refuse('`requirableNotRequired` must be an array when present')
+    }
+    for (const entry of record.requirableNotRequired) {
+      if (!entry || typeof entry.context !== 'string' || entry.context.trim() === '') {
+        return refuse('every `requirableNotRequired` entry needs a non-empty `context`')
+      }
+    }
+  }
+  return record
+}
+
 /** @returns {RequiredContextRecord} */
 function readRecord() {
-  return JSON.parse(readFileSync(RECORD_PATH, 'utf8'))
+  return parseRecord(readFileSync(RECORD_PATH, 'utf8'))
+}
+
+/**
+ * Which repository the live check is about.
+ *
+ * A hard-coded fallback was the first version and it was wrong in the way this
+ * script exists to prevent: run from a fork or a clone with no
+ * `GITHUB_REPOSITORY`, it would read some *other* repository's ruleset and
+ * report `MATCHED` with total confidence. An answer about the wrong subject is
+ * not a weaker answer, it is a false one.
+ *
+ * So: the environment if CI set it, otherwise the origin remote, otherwise
+ * refuse. The resolved value is printed either way, because an operator should
+ * not have to guess what was verified.
+ *
+ * @param {string | undefined} environmentValue
+ * @param {string | undefined} originUrl
+ */
+export function resolveRepository(environmentValue, originUrl) {
+  if (environmentValue) return environmentValue
+  const match = /(?:github\.com[:/])([^/]+\/[^/]+?)(?:\.git)?\/?$/.exec(originUrl ?? '')
+  if (match) return match[1]
+  throw new Error(
+    'cannot tell which repository to verify: set GITHUB_REPOSITORY, or run inside a clone whose origin is a GitHub remote',
+  )
 }
 
 function trackedWorkflows() {
@@ -108,22 +196,48 @@ function checkOffline(record) {
 
 /** @param {RequiredContextRecord} record */
 async function fetchEffectiveRules(record) {
-  const repository = process.env.GITHUB_REPOSITORY ?? 'nickygregal12-cmyk/Euro-2028-Predictor'
+  const origin = (() => {
+    try {
+      return execFileSync('git', ['remote', 'get-url', 'origin'], { encoding: 'utf8' }).trim()
+    } catch {
+      return ''
+    }
+  })()
+  const repository = resolveRepository(process.env.GITHUB_REPOSITORY, origin)
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
   if (!token) throw new Error('no GITHUB_TOKEN or GH_TOKEN in the environment')
 
-  const response = await fetch(
-    `https://api.github.com/repos/${repository}/rules/branches/${record.branch}`,
-    {
+  console.log(`Reading the hosted rules for ${repository}@${record.branch}`)
+
+  // PAGINATED, because this endpoint is. The default page is 30 rules, and a
+  // missed page does not fail — it returns a shorter list, which reads as a
+  // branch with fewer rules than it has. That is the one shape this file must
+  // never produce: a confident answer assembled from part of the evidence.
+  const perPage = 100
+  const rules = []
+  for (let page = 1; ; page += 1) {
+    const url =
+      `https://api.github.com/repos/${repository}/rules/branches/` +
+      `${encodeURIComponent(record.branch)}?per_page=${perPage}&page=${page}`
+    const response = await fetch(url, {
       headers: {
         authorization: `Bearer ${token}`,
         accept: 'application/vnd.github+json',
         'x-github-api-version': '2022-11-28',
       },
-    },
-  )
-  if (!response.ok) throw new Error(`GitHub answered ${response.status} ${response.statusText}`)
-  return response.json()
+    })
+    if (!response.ok) throw new Error(`GitHub answered ${response.status} ${response.statusText}`)
+    const body = await response.json()
+    if (!Array.isArray(body)) {
+      throw new Error('the rules endpoint did not return an array')
+    }
+    rules.push(...body)
+    if (body.length < perPage) return rules
+    // A ruleset count this high means something is wrong with the loop rather
+    // than with the repository, and an unbounded pager against a remote API is
+    // its own failure mode.
+    if (page >= 20) throw new Error('the rules endpoint did not stop paginating')
+  }
 }
 
 /** @param {RequiredContextRecord} record */
