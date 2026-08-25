@@ -243,8 +243,16 @@ remote name `origin` without reading `remote.origin.pushurl`, and `gh` resolved
 its target from an inherited `GH_REPO` while the wrapper reported that it had
 fixed base and head. Both now resolve the expected `owner/repo` from the
 identity record and refuse anything else — every effective push URL is checked,
-more than one push URL is refused, a configured URL rewrite rule is refused, and
-`gh` is passed `--repo` explicitly with `GH_REPO` cleared.
+more than one push URL is refused, and `gh` is passed `--repo` explicitly with
+`GH_REPO` cleared.
+
+URL rewrites need no separate refusal: `git remote get-url --push --all` reports
+the URL *after* expanding both `insteadOf` and `pushInsteadOf`, so a rule
+retargeting `github.com` arrives at that check as the other host. An earlier
+blanket refusal of any rewrite was removed — it stopped the wrapper pushing at
+all wherever the ordinary SSH-to-HTTPS rewrite is configured, which is how
+proxied and CI checkouts normally look, and a gate that refuses correct work is
+still a broken gate.
 
 ## Task states
 

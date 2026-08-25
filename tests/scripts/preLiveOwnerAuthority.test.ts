@@ -284,8 +284,78 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
     }
   })
 
-  it('refuses when a git URL rewrite rule could retarget the push', () => {
-    const result = run(PUSH, [], 'feat/owner-safe', { rewrite: true })
+  it('sees through URL rewrites, which is why there is no separate refusal for them', () => {
+    // The wrapper used to refuse outright when any url.*.insteadOf existed.
+    // That broke the legitimate SSH-to-HTTPS rewrite that proxied and CI
+    // checkouts normally configure — it stopped the wrapper pushing at all in
+    // such an environment — while adding nothing, because the URL check already
+    // sees the rewritten target.
+    //
+    // This pins that assumption with real git rather than a fake. If git ever
+    // stopped expanding rewrites here, the removal above would no longer be
+    // safe, and this fails rather than the boundary quietly opening.
+    // The configured remote is a parameter, not a constant. An earlier version
+    // fixed it at HTTPS and then asserted that an `insteadOf git@github.com:`
+    // rule produced HTTPS — which it did, by never matching. That assertion held
+    // whether or not the rule existed, so it demonstrated nothing while reading
+    // as the proof that licensed removing a security guard.
+    const HTTPS = 'https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git'
+    const SSH = 'git@github.com:nickygregal12-cmyk/Euro-2028-Predictor.git'
+
+    const expandedPushUrl = (remote: string, configure: string[][]) => {
+      const dir = mkdtempSync(resolve(tmpdir(), 'predictor-rewrite-'))
+      // Every command is checked. A silently failing `git config` would leave
+      // the rule unset and let the case pass for the wrong reason, which is the
+      // same failure in a different place.
+      // Isolated from the host's own git configuration. The first version of
+      // this inherited it and read whatever rewrites the machine happened to
+      // have — which on the container that wrote it already carried the very
+      // SSH-to-HTTPS rule under test, so the control case failed and would have
+      // behaved differently again in CI. A test of rewrite handling cannot
+      // depend on ambient rewrites.
+      //
+      // Clearing GIT_CONFIG_GLOBAL/SYSTEM is not enough: git also reads config
+      // from GIT_CONFIG_COUNT plus GIT_CONFIG_KEY_n/VALUE_n, and that is how
+      // this rewrite reaches git in a proxied environment — which is exactly
+      // the configuration that made the removed guard fire. Setting the count
+      // to zero is what actually silences it.
+      const isolated = Object.fromEntries(
+        Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_CONFIG_')),
+      )
+      isolated.GIT_CONFIG_GLOBAL = '/dev/null'
+      isolated.GIT_CONFIG_SYSTEM = '/dev/null'
+      isolated.GIT_CONFIG_COUNT = '0'
+      const git = (...args: string[]) => {
+        const result = spawnSync('git', args, { cwd: dir, encoding: 'utf8', env: isolated })
+        if (result.status !== 0) {
+          throw new Error(`git ${args.join(' ')} failed (${result.status}): ${result.stderr}`)
+        }
+        return result.stdout.trim()
+      }
+      git('init', '-q', '.')
+      git('remote', 'add', 'origin', remote)
+      for (const args of configure) git('config', ...args)
+      return git('remote', 'get-url', '--push', '--all', 'origin')
+    }
+
+    // The benign case starts from SSH, so the rewrite has something to match and
+    // the HTTPS result is evidence of expansion rather than of the input.
+    expect(expandedPushUrl(SSH, [])).toBe(SSH)
+    expect(expandedPushUrl(SSH, [['url.https://github.com/.insteadOf', 'git@github.com:']])).toBe(HTTPS)
+
+    // A rewrite retargeting github.com is visible as the other host.
+    expect(expandedPushUrl(HTTPS, [['url.https://evil.example/.insteadOf', 'https://github.com/']]))
+      .toContain('evil.example')
+    // ...and so is the push-specific form, which only affects pushes.
+    expect(expandedPushUrl(HTTPS, [['url.https://evil.example/.pushInsteadOf', 'https://github.com/']]))
+      .toContain('evil.example')
+  })
+
+  it('still refuses a rewritten target, because the expanded URL is what is checked', () => {
+    // The expansion above means an attacker rewrite arrives here as a wrong URL.
+    const result = run(PUSH, [], 'feat/owner-safe', {
+      pushUrls: ['https://evil.example/nickygregal12-cmyk/Euro-2028-Predictor.git'],
+    })
     expect(result.status).not.toBe(0)
     expect(result.calls).toBe('')
   })

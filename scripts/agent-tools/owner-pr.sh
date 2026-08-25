@@ -61,11 +61,16 @@ EOF
     printf 'Refusing: origin has %s push URLs; exactly one is expected.\n' "$count" >&2
     exit 1
   fi
-  # A rewrite rule can retarget a URL that looked correct a moment ago.
-  if git config --get-regexp '^url\..*\.(push)?insteadof$' >/dev/null 2>&1; then
-    printf 'Refusing: a git URL rewrite rule is configured and could retarget this push.\n' >&2
-    exit 1
-  fi
+  # Rewrite rules need no separate refusal: `git remote get-url --push --all`
+  # reports the URL AFTER expanding both `insteadOf` and `pushInsteadOf`, so a
+  # rule retargeting github.com at another host shows up in the loop above as
+  # that other host. Measured both ways rather than assumed.
+  #
+  # The blanket refusal that used to live here was removed because it broke the
+  # legitimate case while adding nothing: an SSH-to-HTTPS rewrite is how proxied
+  # and CI checkouts are normally configured, and refusing it stopped this
+  # wrapper from pushing at all in exactly such an environment. A gate that
+  # refuses correct work is still a broken gate.
 }
 
 operation="pr.create"
