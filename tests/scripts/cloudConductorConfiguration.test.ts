@@ -182,7 +182,25 @@ printf '%s\\n' \\
   })
 
   it('runs the cloud smoke when any directly tested helper changes', () => {
+    // TWO LISTS, IN TWO SHAPES, AND BOTH STILL HAVE TO COVER EVERY HELPER.
+    //
+    // The pull-request filter moved off the trigger and into the `changes` job
+    // so the gate could be required at all — a `paths:`-filtered workflow never
+    // posts its check on a pull request it does not match, and a required
+    // context that never posts blocks that pull request for ever. What the
+    // filter has to cover did not change, only where it is written, so this
+    // reads the moved block rather than counting quoted trigger lines twice.
+    //
+    // The `push:` filter stayed on the trigger, because a push posts no context
+    // a ruleset can require.
     const workflow = read('.github/workflows/cloud-conductor-smoke.yml')
+    const pullRequestPaths =
+      /^ {6}CONDUCTOR_PATHS: \|\n((?: {8}.*\n)+)/m.exec(workflow)?.[1] ?? ''
+    const declared = new Set(
+      [...pullRequestPaths.matchAll(/^ {8}(?!#)(\S+)\s*$/gm)].map((match) => match[1]),
+    )
+    expect(declared.size).toBeGreaterThan(0)
+
     for (const helper of [
       'scripts/agent-tools/cloud-browser-install.sh',
       'scripts/agent-tools/configure-claude-settings.mjs',
@@ -191,7 +209,11 @@ printf '%s\\n' \\
       'scripts/agent-tools/netlify-mcp-fallback.sh',
       'scripts/agent-tools/stage0-live-acceptance.sh',
     ]) {
-      expect(workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`)).toHaveLength(2)
+      expect(declared, helper).toContain(helper)
+      expect(
+        workflow.split('\n').filter((line) => line.trim() === `- '${helper}'`),
+        helper,
+      ).toHaveLength(1)
     }
   })
 

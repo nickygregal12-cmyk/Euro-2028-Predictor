@@ -1,19 +1,24 @@
 name: Security tooling
 
+# THE FILTER IS GONE, AND THAT IS WHAT MAKES THIS REQUIRABLE.
+#
+# A `paths:`-filtered workflow does not run on a pull request it does not match,
+# so its check never posts. Requiring a context that never posts blocks that pull
+# request for ever — `DOC-001`, then `OPS-012`. The quieter half is what leaving
+# the filter costs: these contexts cannot be required at all, so a pull request
+# that fails a secret scan merges on a green core CI that never ran one.
+#
+# `migration-safety.yml` and `database-parity.yml` moved their filters inward,
+# because the work behind them is minutes long and worth skipping. These three
+# jobs are seconds, and every one of them already decides for itself what to read
+# from the pull request's own diff, so there is nothing left for a filter to save
+# and it is simply removed.
+#
+# Removing it means the secret scan now sees a documentation-only pull request
+# for the first time. That is the point: a secret pasted into a `.md` file is
+# still a leaked secret, and the old filter had no pattern that matched one.
 on:
   pull_request:
-    paths:
-      - '.github/**'
-      - '**/*.yml'
-      - '**/*.yaml'
-      - '**/*.json'
-      - '**/*.ts'
-      - '**/*.tsx'
-      - '**/*.js'
-      - '**/*.mjs'
-      - '**/*.py'
-      - '**/*.sql'
-      - '**/*.toml'
   push:
     branches:
       - main
@@ -137,3 +142,43 @@ jobs:
         with:
           advanced-security: false
           annotations: false
+
+  gate:
+    # THE NAME IS THE RULESET'S CONTEXT STRING. A ruleset matches a status check
+    # on the check-run name, which for an Actions job is the job's `name:` alone,
+    # so it is written in the `Workflow / Job` form the rule asks for. `CI /
+    # Required merge gate` was renamed for exactly this reason after every pull
+    # request sat waiting on a context nothing emitted.
+    #
+    # One aggregate rather than three required contexts, so adding or renaming a
+    # security job is a change here and not a change to a hosted ruleset nobody
+    # can read from a clone.
+    name: Security tooling / Required security gate
+    # ALWAYS. This context has to exist on every pull request, including the ones
+    # where a job failed — a gate that vanished on failure would be
+    # indistinguishable from one that passed.
+    if: ${{ always() }}
+    needs: [betterleaks, actionlint, zizmor]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      # Red, cancelled and absent are all "not proven", and none of them is a
+      # pass. Unlike the parity and Conductor gates there is no "nothing to
+      # measure" branch here, because these jobs are unconditional: every pull
+      # request owes all three.
+      - name: Refuse a security job that did not succeed
+        if: >-
+          ${{ needs.betterleaks.result != 'success'
+          || needs.actionlint.result != 'success'
+          || needs.zizmor.result != 'success' }}
+        run: |
+          echo 'ERROR: security tooling did not prove this pull request clean.'
+          echo "betterleaks concluded '${{ needs.betterleaks.result }}'."
+          echo "actionlint concluded '${{ needs.actionlint.result }}'."
+          echo "zizmor concluded '${{ needs.zizmor.result }}'."
+          exit 1
+
+      - name: Report the three clean results
+        run: echo 'betterleaks, actionlint and zizmor all succeeded.'
