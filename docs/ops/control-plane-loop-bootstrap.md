@@ -254,6 +254,58 @@ all wherever the ordinary SSH-to-HTTPS rewrite is configured, which is how
 proxied and CI checkouts normally look, and a gate that refuses correct work is
 still a broken gate.
 
+## The delivery canary
+
+`scripts/control-plane/delivery.mjs` holds the mutating handlers, and they are
+**not** registered by `cli.mjs`. `readOnlyHandlers` says why: shipping a handler
+that can push would mean any `run` could push, including one started to look at
+status. A caller that wants mutation registers these deliberately.
+
+What the canary demonstrates is not that an agent can open a pull request. It is
+the loop: the scheduler picks the task, a bounded worker does one thing, and at
+the push the worker **checkpoints and exits** rather than sitting on CI. The
+interesting moment is the one where nothing is running — the push returns
+`WAITING_CI`, its dependants stay blocked because waiting is not completion, and
+independent work proceeds instead of queueing behind a half-hour CI run.
+
+Four gates decide each mutating step, and a model is none of them:
+
+| | Decided by |
+| --- | --- |
+| may this task run at all | the scheduler — dependencies, priority, attempts |
+| may mutation be dispatched | `mutationDispatchAllowed` — mode, brakes, budget |
+| is this a target the wrapper serves | the wrapper — branch, repository, options |
+| may this identity perform it | the authority policy against the identity lane |
+
+Each handler asks the policy itself before shelling out, even though the wrapper
+asks again. The duplicate answer is deliberate: a handler invoked from anywhere
+other than a wrapper still cannot act, and the refusal arrives as a `POLICY`
+failure the loop can classify rather than an exit code it cannot.
+
+`decideCanaryMerge` computes merge eligibility from observed GitHub state alone.
+By the time it runs, the worker that pushed is gone — a required check that
+never reported is refused rather than read as a pass, and a head that moved
+after the evidence was gathered refuses too.
+
+**Evidence belongs to the commit it ran against, and to no other.** Comparing
+only the pull request's head misses a required check that succeeded on an
+earlier commit: measured, not supposed — three required checks green on an older
+SHA, a newer head, merge allowed with no blockers at all. Each required check's
+own run SHA is now compared against the expected head, and a check whose
+provenance cannot be read is unproven rather than given the benefit of the doubt.
+
+**The gate cannot vouch for a change to itself.** The handlers run the wrappers
+from the working tree, so a delivery that edited `owner-task-push.sh` or the
+authority policy would be gated by its own edit. `ENFORCEMENT_SURFACE` names
+those files and every mutating step refuses while any of them differs from
+`origin/main` — the last state that went through review and the required gates.
+A change to the gate goes through review, not through automation.
+
+A wrapper's authority refusal exits **3**, distinct from a validation (1) or
+usage (2) failure, so the loop classifies it `POLICY` rather than `CODE`. A
+denial is not a defect, and retrying one only spends attempts on a decision that
+will never change.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

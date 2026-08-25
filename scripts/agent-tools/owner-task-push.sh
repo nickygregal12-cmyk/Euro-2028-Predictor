@@ -71,7 +71,7 @@ EOF
 
 if ! node "$authority" branch.push --branch "$branch" >/dev/null; then
   printf 'Refusing: branch.push is not permitted for %s by the current authority policy.\n' "${branch:-DETACHED}" >&2
-  exit 1
+  exit 3
 fi
 
 remote="$(git config --get "branch.${branch}.remote" 2>/dev/null || true)"

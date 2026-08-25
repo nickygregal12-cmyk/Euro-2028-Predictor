@@ -205,6 +205,10 @@ describe('JavaScript under scripts/', () => {
     // merge eligibility and safety brakes, so they are checked on arrival.
     'scripts/control-plane/authority.mjs',
     'scripts/control-plane/cli.mjs',
+    // The delivery handlers are the only shipped code that can push. They are
+    // checked on arrival for the same reason they are not registered by
+    // default: an unexamined type error there acts on the repository.
+    'scripts/control-plane/delivery.mjs',
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/identity.mjs',
     'scripts/control-plane/loop.mjs',
