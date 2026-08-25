@@ -154,9 +154,13 @@ describe('authenticated browser E2E workflow', () => {
 
 describe('protected Netlify deploy-preview workflow', () => {
   it('runs only for pull requests that target main', () => {
-    expect(previewWorkflow).toContain(
-      "if: github.event_name == 'pull_request' && github.base_ref == 'main'",
-    )
+    // Still the same two conditions, now folded across lines because the paths
+    // decision joined them. That decision is an addition to the guard, never a
+    // replacement: a pull request against another base must not reach a job that
+    // verifies the `main` preview identity, however much it changed.
+    expect(previewWorkflow).toContain("github.event_name == 'pull_request'")
+    expect(previewWorkflow).toContain("github.base_ref == 'main'")
+    expect(previewWorkflow).toContain("needs.changes.outputs.e2e == 'true'")
   })
 
   it('waits for Netlify success on the exact PR head', () => {

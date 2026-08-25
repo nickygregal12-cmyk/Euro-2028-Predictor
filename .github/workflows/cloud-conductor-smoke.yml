@@ -1,30 +1,24 @@
 name: Cloud conductor smoke
 
+# THE PATH LIST MOVED INSIDE, AND THAT IS WHAT MAKES THIS REQUIRABLE.
+#
+# A `paths:`-filtered workflow does not run on a pull request it does not match,
+# so its check never posts, and a required context that never posts blocks that
+# pull request for ever — `DOC-001`, then `OPS-012`. The quieter half is what
+# leaving the filter costs: the context cannot be required at all, so a change
+# that breaks the Conductor's configuration merges on a green core CI that never
+# ran this smoke.
+#
+# `vnext-workshop.yml` and `database-parity.yml` are the shape this follows: the
+# filter becomes a cheap `changes` job, the expensive smoke stays gated on its
+# answer so an unrelated pull request still does not install the OpenCode CLI,
+# and one always-reporting gate publishes the stable context.
+#
+# The `push:` filter below is left where it is. Push events post no context a
+# ruleset can require, so the trigger filter costs nothing there and still keeps
+# an unrelated commit to `main` from installing a CLI to prove nothing changed.
 on:
   pull_request:
-    paths:
-      - 'opencode.json'
-      - '.mcp.json'
-      - '.opencode/**'
-      - 'scripts/agent-tools/cloud-conductor-*.sh'
-      - 'scripts/agent-tools/cloud-browser-install.sh'
-      - 'scripts/agent-tools/stage0-live-acceptance.sh'
-      - 'scripts/agent-tools/ox-review.sh'
-      - 'scripts/agent-tools/claude-review.sh'
-      - 'scripts/agent-tools/configure-claude-settings.mjs'
-      - 'scripts/agent-tools/merge-cloud-env.mjs'
-      - 'scripts/agent-tools/mcp-readiness.sh'
-      - 'scripts/agent-tools/netlify-mcp-fallback.sh'
-      - 'docs/ops/persistent-cloud-conductor.md'
-      - 'tests/scripts/cloudConductorConfiguration.test.ts'
-      - 'tests/scripts/cloudBrowserRuntime.test.ts'
-      - 'tests/scripts/mcpReadinessClassification.test.ts'
-      - 'tests/scripts/hostedVerifierIdentity.test.ts'
-      - 'config/agent-tools.json'
-      - 'config/browser-runtime.json'
-      - 'config/netlify-sites.json'
-      - 'config/production-hosted-contract.json'
-      - '.github/workflows/cloud-conductor-smoke.yml'
   push:
     branches: [main]
     paths:
@@ -56,8 +50,106 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Cloud conductor paths changed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      conductor: ${{ steps.decide.outputs.conductor }}
+    env:
+      # THE ONE COPY OF THE PATH LIST for pull requests, moved here from the
+      # trigger's `paths:`. Kept as a parseable block rather than dissolved into
+      # grep patterns so it stays readable as the list it is.
+      #
+      # An entry is a shell pattern matched against each changed file, so an
+      # exact path, a `*` glob and a `dir/**` prefix all work. Comment lines are
+      # carried over with their entries and skipped when reading.
+      CONDUCTOR_PATHS: |
+        opencode.json
+        .mcp.json
+        .opencode/**
+        scripts/agent-tools/cloud-conductor-*.sh
+        scripts/agent-tools/cloud-browser-install.sh
+        scripts/agent-tools/stage0-live-acceptance.sh
+        scripts/agent-tools/ox-review.sh
+        scripts/agent-tools/claude-review.sh
+        scripts/agent-tools/configure-claude-settings.mjs
+        scripts/agent-tools/merge-cloud-env.mjs
+        scripts/agent-tools/mcp-readiness.sh
+        scripts/agent-tools/netlify-mcp-fallback.sh
+        docs/ops/persistent-cloud-conductor.md
+        tests/scripts/cloudConductorConfiguration.test.ts
+        tests/scripts/cloudBrowserRuntime.test.ts
+        tests/scripts/mcpReadinessClassification.test.ts
+        tests/scripts/hostedVerifierIdentity.test.ts
+        config/agent-tools.json
+        config/browser-runtime.json
+        config/netlify-sites.json
+        config/production-hosted-contract.json
+        .github/workflows/cloud-conductor-smoke.yml
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+          # The base commit is what `git diff` needs, and full history is the
+          # dependable way to have it. This job is seconds either way.
+          fetch-depth: 0
+
+      - name: Decide whether the Conductor smoke is owed
+        id: decide
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${BASE_SHA:-}" ]; then
+            # A manual dispatch or a push has no pull-request base to compare
+            # against. Measure rather than guess.
+            printf 'conductor=true\n' >> "$GITHUB_OUTPUT"
+            echo 'No pull-request base: running the Conductor smoke.'
+            exit 0
+          fi
+
+          # THREE DOTS, NOT TWO. `git diff A B` compares the two trees, so once
+          # the base branch advances it reports files changed *on the base* as
+          # though this pull request had touched them — and a pull request that
+          # touched none of these would be told the smoke was owed and spend
+          # minutes installing a CLI to prove it. `A...B` diffs from the merge
+          # base, which is the question actually being asked: what did this
+          # branch change?
+          changed_file="$(mktemp)"
+          git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$changed_file"
+
+          matched=''
+          while IFS= read -r entry; do
+            entry="${entry#"${entry%%[![:space:]]*}"}"
+            case "$entry" in '' | '#'*) continue ;; esac
+            while IFS= read -r file; do
+              # Unquoted on purpose: inside `case`, the word is a pattern, which
+              # is what every entry above is meant to be.
+              # shellcheck disable=SC2254
+              case "$file" in
+                $entry) matched="$entry" ;;
+              esac
+            done < "$changed_file"
+          done <<CONDUCTOR_ENTRIES
+          $CONDUCTOR_PATHS
+          CONDUCTOR_ENTRIES
+
+          if [ -n "$matched" ]; then
+            printf 'conductor=true\n' >> "$GITHUB_OUTPUT"
+            printf 'Conductor smoke is owed: %s changed.\n' "$matched"
+          else
+            printf 'conductor=false\n' >> "$GITHUB_OUTPUT"
+            echo 'No path the Conductor smoke reads was changed.'
+          fi
+
   smoke:
     name: Validate private cloud Conductor
+    needs: changes
+    if: ${{ needs.changes.outputs.conductor == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -149,3 +241,50 @@ jobs:
             echo '- No provider credential is present in CI and no model request is made by this workflow.'
             echo '- No VM, Tailscale device, hosted environment or Production resource was mutated.'
           } >> "${GITHUB_STEP_SUMMARY}"
+
+  gate:
+    # THE NAME IS THE RULESET'S CONTEXT STRING. A ruleset matches a status check
+    # on the check-run name, which for an Actions job is the job's `name:` alone,
+    # so it is written in the `Workflow / Job` form the rule asks for. `CI /
+    # Required merge gate` was renamed for exactly this reason after every pull
+    # request sat waiting on a context nothing emitted.
+    name: Cloud conductor smoke / Required conductor gate
+    # ALWAYS. This context has to exist on every pull request — including the
+    # ones with nothing to measure, and including the ones where the smoke
+    # failed, because a gate that vanished on failure would be indistinguishable
+    # from one that passed.
+    if: ${{ always() }}
+    needs: [changes, smoke]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # AN UNANSWERED DECISION IS NOT "NOTHING TO MEASURE". Its output would be
+      # empty, and an empty output is not 'true' — so without this the gate would
+      # report success for a pull request nobody had classified.
+      - name: Refuse an unanswered decision
+        if: ${{ needs.changes.result != 'success' }}
+        run: |
+          echo "ERROR: the paths decision concluded '${{ needs.changes.result }}'."
+          echo 'Whether this change owes Conductor smoke evidence is unknown,'
+          echo 'which is not a pass.'
+          exit 1
+
+      - name: Refuse a smoke that did not succeed where it was owed
+        if: >-
+          ${{ needs.changes.result == 'success'
+          && needs.changes.outputs.conductor == 'true'
+          && needs.smoke.result != 'success' }}
+        run: |
+          echo 'ERROR: Conductor smoke evidence was owed on this pull request.'
+          echo "The smoke concluded '${{ needs.smoke.result }}'."
+          echo 'Red, cancelled and absent are all "not proven", and none of them'
+          echo 'is a pass.'
+          exit 1
+
+      - name: Report success where no Conductor path changed
+        if: ${{ needs.changes.result == 'success' && needs.changes.outputs.conductor != 'true' }}
+        run: |
+          echo 'No path the Conductor smoke reads was changed on this pull request.'
+          echo 'Nothing this change touches can move the agent configuration it'
+          echo 'validates. Reporting success so the gate stays a stable required'
+          echo 'context.'
