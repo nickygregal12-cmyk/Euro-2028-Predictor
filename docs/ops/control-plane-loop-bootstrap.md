@@ -136,6 +136,23 @@ branches and opens pull requests (`REPOSITORY_WRITE`), and `deployment` — the
 future trusted Production/migration executor — is `UNPROVISIONED` and holds
 nothing.
 
+Each lane names the credential it is proved from as **data the verifier
+consumes** — `{ kind: 'env', name }` or `{ kind: 'command', argv }` — and is
+resolved from that source alone. There is no ambient fallback, because a
+fallback is how a command comes to state a conclusion about one identity while
+holding another: the first version described the repository lane's source in a
+string nothing read, then resolved it from an ambient `GITHUB_TOKEN`, and
+reported both lanes `PROVED` on a host with no `gh` at all — one credential
+verified twice, reported as two lanes.
+
+`MACHINE` is not a label the record may award itself. A lane claiming it must
+name an actor no lane records as owner-attributed, and lanes declared distinct
+must name different actor ids — both checked **offline, from the record**, since
+the offline half is the one CI runs and a constraint enforced only live is one
+the merge gate cannot apply. `authorityForLane` re-checks the whole record's
+coherence before answering, because it may be handed a record that never passed
+a gate.
+
 **What this record admits.** There is no distinct machine account today. Both
 provisioned lanes resolve to the owner's own GitHub user, proved live on 25
 August 2026 as `nickygregal12-cmyk#289518917`. That is attributable — every

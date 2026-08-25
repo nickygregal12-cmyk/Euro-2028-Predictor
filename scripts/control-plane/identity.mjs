@@ -25,7 +25,9 @@
  */
 
 /**
- * @typedef {{ purpose?: string, credentialSource?: string, authority: string,
+ * @typedef {{ kind: 'env', name: string } | { kind: 'command', argv: string[] } | { kind: 'none' }} LaneCredential
+ *
+ * @typedef {{ purpose?: string, credential?: LaneCredential, authority: string,
  *             identityClass: string,
  *             expectedActor: { login: string, id: number, type?: string } | null }} IdentityLane
  *
@@ -169,13 +171,81 @@ export function evaluateIdentityRecord(record) {
       problems.push(`lane '${name}' has an expected actor without both a login and a numeric id`)
     }
 
+    // The credential source is data the verifier consumes, not prose beside it.
+    // The first version of this record described the repository lane's source in
+    // a string nothing read, and the command resolved that lane from an ambient
+    // fallback instead — reporting PROVED against a different credential than
+    // the record named. A declared source no code reads cannot be wrong, which
+    // is the problem with it.
+    const credential = lane?.credential
+    const kind = credential?.kind
+    if (credential && kind === 'env') {
+      if (typeof credential.name !== 'string' || credential.name.length === 0) {
+        problems.push(`lane '${name}' declares an env credential without a variable name`)
+      }
+    } else if (credential && kind === 'command') {
+      if (!Array.isArray(credential.argv) || credential.argv.length === 0
+        || credential.argv.some((part) => typeof part !== 'string' || part.length === 0)) {
+        problems.push(`lane '${name}' declares a command credential without a non-empty argv`)
+      }
+    } else if (kind === 'none') {
+      if (identityClass !== 'UNPROVISIONED') {
+        problems.push(`lane '${name}' is ${identityClass} yet declares no credential to resolve it from`)
+      }
+    } else {
+      problems.push(`lane '${name}' has unknown credential kind '${kind}'`)
+    }
+    if (kind !== 'none' && identityClass === 'UNPROVISIONED') {
+      problems.push(`lane '${name}' is UNPROVISIONED yet declares a credential to resolve`)
+    }
+
     return { name, authority, identityClass, ceiling, ok: problems.length === before }
   })
+
+  /** @param {string} laneName */
+  const actorId = (laneName) => parsed.lanes[laneName]?.expectedActor?.id
 
   for (const [lane, others] of Object.entries(parsed.distinctFrom ?? {})) {
     if (!laneNames.includes(lane)) problems.push(`distinctFrom names unknown lane '${lane}'`)
     for (const other of others ?? []) {
-      if (!laneNames.includes(other)) problems.push(`distinctFrom['${lane}'] names unknown lane '${other}'`)
+      if (!laneNames.includes(other)) {
+        problems.push(`distinctFrom['${lane}'] names unknown lane '${other}'`)
+        continue
+      }
+      // Checked here, from the record, and not only against what the live run
+      // observes. The offline half is the one CI runs, so a constraint enforced
+      // only live is a constraint the merge gate cannot apply.
+      const [id, otherId] = [actorId(lane), actorId(other)]
+      if (id !== undefined && id === otherId) {
+        problems.push(`lanes '${lane}' and '${other}' are declared distinct but name the same actor id`)
+      }
+    }
+  }
+
+  // MACHINE is not a label a record may award itself.
+  //
+  // This is the escalation that made the ceiling table decorative: set the
+  // deployment lane to MACHINE with the owner's own id, and it passed the
+  // offline check and was granted DEPLOYMENT_EXECUTOR — through the very gate
+  // that exists to stop authority being self-granted. `distinctFrom` did not
+  // help, because it is editable data in the same file, and relabelling a lane
+  // can simply drop it.
+  //
+  // So the invariant is unconditional rather than declared: an actor that any
+  // lane calls the owner's is not a machine anywhere in this record.
+  const ownerActorIds = new Set(
+    laneNames
+      .filter((name) => parsed.lanes[name]?.identityClass === 'OWNER_ATTRIBUTED')
+      .map((name) => actorId(name))
+      .filter((id) => typeof id === 'number'),
+  )
+  for (const name of laneNames) {
+    if (parsed.lanes[name]?.identityClass !== 'MACHINE') continue
+    const id = actorId(name)
+    if (id !== undefined && ownerActorIds.has(id)) {
+      problems.push(
+        `lane '${name}' claims MACHINE but names an actor another lane records as owner-attributed`,
+      )
     }
   }
 
@@ -278,6 +348,17 @@ export function evaluateObservedIdentity(record, observations) {
  * @returns {{ allowed: boolean, reason: string | null }}
  */
 export function authorityForLane(record, laneName, required) {
+  // Coherence first, and for the whole record rather than this lane alone. The
+  // invariants that matter most are relational — a MACHINE lane naming an
+  // owner's actor is only detectable by reading the other lanes — so a
+  // per-lane check would answer from exactly the fields an escalation edits.
+  // Blocking the merge is not enough on its own: this is what a dispatcher
+  // calls, and it may be handed a record that never went through a gate.
+  const structural = evaluateIdentityRecord(record)
+  if (!structural.ok) {
+    return { allowed: false, reason: `the identity record is not coherent: ${structural.problems[0]}` }
+  }
+
   const lane = asRecord(record)?.lanes?.[laneName]
   if (!lane) return { allowed: false, reason: `no identity lane '${laneName}' is recorded` }
 

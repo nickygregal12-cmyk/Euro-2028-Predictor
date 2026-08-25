@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -96,6 +96,94 @@ describe('authority is a function of identity', () => {
   })
 })
 
+describe('a record cannot award itself machine identity', () => {
+  const escalate = () => {
+    const forged = record()
+    forged.lanes.deployment.identityClass = 'MACHINE'
+    forged.lanes.deployment.authority = 'DEPLOYMENT_EXECUTOR'
+    forged.lanes.deployment.credential = { kind: 'env', name: 'ANY_TOKEN' }
+    forged.lanes.deployment.expectedActor = record().lanes.repository.expectedActor
+    return forged
+  }
+
+  it('rejects a MACHINE lane naming an actor another lane records as the owner', () => {
+    // Before this, exactly this edit passed the offline check — the one CI runs
+    // — and was granted DEPLOYMENT_EXECUTOR through the gate that exists to
+    // stop authority being self-granted.
+    const verdict = evaluateIdentityRecord(escalate())
+    expect(verdict.ok).toBe(false)
+    expect(verdict.problems.join(' ')).toContain('claims MACHINE but names an actor another lane records as owner-attributed')
+  })
+
+  it('rejects lanes declared distinct that name the same actor, without a live run', () => {
+    expect(evaluateIdentityRecord(escalate()).problems.join(' '))
+      .toContain('declared distinct but name the same actor id')
+  })
+
+  it('refuses the escalated authority at the dispatcher entry point too', () => {
+    // Blocking the merge is not enough: authorityForLane may be handed a record
+    // that never went through a gate.
+    expect(authorityForLane(escalate(), 'deployment', 'DEPLOYMENT_EXECUTOR')).toMatchObject({ allowed: false })
+    expect(authorityForLane(escalate(), 'repository', 'REPOSITORY_WRITE')).toMatchObject({ allowed: false })
+  })
+
+  it('still admits a genuinely distinct machine actor', () => {
+    const provisioned = record()
+    provisioned.lanes.deployment.identityClass = 'MACHINE'
+    provisioned.lanes.deployment.authority = 'DEPLOYMENT_EXECUTOR'
+    provisioned.lanes.deployment.credential = { kind: 'env', name: 'GITHUB_DEPLOYMENT_TOKEN' }
+    provisioned.lanes.deployment.expectedActor = { login: 'predictor-deployer', id: 999001, type: 'Bot' }
+
+    expect(evaluateIdentityRecord(provisioned).ok).toBe(true)
+    expect(authorityForLane(provisioned, 'deployment', 'DEPLOYMENT_EXECUTOR')).toMatchObject({ allowed: true })
+  })
+})
+
+describe('each lane declares the credential it is proved from', () => {
+  it('names a machine-readable source rather than describing one in prose', () => {
+    const lanes = record().lanes
+    expect(lanes.verification.credential).toEqual({ kind: 'env', name: 'GITHUB_MCP_TOKEN' })
+    expect(lanes.repository.credential).toEqual({ kind: 'command', argv: ['gh', 'auth', 'token'] })
+    expect(lanes.deployment.credential).toEqual({ kind: 'none' })
+  })
+
+  it('rejects a malformed or absent credential declaration', () => {
+    for (const credential of [undefined, {}, { kind: 'env' }, { kind: 'env', name: '' },
+      { kind: 'command' }, { kind: 'command', argv: [] }, { kind: 'command', argv: [''] }, { kind: 'ambient' }]) {
+      const broken = record()
+      broken.lanes.repository.credential = credential
+      expect(evaluateIdentityRecord(broken).ok, JSON.stringify(credential)).toBe(false)
+    }
+  })
+
+  it('keeps credential presence and provisioning in step in both directions', () => {
+    const orphan = record()
+    orphan.lanes.repository.credential = { kind: 'none' }
+    expect(evaluateIdentityRecord(orphan).problems.join(' ')).toContain('declares no credential to resolve it from')
+
+    const premature = record()
+    premature.lanes.deployment.credential = { kind: 'env', name: 'GITHUB_DEPLOYMENT_TOKEN' }
+    expect(evaluateIdentityRecord(premature).problems.join(' ')).toContain('UNPROVISIONED yet declares a credential')
+  })
+
+  it('resolves a lane only from its declared source, never an ambient fallback', () => {
+    // The regression: with generic fallbacks, both provisioned lanes resolved
+    // from one ambient GITHUB_TOKEN on a host with no `gh`, and one credential
+    // verified twice was reported as two lanes proved.
+    // spawnSync, not execFileSync: an unresolved lane exits non-zero by design,
+    // and that exit code is the assertion, not an error to swallow.
+    const run = spawnSync('node', ['scripts/check-machine-identity.mjs', '--live'], {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, GITHUB_MCP_TOKEN: '', GH_TOKEN: 'ghp_ambient', GITHUB_TOKEN: 'ghp_ambient' },
+    })
+    const output = `${run.stdout}${run.stderr}`
+    expect(run.status).not.toBe(0)
+    expect(output).not.toContain('ghp_ambient')
+    expect(output).toMatch(/UNRESOLVED\s+repository/)
+  })
+})
+
 describe('observed identity', () => {
   const proved = { verification: OWNER, repository: OWNER, deployment: { readable: false } }
 
@@ -130,16 +218,22 @@ describe('observed identity', () => {
   })
 
   it('enforces distinctness only once both lanes actually resolved', () => {
-    const shared = {
-      lanes: {
-        a: { authority: 'READ_ONLY', identityClass: 'MACHINE', expectedActor: { login: 'bot', id: 5, type: 'Bot' } },
-        b: { authority: 'READ_ONLY', identityClass: 'MACHINE', expectedActor: { login: 'bot', id: 5, type: 'Bot' } },
-      },
-      distinctFrom: { a: ['b'] },
-    }
-    const both = { readable: true, login: 'bot', id: 5, type: 'Bot' }
-    expect(evaluateObservedIdentity(shared, { a: both, b: both }).problems.join(' '))
-      .toContain('must be distinct actors')
+    // Declared distinct and recorded as different actors, so the record itself
+    // is coherent. What is being tested is drift: both credentials rotated onto
+    // one account, which only the live half can see.
+    const lane = (login: string, id: number) => ({
+      authority: 'READ_ONLY',
+      identityClass: 'MACHINE',
+      credential: { kind: 'env', name: `TOKEN_${id}` },
+      expectedActor: { login, id, type: 'Bot' },
+    })
+    const shared = { lanes: { a: lane('bot-a', 5), b: lane('bot-b', 6) }, distinctFrom: { a: ['b'] } }
+    expect(evaluateIdentityRecord(shared).ok).toBe(true)
+
+    const collided = { readable: true, login: 'bot-a', id: 5, type: 'Bot' }
+    // b resolving to a's actor is first a mismatch against b's own record; the
+    // point is that it does not pass.
+    expect(evaluateObservedIdentity(shared, { a: collided, b: collided }).ok).toBe(false)
 
     // Two lanes that both failed to resolve are not thereby distinct.
     const neither = evaluateObservedIdentity(shared, { a: { readable: false }, b: { readable: false } })

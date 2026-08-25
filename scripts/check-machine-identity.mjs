@@ -33,6 +33,7 @@
 // account or installation credential is an owner action, and a control plane
 // that could mint its own executor identity would not be constrained by one.
 
+import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
@@ -42,34 +43,67 @@ const RECORD_PATH = 'config/control-plane-identity.json'
 const API_ORIGIN = 'https://api.github.com'
 
 /**
- * Where each lane's credential is read from at verification time.
+ * @typedef {{ kind: 'env', name: string } | { kind: 'command', argv: string[] } | { kind: 'none' }} LaneCredential
  *
- * Environment variables only, and never a file this process parses itself: the
- * protected service env is already imported by `mcp-readiness.sh` into the
- * process that needs it, and adding a second parser for the same 0600 file
- * would be a second thing to get wrong.
+ * @typedef {{ authority: string, identityClass: string, credential?: LaneCredential,
+ *             expectedActor: { login: string, id: number, type?: string } | null }} IdentityLane
  *
- * A lane whose variable is unset is UNRESOLVED, which the decision module
- * treats as a failure for a provisioned lane. That is the intended direction:
- * running the live half without the credentials proves nothing, and must not
- * look like proof.
- */
-/** @type {Readonly<Record<string, string[]>>} */
-const LANE_CREDENTIAL_ENV = Object.freeze({
-  verification: ['GITHUB_MCP_TOKEN', 'GITHUB_TOKEN'],
-  repository: ['GITHUB_REPOSITORY_TOKEN', 'GH_TOKEN', 'GITHUB_TOKEN'],
-  deployment: ['GITHUB_DEPLOYMENT_TOKEN'],
-})
-
-/**
- * @typedef {{ lanes: Record<string, { authority: string, identityClass: string,
- *             expectedActor: { login: string, id: number, type?: string } | null }>,
+ * @typedef {{ lanes: Record<string, IdentityLane>,
  *             distinctFrom?: Record<string, string[]> }} IdentityRecord
  *
  * @typedef {{ readable: boolean, login?: string, id?: number, type?: string, scopes?: string }} ObservedActor
  */
 
-/** @returns {IdentityRecord} */
+/**
+ * Resolve a lane's credential from the source the record declares — and only
+ * from that source.
+ *
+ * The first version of this used a per-lane list of environment variables with
+ * generic fallbacks (`GH_TOKEN`, then `GITHUB_TOKEN`). It reported both
+ * provisioned lanes PROVED on a host with no `gh` at all: each fell back to the
+ * same ambient `GITHUB_TOKEN`, the two resolved identically, and one credential
+ * verified twice was reported as two lanes proved. The record meanwhile said
+ * the repository lane came from `gh auth token`, in a string nothing read.
+ *
+ * So the source is now data, and a lane that cannot be resolved from exactly
+ * its declared source is UNRESOLVED. Never "try something else": substituting a
+ * credential is precisely how the command came to state a conclusion about one
+ * identity while holding another.
+ *
+ * The returned value is a secret and is never logged, stored or returned beyond
+ * `resolveActor`, which exchanges it for a login and id.
+ *
+ * @param {LaneCredential | undefined} credential
+ * @returns {string | undefined}
+ */
+function readCredential(credential) {
+  if (credential?.kind === 'env') {
+    const value = process.env[credential.name]
+    return typeof value === 'string' && /\S/.test(value) ? value : undefined
+  }
+  if (credential?.kind === 'command') {
+    const [command, ...args] = credential.argv
+    // The structural check already rejects an empty argv; this keeps the
+    // resolver correct when called on a record that never went through it.
+    if (typeof command !== 'string' || command.length === 0) return undefined
+    try {
+      // stdio 'pipe' for stdout and 'ignore' for stderr: a credential helper
+      // that fails must not spill its diagnostics, which have carried tokens.
+      const value = execFileSync(command, args, {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: 15_000,
+      })
+      return /\S/.test(value) ? value.trim() : undefined
+    } catch {
+      // Absent binary, unauthenticated CLI, timeout — all UNRESOLVED, which the
+      // decision module treats as a failure for a provisioned lane.
+      return undefined
+    }
+  }
+  return undefined
+}
+
 function readRecord() {
   return JSON.parse(readFileSync(RECORD_PATH, 'utf8'))
 }
@@ -82,7 +116,7 @@ function readRecord() {
  * credential from a rejected one and treat either as a pass.
  *
  * @param {string | undefined} token
- * @returns {Promise<ObservedActor>}
+ * @returns {Promise<{ readable: boolean, login?: string, id?: number, type?: string, scopes?: string }>}
  */
 async function resolveActor(token) {
   if (!token || !/\S/.test(token)) return { readable: false }
@@ -154,11 +188,8 @@ async function checkLive(record) {
   /** @type {Record<string, ObservedActor>} */
   const observations = {}
 
-  for (const laneName of Object.keys(record.lanes)) {
-    const names = LANE_CREDENTIAL_ENV[laneName] ?? []
-    const token = names
-      .map((name) => process.env[name])
-      .find((value) => typeof value === 'string' && /\S/.test(value))
+  for (const [laneName, lane] of Object.entries(record.lanes)) {
+    const token = readCredential(lane.credential)
     if (!token) {
       observations[laneName] = { readable: false }
       continue
@@ -177,7 +208,11 @@ async function checkLive(record) {
     const scopes = observed?.readable
       ? `, scopes ${observed.scopes ? observed.scopes : '(none — fine-grained or installation token)'}`
       : ''
-    console.log(`  ${lane.state.padEnd(21)} ${lane.name.padEnd(13)} ${lane.detail}${scopes}`)
+    const credential = record.lanes[lane.name]?.credential
+    const from = credential?.kind === 'env' ? ` [from $${credential.name}]`
+      : credential?.kind === 'command' ? ` [from \`${credential.argv.join(' ')}\`]`
+      : ''
+    console.log(`  ${lane.state.padEnd(21)} ${lane.name.padEnd(13)} ${lane.detail}${scopes}${from}`)
   }
 
   if (verdict.ok) {
