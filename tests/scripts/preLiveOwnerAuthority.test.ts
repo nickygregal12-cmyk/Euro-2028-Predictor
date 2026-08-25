@@ -284,8 +284,41 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
     }
   })
 
-  it('refuses when a git URL rewrite rule could retarget the push', () => {
-    const result = run(PUSH, [], 'feat/owner-safe', { rewrite: true })
+  it('sees through URL rewrites, which is why there is no separate refusal for them', () => {
+    // The wrapper used to refuse outright when any url.*.insteadOf existed.
+    // That broke the legitimate SSH-to-HTTPS rewrite that proxied and CI
+    // checkouts normally configure — it stopped the wrapper pushing at all in
+    // such an environment — while adding nothing, because the URL check already
+    // sees the rewritten target.
+    //
+    // This pins that assumption with real git rather than a fake. If git ever
+    // stopped expanding rewrites here, the removal above would no longer be
+    // safe, and this fails rather than the boundary quietly opening.
+    const expandedPushUrl = (configure: string[][]) => {
+      const dir = mkdtempSync(resolve(tmpdir(), 'predictor-rewrite-'))
+      const git = (...args: string[]) => spawnSync('git', args, { cwd: dir, encoding: 'utf8' })
+      git('init', '-q', '.')
+      git('remote', 'add', 'origin', 'https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git')
+      for (const args of configure) git('config', ...args)
+      return git('remote', 'get-url', '--push', '--all', 'origin').stdout.trim()
+    }
+
+    // A rewrite retargeting github.com is visible as the other host.
+    expect(expandedPushUrl([['url.https://evil.example/.insteadOf', 'https://github.com/']]))
+      .toContain('evil.example')
+    // ...and so is the push-specific form, which only affects pushes.
+    expect(expandedPushUrl([['url.https://evil.example/.pushInsteadOf', 'https://github.com/']]))
+      .toContain('evil.example')
+    // A benign SSH-to-HTTPS rewrite leaves the expected repository intact.
+    expect(expandedPushUrl([['url.https://github.com/.insteadOf', 'git@github.com:']]))
+      .toBe('https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git')
+  })
+
+  it('still refuses a rewritten target, because the expanded URL is what is checked', () => {
+    // The expansion above means an attacker rewrite arrives here as a wrong URL.
+    const result = run(PUSH, [], 'feat/owner-safe', {
+      pushUrls: ['https://evil.example/nickygregal12-cmyk/Euro-2028-Predictor.git'],
+    })
     expect(result.status).not.toBe(0)
     expect(result.calls).toBe('')
   })
