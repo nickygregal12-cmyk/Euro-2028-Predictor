@@ -161,6 +161,7 @@ describe('the owner wrappers', () => {
     pushUrls?: string[]
     rewrite?: boolean
     ghRepo?: string
+    prNumber?: string
   } = {}) {
     const home = mkdtempSync(resolve(tmpdir(), 'predictor-owner-wrapper-'))
     const bin = resolve(home, 'bin')
@@ -180,6 +181,9 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
 `, { mode: 0o755 })
     writeFileSync(resolve(bin, 'gh'), `#!/usr/bin/env bash
 { printf 'gh'; printf ' <%s>' "$@"; printf '\\n'; } >> "$WRAPPER_TEST_LOG"
+# The update path looks the pull-request number up rather than accepting one,
+# so the fake has to answer that lookup for the PATCH to be reachable at all.
+if [[ "$*" == *"--method GET"* ]]; then printf '%s\\n' "\${FAKE_PR_NUMBER-7}"; fi
 `, { mode: 0o755 })
 
     const result = spawnSync('bash', [script, ...args], {
@@ -191,6 +195,7 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
         FAKE_REMOTE: options.upstream ?? '',
         FAKE_PUSH_URLS: (options.pushUrls ?? ['https://github.com/nickygregal12-cmyk/Euro-2028-Predictor.git']).join(' '),
         FAKE_REWRITE: options.rewrite ? 'yes' : 'no',
+        FAKE_PR_NUMBER: options.prNumber ?? '7',
         ...(options.ghRepo ? { GH_REPO: options.ghRepo } : {}),
         WRAPPER_TEST_LOG: log,
       },
@@ -227,14 +232,39 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
     const created = run(PR, ['create', '--title', 'Safe', '--body', 'Body'], 'feat/owner-safe')
     expect(created.status).toBe(0)
     expect(created.calls).toBe(
-      'gh <pr> <create> <--repo> <nickygregal12-cmyk/Euro-2028-Predictor> <--base> <main>'
-      + ' <--head> <feat/owner-safe> <--title> <Safe> <--body> <Body>\n',
+      'gh <api> <--method> <POST> <repos/nickygregal12-cmyk/Euro-2028-Predictor/pulls>'
+      + ' <-f> <title=Safe> <-f> <body=Body> <-f> <base=main> <-f> <head=feat/owner-safe>'
+      + ' <--jq> <.html_url>\n',
     )
 
+    // update never accepts a number: it looks up the open pull request for the
+    // branch this repository is standing on, so it cannot reach another one.
     const updated = run(PR, ['update', '--title', 'Updated'], 'feat/owner-safe')
     expect(updated.status).toBe(0)
     expect(updated.calls).toBe(
-      'gh <pr> <edit> <feat/owner-safe> <--repo> <nickygregal12-cmyk/Euro-2028-Predictor> <--title> <Updated>\n')
+      'gh <api> <--method> <GET> <repos/nickygregal12-cmyk/Euro-2028-Predictor/pulls>'
+      + ' <-f> <head=nickygregal12-cmyk:feat/owner-safe> <-f> <state=open> <--jq> <.[0].number>\n'
+      + 'gh <api> <--method> <PATCH> <repos/nickygregal12-cmyk/Euro-2028-Predictor/pulls/7>'
+      + ' <-f> <title=Updated> <--jq> <.html_url>\n',
+    )
+  })
+
+  it('refuses an update when the lookup returns anything but a number', () => {
+    // A lookup that answers `null`, an error page or an empty body must not be
+    // pasted into the request path.
+    for (const prNumber of ['', 'null', '7; rm -rf /', '../../other/pulls/1']) {
+      const result = run(PR, ['update', '--title', 'T'], 'feat/owner-safe', { prNumber })
+      expect(result.status, JSON.stringify(prNumber)).not.toBe(0)
+      expect(result.calls, JSON.stringify(prNumber)).not.toContain('PATCH')
+    }
+  })
+
+  it('refuses a create that would open an empty pull request', () => {
+    for (const args of [['create', '--title', 'T'], ['create', '--body', 'B'], ['create']]) {
+      const result = run(PR, args, 'feat/owner-safe')
+      expect(result.status, args.join(' ')).not.toBe(0)
+      expect(result.calls, args.join(' ')).toBe('')
+    }
   })
 
   it('forwards only allowlisted options, so an unnamed one is inert', () => {
@@ -245,6 +275,12 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
       ['create', '--body-file', '.env'], ['create', '--repo', 'someone/else'], ['create', '--web'],
       ['create', '--fill'], ['create', '--template', 'x'], ['create', 'positional'],
       ['create', '--title'], ['delete'],
+      // Named here once and used by nothing. Each is a separate REST call
+      // against a different endpoint, so they were dropped from the list rather
+      // than carried; they are refused now the same way anything else is.
+      ['create', '--label', 'l'], ['create', '--assignee', 'a'], ['create', '--milestone', 'm'],
+      // --draft means nothing on update, so it is not silently ignored either.
+      ['update', '--title', 'T', '--draft'],
     ]) {
       const result = run(PR, args, 'feat/owner-safe')
       expect(result.status, args.join(' ')).not.toBe(0)
@@ -253,9 +289,9 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
   })
 
   it('accepts the options it does name', () => {
-    const result = run(PR, ['create', '--title', 'T', '--body', 'B', '--label', 'l', '--draft'], 'feat/x')
+    const result = run(PR, ['create', '--title', 'T', '--body', 'B', '--draft'], 'feat/x')
     expect(result.status).toBe(0)
-    expect(result.calls).toContain('<--draft>')
+    expect(result.calls).toContain('<-F> <draft=true>')
   })
 
   it('refuses when origin points somewhere other than the tracked repository', () => {
@@ -363,14 +399,18 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
   it('pins the pull-request repository against an inherited GH_REPO', () => {
     // Excluding --repo from the caller's arguments was not enough: gh reads
     // GH_REPO from the environment, so an inherited value redirected create and
-    // edit while the wrapper reported it had fixed base and head.
-    const created = run(PR, ['create', '--title', 'T'], 'feat/owner-safe', { ghRepo: 'attacker/evil' })
+    // edit while the wrapper reported it had fixed base and head. Over REST the
+    // repository is in the request path, and GH_REPO is still cleared because
+    // an environment variable that can retarget a request should not be left
+    // sitting there for the next endpoint someone adds.
+    const created = run(PR, ['create', '--title', 'T', '--body', 'B'], 'feat/owner-safe', { ghRepo: 'attacker/evil' })
     expect(created.status).toBe(0)
-    expect(created.calls).toContain('<--repo> <nickygregal12-cmyk/Euro-2028-Predictor>')
+    expect(created.calls).toContain('<repos/nickygregal12-cmyk/Euro-2028-Predictor/pulls>')
     expect(created.calls).not.toContain('attacker/evil')
 
     const updated = run(PR, ['update', '--title', 'T'], 'feat/owner-safe', { ghRepo: 'attacker/evil' })
-    expect(updated.calls).toContain('<--repo> <nickygregal12-cmyk/Euro-2028-Predictor>')
+    expect(updated.calls).toContain('<repos/nickygregal12-cmyk/Euro-2028-Predictor/pulls/7>')
+    expect(updated.calls).not.toContain('attacker/evil')
   })
 
   it('enforces the same boundaries for commits', () => {

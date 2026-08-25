@@ -243,8 +243,24 @@ remote name `origin` without reading `remote.origin.pushurl`, and `gh` resolved
 its target from an inherited `GH_REPO` while the wrapper reported that it had
 fixed base and head. Both now resolve the expected `owner/repo` from the
 identity record and refuse anything else — every effective push URL is checked,
-more than one push URL is refused, and `gh` is passed `--repo` explicitly with
-`GH_REPO` cleared.
+more than one push URL is refused, and the pull-request wrapper names the
+repository in the REST path with `GH_REPO` and `GH_HOST` both cleared.
+
+**The pull-request wrapper speaks REST, not `gh pr create`.** The first live
+canary run failed there three times on the same thing: `gh pr create` opens with
+a GraphQL `RepositoryInfo` preamble, and a host whose egress serves only a
+pinned set of GitHub operations answers it `HTTP 403` before any of the
+wrapper's own checks mean anything. The REST pull-request endpoints take base
+and head as fields and need no preamble, so the wrapper asks for exactly the
+call it wants. `update` looks the number up from the open pull request for the
+branch it is standing on rather than accepting one, and refuses a lookup that
+does not answer with a number.
+
+The option list narrowed in the same change: `--label`, `--assignee` and
+`--milestone` were named once and used by nothing, and each is a separate REST
+call against a different endpoint. An allowlist entry kept "in case" is what an
+allowlist exists to prevent, so they are refused now the way anything unnamed
+is.
 
 URL rewrites need no separate refusal: `git remote get-url --push --all` reports
 the URL *after* expanding both `insteadOf` and `pushInsteadOf`, so a rule
@@ -302,9 +318,52 @@ those files and every mutating step refuses while any of them differs from
 A change to the gate goes through review, not through automation.
 
 A wrapper's authority refusal exits **3**, distinct from a validation (1) or
-usage (2) failure, so the loop classifies it `POLICY` rather than `CODE`. A
-denial is not a defect, and retrying one only spends attempts on a decision that
-will never change.
+usage (2) failure, so the loop classifies it `POLICY_DENIAL`. A denial is not a
+defect, and retrying one only spends attempts on a decision that will never
+change. Every other wrapper failure goes through `classifyFailure` rather than
+being stamped with one word — the live run is why: an unrecoverable `HTTP 403`
+carried a class that meant nothing, and all three attempts were spent on it in
+under a second. It reads as `AUTH_REQUIRED` now, which is both true and
+actionable.
+
+### Running it
+
+`scripts/control-plane/canary.mjs` is what registers those handlers and starts
+the run, and starting it is the only thing an owner does:
+
+```
+node scripts/control-plane/canary.mjs \
+  --branch <namespace>/<name> --title <text> --body-file <path> \
+  --hard-stop <ISO> --independent '["npx","vitest","run","<a bounded test path>"]'
+```
+
+The run opens in `ACTIVE` mode with `maxPullRequests: 1`, so the budget brake
+stops a second delivery even if the graph asked for one.
+
+**The acceptance is the shape of the decision log, not the pull request.** A
+pull request opened by an agent proves an agent can call `gh`, which was never
+in doubt. What has to hold is: every task was chosen by the scheduler in
+dependency order with nothing prompting it; the push returned `WAITING_CI` and
+the worker exited; the task depending on the push was never dispatched;
+independent work ran while the push waited; and the run ended `WAITING_EXTERNAL`
+— parked, not finished, and not idle.
+
+**Why the pull request does not depend on the push.** `delivery.push` never
+reaches `COMPLETED` by design, so nothing may depend on its status and still
+run. But a pull request for a branch that was never pushed describes a head that
+is not on the remote. The gate is therefore the push's **checkpoint** rather
+than its status: parked work still leaves durable evidence behind, and that
+evidence is what the next task reads — the same mechanism a restarted control
+plane uses to pick a run back up.
+
+`delivery.merge` has no handler at all. It depends on the push, so the engine
+must never reach it; if it ever did, the missing handler surfaces as
+`NO_HANDLER` rather than merging something quietly.
+
+Staging is its own task, and it refuses the enforcement surface one step earlier
+than `delivery.mjs` does — at the moment the file list is known, rather than
+after a branch already exists. Two edges asking the same question is the pattern
+the wrappers already use.
 
 ## Task states
 
@@ -315,6 +374,12 @@ will never change.
 Only `COMPLETED` satisfies a dependency. A stage parked on the owner never
 unblocks what genuinely needs it, so a blocked stage cannot be falsely
 satisfied by a later task's impatience.
+
+`BLOCKED` is terminal for its own task and for nothing else. A `run` pass used
+to stop on it, and the first live canary showed what that costs: one task
+exhausted its attempts against an environment restriction, the pass ended
+there, and the independent work behind it in the queue never ran — the failure
+mode the external wait exists to prevent, arriving through the other door.
 
 ## Acceptance
 
@@ -329,6 +394,20 @@ dispatched again, independent work proceeds unprompted, its dependant stays
 blocked, a long wait reports `WAITING_EXTERNAL` rather than accruing no-progress
 cycles, a true stall still escalates, and the parked task resumes only when a
 watcher supplies fresh external evidence.
+
+`tests/scripts/deliveryCanaryRunner.test.ts` covers the runner: one start
+driving stage, branch, commit, push and pull request in order; the push parking
+while independent work completes; `delivery.merge` never dispatched; the run
+ending `WAITING_EXTERNAL`; and the refusals — an empty index, a staged
+enforcement file, a pull request with no push checkpoint, and a checkpoint for
+another branch.
+
+**A note for whoever runs this next.** `ciTestDiscoveryFloor` and
+`typescriptProjectCoverage` both compare runtime discovery against
+`git ls-files`, so both fail while the tree holds a new file that has not been
+committed yet — which is exactly the window between staging and committing that
+an autonomous delivery works in. They are behaving correctly; the failure means
+"not committed", not "broken".
 
 A product task must never modify the running loop engine or its safety policy.
 Fix the loop through its own change, with these tests re-run, before restarting
