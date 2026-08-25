@@ -180,6 +180,52 @@ Provisioning is deliberately not automated. Creating a machine account or
 installation credential is an owner action in GitHub settings, and a control
 plane that could mint its own executor identity would not be constrained by one.
 
+## What autonomous repository work may do
+
+`config/pre-live-owner-authority.json` names the operations, and
+`scripts/control-plane/authority.mjs` decides them. Granted today, each
+subject to the acting identity lane holding the level it needs:
+
+| Operation | Needs |
+| --- | --- |
+| `branch.create`, `commit.create`, `branch.push` | `REPOSITORY_WRITE` |
+| `pr.create`, `pr.update` | `REPOSITORY_WRITE` |
+| `ci.read`, `review.read`, `repository.read` | `READ_ONLY` |
+
+```bash
+npm run check:owner-authority              # report and validate the policy
+node scripts/check-pre-live-owner-authority.mjs branch.push   # decide one operation
+```
+
+Two properties carry the safety, and both are structural rather than stated.
+
+**It is an allowlist.** An operation the policy does not name is denied because
+it is not named. The superseded #1041 enumerated forbidden `git` and `gh`
+invocations instead, which grants everything nobody thought to forbid — and that
+set is open-ended: a new flag, a new subcommand, a shell construct reaching the
+same effect.
+
+**The refusals are code.** `ALWAYS_DENIED` lives in `authority.mjs`, not in the
+record, so editing the record cannot remove or reword one: direct push to a
+protected branch, force-push, branch-protection and ruleset edits, merge,
+Production mutation, secret mutation, arbitrary hosted writes, and any widening
+of what a model may do. They are checked *before* the acting identity is
+consulted at all, so no identity reaches past them. A control plane whose
+forbidden set lives in data it can write is not constrained by it.
+
+Authority is not decided here either. This policy says which level an operation
+needs; whether the lane holds it is the identity record above. So no single file
+can unlock an operation — and `DEPLOYMENT_EXECUTOR` is not requirable in this
+mode at all, because Production work belongs to a later stage and a distinct
+machine actor, not to a larger value in a config file.
+
+`scripts/agent-tools/owner-task-push.sh` and `owner-pr.sh` are the enforcing
+edge. Each asks the policy before acting. The push wrapper takes no arguments,
+so force and target selection are unavailable rather than rejected, and it
+assembles `origin <branch>` from the branch the repository is on. The
+pull-request wrapper fixes base and head and forwards only an allowlist of
+option names.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

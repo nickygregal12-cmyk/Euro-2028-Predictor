@@ -195,10 +195,15 @@ describe('JavaScript under scripts/', () => {
     // lane. An unexamined type error there fails in the granting direction.
     'scripts/check-machine-identity.mjs',
     'scripts/check-migration-additive.mjs',
+    // The bounded owner-authority gate decides what autonomous repository work
+    // may do. Its refusals are code rather than data precisely so they cannot be
+    // edited away; leaving that code unexamined would be the same mistake.
+    'scripts/check-pre-live-owner-authority.mjs',
   'scripts/check-required-merge-contexts.mjs',
     'scripts/check-workflow-action-pins.mjs',
     // The control-plane loop modules arrived clean under checkJs and decide
     // merge eligibility and safety brakes, so they are checked on arrival.
+    'scripts/control-plane/authority.mjs',
     'scripts/control-plane/cli.mjs',
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/identity.mjs',
