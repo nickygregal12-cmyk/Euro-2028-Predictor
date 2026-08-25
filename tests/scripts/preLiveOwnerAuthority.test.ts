@@ -325,10 +325,36 @@ if [[ "$1 $2" == "config --get-regexp" ]]; then [[ "$FAKE_REWRITE" == yes ]]; ex
     expect(`${result.stdout}${result.stderr}`).not.toContain('ENOENT')
   })
 
+  it('creates only task branches, through the policy', () => {
+    const BRANCH = 'scripts/agent-tools/owner-branch.sh'
+    const ok = run(BRANCH, ['feat/new-task'], 'feat/current')
+    expect(ok.status).toBe(0)
+    expect(ok.calls).toBe('git <switch> <--create> <feat/new-task>\n')
+
+    for (const name of ['main', 'master', 'scratch', '-x', 'a/../b', '']) {
+      const result = run(BRANCH, [name], 'feat/current')
+      expect(result.status, name).not.toBe(0)
+      expect(result.calls, name).toBe('')
+    }
+    expect(run(BRANCH, [], 'feat/current').status).not.toBe(0)
+    expect(run(BRANCH, ['feat/a', 'feat/b'], 'feat/current').status).not.toBe(0)
+  })
+
+  it('routes every git write through a wrapper rather than leaving it direct', () => {
+    // The wrappers only enforce if something makes them the way through. With
+    // `git commit*: allow` the gate was optional, and an optional gate is not one.
+    const builder = readFileSync(resolve(root, '.opencode/agents/predictor-builder.md'), 'utf8')
+    for (const denied of ['"git commit*": deny', '"git push*": deny', '"gh pr create*": deny']) {
+      expect(builder, denied).toContain(denied)
+    }
+    expect(builder).toContain('"bash scripts/agent-tools/*": allow')
+  })
+
   it('carries no test-only branch in the production scripts', () => {
     // #1041's wrappers ended with `if [ -n "${FAKE_LOG:-}" ]` — production code
     // taking a branch from a variable that exists only for a test.
-    for (const script of [PUSH, PR, 'scripts/agent-tools/owner-commit.sh']) {
+    for (const script of [PUSH, PR, 'scripts/agent-tools/owner-commit.sh',
+      'scripts/agent-tools/owner-branch.sh']) {
       const source = readFileSync(resolve(root, script), 'utf8')
       const code = source.split('\n').filter((line) => !line.trim().startsWith('#')).join('\n')
       expect(code, script).not.toContain('FAKE_LOG')

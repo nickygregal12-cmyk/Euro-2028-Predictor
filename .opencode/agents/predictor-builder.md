@@ -22,7 +22,6 @@ permission:
     "git checkout*": allow
     "git branch*": allow
     "git add*": allow
-    "git commit*": allow
     "npm run agent:route*": allow
     "npm test*": allow
     "npm run test*": allow
@@ -34,8 +33,25 @@ permission:
     "npx oxlint*": allow
     "npx stylelint*": allow
     "bash scripts/agent-tools/*": allow
-    "git push*": ask
-    "gh pr create*": ask
+    # Git writes go through the enforcing wrappers, which ask the authority
+    # policy before acting. Denied last, because OpenCode takes the last
+    # matching rule: an allow above is overridden here rather than removed, so
+    # the read-only and navigating forms stay available.
+    #
+    # A gate that a worker may simply decline to call is not a gate. These
+    # denials are what make config/pre-live-owner-authority.json binding rather
+    # than advisory.
+    "git commit*": deny
+    "git push*": deny
+    "git branch -*": deny
+    "git branch [a-zA-Z]*": deny
+    "git switch -c*": deny
+    "git switch --create*": deny
+    "git checkout -b*": deny
+    "git checkout -B*": deny
+    "gh pr create*": deny
+    "gh pr edit*": deny
+    "gh pr merge*": deny
   webfetch: allow
   websearch: allow
 tools:

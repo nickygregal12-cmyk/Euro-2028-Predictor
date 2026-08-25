@@ -225,8 +225,14 @@ can unlock an operation — and `DEPLOYMENT_EXECUTOR` is not requirable in this
 mode at all, because Production work belongs to a later stage and a distinct
 machine actor, not to a larger value in a config file.
 
-`owner-task-push.sh`, `owner-pr.sh` and `owner-commit.sh` under
-`scripts/agent-tools/` are the enforcing edge. Each asks the policy before
+`owner-branch.sh`, `owner-commit.sh`, `owner-task-push.sh` and `owner-pr.sh`
+under `scripts/agent-tools/` are the enforcing edge, and the Builder's own
+permissions deny the direct `git commit`, `git push`, branch-creating and
+`gh pr` forms so that the wrappers are the way through. A gate a worker may
+decline to call is not a gate: without that routing the policy would be
+advisory, which is the state this stage exists to leave. The read-only and
+navigating git forms are untouched — the denials are narrower than the allows
+they override. Each asks the policy before
 acting, passing the branch it is standing on, and each forwards only an
 allowlist of option names. The push wrapper takes no arguments at all, so force
 and target selection are unavailable rather than rejected.
