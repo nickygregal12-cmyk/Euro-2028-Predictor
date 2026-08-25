@@ -1,0 +1,25 @@
+{
+  "branch": "main",
+  "ruleset": {
+    "id": 20508177,
+    "name": "Protect Main",
+    "enforcement": "active"
+  },
+  "required": [
+    "CI / Required merge gate",
+    "Database parity / Required parity gate",
+    "Migration safety / Required migration gate"
+  ],
+  "requirableNotRequired": [
+    {
+      "context": "vNext merged browser gate",
+      "reason": "Always-reporting since #1047 and safe to require, but adding it to Protect Main is an owner action in GitHub settings that no session can perform. OPS-012 accepts this shape as the closure; the hosted half is outstanding."
+    }
+  ],
+  "verifiedAt": "2026-08-25T07:35:19.228Z",
+  "evidence": {
+    "source": "Read from the hosted ruleset itself on 25 August 2026, not from repository prose. GET /repos/nickygregal12-cmyk/Euro-2028-Predictor/rules/branches/main returned all three contexts under one required_status_checks rule sourced from repository ruleset 20508177, and GET /rulesets/20508177 agreed, reporting enforcement 'active', current_user_can_bypass 'never' and updated_at 2026-08-25T07:35:19.228Z. THE OVERNIGHT RUN IS WHY THIS FILE EXISTS: #1047 and a comment in mergeGateConfiguration.test.ts both asserted that 'vNext merged browser gate' was already a required context. It was not, and nothing in the repository could tell the difference, because a required-check set is hosted state that a clone cannot see. strict_required_status_checks_policy is false, so a branch need not be current with main before merging.",
+    "rulesetEndpoint": "/repos/nickygregal12-cmyk/Euro-2028-Predictor/rules/branches/main",
+    "verificationSource": "read-only GitHub REST call against the live ruleset, taken independently of any workflow run or agent report"
+  }
+}

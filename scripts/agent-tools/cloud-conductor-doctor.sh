@@ -187,6 +187,27 @@ else
   optional 'GitHub CLI' 'run gh auth login if the Builder should push/create PRs'
 fi
 
+# THE HOSTED HALF OF THE REQUIRED-CHECK SET. CI checks that every required
+# context is still published by a job; only a live read can tell whether the
+# ruleset still requires it. That read belongs here rather than in CI, because
+# the drift it finds is an owner changing a setting, not a pull request being
+# wrong — failing somebody's pull request for it would report the wrong thing to
+# the wrong person.
+#
+# Optional rather than missing when the read fails: an unreadable ruleset is
+# already refused by the command itself, and the Conductor must still start on a
+# host whose token cannot see repository settings.
+if [ -n "${GITHUB_TOKEN:-${GH_TOKEN:-}}" ]; then
+  if ruleset_output="$(node scripts/check-required-merge-contexts.mjs --live 2>&1)"; then
+    ready 'Required merge contexts' 'the hosted ruleset matches config/required-merge-contexts.json'
+  else
+    missing 'Required merge contexts' 'the hosted required set has drifted from the tracked record'
+    printf '%s\n' "$ruleset_output" | tail -n 12
+  fi
+else
+  optional 'Required merge contexts' 'set GITHUB_TOKEN to verify the hosted ruleset from this host'
+fi
+
 memory_kib="$(awk '/MemTotal:/ {print $2}' /proc/meminfo 2>/dev/null || true)"
 if [ -n "$memory_kib" ]; then
   if [ "$memory_kib" -ge 7340032 ]; then
