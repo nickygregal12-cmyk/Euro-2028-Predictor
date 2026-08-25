@@ -33,8 +33,17 @@ type Gate = {
   workflow: string
   /** The job `name:` a ruleset would match on — the check-run name, verbatim. */
   context: string
-  /** The jobs the gate must observe before it may report. */
-  needs: string
+  /**
+   * The jobs an aggregate gate must observe before it may report, or `null` where
+   * the measuring job *is* the gate.
+   *
+   * Two families, and the difference is whether the workflow has anything that
+   * can be skipped. A workflow whose real job may not run needs a separate job to
+   * publish the context in its place, reporting under `always()` and deciding
+   * inside; one unconditional job needs no such thing and is simply named the
+   * context, which is what `migration-safety.yml` does.
+   */
+  needs: string | null
   /** Assertions that belong to this workflow's shape rather than to all of them. */
   shape: (workflow: string) => void
 }
@@ -60,6 +69,22 @@ const GATES: Gate[] = [
       expect(workflow).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"')
       // A push posts no context a ruleset can require, so its filter is left in
       // place and still spares an unrelated commit to `main`.
+      const trigger = workflow.slice(workflow.indexOf('on:\n'), workflow.indexOf('permissions:'))
+      expect(trigger.slice(trigger.indexOf('  push:'))).toContain('paths:')
+    },
+  },
+  {
+    // One unconditional job that reads every tracked Markdown file rather than
+    // the changed ones, so a pull request touching no Markdown costs exactly what
+    // one rewriting it does. Nothing to gate, nothing to aggregate.
+    workflow: '.github/workflows/link-integrity.yml',
+    context: 'Documentation link integrity / Required link gate',
+    needs: null,
+    shape: (workflow) => {
+      expect(workflow).not.toContain('needs.changes')
+      // Reading the corpus is the reason no `changes` job was needed; a change to
+      // read only the diff would quietly reintroduce the case this avoids.
+      expect(workflow).toContain("git ls-files '*.md'")
       const trigger = workflow.slice(workflow.indexOf('on:\n'), workflow.indexOf('permissions:'))
       expect(trigger.slice(trigger.indexOf('  push:'))).toContain('paths:')
     },
@@ -103,6 +128,12 @@ describe.each(GATES)('$context', ({ workflow: path, context, needs, shape }) => 
   })
 
   it('reports whatever the jobs did, including not running at all', () => {
+    if (needs === null) {
+      // Nothing here can be skipped, so the job that measures is the job that
+      // reports and there is no second job to reconcile.
+      expect(workflow).not.toContain('if: ${{ always() }}')
+      return
+    }
     // A gate that vanished on failure would be indistinguishable from one that
     // passed, so it reports unconditionally and decides inside.
     expect(workflow).toContain('if: ${{ always() }}')
@@ -110,6 +141,12 @@ describe.each(GATES)('$context', ({ workflow: path, context, needs, shape }) => 
   })
 
   it('treats red, cancelled and absent alike, because none of them is a pass', () => {
+    if (needs === null) {
+      // A single job's own conclusion *is* the verdict; there is no result to
+      // reconcile and nothing that could report success on another's behalf.
+      expect(workflow).not.toMatch(/needs\.[a-z-]+\.result/)
+      return
+    }
     expect(workflow).toMatch(/result != 'success'/)
     expect(workflow).toContain('exit 1')
   })

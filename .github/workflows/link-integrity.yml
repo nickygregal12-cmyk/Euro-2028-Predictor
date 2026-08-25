@@ -1,10 +1,22 @@
 name: Documentation link integrity
 
+# THE PULL-REQUEST FILTER IS GONE, AND THAT IS WHAT MAKES THIS REQUIRABLE.
+#
+# A `paths:`-filtered workflow does not run on a pull request it does not match,
+# so its check never posts. Requiring a context that never posts blocks that pull
+# request for ever — `DOC-001`, then `OPS-012`. The quieter half is what leaving
+# the filter costs: the context cannot be required at all, so a pull request that
+# breaks a documented link merges on a green core CI that never followed one.
+#
+# No `changes` job here, and no separate gate job either. The check below reads
+# every tracked Markdown file rather than the changed ones, so a pull request
+# that touches no Markdown costs exactly what one that rewrites it does — there
+# is nothing for a filter to save. That leaves one unconditional job, which can
+# simply be named the context a ruleset asks for.
+#
+# The `push:` filter stays. A push posts no context a ruleset can require.
 on:
   pull_request:
-    paths:
-      - '**/*.md'
-      - '.github/workflows/link-integrity.yml'
   push:
     branches:
       - main
@@ -24,6 +36,12 @@ concurrency:
 
 jobs:
   links:
+    # THE NAME IS THE RULESET'S CONTEXT STRING. A ruleset matches a status check
+    # on the check-run name, which for an Actions job is the job's `name:` alone,
+    # so it is written in the `Workflow / Job` form the rule asks for. `CI /
+    # Required merge gate` was renamed for exactly this reason after every pull
+    # request sat waiting on a context nothing emitted.
+    name: Documentation link integrity / Required link gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
