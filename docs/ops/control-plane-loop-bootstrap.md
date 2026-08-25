@@ -79,6 +79,23 @@ healthy; counting it as no-progress escalated a correct thirty-minute wait to
 loop reports `WAITING_EXTERNAL` there instead, and `IDLE` only when nothing is
 runnable *and* nothing is awaited.
 
+The same rule decides a single pull request. `routeFromBlockers` reads actionable
+blockers — a red check, a reviewer's changes-requested, a drifted base — before
+waiting ones, so a branch that is both awaiting CI and carrying a review is
+routed to the review. Waiting is what the loop does when there is nothing it can
+do, and choosing the slower of two true answers is the same mistake at a smaller
+scale.
+
+A run cancelled against a commit that is no longer the head is classified
+`SUPERSEDED`: a newer push replaced it, so it is neither a failure nor an
+attempt, and it spends no attempt and no stall credit. Triage restates it as a
+check still owed on the current head and lets routing decide from there. It does
+*not* short-circuit the verdict — an earlier version did, and a reviewer's
+changes-requested, a drifted base and an unmergeable branch all disappeared
+behind a push while the pull request sat watching CI it was no longer waiting
+for. The merge verdict is left alone either way: cancelled evidence is not a
+pass.
+
 ## What the loop decides, and what it will not accept
 
 `scripts/control-plane/policy.mjs` holds every verdict as a pure function. A
