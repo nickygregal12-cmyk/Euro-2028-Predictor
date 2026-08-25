@@ -254,6 +254,39 @@ all wherever the ordinary SSH-to-HTTPS rewrite is configured, which is how
 proxied and CI checkouts normally look, and a gate that refuses correct work is
 still a broken gate.
 
+## The delivery canary
+
+`scripts/control-plane/delivery.mjs` holds the mutating handlers, and they are
+**not** registered by `cli.mjs`. `readOnlyHandlers` says why: shipping a handler
+that can push would mean any `run` could push, including one started to look at
+status. A caller that wants mutation registers these deliberately.
+
+What the canary demonstrates is not that an agent can open a pull request. It is
+the loop: the scheduler picks the task, a bounded worker does one thing, and at
+the push the worker **checkpoints and exits** rather than sitting on CI. The
+interesting moment is the one where nothing is running — the push returns
+`WAITING_CI`, its dependants stay blocked because waiting is not completion, and
+independent work proceeds instead of queueing behind a half-hour CI run.
+
+Four gates decide each mutating step, and a model is none of them:
+
+| | Decided by |
+| --- | --- |
+| may this task run at all | the scheduler — dependencies, priority, attempts |
+| may mutation be dispatched | `mutationDispatchAllowed` — mode, brakes, budget |
+| is this a target the wrapper serves | the wrapper — branch, repository, options |
+| may this identity perform it | the authority policy against the identity lane |
+
+Each handler asks the policy itself before shelling out, even though the wrapper
+asks again. The duplicate answer is deliberate: a handler invoked from anywhere
+other than a wrapper still cannot act, and the refusal arrives as a `POLICY`
+failure the loop can classify rather than an exit code it cannot.
+
+`decideCanaryMerge` computes merge eligibility from observed GitHub state alone.
+By the time it runs, the worker that pushed is gone — a required check that
+never reported is refused rather than read as a pass, and a head that moved
+after the evidence was gathered refuses too.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

@@ -24,6 +24,7 @@
     "scripts/check-workflow-action-pins.mjs",
     "scripts/control-plane/authority.mjs",
     "scripts/control-plane/cli.mjs",
+    "scripts/control-plane/delivery.mjs",
     "scripts/control-plane/github.mjs",
     "scripts/control-plane/identity.mjs",
     "scripts/control-plane/loop.mjs",
