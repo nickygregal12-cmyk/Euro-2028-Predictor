@@ -335,7 +335,11 @@ esac
 
     const output = execFileSync('bash', ['scripts/agent-tools/mcp-readiness.sh', '--connectivity'], {
       cwd: root,
-      env: { ...process.env, HOME: home },
+      env: {
+        ...process.env,
+        HOME: home,
+        GITHUB_MCP_TOKEN: 'test-placeholder-not-a-real-token',
+      },
       encoding: 'utf8',
     })
     expect(output).toMatch(/CONFIGURED sentry\s+AUTH=UNKNOWN\s+CONNECTED=NO\s+UNAVAILABLE=NO/)
