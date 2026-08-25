@@ -76,7 +76,19 @@ jobs:
           # to hold, and it is here rather than there for the reason in the
           # header. Documentation-only changes under `src/vnext/` are excluded
           # exactly as they were: a Markdown edit changes no rendered geometry.
-          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")"
+          # THREE DOTS. `git diff A B` compares two trees, which is a different
+          # question, and it gets this one wrong in both directions once `main`
+          # moves. It invents changes: a pull request touching none of
+          # `src/vnext/` is told it owes browser evidence and runs the shards
+          # anyway. Worse, it hides them: a pull request that did change
+          # `src/vnext/` is told it changed nothing, once `main` has
+          # independently reached the same content, and this gate then reports
+          # success having run no shards. `A...B` diffs from the merge base —
+          # what this branch changed — which is the question a gate must answer.
+          # `migration-safety.yml`, `security-tooling.yml` and
+          # `database-parity.yml` all use this form; this job was the one that
+          # did not, and #1045 inherited the defect by copying it.
+          CHANGED="$(git diff --name-only "$BASE_SHA...$HEAD_SHA")"
 
           MATCHED="$(printf '%s\n' "$CHANGED" | grep -E \
             -e '^src/vnext/' \

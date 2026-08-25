@@ -98,6 +98,31 @@ describe('the vNext browser gate can be required without blocking anything', () 
     expect(trigger).not.toContain('paths:')
   })
 
+  it('asks what this branch changed, not how the two trees differ', () => {
+    // `git diff A B` compares two trees, so it answers a question nobody asked
+    // and gets this one wrong in both directions. Proven in a scratch repository
+    // on 24 August 2026:
+    //
+    //   - it invents changes. A branch touching only `README.md` is told
+    //     `src/vnext/a.ts` changed, once `main` has moved there, and runs the
+    //     shards on a change that cannot move rendered geometry.
+    //   - it hides them. A branch that *did* change `src/vnext/a.ts` is told
+    //     nothing changed, once `main` has independently reached the same
+    //     content, and the gate reports success having run no shards at all.
+    //
+    // The second is why this is unsound rather than merely wasteful. That the
+    // merged file then matches what `main` already measured is a coincidence
+    // the gate does not check and cannot rely on — a branch may pair that file
+    // with changes elsewhere that nothing has measured together. `A...B` diffs
+    // from the merge base, which is the question a gate has to answer: what did
+    // this branch change?
+    //
+    // This gate is one of only two contexts the ruleset requires, so the cost is
+    // live rather than theoretical.
+    expect(vnextWorkshop).toContain('git diff --name-only "$BASE_SHA...$HEAD_SHA"')
+    expect(vnextWorkshop).not.toMatch(/git diff --name-only "\$BASE_SHA" "\$HEAD_SHA"/)
+  })
+
   it('reports a conclusion whatever the shards did, including not running', () => {
     // `always()` rather than `!cancelled()`: a gate that vanished when a shard
     // failed would be indistinguishable, to a ruleset, from one that passed.
