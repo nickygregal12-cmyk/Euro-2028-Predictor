@@ -23,6 +23,23 @@ import { DEFAULT_LIMITS, TASK_STATES, RUN_MODES } from './policy.mjs'
  * @typedef {import('./policy.mjs').TaskState} TaskState
  */
 
+/**
+ * The state surface the loop depends on.
+ *
+ * Named because there is now more than one implementation: the loop needs these
+ * methods and nothing else — not a directory, not a database handle — and
+ * typing it against the file store meant a second, conforming implementation
+ * failed to type-check for having no `dir`. What the engine depends on is the
+ * behaviour, so that is what it should say.
+ *
+ * @typedef {Pick<ControlPlaneStore,
+ *   'loadRun' | 'startRun' | 'saveRun' | 'recordProgress' | 'setEmergencyStop' |
+ *   'loadTasks' | 'listTasks' | 'upsertTask' | 'transition' | 'recordAttempt' |
+ *   'loadCheckpoints' | 'saveCheckpoint' | 'getCheckpoint' |
+ *   'appendEvent' | 'readEvents' | 'acquireLease' | 'releaseLease'
+ * >} ControlPlaneState
+ */
+
 export function stateDir() {
   return (
     process.env.PREDICTOR_CONTROL_STATE_DIR ??

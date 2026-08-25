@@ -16,7 +16,8 @@
 import { readFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 
-import { ControlPlaneStore, stateDir } from './state.mjs'
+import { stateDir } from './state.mjs'
+import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
 
@@ -146,7 +147,7 @@ export const readOnlyHandlers = {
 async function main() {
   const argv = process.argv.slice(2)
   const command = argv[0]
-  const store = new ControlPlaneStore()
+  const store = openControlPlaneState()
 
   switch (command) {
     case 'init': {

@@ -28,6 +28,7 @@
     "scripts/control-plane/delivery.mjs",
     "scripts/control-plane/github.mjs",
     "scripts/control-plane/identity.mjs",
+    "scripts/control-plane/ledger.mjs",
     "scripts/control-plane/loop.mjs",
     "scripts/control-plane/observe.mjs",
     "scripts/control-plane/policy.mjs",

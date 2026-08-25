@@ -31,6 +31,52 @@ a project fact that already has a home. Where one is needed, store the
 authority path and re-read it — a copied value goes stale silently. Writes are
 write-then-rename, and `assertNoSecrets` refuses any credential-shaped key.
 
+### The ledger, and what the files could not do
+
+`control-plane.sqlite` holds the same records transactionally.
+`ControlPlaneLedger` is a drop-in for `ControlPlaneStore` — same methods, same
+return shapes — and `tests/scripts/controlPlaneLedger.test.ts` runs **one
+conformance suite against both**, so "drop-in" is measured rather than asserted.
+It has already earned that: three divergences showed up as failures, including a
+ledger that stored `evidence` on the task record when the files deliberately
+keep it in the event log alone.
+
+The files are disposable, `cat`-able and need no dependency, and all three
+survive. What they cannot do is land two facts at once:
+
+- every mutation is read-modify-write over a **whole table**, so two writers
+  interleaving lose one update and the loser leaves no trace;
+- `transition` writes `tasks.json` and *then* appends to `events.jsonl`, so a
+  crash between them leaves a task that moved with no record of moving — or a
+  record of a move that did not happen;
+- the lease exists to serialise writers and nothing acquires it, which is why
+  the first point is not hypothetical.
+
+Each is one transaction away from impossible. `BEGIN IMMEDIATE` takes the write
+lock up front, so two writers serialise at the start rather than discovering the
+conflict at commit with work already done on a stale read, and every event is
+written **inside** its caller's transaction.
+
+The difference is measured, not argued: under the same injected disk-full fault,
+the ledger leaves the task where it was, and the files move the task and lose
+the record.
+
+`node:sqlite` ships with the Node pinned in `.nvmrc`, so this costs no
+dependency, no native build and no audit surface — the same reason the files
+avoided one. Node marks it **experimental** and warns on load; the mitigation is
+that pin, which means the API cannot move without a deliberate Node bump and
+these tests running against it. A stable API would be better and a native
+dependency would be worse. It is loaded on first use rather than at import,
+because the Vite version behind Vitest does not yet know `node:sqlite` is a
+built-in and tries to bundle it — which broke every test that merely reaches
+the control plane, including ones that never open a ledger. That is a tooling
+gap to revisit, not a design choice: a static import is strictly better.
+
+Rows are documents, not columns. A task's shape belongs to `policy.mjs`;
+`sort_order` and `status` are extracted only because the ledger itself orders
+and filters on them, so a new task field is a change in one place rather than a
+migration.
+
 ## Commands
 
 ```bash

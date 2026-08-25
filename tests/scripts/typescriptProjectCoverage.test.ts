@@ -214,6 +214,8 @@ describe('JavaScript under scripts/', () => {
     'scripts/control-plane/delivery.mjs',
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/identity.mjs',
+    // The ledger holds programme state and decides what a restart resumes from.
+    'scripts/control-plane/ledger.mjs',
     'scripts/control-plane/loop.mjs',
     // Observation builds URL paths from values that arrive in task records, and
     // checks them as numbers and SHAs rather than trusting them as strings.
