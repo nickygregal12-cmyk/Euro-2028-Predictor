@@ -118,6 +118,51 @@ Failure classification is conservative. `FLAKY_TEST` is never inferred from a
 failure alone — only from a prior green on that same SHA — and host or provider
 limits are classified as such rather than as source defects.
 
+## Which identity acts, and how much it may hold
+
+`config/control-plane-identity.json` records the lanes autonomous work runs as,
+and `scripts/control-plane/identity.mjs` decides what each may do. Authority is
+a **function of identity**, not a separate grant, so a task, a prompt or a model
+cannot widen it:
+
+| Identity class | Meaning | Authority ceiling |
+| --- | --- | --- |
+| `UNPROVISIONED` | no credential, deliberately | `NONE` |
+| `OWNER_ATTRIBUTED` | the owner's own account | `REPOSITORY_WRITE` |
+| `MACHINE` | a distinct non-owner actor | `DEPLOYMENT_EXECUTOR` |
+
+Three lanes exist. `verification` reads (`READ_ONLY`), `repository` pushes task
+branches and opens pull requests (`REPOSITORY_WRITE`), and `deployment` — the
+future trusted Production/migration executor — is `UNPROVISIONED` and holds
+nothing.
+
+**What this record admits.** There is no distinct machine account today. Both
+provisioned lanes resolve to the owner's own GitHub user, proved live on 25
+August 2026 as `nickygregal12-cmyk#289518917`. That is attributable — every
+autonomous action lands in the audit record under a real account — but it is not
+a separate executor identity, and saying so is the point. The consequence is
+mechanical: `OWNER_ATTRIBUTED` ceilings at `REPOSITORY_WRITE`, so no lane can be
+handed `DEPLOYMENT_EXECUTOR` until a genuinely distinct `MACHINE` actor exists
+and is recorded. Raising the number in the file does not raise the ceiling —
+`authorityForLane` re-derives it from the identity class and the record fails
+its own coherence check.
+
+```bash
+npm run check:machine-identity          # the record is coherent; no network
+node scripts/check-machine-identity.mjs --live   # each lane resolves to its recorded actor
+```
+
+The offline half runs in CI, on the pull request that would raise a ceiling. The
+live half catches what a clone cannot see: a credential rotated to another
+account, or a lane recorded as having none that has acquired one. An unresolved
+provisioned lane is a failure, never a pass — an identity that cannot be proved
+is exactly the case this gate exists for. Neither half prints a credential; they
+report only the login, numeric id and account type it resolved to.
+
+Provisioning is deliberately not automated. Creating a machine account or
+installation credential is an owner action in GitHub settings, and a control
+plane that could mint its own executor identity would not be constrained by one.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

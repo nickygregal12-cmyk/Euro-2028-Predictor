@@ -1,0 +1,35 @@
+{
+  "repository": "nickygregal12-cmyk/Euro-2028-Predictor",
+  "lanes": {
+    "verification": {
+      "purpose": "Read-only MCP and hosted verification. Gathers evidence; never writes.",
+      "credentialSource": "GITHUB_MCP_TOKEN in ~/.config/predictor-cloud/opencode.env, mode 0600, inherited by the Conductor service and by stage0-live-acceptance.sh",
+      "authority": "READ_ONLY",
+      "identityClass": "OWNER_ATTRIBUTED",
+      "expectedActor": { "login": "nickygregal12-cmyk", "id": 289518917, "type": "User" }
+    },
+    "repository": {
+      "purpose": "Task-branch push and pull-request create/update. Never merges, never edits protection.",
+      "credentialSource": "GitHub CLI OAuth on the Hetzner host (gh auth token)",
+      "authority": "REPOSITORY_WRITE",
+      "identityClass": "OWNER_ATTRIBUTED",
+      "expectedActor": { "login": "nickygregal12-cmyk", "id": 289518917, "type": "User" }
+    },
+    "deployment": {
+      "purpose": "Future trusted Production/migration executor. Deliberately does not exist yet.",
+      "credentialSource": "none provisioned",
+      "authority": "NONE",
+      "identityClass": "UNPROVISIONED",
+      "expectedActor": null
+    }
+  },
+  "distinctFrom": {
+    "deployment": ["verification", "repository"]
+  },
+  "verifiedAt": "2026-08-25T00:00:00.000Z",
+  "evidence": {
+    "source": "GET https://api.github.com/user on 25 August 2026 resolved the credential this session could reach to login 'nickygregal12-cmyk', id 289518917, type 'User', with an empty x-oauth-scopes header (a fine-grained or installation token, not a classic PAT).",
+    "whatThisRecordAdmits": "There is no distinct machine account today. Both provisioned lanes resolve to the owner's own GitHub user. That is ATTRIBUTABLE — every autonomous action lands in the audit record under a real account — but it is not a separate autonomous executor identity, and this record says so rather than implying one exists. The consequence is mechanical, not advisory: OWNER_ATTRIBUTED ceilings at REPOSITORY_WRITE, so DEPLOYMENT_EXECUTOR authority cannot be granted to any lane until a genuinely distinct MACHINE actor is provisioned and recorded here.",
+    "whyNotAutoProvisioned": "Creating a machine account or an installation credential is an owner action in GitHub settings. A control plane that could mint its own executor identity would not be constrained by one."
+  }
+}
