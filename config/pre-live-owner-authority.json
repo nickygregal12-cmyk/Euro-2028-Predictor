@@ -1,0 +1,53 @@
+{
+  "mode": "PRE_LIVE_OWNER",
+  "lane": "repository",
+  "//": [
+    "The operations autonomous repository work may perform, as an ALLOWLIST.",
+    "An operation absent from this file is denied \u2014 a policy that enumerated only",
+    "what is forbidden would grant every operation nobody thought of yet.",
+    "Each operation names the authority level it needs; whether the acting lane",
+    "holds that level is decided by config/control-plane-identity.json, not here."
+  ],
+  "operations": {
+    "branch.create": {
+      "requires": "REPOSITORY_WRITE",
+      "requiresTaskBranch": true
+    },
+    "commit.create": {
+      "requires": "REPOSITORY_WRITE",
+      "requiresTaskBranch": true
+    },
+    "branch.push": {
+      "requires": "REPOSITORY_WRITE",
+      "requiresTaskBranch": true
+    },
+    "pr.create": {
+      "requires": "REPOSITORY_WRITE",
+      "requiresTaskBranch": true
+    },
+    "pr.update": {
+      "requires": "REPOSITORY_WRITE",
+      "requiresTaskBranch": true
+    },
+    "ci.read": {
+      "requires": "READ_ONLY"
+    },
+    "review.read": {
+      "requires": "READ_ONLY"
+    },
+    "repository.read": {
+      "requires": "READ_ONLY"
+    }
+  },
+  "additionalDenied": {
+    "pr.approve": "A change cannot approve itself. Review is an independent judgement."
+  },
+  "evidence": {
+    "source": "Stage 4 of the control-plane programme. Supersedes the unmerged #1041, which proposed this authority with no identity layer beneath it and whose merge-boundary prose is now factually wrong: it states Protect Main requires only 'CI / Required merge gate', while the live ruleset 20508177 requires three contexts.",
+    "whyAnAllowlist": "#1041 enumerated forbidden git and gh invocations. A blocklist grants everything nobody thought to forbid, and the set of dangerous invocations is open-ended \u2014 a new gh flag, a new subcommand, a shell construct that reaches the same effect. This file names what is permitted; everything else is denied by absence.",
+    "whatIsNeverGranted": "The refusals that matter are not in this file at all. They are ALWAYS_DENIED in scripts/control-plane/authority.mjs, in code, so that editing this record cannot remove one. A control plane whose forbidden set lives in data it can write is not constrained by it.",
+    "merge": "pr.merge is never granted. Merge eligibility is computed from observed GitHub state by policy.mjs and performed only when every required context is green on the exact head; that is a separate deterministic decision, not an authority a worker holds.",
+    "whyConstraintsAreData": "The first version of this record carried a prose 'constraint' on each operation \u2014 'a task-namespaced branch', 'never on a protected branch' \u2014 that decideOperation never received and could not check. That is the exact failure this stage exists to end: text that reads like a mechanism and enforces nothing. requiresTaskBranch is checked, and an operation declaring it is DENIED when no branch is supplied, so the constraint cannot be satisfied by omission.",
+    "whyTheRepositoryIsPinned": "Review found the wrappers fixed the ref and left the repository open. owner-task-push pinned the remote NAME 'origin' but never read remote.origin.pushurl, and owner-pr fixed base and head while gh resolved the target repository from an inherited GH_REPO. Both are the same mistake as the identity gate's: constrain the visible surface, leave an equivalent path open. Both now resolve the expected repository from config/control-plane-identity.json and refuse anything else."
+  }
+}

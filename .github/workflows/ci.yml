@@ -75,6 +75,11 @@ jobs:
         # it refuses a lane that claims more authority than its identity class
         # permits, which is the edit a pull request would make.
         run: npm run check:machine-identity
+      - name: Verify bounded owner authority policy
+        # An allowlist, so a pull request that widens it must add an operation
+        # here. The permanent refusals are in code and this proves the policy
+        # cannot grant one.
+        run: npm run check:owner-authority
       - name: Check the documentation authorities against the contract
         # Two halves. Without arguments it asserts freshness: a document that
         # names contract numbers must name the current one as its newest. With

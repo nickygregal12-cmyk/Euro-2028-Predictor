@@ -180,6 +180,72 @@ Provisioning is deliberately not automated. Creating a machine account or
 installation credential is an owner action in GitHub settings, and a control
 plane that could mint its own executor identity would not be constrained by one.
 
+## What autonomous repository work may do
+
+`config/pre-live-owner-authority.json` names the operations, and
+`scripts/control-plane/authority.mjs` decides them. Granted today, each
+subject to the acting identity lane holding the level it needs:
+
+| Operation | Needs |
+| --- | --- |
+| `branch.create`, `commit.create`, `branch.push` | `REPOSITORY_WRITE`, on a task branch |
+| `pr.create`, `pr.update` | `REPOSITORY_WRITE`, on a task branch |
+| `ci.read`, `review.read`, `repository.read` | `READ_ONLY` |
+
+An operation marked `requiresTaskBranch` is **denied when no branch is
+supplied**, not allowed — otherwise a constraint is satisfied by omitting the
+thing it constrains. The first version of this record carried those rules as
+prose that the decision function never received, which is the failure this stage
+exists to end.
+
+```bash
+npm run check:owner-authority              # report and validate the policy
+node scripts/check-pre-live-owner-authority.mjs branch.push   # decide one operation
+```
+
+Two properties carry the safety, and both are structural rather than stated.
+
+**It is an allowlist.** An operation the policy does not name is denied because
+it is not named. The superseded #1041 enumerated forbidden `git` and `gh`
+invocations instead, which grants everything nobody thought to forbid — and that
+set is open-ended: a new flag, a new subcommand, a shell construct reaching the
+same effect.
+
+**The refusals are code.** `ALWAYS_DENIED` lives in `authority.mjs`, not in the
+record, so editing the record cannot remove or reword one: direct push to a
+protected branch, force-push, branch-protection and ruleset edits, merge,
+Production mutation, secret mutation, arbitrary hosted writes, and any widening
+of what a model may do. They are checked *before* the acting identity is
+consulted at all, so no identity reaches past them. A control plane whose
+forbidden set lives in data it can write is not constrained by it.
+
+Authority is not decided here either. This policy says which level an operation
+needs; whether the lane holds it is the identity record above. So no single file
+can unlock an operation — and `DEPLOYMENT_EXECUTOR` is not requirable in this
+mode at all, because Production work belongs to a later stage and a distinct
+machine actor, not to a larger value in a config file.
+
+`owner-branch.sh`, `owner-commit.sh`, `owner-task-push.sh` and `owner-pr.sh`
+under `scripts/agent-tools/` are the enforcing edge, and the Builder's own
+permissions deny the direct `git commit`, `git push`, branch-creating and
+`gh pr` forms so that the wrappers are the way through. A gate a worker may
+decline to call is not a gate: without that routing the policy would be
+advisory, which is the state this stage exists to leave. The read-only and
+navigating git forms are untouched — the denials are narrower than the allows
+they override. Each asks the policy before
+acting, passing the branch it is standing on, and each forwards only an
+allowlist of option names. The push wrapper takes no arguments at all, so force
+and target selection are unavailable rather than rejected.
+
+**The repository is pinned, not just the ref.** Review found both wrappers
+constrained what was written and left *where* open: the push wrapper passed the
+remote name `origin` without reading `remote.origin.pushurl`, and `gh` resolved
+its target from an inherited `GH_REPO` while the wrapper reported that it had
+fixed base and head. Both now resolve the expected `owner/repo` from the
+identity record and refuse anything else — every effective push URL is checked,
+more than one push URL is refused, a configured URL rewrite rule is refused, and
+`gh` is passed `--repo` explicitly with `GH_REPO` cleared.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`

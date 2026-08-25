@@ -33,8 +33,17 @@ describe('persistent private cloud Conductor', () => {
     expect(builder).toContain('mode: subagent')
     expect(builder).toContain('model: openai/gpt-5.6-sol')
     expect(builder).toContain('edit: allow')
-    expect(builder).toContain('"git push*": ask')
-    expect(builder).toContain('"gh pr create*": ask')
+    // Denied, not asked. An owner prompt is a person deciding each time; these
+    // route through the wrappers that ask the authority policy, which is what
+    // makes config/pre-live-owner-authority.json binding rather than advisory.
+    for (const denied of ['"git push*": deny', '"git commit*": deny', '"gh pr create*": deny',
+      '"gh pr edit*": deny', '"gh pr merge*": deny', '"git switch -c*": deny', '"git checkout -b*": deny']) {
+      expect(builder, denied).toContain(denied)
+    }
+    expect(builder).toContain('"bash scripts/agent-tools/*": allow')
+    // The read-only and navigating forms survive: the denials are narrower.
+    expect(builder).toContain('"git status*": allow')
+    expect(builder).toContain('"git add*": allow')
     expect(builder).toContain('stop and report it rather than silently creating spend')
 
     expect(critic).toContain('mode: primary')
