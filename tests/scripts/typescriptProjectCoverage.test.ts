@@ -204,6 +204,9 @@ describe('JavaScript under scripts/', () => {
     // The control-plane loop modules arrived clean under checkJs and decide
     // merge eligibility and safety brakes, so they are checked on arrival.
     'scripts/control-plane/authority.mjs',
+    // The canary runner is what registers the mutating handlers and starts the
+    // loop. Checked on arrival for the same reason as the handlers themselves.
+    'scripts/control-plane/canary.mjs',
     'scripts/control-plane/cli.mjs',
     // The delivery handlers are the only shipped code that can push. They are
     // checked on arrival for the same reason they are not registered by

@@ -306,6 +306,45 @@ usage (2) failure, so the loop classifies it `POLICY` rather than `CODE`. A
 denial is not a defect, and retrying one only spends attempts on a decision that
 will never change.
 
+### Running it
+
+`scripts/control-plane/canary.mjs` is what registers those handlers and starts
+the run, and starting it is the only thing an owner does:
+
+```
+node scripts/control-plane/canary.mjs \
+  --branch <namespace>/<name> --title <text> --body-file <path> \
+  --hard-stop <ISO> --independent '["npx","vitest","run","<a bounded test path>"]'
+```
+
+The run opens in `ACTIVE` mode with `maxPullRequests: 1`, so the budget brake
+stops a second delivery even if the graph asked for one.
+
+**The acceptance is the shape of the decision log, not the pull request.** A
+pull request opened by an agent proves an agent can call `gh`, which was never
+in doubt. What has to hold is: every task was chosen by the scheduler in
+dependency order with nothing prompting it; the push returned `WAITING_CI` and
+the worker exited; the task depending on the push was never dispatched;
+independent work ran while the push waited; and the run ended `WAITING_EXTERNAL`
+— parked, not finished, and not idle.
+
+**Why the pull request does not depend on the push.** `delivery.push` never
+reaches `COMPLETED` by design, so nothing may depend on its status and still
+run. But a pull request for a branch that was never pushed describes a head that
+is not on the remote. The gate is therefore the push's **checkpoint** rather
+than its status: parked work still leaves durable evidence behind, and that
+evidence is what the next task reads — the same mechanism a restarted control
+plane uses to pick a run back up.
+
+`delivery.merge` has no handler at all. It depends on the push, so the engine
+must never reach it; if it ever did, the missing handler surfaces as
+`NO_HANDLER` rather than merging something quietly.
+
+Staging is its own task, and it refuses the enforcement surface one step earlier
+than `delivery.mjs` does — at the moment the file list is known, rather than
+after a branch already exists. Two edges asking the same question is the pattern
+the wrappers already use.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`
@@ -329,6 +368,20 @@ dispatched again, independent work proceeds unprompted, its dependant stays
 blocked, a long wait reports `WAITING_EXTERNAL` rather than accruing no-progress
 cycles, a true stall still escalates, and the parked task resumes only when a
 watcher supplies fresh external evidence.
+
+`tests/scripts/deliveryCanaryRunner.test.ts` covers the runner: one start
+driving stage, branch, commit, push and pull request in order; the push parking
+while independent work completes; `delivery.merge` never dispatched; the run
+ending `WAITING_EXTERNAL`; and the refusals — an empty index, a staged
+enforcement file, a pull request with no push checkpoint, and a checkpoint for
+another branch.
+
+**A note for whoever runs this next.** `ciTestDiscoveryFloor` and
+`typescriptProjectCoverage` both compare runtime discovery against
+`git ls-files`, so both fail while the tree holds a new file that has not been
+committed yet — which is exactly the window between staging and committing that
+an autonomous delivery works in. They are behaving correctly; the failure means
+"not committed", not "broken".
 
 A product task must never modify the running loop engine or its safety policy.
 Fix the loop through its own change, with these tests re-run, before restarting
