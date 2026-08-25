@@ -347,8 +347,19 @@ async function checkLive(record) {
 
   console.error('')
   if (drift.reason) console.error(drift.reason)
+  // An unread ruleset and an absent one produce the same `missing` list, and
+  // they must not produce the same sentence. "It does not gate a merge" is a
+  // claim about hosted state; when the read failed, that state was never
+  // observed. Saying it anyway reads as "protection has been removed from
+  // main" — which is what a missing proxy setting printed on 25 August 2026,
+  // three times, under contexts that were in fact all live and required.
+  // The verdict was right either way; only the operator acting on it was
+  // misled, and in the one direction that provokes an emergency response.
+  const unverified = drift.status === 'UNREADABLE'
   for (const context of drift.missing) {
-    console.error(`  MISSING     ${context} — the record expects this to gate a merge; it does not.`)
+    console.error(unverified
+      ? `  UNVERIFIED  ${context} — the record expects this to gate a merge; the ruleset was not read, so this is unconfirmed, not known to be absent.`
+      : `  MISSING     ${context} — the record expects this to gate a merge; it does not.`)
   }
   for (const context of drift.promoted) {
     console.error(`  PROMOTED    ${context} — now required, but the record still lists it as not required.`)
