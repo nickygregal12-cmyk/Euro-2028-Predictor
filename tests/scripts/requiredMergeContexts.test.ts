@@ -9,6 +9,7 @@ import {
   findUnpublishedContexts,
 } from '../../scripts/control-plane/ruleset.mjs'
 import {
+  defaultBranchFrom,
   jobNames,
   parseRecord,
   resolveRepository,
@@ -293,5 +294,35 @@ describe('a request that cannot address anything but the API', () => {
       const url = rulesUrl('owner/repo', branch, 1, 100)
       expect(url.origin).toBe('https://api.github.com')
     }
+  })
+})
+
+describe('taking the branch from the remote rather than from the record', () => {
+  it('reads the default branch out of the symref answer', () => {
+    expect(
+      defaultBranchFrom('ref: refs/heads/main\tHEAD\n347a2c9\tHEAD\n'),
+    ).toBe('main')
+    expect(
+      defaultBranchFrom('ref: refs/heads/release/2028\tHEAD\nabc\tHEAD\n'),
+    ).toBe('release/2028')
+  })
+
+  it('refuses rather than guessing when the remote did not say', () => {
+    // Fail closed. A default branch this could not read is not `main`, and
+    // assuming it is would verify a branch nobody confirmed exists.
+    expect(() => defaultBranchFrom('')).toThrow(/default branch/)
+    expect(() => defaultBranchFrom('347a2c9\tHEAD\n')).toThrow(/default branch/)
+  })
+
+  it('agrees with the tracked record on this repository', () => {
+    // The record's branch is a claim — the same claim the ruleset makes with
+    // `~DEFAULT_BRANCH`. If it drifted from the real default branch, the live
+    // check would verify some other branch's rules and report MATCHED while
+    // the branch everything merges into sat unprotected.
+    const symref = execFileSync('git', ['ls-remote', '--symref', 'origin', 'HEAD'], {
+      cwd: repositoryRoot,
+      encoding: 'utf8',
+    })
+    expect(defaultBranchFrom(symref)).toBe(record.branch)
   })
 })

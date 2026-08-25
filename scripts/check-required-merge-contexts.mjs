@@ -238,6 +238,20 @@ export function rulesUrl(repository, branch, page, perPage) {
   return url
 }
 
+/**
+ * The default branch, according to the remote rather than according to us.
+ *
+ * `git ls-remote --symref origin HEAD` answers with `ref: refs/heads/<name>`,
+ * which is what the ruleset's `~DEFAULT_BRANCH` condition actually resolves to.
+ *
+ * @param {string} output
+ */
+export function defaultBranchFrom(output) {
+  const match = /^ref: refs\/heads\/(\S+)\s+HEAD$/m.exec(output)
+  if (!match?.[1]) throw new Error('could not read the default branch from origin')
+  return match[1]
+}
+
 /** @param {RequiredContextRecord} record */
 async function fetchEffectiveRules(record) {
   const origin = (() => {
@@ -251,7 +265,25 @@ async function fetchEffectiveRules(record) {
   const token = process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN
   if (!token) throw new Error('no GITHUB_TOKEN or GH_TOKEN in the environment')
 
-  console.log(`Reading the hosted rules for ${repository}@${record.branch}`)
+  // THE BRANCH IS CHECKED AGAINST THE REMOTE, NOT TAKEN FROM THE RECORD. The
+  // record naming a branch is a claim, and the same claim the ruleset makes
+  // with `~DEFAULT_BRANCH` — so it is compared, never trusted. A record edited
+  // to name some other real branch would otherwise send this to verify THAT
+  // branch's rules and report MATCHED, while the branch everything merges into
+  // sat unprotected. That is the hard-coded-repository bug again, one field
+  // along: a confident answer about the wrong subject.
+  //
+  // It is also why nothing read from the file reaches the request below.
+  const branch = defaultBranchFrom(
+    execFileSync('git', ['ls-remote', '--symref', 'origin', 'HEAD'], { encoding: 'utf8' }),
+  )
+  if (branch !== record.branch) {
+    throw new Error(
+      `the record names '${record.branch}' but origin's default branch is '${branch}'`,
+    )
+  }
+
+  console.log(`Reading the hosted rules for ${repository}@${branch}`)
 
   // PAGINATED, because this endpoint is. The default page is 30 rules, and a
   // missed page does not fail — it returns a shorter list, which reads as a
@@ -260,7 +292,7 @@ async function fetchEffectiveRules(record) {
   const perPage = 100
   const rules = []
   for (let page = 1; ; page += 1) {
-    const response = await fetch(rulesUrl(repository, record.branch, page, perPage), {
+    const response = await fetch(rulesUrl(repository, branch, page, perPage), {
       headers: {
         authorization: `Bearer ${token}`,
         accept: 'application/vnd.github+json',
