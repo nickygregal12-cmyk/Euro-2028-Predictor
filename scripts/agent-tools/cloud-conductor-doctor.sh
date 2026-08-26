@@ -35,6 +35,27 @@ ready() { printf 'READY    %-28s %s\n' "$1" "$2"; ready_count=$((ready_count + 1
 optional() { printf 'OPTIONAL %-28s %s\n' "$1" "$2"; optional_count=$((optional_count + 1)); }
 missing() { printf 'MISSING  %-28s %s\n' "$1" "$2"; missing_count=$((missing_count + 1)); }
 
+browser_apparmor_profile_matches() {
+  local profile_file="$1" loaded_profiles="$2" expected_executable="$3"
+  [ -r "$profile_file" ] && [ -r "$loaded_profiles" ] || return 1
+  python3 - "$profile_file" "$expected_executable" <<'PY'
+from pathlib import Path
+import sys
+
+profile_file, executable = sys.argv[1:]
+expected = f'''abi <abi/4.0>,
+include <tunables/global>
+
+profile predictor-browser "{executable}" flags=(unconfined) {{
+  userns,
+}}
+'''
+raise SystemExit(0 if Path(profile_file).read_text() == expected else 1)
+PY
+  [ "$?" -eq 0 ] || return 1
+  grep -Fqx 'predictor-browser (unconfined)' "$loaded_profiles"
+}
+
 printf 'Predictor persistent cloud workspace\n'
 printf '====================================\n'
 
@@ -90,6 +111,14 @@ process.exit(p.installerVersion === process.argv[2] && p.coupledMcpVersion === p
   if [ -n "$browser_version" ]; then
     ready 'Browser runtime' "$browser_version at $browser_executable"
     browser_profile="$(readlink -f "$browser_executable")"
+    if browser_apparmor_profile_matches \
+      '/etc/apparmor.d/predictor-browser' \
+      '/sys/kernel/security/apparmor/profiles' \
+      "$browser_profile"; then
+      ready 'Browser AppArmor profile' 'exact executable userns profile is installed and loaded'
+    else
+      missing 'Browser AppArmor profile' 'exact profile must be readable, unchanged and loaded as predictor-browser (unconfined)'
+    fi
     browser_state_dir="$(mktemp -d)"
     if timeout 20 "$browser_profile" --headless --disable-gpu --no-first-run \
       --user-data-dir="$browser_state_dir" --dump-dom about:blank >/dev/null 2>&1; then

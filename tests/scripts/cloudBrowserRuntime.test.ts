@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
@@ -84,8 +85,47 @@ describe('persistent cloud browser runtime', () => {
     expect(sandboxInstall).toBeGreaterThan(alreadyPresent)
     expect(install.slice(alreadyPresent, sandboxInstall)).not.toMatch(/exit 0/)
     expect(doctor).toContain("ready 'Browser sandbox'")
+    expect(doctor).toContain("ready 'Browser AppArmor profile'")
+    expect(doctor).toContain('/etc/apparmor.d/predictor-browser')
+    expect(doctor).toContain('/sys/kernel/security/apparmor/profiles')
     expect(doctor).toContain('--dump-dom')
     expect(doctor).not.toContain('--no-sandbox')
+  })
+
+  it('accepts only the exact loaded AppArmor profile for the resolved browser', () => {
+    const doctor = read('scripts/agent-tools/cloud-conductor-doctor.sh')
+    const start = doctor.indexOf('browser_apparmor_profile_matches() {')
+    const fn = doctor.slice(start, doctor.indexOf('\n}\n', start) + 3)
+    expect(fn).toContain('predictor-browser (unconfined)')
+
+    const directory = mkdtempSync(resolve(tmpdir(), 'predictor-browser-apparmor-'))
+    const profile = resolve(directory, 'predictor-browser')
+    const loaded = resolve(directory, 'profiles')
+    const executable = '/opt/predictor-playwright/pinned/chrome'
+    const exactProfile = `abi <abi/4.0>,
+include <tunables/global>
+
+profile predictor-browser "${executable}" flags=(unconfined) {
+  userns,
+}
+`
+    writeFileSync(profile, exactProfile)
+    writeFileSync(loaded, 'predictor-browser (unconfined)\n')
+
+    const verdict = (profilePath: string, loadedPath: string, expectedExecutable: string) =>
+      execFileSync('bash', [
+        '-c', `${fn}\nbrowser_apparmor_profile_matches "$1" "$2" "$3" && echo ok || echo no`,
+        'bash', profilePath, loadedPath, expectedExecutable,
+      ], { encoding: 'utf8' }).trim()
+
+    expect(verdict(profile, loaded, executable)).toBe('ok')
+    expect(verdict(profile, loaded, `${executable}-other`)).toBe('no')
+    writeFileSync(profile, `${exactProfile}# unexpected extra semantics\n`)
+    expect(verdict(profile, loaded, executable)).toBe('no')
+    writeFileSync(profile, exactProfile)
+    writeFileSync(loaded, 'some-other-profile (unconfined)\n')
+    expect(verdict(profile, loaded, executable)).toBe('no')
+    expect(verdict(resolve(directory, 'missing'), loaded, executable)).toBe('no')
   })
 
   it('keeps all Stage 0 cloud shell entrypoints syntactically valid', () => {

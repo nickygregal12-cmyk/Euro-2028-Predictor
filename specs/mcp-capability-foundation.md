@@ -59,8 +59,9 @@ the agent role that needs them.
    unavailable states without printing credentials.
 5. One dependency-free local MCP tool accepts only a canonical `hub` or `euro`
    production identity, makes a GET-only request to the fixed public Netlify
-   current-deploy endpoint, rejects redirects/arbitrary identities/actions,
-   and returns only bounded non-secret deploy metadata.
+   current-deploy endpoint with the Production filter, rejects redirects and
+   arbitrary identities/actions, and selects only a canonical, ready, published
+   `main`-branch Production row before returning bounded non-secret metadata.
 6. Pinned Serena health-check leaves `.serena/project.yml` byte-stable, and CI
    fails if it rewrites the tracked normalization.
 7. Optional Claude install merges `DISABLE_AUTOUPDATER=1` into user settings,

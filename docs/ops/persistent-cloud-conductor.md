@@ -414,9 +414,12 @@ both browser MCPs. On Ubuntu 24.04 it installs and reloads an AppArmor profile
 attached to the exact versioned executable, granting that executable only the
 `userns` permission needed by Chrome's normal sandbox. Reruns check this host
 support even when browser provenance already matches. The doctor then performs
-a harmless sandboxed headless launch; runtime/config presence alone is not a
-pass. Do not substitute a sandbox-disabling browser flag or a host-wide AppArmor
-or user-namespace relaxation.
+a non-privileged exact-content check of the installed profile, proves the named
+profile is present in the kernel's loaded AppArmor inventory, and performs a
+harmless sandboxed headless launch; runtime/config presence alone is not a pass.
+An unreadable, altered or unloaded profile fails closed. Do not substitute a
+sandbox-disabling browser flag or a host-wide AppArmor or user-namespace
+relaxation.
 
 The Visual QA lane uses repository Playwright/browser evidence; it does not make screenshots a substitute for working interaction or authoritative state.
 

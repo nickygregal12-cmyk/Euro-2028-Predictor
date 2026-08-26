@@ -13,6 +13,7 @@
   "files": [
     "scripts/agent-tools/configure-claude-settings.mjs",
     "scripts/agent-tools/merge-cloud-env.mjs",
+    "scripts/agent-tools/netlify-public-deploy-mcp.mjs",
     "scripts/check-bundle-budget.mjs",
     "scripts/check-hosted-migration-inventory.mjs",
     "scripts/check-documentation-authorities.mjs",

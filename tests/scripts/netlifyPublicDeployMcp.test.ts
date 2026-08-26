@@ -47,6 +47,8 @@ describe('public Netlify current-deploy MCP adapter', () => {
     const fetch = vi.fn(async (_url: Parameters<typeof globalThis.fetch>[0], _init?: RequestInit) => new Response(JSON.stringify([{
       id: 'deploy-123',
       site_id: '88356cfb-6815-44ed-9ff6-83100425fac4',
+      context: 'production',
+      branch: 'main',
       state: 'ready',
       commit_ref: 'abc123',
       created_at: '2026-08-26T10:00:00Z',
@@ -61,8 +63,8 @@ describe('public Netlify current-deploy MCP adapter', () => {
     expect(fetch).toHaveBeenCalledOnce()
     const [url, init] = fetch.mock.calls[0]!
     expect(new URL(url as string).origin).toBe(NETLIFY_API_ORIGIN)
-    expect(url).toBe(
-      `${NETLIFY_API_ORIGIN}/api/v1/sites/88356cfb-6815-44ed-9ff6-83100425fac4/deploys?per_page=1`,
+    expect(String(url)).toBe(
+      `${NETLIFY_API_ORIGIN}/api/v1/sites/88356cfb-6815-44ed-9ff6-83100425fac4/deploys?production=true&per_page=20`,
     )
     expect(init).toEqual(expect.objectContaining({ method: 'GET', redirect: 'error' }))
     expect(result).toEqual({
@@ -77,6 +79,57 @@ describe('public Netlify current-deploy MCP adapter', () => {
     })
     expect(JSON.stringify(result)).not.toContain('SECRET')
     expect(JSON.stringify(result)).not.toContain('deploy_ssl_url')
+  })
+
+  it('selects the latest published Production deploy from mixed newer rows', async () => {
+    const canonicalSiteId = '88356cfb-6815-44ed-9ff6-83100425fac4'
+    const fetch = vi.fn(async () => new Response(JSON.stringify([
+      {
+        id: 'newer-preview', site_id: canonicalSiteId, context: 'deploy-preview',
+        branch: 'pull/1065/head', state: 'ready', published_at: '2026-08-26T11:03:00Z',
+      },
+      {
+        id: 'newer-production-build', site_id: canonicalSiteId, context: 'production',
+        branch: 'main', state: 'building', published_at: null,
+      },
+      {
+        id: 'current-production', site_id: canonicalSiteId, context: 'production',
+        branch: 'main', state: 'ready', commit_ref: 'production-sha',
+        created_at: '2026-08-26T10:00:00Z', updated_at: '2026-08-26T10:01:00Z',
+        published_at: '2026-08-26T10:01:00Z',
+      },
+      {
+        id: 'older-production', site_id: canonicalSiteId, context: 'production',
+        branch: 'main', state: 'ready', published_at: '2026-08-25T10:01:00Z',
+      },
+    ])))
+
+    const result = await fetchCurrentProductionDeploy('hub', fetch)
+
+    expect(result.deployId).toBe('current-production')
+    expect(result.commitSha).toBe('production-sha')
+  })
+
+  it('fails closed when no canonical ready published main Production deploy exists', async () => {
+    const canonicalSiteId = '88356cfb-6815-44ed-9ff6-83100425fac4'
+    const fetch = vi.fn(async () => new Response(JSON.stringify([
+      {
+        id: 'preview', site_id: canonicalSiteId, context: 'deploy-preview',
+        branch: 'main', state: 'ready', published_at: '2026-08-26T10:01:00Z',
+      },
+      {
+        id: 'branch-production', site_id: canonicalSiteId, context: 'production',
+        branch: 'release', state: 'ready', published_at: '2026-08-26T10:01:00Z',
+      },
+      {
+        id: 'unpublished-production', site_id: canonicalSiteId, context: 'production',
+        branch: 'main', state: 'ready', published_at: null,
+      },
+    ])))
+
+    await expect(fetchCurrentProductionDeploy('hub', fetch)).rejects.toThrow(
+      'no canonical ready published Production deploy',
+    )
   })
 
   it('rejects arbitrary site identities and actions before any network call', async () => {
@@ -109,10 +162,11 @@ describe('public Netlify current-deploy MCP adapter', () => {
     await expect(fetchCurrentProductionDeploy('hub', oversized)).rejects.toThrow('response exceeded')
 
     const wrongSite = vi.fn(async (_url: Parameters<typeof globalThis.fetch>[0], _init?: RequestInit) => new Response(JSON.stringify([{
-      id: 'deploy-123', site_id: 'not-the-canonical-site', state: 'ready',
+      id: 'deploy-123', site_id: 'not-the-canonical-site', context: 'production',
+      branch: 'main', state: 'ready', published_at: '2026-08-26T10:01:00Z',
     }])))
     await expect(fetchCurrentProductionDeploy('hub', wrongSite)).rejects.toThrow(
-      'response site did not match canonical identity',
+      'no canonical ready published Production deploy',
     )
   })
 })
