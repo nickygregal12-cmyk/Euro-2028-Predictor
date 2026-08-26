@@ -89,6 +89,15 @@ process.exit(p.installerVersion === process.argv[2] && p.coupledMcpVersion === p
   browser_version="$($browser_executable --version 2>/dev/null || true)"
   if [ -n "$browser_version" ]; then
     ready 'Browser runtime' "$browser_version at $browser_executable"
+    browser_profile="$(readlink -f "$browser_executable")"
+    browser_state_dir="$(mktemp -d)"
+    if timeout 20 "$browser_profile" --headless --disable-gpu --no-first-run \
+      --user-data-dir="$browser_state_dir" --dump-dom about:blank >/dev/null 2>&1; then
+      ready 'Browser sandbox' 'pinned Chromium completed a sandboxed headless launch'
+    else
+      missing 'Browser sandbox' 'rerun cloud-browser-install.sh to install/load the exact AppArmor userns profile'
+    fi
+    rm -rf "$browser_state_dir"
   else
     missing 'Browser runtime' "executable exists but did not return a version: $browser_executable"
   fi

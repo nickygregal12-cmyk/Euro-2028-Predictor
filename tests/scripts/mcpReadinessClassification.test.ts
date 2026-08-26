@@ -18,7 +18,7 @@ const servers = [
   'repomix',
   'supabase-dev',
   'supabase-prod',
-  'netlify',
+  'netlify-public',
   'github',
   'sentry',
   'posthog',

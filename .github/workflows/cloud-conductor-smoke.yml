@@ -28,12 +28,12 @@ on:
       - 'scripts/agent-tools/cloud-conductor-*.sh'
       - 'scripts/agent-tools/cloud-browser-install.sh'
       - 'scripts/agent-tools/stage0-live-acceptance.sh'
+      - 'scripts/agent-tools/netlify-public-deploy-mcp.mjs'
       - 'scripts/agent-tools/ox-review.sh'
       - 'scripts/agent-tools/claude-review.sh'
       - 'scripts/agent-tools/configure-claude-settings.mjs'
       - 'scripts/agent-tools/merge-cloud-env.mjs'
       - 'scripts/agent-tools/mcp-readiness.sh'
-      - 'scripts/agent-tools/netlify-mcp-fallback.sh'
       - 'docs/ops/persistent-cloud-conductor.md'
       - 'tests/scripts/cloudConductorConfiguration.test.ts'
       - 'tests/scripts/cloudBrowserRuntime.test.ts'
@@ -71,12 +71,12 @@ jobs:
         scripts/agent-tools/cloud-conductor-*.sh
         scripts/agent-tools/cloud-browser-install.sh
         scripts/agent-tools/stage0-live-acceptance.sh
+        scripts/agent-tools/netlify-public-deploy-mcp.mjs
         scripts/agent-tools/ox-review.sh
         scripts/agent-tools/claude-review.sh
         scripts/agent-tools/configure-claude-settings.mjs
         scripts/agent-tools/merge-cloud-env.mjs
         scripts/agent-tools/mcp-readiness.sh
-        scripts/agent-tools/netlify-mcp-fallback.sh
         docs/ops/persistent-cloud-conductor.md
         tests/scripts/cloudConductorConfiguration.test.ts
         tests/scripts/cloudBrowserRuntime.test.ts

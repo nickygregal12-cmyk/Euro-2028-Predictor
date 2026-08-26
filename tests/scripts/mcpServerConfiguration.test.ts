@@ -73,6 +73,7 @@ const EXPECTED_SERVER_NAMES = [
   'serena',
   'context7',
   'repomix',
+  'netlify-public',
 ] as const
 
 describe('MCP server configuration', () => {
@@ -99,7 +100,7 @@ describe('MCP server configuration', () => {
     const config = json<OpenCodeConfiguration>('opencode.json')
     expect(Object.keys(config.mcp).sort()).toEqual([
       ...EXPECTED_SERVER_NAMES,
-      'supabase-dev', 'supabase-prod', 'netlify', 'github', 'sentry', 'posthog',
+      'supabase-dev', 'supabase-prod', 'github', 'sentry', 'posthog',
     ].sort())
     for (const name of EXPECTED_SERVER_NAMES) {
       expect(config.mcp[name]?.type).toBe('local')
@@ -118,8 +119,6 @@ describe('MCP server configuration', () => {
     expect(prod.searchParams.get('project_ref')).toBe('vkfnsqdyhvtwyqkisxhk')
     expect(prod.searchParams.get('read_only')).toBe('true')
     expect(prod.searchParams.get('features')).toBe('database,debugging,docs')
-    expect(mcp.netlify!.url).toBe('https://netlify-mcp.netlify.app/mcp')
-
     expect(mcp.github!.url).toBe('https://api.githubcopilot.com/mcp/readonly')
     expect(mcp.github!.oauth).toBe(false)
     expect(mcp.github!.headers).toEqual({
@@ -132,7 +131,7 @@ describe('MCP server configuration', () => {
     expect(sentry.searchParams.get('skills')).toBe('inspect')
     expect(sentry.searchParams.get('skills')?.split(',')).not.toContain('triage')
     expect(sentry.searchParams.get('disable-skills')).toBe('seer')
-    for (const name of ['supabase-dev', 'supabase-prod', 'netlify', 'sentry', 'posthog']) {
+    for (const name of ['supabase-dev', 'supabase-prod', 'sentry', 'posthog']) {
       expect(mcp[name]!.oauth).toEqual({})
     }
 
@@ -160,8 +159,8 @@ describe('MCP server configuration', () => {
     expect(agent('predictor-visual-qa')).toContain('chrome-devtools_*: true')
     const releaseVerifier = agent('predictor-release-verifier')
     expect(releaseVerifier).toContain('supabase-prod_*: true')
-    expect(releaseVerifier).toContain('netlify_netlify-deploy-services-reader: true')
-    expect(releaseVerifier).not.toContain('netlify_*: true')
+    expect(releaseVerifier).toContain('netlify-public_current-production-deploy: true')
+    expect(releaseVerifier).not.toContain('netlify-public_*: true')
     expect(config.tools['sentry_*']).toBe(false)
     expect(config.tools['posthog_*']).toBe(false)
     const allAgentPolicies = [

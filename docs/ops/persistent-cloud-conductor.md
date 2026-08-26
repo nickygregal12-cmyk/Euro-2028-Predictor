@@ -165,6 +165,11 @@ carried: PostHog supports it, and it unions with `tools`, so including it would
 widen the exposed set back out. Wildcard, catalog, multiplexer, write/triage,
 Seer and agent-feedback grants remain forbidden.
 
+Netlify current-deploy evidence is credential-free and does not use the remote
+management MCP. The tracked local adapter accepts only canonical production
+`hub`/`euro` selectors, performs one fixed-host GET, and exposes only bounded
+deploy identity/state/commit/timestamp fields to Release Verifier.
+
 This repository policy is not live acceptance. After merge, restart/reload
 OpenCode on Hetzner and run `stage0-live-acceptance.sh --live` to prove the exact
 role-visible tools, the harmless reads and write-tool absence under the reloaded
@@ -403,6 +408,15 @@ After resizing to a comfortable browser/build host if necessary:
 ```bash
 npm run test:e2e:install
 ```
+
+The cloud installer also provisions the pinned shared Chromium runtime used by
+both browser MCPs. On Ubuntu 24.04 it installs and reloads an AppArmor profile
+attached to the exact versioned executable, granting that executable only the
+`userns` permission needed by Chrome's normal sandbox. Reruns check this host
+support even when browser provenance already matches. The doctor then performs
+a harmless sandboxed headless launch; runtime/config presence alone is not a
+pass. Do not substitute a sandbox-disabling browser flag or a host-wide AppArmor
+or user-namespace relaxation.
 
 The Visual QA lane uses repository Playwright/browser evidence; it does not make screenshots a substitute for working interaction or authoritative state.
 

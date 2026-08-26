@@ -63,5 +63,6 @@ describe('release verifier hosted identities', () => {
     expect(verifier).toContain('exact `siteId`')
     expect(verifier).toContain('deploy ID is live external truth')
     expect(verifier).toContain('retired `euro28-predictor-dev`')
+    expect(verifier).toContain('netlify-public_current-production-deploy')
   })
 })

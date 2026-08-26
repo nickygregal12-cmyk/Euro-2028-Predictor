@@ -66,6 +66,10 @@ describe('persistent cloud browser runtime', () => {
     expect(install).toContain('install --with-deps "$browser_name"')
     expect(install).toContain('p.runtimeRoot === process.argv[5]')
     expect(install).toContain('coupledMcpVersion')
+    expect(install).toContain('profile predictor-browser "$browser_executable" flags=(unconfined)')
+    expect(install).toContain('userns,')
+    expect(install).toContain('apparmor_parser -r')
+    expect(install).not.toContain('--no-sandbox')
     expect(conductorInstall).toContain('bash scripts/agent-tools/cloud-browser-install.sh')
     expect(doctor).toContain("require('./config/browser-runtime.json').executableLink")
     expect(doctor).toContain("ready 'Browser runtime'")
@@ -73,8 +77,15 @@ describe('persistent cloud browser runtime', () => {
 
     const launchProof = install.indexOf('if ! browser_version="$($executable_link --version')
     const provenanceWrite = install.indexOf('| sudo tee "$provenance_file"')
+    const sandboxInstall = install.indexOf('install_browser_sandbox_profile')
+    const alreadyPresent = install.indexOf('Pinned browser runtime already present')
     expect(launchProof).toBeGreaterThan(-1)
     expect(provenanceWrite).toBeGreaterThan(launchProof)
+    expect(sandboxInstall).toBeGreaterThan(alreadyPresent)
+    expect(install.slice(alreadyPresent, sandboxInstall)).not.toMatch(/exit 0/)
+    expect(doctor).toContain("ready 'Browser sandbox'")
+    expect(doctor).toContain('--dump-dom')
+    expect(doctor).not.toContain('--no-sandbox')
   })
 
   it('keeps all Stage 0 cloud shell entrypoints syntactically valid', () => {
