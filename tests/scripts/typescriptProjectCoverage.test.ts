@@ -228,6 +228,9 @@ describe('JavaScript under scripts/', () => {
     'scripts/control-plane/state.mjs',
     // The supervisor holds the writer lane and decides what a crash left behind.
     'scripts/control-plane/supervisor.mjs',
+    // The watcher decides when a wait ends, which is a merge decision one step
+    // removed.
+    'scripts/control-plane/watch.mjs',
     'scripts/check-bundle-budget.mjs',
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',

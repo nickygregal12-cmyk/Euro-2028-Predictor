@@ -452,6 +452,35 @@ describe('merge eligibility is decided from GitHub state, not assertion', () => 
     }
   })
 
+  it('waits on a required decider with no run while the head is still working', () => {
+    // Measured against a live pull request rather than a fixture: two minutes
+    // after the push, `ci` was in progress and the aggregate it feeds had no run
+    // at all, so this routed a perfectly healthy branch to REPAIR_CI.
+    const pr = normalisePullRequest(
+      {
+        number: 1060, state: 'open', mergeable: true,
+        checkRuns: [{ name: 'ci', status: 'in_progress', conclusion: null, head_sha: 'HEAD' }],
+      },
+      { requiredCheckNames: ['CI / Required merge gate'] },
+    )
+
+    expect(nextStateForPullRequest(pr)).toMatchObject({ nextAction: 'WATCH_CI' })
+  })
+
+  it('calls the same decider missing once nothing is running any more', () => {
+    // The other half: settling is the discriminator, so the branch that is
+    // genuinely owed a context that will never arrive still routes to repair.
+    const pr = normalisePullRequest(
+      {
+        number: 1060, state: 'open', mergeable: true,
+        checkRuns: [{ name: 'ci', status: 'completed', conclusion: 'success', head_sha: 'HEAD' }],
+      },
+      { requiredCheckNames: ['CI / Required merge gate'] },
+    )
+
+    expect(nextStateForPullRequest(pr)).toMatchObject({ nextAction: 'REPAIR_CI' })
+  })
+
   it('routes a required decider that never reported to repair rather than a wait', () => {
     const pr = normalisePullRequest(
       { number: 11, state: 'open', mergeable: true, checkRuns: [] },

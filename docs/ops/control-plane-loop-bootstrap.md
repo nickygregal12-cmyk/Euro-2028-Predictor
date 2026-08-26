@@ -151,6 +151,62 @@ the queue is rescanned immediately. Independent, dependency-valid work runs
 during the wait; a dependant of the parked task stays blocked, because waiting is
 not completion.
 
+**And something has to ask.** By Stage 7 every piece of this existed and none
+of them were joined up: `observe.mjs` fetches a pull request, `experience.mjs`
+says whose failure it is, `github.mjs` triages, `policy.mjs` routes, and
+`delivery.push` parks with `nextAction: 'a watcher supplies check evidence for
+this head'`. Nothing was that watcher, so the wait had no end — the pieces could
+answer the question and nobody ever asked it.
+
+`ci.watch` asks it. One bounded task: read the pull request, route it, move the
+parked task. It decides nothing itself, because `routeFromBlockers` already
+returns the route and a second opinion here would be one more than can ever
+agree.
+
+| Route | The parked task becomes |
+| --- | --- |
+| `MERGE` | `COMPLETED` — mechanically eligible |
+| `WATCH_CI` | still `WAITING_CI` — the only route that keeps waiting |
+| `REPAIR_CI`, `ADDRESS_REVIEW`, `MERGE_BASE`, `RECONCILE` | `WAITING_OWNER`, blocker named |
+
+A red branch is handed over rather than re-queued: under the current authority
+the control plane can say precisely what is wrong and cannot write the fix, and
+re-queueing would re-run a push that was never the problem. An unrecognised
+route reads as *do not act*, never as carry on — one arriving here unmapped
+means `policy.mjs` and this file have drifted.
+
+**It will not merge.** `pr.merge` is in `ALWAYS_DENIED` in `authority.mjs`, in
+code rather than in a config file, so it cannot be edited away. A green verdict
+ends as evidence. Lifting that is a deliberate change to the enforcement
+surface, which goes through review by hand — the canary refuses to deliver one,
+and it should.
+
+The expected head is supplied by the task and compared, never taken from
+whatever the pull request says now. A push during the wait moves the head, and
+applying the old verdict to the new commit is the fail-open `decideCanaryMerge`
+exists to prevent, reached from the other side.
+
+**An unrun required check is owed, not broken.** `normalisePullRequest`
+substitutes `missing_decider` for a required name it did not observe, and both
+readings of that are real: on a freshly pushed head it is the aggregate job not
+having started, and on `DOC-001` it is a `paths:`-filtered workflow that will
+never report. Routing it by conclusion alone has to be wrong about one of them,
+so it is routed by whether the head has **settled** — whether anything observed
+on it, required or not, is still running.
+
+That was found by running the watcher against a live pull request rather than a
+fixture. Two minutes after the push, `ci` was in progress and the aggregate it
+feeds had no run at all, so a perfectly healthy branch routed to `REPAIR_CI` and
+the watcher handed it to the owner as broken. Merge is unaffected either way:
+`check_missing_decider:` stays a blocker, so this only ever turns repairing into
+waiting, never blocked into eligible. `headHasSettled` is one definition used by
+both routing callers, because two would eventually disagree about the same head.
+
+The required set is read from `config/required-merge-contexts.json`, not copied
+here. That file exists because a required-check set is hosted state a clone
+cannot see, and the run that produced it found two places in this repository
+asserting a context was required when it was not.
+
 **And something has to say whose failure it is.** `classifyFailure` has two
 branches nothing could reach:
 
