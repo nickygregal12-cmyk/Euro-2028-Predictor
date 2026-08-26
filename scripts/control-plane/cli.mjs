@@ -8,6 +8,7 @@
  *   node scripts/control-plane/cli.mjs run [--max-ticks N]
  *   node scripts/control-plane/cli.mjs supervise [--max-passes N]
  *   node scripts/control-plane/cli.mjs status
+ *   node scripts/control-plane/cli.mjs report [--json]
  *   node scripts/control-plane/cli.mjs stop [--reason text] | resume
  *
  * State lives outside the repository (see state.mjs). Nothing here mutates a
@@ -22,6 +23,7 @@ import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
 import { Supervisor } from './supervisor.mjs'
 import { watchHandlers } from './watch.mjs'
+import { renderText, summariseRun } from './report.mjs'
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
 
 const now = () => new Date().toISOString()
@@ -247,6 +249,15 @@ async function main() {
       const result = await supervisor.run()
       console.log(`${result.outcome} after ${result.passes.length} pass(es)`)
       if (result.outcome === 'LEASE_HELD') process.exitCode = 1
+      return
+    }
+
+    case 'report': {
+      // `status` lists every task; this answers whether anyone is needed. Two
+      // commands rather than a flag because they are read in different places
+      // and at different moments.
+      const summary = summariseRun(store, { now: now() })
+      console.log(arg(argv, 'json', false) === true ? JSON.stringify(summary, null, 2) : renderText(summary))
       return
     }
 
