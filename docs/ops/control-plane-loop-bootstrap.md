@@ -84,6 +84,7 @@ node scripts/control-plane/cli.mjs init --hard-stop <iso> [--mode ACTIVE] [--max
 node scripts/control-plane/cli.mjs add <id> --objective <text> [--after a,b] \
                                            [--handler name] [--order n] [--mutating]
 node scripts/control-plane/cli.mjs run [--max-ticks 50]
+node scripts/control-plane/cli.mjs supervise [--max-passes 1000]
 node scripts/control-plane/cli.mjs status
 node scripts/control-plane/cli.mjs stop [--reason text]
 node scripts/control-plane/cli.mjs resume
@@ -91,6 +92,43 @@ node scripts/control-plane/cli.mjs resume
 
 `init` is idempotent: an existing run is resumed, never replaced, so a restarted
 process picks up its own checkpoints.
+
+## The loop that keeps running
+
+`run` is a **batch**: it ticks until nothing can be advanced this pass, prints,
+and exits. That is right for a person at a terminal and wrong for a programme,
+because almost every stop it reports is temporary — `WAITING_EXTERNAL` means CI
+is running, `IDLE` means nothing is runnable *right now*, and both become
+runnable again with nobody typing anything. A batch loop turns every external
+wait into a wait for a human.
+
+`supervise` runs passes until a reason that is actually a reason: the run is
+complete, the hard stop is reached, or someone pulled the brake. Between passes
+it waits by *why* it stopped — a minute on CI, two on idle, five on the owner,
+because looking again does not summon anyone. It ships with `readOnlyHandlers`,
+for the reason `run` does: a supervisor started to watch a programme must not be
+able to push.
+
+**It holds the writer lane.** `state.mjs` has had a lease since Loop Bootstrap
+and nothing had ever acquired it — said plainly when the ledger landed, since an
+unheld lease is why concurrent read-modify-write was not hypothetical. The
+supervisor takes it before the first tick, renews it **before** each wait rather
+than after, and releases it on the way out. Renewing after would ask one lease
+to cover the pass *and* the wait together, which a long observation pass plus a
+long wait does not fit inside; renewing before only ever has to cover the wait.
+A second supervisor against the same state stands down rather than interleaving.
+
+**It reconciles what a crash left behind.** A task is marked `RUNNING` before its
+handler is called, and if the process dies in between, that mark outlives it.
+`RUNNING` is neither terminal nor waiting, so the scheduler is perfectly happy to
+select it again — free for a read, and for a mutation a second push, a second
+commit, or a second pull request, because nothing in the state can say what the
+dead process managed to do first.
+
+So an interrupted read is re-queued and an interrupted **mutation is parked for
+the owner**. "Did something happen out there" is a question the loop cannot
+answer from its own state, which is what `WAITING_OWNER` is for. It parks one
+task, not the programme; everything independent keeps moving.
 
 ## Modes and brakes
 

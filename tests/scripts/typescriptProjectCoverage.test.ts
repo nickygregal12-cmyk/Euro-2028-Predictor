@@ -226,6 +226,8 @@ describe('JavaScript under scripts/', () => {
     'scripts/control-plane/policy.mjs',
   'scripts/control-plane/ruleset.mjs',
     'scripts/control-plane/state.mjs',
+    // The supervisor holds the writer lane and decides what a crash left behind.
+    'scripts/control-plane/supervisor.mjs',
     'scripts/check-bundle-budget.mjs',
     'scripts/check-hosted-migration-inventory.mjs',
     'scripts/deployment-contract-expectations.mjs',
