@@ -26,6 +26,7 @@
     "scripts/control-plane/canary.mjs",
     "scripts/control-plane/cli.mjs",
     "scripts/control-plane/delivery.mjs",
+    "scripts/control-plane/experience.mjs",
     "scripts/control-plane/github.mjs",
     "scripts/control-plane/identity.mjs",
     "scripts/control-plane/ledger.mjs",

@@ -30,6 +30,16 @@ function githubReturning(overrides: Record<string, unknown> = {}) {
       })),
     },
     [`repos/${REPOSITORY}/commits/${HEAD}/status`]: { statuses: [] },
+    // The experience reads: every run for the head, and the base's own runs.
+    // Separate from the latest-per-name set above on purpose — see the comment
+    // in observePullRequest.
+    [`repos/${REPOSITORY}/commits/${HEAD}/check-runs?per_page=100&filter=all`]: {
+      check_runs: [
+        { name: REQUIRED[0], status: 'completed', conclusion: 'success', started_at: '2026-08-25T10:00:00Z', head_sha: HEAD },
+        { name: REQUIRED[0], status: 'completed', conclusion: 'failure', started_at: '2026-08-25T11:00:00Z', head_sha: HEAD },
+      ],
+    },
+    [`repos/${REPOSITORY}/commits/BASE/check-runs?per_page=100&filter=all`]: { check_runs: [] },
     [`repos/${REPOSITORY}/pulls/1056/reviews?per_page=100`]: [],
     ...overrides,
   }
@@ -52,6 +62,9 @@ describe('observation fetches, and decides nothing', () => {
     expect(paths).toContain(`repos/${REPOSITORY}/commits/${HEAD}/check-runs?per_page=100`)
     expect(observed.checkRuns).toHaveLength(3)
     expect(paths.every((path) => path.startsWith(`repos/${REPOSITORY}/`))).toBe(true)
+    // The full history is fetched separately from the latest-per-name set:
+    // merging them would let an older attempt become the verdict.
+    expect(paths).toContain(`repos/${REPOSITORY}/commits/${HEAD}/check-runs?per_page=100&filter=all`)
   })
 
   it('hands github.mjs something it can triage without any further shaping', async () => {
@@ -115,7 +128,12 @@ describe('the ci.observe handler releases a parked task or leaves it parked', ()
     expect(result.checkpoint?.sha).toBe(HEAD)
     expect(written).toHaveLength(1)
     expect(written[0]?.[0]).toBe('/tmp/observation.json')
-    expect(JSON.parse(String(written[0]?.[1])).checkRuns).toHaveLength(3)
+    const observation = JSON.parse(String(written[0]?.[1]))
+    expect(observation.checkRuns).toHaveLength(3)
+    // The evidence triage has always accepted and never been given.
+    expect(observation.experience).toMatchObject({
+      previouslyGreenOnSameSha: [REQUIRED[0]], redOnBase: [], baseRead: 'read',
+    })
   })
 
   it('refuses to observe into nowhere', async () => {

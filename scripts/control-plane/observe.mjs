@@ -24,6 +24,8 @@ import { execFileSync } from 'node:child_process'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { gatherExperience } from './experience.mjs'
+
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
 /** The pinned `owner/repo`, read the same way every enforcing edge reads it. */
@@ -106,10 +108,16 @@ export async function observePullRequest({ number, repository, read = getJson })
   const observed = await read(`repos/${target}/pulls/${pull}`)
   const head = assertCommitSha(observed?.head?.sha)
 
-  const [checks, status, reviews] = await Promise.all([
+  const [checks, status, reviews, experience] = await Promise.all([
     read(`repos/${target}/commits/${head}/check-runs?per_page=100`),
     read(`repos/${target}/commits/${head}/status`),
     read(`repos/${target}/pulls/${pull}/reviews?per_page=100`),
+    // Read separately, and deliberately not merged into `checkRuns`.
+    // `normalisePullRequest` keys checks by name and takes the last one it
+    // sees, so handing it every run for the commit would let an OLDER attempt
+    // silently become the verdict. The latest-per-name set decides; the full
+    // history is evidence about that set, and the two must not be confused.
+    gatherExperience({ read, repository: target, headSha: head, baseSha: observed?.base?.sha }),
   ])
 
   return {
@@ -117,6 +125,7 @@ export async function observePullRequest({ number, repository, read = getJson })
     checkRuns: checks?.check_runs ?? [],
     statuses: status?.statuses ?? [],
     reviews: reviews ?? [],
+    experience,
   }
 }
 

@@ -212,6 +212,9 @@ describe('JavaScript under scripts/', () => {
     // checked on arrival for the same reason they are not registered by
     // default: an unexamined type error there acts on the repository.
     'scripts/control-plane/delivery.mjs',
+    // Experience decides whether a red belongs to this branch at all, so an
+    // unexamined type error there fails in the forgiving direction.
+    'scripts/control-plane/experience.mjs',
     'scripts/control-plane/github.mjs',
     'scripts/control-plane/identity.mjs',
     // The ledger holds programme state and decides what a restart resumes from.

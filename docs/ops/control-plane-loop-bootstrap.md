@@ -113,6 +113,47 @@ the queue is rescanned immediately. Independent, dependency-valid work runs
 during the wait; a dependant of the parked task stays blocked, because waiting is
 not completion.
 
+**And something has to say whose failure it is.** `classifyFailure` has two
+branches nothing could reach:
+
+```
+if (signal.redOnBase) return 'INHERITED_FAILURE'
+if (signal.previouslyGreenOnSameSha) return 'FLAKY_TEST'
+```
+
+`triagePullRequest` takes both as lists, both default to `[]`, and no caller
+ever supplied either — so a failure the base branch already had was classified
+as the branch's own, and `FLAKY_TEST` had never once been produced. A policy
+branch that cannot fire is a policy that does not exist.
+`scripts/control-plane/experience.mjs` supplies both, and both used to be *task
+fields*: a record could declare a failure inherited or flaky and the classifier
+would agree, which is the editable-data escape hatch the authority policy
+refuses for the same reason. They come from the observation now, and from
+nowhere else.
+
+**"Flake" is a claim about one commit.** The only evidence for it is that the
+same commit already passed the check — not that it passes elsewhere, not that it
+looks unrelated, and not that a re-run went green afterwards, because a check
+that failed and was re-run green has no failure left to classify. So the case is
+narrow and stays narrow: an earlier run on this exact SHA succeeded and the
+current one did not. Two runs of a name prove nothing by themselves — measured
+against real data, a `paths:`-filtered workflow reported `skipped` twice on one
+commit.
+
+The full run history is fetched **separately** from the latest-per-name set.
+`normalisePullRequest` keys checks by name and takes the last it sees, so
+handing it every run for a commit would let an older attempt silently become the
+verdict. The latest set decides; the history is evidence about that set.
+
+When the base cannot be read, the failure is treated as this branch's. Assuming
+the base was red would let a real regression through as `INHERITED_FAILURE`;
+not knowing must never become the convenient answer.
+
+Nothing here is written down or carried forward in prose. Both answers are
+re-derived from the commits they are about, at the moment they are needed —
+experience that is re-derived cannot go stale, and experience nobody wrote down
+cannot be quietly edited into something more convenient.
+
 **Something has to be able to release it.** `delivery.push` parks with
 `nextAction: 'a watcher supplies check evidence for this head'`, and a parked
 task nothing can release is not a checkpoint, it is a dead end.

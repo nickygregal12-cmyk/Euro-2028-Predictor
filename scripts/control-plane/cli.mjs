@@ -129,9 +129,15 @@ export const readOnlyHandlers = {
       requiredCheckNames: task.requiredChecks ?? [],
       baseSha: task.baseSha,
     })
+    // Both come from the observation, and from nowhere else. They used to be
+    // task fields, which meant a record could DECLARE a failure inherited or
+    // flaky and the classifier would agree — the editable-data escape hatch the
+    // authority policy refuses for exactly the same reason. "Flake" is a claim
+    // about one commit, and only that commit's own history can support it.
+    const experience = raw.experience ?? {}
     const triage = triagePullRequest(pr, {
-      redOnBase: task.redOnBase ?? [],
-      previouslyGreenOnSameSha: task.previouslyGreenOnSameSha ?? [],
+      redOnBase: experience.redOnBase ?? [],
+      previouslyGreenOnSameSha: experience.previouslyGreenOnSameSha ?? [],
     })
     return {
       ok: true,
