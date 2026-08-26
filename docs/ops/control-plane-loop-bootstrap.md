@@ -83,8 +83,8 @@ migration.
 node scripts/control-plane/cli.mjs init --hard-stop <iso> [--mode ACTIVE] [--max-prs 8]
 node scripts/control-plane/cli.mjs add <id> --objective <text> [--after a,b] \
                                            [--handler name] [--order n] [--mutating]
-node scripts/control-plane/cli.mjs run [--max-ticks 50]
-node scripts/control-plane/cli.mjs supervise [--max-passes 1000]
+node scripts/control-plane/cli.mjs run [--max-ticks 50] [--max-concurrent 1]
+node scripts/control-plane/cli.mjs supervise [--max-passes 1000] [--max-concurrent 1]
 node scripts/control-plane/cli.mjs status
 node scripts/control-plane/cli.mjs report [--json]
 node scripts/control-plane/cli.mjs stop [--reason text]
@@ -563,6 +563,39 @@ Staging is its own task, and it refuses the enforcement surface one step earlier
 than `delivery.mjs` does — at the moment the file list is known, rather than
 after a branch already exists. Two edges asking the same question is the pattern
 the wrappers already use.
+
+## More than one at a time, and never two mutations
+
+`tick` advances the programme by one task. `tickBatch` advances it by up to
+`maxConcurrentTasks`, **which defaults to one** — parallelism is opted into with
+`--max-concurrent`, never inherited from an upgrade. A programme that quietly
+began dispatching three tasks at once would be a different programme from the
+one whose safety was argued.
+
+**At most one mutating task is ever in flight.** Two is two pushes on one
+branch, or a commit racing the push meant to carry it: not a race worth having
+for the throughput it buys, and no bound short of one makes it safe. A second
+mutating task is skipped rather than ending the batch, so independent read-only
+work behind it still runs — observing a pull request while another task pushes
+is exactly the overlap worth taking.
+
+Three things it deliberately does not do:
+
+- **It does not re-check dependencies.** `selectEligibleTask` only returns tasks
+  whose dependencies have `COMPLETED`, so nothing in a batch can depend on
+  anything else in it. A second check here would be a second answer.
+- **It does not reimplement the gates.** One task and several share `#dispatch`
+  verbatim, so `mutationDispatchAllowed`, the handler lookup and the settle path
+  are the same code. A parallel dispatcher with its own gates would be a second
+  place mutation is authorised.
+- **It does not touch the writer lease.** Stage 7's lease is what makes
+  concurrency safe rather than what stands in its way, and the ledger's
+  `BEGIN IMMEDIATE` transactions are what make concurrent writers correct.
+  Removing either to go faster would remove the reason this is safe at all.
+
+Every task in a batch is marked `RUNNING` before any handler is awaited, so a
+crash mid-batch leaves all of them reconcilable — the supervisor's reconciler
+reads that mark, and a task dispatched without it is one it cannot put right.
 
 ## Reading it away from the machine
 

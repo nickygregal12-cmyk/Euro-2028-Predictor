@@ -5,8 +5,8 @@
  *   node scripts/control-plane/cli.mjs init --hard-stop <iso> [--mode ACTIVE]
  *   node scripts/control-plane/cli.mjs add <id> --objective <text> [--after a,b]
  *                                             [--handler name] [--mutating]
- *   node scripts/control-plane/cli.mjs run [--max-ticks N]
- *   node scripts/control-plane/cli.mjs supervise [--max-passes N]
+ *   node scripts/control-plane/cli.mjs run [--max-ticks N] [--max-concurrent N]
+ *   node scripts/control-plane/cli.mjs supervise [--max-passes N] [--max-concurrent N]
  *   node scripts/control-plane/cli.mjs status
  *   node scripts/control-plane/cli.mjs report [--json]
  *   node scripts/control-plane/cli.mjs stop [--reason text] | resume
@@ -20,6 +20,7 @@ import { execFileSync } from 'node:child_process'
 
 import { stateDir } from './state.mjs'
 import { openControlPlaneState } from './ledger.mjs'
+import { DEFAULT_LIMITS } from './policy.mjs'
 import { LoopEngine } from './loop.mjs'
 import { Supervisor } from './supervisor.mjs'
 import { watchHandlers } from './watch.mjs'
@@ -66,6 +67,21 @@ function numericArg(argv, name, fallback) {
   if (raw === undefined) return fallback
   const value = Number(valuedArg(argv, name))
   return Number.isFinite(value) ? value : null
+}
+
+/**
+ * Limits with the caller's concurrency, or null if they asked for nonsense.
+ *
+ * Parallelism is a flag rather than a default: `DEFAULT_LIMITS` dispatches one
+ * task at a time, and raising that is something an operator says out loud.
+ *
+ * @param {string[]} argv
+ * @returns {import('./policy.mjs').Limits | null}
+ */
+function concurrencyLimits(argv) {
+  const maxConcurrentTasks = numericArg(argv, 'max-concurrent', DEFAULT_LIMITS.maxConcurrentTasks)
+  if (maxConcurrentTasks === null || maxConcurrentTasks < 1) return null
+  return { ...DEFAULT_LIMITS, maxConcurrentTasks }
 }
 
 /**
@@ -219,7 +235,13 @@ async function main() {
         process.exitCode = 2
         return
       }
-      const engine = new LoopEngine({ store, handlers: readOnlyHandlers, now })
+      const limits = concurrencyLimits(argv)
+      if (!limits) {
+        console.error('--max-concurrent must be a positive number')
+        process.exitCode = 2
+        return
+      }
+      const engine = new LoopEngine({ store, handlers: readOnlyHandlers, now, limits })
       const decisions = await engine.run({ maxTicks })
       for (const decision of decisions) {
         console.log(`${decision.at} ${decision.outcome} ${decision.dispatched ?? ''}`.trim())
@@ -238,10 +260,17 @@ async function main() {
         process.exitCode = 2
         return
       }
+      const supervisorLimits = concurrencyLimits(argv)
+      if (!supervisorLimits) {
+        console.error('--max-concurrent must be a positive number')
+        process.exitCode = 2
+        return
+      }
       const supervisor = new Supervisor({
         store,
         handlers: readOnlyHandlers,
         now,
+        engine: new LoopEngine({ store, handlers: readOnlyHandlers, now, limits: supervisorLimits }),
         sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms) }),
         maxPasses,
         log: (message) => { console.log(`${now()} ${message}`) },

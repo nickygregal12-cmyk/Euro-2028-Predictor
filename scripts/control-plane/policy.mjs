@@ -24,7 +24,8 @@
  *   [key: string]: any }} Run
  *
  * @typedef {{ maxAttemptsPerTask: number, maxRepeatedIdenticalFailures: number,
- *   maxNoProgressCycles: number, noProgressStallMs: number, maxPullRequests: number }} Limits
+ *   maxNoProgressCycles: number, noProgressStallMs: number, maxPullRequests: number,
+ *   maxConcurrentTasks: number }} Limits
  *
  * @typedef {{ name: string, status?: string, conclusion?: string, output?: string,
  *   runSha?: string }} Check
@@ -105,6 +106,11 @@ export const FAILURE_CLASSES = Object.freeze([
 ])
 
 export const DEFAULT_LIMITS = Object.freeze({
+  // One at a time unless a caller says otherwise. Parallelism is opted into,
+  // never inherited from an upgrade: a programme that quietly began dispatching
+  // three tasks at once would be a different programme than the one whose
+  // safety was argued.
+  maxConcurrentTasks: 1,
   maxAttemptsPerTask: 3,
   maxRepeatedIdenticalFailures: 2,
   maxNoProgressCycles: 2,
