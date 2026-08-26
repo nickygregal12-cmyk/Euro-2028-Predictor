@@ -86,6 +86,7 @@ node scripts/control-plane/cli.mjs add <id> --objective <text> [--after a,b] \
 node scripts/control-plane/cli.mjs run [--max-ticks 50]
 node scripts/control-plane/cli.mjs supervise [--max-passes 1000]
 node scripts/control-plane/cli.mjs status
+node scripts/control-plane/cli.mjs report [--json]
 node scripts/control-plane/cli.mjs stop [--reason text]
 node scripts/control-plane/cli.mjs resume
 ```
@@ -562,6 +563,33 @@ Staging is its own task, and it refuses the enforcement surface one step earlier
 than `delivery.mjs` does — at the moment the file list is known, rather than
 after a branch already exists. Two edges asking the same question is the pattern
 the wrappers already use.
+
+## Reading it away from the machine
+
+`status` lists every task and its state. That is the right thing at a desk and
+the wrong thing on a phone, because it answers "what are all the tasks" when the
+only question away from the machine is **does this need me**. A list of fourteen
+rows where one says `WAITING_OWNER` makes the reader do the filtering, and a
+reader doing the filtering on a train will miss it.
+
+`report` leads with a verdict — `NEEDS_YOU`, `WORKING`, `WAITING`, `BLOCKED`,
+`STOPPED`, `DONE`, `NO_RUN` — and justifies it underneath. The order is
+deliberate: a stopped programme is stopped whatever else is true, and something
+waiting on a person outranks something waiting on a machine, because only one of
+the two will resolve itself. Empty sections are omitted rather than printed as
+"none": a screen that always shows the same headings trains the reader to skip
+them, and the one time a heading has something under it is the time they will
+not look.
+
+**"Runnable" is the scheduler's answer, not a state name.** Counting every
+`QUEUED` task as runnable read a real canary ledger as `WORKING` when its only
+queued task was `delivery.merge` — which depends on a parked push and can never
+be dispatched. Found by running the report against that ledger rather than a
+fixture. A control room that says `WORKING` while nothing works is worse than
+one that says nothing.
+
+It decides nothing and changes nothing. A reporting layer that could act would
+be a second place the programme advances, and the design has one.
 
 ## Which provider, and whether it is worth reaching
 

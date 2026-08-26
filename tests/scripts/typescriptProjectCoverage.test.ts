@@ -228,6 +228,9 @@ describe('JavaScript under scripts/', () => {
     // refused credential is retried. Checked on arrival for the same reason the
     // authority policy is.
     'scripts/control-plane/providers.mjs',
+    // The report is what an owner reads away from the machine to decide whether
+    // to intervene, so a type error there misinforms exactly when it matters.
+    'scripts/control-plane/report.mjs',
   'scripts/control-plane/ruleset.mjs',
     'scripts/control-plane/state.mjs',
     // The supervisor holds the writer lane and decides what a crash left behind.
