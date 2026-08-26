@@ -359,6 +359,27 @@ export function evaluateMergeEligibility(pr) {
 }
 
 /**
+ * Has everything on this head finished running?
+ *
+ * Every OBSERVED check, not just the required ones: a required aggregate with no
+ * run of its own is owed precisely while the job it aggregates is still going,
+ * and that job is usually not itself required. One definition, used by both
+ * routing callers, because two would eventually disagree about the same head.
+ *
+ * An empty observation counts as settled — nothing is running — which is the
+ * stricter reading and keeps a pull request with no checks at all routing to
+ * repair rather than to a wait that nothing would end.
+ *
+ * @param {any} pr
+ * @returns {boolean}
+ */
+export function headHasSettled(pr) {
+  return (pr?.observedChecks ?? []).every(
+    (/** @type {any} */ check) => check?.status === 'completed',
+  )
+}
+
+/**
  * Route a pull request from its blockers alone.
  *
  * Split out from `nextStateForPullRequest` so a caller holding better evidence
@@ -373,9 +394,13 @@ export function evaluateMergeEligibility(pr) {
  * programme latency.
  *
  * @param {string[]} blockers
+ * @param {{ settled?: boolean }} [observation] `settled` is false while any
+ *   check on the head is still running. It defaults to true so a caller that
+ *   cannot tell gets the stricter reading: a required context with no run is
+ *   treated as missing rather than as owed.
  * @returns {{ status: TaskState, nextAction: string, blockers: string[] }}
  */
-export function routeFromBlockers(blockers) {
+export function routeFromBlockers(blockers, { settled = true } = {}) {
   if (blockers.length === 0) return { status: 'ELIGIBLE', nextAction: 'MERGE', blockers }
 
   // Every non-pending check blocker routes to repair, not just failure and
@@ -383,7 +408,30 @@ export function routeFromBlockers(blockers) {
   // conclusion that is not an explicit pass — skipped, timed_out,
   // action_required, missing_decider — and naming only two of them here left
   // the rest falling through to a wait that nothing would ever end.
-  if (blockers.some((b) => b.startsWith('check_') && !b.startsWith('check_pending:'))) {
+  // A required context with NO RUN AT ALL is owed while anything on this head is
+  // still running, and missing once everything has settled.
+  //
+  // `missing_decider` is what `normalisePullRequest` substitutes for a required
+  // name it did not observe, and both readings are real: on a freshly pushed
+  // head it is the aggregate job not having started, and on `DOC-001` it is a
+  // `paths:`-filtered workflow that will never report. Routing it by conclusion
+  // alone has to be wrong about one of them, so it is routed by whether the head
+  // has settled instead.
+  //
+  // Found by running the watcher against a live pull request rather than a
+  // fixture: two minutes after the push, `ci` was in progress and the aggregate
+  // `CI / Required merge gate` had no run, so a perfectly healthy branch routed
+  // to REPAIR_CI and the watcher handed it to the owner as broken. You cannot
+  // repair a check that has not run — but you also cannot wait forever for one
+  // that never will, which is why settling is the discriminator and not time.
+  //
+  // Merge is unaffected either way: `check_missing_decider:` stays a blocker, so
+  // this only ever turns repairing into waiting, never blocked into eligible.
+  const owedNotBroken = (/** @type {string} */ blocker) =>
+    blocker.startsWith('check_pending:') ||
+    (!settled && blocker.startsWith('check_missing_decider:'))
+
+  if (blockers.some((b) => b.startsWith('check_') && !owedNotBroken(b))) {
     return { status: 'ELIGIBLE', nextAction: 'REPAIR_CI', blockers }
   }
   if (
@@ -396,7 +444,7 @@ export function routeFromBlockers(blockers) {
   if (blockers.includes('not_mergeable') || blockers.includes('base_drift_invalidates_evidence')) {
     return { status: 'ELIGIBLE', nextAction: 'MERGE_BASE', blockers }
   }
-  if (blockers.some((b) => b.startsWith('check_pending:'))) {
+  if (blockers.some(owedNotBroken)) {
     return { status: 'WAITING_CI', nextAction: 'WATCH_CI', blockers }
   }
   return { status: 'WAITING_EXTERNAL', nextAction: 'RECONCILE', blockers }
@@ -411,5 +459,5 @@ export function routeFromBlockers(blockers) {
  * @returns {{ status: TaskState, nextAction: string, blockers: string[] }}
  */
 export function nextStateForPullRequest(pr) {
-  return routeFromBlockers(evaluateMergeEligibility(pr).blockers)
+  return routeFromBlockers(evaluateMergeEligibility(pr).blockers, { settled: headHasSettled(pr) })
 }

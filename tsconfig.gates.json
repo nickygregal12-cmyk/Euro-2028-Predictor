@@ -36,6 +36,7 @@
     "scripts/control-plane/ruleset.mjs",
     "scripts/control-plane/state.mjs",
     "scripts/control-plane/supervisor.mjs",
+    "scripts/control-plane/watch.mjs",
     "scripts/deployment-contract-expectations.mjs",
     "scripts/production-hosted-contract-expectations.mjs",
     "scripts/production-site-session.mjs",

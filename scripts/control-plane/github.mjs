@@ -7,7 +7,12 @@
  * normalises whatever they observed and then decides from that alone.
  */
 
-import { classifyFailure, evaluateMergeEligibility, routeFromBlockers } from './policy.mjs'
+import {
+  classifyFailure,
+  evaluateMergeEligibility,
+  headHasSettled,
+  routeFromBlockers,
+} from './policy.mjs'
 
 /**
  * Required checks are the merge-blocking classes, not every check that ran.
@@ -140,6 +145,7 @@ export function triagePullRequest(pr, { redOnBase = [], previouslyGreenOnSameSha
       const owed = /^check_(?!pending:)[^:]+:(.+)$/.exec(blocker)
       return owed && superseded.has(owed[1]) ? `check_pending:${owed[1]}` : blocker
     }),
+    { settled: headHasSettled(pr) },
   )
 
   return {

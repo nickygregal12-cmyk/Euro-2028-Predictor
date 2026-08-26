@@ -21,6 +21,7 @@ import { stateDir } from './state.mjs'
 import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
 import { Supervisor } from './supervisor.mjs'
+import { watchHandlers } from './watch.mjs'
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
 
 const now = () => new Date().toISOString()
@@ -72,6 +73,11 @@ function numericArg(argv, name, fallback) {
  * @type {Record<string, (ctx: any) => Promise<any>>}
  */
 export const readOnlyHandlers = {
+  // `ci.watch` reads GitHub and moves a parked task; it cannot push, comment or
+  // merge, so it belongs with the read-only set rather than behind the same
+  // deliberate registration the mutating handlers need.
+  ...watchHandlers(),
+
   /** Reconcile local git against origin and persist what was observed. */
   'git.reconcile': async ({ at }) => {
     const git = (/** @type {string[]} */ ...args) =>
