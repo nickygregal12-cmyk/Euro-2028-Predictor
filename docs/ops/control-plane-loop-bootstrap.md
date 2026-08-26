@@ -563,6 +563,53 @@ than `delivery.mjs` does — at the moment the file list is known, rather than
 after a branch already exists. Two edges asking the same question is the pattern
 the wrappers already use.
 
+## Which provider, and whether it is worth reaching
+
+`classifyFailure` has told `PROVIDER_LIMIT` from `PROVIDER_OUTAGE` from
+`AUTH_REQUIRED` since Loop Bootstrap, and **nothing ever acted on the
+difference**. A rate limit was retried immediately, an outage was retried
+immediately, and a credential that will never work was retried until the attempt
+limit blocked the task. Three different problems, one behaviour.
+
+`config/control-plane-providers.json` declares the lanes and
+`scripts/control-plane/providers.mjs` decides. Health is durable — it lives on
+the run record, so a provider rate-limited before a restart is still
+rate-limited after one.
+
+| Observed | The provider becomes |
+| --- | --- |
+| success | `READY` |
+| `PROVIDER_LIMIT` | `COOLING` for fifteen minutes |
+| `PROVIDER_OUTAGE` | `COOLING` for five |
+| `HOST_UNREACHABLE` | `COOLING` for two |
+| `AUTH_REQUIRED` | `UNUSABLE` — not a cooldown, because waiting cannot change a credential |
+| anything else | unchanged — a failing test says nothing about GitHub |
+
+**Four refusals are code, not data**, for the reason `ALWAYS_DENIED` is:
+
+1. A `PAID` provider is never selected unless `paidUseAuthorised` is true. That
+   flag is top-level, so adding a provider cannot enable billing — spending
+   money takes two edits and the second is not about a provider.
+2. A `FREE` claim expires. A provider declared free must carry `freeUntil`, and
+   past that instant the claim is unverified and the provider is not selectable.
+   A free tier is a claim about a moment, not a property.
+3. `AUTH_REQUIRED` is not a retry.
+4. Running out parks on `WAITING_PROVIDER`. It never falls back to a tier the
+   record did not authorise, which is what "silently switched to paid billing"
+   actually describes.
+
+Selection is **declaration order**. Nothing reorders by cost, latency or
+guesswork: a selection rule the record cannot see is one nobody can audit. Every
+rejection is reported, so a choice can be explained afterwards.
+
+**The model lane is declared and empty.** There is no model dispatch in this
+control plane — every handler is a script — so building a selection layer over
+model providers that do not exist would be inventing a mechanism for an absent
+thing. It is declared in the shape Stage 3 used for the deployment identity
+lane: a lane that exists, is provably unprovisioned, and can therefore hold
+nothing. That is what makes the next provider arrive as a promotion rather than
+as something appearing from nowhere.
+
 ## Task states
 
 `QUEUED` `ELIGIBLE` `RUNNING` `CHECKPOINTING` `WAITING_CI` `WAITING_REVIEW`
