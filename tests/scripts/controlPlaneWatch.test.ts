@@ -10,6 +10,7 @@ import {
   watchHandlers,
 } from '../../scripts/control-plane/watch.mjs'
 import { LoopEngine } from '../../scripts/control-plane/loop.mjs'
+import { providerHealth } from '../../scripts/control-plane/providers.mjs'
 import { ControlPlaneStore } from '../../scripts/control-plane/state.mjs'
 
 const REPOSITORY = 'nickygregal12-cmyk/Euro-2028-Predictor'
@@ -260,5 +261,67 @@ describe('the required set comes from the tracked record of the live ruleset', (
 
     expect(result.status).toBe('COMPLETED')
     expect(store.loadTasks()['delivery.push']?.status).toBe('COMPLETED')
+  })
+})
+
+describe('the watcher asks whether the lane is reachable first', () => {
+  it('rests a rate-limited provider instead of spending attempts rediscovering it', async () => {
+    const store = parked()
+    const handlers = watchHandlers({
+      read: async () => { throw new Error('GET answered 429 rate limit') },
+      repository: REPOSITORY, requiredCheckNames: REQUIRED,
+    })
+
+    const first = await handlers['ci.watch']({ task: watchTask(), store, at: T0 })
+    expect(first.failureClass).toBe('PROVIDER_LIMIT')
+    expect(providerHealth(store)['github-rest']).toMatchObject({ state: 'COOLING' })
+
+    // The second attempt does not reach GitHub at all: a provider that limited
+    // us a moment ago will limit us again, and that is a wait, not a defect.
+    const second = await handlers['ci.watch']({ task: watchTask(), store, at: T0 })
+    expect(second.status).toBe('WAITING_PROVIDER')
+    expect(second.evidence).toContain('cooling after PROVIDER_LIMIT')
+  })
+
+  it('does not retry a refused credential at all', async () => {
+    const store = parked()
+    const handlers = watchHandlers({
+      read: async () => { throw new Error('GET answered 401 bad credentials') },
+      repository: REPOSITORY, requiredCheckNames: REQUIRED,
+    })
+
+    await handlers['ci.watch']({ task: watchTask(), store, at: T0 })
+    expect(providerHealth(store)['github-rest']).toMatchObject({ state: 'UNUSABLE' })
+
+    // Not a cooldown: waiting cannot change a credential.
+    const later = await handlers['ci.watch']({
+      task: watchTask(), store, at: '2026-08-27T00:00:00.000Z',
+    })
+    expect(later.status).toBe('WAITING_PROVIDER')
+    expect(later.evidence).toContain('unusable: AUTH_REQUIRED')
+  })
+
+  it('clears the mark when the provider answers again', async () => {
+    const store = parked()
+    let broken = true
+    const answer = github()
+    const handlers = watchHandlers({
+      read: async (path: string) => {
+        if (broken) throw new Error('GET answered 503')
+        return answer(path)
+      },
+      repository: REPOSITORY, requiredCheckNames: REQUIRED,
+    })
+
+    await handlers['ci.watch']({ task: watchTask(), store, at: T0 })
+    expect(providerHealth(store)['github-rest']?.state).toBe('COOLING')
+
+    broken = false
+    const recovered = await handlers['ci.watch']({
+      task: watchTask(), store, at: '2026-08-26T03:00:00.000Z',
+    })
+
+    expect(recovered.status).toBe('COMPLETED')
+    expect(providerHealth(store)['github-rest']?.state).toBe('READY')
   })
 })

@@ -224,6 +224,10 @@ describe('JavaScript under scripts/', () => {
     // checks them as numbers and SHAs rather than trusting them as strings.
     'scripts/control-plane/observe.mjs',
     'scripts/control-plane/policy.mjs',
+    // Provider selection decides whether money can be spent and whether a
+    // refused credential is retried. Checked on arrival for the same reason the
+    // authority policy is.
+    'scripts/control-plane/providers.mjs',
   'scripts/control-plane/ruleset.mjs',
     'scripts/control-plane/state.mjs',
     // The supervisor holds the writer lane and decides what a crash left behind.

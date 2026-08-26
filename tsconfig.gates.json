@@ -33,6 +33,7 @@
     "scripts/control-plane/loop.mjs",
     "scripts/control-plane/observe.mjs",
     "scripts/control-plane/policy.mjs",
+    "scripts/control-plane/providers.mjs",
     "scripts/control-plane/ruleset.mjs",
     "scripts/control-plane/state.mjs",
     "scripts/control-plane/supervisor.mjs",

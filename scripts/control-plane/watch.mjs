@@ -34,6 +34,7 @@ import { fileURLToPath } from 'node:url'
 
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
 import { observePullRequest } from './observe.mjs'
+import { availableProvider, parkedOnProvider, recordProviderObservation } from './providers.mjs'
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -150,17 +151,28 @@ export function watchHandlers({ read, repository, requiredCheckNames } = {}) {
         }
       }
 
+      // Ask whether the lane is reachable before reaching out. A provider that
+      // rate-limited us four minutes ago will rate-limit us again, and spending
+      // an attempt to rediscover that is how three attempts vanish into a wait
+      // that a cooldown would have handled.
+      const lane = availableProvider(store, { lane: 'repository', now: at })
+      if (!lane.selected) {
+        return parkedOnProvider({ at, lane: 'repository', reason: lane.reason, rejected: lane.rejected })
+      }
+
       let observed
       try {
         observed = await observePullRequest({ number: task.pullNumber, repository, read })
+        recordProviderObservation(store, { id: lane.selected.id, at })
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         const { classifyFailure } = await import('./policy.mjs')
-        return {
-          ok: false,
-          failureClass: classifyFailure({ name: 'ci.watch', output: message }),
-          evidence: message,
-        }
+        const failureClass = classifyFailure({ name: 'ci.watch', output: message })
+        // The provider's health is what makes the difference actionable: a rate
+        // limit rests, an outage rests for less, and a refused credential is
+        // not retried at all.
+        recordProviderObservation(store, { id: lane.selected.id, failureClass, at })
+        return { ok: false, failureClass, evidence: message }
       }
 
       const pr = normalisePullRequest(observed, {
@@ -175,14 +187,12 @@ export function watchHandlers({ read, repository, requiredCheckNames } = {}) {
 
       const verdict = applyVerdict({ store, at, watchedTaskId, triage, expectedHeadSha })
 
-      return {
+      return /** @type {import('./loop.mjs').HandlerResult} */ ({
         ok: true,
         // The watcher parks itself while the answer is still "not yet", so the
         // supervisor comes back to it rather than treating an unfinished watch
         // as finished work.
-        status: verdict.resolved
-          ? /** @type {const} */ ('COMPLETED')
-          : /** @type {const} */ ('WAITING_CI'),
+        status: verdict.resolved ? 'COMPLETED' : 'WAITING_CI',
         evidence: verdict.evidence,
         nextAction: verdict.resolved ? null : 'observe this head again',
         checkpoint: {
@@ -193,7 +203,7 @@ export function watchHandlers({ read, repository, requiredCheckNames } = {}) {
           route: triage.nextAction,
           blockers: triage.blockers ?? [],
         },
-      }
+      })
     },
   }
 }

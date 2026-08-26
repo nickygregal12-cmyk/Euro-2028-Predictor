@@ -1,0 +1,32 @@
+{
+  "paidUseAuthorised": false,
+  "lanes": {
+    "repository": {
+      "purpose": "Reading and writing this repository: check runs, pull requests, refs.",
+      "providers": [
+        {
+          "id": "github-rest",
+          "billing": "INCLUDED",
+          "freeUntil": null,
+          "purpose": "The GitHub REST API, reached through whatever credential the identity record's lane resolves.",
+          "usedBy": ["ci.observe", "ci.watch", "pr.triage", "owner-pr.sh"]
+        }
+      ]
+    },
+    "model": {
+      "purpose": "Bounded model workers. UNPROVISIONED: no provider is declared, so none can be selected.",
+      "providers": []
+    }
+  },
+  "budget": {
+    "maxRequestsPerRun": 500,
+    "note": "A ceiling on outbound provider calls in one run. Reaching it parks on WAITING_PROVIDER; it never escalates to another billing tier."
+  },
+  "verifiedAt": "2026-08-26T00:00:00.000Z",
+  "evidence": {
+    "whatThisRecordAdmits": "The control plane reaches exactly one provider today: the GitHub REST API. It is listed as INCLUDED rather than FREE because it is not a metered model service and carries no free-tier expiry to misread. The model lane is declared and EMPTY, in the same shape Stage 3 used for the deployment identity lane: a lane that exists, is provably unprovisioned, and can therefore hold no authority. Declaring it empty is the point — a lane nobody wrote down is a lane nobody checks.",
+    "whyPaidIsASeparateFlag": "paidUseAuthorised sits at the top level rather than on each provider so that adding a provider cannot quietly enable billing. Two edits are needed to spend money, and the second one is not about a provider at all.",
+    "whyFreeCarriesAnExpiry": "A free tier is a claim about a moment, not a property. A provider declared FREE must state freeUntil; past that instant the claim is unverified and the provider is not selectable as free. Nothing here may assume a free model stays free.",
+    "source": "Stage 9 of the control-plane programme. The health, selection and budget rules are in scripts/control-plane/providers.mjs as code, not as data in this file, for the same reason ALWAYS_DENIED is code in authority.mjs: a refusal that lives in an editable record is a refusal that can be edited away."
+  }
+}
