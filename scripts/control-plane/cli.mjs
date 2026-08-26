@@ -6,6 +6,7 @@
  *   node scripts/control-plane/cli.mjs add <id> --objective <text> [--after a,b]
  *                                             [--handler name] [--mutating]
  *   node scripts/control-plane/cli.mjs run [--max-ticks N]
+ *   node scripts/control-plane/cli.mjs supervise [--max-passes N]
  *   node scripts/control-plane/cli.mjs status
  *   node scripts/control-plane/cli.mjs stop [--reason text] | resume
  *
@@ -19,6 +20,7 @@ import { execFileSync } from 'node:child_process'
 import { stateDir } from './state.mjs'
 import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
+import { Supervisor } from './supervisor.mjs'
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
 
 const now = () => new Date().toISOString()
@@ -214,6 +216,31 @@ async function main() {
       for (const decision of decisions) {
         console.log(`${decision.at} ${decision.outcome} ${decision.dispatched ?? ''}`.trim())
       }
+      return
+    }
+
+    case 'supervise': {
+      // The persistent form of `run`. Same handlers — `readOnlyHandlers` is
+      // still the default set, because a supervisor started to watch a
+      // programme must not be able to push. A caller that wants mutation
+      // registers the delivery handlers itself, exactly as `run` requires.
+      const maxPasses = numericArg(argv, 'max-passes', 1000)
+      if (maxPasses === null || maxPasses < 1) {
+        console.error('--max-passes must be a positive number')
+        process.exitCode = 2
+        return
+      }
+      const supervisor = new Supervisor({
+        store,
+        handlers: readOnlyHandlers,
+        now,
+        sleep: (ms) => new Promise((resolve) => { setTimeout(resolve, ms) }),
+        maxPasses,
+        log: (message) => { console.log(`${now()} ${message}`) },
+      })
+      const result = await supervisor.run()
+      console.log(`${result.outcome} after ${result.passes.length} pass(es)`)
+      if (result.outcome === 'LEASE_HELD') process.exitCode = 1
       return
     }
 
