@@ -69,24 +69,23 @@ export class LoopEngine {
     const tasks = this.store.listTasks()
     const task = selectEligibleTask({ ...run, now: at }, tasks, this.limits)
 
-    if (!task) {
-      // Nothing runnable. Distinguish "everything done" from "everything parked"
-      // so IDLE never gets mistaken for completion.
-      const outcome = this.#idleOutcome(tasks)
-      const liveness = assessLiveness(run, at, this.limits)
-      // Only genuine idleness counts toward the stall. A programme parked on an
-      // external system with nothing else runnable is doing the right thing, and
-      // counting that as no-progress escalated a healthy thirty-minute CI wait
-      // to BLOCKED in forty minutes.
-      if (outcome === 'IDLE' && liveness.verdict !== 'LIVE') {
-        run.noProgressCycles = liveness.nextNoProgressCycles
-        this.store.saveRun(run)
-        this.store.appendEvent({ at, kind: 'NO_PROGRESS', verdict: liveness.verdict })
-        return { at, outcome: liveness.verdict, dispatched: null }
-      }
-      return { at, outcome, dispatched: null }
-    }
+    if (!task) return this.#nothingRunnable(run, tasks, at)
 
+    return this.#dispatch(task, run, at)
+  }
+
+  /**
+   * Dispatch one task: gate it, run it, settle it.
+   *
+   * Extracted verbatim from `tick` so that one task and several share exactly
+   * the same path. A parallel dispatcher that reimplemented the gates would be
+   * a second place where mutation is authorised, and the whole design has one.
+   *
+   * @param {Task} task
+   * @param {any} run
+   * @param {string} at
+   */
+  async #dispatch(task, run, at) {
     const gate = mutationDispatchAllowed({ ...run, now: at }, this.limits)
     if (task.mutating && !gate.allowed) {
       this.store.transition(task.id, 'WAITING_OWNER', {
@@ -118,6 +117,73 @@ export class LoopEngine {
     }
 
     return this.#settle(task, result, this.now())
+  }
+
+  /**
+   * The tasks to dispatch together, and never more than one that mutates.
+   *
+   * WHY AT MOST ONE MUTATION. Two mutating tasks in flight is two pushes on one
+   * branch, or a commit racing the push that was meant to carry it. That is not
+   * a race worth having for the throughput it buys, and no bound short of one
+   * makes it safe. Read-only work has no such problem: observing a pull request
+   * while another task pushes is exactly the overlap worth taking.
+   *
+   * Dependency safety comes for free rather than from a second check here:
+   * `selectEligibleTask` only returns tasks whose dependencies have COMPLETED,
+   * so nothing in a batch can depend on anything else in it.
+   *
+   * @param {any} run
+   * @param {Task[]} tasks
+   * @param {string} at
+   * @returns {Task[]}
+   */
+  #selectBatch(run, tasks, at) {
+    const limit = Math.max(1, this.limits.maxConcurrentTasks ?? 1)
+    const chosen = /** @type {Task[]} */ ([])
+    let pool = tasks
+    let mutatingChosen = false
+
+    while (chosen.length < limit) {
+      const task = selectEligibleTask({ ...run, now: at }, pool, this.limits)
+      if (!task) break
+      pool = pool.filter((candidate) => candidate.id !== task.id)
+      if (task.mutating) {
+        // Skip it and keep looking: a second mutation waits for the next pass,
+        // but independent read-only work behind it should not.
+        if (mutatingChosen) continue
+        mutatingChosen = true
+      }
+      chosen.push(task)
+    }
+    return chosen
+  }
+
+  /**
+   * Advance the programme by up to `maxConcurrentTasks` steps at once.
+   *
+   * With the default limit of one this is `tick` exactly — parallelism is
+   * something a caller opts into, not something that arrives with an upgrade.
+   *
+   * @returns {Promise<any[]>} one decision per dispatched task, or one for why
+   *   nothing was.
+   */
+  async tickBatch() {
+    const at = this.now()
+    const run = this.store.loadRun()
+    if (!run) return [{ at, outcome: 'NO_RUN' }]
+    if (run.emergencyStop) return [{ at, outcome: 'EMERGENCY_STOP', dispatched: null }]
+    if (run.hardStop && Date.parse(at) >= Date.parse(run.hardStop)) {
+      return [{ at, outcome: 'HARD_STOP', dispatched: null }]
+    }
+
+    const tasks = this.store.listTasks()
+    const batch = this.#selectBatch(run, tasks, at)
+    if (batch.length === 0) return [this.#nothingRunnable(run, tasks, at)]
+
+    // Marked RUNNING before any handler is awaited, so a crash mid-batch leaves
+    // every one of them reconcilable — the supervisor's reconciler reads that
+    // mark and cannot see a task it was never told about.
+    return Promise.all(batch.map((task) => this.#dispatch(task, run, at)))
   }
 
   /** Record the outcome of one dispatch: checkpoint, count, transition. */
@@ -183,6 +249,31 @@ export class LoopEngine {
     }
   }
 
+  /**
+   * Why nothing was dispatched, and what that costs the stall clock.
+   *
+   * @param {any} run
+   * @param {Task[]} tasks
+   * @param {string} at
+   */
+  #nothingRunnable(run, tasks, at) {
+    // Distinguish "everything done" from "everything parked" so IDLE never gets
+    // mistaken for completion.
+    const outcome = this.#idleOutcome(tasks)
+    const liveness = assessLiveness(run, at, this.limits)
+    // Only genuine idleness counts toward the stall. A programme parked on an
+    // external system with nothing else runnable is doing the right thing, and
+    // counting that as no-progress escalated a healthy thirty-minute CI wait to
+    // BLOCKED in forty minutes.
+    if (outcome === 'IDLE' && liveness.verdict !== 'LIVE') {
+      run.noProgressCycles = liveness.nextNoProgressCycles
+      this.store.saveRun(run)
+      this.store.appendEvent({ at, kind: 'NO_PROGRESS', verdict: liveness.verdict })
+      return { at, outcome: liveness.verdict, dispatched: null }
+    }
+    return { at, outcome, dispatched: null }
+  }
+
   /** @param {Task[]} tasks */
   #idleOutcome(tasks) {
     const tasksById = Object.fromEntries(tasks.map((t) => [t.id, t]))
@@ -210,8 +301,11 @@ export class LoopEngine {
   async run({ maxTicks = 50 } = {}) {
     const decisions = []
     for (let i = 0; i < maxTicks; i += 1) {
-      const decision = await this.tick()
-      decisions.push(decision)
+      // `tickBatch` with the default limit of one IS `tick`, so this path is
+      // the same path whether or not parallelism is enabled. Two loops would
+      // mean two behaviours to keep in step, and they would not stay in step.
+      const batch = await this.tickBatch()
+      decisions.push(...batch)
       // Outcomes that mean nothing further can be advanced this pass.
       //
       // A per-task BLOCKED is deliberately NOT among them. It used to be, and
@@ -233,7 +327,14 @@ export class LoopEngine {
         'MUTATION_BLOCKED',
         'STALLED',
       ]
-      if (halt.includes(decision.outcome)) break
+      // Any halting outcome in the batch stops the pass, not just the last one.
+      // Today that is the same thing: every halting outcome arrives as a
+      // single-element batch, because a dispatch only ever produces COMPLETED,
+      // FAILED, BLOCKED or NO_HANDLER, and none of those halt. It is written
+      // this way because the alternative is a correctness bug waiting for the
+      // first halting dispatch outcome anyone adds — not because it fixes one
+      // that exists, and no test claims otherwise.
+      if (batch.some((decision) => halt.includes(decision.outcome))) break
     }
     return decisions
   }
