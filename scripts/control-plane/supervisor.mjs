@@ -80,11 +80,56 @@ import { LoopEngine } from './loop.mjs'
  *     have this problem;
  *   - holder equality is a bearer token, so it proves possession of a string
  *     rather than ownership of the lane;
- *   - `cli.mjs run` and `canary.mjs` drive the engine directly and never take
- *     the lease at all, so the lane excludes supervisors and nothing else.
+ *   - holder equality is a bearer token, so it proves possession of a string
+ *     rather than ownership of the lane.
+ *
+ * @param {string} [role] What is holding the lane — `supervisor`, `run`,
+ *   `canary`. It is only ever compared for equality; the name is there so a
+ *   lease file says which of them to go and look for.
  */
-export function defaultHolder() {
-  return `supervisor@${hostname()}#${process.pid}.${randomUUID()}`
+export function defaultHolder(role = 'supervisor') {
+  return `${role}@${hostname()}#${process.pid}.${randomUUID()}`
+}
+
+/**
+ * Do something to the control plane while holding the writer lane, or not at
+ * all.
+ *
+ * For the one-shot writers. `Supervisor` does not use this because it has to
+ * renew across passes and stand down when a renewal is refused; a caller that
+ * runs the engine once and exits has neither problem, and giving it the
+ * supervisor's machinery would be the more confusing of the two options.
+ *
+ * WHY THESE CALLERS NEED IT AT ALL. `cli.mjs run` and `canary.mjs` build a
+ * `LoopEngine` over the same state directory a supervisor uses and drive it
+ * directly. Nothing stopped them doing that while a supervisor held the lane,
+ * so the lane excluded supervisors from each other and no one else — and
+ * `canary.mjs` is the worst case, because it calls `startRun` (which resets the
+ * run a supervisor may be in the middle of) and registers handlers that push
+ * branches and open pull requests.
+ *
+ * The brake is deliberately NOT behind this. `stop` and `resume` have to work
+ * while a supervisor is running, or the emergency stop is not one.
+ *
+ * @template T
+ * @param {import('./state.mjs').ControlPlaneState} store
+ * @param {{ holder: string, now: () => string, ttlMs?: number }} options
+ * @param {() => Promise<T>} body
+ * @returns {Promise<{ acquired: true, result: T }
+ *   | { acquired: false, heldBy?: string, expiresAt?: string }>}
+ */
+export async function withWriterLease(store, { holder, now, ttlMs = 15 * 60 * 1000 }, body) {
+  const lease = store.acquireLease(holder, { at: now(), ttlMs })
+  if (!lease.acquired) {
+    return { acquired: false, heldBy: lease.heldBy, expiresAt: lease.expiresAt }
+  }
+  try {
+    return { acquired: true, result: await body() }
+  } finally {
+    // Safe even if the lane expired mid-run and somebody else took it:
+    // `releaseLease` declines to write when the holder is not the incumbent.
+    store.releaseLease(holder, now())
+  }
 }
 
 /** Outcomes that end the supervisor rather than pausing it. */
