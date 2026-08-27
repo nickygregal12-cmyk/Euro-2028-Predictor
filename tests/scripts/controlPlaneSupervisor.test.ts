@@ -3,10 +3,15 @@ import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+import { execFileSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+
 import {
   DEFAULT_SLEEPS,
   Supervisor,
+  defaultHolder,
   reconcileInterruptedTasks,
+  withWriterLease,
 } from '../../scripts/control-plane/supervisor.mjs'
 import { ControlPlaneStore } from '../../scripts/control-plane/state.mjs'
 
@@ -406,5 +411,223 @@ describe('passes continue until a reason that is really a reason', () => {
 
     expect(result.outcome).toBe('HARD_STOP')
     expect(store.loadTasks().work?.status).toBe('QUEUED')
+  })
+})
+
+/**
+ * The one-shot writers.
+ *
+ * `Supervisor` was never the only thing driving the engine. `cli.mjs run` and
+ * `canary.mjs` build a `LoopEngine` over the same state directory and drive it
+ * directly, and until they took the lane it excluded supervisors from each
+ * other and nobody else. `canary.mjs` is the sharp case: it calls `startRun`,
+ * which resets the run a supervisor may be in the middle of, and registers
+ * handlers that push branches and open pull requests.
+ */
+describe('holding the lane for one-shot work', () => {
+  it('runs the body and gives the lane back', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    let ran = false
+    const outcome = await withWriterLease(
+      store, { holder: 'one-shot', now: time.now },
+      async () => { ran = true; return 'done' },
+    )
+
+    expect(outcome).toEqual({ acquired: true, result: 'done', heldToTheEnd: true })
+    expect(ran).toBe(true)
+    expect(store.acquireLease('next', { at: time.now() }).acquired).toBe(true)
+  })
+
+  it('does not run the body at all when somebody else holds the lane', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+    store.acquireLease('the-supervisor', { at: time.now(), ttlMs: 60 * 60 * 1000 })
+
+    let ran = false
+    const outcome = await withWriterLease(
+      store, { holder: 'one-shot', now: time.now },
+      async () => { ran = true },
+    )
+
+    // Refusing after doing the work would be no refusal at all.
+    expect(ran).toBe(false)
+    expect(outcome.acquired).toBe(false)
+    expect('heldBy' in outcome && outcome.heldBy).toBe('the-supervisor')
+  })
+
+  it('gives the lane back when the body throws', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    await expect(withWriterLease(
+      store, { holder: 'one-shot', now: time.now },
+      async () => { throw new Error('push failed') },
+    )).rejects.toThrow('push failed')
+
+    // A failed run that keeps the lane locks the programme out for a whole TTL.
+    expect(store.acquireLease('next', { at: time.now() }).acquired).toBe(true)
+  })
+
+  it('does not disturb a new holder that took the lane while the body ran', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    await withWriterLease(
+      store, { holder: 'one-shot', now: time.now, ttlMs: 60_000 },
+      async () => {
+        // Ran long, the lane expired, somebody else legitimately took it.
+        time.advance(90_000)
+        store.acquireLease('theirs', { at: time.now(), ttlMs: 60_000 })
+      },
+    )
+
+    // `releaseLease` declines to write when the holder is not the incumbent, so
+    // leaving does not hand the lane to a third party.
+    expect(store.acquireLease('a-third', { at: time.now() }).acquired).toBe(false)
+  })
+
+  it('gives each one-shot writer its own identity, named for what it is', () => {
+    expect(defaultHolder('canary')).not.toBe(defaultHolder('canary'))
+    expect(defaultHolder('canary')).toContain('canary@')
+    expect(defaultHolder('run')).toContain('run@')
+    expect(defaultHolder()).toContain('supervisor@')
+  })
+})
+
+/**
+ * Drive a real control-plane entry point against a scratch state directory.
+ *
+ * PATH is emptied deliberately. These entry points shell out to `git`, `gh` and
+ * `bash`, and the whole point of the assertions below is that they stop before
+ * they get there — but a test whose safety depends on the code under test being
+ * correct is not a safe test. Verifying this change the first time, with the
+ * gate reverted, the canary ran for real: it branched, committed, pushed and
+ * opened a pull request. Emptying PATH means a regression fails the assertion
+ * instead of publishing something.
+ */
+function runScript(script: string, args: string[], dir: string) {
+  try {
+    const stdout = execFileSync(process.execPath, [resolve(process.cwd(), script), ...args], {
+      encoding: 'utf8',
+      env: {
+        PREDICTOR_CONTROL_STATE_DIR: dir,
+        PREDICTOR_CONTROL_STATE_BACKEND: 'files',
+        HOME: process.env.HOME ?? '',
+        PATH: '',
+      },
+    })
+    return { code: 0, stdout, stderr: '' }
+  } catch (error: any) {
+    return { code: error.status ?? 1, stdout: String(error.stdout ?? ''), stderr: String(error.stderr ?? '') }
+  }
+}
+
+describe('the entry points actually take the lane', () => {
+  // These run the real scripts, so they are on the real clock: a lease seeded
+  // at the frozen test time would already have expired, and the entry point
+  // would be right to take the lane.
+  const realNow = () => new Date().toISOString()
+  const FAR_FUTURE = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+  it('cli run refuses to start while the lane is held', () => {
+    const store = freshStore()
+    store.startRun({ hardStop: FAR_FUTURE, mode: 'ACTIVE', now: realNow() })
+    store.upsertTask({ id: 'someone-elses-work', order: 1, handler: 'git.reconcile' })
+    store.acquireLease('the-supervisor', { at: realNow(), ttlMs: 60 * 60 * 1000 })
+
+    const result = runScript('scripts/control-plane/cli.mjs', ['run'], (store as any).dir)
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('writer lane held by the-supervisor')
+    // Nothing was dispatched: the queue is untouched.
+    expect(store.loadTasks()['someone-elses-work']?.status).toBe('QUEUED')
+  })
+
+  it('the canary refuses to start, and does not reset the run on its way out', () => {
+    const store = freshStore()
+    const dir = (store as any).dir
+    store.startRun({ hardStop: FAR_FUTURE, mode: 'ACTIVE', now: realNow() })
+    store.upsertTask({ id: 'someone-elses-work', order: 1, handler: 'h' })
+    store.acquireLease('the-supervisor', { at: realNow(), ttlMs: 60 * 60 * 1000 })
+    const runBefore = store.loadRun()
+
+    const bodyFile = resolve(dir, 'body.md')
+    writeFileSync(bodyFile, 'canary body\n')
+    const result = runScript('scripts/control-plane/canary.mjs', [
+      '--branch', 'claude/canary', '--title', 'canary', '--body-file', bodyFile,
+      '--hard-stop', FAR_FUTURE,
+    ], dir)
+
+    expect(result.code).toBe(1)
+    expect(result.stderr).toContain('writer lane held by the-supervisor')
+
+    // The point of the gate: `startRun` never ran, so the supervisor's run
+    // record and queue are exactly as they were. This is the difference
+    // between a refused canary and a canary that resets somebody's programme.
+    expect(store.loadRun()?.runId).toBe(runBefore?.runId)
+    expect(store.listTasks().map((task) => task.id)).toEqual(['someone-elses-work'])
+  })
+})
+
+describe('what a one-shot writer reports about the lane it held', () => {
+  it('says it kept the lane when it did', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    const outcome = await withWriterLease(
+      store, { holder: 'one-shot', now: time.now, ttlMs: 60_000 },
+      async () => 'fine',
+    )
+
+    expect(outcome).toEqual({ acquired: true, result: 'fine', heldToTheEnd: true })
+  })
+
+  it('says it lost the lane when the body outlived the lease', async () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    const outcome = await withWriterLease(
+      store, { holder: 'one-shot', now: time.now, ttlMs: 60_000 },
+      async () => {
+        time.advance(90_000)
+        store.acquireLease('theirs', { at: time.now(), ttlMs: 60_000 })
+        return 'done anyway'
+      },
+    )
+
+    // The lease is never renewed mid-body, so this overlap is possible and is
+    // not prevented here. What must not happen is it passing unnoticed.
+    expect(outcome).toEqual({ acquired: true, result: 'done anyway', heldToTheEnd: false })
+  })
+})
+
+describe('cli run on the happy path', () => {
+  const realNow = () => new Date().toISOString()
+  const FAR_FUTURE = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+
+  it('still prints its decisions, exits zero, and gives the lane back', () => {
+    const store = freshStore()
+    const dir = (store as any).dir
+    store.startRun({ hardStop: FAR_FUTURE, mode: 'ACTIVE', now: realNow() })
+
+    // Nothing queued, so the engine reports why rather than dispatching — that
+    // is enough to prove the success path still reaches the printing code with
+    // the lease taken and released around it.
+    const result = runScript('scripts/control-plane/cli.mjs', ['run'], dir)
+
+    expect(result.code).toBe(0)
+    expect(result.stdout).toMatch(/ALL_COMPLETE|IDLE|WAITING|MUTATION_BLOCKED/)
+    expect(result.stderr).not.toContain('writer lane')
+
+    // Given back on the way out, so the next writer is not locked out for a TTL.
+    expect(store.acquireLease('next', { at: realNow() }).acquired).toBe(true)
   })
 })

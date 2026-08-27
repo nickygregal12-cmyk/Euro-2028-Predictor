@@ -46,6 +46,7 @@ import { openControlPlaneState } from './ledger.mjs'
 import { LoopEngine } from './loop.mjs'
 import { deliveryHandlers, ENFORCEMENT_SURFACE } from './delivery.mjs'
 import { readOnlyHandlers } from './cli.mjs'
+import { defaultHolder, withWriterLease } from './supervisor.mjs'
 
 const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 
@@ -242,29 +243,57 @@ async function main() {
   const now = () => new Date().toISOString()
   const store = openControlPlaneState()
 
-  // ACTIVE, because the whole point is that mutation is dispatched. The brake
-  // is `maxPullRequests`, and one is all this run may open.
-  store.startRun({ hardStop, mode: 'ACTIVE', now: now(), maxPullRequests: 1 })
-  for (const task of canaryTasks({ independentCommand, commitMessage })) store.upsertTask(task)
+  // Behind the writer lane, because this is the most destructive thing that
+  // drives the engine: `startRun` resets the run a supervisor may be in the
+  // middle of, and the handlers registered below push branches and open pull
+  // requests. Running it alongside a supervisor was possible until now, and
+  // "two writers" understates it — one of them would be rewriting the other's
+  // run record while the other was mid-delivery.
+  const outcome = await withWriterLease(store, { holder: defaultHolder('canary'), now }, async () => {
+    // ACTIVE, because the whole point is that mutation is dispatched. The brake
+    // is `maxPullRequests`, and one is all this run may open.
+    store.startRun({ hardStop, mode: 'ACTIVE', now: now(), maxPullRequests: 1 })
+    for (const task of canaryTasks({ independentCommand, commitMessage })) store.upsertTask(task)
 
-  const engine = new LoopEngine({
-    store,
-    handlers: canaryHandlers({ branch, title, body }),
-    now,
+    const engine = new LoopEngine({
+      store,
+      handlers: canaryHandlers({ branch, title, body }),
+      now,
+    })
+
+    const decisions = await engine.run({ maxTicks })
+    for (const decision of decisions) {
+      const status = 'status' in decision ? decision.status : ''
+      console.log(
+        [decision.at, decision.outcome, decision.dispatched ?? '', status ?? '']
+          .filter(Boolean)
+          .join(' '),
+      )
+    }
+    console.log(`\nstate dir: ${stateDir()}`)
+    for (const task of store.listTasks()) {
+      console.log(`  [${(task.status ?? 'QUEUED').padEnd(14)}] ${task.id}`)
+    }
   })
 
-  const decisions = await engine.run({ maxTicks })
-  for (const decision of decisions) {
-    const status = 'status' in decision ? decision.status : ''
-    console.log(
-      [decision.at, decision.outcome, decision.dispatched ?? '', status ?? '']
-        .filter(Boolean)
-        .join(' '),
-    )
+  if (!outcome.acquired) {
+    // Not an error in the canary: somebody else owns the lane, and starting a
+    // delivery run underneath them is the thing being prevented.
+    console.error(`writer lane held by ${outcome.heldBy} until ${outcome.expiresAt}; not starting`)
+    process.exitCode = 1
+    return
   }
-  console.log(`\nstate dir: ${stateDir()}`)
-  for (const task of store.listTasks()) {
-    console.log(`  [${(task.status ?? 'QUEUED').padEnd(14)}] ${task.id}`)
+
+  if (!outcome.heldToTheEnd) {
+    // The lease is not renewed while the run is in flight, so a canary that
+    // outlived its TTL has been sharing the lane. Nothing here can undo that;
+    // saying so is the difference between a known overlap and a silent one.
+    console.error(
+      'WARNING: the writer lane expired during this run and was taken by another ' +
+        'process. Anything this canary did after that point overlapped another writer — ' +
+        'check the branch, the pull request and the run record before trusting them.',
+    )
+    process.exitCode = 1
   }
 }
 

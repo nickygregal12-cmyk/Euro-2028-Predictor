@@ -22,7 +22,7 @@ import { stateDir } from './state.mjs'
 import { openControlPlaneState } from './ledger.mjs'
 import { DEFAULT_LIMITS } from './policy.mjs'
 import { LoopEngine } from './loop.mjs'
-import { Supervisor } from './supervisor.mjs'
+import { Supervisor, defaultHolder, withWriterLease } from './supervisor.mjs'
 import { watchHandlers } from './watch.mjs'
 import { renderText, summariseRun } from './report.mjs'
 import { normalisePullRequest, triagePullRequest } from './github.mjs'
@@ -241,8 +241,33 @@ async function main() {
         process.exitCode = 2
         return
       }
-      const engine = new LoopEngine({ store, handlers: readOnlyHandlers, now, limits })
-      const decisions = await engine.run({ maxTicks })
+      // Behind the writer lane like `supervise`, because it is the same engine
+      // over the same state. `run`'s handlers do not touch the outside world,
+      // but it still writes transitions, attempts, checkpoints and progress —
+      // and read-modify-write against a supervisor doing the same is exactly
+      // the interleaving the lane exists to stop.
+      const runOutcome = await withWriterLease(
+        store,
+        { holder: defaultHolder('run'), now },
+        async () => {
+          const engine = new LoopEngine({ store, handlers: readOnlyHandlers, now, limits })
+          return engine.run({ maxTicks })
+        },
+      )
+      if (!runOutcome.acquired) {
+        console.error(
+          `writer lane held by ${runOutcome.heldBy} until ${runOutcome.expiresAt}; not starting`,
+        )
+        process.exitCode = 1
+        return
+      }
+      if (!runOutcome.heldToTheEnd) {
+        // Not renewed while the pass is in flight, so a run that outlived its
+        // TTL shared the lane with whoever took it next.
+        console.error('WARNING: the writer lane expired during this run and was taken by another process')
+        process.exitCode = 1
+      }
+      const decisions = runOutcome.result
       for (const decision of decisions) {
         console.log(`${decision.at} ${decision.outcome} ${decision.dispatched ?? ''}`.trim())
       }
