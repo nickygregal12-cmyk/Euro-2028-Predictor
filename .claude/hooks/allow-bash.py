@@ -14,7 +14,10 @@ Patterns live in agent-bash-allow.json beside this file.
 Semantics, mirroring OpenCode:
 
   * Default is deny. A command runs only if every one of its segments matches
-    an `allow` pattern.
+    an `allow` pattern. An unlisted command is refused outright for a
+    write-capable role and referred to the operator for a read-only one; see
+    `unmatched()` and the `$unmatched` register for why the split is by
+    capability rather than global.
   * `never` is applied after `allow` and wins, reproducing OpenCode's
     last-match-wins ordering. The builder needs `git switch <existing>` and
     `git branch --list` while being refused branch *creation*; that is not
@@ -111,6 +114,36 @@ def glob_to_regex(pattern):
     return re.compile("^" + "".join(out) + "$")
 
 
+def unmatched(reason, agent, rules):
+    """An unlisted command. Deny for write-capable roles, ask for read-only.
+
+    OpenCode ends each bash block with `"*": ask`, so an unlisted command
+    prompts the operator. Reproducing that for every role would be wrong here:
+    an autonomous or headless agent has nobody to prompt, so "ask" degrades to
+    an unattended refusal at best and a rubber stamp at worst.
+
+    The split is by capability, which is the property that actually matters. A
+    role that cannot mutate anything can safely prompt -- worst case an
+    operator approves a read the allowlist had not anticipated, such as
+    `git stash list`. A role that can mutate does not get that latitude.
+    """
+    read_only = set(rules.get("$unmatched", {}).get("ask", []))
+    if agent in read_only:
+        json.dump({
+            "hookSpecificOutput": {
+                "hookEventName": "PreToolUse",
+                "permissionDecision": "ask",
+                "permissionDecisionReason": (
+                    f"{reason}. {agent} is read-only, so this is referred to you "
+                    f"rather than refused outright. Approve only if the command "
+                    f"cannot mutate anything."
+                ),
+            }
+        }, sys.stdout)
+        sys.exit(0)
+    deny(reason, agent)
+
+
 def deny(reason, agent):
     json.dump({
         "hookSpecificOutput": {
@@ -157,7 +190,13 @@ def main():
         deny(f"no allowlist profile is defined for {agent}", agent)
 
     allow = [glob_to_regex(p) for p in profile.get("allow", [])]
-    never = [glob_to_regex(p) for p in profile.get("never", [])]
+    # The role's own denials, plus a floor that applies to every role. The floor
+    # exists so a read-only role's empty `never` list cannot let a mutation fall
+    # through to the ASK path in unmatched().
+    never = [glob_to_regex(p) for p in profile.get("never", [])] + [
+        glob_to_regex(p)
+        for p in rules.get("$neverForAnyAgent", {}).get("never", [])
+    ]
     filters = [glob_to_regex(p)
                for p in rules.get("$filters", {}).get("allow", [])]
 
@@ -208,7 +247,7 @@ def main():
         if index > 0 and any(pattern.match(segment) for pattern in filters):
             continue
 
-        deny(f"{segment!r} is not on this agent's allowlist", agent)
+        unmatched(f"{segment!r} is not on this agent's allowlist", agent, rules)
 
     sys.exit(0)
 

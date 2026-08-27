@@ -24,6 +24,7 @@ dist-ssr
 .claude/*
 !.claude/agents/
 !.claude/hooks/
+!.claude/settings.json
 .claude/hooks/__pycache__/
 .DS_Store
 *.suo

@@ -304,6 +304,7 @@ describe('JavaScript under scripts/', () => {
     ['scripts/agent-tools/materialize-skill.mjs', null],
     ['scripts/agent-tools/route-task.mjs', null],
     ['scripts/check-agent-bash-allowlist.mjs', null],
+    ['scripts/check-bash-enforcement.mjs', null],
     ['scripts/check-fixtures.mjs', 29],
     ['scripts/check-migration-timestamps.mjs', 10],
     ['scripts/check-quality-integrity.mjs', null],
