@@ -260,6 +260,47 @@ describe('two supervisors on the same host', () => {
     expect(store.acquireLease('someone-else', { at: time.now() }).acquired).toBe(false)
   })
 
+  it('stands down when a pass outlived the lease and the lane was taken', async () => {
+    const store = freshStore()
+    const time = clock()
+    const { sleep, slept } = recordingSleep(time)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+    store.upsertTask({ id: 'slow', order: 1, handler: 'slow' })
+
+    // The lease is renewed between passes, never inside one. A pass that runs
+    // longer than the TTL therefore expires the lane while its holder is still
+    // working, and the next supervisor may legitimately take it.
+    const dispatched: string[] = []
+    const result = await new Supervisor({
+      store, now: time.now, sleep, holder: 'mine', maxPasses: 3, leaseTtlMs: 60_000,
+      handlers: {
+        slow: async ({ task }: any) => {
+          dispatched.push(task.id)
+          time.advance(90_000)
+          // Somebody else took the expired lane while this pass was running.
+          store.acquireLease('theirs', { at: time.now(), ttlMs: 60_000 })
+          return { ok: true, status: 'WAITING_CI', evidence: 'parked' }
+        },
+      },
+    }).run()
+
+    // Renewal is refused, and that refusal has to end the run. Sleeping and
+    // starting another pass is this supervisor writing over the one that now
+    // holds the lane — the failure the lease exists to prevent, arriving after
+    // the entry check rather than before it.
+    expect(result.outcome).toBe('LEASE_LOST')
+    // A second pass is always preceded by a sleep, so never sleeping is the
+    // observable form of "it stopped here". Note the renewal is only checked
+    // BETWEEN passes: the lease is not re-checked inside `engine.run`, so
+    // everything already dispatched in this pass still ran.
+    expect(slept).toEqual([])
+    expect(dispatched).toEqual(['slow'])
+
+    // Leaving must not disturb the new holder: `releaseLease` refuses to write
+    // when the lane belongs to somebody else.
+    expect(store.acquireLease('a-third', { at: time.now() }).acquired).toBe(false)
+  })
+
   it('frees the lane by expiry when a holder dies without releasing', () => {
     const store = freshStore()
     const time = clock()

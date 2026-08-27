@@ -37,7 +37,7 @@
  *    task, not the programme — everything independent keeps moving.
  */
 
-import { randomBytes } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import { hostname } from 'node:os'
 
 import { LoopEngine } from './loop.mjs'
@@ -65,12 +65,26 @@ import { LoopEngine } from './loop.mjs'
  *     that has not expired yet. It also separates two supervisors constructed
  *     inside one process, which are two writers whatever the pid says.
  *
+ * A full UUID rather than a few bytes: this is an identity the exclusivity
+ * argument rests on, and there is nothing to be saved by making it narrow.
+ *
  * Per instance rather than per module: two supervisors are two writers even
  * when they share a process. Nothing parses this string — both stores compare
  * it only for equality — so the shape is free to stay readable.
+ *
+ * WHAT THIS DOES NOT BUY. Unique identity stops two supervisors *aliasing*
+ * each other. It is not exclusivity on its own:
+ *   - the file backend's `acquireLease` is read-check-write with no compare-
+ *     and-swap, so two genuinely different holders racing it can both win.
+ *     The default ledger backend serialises on `BEGIN IMMEDIATE` and does not
+ *     have this problem;
+ *   - holder equality is a bearer token, so it proves possession of a string
+ *     rather than ownership of the lane;
+ *   - `cli.mjs run` and `canary.mjs` drive the engine directly and never take
+ *     the lease at all, so the lane excludes supervisors and nothing else.
  */
 export function defaultHolder() {
-  return `supervisor@${hostname()}#${process.pid}.${randomBytes(4).toString('hex')}`
+  return `supervisor@${hostname()}#${process.pid}.${randomUUID()}`
 }
 
 /** Outcomes that end the supervisor rather than pausing it. */
@@ -218,7 +232,24 @@ export class Supervisor {
         // wait, or a second supervisor takes the lane while this one is idle
         // and both wake up holding it.
         const at = this.now()
-        this.store.acquireLease(this.holder, { at, ttlMs: this.leaseTtlMs })
+        const renewed = this.store.acquireLease(this.holder, { at, ttlMs: this.leaseTtlMs })
+
+        // A refused renewal means the lane is gone. The lease is not renewed
+        // *inside* a pass, only between passes, so a pass that outlives the TTL
+        // lets another supervisor acquire by expiry — and it will have
+        // reconciled this one's RUNNING tasks on its way in. Carrying on from
+        // here is how the supervisor that already lost the lane writes over the
+        // one that holds it, which is the whole failure the lease exists to
+        // prevent, arriving after the check rather than before it.
+        //
+        // Stand down instead. `releaseLease` in the `finally` is already safe:
+        // it refuses to write when the current holder is somebody else, so
+        // leaving does not disturb the new holder's lease.
+        if (!renewed.acquired) {
+          passes.push({ at, outcome: 'LEASE_LOST' })
+          this.log(`writer lane lost to ${renewed.heldBy}; standing down`)
+          return { outcome: 'LEASE_LOST', passes, reconciled }
+        }
 
         const sleptMs = this.#sleepFor(outcome)
         passes.push({ at, outcome, sleptMs })
