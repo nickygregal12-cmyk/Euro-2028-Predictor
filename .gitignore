@@ -17,8 +17,14 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 
-# Local Claude Code config (launch.json etc.) — machine-local, not repo content
-.claude/
+# Local Claude Code config (launch.json, settings.local.json) is machine-local.
+# The agent definitions and the hook that enforces their Bash allowlists are
+# repository content: local-only enforcement is not enforcement, because a
+# fresh clone or the cloud conductor would get the agents without the gate.
+.claude/*
+!.claude/agents/
+!.claude/hooks/
+.claude/hooks/__pycache__/
 .DS_Store
 *.suo
 *.ntvs*
