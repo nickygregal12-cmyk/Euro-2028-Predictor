@@ -177,10 +177,20 @@ console.log('Release identity: PASS')
 
 const routes = committedOkRoutes()
 
-for (const route of routes) {
-  const response = await fetchText(route)
-  assertEqual(response.body, root.body, `SPA shell for ${route}`)
-  console.log(`${route}: PASS`)
+/**
+ * The document each address is expected to serve, fetched once and reused.
+ *
+ * `/index.html` is seeded from the root fetch above rather than requested
+ * again: `/` is a 200 redirect to it, and it is already the body every other
+ * check in this file compares against.
+ */
+const servedDocuments = new Map([['/index.html', root.body]])
+
+for (const { from, to } of routes) {
+  const expected = await servedDocument(to)
+  const response = await fetchText(from)
+  assertEqual(response.body, expected, `document served at ${from} (expected ${to})`)
+  console.log(`${from}: PASS`)
 }
 
 // An unknown path must serve the same SPA shell but answer 404, not a soft 200
@@ -320,7 +330,57 @@ function committedHeaders() {
 }
 
 /**
- * Every route netlify.toml says must answer 200, derived rather than restated.
+ * The body served at one of netlify.toml's redirect TARGETS, fetched at most
+ * once per target.
+ *
+ * A target is a real file in the publish directory — `/index.html`,
+ * `/join.html`, `/status.html` — so Netlify serves it directly and the
+ * catch-all never sees the request. That is what makes it usable as the
+ * expectation: it is the document the deployment holds, read from the
+ * deployment, rather than a second description of what the document should
+ * contain.
+ */
+async function servedDocument(target) {
+  const cached = servedDocuments.get(target)
+  if (cached !== undefined) return cached
+
+  const { body } = await fetchText(target)
+  servedDocuments.set(target, body)
+  return body
+}
+
+/**
+ * Every route netlify.toml says must answer 200, derived rather than restated,
+ * WITH THE DOCUMENT EACH ONE POINTS AT.
+ *
+ * ---------------------------------------------------------------------------
+ * WHY THE TARGET IS RETURNED AND NOT DISCARDED
+ * ---------------------------------------------------------------------------
+ *
+ * This function used to return bare paths and the caller compared every one of
+ * them against `/`. That held for as long as every 200 rule pointed at
+ * `/index.html`, and it stopped holding twice:
+ *
+ *   * `/join/:code` → `/join.html` (#1007), the invite share card — the SAME
+ *     document re-headed at build time, so a crawler unfurling a pasted invite
+ *     shows an invitation rather than the site's own card;
+ *   * `/status` → `/status.html` (#1018), the static status document, which has
+ *     to stay readable on the one occasion anybody reads it: when the
+ *     application does not boot.
+ *
+ * Both are deliberate, both are tested in the committed configuration by
+ * `tests/app/spaRoutingStatus.test.ts` — whose own comment says `to` "was
+ * always captured and never declared, because until now every rule pointed at
+ * the same document" — and neither was ever taught to this file. So the
+ * scheduled production health check went red on a correct deployment and stayed
+ * red: every run from 25 August onward failed at `/join/...` with a diff whose
+ * two sides were both exactly right.
+ *
+ * Comparing each address against its OWN target is not merely a repair. It is a
+ * stronger assertion than the one it replaces: `/join/:code` now has to serve
+ * the invite card rather than merely serve something, so a build that stopped
+ * emitting `join.html` and fell back to `index.html` fails here instead of
+ * silently unfurling the wrong preview.
  *
  * This list used to be written out by hand here, and it drifted. It still
  * demanded 200 for `/predict` — a route the application no longer declares and
@@ -345,15 +405,18 @@ function committedOkRoutes() {
   )
 
   const routes = []
-  for (const [, from, , status] of config.matchAll(
+  for (const [, from, to, status] of config.matchAll(
     /\[\[redirects\]\]\s*\n\s*from = "([^"]+)"\s*\n\s*to = "([^"]+)"\s*\n\s*status = (\d+)/g,
   )) {
     // The catch-all is a 404 by design (SEO-001) and is probed separately.
     if (status !== '200') continue
-    // The root is already fetched as the shell every other route is compared to.
+    // The root is already fetched as the document every other route resolves to.
     if (from === '/') continue
 
-    routes.push(from.replace(/:[A-Za-z]+/g, ROUTE_PROBE).replace(/\/\*$/, `/${ROUTE_PROBE}`))
+    routes.push({
+      from: from.replace(/:[A-Za-z]+/g, ROUTE_PROBE).replace(/\/\*$/, `/${ROUTE_PROBE}`),
+      to,
+    })
   }
 
   if (routes.length === 0) stop('netlify.toml declares no 200 redirect rules to check.')
