@@ -190,7 +190,7 @@
     }
   ],
   "$filters": {
-    "$purpose": "Read-only output filters every agent may use, but only downstream of an allowed command -- never as the first segment. OpenCode allowed `git log | head -5` implicitly, because its prefix glob matched the whole string including the pipe. Segment-wise matching would otherwise refuse it. Restricted to commands that cannot execute their input, so `git log | sh` stays refused. Redirection to a file is blocked separately, which is what keeps awk/sed from writing.",
+    "$purpose": "Read-only output filters every agent may use, but only downstream of an allowed command -- never as the first segment. OpenCode allowed `git log | head -5` implicitly, because its prefix glob matched the whole string including the pipe. Segment-wise matching would otherwise refuse it. Restricted to commands that cannot execute their input, so `git log | sh` stays refused. Redirection to a file is blocked separately, which is what keeps awk/sed from writing. awk, less and more were removed on 27 Aug 2026: an independent review observed that awk can launch a subprocess via system() and less can shell out with !cmd, both verified reachable. A filter must be unable to execute anything, not merely unable to write.",
     "allow": [
       "head*",
       "tail*",
@@ -203,11 +203,8 @@
       "column*",
       "grep*",
       "rg*",
-      "awk*",
       "jq*",
-      "cat",
-      "less*",
-      "more*"
+      "cat"
     ]
   },
   "$unmatched": {
@@ -359,5 +356,9 @@
     ],
     "never": []
   },
-  "$layering": "machine ceiling (~/.claude/hooks/studio-bash-ceiling.json) -> repository allowlist (this file) -> effective policy. A repository may narrow what its agents run; it can never widen past the ceiling and can never switch the gate off. The machine gate reads this file as JSON data and never imports or executes anything from the repository, so a hostile clone cannot run code at machine scope. Verified against a repository that granted itself allow:[*]: mutation, publication, privilege change, network fetch-to-shell and secret-path reads all remained refused."
+  "$layering": "machine ceiling (~/.claude/hooks/studio-bash-ceiling.json) -> repository allowlist (this file) -> effective policy is the INTERSECTION. The ceiling carries a positive maxAllow, so a repository can only narrow it. CORRECTION, 27 Aug 2026: an earlier revision of this note claimed a repository 'can never widen past the ceiling' while the ceiling was only a deny-list. That claim was false. An independent review (Codex, gpt-5.6-sol) showed a repository publishing allow:[\"*\"] reached python3 -c, perl -e, node -e, mv, cp, dd, tee, make and git config --global core.pager -- all verified, all now refused by the positive maxAllow. What remains true and deliberately accepted: `npm run *` and `bash scripts/*` execute repository-controlled code, because running a repository's own gates is the point. This gate constrains which command shapes an agent may invoke; it is not a sandbox. Do not point delegated agents at a repository you do not trust.",
+  "$neverPathPattern": {
+    "$comment": "Secret-bearing paths no role may name in a Bash command. Mirrors the machine ceiling; the two enforcement points had drifted, with only the machine gate carrying this rule.",
+    "pattern": "(?:^|[\\s='\"/])(?:\\.env(?:\\.[A-Za-z0-9_-]+)?|\\.ssh|\\.aws|\\.gnupg|\\.npmrc|\\.netrc|id_[rd]sa|\\.claude\\.json|\\.credentials\\.json|credentials)(?:$|[\\s'\"/:])|~?/\\.claude/|/\\.config/predictor-cloud"
+  }
 }

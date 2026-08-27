@@ -217,7 +217,15 @@ def main():
         re.sub(r"\s+", " ", s.strip()) for s in SPLIT.split(command) if s.strip()
     ]
 
+    try:
+        secret_path = re.compile(rules["$neverPathPattern"]["pattern"])
+    except (KeyError, TypeError, re.error):
+        deny("the secret-path rule is missing or invalid, so nothing can be "
+             "proven safe", agent)
+
     for index, segment in enumerate(segments):
+        if secret_path.search(segment):
+            deny(f"{segment!r} names a secret-bearing path", agent)
         if ANY_REDIRECT.search(SAFE_REDIRECT.sub("", segment)):
             deny(f"redirection or here-document in {segment!r}", agent)
 

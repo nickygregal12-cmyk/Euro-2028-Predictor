@@ -209,4 +209,21 @@ describe('Bash gate classifier', () => {
       })
     }
   })
+
+  describe('closes the findings of the independent review of 27 Aug 2026', () => {
+    // Filters must be unable to execute, not merely unable to write.
+    it('refuses filters that can launch a subprocess', () => {
+      expect(classify('predictor-builder', 'git log | awk "BEGIN{system(1)}"')).toBe('DENY')
+      expect(classify('predictor-builder', 'git log | less')).toBe('DENY')
+    })
+
+    // The secret boundary had drifted: only the machine gate enforced it.
+    for (const command of ['cat .env', 'cat /home/predictor/.claude.json',
+                           'ls /home/predictor/.ssh', 'grep x /home/predictor/.npmrc']) {
+      it(`refuses the secret-bearing path in: ${command}`, () => {
+        expect(classify('predictor-critic', command)).toBe('DENY')
+        expect(classify('predictor-builder', command)).toBe('DENY')
+      })
+    }
+  })
 })
