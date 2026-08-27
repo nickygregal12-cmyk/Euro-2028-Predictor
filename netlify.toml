@@ -35,7 +35,19 @@
   # anything but "true" restores that one legacy journey on the next deploy —
   # the legacy route components are all still mounted — with no migration, no
   # backfill and no data rollback. That is the release gate this programme
-  # works to, and it is why nine lines is the right shape rather than one.
+  # works to, and it is why fourteen lines is the right shape rather than one.
+  # (This comment said "nine" for as long as there were fourteen. The count is
+  # now held by `tests/vnext/vnextCutoverRouting.test.tsx`, which compares its
+  # destination table against the flag declaration in `routeFlags.ts` rather
+  # than against anybody's memory.)
+  #
+  # TWO OF THEM WITHDRAW AN ADDRESS RATHER THAN RESTORING A SCREEN, and an
+  # operator rolling back needs to know which: `..._CREATE` and `..._WRAPPED`
+  # gate addresses that did not exist before vNext built them, so turning either
+  # off answers Not Found there. Nothing is lost — the journeys they lead to are
+  # still reachable where they always were — but it is a different promise from
+  # the other twelve. The procedure is
+  # `docs/ops/ops-football-hub-cutover-rollback.md`.
   #
   # THEY APPLY TO BOTH DEPLOYMENTS AND THAT IS SAFE. `netlify.toml` is shared,
   # but every flag below gates a DOMESTIC competition route, and the Euro

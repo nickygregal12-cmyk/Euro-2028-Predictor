@@ -203,10 +203,10 @@ true rather than what is intended.
 | every Football Hub route has an intentional production behaviour | **Met** | The route matrix, all 39 rows, none unresolved |
 | every user-facing CAPABILITY has a stated destination | **Met, with one named `F` row** | This page. `PROF-002` is the whole of what is not `A`/`B`/`C`/`D`/`E`, and it loses no capability the legacy product has. `PROF-001` was the second and is closed — see §8 |
 | no required user journey depends on the workshop or a dev harness | **Met** | Every `/dev/*` route is behind `import.meta.env.DEV` and absent from a production build. No row above resolves to one |
-| production build contains the intended vNext surfaces and only intentional legacy compatibility | **Met — closed by the cutover** | The nine Football Hub journeys are repointed in `src/App.tsx`, each behind its own `VITE_UI_FOOTBALL_HUB_*` flag, all nine set in `netlify.toml`. The legacy routes stay mounted as the rollback, which is the intentional legacy compatibility this row allows for; `tests/vnext/vnextCutoverRouting.test.tsx` asserts both halves of every pair |
-| auth, refresh, deep-link, navigation and error paths are tested | **Partially, for a different reason than before** | The repointed routing now exists and is tested: the flag selects the right element for all nine journeys, it fails closed on anything but `'true'`, and the Match Centre address stays self-contained so a deep link survives. The destinations sit inside the existing `RequireAuth` tree, so auth and refresh are unchanged rather than newly proven. What is still untested end-to-end is the error path through the repointed routes |
+| production build contains the intended vNext surfaces and only intentional legacy compatibility | **Met — closed by the cutover** | **Fourteen** Football Hub journeys are repointed in `src/App.tsx`, each behind its own `VITE_UI_FOOTBALL_HUB_*` flag, all fourteen set in `netlify.toml`. Twelve keep their legacy route component mounted as the rollback, which is the intentional legacy compatibility this row allows for. **Two do not, and the difference is deliberate:** `..._CREATE` and `..._WRAPPED` gate addresses that did not exist before vNext built them, so their off branch is a Not Found rather than an older screen — a rollback that withdraws an address rather than restoring a journey, losing no capability either way. `tests/vnext/vnextCutoverRouting.test.tsx` asserts both halves of every pair AND, since it drifted to ten rows against fourteen flags, now compares its own table against the flag declaration in `routeFlags.ts` so the count cannot drift again |
+| auth, refresh, deep-link, navigation and error paths are tested | **Met** | The repointed routing is tested: the flag selects the right element for all fourteen journeys, it fails closed on anything but `'true'`, and the Match Centre address stays self-contained so a deep link survives. The destinations sit inside the existing `RequireAuth` tree, so auth and refresh are unchanged rather than newly proven. **The error path was the outstanding half and is now closed at its cause rather than only tested.** The only boundary in the application was `ApplicationErrorBoundary` around the whole tree, so a throw in one repointed destination replaced the entire document — shell, navigation and every working destination — with the fatal fallback. `src/app/vnext/VNextSurfaceBoundary.tsx` contains it to the destination it happened on: the player keeps the shell, keeps the navigation, is told their predictions are unaffected, and is given the same correlation reference observability was given. A second failure at the same address escalates to the application boundary rather than looping, and a navigation resets it. `tests/vnext/vnextSurfaceBoundary.test.tsx` and `tests/app/vnextSurfaceDestination.test.ts` prove it, and the suite was mutation-checked against four deliberate defects rather than trusted because it passed |
 | accessibility/performance/bundle regression acceptable | **Met for what exists** | Axe gates per surface, the CSS-module guard, the bundle budget and Lighthouse gates all green |
-| monitoring and rollback ready | **Not this batch's scope** | Named by the stage contract and untouched here |
+| monitoring and rollback ready | **Met** | **Monitoring was already wired and this row understated it.** `src/instrument.ts` runs on the first line of `src/main.tsx`; Sentry is initialised in `src/services/observability/sentryReporter.ts`; `installGlobalErrorCapture()` registers `error`, `unhandledrejection` and CSP-violation listeners; React 19's three error hooks all route to `reportClientError`; and both boundaries report under the correlation reference the player is shown. **One honest limit:** `VITE_SENTRY_ENABLED` and `VITE_SENTRY_DSN` are not in `netlify.toml`, so whether reporting is live in a given environment is a Netlify-UI variable this repository cannot read — recorded rather than assumed either way. **Rollback had a mechanism, a test and no procedure**, which is not the same as ready: nothing said what triggers one, what to change, how to verify it or what the verification cannot see. [`../ops/ops-football-hub-cutover-rollback.md`](../ops/ops-football-hub-cutover-rollback.md) is that procedure, including the fact that `npm run smoke:production` cannot tell a rolled-back route from a live one because both return the same SPA shell |
 | current required CI/review green | **Met at this head** | See the branch's own checks |
 
 ### The two backend debts Stage 12 carried are paid
@@ -257,11 +257,26 @@ an environment is a separate authority and it wins.
 
 ### The honest verdict
 
-**CUTOVER BLOCKED ONLY BY EXPLICIT PRODUCTION AUTHORITY — and by the cutover
-implementation itself, which is Stage 14's remaining engineering.** The product
-gaps that would have made a cutover lossy are closed; the routing switch, its
-rollback plan and the hosted rollouts are not this batch's work and are not
-claimed to be done.
+**READY FOR CUTOVER is met.** Every row in the table above is `Met`. The product
+gaps that would have made a cutover lossy are closed, the routing switch is
+implemented and proved in both positions, a single failing destination no longer
+withdraws the product, and the rollback has a written procedure rather than only
+a mechanism.
+
+**What remains is not engineering.** The stage contract's second state —
+`CUT OVER AND VERIFIED` — needs the actual Production deployment to have shipped
+these flags and to have been post-deploy verified, and it needs explicit
+authority for that exact action and target. `config/vnext-programme.json` records
+an authorisation dated 20 August 2026; **it is not evidence that a deploy
+happened.** The only application-release records in `docs/ops/records/` predate
+these flags, and `config/production-hosted-contract.json` is a DATABASE record —
+it says nothing about which bundle is live. Being ready is not being cut over,
+and this page does not conflate them.
+
+An earlier version of this verdict said the routing switch and the rollback plan
+were "not this batch's work". Both have since been done; the sentence is replaced
+rather than left standing, because a readiness page that under-reports is as
+misleading as one that over-reports.
 
 ---
 

@@ -1,6 +1,6 @@
 import { VNextShell } from '../app/VNextShell'
 import { VNextPageHeader } from '../app/VNextPageHeader'
-import type { ShellDestinationId } from '../models/shell'
+import type { ShellDestinationId, ShellIntent } from '../models/shell'
 import text from '../foundations/typography.module.css'
 import styles from './VNextStates.module.css'
 
@@ -63,6 +63,36 @@ export type VNextNoticeProps = {
   readonly onRetry?: (() => void) | undefined
   /** What the retry control says. "Try again" fits a failure, not every state. */
   readonly retryLabel?: string
+  /**
+   * THE SHELL'S OUTWARD EDGE, FOR A CALLER THAT HAS NO PROVIDER TO PUT IT IN.
+   *
+   * `VNextShell` normally takes its intent handler from `VNextShellProvider`,
+   * which every connected screen mounts around its own body — so no notice has
+   * ever needed to pass one. A caller ABOVE the screens has no such provider to
+   * borrow: `VNextSurfaceBoundary` renders this after a destination threw, and
+   * the throw took that destination's provider with it.
+   *
+   * Without this the boundary would draw the four destinations as controls that
+   * are focusable, named and inert, which is worse than drawing none — a player
+   * pressing Matches on a failed page and getting nothing learns the whole
+   * product is broken rather than one page of it.
+   *
+   * Optional, and absent means exactly what it meant before: the provider
+   * answers, or nothing does.
+   */
+  readonly onIntent?: ((intent: ShellIntent) => void) | undefined
+  /**
+   * A SUPPORT REFERENCE, ON ITS OWN LINE RATHER THAN IN THE SENTENCE.
+   *
+   * It belongs to a failure a person may have to report, and it is a TOKEN —
+   * the one string on the page that has to survive being read out or copied
+   * exactly. Written into `body` it wrapped between the timestamp and the
+   * suffix; given its own line it cannot, and one tap selects all of it.
+   *
+   * Absent on every state that is not a failure, which is most of them: a
+   * not-found and an access refusal have nothing to correlate.
+   */
+  readonly reference?: string | undefined
 }
 
 export function VNextNotice({
@@ -72,9 +102,15 @@ export function VNextNotice({
   destination,
   onRetry,
   retryLabel = 'Try again',
+  onIntent,
+  reference,
 }: VNextNoticeProps) {
   return (
-    <VNextShell destination={destination} header={<VNextPageHeader title={heading} />}>
+    <VNextShell
+      destination={destination}
+      header={<VNextPageHeader title={heading} />}
+      onIntent={onIntent}
+    >
       <div className={styles.page}>
         <div className={styles.notice} role="status">
           <p className={text.title}>{title}</p>
@@ -83,6 +119,14 @@ export function VNextNotice({
             <button type="button" className={styles.retry} onClick={onRetry}>
               {retryLabel}
             </button>
+          ) : null}
+          {/* BELOW THE ACTION, not above it. The reference matters to whoever
+              reports the failure; getting out of it matters to everyone. */}
+          {reference ? (
+            <p className={styles.reference}>
+              If you report this, quote{' '}
+              <code className={styles.referenceCode}>{reference}</code>
+            </p>
           ) : null}
         </div>
       </div>

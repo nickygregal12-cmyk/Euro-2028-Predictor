@@ -75,6 +75,41 @@
   max-width: 56ch;
 }
 
+/* THE SUPPORT REFERENCE, WHICH IS A TOKEN AND NOT A SENTENCE.
+ *
+ * It first shipped inside the body paragraph — "…quote FPH-20260827120000-4F2A."
+ * — and looking at the rendered page is what found the defect: it wrapped
+ * between the timestamp and the suffix, so the one string a player has to read
+ * back accurately was the one string on the page broken across two lines.
+ *
+ * `nowrap` on the code keeps it whole. `user-select: all` makes one tap select
+ * the whole reference rather than a word of it, which is how it will actually
+ * be copied. `overflow-wrap` on the paragraph lets the LABEL wrap instead, so
+ * the pair still fits a 375 card without the token breaking.
+ *
+ * Same shape as `ApplicationErrorBoundary`'s: its own line, below the action,
+ * quieter than the body, the value in a `code`. Two places show a player this
+ * reference and they should not look like two different products.
+ */
+.reference {
+  color: var(--vnext-text-muted);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-caption);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.referenceCode {
+  color: var(--vnext-text-secondary);
+  font-family: var(--vnext-font-text);
+  font-size: var(--vnext-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--vnext-weight-medium);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  user-select: all;
+}
+
 .retry {
   display: inline-flex;
   align-items: center;
