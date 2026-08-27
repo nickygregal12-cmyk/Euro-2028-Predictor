@@ -222,9 +222,15 @@ are now under `resolvedDebt`:
   the caller's current phase. This one reached the PRODUCTION Football Hub, not
   only the vNext lane.
 
-**Both are repository-only.** Hosted Development and Production are at contract
-205 and each is a separately authorised rollout. A cutover cannot claim the
-Championship is truth-complete until the environment it runs against has them.
+**They were repository-only when this was written, and both have since crossed
+into every hosted environment.** The rule stands and is the part worth keeping:
+a cutover cannot claim the Championship is truth-complete until the environment
+it runs against holds the contracts these debts were paid by.
+
+**The NUMBER is deliberately not restated here.** This paragraph used to name one
+and it was stale within days — the exact failure the section below describes and
+then committed anyway. `NOW.md` is generated from the machine records and is
+where every environment's contract is stated. Read it there.
 
 ### The hosted rollout outranks readiness, and this page does not track it
 
@@ -257,21 +263,37 @@ an environment is a separate authority and it wins.
 
 ### The honest verdict
 
-**READY FOR CUTOVER is met.** Every row in the table above is `Met`. The product
-gaps that would have made a cutover lossy are closed, the routing switch is
-implemented and proved in both positions, a single failing destination no longer
-withdraws the product, and the rollback has a written procedure rather than only
-a mechanism.
+**READY FOR CUTOVER is met**, on the qualifications the table itself carries:
+two rows read `Met` with a named exception rather than plainly — one `F`
+capability (`PROF-002`), and accessibility/performance measured for what exists.
+Neither is a loss a cutover would ship, and both are stated in their own rows
+rather than smoothed into this sentence.
 
-**What remains is not engineering.** The stage contract's second state —
-`CUT OVER AND VERIFIED` — needs the actual Production deployment to have shipped
-these flags and to have been post-deploy verified, and it needs explicit
-authority for that exact action and target. `config/vnext-programme.json` records
-an authorisation dated 20 August 2026; **it is not evidence that a deploy
-happened.** The only application-release records in `docs/ops/records/` predate
-these flags, and `config/production-hosted-contract.json` is a DATABASE record —
-it says nothing about which bundle is live. Being ready is not being cut over,
-and this page does not conflate them.
+The product gaps that would have made a cutover lossy are closed, the routing
+switch is implemented and proved in both positions, a single failing destination
+no longer withdraws the product, and the rollback has a written procedure rather
+than only a mechanism.
+
+**AND THE FOOTBALL HUB IS ALREADY CUT OVER.** Read on 27 August 2026,
+`predictorhub.netlify.app/release.json` reports commit `014123c5` — current
+`main` — against the production Supabase project, and `netlify.toml` sets all
+fourteen `VITE_UI_FOOTBALL_HUB_*` flags in `[build.environment]`. Those flags are
+build-time, so a Hub player today is on the vNext surfaces. The repository held
+no record of that, and this page had been reporting the cutover as pending its
+own implementation.
+
+**What that does NOT establish, and the distinction is the point.** Reading
+`release.json` proves which BUILD is published. The stage contract's second state
+— `CUT OVER AND VERIFIED` — additionally requires post-deploy smoke, route, auth,
+refresh and deep-link checks to have passed, and `OPS-013` records why the
+repository's own instrument cannot currently run them: `production-smoke.mjs` is
+an anonymous HTTP check and both sites sit behind password protection. So the
+deploy is evidenced and the verification is not. Conflating those two would be
+the failure this page spends its length avoiding.
+
+The dated observation, including the Euro deployment's own state, is in
+[`../quality/risk-register.md`](../quality/risk-register.md). This page states no
+hosted number of its own, for the reason two sections above.
 
 An earlier version of this verdict said the routing switch and the rollback plan
 were "not this batch's work". Both have since been done; the sentence is replaced

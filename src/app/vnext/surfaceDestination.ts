@@ -1,6 +1,7 @@
 import {
   competitionRefFromPath,
   competitionRoute,
+  competitionSeasonWrappedRoute,
   competitionSectionRoute,
   weeklyRoutes,
   type CompetitionRouteRef,
@@ -62,6 +63,17 @@ export function shellDestinationFromPath(pathname: string): ShellDestinationId |
    */
   if (isUnder(pathname, `${competitionRoute(ref)}/players`)) return 'leagues'
 
+  /**
+   * SEASON WRAPPED LIGHTS NOTHING, BECAUSE ITS OWN SURFACE LIGHTS NOTHING.
+   *
+   * `VNextSeasonWrapped` renders `destination="none"` — a finished season's
+   * record is not one of the four. Without this row the prefix fall-through
+   * would answer Home, so the working page and the crashed page would disagree
+   * about where the player is, which is precisely the defect the destination
+   * prop was made required to prevent.
+   */
+  if (isUnder(pathname, competitionSeasonWrappedRoute(ref))) return 'none'
+
   // The Competition Deck merged `/` and the competition front door into one
   // visible destination, so the competition root — and anything under it this
   // function has not placed — is Home.
@@ -93,17 +105,49 @@ function isUnder(pathname: string, path: string): boolean {
 /**
  * Where a shell destination press should go from a crashed surface.
  *
- * `null` when the address holds no competition, which is the honest answer for
- * `/account` or a not-found: the boundary sends the player to the hub root
- * instead of pasting a guessed competition into a URL.
+ * ============================ IN A COMPETITION ===========================
+ *
+ * The competition's own section, so a player who breaks the Championship and
+ * presses Matches stays in the competition they were in.
+ *
+ * ============================ OUTSIDE ONE ================================
+ *
+ * THE FIRST VERSION SENT ALL FOUR TO THE HUB ROOT, AND THREE OF THOSE WERE A
+ * LIE. `/matches` and `/leagues` are registered global addresses — this module
+ * already recognises them on the way IN, in `globalDestination` — so discarding
+ * the reverse mapping meant a player at a broken `/account` who pressed
+ * "Matches" landed on Home. `VNextStates.tsx` names that exact class of defect:
+ * *"a page that cannot show its content is exactly when a player looks at the
+ * navigation to work out where they are, and it was the one moment the
+ * navigation lied."* A control that goes somewhere other than its label teaches
+ * the same lesson as an inert one.
+ *
+ * `games` IS the exception rather than an oversight. There is no
+ * cross-competition Games address: the route matrix absorbed `/play` into Home
+ * and never created a global games catalogue, because which games exist is a
+ * fact about a competition. The hub root is where a player picks one, so it is
+ * the honest answer here rather than a guess.
  */
 export function destinationRouteFromPath(
   pathname: string,
   destination: ShellDestinationId,
 ): string {
   const ref: CompetitionRouteRef | null = competitionRefFromPath(pathname)
-  if (ref === null) return weeklyRoutes.hub
-  return destination === 'home'
-    ? competitionRoute(ref)
-    : competitionSectionRoute(ref, destination)
+  if (ref !== null) {
+    return destination === 'home'
+      ? competitionRoute(ref)
+      : competitionSectionRoute(ref, destination)
+  }
+
+  switch (destination) {
+    case 'matches':
+      return weeklyRoutes.matches
+    case 'leagues':
+      return weeklyRoutes.leagues
+    case 'home':
+    case 'games':
+      return weeklyRoutes.hub
+    default:
+      return weeklyRoutes.hub
+  }
 }

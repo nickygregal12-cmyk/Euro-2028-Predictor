@@ -4,6 +4,8 @@ import { useLocation, useNavigate } from 'react-router'
 import { correlationReference } from '../fatalRecovery'
 import { reportFatalRenderError } from '../../services/observability/fatalRenderError'
 import { weeklyRoutes } from '../weeklyRoutes'
+import { useSite } from '../site/SiteProvider'
+import { vNextOwnsFrame } from './frameOwnership'
 import { VNextNotice } from '../../vnext/states/VNextStates'
 import { VNextAppRoot } from './VNextAppRoot'
 import { destinationRouteFromPath, shellDestinationFromPath } from './surfaceDestination'
@@ -19,12 +21,11 @@ import type { ShellDestinationId, ShellIntent } from '../../vnext/models/shell'
  * So a throw anywhere inside a cut-over Football Hub destination replaced the
  * ENTIRE document with the fatal fallback: the shell gone, the navigation gone,
  * every destination that was working perfectly well gone with it, and one
- * remedy — reload the page that had just failed.
+ * remedy, reload the page that had just failed.
  *
  * That is the right last line of defence and the wrong first one. A player
  * whose Championship bracket throws has not lost Matches, Leagues, Home or
- * their account, and a product that behaves as though they have is telling them
- * something untrue about itself.
+ * their account.
  *
  * It also contradicted the rule the vNext lane had already written down for its
  * own failure states, in `src/vnext/states/VNextStates.tsx`: *"Every one renders
@@ -38,13 +39,41 @@ import type { ShellDestinationId, ShellIntent } from '../../vnext/models/shell'
  * `VNextNotice` from it — that path is built, tested per surface, and untouched
  * here. This is only for the case an adapter cannot represent: code that threw.
  *
+ * ============================ IT ONLY ANSWERS FOR ITS OWN FRAME ===========
+ *
+ * THE FIRST VERSION OF THIS GOT ITS BLAST RADIUS WRONG, AND THE CORRECTION IS
+ * THE MOST IMPORTANT THING ON THIS PAGE. It is mounted in `VNextSeamLayout`,
+ * which sits above `AppShell` — and `AppShell` holds EVERY route under
+ * `RequireWelcome`. That is not the fourteen cut-over destinations. It is also
+ * `/admin/*`, the Matchday TV screen, the Euro tournament's own `/h2h/:rivalId`
+ * and `/tournament/profile`, and every destination whose flag has been turned
+ * OFF and is therefore serving its legacy journey again.
+ *
+ * Catching those and painting the Football Hub's vNext chrome over them would
+ * have been four separate regressions: the Euro deployment showing Hub
+ * navigation on a tournament page, a brand-new Euro account meeting the Hub's
+ * shell at `/welcome`, a wall-mounted TV screen acquiring a phone's bottom
+ * navigation bar, and — worst — a ROLLED-BACK destination failing into the very
+ * chrome the rollback existed to withdraw. `frameOwnership.ts` states that last
+ * rule in its own words: *"turning a destination's flag off restores that one
+ * journey AND its legacy chrome together. A rollback that returned the page but
+ * not the navigation around it would not be the rollback the stage contract
+ * asks for."*
+ *
+ * So the boundary asks the same authority `AppShell` asks — `vNextOwnsFrame`,
+ * which already answers "is a vNext surface rendering here", already consults
+ * the per-destination flag, and already knows which rows are domestic-only. If
+ * vNext does not own the frame at this address, this rethrows and
+ * `ApplicationErrorBoundary` takes it, correctly branded for whichever site the
+ * player is on. A second opinion about which routes are vNext's would be the
+ * exact drift `frameOwnership.ts` exists to prevent.
+ *
  * ============================ WHY IT IS A LAYOUT ROUTE ====================
  *
- * Mounted in `VNextSeamLayout` ABOVE `VNextSeamHost` rather than inside it,
- * because the seam's own hosts — the cross-competition attention read and the
- * durable action feed — are code that can throw too, and a boundary underneath
- * them cannot catch them. One boundary above all of it covers every cut-over
- * destination and the chrome they share.
+ * Mounted ABOVE `VNextSeamHost` rather than inside it, because the seam's own
+ * hosts — the cross-competition attention read and the durable action feed —
+ * are code that can throw too, and a boundary underneath them cannot catch
+ * them.
  *
  * The address is what tells it which destination it is standing in front of;
  * see `surfaceDestination.ts` for why that is derived from the application's own
@@ -55,13 +84,19 @@ import type { ShellDestinationId, ShellIntent } from '../../vnext/models/shell'
  * `UX-004`'s lesson, applied one level down: retrying a deterministic failure is
  * a loop. The first failure at an address gets a shell, a navigation and a "Try
  * again", because most faults are transient. If the retry throws again at the
- * SAME address, this rethrows and lets `ApplicationErrorBoundary` take it —
- * which is where the reload and local-sign-out escalation already live. So a
- * genuinely broken surface still reaches the remedy that can clear it, and a
- * transient one no longer costs the player their whole session.
+ * SAME address before anything has rendered successfully, this rethrows and
+ * lets `ApplicationErrorBoundary` take it — which is where the reload and
+ * local-sign-out escalation already live.
  *
- * Navigating anywhere else resets the count, because a different address is a
- * different fault until it proves otherwise.
+ * TWO THINGS CLEAR THE COUNT, and the second was missing from the first
+ * version. Navigating to another address clears it, because a different address
+ * is a different fault until it proves otherwise. And a SUCCESSFUL RENDER
+ * clears it — without that, a page that failed once, recovered on the retry and
+ * then worked for ten minutes would escalate straight to the full-page fallback
+ * the next time anything went wrong, which is the outcome this whole component
+ * exists to prevent. "Threw twice in a row" and "threw twice today" are
+ * different evidence about determinism and only the first one justifies giving
+ * up.
  *
  * ============================ AND IT REPORTS THE SAME WAY =================
  *
@@ -69,6 +104,10 @@ import type { ShellDestinationId, ShellIntent } from '../../vnext/models/shell'
  * reference shown to the player is the one attached to observability. A second
  * reporting path would be a second answer to "what happened", and the two would
  * disagree the first time either grew a rule.
+ *
+ * It reports ONLY where it owns the frame. Where it does not, it reports
+ * nothing and rethrows the original error, so `ApplicationErrorBoundary` files
+ * the one event with the real stack rather than two events about one fault.
  */
 
 type VNextSurfaceBoundaryViewProps = {
@@ -81,36 +120,71 @@ type VNextSurfaceBoundaryViewProps = {
    * which a class cannot call.
    */
   readonly pathname: string
+  /**
+   * Whether a vNext surface owns the frame at `pathname`. `false` means this
+   * boundary is standing over somebody else's page and must get out of the way.
+   */
+  readonly ownsFrame: boolean
   readonly destination: ShellDestinationId | 'none'
   readonly onIntent: (intent: ShellIntent) => void
-  readonly onGoHome: () => void
 }
 
 type VNextSurfaceBoundaryState = {
   readonly failed: boolean
+  /** Kept so the original can be rethrown rather than a fabricated stand-in. */
+  readonly error: unknown
   readonly reference: string | null
-  /** Consecutive failures at `guarded`. Two is deterministic — see the header. */
+  /**
+   * Consecutive failures at `guarded`, counted by `componentDidCatch`.
+   *
+   * IT LAGS THE RENDER BY ONE COMMIT AND THAT IS UNAVOIDABLE. `componentDidCatch`
+   * runs AFTER the fallback has painted, so on the failure that escalates, the
+   * notice commits once and is then replaced. A counter that tried to include
+   * the current failure in `render` would have to be incremented in
+   * `getDerivedStateFromError`, which is static and cannot see prior state. The
+   * cost is one frame on the rarest path; the alternative — an instance field
+   * read during render — makes the escalation depend on mutation order rather
+   * than on state.
+   */
   readonly failures: number
   /** The address the counter belongs to, so a navigation resets it. */
   readonly guarded: string
 }
 
 /** How many consecutive failures at one address before the fault escalates. */
-export const SURFACE_ESCALATION_THRESHOLD = 2
+const ESCALATION_THRESHOLD = 2
 
-export class VNextSurfaceBoundaryView extends Component<
+class VNextSurfaceBoundaryView extends Component<
   VNextSurfaceBoundaryViewProps,
   VNextSurfaceBoundaryState
 > {
   public state: VNextSurfaceBoundaryState = {
     failed: false,
+    error: null,
     reference: null,
     failures: 0,
     guarded: this.props.pathname,
   }
 
-  public static getDerivedStateFromError(): Partial<VNextSurfaceBoundaryState> {
-    return { failed: true }
+  /**
+   * THE REFERENCE IS MINTED HERE RATHER THAN IN `componentDidCatch`.
+   *
+   * `componentDidCatch` runs after the fallback has painted, so setting it there
+   * rendered the notice once without the reference and once with it — and the
+   * notice is inside a `role="status"` region, whose implicit `aria-atomic`
+   * makes that a SECOND full announcement of the title, the body and the button
+   * to a screen-reader user. Minting it here means the first paint is the only
+   * paint. `componentDidCatch` reads it back off state to report under it, so
+   * the reference the player sees is still provably the one observability got.
+   */
+  public static getDerivedStateFromError(
+    error: unknown,
+  ): Partial<VNextSurfaceBoundaryState> {
+    return {
+      failed: true,
+      error,
+      reference: correlationReference(new Date(), Math.random()),
+    }
   }
 
   /**
@@ -125,61 +199,60 @@ export class VNextSurfaceBoundaryView extends Component<
     state: VNextSurfaceBoundaryState,
   ): Partial<VNextSurfaceBoundaryState> | null {
     if (props.pathname === state.guarded) return null
-    return { failed: false, reference: null, failures: 0, guarded: props.pathname }
+    return {
+      failed: false,
+      error: null,
+      reference: null,
+      failures: 0,
+      guarded: props.pathname,
+    }
   }
 
   public componentDidCatch(error: unknown, info: ErrorInfo): void {
-    // Generated before anything else, so the reference painted below is provably
-    // the one the reporter was given. Same shape and same sanitiser as the
-    // application boundary; see the header.
-    const reference = correlationReference(new Date(), Math.random())
-    reportFatalRenderError(error, reference, info.componentStack)
-    this.setState((previous) => ({ reference, failures: previous.failures + 1 }))
+    // NOT OURS, NOT OUR REPORT. `render` is about to rethrow this to the
+    // application boundary, which files it with the real stack. Reporting here
+    // as well would put two events in observability for one fault.
+    if (!this.props.ownsFrame) return
+
+    reportFatalRenderError(error, this.state.reference ?? 'FPH-INVALID-REFERENCE', info.componentStack)
+    this.setState((previous) => ({ failures: previous.failures + 1 }))
+  }
+
+  /**
+   * A SUCCESSFUL RENDER IS EVIDENCE THE FAULT WAS TRANSIENT.
+   *
+   * This only runs when the children COMMITTED — a retry that throws again is
+   * caught during render, so the update never reaches here and the count
+   * survives to escalate. That is the distinction the counter needs and the
+   * first version of this component did not have.
+   */
+  public componentDidUpdate(): void {
+    if (!this.state.failed && this.state.failures > 0) {
+      this.setState({ failures: 0 })
+    }
   }
 
   private readonly retry = (): void => {
-    // The counter deliberately survives. A retry that also cleared it would let
-    // one deterministic fault cycle for ever, which is the loop this escalates
-    // out of.
-    this.setState({ failed: false, reference: null })
+    this.setState({ failed: false, error: null, reference: null })
   }
 
   public render() {
     if (!this.state.failed) return this.props.children
 
     /**
-     * DETERMINISTIC, SO IT GOES UP.
+     * SOMEBODY ELSE'S PAGE, OR A FAULT A RE-RENDER CANNOT CLEAR. Either way it
+     * goes up, and it goes up as the ORIGINAL error so the boundary above files
+     * the real stack rather than a stand-in this one invented.
      *
      * Thrown during render on purpose: that is how a boundary hands a fault to
-     * the boundary above it, and `ApplicationErrorBoundary` owns the remedies
-     * that can clear a fault a re-render cannot.
-     *
-     * IT CARRIES THE REFERENCE AND NOT THE ORIGINAL ERROR. The original may hold
-     * server or player-derived text, which is the same reason
-     * `reportFatalRenderError` rebuilds the error it sends rather than
-     * forwarding one. The original was already reported under this reference, so
-     * nothing is lost by not carrying it a second time.
+     * the boundary above it.
      */
-    if (this.state.failures >= SURFACE_ESCALATION_THRESHOLD) {
-      throw new Error(
-        `vNext surface failed ${this.state.failures} times at one address: reference=${
-          this.state.reference ?? 'unknown'
-        }`,
-      )
+    if (!this.props.ownsFrame || this.state.failures >= ESCALATION_THRESHOLD) {
+      throw this.state.error
     }
 
-    const { destination, onIntent, onGoHome } = this.props
+    const { destination, onIntent } = this.props
     const { reference } = this.state
-
-    /**
-     * NOTHING TO NAVIGATE TO MEANS NO NAVIGATION PROMISE.
-     *
-     * On an address outside the four — `/account`, an invite, a not-found — the
-     * shell's destinations have no competition to resolve against, so the honest
-     * single control is the hub root rather than a "Try again" beside four
-     * destinations that would all land in the same place.
-     */
-    const outsideTheFour = destination === 'none'
 
     return (
       <VNextAppRoot>
@@ -192,10 +265,16 @@ export class VNextSurfaceBoundaryView extends Component<
            * a failure needs to know whether they have lost anything, and the
            * answer is no: a screen that failed to draw has not touched a
            * prediction, an entry or a result.
+           *
+           * IT NAMES THE CONTROL THAT IS ACTUALLY THERE. The first version said
+           * "Try again" unconditionally while the control on some addresses read
+           * "Go to Home", so the copy promised a button the page did not have.
+           * The retry is now offered everywhere — re-rendering can succeed at any
+           * address, and whether a destination lights up in the navigation is a
+           * different question from whether a page can be retried.
            */
           body="Your predictions and results are safe. Try again, or use the navigation to go somewhere else."
-          onRetry={outsideTheFour ? onGoHome : this.retry}
-          retryLabel={outsideTheFour ? 'Go to Home' : 'Try again'}
+          onRetry={this.retry}
           onIntent={onIntent}
           /**
            * A SEPARATE PROP RATHER THAN A SENTENCE, and looking at the rendered
@@ -217,17 +296,31 @@ export class VNextSurfaceBoundaryView extends Component<
 /**
  * The boundary as the route tree mounts it.
  *
- * A function wrapper because the class cannot call hooks, and the three things
- * it needs — the address, the destination that address belongs to, and a way to
- * navigate — all come from the router.
+ * A function wrapper because the class cannot call hooks, and everything it
+ * needs — the address, whether vNext owns the frame there, the destination that
+ * address belongs to, and a way to navigate — comes from the router and the
+ * site.
  */
-export function VNextSurfaceBoundary({ children }: { readonly children: ReactNode }) {
+export function VNextSurfaceBoundary({
+  children,
+  ownsFrame,
+}: {
+  readonly children: ReactNode
+  /**
+   * Force ownership on, for a mount point where the question is already settled.
+   *
+   * `/welcome` and `/join/:code` are registered OUTSIDE `AppShell`, so
+   * `frameOwnership.ts` deliberately keeps them out of `VNEXT_FRAMED` and names
+   * them in `OUTSIDE_THE_LEGACY_FRAME` instead — there is no frame there to
+   * surrender. The vNext elements at those two addresses mount this boundary
+   * themselves and only exist when their own flag is on, so at those mount
+   * points ownership is a fact rather than a lookup.
+   */
+  readonly ownsFrame?: boolean
+}) {
   const { pathname } = useLocation()
   const navigate = useNavigate()
-
-  const onGoHome = useCallback(() => {
-    navigate(weeklyRoutes.hub)
-  }, [navigate])
+  const site = useSite()
 
   /**
    * A SHELL INTENT, RESOLVED FROM THE FAILED ADDRESS.
@@ -268,9 +361,14 @@ export function VNextSurfaceBoundary({ children }: { readonly children: ReactNod
   return (
     <VNextSurfaceBoundaryView
       pathname={pathname}
+      ownsFrame={
+        ownsFrame ??
+        vNextOwnsFrame(pathname, {
+          servesDomesticCompetitions: site.servesDomesticCompetitions,
+        })
+      }
       destination={shellDestinationFromPath(pathname)}
       onIntent={onIntent}
-      onGoHome={onGoHome}
     >
       {children}
     </VNextSurfaceBoundaryView>

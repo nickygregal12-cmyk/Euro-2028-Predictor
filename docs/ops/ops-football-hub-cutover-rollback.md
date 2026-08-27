@@ -41,13 +41,13 @@ one per destination:
 
 | Variable | Destination | Off restores |
 | --- | --- | --- |
-| `VITE_UI_FOOTBALL_HUB_HOME` | Home, `/` and the competition front door | `CompetitionDashboardPage` |
-| `VITE_UI_FOOTBALL_HUB_MATCHES` | Matches and the Match Centre | `SeasonMatchesRoute`, `SeasonMatchCentreRoute` |
-| `VITE_UI_FOOTBALL_HUB_GAMES` | Games, and the scoring rules | `CompetitionGamesPage` |
-| `VITE_UI_FOOTBALL_HUB_LEAGUES` | Leagues | `SeasonLeaguesRoute` |
+| `VITE_UI_FOOTBALL_HUB_HOME` | Home, `/`, the competition front door, `/play` and the competition `play` | `CompetitionDashboardPage`, `HomeDestination`, `PlayDestination`, `SeasonPlayRoute` — **four routes, not one** |
+| `VITE_UI_FOOTBALL_HUB_MATCHES` | Matches, the Match Centre and `/matches` | `SeasonMatchesRoute`, `SeasonMatchCentreRoute`, `MatchesDestination` |
+| `VITE_UI_FOOTBALL_HUB_GAMES` | Games and `/more/scoring` | `CompetitionGamesPage`, `ScoringRulesPage` |
+| `VITE_UI_FOOTBALL_HUB_LEAGUES` | Leagues, `/leagues` and the Match Predictor standings | `SeasonLeaguesRoute`, `LeaguesDestination`, `SeasonStandingsRoute` |
 | `VITE_UI_FOOTBALL_HUB_PLAYER_PROFILE` | A player's season | `SeasonPlayerProfileRoute` |
 | `VITE_UI_FOOTBALL_HUB_DISCOVERY` | Discovery | `ExploreCompetitionsPage` |
-| `VITE_UI_FOOTBALL_HUB_ACCOUNT` | You / Account | `AccountPage` |
+| `VITE_UI_FOOTBALL_HUB_ACCOUNT` | You / Account, `/more` and `/profile` | `AccountPage`, `MorePage`, `PlatformProfilePage` |
 | `VITE_UI_FOOTBALL_HUB_LMS` | Last Man Standing | `SeasonLmsRoute` |
 | `VITE_UI_FOOTBALL_HUB_CHAMPIONSHIP` | Predictor Championship | `SeasonChampionshipRouter` |
 | `VITE_UI_FOOTBALL_HUB_PREDICTOR` | Match Predictor | `SeasonMatchPredictorRoute` |
@@ -56,11 +56,18 @@ one per destination:
 | `VITE_UI_FOOTBALL_HUB_CREATE` | Create private play | **nothing — withdraws the address** |
 | `VITE_UI_FOOTBALL_HUB_WRAPPED` | Season Wrapped | **nothing — withdraws the address** |
 
-**The list is not maintained here by hand.**
+**The row set is not maintained here by hand.**
 `tests/vnext/vnextCutoverRouting.test.tsx` compares its destination table
 against the flag declaration in `src/app/routeFlags.ts`, so a flag added without
-a row fails that test. If this table and that one disagree, **that one is right**
-and this page is stale.
+a row fails that test. If this table and that one disagree about WHICH FLAGS
+EXIST, **that one is right** and this page is stale.
+
+**The "Off restores" column is a different matter and nothing holds it.** That
+test asserts a route COUNT per flag, not which components those routes mount, so
+this column is the one part of the page a reader should verify against
+`src/App.tsx` before acting on it. Several flags restore more than one route —
+`..._HOME` restores four — and an operator who reads a single component name
+will under-estimate what a rollback changes.
 
 ### The two that withdraw an address
 
@@ -164,26 +171,40 @@ else — a rollback commit must be trivially readable and trivially revertible.
 Through the normal deployment path for the site. No migration step, no backup
 gate, no rehearsal: none of those apply to a frontend build-configuration change.
 
-### 4. Verify
+### 4. Verify — by opening the destination
+
+**This is the primary step, not the supplement.** Open the rolled-back address
+and confirm the legacy journey is what appears — or a Not Found, for the two that
+withdraw an address. Check a phone width as well as a desktop one: the two
+journeys have different layouts, and a rollback that renders the legacy page
+unusably is not a completed rollback.
+
+It has to be done by hand, and it is worth knowing why rather than assuming the
+smoke covers it. `npm run smoke:production` **does not assert which UI a route
+renders** — every route returns the same SPA shell whether a flag is on or off,
+so it cannot tell a rolled-back destination from a live one. That is not a gap in
+the script; it is what a shell-level check can see.
+
+### 4b. Then run the smoke, if it can reach the site
 
 ```bash
 npm run smoke:production
 ```
 
-**Know what that proves and what it does not.** It proves the shell, the brand,
-the security headers byte-for-byte against `netlify.toml`, the release identity
-in `/release.json`, that every declared SPA route returns the shell, that an
-unknown path 404s rather than soft-200s, that every asset fetches, and that the
-bundle names the expected Supabase project and no other.
+It proves the shell, the brand, the security headers byte-for-byte against
+`netlify.toml`, the release identity in `/release.json`, that every declared SPA
+route returns the shell, that an unknown path 404s rather than soft-200s, that
+every asset fetches, and that the bundle names the expected Supabase project and
+no other. All of that is worth having after a redeploy, none of it is the
+rollback check.
 
-It does **not** assert which UI a route renders — every route returns the same
-SPA shell whether the flag is on or off, which is exactly why it cannot tell.
-
-So the rollback itself has to be verified by **opening the destination** and
-confirming the legacy journey is what appears, or a Not Found for the two that
-withdraw an address. Check on a phone width as well as a desktop one; the two
-journeys have different layouts and a rollback that renders the legacy page
-unusably is not a completed rollback.
+**IT MAY REFUSE TO RUN, AND THAT IS EXPECTED RATHER THAN A FAULT.** The script is
+an anonymous HTTP check by construction and both Production sites currently sit
+behind Netlify password protection, so it answers `HTTP 401` and stops. See
+`OPS-013` in [`../quality/risk-register.md`](../quality/risk-register.md) for the
+measurement and for what closing it would take. Until then, step 4 is the
+verification and this step is a bonus when the site is reachable — do not read a
+401 here as a failed rollback.
 
 ### 5. Confirm the bundle actually shrank
 

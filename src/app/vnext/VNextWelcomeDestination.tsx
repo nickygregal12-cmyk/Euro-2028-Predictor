@@ -37,7 +37,7 @@ import { VNextSurfaceBoundary } from './VNextSurfaceBoundary'
  */
 export function VNextWelcomeDestination() {
   return (
-    <VNextSurfaceBoundary>
+    <VNextSurfaceBoundary ownsFrame>
       <VNextWelcomeDestinationContent />
     </VNextSurfaceBoundary>
   )

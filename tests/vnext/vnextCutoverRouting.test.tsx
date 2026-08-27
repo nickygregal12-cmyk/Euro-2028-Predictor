@@ -342,10 +342,25 @@ describe('the Football Hub cutover switch', () => {
       expect(app, `${legacy} must still be routed`).toContain(`<${legacy} />`)
       expect(app, `${next} must be routed`).toContain(`<${next} />`)
       if (rollback === 'withdraws-address') {
-        // Pinned so the deliberate case cannot quietly become the accidental
-        // one: if a legacy screen is ever built for this address, this row must
-        // be re-classified rather than left claiming a not-found is a rollback.
-        expect(legacy, `${journey} withdraws its address on rollback`).toBe('NotFoundPage')
+        /**
+         * THE `toContain` ABOVE IS VACUOUS FOR THIS CASE ON ITS OWN, and saying
+         * so is the reason this block exists. `<NotFoundPage />` is in `App.tsx`
+         * anyway as the sessionless catch-all, so asserting its presence would
+         * pass even if this destination's off branch had been changed to
+         * something else entirely.
+         *
+         * So read the branch itself: the `isNextUi` call for this journey must
+         * be followed, within its own ternary, by `<NotFoundPage />`. A legacy
+         * screen appearing there is a re-classification this table has to make
+         * deliberately, not a change that slips past a substring match.
+         */
+        const branch = new RegExp(
+          `isNextUi\\('${journey}'\\)[\\s\\S]{0,600}?\\)\\s*:\\s*\\(\\s*<NotFoundPage />`,
+        )
+        expect(
+          branch.test(app),
+          `${journey} must fall back to <NotFoundPage /> in its own branch`,
+        ).toBe(true)
       }
 
       // AND THE BUILD-TIME GATE MUST GUARD THE LAZY IMPORT, or the subtree ships
