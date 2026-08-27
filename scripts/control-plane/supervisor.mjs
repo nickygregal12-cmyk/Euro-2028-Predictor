@@ -18,7 +18,9 @@
  *    an unheld lease is why concurrent read-modify-write was not hypothetical.
  *    A supervisor takes it before its first tick, renews it while it runs, and
  *    releases it on the way out. A second supervisor against the same state
- *    refuses to start rather than interleaving with the first.
+ *    refuses to start rather than interleaving with the first — which holds
+ *    only because each one has its own identity. See `defaultHolder`: the lane
+ *    is exactly as exclusive as the holder string is unique.
  *
  * 2. RECONCILING WHAT A CRASH LEFT BEHIND. A task is marked `RUNNING` before
  *    its handler is called. If the process dies in between, that mark outlives
@@ -35,9 +37,41 @@
  *    task, not the programme — everything independent keeps moving.
  */
 
+import { randomBytes } from 'node:crypto'
 import { hostname } from 'node:os'
 
 import { LoopEngine } from './loop.mjs'
+
+/**
+ * Who is holding the writer lane.
+ *
+ * `acquireLease` gates on holder *inequality* — a holder that matches the
+ * incumbent is the incumbent renewing, and renewal is exactly what
+ * `run` does before every sleep. That makes the holder string the whole of
+ * what separates one live writer from another, so it has to be unique per
+ * running supervisor and not merely per machine.
+ *
+ * It was `supervisor@${hostname()}`, which is per machine. Two `cli.mjs
+ * supervise` processes on one box therefore presented one identity, each read
+ * as the other renewing, and both took the lane — no failure, no batch and no
+ * parallelism required, just the command typed twice.
+ *
+ * The three parts each earn their place:
+ *   - hostname and pid, because a lease file naming a live process is what
+ *     makes a stuck lane diagnosable — an operator can go and look at it;
+ *   - a random nonce, because pid alone is only unique while the process is
+ *     alive. A pid is reused after death, and a lease outlives its holder by
+ *     up to the TTL, so hostname+pid can still collide with a dead supervisor
+ *     that has not expired yet. It also separates two supervisors constructed
+ *     inside one process, which are two writers whatever the pid says.
+ *
+ * Per instance rather than per module: two supervisors are two writers even
+ * when they share a process. Nothing parses this string — both stores compare
+ * it only for equality — so the shape is free to stay readable.
+ */
+export function defaultHolder() {
+  return `supervisor@${hostname()}#${process.pid}.${randomBytes(4).toString('hex')}`
+}
 
 /** Outcomes that end the supervisor rather than pausing it. */
 export const TERMINAL_OUTCOMES = Object.freeze([
@@ -119,7 +153,7 @@ export class Supervisor {
     engine,
     now,
     sleep,
-    holder = `supervisor@${hostname()}`,
+    holder = defaultHolder(),
     leaseTtlMs = 15 * 60 * 1000,
     sleeps = DEFAULT_SLEEPS,
     maxPasses = 1000,
