@@ -281,6 +281,19 @@ async function main() {
     // delivery run underneath them is the thing being prevented.
     console.error(`writer lane held by ${outcome.heldBy} until ${outcome.expiresAt}; not starting`)
     process.exitCode = 1
+    return
+  }
+
+  if (!outcome.heldToTheEnd) {
+    // The lease is not renewed while the run is in flight, so a canary that
+    // outlived its TTL has been sharing the lane. Nothing here can undo that;
+    // saying so is the difference between a known overlap and a silent one.
+    console.error(
+      'WARNING: the writer lane expired during this run and was taken by another ' +
+        'process. Anything this canary did after that point overlapped another writer — ' +
+        'check the branch, the pull request and the run record before trusting them.',
+    )
+    process.exitCode = 1
   }
 }
 

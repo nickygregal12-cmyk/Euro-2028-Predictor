@@ -95,10 +95,22 @@ export function defaultHolder(role = 'supervisor') {
  * Do something to the control plane while holding the writer lane, or not at
  * all.
  *
- * For the one-shot writers. `Supervisor` does not use this because it has to
- * renew across passes and stand down when a renewal is refused; a caller that
- * runs the engine once and exits has neither problem, and giving it the
- * supervisor's machinery would be the more confusing of the two options.
+ * For the one-shot writers. `Supervisor` does not use this because it renews
+ * across passes and stands down when a renewal is refused; a caller that runs
+ * the engine once and exits has no passes to renew between.
+ *
+ * IT DOES STILL HAVE THE OTHER HALF OF THE PROBLEM, and this does not solve
+ * it. The lease is taken once and never renewed, so a body that runs longer
+ * than `ttlMs` loses the lane mid-flight and carries on regardless — the
+ * canary's handlers shell out with no timeout, so that is reachable rather
+ * than theoretical. A heartbeat would not help either: those handlers use
+ * `execFileSync`, which blocks the event loop, so no timer could fire while
+ * one is running. Closing this properly means checking ownership at the point
+ * of each write, which is a change to the stores rather than to callers.
+ *
+ * What is done here instead is to make the overlap loud rather than silent:
+ * `heldToTheEnd` reports whether the lane was still ours when we let go, so a
+ * run that overlapped somebody else says so instead of finishing quietly.
  *
  * WHY THESE CALLERS NEED IT AT ALL. `cli.mjs run` and `canary.mjs` build a
  * `LoopEngine` over the same state directory a supervisor uses and drive it
@@ -115,7 +127,7 @@ export function defaultHolder(role = 'supervisor') {
  * @param {import('./state.mjs').ControlPlaneState} store
  * @param {{ holder: string, now: () => string, ttlMs?: number }} options
  * @param {() => Promise<T>} body
- * @returns {Promise<{ acquired: true, result: T }
+ * @returns {Promise<{ acquired: true, result: T, heldToTheEnd: boolean }
  *   | { acquired: false, heldBy?: string, expiresAt?: string }>}
  */
 export async function withWriterLease(store, { holder, now, ttlMs = 15 * 60 * 1000 }, body) {
@@ -123,13 +135,19 @@ export async function withWriterLease(store, { holder, now, ttlMs = 15 * 60 * 10
   if (!lease.acquired) {
     return { acquired: false, heldBy: lease.heldBy, expiresAt: lease.expiresAt }
   }
+
+  let result
+  let heldToTheEnd = false
   try {
-    return { acquired: true, result: await body() }
+    result = await body()
   } finally {
-    // Safe even if the lane expired mid-run and somebody else took it:
-    // `releaseLease` declines to write when the holder is not the incumbent.
-    store.releaseLease(holder, now())
+    // `releaseLease` declines to write when the holder is not the incumbent,
+    // so this is safe if the lane expired mid-run and somebody else took it —
+    // and its answer is exactly the thing worth knowing, because a false here
+    // means this run overlapped another writer.
+    heldToTheEnd = store.releaseLease(holder, now())
   }
+  return { acquired: true, result, heldToTheEnd }
 }
 
 /** Outcomes that end the supervisor rather than pausing it. */

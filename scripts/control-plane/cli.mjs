@@ -261,6 +261,12 @@ async function main() {
         process.exitCode = 1
         return
       }
+      if (!runOutcome.heldToTheEnd) {
+        // Not renewed while the pass is in flight, so a run that outlived its
+        // TTL shared the lane with whoever took it next.
+        console.error('WARNING: the writer lane expired during this run and was taken by another process')
+        process.exitCode = 1
+      }
       const decisions = runOutcome.result
       for (const decision of decisions) {
         console.log(`${decision.at} ${decision.outcome} ${decision.dispatched ?? ''}`.trim())
