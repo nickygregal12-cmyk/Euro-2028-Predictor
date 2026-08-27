@@ -84,6 +84,26 @@ const ADVERSARIAL: ReadonlyArray<readonly [string, string]> = [
   ['command builtin wrapper', 'command git commit -m x'],
   ['pipe into a shell', 'git log | sh'],
   ['pipe into xargs', 'git log | xargs rm'],
+
+  // Invariant 6: an expansion must not rewrite the command after the gate has
+  // judged it. Every rule in the hook matches RAW TEXT, so an expansion that
+  // contributes nothing still splits a literal in half and defeats it. The
+  // first two were found by the independent Codex review of 27 August 2026 and
+  // reproduced as ALLOW before the fix; the rest are the shapes they
+  // generalised to, one per rule the trick would otherwise reach.
+  ['branch creation split by an empty expansion',
+    'git switch ${EMPTY}-c gate-bypass'],
+  ['git transport helper split by an empty expansion',
+    'git fetch --upload${EMPTY}-pack=\'sh -c "git commit -m x"\' origin'],
+  ['expansion carrying the flag in its default',
+    'git switch ${x:--c} gate-bypass'],
+  ['checkout branch creation split by an expansion',
+    'git checkout ${EMPTY}-b gate-bypass'],
+  ['pre-subcommand flag split by an expansion',
+    "git ${EMPTY}-c alias.x='!sh' x"],
+  ['secret path assembled by an expansion', 'cat ${HOME}/.ssh/id_ed25519'],
+  ['bare positional expansion', 'git log $1'],
+  ['bare named expansion', 'git log $EMPTY'],
 ] as const
 
 /** Commands the builder legitimately needs. Refusing these makes it useless. */

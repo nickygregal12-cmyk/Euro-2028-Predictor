@@ -65,6 +65,32 @@ describe('agent Bash allowlist parity', () => {
     ])
   })
 
+  it('expresses no pattern with a `$`, because the hook refuses expansions outright', () => {
+    // `allow-bash.py` denies any command containing `$`: an expansion is
+    // rewritten by bash AFTER the matcher has judged the raw text, so a literal
+    // rule can be split in half by one that contributes nothing. That denial is
+    // what makes the reasoning in EXPANSION's comment true, and this is the
+    // check that comment cites.
+    //
+    // The failure it catches is silent rather than loud. A pattern containing a
+    // `$` would never match anything, because every command that could match it
+    // is refused before the pattern is consulted -- so the author would see a
+    // rule they believed was permissive, and a role quietly narrower than its
+    // OpenCode original. Nothing else would complain.
+    const port = JSON.parse(readFileSync(portPath, 'utf8')) as Record<string, unknown>
+    const offenders: string[] = []
+    for (const [key, value] of Object.entries(port)) {
+      if (typeof value !== 'object' || value === null) continue
+      const profile = value as { allow?: string[]; never?: string[] }
+      for (const list of ['allow', 'never'] as const) {
+        for (const pattern of profile[list] ?? []) {
+          if (pattern.includes('$')) offenders.push(`${key}.${list}: ${pattern}`)
+        }
+      }
+    }
+    expect(offenders).toEqual([])
+  })
+
   it('keeps the builder git-write denials, which the owner-* wrappers depend on', () => {
     const never = profileFor('predictor-builder').never
     // If any of these stop being refused, config/pre-live-owner-authority.json

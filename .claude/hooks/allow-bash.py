@@ -54,6 +54,41 @@ BACKGROUND = re.compile(r"(?<![>&])&(?![&>])")
 # Command substitution in any form -- an allowed wrapper around anything.
 SUBSTITUTION = re.compile(r"\$\(|`|<\(|>\(")
 
+# Parameter expansion, which is NOT command substitution, and the distinction is
+# the whole of the defect this closes.
+#
+# Everything above and below matches RAW TEXT. Bash expands `${VAR}` AFTER this
+# gate has judged that text, so an expansion contributing nothing at all still
+# rewrites the command that finally runs. That splits any literal rule in half:
+#
+#     git switch ${EMPTY}-c gate-bypass
+#         -- the argument starts with `$`, so it matches the broad
+#            `git switch [^-]*` allow and never reaches `git switch -*`.
+#            Bash then runs `git switch -c gate-bypass`, creating a branch the
+#            profile explicitly refuses.
+#
+#     git fetch --upload${EMPTY}-pack='sh -c "..."' origin
+#         -- GIT_REMOTE_EXEC below looks for the literal `--upload-pack`.
+#            Bash then runs it, and that is arbitrary command execution for the
+#            write-capable builder role.
+#
+# The same trick generalises to every raw-text rule on this path:
+# GIT_PRE_SUBCOMMAND_FLAG, TRAVERSAL, $neverPathPattern and the whole `never`
+# list are each defeated by an empty expansion placed inside the literal.
+#
+# So any `$` is refused outright. That is broader than the two demonstrated
+# payloads on purpose: this matcher does not parse shell quoting, so it cannot
+# tell an expansion that will fire from one that will not, and a rule that has
+# to guess is the rule that gets bypassed next. It costs nothing measurable --
+# NO allow or never pattern in agent-bash-allow.json contains a `$`, checked
+# mechanically by `agentBashAllowlistParity`, so nothing legitimate is expressed
+# with one. A command that genuinely needs an expansion belongs in a wrapper
+# under scripts/agent-tools/ where its arguments are the wrapper's business.
+#
+# Found by an independent Codex review, 27 Aug 2026, and reproduced against this
+# file before the fix: both payloads above returned ALLOW.
+EXPANSION = re.compile(r"\$")
+
 # Redirection is handled as an allowlist too: strip the forms that cannot write
 # a file, then refuse any < or > still standing. An earlier version pattern-
 # matched the dangerous forms instead and missed `1>file`, `3>file`, `>&file`
@@ -203,6 +238,12 @@ def main():
     if SUBSTITUTION.search(command):
         deny("command substitution can hide an arbitrary command inside an "
              "allowed one", agent)
+
+    # After SUBSTITUTION, so `$(...)` keeps the more specific message it earns.
+    if EXPANSION.search(command):
+        deny("shell expansion rewrites the command after this gate has judged "
+             "it, so no literal rule below can be trusted; put a command that "
+             "needs one behind a wrapper in scripts/agent-tools/", agent)
 
     if BACKGROUND.search(command):
         deny("backgrounding detaches the command from this gate", agent)
