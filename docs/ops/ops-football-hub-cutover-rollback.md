@@ -181,9 +181,13 @@ unusably is not a completed rollback.
 
 It has to be done by hand, and it is worth knowing why rather than assuming the
 smoke covers it. `npm run smoke:production` **does not assert which UI a route
-renders** — every route returns the same SPA shell whether a flag is on or off,
-so it cannot tell a rolled-back destination from a live one. That is not a gap in
-the script; it is what a shell-level check can see.
+renders.** Since #1069 it compares each address against the document that
+address actually declares — so `/join/:code` must serve the invite card and
+`/status` its own document — but every one of the fourteen cutover routes still
+points at `/index.html`, and the flags that decide which UI appears are
+build-time values inside the JavaScript bundle rather than anything in that
+shell. So the check cannot tell a rolled-back destination from a live one. That
+is not a gap in the script; it is what a document-level check can see.
 
 ### 4b. Then run the smoke, if it can reach the site
 
@@ -193,10 +197,10 @@ npm run smoke:production
 
 It proves the shell, the brand, the security headers byte-for-byte against
 `netlify.toml`, the release identity in `/release.json`, that every declared SPA
-route returns the shell, that an unknown path 404s rather than soft-200s, that
-every asset fetches, and that the bundle names the expected Supabase project and
-no other. All of that is worth having after a redeploy, none of it is the
-rollback check.
+route serves **the document that route declares**, that an unknown path 404s
+rather than soft-200s, that every asset fetches, and that the bundle names the
+expected Supabase project and no other. All of that is worth having after a
+redeploy, none of it is the rollback check.
 
 **IT MAY REFUSE TO RUN, AND THAT IS EXPECTED RATHER THAN A FAULT.** The script is
 an anonymous HTTP check by construction and both Production sites currently sit
