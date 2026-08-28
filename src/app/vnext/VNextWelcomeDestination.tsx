@@ -18,8 +18,32 @@ import { useSite } from '../site/SiteProvider'
 import { weeklyRoutes } from '../weeklyRoutes'
 import { useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
+import { VNextSurfaceBoundary } from './VNextSurfaceBoundary'
 
+/**
+ * FIRST SIGN-IN, WITH ITS OWN BOUNDARY BECAUSE IT IS OUTSIDE THE SEAM.
+ *
+ * `VNextSeamLayout` holds one `VNextSurfaceBoundary` above the twelve
+ * competition destinations. `/welcome` is registered under `RequireAuth` and
+ * ABOVE `RequireWelcome` — it is the screen that makes `RequireWelcome` pass —
+ * so it can never be inside that layout, and without one of its own a throw here
+ * would give a brand-new account the fatal fallback as its first impression of
+ * the product.
+ *
+ * The boundary is the OUTER component and the work is the inner one,
+ * deliberately: `useWelcomeHost` runs before any element is returned, so a
+ * boundary rendered from inside that function could not catch the hook that
+ * produced the failure.
+ */
 export function VNextWelcomeDestination() {
+  return (
+    <VNextSurfaceBoundary ownsFrame>
+      <VNextWelcomeDestinationContent />
+    </VNextSurfaceBoundary>
+  )
+}
+
+function VNextWelcomeDestinationContent() {
   useViewerFormatting()
   const site = useSite()
   const host = useWelcomeHost()

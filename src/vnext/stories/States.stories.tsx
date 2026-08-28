@@ -29,6 +29,11 @@ import { shellScenarios } from '../fixtures'
  *      theirs learns the app is broken.
  *   4. DOES THE SKELETON SHOW A NUMBER ANYWHERE? It must not. A skeleton with
  *      "1, 2, 3" down the left is a placeholder somebody reads as a rank.
+ *   5. DOES A CRASH STILL LOOK LIKE THE PRODUCT? Open `SurfaceFailed`. Until
+ *      `VNextSurfaceBoundary` existed, a destination that THREW took the whole
+ *      document with it — no shell, no navigation, no way to the destinations
+ *      that were working. Every other state on this page was designed; this one
+ *      was the one nobody could see because nothing caught it.
  */
 const meta = {
   title: 'vNext/States',
@@ -103,6 +108,68 @@ export const LeaguesFailed: Story = board(
 export const NotFound: Story = board(
   <VNextNotFound onHome={() => {}} />,
   'The matrix’s `*` row. A parent rather than an apology: the full navigation, no destination lit, and no guess at what the player meant.',
+)
+
+/* ========================================================================== *
+ * B2. THE STATE THAT USED TO HAVE NO SURFACE AT ALL
+ * ========================================================================== */
+
+/**
+ * WHAT A REVIEWER IS BEING ASKED HERE.
+ *
+ * This is what `src/app/vnext/VNextSurfaceBoundary.tsx` renders when a vNext
+ * destination THROWS, and until it existed the answer was: none of this. The
+ * whole document was replaced by the application's fatal fallback — no shell,
+ * no navigation, no way to any of the destinations that were working.
+ *
+ * So the questions are: does the page still look like the product rather than
+ * like a crash; is the navigation there and does it name the right destination;
+ * and does the copy answer the question a player actually has, which is not
+ * "what went wrong" but "have I lost anything".
+ *
+ * The reference is a fixed one here because a story must be deterministic. In
+ * the application it comes from `correlationReference()` and is the same value
+ * observability was given.
+ */
+export const SurfaceFailed: Story = board(
+  <VNextNotice
+    destination="games"
+    heading="Something went wrong"
+    title="This part of the app stopped working"
+    body="Your predictions and results are safe. Try again, or use the navigation to go somewhere else."
+    reference="FPH-20260827120000-4F2A"
+    onRetry={() => {}}
+    onIntent={() => {}}
+  />,
+  'A destination that threw rather than one whose read failed. The shell survives, the navigation is real and lights GAMES, and the first thing the copy says is that nothing was lost — because that is the question a player has.',
+)
+
+export const SurfaceFailedOutsideTheFour: Story = board(
+  <VNextNotice
+    destination="none"
+    heading="Something went wrong"
+    title="This part of the app stopped working"
+    body="Your predictions and results are safe. Try again, or use the navigation to go somewhere else."
+    reference="FPH-20260827120000-4F2A"
+    onRetry={() => {}}
+    retryLabel="Go to Home"
+    onIntent={() => {}}
+  />,
+  'The same failure at an address outside the four — an account page, an invite. Nothing lights up, and the single control is Home rather than a retry, because there is no competition for the destinations to resolve against.',
+)
+
+export const FrameSurfaceFailedPhone: Story = board(
+  <VNextNotice
+    destination="games"
+    heading="Something went wrong"
+    title="This part of the app stopped working"
+    body="Your predictions and results are safe. Try again, or use the navigation to go somewhere else."
+    reference="FPH-20260827120000-4F2A"
+    onRetry={() => {}}
+    onIntent={() => {}}
+  />,
+  'The failure on a phone, where the reference has to wrap without pushing the retry off the card.',
+  ['phone-375'],
 )
 
 export const AccessRefused: Story = board(

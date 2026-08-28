@@ -21,9 +21,12 @@ import { weeklyRoutePatterns } from '../../src/app/shellRoutes'
  *
  * THE CUTOVER IS NOW ON, AND THAT CHANGES WHICH BRANCH SHIPS RATHER THAN WHICH
  * BRANCH MATTERS. `config/vnext-programme.json` carries
- * `productionCutoverAuthorized: true`, `netlify.toml` sets all nine destination
- * flags in `[build.environment]`, and every hosted environment is level at
- * Contract 208 — so a player's Matches route today is `VNextMatchesDestination`.
+ * `productionCutoverAuthorized: true`, `netlify.toml` sets all fourteen
+ * destination flags in `[build.environment]`, and every hosted environment is
+ * level — so a player's Matches route today is `VNextMatchesDestination`. (This
+ * said "nine" for as long as there were fourteen, which is the same drift the
+ * destination table below was carrying; the count is now asserted against the
+ * flag declaration rather than remembered.)
  * What is unchanged is that every legacy route component is still mounted, so
  * removing one line from the build config restores that one journey with no
  * migration, no backfill and no data rollback. These cases are what prove the
@@ -110,6 +113,23 @@ describe('the Football Hub cutover switch', () => {
    * environment variable, the vNext element and the legacy element it replaces.
    * A destination added to the seam without a row here is a destination nothing
    * holds to the rollback rule.
+   *
+   * IT IS EVERY FLAG `routeFlags.ts` DECLARES, AND THAT IS ASSERTED RATHER THAN
+   * INTENDED. The table stood at ten while the module declared fourteen, so four
+   * destinations — Onboarding, Invite, Create Private Play and Season Wrapped —
+   * had no row at all, which is exactly the state the paragraph above says must
+   * not exist. Two of them had legacy halves nothing asserted. The `covers every
+   * declared journey` case below is what stops the count drifting again: the row
+   * set is now compared against the source of the flag type itself.
+   *
+   * `rollback` RECORDS WHAT THE OFF BRANCH ACTUALLY DOES, because it is not one
+   * thing. Twelve rows restore a legacy journey. Two — Create Private Play and
+   * Season Wrapped — select between a vNext surface and NOTHING, because those
+   * addresses did not exist before vNext built them; turning those off withdraws
+   * an address rather than restoring a screen, and `routeFlags.ts` says so in its
+   * own words. Both are valid rollbacks and they are not the same promise, so the
+   * table states which one each row is making instead of asserting the stronger
+   * claim for all fourteen.
    */
   const DESTINATIONS: readonly {
     journey: string
@@ -117,6 +137,7 @@ describe('the Football Hub cutover switch', () => {
     next: string
     legacy: string
     routes: number
+    rollback?: 'legacy-journey' | 'withdraws-address'
   }[] = [
     {
       journey: 'footballHubHome',
@@ -216,7 +237,82 @@ describe('the Football Hub cutover switch', () => {
       legacy: 'SeasonMatchPredictorRoute',
       routes: 1,
     },
+    {
+      // FIRST SIGN-IN. The switch is the PRESENTATION only — `commitOnboarding`
+      // writes the follows, the game entries and the completion stamp on both
+      // sides of it — so the legacy half is a screen rather than a journey, and
+      // it is still mounted.
+      journey: 'footballHubOnboarding',
+      variable: 'VITE_UI_FOOTBALL_HUB_ONBOARDING',
+      next: 'VNextWelcomeDestination',
+      legacy: 'WelcomePage',
+      routes: 1,
+    },
+    {
+      // THE INVITE DEEP LINK, on the same terms: `useInviteCode` resolves and
+      // accepts on both sides, and `useInviteLanding` owns the signed-out
+      // hand-off for both. Turning it off changes what the page looks like and
+      // nothing about what an invitation does.
+      journey: 'footballHubInvite',
+      variable: 'VITE_UI_FOOTBALL_HUB_INVITE',
+      next: 'VNextJoinDestination',
+      legacy: 'JoinLandingPage',
+      routes: 1,
+    },
+    {
+      // AN ADDRESS THAT DID NOT EXIST BEFORE vNEXT BUILT IT. Off withdraws the
+      // corridor and leaves the journey at `/leagues`, which is where it has
+      // always been — so the legacy half is a not-found rather than a screen.
+      journey: 'footballHubCreatePrivatePlay',
+      variable: 'VITE_UI_FOOTBALL_HUB_CREATE',
+      next: 'VNextCreateDestination',
+      legacy: 'NotFoundPage',
+      routes: 1,
+      rollback: 'withdraws-address',
+    },
+    {
+      // THE SAME SHAPE. Contract 156 has stored the archive since `MIG-UI-08`
+      // and no UI ever rendered it, so off withdraws the address and leaves the
+      // season history in Account exactly where a player has always found it.
+      journey: 'footballHubSeasonWrapped',
+      variable: 'VITE_UI_FOOTBALL_HUB_WRAPPED',
+      next: 'VNextWrappedDestination',
+      legacy: 'NotFoundPage',
+      routes: 1,
+      rollback: 'withdraws-address',
+    },
   ]
+
+  /**
+   * THE TABLE MUST COVER EVERY DECLARED JOURNEY.
+   *
+   * Read from `routeFlags.ts` rather than from a second list here, because a
+   * second list is the thing that drifted: the table sat at ten while the module
+   * declared fourteen, and nothing noticed because nothing compared them. The
+   * two non-cutover journeys are named explicitly rather than filtered by a
+   * prefix, so adding a flag called `footballHubSomething` cannot be absorbed
+   * silently by a pattern.
+   */
+  it('covers every cutover journey routeFlags.ts declares', () => {
+    const source = readFileSync(
+      resolve(import.meta.dirname, '../../src/app/routeFlags.ts'),
+      'utf8',
+    )
+    const declared = new Set(
+      (source.match(/^\s*\|\s*'([A-Za-z]+)'$/gm) ?? []).map((line) =>
+        line.replace(/^\s*\|\s*'/, '').replace(/'$/, ''),
+      ),
+    )
+    // Not Football Hub destinations: one selects whether a FEATURE is served at
+    // all, the other whether a signed-out visitor meets a landing page.
+    declared.delete('seasonMatchPredictor')
+    declared.delete('publicLanding')
+
+    const covered = new Set(DESTINATIONS.map((row) => row.journey))
+    expect(declared.size, 'the flag type must still be readable from source').toBeGreaterThan(0)
+    expect([...declared].filter((journey) => !covered.has(journey))).toEqual([])
+    expect([...covered].filter((journey) => !declared.has(journey))).toEqual([])
+  })
 
   it.each(DESTINATIONS)('$journey fails closed on anything but "true"', async ({ journey, variable }) => {
     const { journeyImplementation } = await import('../../src/app/routeFlags')
@@ -232,17 +328,40 @@ describe('the Football Hub cutover switch', () => {
   })
 
   it.each(DESTINATIONS)(
-    '$journey routes through the flag and keeps its legacy element mounted',
-    ({ journey, variable, next, legacy, routes }) => {
+    '$journey routes through the flag and keeps its off branch mounted',
+    ({ journey, variable, next, legacy, routes, rollback }) => {
       const app = readFileSync(resolve(import.meta.dirname, '../../src/App.tsx'), 'utf8')
 
       const asked = app.match(new RegExp(`isNextUi\\('${journey}'\\)`, 'g')) ?? []
       expect(asked.length, `${journey} must be consulted by ${routes} route(s)`).toBe(routes)
 
-      // THE LEGACY ELEMENT MUST STAY MOUNTED. A cutover that deletes the old
-      // element has no rollback, whatever the flag says.
+      // THE OFF BRANCH MUST STAY MOUNTED. A cutover that deletes the old element
+      // has no rollback, whatever the flag says. For the two addresses vNext
+      // invented, the off branch is a deliberate not-found rather than a screen
+      // — see `rollback` on the table.
       expect(app, `${legacy} must still be routed`).toContain(`<${legacy} />`)
       expect(app, `${next} must be routed`).toContain(`<${next} />`)
+      if (rollback === 'withdraws-address') {
+        /**
+         * THE `toContain` ABOVE IS VACUOUS FOR THIS CASE ON ITS OWN, and saying
+         * so is the reason this block exists. `<NotFoundPage />` is in `App.tsx`
+         * anyway as the sessionless catch-all, so asserting its presence would
+         * pass even if this destination's off branch had been changed to
+         * something else entirely.
+         *
+         * So read the branch itself: the `isNextUi` call for this journey must
+         * be followed, within its own ternary, by `<NotFoundPage />`. A legacy
+         * screen appearing there is a re-classification this table has to make
+         * deliberately, not a change that slips past a substring match.
+         */
+        const branch = new RegExp(
+          `isNextUi\\('${journey}'\\)[\\s\\S]{0,600}?\\)\\s*:\\s*\\(\\s*<NotFoundPage />`,
+        )
+        expect(
+          branch.test(app),
+          `${journey} must fall back to <NotFoundPage /> in its own branch`,
+        ).toBe(true)
+      }
 
       // AND THE BUILD-TIME GATE MUST GUARD THE LAZY IMPORT, or the subtree ships
       // whatever the runtime flag says.

@@ -8,6 +8,7 @@ import { VNextActionsHost } from '../../vnext/integration/actions/VNextActionsHo
 import type { ShellGameKey, ShellIntent } from '../../vnext/models/shell'
 import type { VNextActionItem } from '../../vnext/models/actions'
 import { viewerTimeZone } from '../../shared/time/kickoff'
+import { VNextSurfaceBoundary } from './VNextSurfaceBoundary'
 import {
   competitionGameRoute,
   competitionRoute,
@@ -291,11 +292,19 @@ function VNextActionsHostWithNavigation({ children }: { children: ReactNode }) {
  * cannot simply be wrapped around a group of routes in the tree — it has to be
  * one. That is what this is: a route with no path whose element renders the
  * host around the `<Outlet />` its children resolve into.
+ *
+ * THE BOUNDARY IS OUTSIDE THE HOST, DELIBERATELY. `VNextSeamHost` mounts the
+ * cross-competition attention read and the durable action feed, and both are
+ * code that can throw — so a boundary placed inside it would be unable to catch
+ * the two things mounted highest. Outside, one boundary covers every cut-over
+ * destination and the chrome they all share. See `VNextSurfaceBoundary.tsx`.
  */
 export function VNextSeamLayout() {
   return (
-    <VNextSeamHost>
-      <Outlet />
-    </VNextSeamHost>
+    <VNextSurfaceBoundary>
+      <VNextSeamHost>
+        <Outlet />
+      </VNextSeamHost>
+    </VNextSurfaceBoundary>
   )
 }

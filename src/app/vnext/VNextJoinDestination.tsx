@@ -12,6 +12,7 @@ import { competitionSectionRoute, weeklyRoutes } from '../weeklyRoutes'
 import { resolvePrivateCompetitionHref } from './privateCompetitionRoute'
 import { useViewerFormatting } from './seam'
 import { VNextAppRoot } from './VNextAppRoot'
+import { VNextSurfaceBoundary } from './VNextSurfaceBoundary'
 
 /**
  * THE INVITE DEEP LINK, `/join/:code`, IN THE PRODUCT IT LEADS INTO.
@@ -22,8 +23,28 @@ import { VNextAppRoot } from './VNextAppRoot'
  * vNext. Private containers are rediscovered after the write before any exact
  * instance address is used; if the authoritative reads cannot answer, the
  * established conservative landing remains the fallback.
+ *
+ * IT CARRIES ITS OWN BOUNDARY BECAUSE IT IS OUTSIDE THE SEAM. `VNextSeamLayout`
+ * holds one `VNextSurfaceBoundary` above the twelve competition destinations,
+ * and this address is registered outside it — handling the signed-out case is
+ * the whole job here, so it cannot sit under `RequireWelcome`. Without one, a
+ * throw on the address that is most new players' FIRST contact with this product
+ * would take the whole application down rather than one page of it.
+ *
+ * The boundary is the OUTER component and the work is the inner one,
+ * deliberately: `useInviteLanding` runs before any element is returned, so a
+ * boundary rendered from inside that function could not catch the hook that
+ * produced the failure.
  */
 export function VNextJoinDestination() {
+  return (
+    <VNextSurfaceBoundary ownsFrame>
+      <VNextJoinDestinationContent />
+    </VNextSurfaceBoundary>
+  )
+}
+
+function VNextJoinDestinationContent() {
   useViewerFormatting()
   const { code } = useParams<{ code: string }>()
   const { userId, loading } = useAuth()

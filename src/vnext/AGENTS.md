@@ -24,6 +24,7 @@ These instructions apply to `src/vnext/`. They contain only the **universal vNex
 | `championship/`, `integration/championship/` | [`../../docs/product/vnext-championship.md`](../../docs/product/vnext-championship.md) |
 | `create/`, `discovery/`, `games/`, `account/`, `about/`, `publicDocument/` and their adapters | [`../../docs/product/ui.md`](../../docs/product/ui.md) + shell IA where navigation/chrome is involved + the exact feature/spec/source contract returned by the task packet |
 | `foundations/`, `components/`, `models/`, `fixtures/`, `stories/`, `workshop/` | [`../../docs/product/ui.md`](../../docs/product/ui.md); use [`../../docs/product/vnext-workshop.md`](../../docs/product/vnext-workshop.md) for workshop-only design mechanics |
+| **Which of these is reusable, as a list** | [`../../docs/product/vnext-primitives.md`](../../docs/product/vnext-primitives.md) — the enumeration of foundations, football/game/social components, chrome, states and models. It is an index for a task that needs to know what exists (Stage 15's Euro audit is the one that asked for it); it holds no rule, and the boundaries below outrank it |
 | `ia/` | [`../../docs/product/vnext-ia-lab.md`](../../docs/product/vnext-ia-lab.md) is historical decision evidence; accepted shell behaviour lives in `vnext-shell-ia.md` |
 
 A task that touches several surfaces may need more than one row, but that is the exception. Do not preload Matches, Leagues, Profiles, LMS and Championship authorities for a Home-only change.
