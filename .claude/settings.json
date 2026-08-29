@@ -1,0 +1,24 @@
+{
+  "$comment": "Tracked project settings. Machine-local preferences belong in settings.local.json, which stays ignored. This file exists for one reason: the deny rules below are the Read/Edit half of the secret boundary. The Bash half lives in the machine-scope ceiling, because a hook only sees Bash and cannot stop the Read tool opening a file directly.",
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/*.env)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Edit(./**/.env)",
+      "Edit(./**/.env.*)",
+      "Read(~/.claude.json)",
+      "Read(~/.claude/**)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/predictor-cloud/**)",
+      "Read(~/.npmrc)",
+      "Read(~/.netrc)"
+    ]
+  },
+  "enabledMcpjsonServers": ["playwright", "chrome-devtools", "serena", "context7", "repomix"]
+}

@@ -23,56 +23,72 @@
       "path": "MASTER-TODO.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Detailed active/parked inventory; delivered and outstanding dispositions can move with a migration."
     },
     {
       "path": "docs/roadmap.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Execution sequence; a migration can complete or reorder an executable step."
     },
     {
       "path": "docs/quality/current-status.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Detailed live implementation and hosted-status authority."
     },
     {
       "path": "docs/ops/ops-pending-migrations.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Operational migration inventory and hosted-applied-state reference."
     },
     {
       "path": "docs/quality/feature-baseline.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Current feature/safeguard classification; migrations can add features or move rule implementation."
     },
     {
       "path": "docs/adr/README.md",
       "kind": "live",
       "sweep": true,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "ADR index carries implementation status per decision."
     },
     {
       "path": "docs/design/README.md",
       "kind": "reference",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Legacy/current-production UI index. Moving repository state and migration history are deliberately excluded."
     },
     {
       "path": "docs/design/ui-finalisation.md",
       "kind": "reference",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Retained legacy production UI direction/delivery reference. It is no longer a migration sweep or vNext authority."
     },
     {
@@ -97,35 +113,45 @@
       "path": "docs/competition-structure.md",
       "kind": "live",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Current implementation relationships between competitions, games and membership."
     },
     {
       "path": "docs/architecture/programme-plan.md",
       "kind": "live",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Programme phases and product gates that are not restated elsewhere; not every migration affects them."
     },
     {
       "path": "docs/architecture/multi-competition-hub-build-plan.md",
       "kind": "live",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Stage A-L engineering plan whose stage exit evidence can move, but not on every migration."
     },
     {
       "path": "docs/quality/risk-register.md",
       "kind": "dispositions",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Risk rows name the contract that resolved them rather than claiming current contract state."
     },
     {
       "path": "docs/quality/deferred-decisions.md",
       "kind": "dispositions",
       "sweep": false,
-      "allow": [63],
+      "allow": [
+        63
+      ],
       "why": "Decision rows name implementation/disposition contracts rather than current repository state."
     },
     {
@@ -227,6 +253,11 @@
       "prefix": ".opencode/agents/",
       "kind": "reference",
       "why": "Project-scoped OpenCode agent role and permission instructions. They route work through existing repository authorities and never own moving product or hosted state."
+    },
+    {
+      "prefix": ".claude/agents/",
+      "kind": "reference",
+      "why": "Project-scoped Claude Code agent role and permission instructions, ported from the OpenCode definitions above. They route work through existing repository authorities and never own moving product or hosted state; their enforceable Bash policy lives in .claude/hooks/agent-bash-allow.json, not in the prose."
     },
     {
       "prefix": "docs/adr/",

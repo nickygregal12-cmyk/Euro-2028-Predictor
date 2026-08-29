@@ -32,6 +32,8 @@
     "check:required-contexts": "node scripts/check-required-merge-contexts.mjs",
     "check:machine-identity": "node scripts/check-machine-identity.mjs",
     "check:owner-authority": "node scripts/check-pre-live-owner-authority.mjs",
+    "check:bash-allowlist": "node scripts/check-agent-bash-allowlist.mjs",
+    "check:bash-enforcement": "node scripts/check-bash-enforcement.mjs",
     "check:dead-code": "node scripts/check-knip-baseline.mjs",
     "report:dead-code": "knip --no-exit-code",
     "report:sbom": "npm sbom --package-lock-only --sbom-format=cyclonedx --sbom-type=application",

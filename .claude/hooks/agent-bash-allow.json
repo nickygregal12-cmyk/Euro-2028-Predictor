@@ -1,0 +1,364 @@
+{
+  "$comment": "Per-agent Bash allowlists for the Claude Code ports of the OpenCode agents. This file owns the patterns; allow-bash.py owns the matching. Claude Code subagent frontmatter has no `permissions` field, so these cannot live in the agent files themselves. Patterns are OpenCode-style globs: * matches any run of characters, [...] is a character class passed through to the regex engine (so [^-] means 'not a dash'), everything else is literal. Matching is per command segment after splitting on ; && || | and newline.",
+  "$canonical-source": ".opencode/agents/*.md is canonical -- those files are what the cloud Conductor actually executes, and OpenCode itself enforces their permission.bash block. This file is the derived port. `npm run check:bash-allowlist` fails when the two disagree in any way not listed in $divergences below. Per-pattern differences belong in that register; the three whole-file departures are described next.",
+  "$departure-1-never-beats-allow": "OpenCode resolves overlapping rules by last-match-wins, which is how `git branch*: allow` followed by `git branch -*: deny` produces a denial. A pure allowlist cannot express 'allow `git switch <existing>` but refuse `git switch -c`', so allow-bash.py applies the `never` list AFTER `allow` and lets it win. The base is still default-deny: an unmatched command is refused, and `never` only exists to carve holes out of a deliberately broad allow.",
+  "$departure-2-substitution-and-redirection-refused": "Command substitution ($(...), backticks, <(...)) and redirection to a file are refused outright for every agent, which OpenCode does not do. A prefix glob like `git log*` matches `git log > /tmp/x` and `git log; rm -rf .` -- real holes that stayed shut in OpenCode only because its `\"*\": ask` fallback caught them at a human prompt. A hook has no prompt to fall back on, so the holes have to be closed in the matcher. 2>&1, >&2 and >/dev/null still pass; backgrounding with a bare & is refused because it detaches the command from this gate. An external adversarial review on 27 Aug 2026 found eight bypasses of the first version of these rules and they are now closed in allow-bash.py, which additionally refuses: parent-directory traversal out of an allowlisted path, control characters, whitespace runs that split a `never` pattern, every redirection form that is not provably fd-to-fd or /dev/null, git invocations whose first argument is a flag, and the git options that hand a command line to git to execute. See the constants at the top of allow-bash.py; each carries the case that motivated it.",
+  "$departure-3-unmatched-is-deny-not-ask": "OpenCode ends each bash block with `\"*\": ask`, so an unlisted command prompts the operator. This port refuses it instead. That is stricter, and it has a real cost: `git stash list` is read-only and harmless but appears in no OpenCode allowlist, so it is now refused rather than prompted (observed live, 27 Aug 2026). If that trade turns out wrong, allow-bash.py can emit permissionDecision 'ask' for unmatched commands while keeping `never` at 'deny' -- that would reproduce OpenCode exactly. It is a one-line change and a deliberate open question, not an oversight.",
+  "$deployment-note": "This file is DATA, not the enforcement. Two things read it. (1) The project hook .claude/hooks/allow-bash.py, which Claude Code loads only in a directory whose trust dialog has been accepted. (2) The machine-scope gate ~/.claude/hooks/studio-bash-gate.py, which loads regardless of trust. Verified 27 Aug 2026 by direct experiment: in an untrusted fresh clone the write-capable predictor-builder agent loaded and executed an un-allowlisted command, because the project hook was never registered; a worktree inherits the trust of the repository it belongs to, so the exposure is specifically a NEW repository path before trust. Registering a machine-scope hook closed it: the same probe in the same untrusted clone is now refused. Therefore committing this repository's hook is necessary but NOT sufficient. Run `npm run check:bash-enforcement` to verify the machine prerequisite is installed; it fails closed and names the remediation. The machine layer is deliberately NOT in this repository, because a repository cannot be the thing that decides whether it is policed.",
+  "$divergences": [
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "removed",
+      "pattern": "git branch*",
+      "reason": "Replaced by the enumerated read-only branch forms below, so that unknown branch flags default-deny instead of relying on a broad deny to catch them."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "removed",
+      "pattern": "git branch -*",
+      "reason": "Over-broad: also refuses read-only queries such as `git branch --show-current`, `-a`, `-r` and `-v`. Replaced by narrow allows."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch",
+      "reason": "Bare branch listing, previously reachable only via the broad `git branch*` allow."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --show-current*",
+      "reason": "Read-only query wrongly refused by OpenCode's over-broad `git branch -*` deny. This is the correction, not a widening."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --list*",
+      "reason": "Read-only branch listing, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch -a*",
+      "reason": "Read-only branch listing, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch -r*",
+      "reason": "Read-only branch listing, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch -v*",
+      "reason": "Read-only branch listing, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --contains*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --merged*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --no-merged*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --points-at*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --format*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git branch --sort*",
+      "reason": "Read-only branch query, refused by the same over-broad OpenCode deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "removed",
+      "pattern": "git checkout*",
+      "reason": "Too broad: with only -b/-B denied it leaves `git checkout HEAD -- src/` allowed, which discards uncommitted work in the tree the builder is meant to protect."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "removed",
+      "pattern": "git switch*",
+      "reason": "Narrowed alongside checkout so that only a non-flag first argument (branch navigation) is permitted."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git checkout [^-]*",
+      "reason": "Navigation to an existing ref only. A leading dash cannot match, so every flag form default-denies."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "allow",
+      "change": "added",
+      "pattern": "git switch [^-]*",
+      "reason": "Navigation to an existing ref only. A leading dash cannot match, so every flag form default-denies."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "removed",
+      "pattern": "git switch -c*",
+      "reason": "Subsumed by the broader `git switch -*` deny, which covers force-create and orphan forms OpenCode missed."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "removed",
+      "pattern": "git switch --create*",
+      "reason": "Subsumed by the broader `git switch -*` deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "removed",
+      "pattern": "git checkout -b*",
+      "reason": "Subsumed by the broader `git checkout -*` deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "removed",
+      "pattern": "git checkout -B*",
+      "reason": "Subsumed by the broader `git checkout -*` deny."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "added",
+      "pattern": "git switch -*",
+      "reason": "Covers every flag form, including --orphan and --force-create which OpenCode's -c/--create pair did not reach."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "added",
+      "pattern": "git checkout -*",
+      "reason": "Covers every flag form, including --force and --orphan which OpenCode's -b/-B pair did not reach."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "added",
+      "pattern": "git checkout * -- *",
+      "reason": "Closes the pathspec restore hole: `git checkout HEAD -- src/` silently discards uncommitted work."
+    },
+    {
+      "agent": "predictor-builder",
+      "list": "never",
+      "change": "added",
+      "pattern": "git checkout --*",
+      "reason": "Closes the pathspec restore hole in its no-ref form: `git checkout -- src/`."
+    }
+  ],
+  "$filters": {
+    "$purpose": "Read-only output filters every agent may use, but only downstream of an allowed command -- never as the first segment. OpenCode allowed `git log | head -5` implicitly, because its prefix glob matched the whole string including the pipe. Segment-wise matching would otherwise refuse it. Restricted to commands that cannot execute their input, so `git log | sh` stays refused. Redirection to a file is blocked separately, which is what keeps awk/sed from writing. awk, less and more were removed on 27 Aug 2026: an independent review observed that awk can launch a subprocess via system() and less can shell out with !cmd, both verified reachable. A filter must be unable to execute anything, not merely unable to write.",
+    "allow": [
+      "head*",
+      "tail*",
+      "wc*",
+      "sort*",
+      "uniq*",
+      "cut*",
+      "tr*",
+      "nl*",
+      "column*",
+      "grep*",
+      "rg*",
+      "jq*",
+      "cat"
+    ]
+  },
+  "$unmatched": {
+    "$comment": "Capability-aware policy for a command that matches no allow pattern. Write-capable roles are refused: an autonomous or headless agent has nobody to prompt, so 'ask' would be an unattended refusal at best. Read-only roles are referred to the operator instead, which recovers OpenCode's `\"*\": ask` behaviour exactly where it is safe -- the worst case is approving an unanticipated read such as `git stash list`. Ceiling and `never` refusals are never downgraded to a prompt.",
+    "ask": [
+      "predictor-conductor",
+      "predictor-critic",
+      "predictor-visual-qa",
+      "predictor-release-verifier"
+    ],
+    "deny": [
+      "predictor-builder"
+    ]
+  },
+  "$neverForAnyAgent": {
+    "$comment": "A floor applied to every role before the $unmatched decision, mirroring the machine ceiling. Without it a read-only role's empty `never` list let a mutation fall through to the read-only ASK path: predictor-critic running `git commit -m x` was referred to the operator instead of refused. A prompt is not an acceptable answer to a mutation from a role that is defined as unable to mutate.",
+    "never": [
+      "git commit*",
+      "git push*",
+      "git branch [a-zA-Z]*",
+      "git switch -*",
+      "git checkout -*",
+      "git checkout * -- *",
+      "git checkout --*",
+      "gh pr create*",
+      "gh pr edit*",
+      "gh pr merge*",
+      "npm publish*",
+      "rm *",
+      "sudo*",
+      "chmod*",
+      "chown*",
+      "curl*",
+      "wget*",
+      "ssh*"
+    ]
+  },
+  "predictor-conductor": {
+    "$purpose": "Read-only orientation plus the two tracked review bridges. Never runs gates itself.",
+    "allow": [
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git branch --show-current*",
+      "git fetch*",
+      "gh pr list*",
+      "gh pr view*",
+      "npm run agent:route*",
+      "bash scripts/agent-tools/ox-review.sh*",
+      "bash scripts/agent-tools/claude-review.sh*"
+    ],
+    "never": []
+  },
+  "predictor-builder": {
+    "$purpose": "Sole write-capable role. Git writes must route through the owner-* wrappers, which consult config/pre-live-owner-authority.json. The `never` list is what makes that binding rather than advisory.",
+    "$divergence-1": "OpenCode denies `git branch -*`, which -- under its last-match-wins ordering -- also refuses read-only queries like `git branch --show-current`. That is an over-broad deny, not a decision. Here `git branch` is allowlisted by its read-only forms instead, so querying works and creation/deletion/rename stay refused by default.",
+    "$divergence-2": "OpenCode allows `git checkout*` with only `-b`/`-B` denied, which leaves `git checkout HEAD -- src/` allowed. That discards uncommitted work in the tree the builder is supposed to be protecting. Navigation is now allowlisted as `git switch|checkout [^-]*` (a non-flag first argument) and the pathspec form is denied outright.",
+    "allow": [
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git fetch*",
+      "git branch",
+      "git branch --show-current*",
+      "git branch --list*",
+      "git branch -a*",
+      "git branch -r*",
+      "git branch -v*",
+      "git branch --contains*",
+      "git branch --merged*",
+      "git branch --no-merged*",
+      "git branch --points-at*",
+      "git branch --format*",
+      "git branch --sort*",
+      "git switch [^-]*",
+      "git checkout [^-]*",
+      "git add*",
+      "npm run agent:route*",
+      "npm test*",
+      "npm run test*",
+      "npm run build*",
+      "npm run lint*",
+      "npm run check:*",
+      "npx vitest*",
+      "npx tsc*",
+      "npx oxlint*",
+      "npx stylelint*",
+      "bash scripts/agent-tools/*"
+    ],
+    "never": [
+      "git commit*",
+      "git push*",
+      "git branch [a-zA-Z]*",
+      "git switch -*",
+      "git checkout -*",
+      "git checkout * -- *",
+      "git checkout --*",
+      "gh pr create*",
+      "gh pr edit*",
+      "gh pr merge*"
+    ]
+  },
+  "predictor-critic": {
+    "$purpose": "Read-only inspection only. Deliberately cannot run tests or builds; that evidence belongs to predictor-release-verifier.",
+    "allow": [
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git show*",
+      "git branch --show-current*",
+      "gh pr list*",
+      "gh pr view*",
+      "npm run agent:route*"
+    ],
+    "never": []
+  },
+  "predictor-visual-qa": {
+    "$purpose": "Browser/journey evidence. Playwright lanes only, no general gate set.",
+    "allow": [
+      "git status*",
+      "git diff*",
+      "git log*",
+      "npm run agent:route*",
+      "npm run test:e2e*",
+      "npm run test:visual*",
+      "npx playwright*"
+    ],
+    "never": []
+  },
+  "predictor-release-verifier": {
+    "$purpose": "Read-only gate and CI evidence. Same git reads as the critic, plus the authoritative gate set.",
+    "allow": [
+      "git status*",
+      "git diff*",
+      "git log*",
+      "git show*",
+      "gh pr list*",
+      "gh pr view*",
+      "npm run agent:route*",
+      "npm test*",
+      "npm run test*",
+      "npm run build*",
+      "npm run lint*",
+      "npm run check:*",
+      "npx vitest*",
+      "npx tsc*",
+      "npx oxlint*",
+      "npx stylelint*"
+    ],
+    "never": []
+  },
+  "$layering": "machine ceiling (~/.claude/hooks/studio-bash-ceiling.json) -> repository allowlist (this file) -> effective policy is the INTERSECTION. The ceiling carries a positive maxAllow, so a repository can only narrow it. CORRECTION, 27 Aug 2026: an earlier revision of this note claimed a repository 'can never widen past the ceiling' while the ceiling was only a deny-list. That claim was false. An independent review (Codex, gpt-5.6-sol) showed a repository publishing allow:[\"*\"] reached python3 -c, perl -e, node -e, mv, cp, dd, tee, make and git config --global core.pager -- all verified, all now refused by the positive maxAllow. What remains true and deliberately accepted: `npm run *` and `bash scripts/*` execute repository-controlled code, because running a repository's own gates is the point. This gate constrains which command shapes an agent may invoke; it is not a sandbox. Do not point delegated agents at a repository you do not trust.",
+  "$neverPathPattern": {
+    "$comment": "Secret-bearing paths no role may name in a Bash command. Mirrors the machine ceiling; the two enforcement points had drifted, with only the machine gate carrying this rule.",
+    "pattern": "(?:^|[\\s='\"/])(?:\\.env(?:\\.[A-Za-z0-9_-]+)?|\\.ssh|\\.aws|\\.gnupg|\\.npmrc|\\.netrc|id_[rd]sa|\\.claude\\.json|\\.credentials\\.json|credentials)(?:$|[\\s'\"/:])|~?/\\.claude/|/\\.config/predictor-cloud"
+  }
+}
