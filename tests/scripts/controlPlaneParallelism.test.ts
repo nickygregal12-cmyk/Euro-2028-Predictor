@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_LIMITS } from '../../scripts/control-plane/policy.mjs'
 import { LoopEngine } from '../../scripts/control-plane/loop.mjs'
 import { ControlPlaneStore } from '../../scripts/control-plane/state.mjs'
+import { Supervisor } from '../../scripts/control-plane/supervisor.mjs'
 
 const T0 = '2026-08-26T05:00:00.000Z'
 const HARD_STOP = '2026-08-27T00:00:00.000Z'
@@ -185,4 +186,114 @@ describe('the gates are the same gates', () => {
     await batch
   })
 
+})
+
+/**
+ * A batch where one dispatch fails outright rather than returning `ok: false`.
+ *
+ * `#dispatch` guards the handler call, so a handler that throws is a normal
+ * failure. What is not guarded is the state writes around it — the transition
+ * to RUNNING, and every write in `#settle`. A full or unwritable state
+ * directory throws there, and so does any status a handler returns that is not
+ * a known task state. This is that failure.
+ */
+function failingSettle(store: ControlPlaneStore, taskId: string, message: string) {
+  const real = store.recordAttempt.bind(store)
+  store.recordAttempt = ((id: string, options: unknown) => {
+    if (id === taskId) throw new Error(message)
+    return real(id, options as never)
+  }) as typeof store.recordAttempt
+}
+
+/** Let the batch dispatch and any immediate handler settle. */
+async function settleMicrotasks(turns = 20) {
+  for (let i = 0; i < turns; i += 1) await Promise.resolve()
+}
+
+describe('a batch that fails does not abandon the tasks it is still running', () => {
+  it('waits for every dispatch before reporting the failure', async () => {
+    const store = programme([
+      { id: 'slow', order: 1, handler: 'h' },
+      { id: 'fast', order: 2, handler: 'h' },
+    ])
+    failingSettle(store, 'fast', 'ENOSPC: no space left on device, write')
+
+    let slowFinished = false
+    let releaseSlow: () => void = () => {}
+    const slowGate = new Promise<void>((r) => { releaseSlow = r })
+    const engine = new LoopEngine({
+      store, now: () => T0,
+      handlers: {
+        h: async ({ task }: any) => {
+          if (task.id === 'fast') return { ok: true }
+          await slowGate
+          slowFinished = true
+          return { ok: true }
+        },
+      },
+      limits: { ...DEFAULT_LIMITS, maxConcurrentTasks: 2 },
+    })
+
+    let state = 'pending'
+    const batch = engine.tickBatch()
+    batch.then(() => { state = 'resolved' }, () => { state = 'rejected' })
+    await settleMicrotasks()
+
+    // `Promise.all` would have handed the rejection back here, with `slow` still
+    // in flight and still marked RUNNING. The engine owns that dispatch until it
+    // finishes; it does not get to disown it early.
+    expect(state).toBe('pending')
+    expect(slowFinished).toBe(false)
+
+    releaseSlow()
+    await expect(batch).rejects.toThrow(/ENOSPC/)
+
+    // The failure still propagates — it is not swallowed, and the batch is not
+    // reported as a success — but only once nothing of it is still running.
+    expect(slowFinished).toBe(true)
+  })
+
+  it('holds the writer lane until the batch it started has drained', async () => {
+    const store = programme([
+      { id: 'slow', order: 1, handler: 'h' },
+      { id: 'fast', order: 2, handler: 'h' },
+    ])
+    failingSettle(store, 'fast', 'EIO: i/o error, write')
+
+    let releaseSlow: () => void = () => {}
+    const slowGate = new Promise<void>((r) => { releaseSlow = r })
+    const engine = new LoopEngine({
+      store, now: () => T0,
+      handlers: {
+        h: async ({ task }: any) => {
+          if (task.id === 'fast') return { ok: true }
+          await slowGate
+          return { ok: true }
+        },
+      },
+      limits: { ...DEFAULT_LIMITS, maxConcurrentTasks: 2 },
+    })
+
+    const supervisor = new Supervisor({
+      store, engine, now: () => T0, sleep: async () => {},
+      holder: 'first', maxPasses: 1,
+    })
+    const run = supervisor.run().catch((error: unknown) => error)
+    await settleMicrotasks()
+
+    // The supervisor releases the lease in a `finally`. If the batch rejects
+    // while `slow` is still running, the lane frees with a live handler behind
+    // it: a second supervisor takes it, reads `slow`'s RUNNING mark as a dead
+    // process's leftover and reconciles it, and then the abandoned handler
+    // settles the same task. Two writers, which is what the lease exists to
+    // prevent.
+    expect(store.loadTasks().slow?.status).toBe('RUNNING')
+    expect(store.acquireLease('second', { at: T0 }).acquired).toBe(false)
+
+    releaseSlow()
+    expect(await run).toBeInstanceOf(Error)
+
+    // Held until the batch drained, then released — not held forever.
+    expect(store.acquireLease('second', { at: T0 }).acquired).toBe(true)
+  })
 })

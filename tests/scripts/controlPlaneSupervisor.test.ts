@@ -172,6 +172,155 @@ describe('the writer lane', () => {
   })
 })
 
+/** Let a supervisor reach the inside of its first pass. */
+async function flush(turns = 20) {
+  for (let i = 0; i < turns; i += 1) await Promise.resolve()
+}
+
+/**
+ * Two supervisors on one machine.
+ *
+ * Every other lease test hands out its holders by name — `'first'`/`'second'`,
+ * `'me'`/`'someone-else'` — which is the one thing production never does.
+ * `cli.mjs` constructs `Supervisor` with no `holder` at all, so the default is
+ * the whole of what separates one live writer from another, and two of them on
+ * one host is not an exotic configuration: it is `supervise` typed twice.
+ */
+describe('two supervisors on the same host', () => {
+  it('gives independently started supervisors different writer identities', () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    // Built the way `cli.mjs` builds them: no holder passed.
+    const a = new Supervisor({ store, now: time.now, sleep: async () => {} })
+    const b = new Supervisor({ store, now: time.now, sleep: async () => {} })
+
+    expect(a.holder).not.toBe(b.holder)
+    // Still legible in a lease file and a log line, not an opaque token.
+    expect(a.holder).toContain('supervisor@')
+  })
+
+  it('refuses the lane to a second supervisor that shares the default holder', async () => {
+    const store = freshStore()
+    const time = clock()
+    const { sleep } = recordingSleep(time)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+    store.upsertTask({ id: 'push', order: 1, handler: 'h', mutating: true })
+
+    // A is inside its pass, holding the lane, its mutating handler still live.
+    let releaseA: () => void = () => {}
+    const aGate = new Promise<void>((r) => { releaseA = r })
+    let aStarted = false
+    const a = new Supervisor({
+      store, now: time.now, sleep, maxPasses: 1,
+      handlers: { h: async () => { aStarted = true; await aGate; return { ok: true } } },
+    })
+    const aRun = a.run()
+    await flush()
+
+    expect(aStarted).toBe(true)
+    expect(store.loadTasks().push?.status).toBe('RUNNING')
+
+    // B starts on the same host, the same way, while A is still working.
+    const bDispatched: string[] = []
+    const bResult = await new Supervisor({
+      store, now: time.now, sleep, maxPasses: 1,
+      handlers: { h: async ({ task }: any) => { bDispatched.push(task.id); return { ok: true } } },
+    }).run()
+
+    // Holder equality is what `acquireLease` gates on, and it is the same gate
+    // that lets a supervisor renew its own lease. Two processes presenting one
+    // identity therefore both read as the incumbent renewing, and both proceed.
+    expect(bResult.outcome).toBe('LEASE_HELD')
+
+    // The damage is not that B ran, but what B does on the way in: it
+    // reconciles, and `push` is RUNNING because A is running it. Parking a live
+    // mutation as INTERRUPTED_MUTATION is the reconciler doing its job against
+    // a premise that is false.
+    expect(bResult.reconciled).toEqual([])
+    expect(bDispatched).toEqual([])
+    expect(store.loadTasks().push?.status).toBe('RUNNING')
+
+    releaseA()
+    await aRun
+  })
+
+  it('still lets one supervisor renew its own lease, which is the same code path', () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    // `supervisor.mjs` renews by re-acquiring under its own holder before every
+    // sleep. Same-holder re-acquisition is deliberate, and separating two
+    // processes must not cost it.
+    const mine = 'supervisor@host#1234.abcd'
+    expect(store.acquireLease(mine, { at: time.now(), ttlMs: 60_000 }).acquired).toBe(true)
+    expect(store.acquireLease(mine, { at: time.now(), ttlMs: 60_000 }).acquired).toBe(true)
+    expect(store.acquireLease('someone-else', { at: time.now() }).acquired).toBe(false)
+  })
+
+  it('stands down when a pass outlived the lease and the lane was taken', async () => {
+    const store = freshStore()
+    const time = clock()
+    const { sleep, slept } = recordingSleep(time)
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+    store.upsertTask({ id: 'slow', order: 1, handler: 'slow' })
+
+    // The lease is renewed between passes, never inside one. A pass that runs
+    // longer than the TTL therefore expires the lane while its holder is still
+    // working, and the next supervisor may legitimately take it.
+    const dispatched: string[] = []
+    const result = await new Supervisor({
+      store, now: time.now, sleep, holder: 'mine', maxPasses: 3, leaseTtlMs: 60_000,
+      handlers: {
+        slow: async ({ task }: any) => {
+          dispatched.push(task.id)
+          time.advance(90_000)
+          // Somebody else took the expired lane while this pass was running.
+          store.acquireLease('theirs', { at: time.now(), ttlMs: 60_000 })
+          return { ok: true, status: 'WAITING_CI', evidence: 'parked' }
+        },
+      },
+    }).run()
+
+    // Renewal is refused, and that refusal has to end the run. Sleeping and
+    // starting another pass is this supervisor writing over the one that now
+    // holds the lane — the failure the lease exists to prevent, arriving after
+    // the entry check rather than before it.
+    expect(result.outcome).toBe('LEASE_LOST')
+    // A second pass is always preceded by a sleep, so never sleeping is the
+    // observable form of "it stopped here". Note the renewal is only checked
+    // BETWEEN passes: the lease is not re-checked inside `engine.run`, so
+    // everything already dispatched in this pass still ran.
+    expect(slept).toEqual([])
+    expect(dispatched).toEqual(['slow'])
+
+    // Leaving must not disturb the new holder: `releaseLease` refuses to write
+    // when the lane belongs to somebody else.
+    expect(store.acquireLease('a-third', { at: time.now() }).acquired).toBe(false)
+  })
+
+  it('frees the lane by expiry when a holder dies without releasing', () => {
+    const store = freshStore()
+    const time = clock()
+    store.startRun({ hardStop: HARD_STOP, mode: 'ACTIVE', now: time.now() })
+
+    const dead = 'supervisor@host#999.dead'
+    const at = time.now()
+    store.acquireLease(dead, { at, ttlMs: 60_000 })
+
+    // Still inside the TTL: the lane belongs to a process that is not coming
+    // back, and nobody may take it yet.
+    const midway = new Date(Date.parse(at) + 30_000).toISOString()
+    expect(store.acquireLease('supervisor@host#1000.new', { at: midway }).acquired).toBe(false)
+
+    // Past it: a crashed holder frees the lane by time, with no human involved.
+    const after = new Date(Date.parse(at) + 60_001).toISOString()
+    expect(store.acquireLease('supervisor@host#1000.new', { at: after }).acquired).toBe(true)
+  })
+})
+
 describe('passes continue until a reason that is really a reason', () => {
   it('keeps going through an external wait instead of returning to a human', async () => {
     const store = freshStore()

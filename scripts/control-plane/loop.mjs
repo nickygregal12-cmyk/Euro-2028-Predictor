@@ -183,7 +183,52 @@ export class LoopEngine {
     // Marked RUNNING before any handler is awaited, so a crash mid-batch leaves
     // every one of them reconcilable — the supervisor's reconciler reads that
     // mark and cannot see a task it was never told about.
-    return Promise.all(batch.map((task) => this.#dispatch(task, run, at)))
+    //
+    // WHY allSettled RATHER THAN all. `#dispatch` guards the handler call but
+    // not the state writes around it, so it can still reject: the `transition`
+    // to RUNNING, and every write in `#settle`, are unguarded. A full,
+    // unwritable or failing state directory throws there — ENOSPC, EIO, EACCES.
+    // No handler currently in the tree can reject any other way, and none can
+    // return a status outside `TASK_STATES`; the disk is the live vector, and
+    // it is enough. `Promise.all` hands that first rejection straight to the
+    // caller while the siblings are still running.
+    //
+    // That matters because of who the caller is. The supervisor releases the
+    // writer lease in a `finally`, so a rejection here frees the lane — writing
+    // `holder: null`, immediately — while this batch still has handlers in
+    // flight against tasks it left marked RUNNING. The next supervisor takes
+    // the lane, reads those marks as a dead process's leftovers and reconciles
+    // them, and now the abandoned handler and the reconciler are both writing,
+    // which is the one thing the lease exists to prevent. Worse for a mutating
+    // task: the reconciler parks it WAITING_OWNER precisely because nobody can
+    // tell whether it reached the outside world, and the still-live handler
+    // then overwrites that with COMPLETED.
+    //
+    // So: drain every dispatch, then rethrow. The failure still propagates —
+    // it is not swallowed, and a batch that partly failed is not reported as a
+    // success — but the lane is not handed to the next supervisor mid-flight.
+    //
+    // This bounds the exposure rather than closing it. The lease is not renewed
+    // inside a pass (`supervisor.mjs` renews only between passes), so a batch
+    // that drains for longer than `leaseTtlMs` still lets a second supervisor
+    // in by expiry. That hole predates this change and is not specific to
+    // failure: any pass longer than the TTL has it. What changes here is that
+    // the lane goes from available immediately to available no sooner than the
+    // TTL. An intra-pass heartbeat is the fix for the rest.
+    const settled = await Promise.allSettled(batch.map((task) => this.#dispatch(task, run, at)))
+    const failures = settled
+      .filter((outcome) => outcome.status === 'rejected')
+      .map((outcome) => /** @type {PromiseRejectedResult} */ (outcome).reason)
+
+    if (failures.length > 0) {
+      // One failure propagates as itself, so the common case reads exactly as
+      // it did before. Several are aggregated rather than picked between,
+      // because a disk that failed two writes should not report one of them.
+      if (failures.length === 1) throw failures[0]
+      throw new AggregateError(failures, `${failures.length} dispatches failed in one batch`)
+    }
+
+    return settled.map((outcome) => /** @type {PromiseFulfilledResult<any>} */ (outcome).value)
   }
 
   /** Record the outcome of one dispatch: checkpoint, count, transition. */
