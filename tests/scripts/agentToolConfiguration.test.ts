@@ -71,7 +71,6 @@ describe('Predictor developer operating system', () => {
         'graphify',
         'lostPixel',
         'mergiraf',
-        'netlifyMcp',
         'omniroute',
         'opencode',
         'playwrightMcp',
@@ -137,8 +136,6 @@ describe('Predictor developer operating system', () => {
     expect(tools.claudeCode?.mode).toBe('optional-subscription-agent')
     expect(tools.playwrightMcp?.package).toBe('@playwright/mcp')
     expect(tools.chromeDevtoolsMcp?.package).toBe('chrome-devtools-mcp')
-    expect(tools.netlifyMcp?.package).toBe('@netlify/mcp')
-    expect(tools.netlifyMcp?.version).toBe('1.15.1')
     expect(tools.agentMail?.port).toBe(8765)
     expect(tools.beads?.repository).toBe('gastownhall/beads')
   })

@@ -39,6 +39,8 @@ if [ "$configured_mcp_version" != "$coupled_mcp_version" ]; then
   exit 1
 fi
 
+browser_ready='false'
+browser_executable=''
 if [ -x "$executable_link" ] && [ -r "$provenance_file" ] && node -e '
 const fs = require("fs")
 const p = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
@@ -52,37 +54,44 @@ process.exit(
 ' "$provenance_file" "$installer_package" "$installer_version" "$browser_name" "$runtime_root" "$coupled_mcp_version"; then
   if browser_version="$($executable_link --version 2>/dev/null)" && [ -n "$browser_version" ]; then
     printf 'Pinned browser runtime already present: %s (%s)\n' "$executable_link" "$browser_version"
-    exit 0
+    browser_executable="$(readlink -f "$executable_link")"
+    case "$browser_executable" in
+      "$runtime_root"/*) browser_ready='true' ;;
+      *) printf 'Pinned browser link escaped the versioned runtime; reinstalling.\n' >&2 ;;
+    esac
   fi
-  printf 'Existing browser provenance matched but the executable did not launch; reinstalling.\n' >&2
+  if [ "$browser_ready" != 'true' ]; then
+    printf 'Existing browser provenance matched but the executable did not launch; reinstalling.\n' >&2
+  fi
 fi
 
-printf 'Installing pinned %s@%s %s runtime and host dependencies...\n' \
-  "$installer_package" "$installer_version" "$browser_name"
-sudo install -d -m 0755 "$install_root" "$(dirname "$executable_link")"
-# The version-specific root prevents a future upgrade from selecting an older
-# Playwright browser revision that remains under the shared base directory.
-sudo rm -rf "$runtime_root"
-sudo install -d -m 0755 "$runtime_root"
-sudo env "PATH=$PATH" "PLAYWRIGHT_BROWSERS_PATH=$runtime_root" \
-  npx -y "${installer_package}@${installer_version}" install --with-deps "$browser_name"
+if [ "$browser_ready" != 'true' ]; then
+  printf 'Installing pinned %s@%s %s runtime and host dependencies...\n' \
+    "$installer_package" "$installer_version" "$browser_name"
+  sudo install -d -m 0755 "$install_root" "$(dirname "$executable_link")"
+  # The version-specific root prevents a future upgrade from selecting an older
+  # Playwright browser revision that remains under the shared base directory.
+  sudo rm -rf "$runtime_root"
+  sudo install -d -m 0755 "$runtime_root"
+  sudo env "PATH=$PATH" "PLAYWRIGHT_BROWSERS_PATH=$runtime_root" \
+    npx -y "${installer_package}@${installer_version}" install --with-deps "$browser_name"
 
-browser_executable="$(sudo find "$runtime_root" -type f -name chrome -path '*/chrome-linux*/chrome' -perm -111 -print | sort | head -n 1)"
-if [ -z "$browser_executable" ] || [ ! -x "$browser_executable" ]; then
-  printf 'Pinned Playwright install completed but no Chromium executable was found under %s.\n' "$runtime_root" >&2
-  exit 1
-fi
+  browser_executable="$(sudo find "$runtime_root" -type f -name chrome -path '*/chrome-linux*/chrome' -perm -111 -print | sort | head -n 1)"
+  if [ -z "$browser_executable" ] || [ ! -x "$browser_executable" ]; then
+    printf 'Pinned Playwright install completed but no Chromium executable was found under %s.\n' "$runtime_root" >&2
+    exit 1
+  fi
 
-sudo ln -sfn "$browser_executable" "$executable_link"
-if ! browser_version="$($executable_link --version 2>/dev/null)" || [ -z "$browser_version" ]; then
-  sudo rm -f "$executable_link"
-  printf 'Installed browser executable did not launch for a version check: %s\n' "$browser_executable" >&2
-  exit 1
-fi
+  sudo ln -sfn "$browser_executable" "$executable_link"
+  if ! browser_version="$($executable_link --version 2>/dev/null)" || [ -z "$browser_version" ]; then
+    sudo rm -f "$executable_link"
+    printf 'Installed browser executable did not launch for a version check: %s\n' "$browser_executable" >&2
+    exit 1
+  fi
 
-# Persist provenance only after the exact version-specific executable has been
-# proven launchable. A failed install therefore cannot make the next retry skip.
-printf '%s\n' "$(node - <<NODE
+  # Persist provenance only after the exact version-specific executable has been
+  # proven launchable. A failed install therefore cannot make the next retry skip.
+  printf '%s\n' "$(node - <<NODE
 console.log(JSON.stringify({
   installerPackage: ${installer_package@Q},
   installerVersion: ${installer_version@Q},
@@ -97,5 +106,35 @@ console.log(JSON.stringify({
 }, null, 2))
 NODE
 )" | sudo tee "$provenance_file" >/dev/null
-sudo chmod 0644 "$provenance_file"
+  sudo chmod 0644 "$provenance_file"
+fi
+
+install_browser_sandbox_profile() {
+  local profile_file='/etc/apparmor.d/predictor-browser'
+  local profile_staging
+  if ! command -v apparmor_parser >/dev/null 2>&1; then
+    printf 'Installing the supported Ubuntu AppArmor parser...\n'
+    sudo apt-get update
+    sudo apt-get install -y apparmor
+  fi
+  profile_staging="$(mktemp)"
+  cat >"$profile_staging" <<EOF
+abi <abi/4.0>,
+include <tunables/global>
+
+profile predictor-browser "$browser_executable" flags=(unconfined) {
+  userns,
+}
+EOF
+  sudo install -m 0644 "$profile_staging" "$profile_file"
+  rm -f "$profile_staging"
+  sudo apparmor_parser -r "$profile_file"
+  printf 'Pinned browser AppArmor sandbox profile loaded for %s\n' "$browser_executable"
+}
+
+# Ubuntu 24.04 restricts unprivileged user namespaces through AppArmor. Chrome's
+# normal sandbox needs its own namespace; grant that one permission to the exact
+# versioned executable rather than disabling the sandbox or changing host-wide
+# policy. This always runs, including when browser provenance already matched.
+install_browser_sandbox_profile
 printf 'Pinned browser runtime ready: %s (%s)\n' "$executable_link" "$browser_version"

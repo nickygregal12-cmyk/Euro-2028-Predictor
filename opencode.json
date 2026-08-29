@@ -43,12 +43,10 @@
       "enabled": true,
       "timeout": 10000
     },
-    "netlify": {
-      "type": "remote",
-      "url": "https://netlify-mcp.netlify.app/mcp",
-      "oauth": {},
-      "enabled": true,
-      "timeout": 10000
+    "netlify-public": {
+      "type": "local",
+      "command": ["node", "scripts/agent-tools/netlify-public-deploy-mcp.mjs"],
+      "enabled": true
     },
     "github": {
       "type": "remote",
@@ -85,7 +83,7 @@
     "repomix_*": false,
     "supabase-dev_*": false,
     "supabase-prod_*": false,
-    "netlify_*": false,
+    "netlify-public_*": false,
     "github_*": false,
     "sentry_*": false,
     "posthog_*": false

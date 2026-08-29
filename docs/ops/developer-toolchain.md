@@ -137,7 +137,6 @@ After quitting/restarting OpenCode, authenticate each OAuth server explicitly:
 ```bash
 opencode mcp auth supabase-dev
 opencode mcp auth supabase-prod
-opencode mcp auth netlify
 opencode mcp auth sentry
 opencode mcp auth posthog
 opencode mcp list
@@ -161,16 +160,13 @@ It invokes zero provider tools. `AUTH=REQUIRED` means complete OAuth;
 `UNAVAILABLE=YES` (including provider 5xx) is not evidence of bad credentials.
 CI runs config-only mode and requires no OAuth browser flow.
 
-The Netlify remote is primary. For a transient 5xx, inspect the prepared manual
-fallback without starting it:
-
-```bash
-bash scripts/agent-tools/netlify-mcp-fallback.sh
-```
-
-There is no automatic failover. If explicitly started, the client must continue
-to allowlist only `netlify-deploy-services-reader`; never expose environment,
-secret or deploy-trigger tools.
+Netlify current-deploy evidence needs no OAuth. The local `netlify-public`
+adapter exposes exactly `netlify-public_current-production-deploy`: it accepts
+only the canonical production `hub` or `euro` selector from
+`config/netlify-sites.json`, makes one GET to Netlify's fixed public deploy-list
+endpoint, rejects redirects, and returns only bounded non-secret deploy
+metadata. It has no arbitrary host/site, environment, deploy-trigger, or
+mutation surface.
 
 ## Planning and execution memory
 

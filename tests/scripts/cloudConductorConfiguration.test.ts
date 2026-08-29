@@ -228,7 +228,7 @@ printf '%s\\n' \\
       'scripts/agent-tools/configure-claude-settings.mjs',
       'scripts/agent-tools/merge-cloud-env.mjs',
       'scripts/agent-tools/mcp-readiness.sh',
-      'scripts/agent-tools/netlify-mcp-fallback.sh',
+      'scripts/agent-tools/netlify-public-deploy-mcp.mjs',
       'scripts/agent-tools/stage0-live-acceptance.sh',
     ]) {
       expect(declared, helper).toContain(helper)
@@ -305,15 +305,16 @@ printf '%s\\n' \\
 
   it('keeps MCP smoke initialization-only and classifies provider availability', () => {
     const readiness = read('scripts/agent-tools/mcp-readiness.sh')
-    const fallback = read('scripts/agent-tools/netlify-mcp-fallback.sh')
+    const adapter = read('scripts/agent-tools/netlify-public-deploy-mcp.mjs')
     expect(readiness).toContain('opencode debug config')
     expect(readiness).toContain('opencode mcp list')
     expect(readiness).toContain('initialize/tools-list only')
     expect(readiness).toContain('UNAVAILABLE')
     expect(readiness).not.toMatch(/mcp\s+run|tools\/call/)
-    expect(fallback).toContain('No automatic failover')
-    expect(fallback).toContain('netlify-deploy-services-reader')
-    expect(fallback).toContain("require('./config/agent-tools.json').netlifyMcp")
+    expect(adapter).toContain('https://api.netlify.com')
+    expect(adapter).toContain("method: 'GET'")
+    expect(adapter).toContain("redirect: 'error'")
+    expect(adapter).not.toMatch(/method:\s*['"](?:POST|PATCH|PUT|DELETE)['"]|env(?:ironment)?[_-]?(?:get|set|list)/i)
   })
 
   it('classifies failed MCP connections before positive ready text', () => {
@@ -330,6 +331,7 @@ case "\${1:-}" in
   serena  Connected
   context7  Connected
   repomix  Connected
+  netlify-public  Connected
   supabase-dev  Connected (OAuth)
   supabase-prod  Connected (OAuth)
   netlify  Connected (OAuth)

@@ -188,6 +188,7 @@ describe('JavaScript under scripts/', () => {
     // arrival rather than joining the deferred operational-script backlog.
     'scripts/agent-tools/configure-claude-settings.mjs',
     'scripts/agent-tools/merge-cloud-env.mjs',
+    'scripts/agent-tools/netlify-public-deploy-mcp.mjs',
     'scripts/check-documentation-authorities.mjs',
     'scripts/check-knip-baseline.mjs',
     // Machine identity decides which lane may hold which authority, and the

@@ -36,7 +36,7 @@ permission:
 tools:
   supabase-prod_*: true
   github_*: true
-  netlify_netlify-deploy-services-reader: true
+  netlify-public_current-production-deploy: true
   sentry_find_organizations: true
   posthog_read-data-schema: true
 ---
@@ -58,13 +58,13 @@ Check as relevant:
 
 Do not mutate Production, Supabase, Netlify, provider state or real player data. Do not create branches, commits or PRs. Do not weaken a failing test or reinterpret a missing check as green.
 
-For Netlify release evidence, never discover a project by an informal display-name guess. Read the non-secret canonical project identity from `config/netlify-sites.json`, select the intended `hub` or `euro` production site, and use that exact `siteId` to resolve the current deploy through the read-only Netlify reader. The deploy ID is live external truth and must be read at verification time rather than pinned in repository state. The retired `euro28-predictor-dev` entry is never valid Production evidence.
+For Netlify release evidence, never discover a project by an informal display-name guess. Read the non-secret canonical project identity from `config/netlify-sites.json`, select the intended `hub` or `euro` production site, and use `netlify-public_current-production-deploy` with that canonical selector. The local adapter resolves the exact `siteId`; the deploy ID is live external truth and must be read at verification time rather than pinned in repository state. The retired `euro28-predictor-dev` entry is never valid Production evidence.
 
 For Supabase Production identity, the configured MCP endpoint is project-scoped to `vkfnsqdyhvtwyqkisxhk` and read-only. When identity matters, pair that configured endpoint with the canonical `config/production-hosted-contract.json` record and a fresh read-only migration fingerprint; do not claim the MCP server independently returned its own project ref unless it actually did.
 
 Your enabled hosted MCP surfaces are server-side constrained: GitHub is read-only
 and toolset-bounded, Supabase Production is project-scoped/read-only, and Netlify
-exposes only its proven deploy reader. Sentry and PostHog stay root-denied except
+exposes only one public GET-only current-deploy reader. Sentry and PostHog stay root-denied except
 for the exact role grants `sentry_find_organizations` and
 `posthog_read-data-schema`; never invoke or request a provider multiplexer,
 catalog search, wildcard, write/triage, Seer or agent-feedback tool. These grants

@@ -37,6 +37,10 @@
     "repomix": {
       "command": "npx",
       "args": ["-y", "repomix@1.17.0", "--mcp"]
+    },
+    "netlify-public": {
+      "command": "node",
+      "args": ["scripts/agent-tools/netlify-public-deploy-mcp.mjs"]
     }
   }
 }
